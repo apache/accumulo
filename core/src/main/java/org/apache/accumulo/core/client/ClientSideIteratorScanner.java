@@ -50,11 +50,19 @@ import org.apache.hadoop.io.Text;
 /**
  * A scanner that instantiates iterators on the client side instead of on the tablet server. This
  * can be useful for testing iterators or in cases where you don't want iterators affecting the
- * performance of tablet servers.<br>
- * <br>
- * Suggested usage:<br>
- * <code>Scanner scanner = new ClientSideIteratorScanner(connector.createScanner(tableName, authorizations));</code><br>
- * <br>
+ * performance of tablet servers.
+ *
+ * <p>
+ * Suggested usage:
+ *
+ * <pre>
+ * <code>
+ * Scanner scanner = connector.createScanner(tableName, authorizations);
+ * scanner = new ClientSideIteratorScanner(scanner);
+ * </code>
+ * </pre>
+ *
+ * <p>
  * Iterators added to this scanner will be run in the client JVM. Separate scan iterators can be run
  * on the server side and client side by adding iterators to the source scanner (which will execute
  * server side) and to the client side scanner (which will execute client side).

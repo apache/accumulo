@@ -128,9 +128,9 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("sumarray");
-    io.setDescription(
-        "SummingArrayCombiner can interpret Values as arrays of Longs using a variety of encodings "
-            + "(arrays of variable length longs or fixed length longs, or comma-separated strings) before summing element-wise.");
+    io.setDescription("SummingArrayCombiner can interpret Values as arrays of"
+        + " Longs using a variety of encodings (arrays of variable length longs or"
+        + " fixed length longs, or comma-separated strings) before summing" + " element-wise.");
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }

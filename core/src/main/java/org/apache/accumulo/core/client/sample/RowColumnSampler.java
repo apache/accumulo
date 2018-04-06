@@ -48,8 +48,12 @@ import com.google.common.collect.ImmutableSet;
  * To configure Accumulo to generate sample data on one thousandth of the column qualifiers, the
  * following SamplerConfiguration could be created and used to configure a table.
  *
- * <p>
- * {@code new SamplerConfiguration(RowColumnSampler.class.getName()).setOptions(ImmutableMap.of("hasher","murmur3_32","modulus","1009","qualifier","true"))}
+ * <pre>
+ * <code>
+ * new SamplerConfiguration(RowColumnSampler.class.getName()).setOptions(
+ *   ImmutableMap.of("hasher","murmur3_32","modulus","1009","qualifier","true"));
+ * </code>
+ * </pre>
  *
  * <p>
  * With this configuration, if a column qualifier is selected then all key values contains that

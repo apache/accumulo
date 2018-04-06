@@ -685,8 +685,8 @@ public class InputConfigurator extends ConfiguratorBase {
         mapWritable.readFields(new DataInputStream(bais));
         bais.close();
       } catch (IOException e) {
-        throw new IllegalStateException(
-            "The table query configurations could not be deserialized from the given configuration");
+        throw new IllegalStateException("The table query configurations could not be deserialized"
+            + " from the given configuration");
       }
     }
     for (Map.Entry<Writable,Writable> entry : mapWritable.entrySet())

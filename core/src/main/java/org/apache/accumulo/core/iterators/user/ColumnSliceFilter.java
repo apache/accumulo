@@ -79,8 +79,8 @@ public class ColumnSliceFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("columnSlice");
-    io.setDescription(
-        "The ColumnSliceFilter/Iterator allows you to filter for key/value pairs based on a lexicographic range of column qualifier names");
+    io.setDescription("The ColumnSliceFilter/Iterator allows you to filter for"
+        + " key/value pairs based on a lexicographic range of column qualifier" + " names");
     io.addNamedOption(START_BOUND, "start string in slice");
     io.addNamedOption(END_BOUND, "end string in slice");
     io.addNamedOption(START_INCLUSIVE, "include the start bound in the result set");

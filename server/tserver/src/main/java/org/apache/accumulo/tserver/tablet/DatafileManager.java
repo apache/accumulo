@@ -501,9 +501,8 @@ class DatafileManager {
     long splitSize = tablet.getTableConfiguration()
         .getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
     if (dfv.getSize() > splitSize) {
-      log.debug(String.format(
-          "Minor Compaction wrote out file larger than split threshold.  split threshold = %,d  file size = %,d",
-          splitSize, dfv.getSize()));
+      log.debug(String.format("Minor Compaction wrote out file larger than split threshold."
+          + " split threshold = %,d  file size = %,d", splitSize, dfv.getSize()));
     }
   }
 

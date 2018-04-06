@@ -110,8 +110,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     // If there are no preferred volumes left, then warn the user and choose randomly from the
     // instance volumes
     if (filteredOptions.isEmpty()) {
-      log.warn(
-          "Preferred volumes are not instance volumes. Defaulting to randomly choosing from instance volumes");
+      log.warn("Preferred volumes are not instance volumes. Defaulting to"
+          + " randomly choosing from instance volumes");
       return super.choose(env, options);
     }
 

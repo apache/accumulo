@@ -104,8 +104,8 @@ public class TServersServlet extends BasicServlet {
         tservers.addAll(Monitor.getMmi().tServerInfo);
 
       Table tServerList = new Table("tservers", "Tablet&nbsp;Servers");
-      tServerList.setSubCaption(
-          "Click on the <span style='color: #0000ff;'>server address</span> to view detailed performance statistics for that server.");
+      tServerList.setSubCaption("Click on the <span style='color: #0000ff;'>server address</span>"
+          + " to view detailed performance statistics for that server.");
 
       doTserverList(req, sb, tservers, null, tServerList);
       return;
@@ -374,17 +374,22 @@ public class TServersServlet extends BasicServlet {
     tServerList.addSortableColumn("Running<br />Scans", new CompactionsType("scans"),
         "The number of scans running and queued on this tablet server.");
     tServerList.addSortableColumn("Minor<br />Compactions", new CompactionsType("minor"),
-        "The number of minor compactions running and (queued waiting for resources). Minor compactions are the operations where entries are flushed from memory to disk.");
+        "The number of minor compactions running and (queued waiting for"
+            + " resources). Minor compactions are the operations where entries are"
+            + " flushed from memory to disk.");
     tServerList.addSortableColumn("Major<br />Compactions", new CompactionsType("major"),
-        "The number of major compactions running and (queued waiting for resources). "
-            + "Major compactions are the operations where many smaller files are grouped into a larger file, eliminating duplicates and cleaning up deletes.");
+        "The number of major compactions running and (queued waiting for"
+            + " resources). Major compactions are the operations where many smaller"
+            + " files are grouped into a larger file, eliminating duplicates and"
+            + " cleaning up deletes.");
     tServerList.addSortableColumn("Index Cache<br />Hit Rate", new PercentageType(),
         "The recent index cache hit rate.");
     tServerList.addSortableColumn("Data Cache<br />Hit Rate", new PercentageType(),
         "The recent data cache hit rate.");
     tServerList.addSortableColumn("OS&nbsp;Load",
         new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
-        "The Unix one minute load average. The average number of processes in the run queue over a one minute interval.");
+        "The Unix one minute load average. The average number of processes in"
+            + " the run queue over a one minute interval.");
 
     log.debug("tableId: " + tableId);
     for (TabletServerStatus status : tservers) {

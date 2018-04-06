@@ -170,9 +170,8 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
      * will orphan the sessionsToCleanup in the sweep, leading to an inaccurate count within
      * sessionsFound.
      */
-    assertEquals(
-        "Must have ten sessions. Failure indicates a synchronization block within the sweep mechanism",
-        10, sessionsFound);
+    assertEquals("Must have ten sessions. Failure indicates a synchronization"
+        + " block within the sweep mechanism", 10, sessionsFound);
     for (Future<Boolean> callable : callables) {
       callable.cancel(true);
     }

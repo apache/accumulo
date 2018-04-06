@@ -1,6 +1,7 @@
 /*
  *
- * Copyright (c) 2005, European Commission project OneLab under contract 034819 (http://www.one-lab.org)
+ * Copyright (c) 2005, European Commission project OneLab under contract 034819
+ * (http://www.one-lab.org)
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or
  * without modification, are permitted provided that the following

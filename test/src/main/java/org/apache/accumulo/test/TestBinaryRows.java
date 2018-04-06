@@ -76,7 +76,8 @@ public class TestBinaryRows {
 
   public static class Opts extends ClientOnRequiredTable {
     @Parameter(names = "--mode",
-        description = "either 'ingest', 'delete', 'randomLookups', 'split', 'verify', 'verifyDeleted'",
+        description = "either 'ingest', 'delete', 'randomLookups', 'split',"
+            + " 'verify', 'verifyDeleted'",
         required = true)
     public String mode;
     @Parameter(names = "--start", description = "the lowest numbered row")

@@ -43,8 +43,13 @@ public class ReplicationSchema {
   /**
    * Portion of a file that must be replication to the given target: peer and some identifying
    * location on that peer, e.g. remote table ID
-   * <p>
-   * <code>hdfs://localhost:8020/accumulo/wal/tserver+port/WAL work:serialized_ReplicationTarget [] -&gt; Status Protobuf</code>
+   *
+   * <pre>
+   * <code>
+   * hdfs://localhost:8020/accumulo/wal/tserver+port/WAL work:serialized_ReplicationTarget []
+   * -&gt; Status Protobuf
+   * </code>
+   * </pre>
    */
   public static class WorkSection {
     public static final Text NAME = new Text("work");
@@ -85,8 +90,13 @@ public class ReplicationSchema {
 
   /**
    * Holds replication markers tracking status for files
-   * <p>
-   * <code>hdfs://localhost:8020/accumulo/wal/tserver+port/WAL repl:local_table_id [] -&gt; Status Protobuf</code>
+   *
+   * <pre>
+   * <code>
+   * hdfs://localhost:8020/accumulo/wal/tserver+port/WAL repl:local_table_id []
+   *  -&gt; Status Protobuf
+   * </code>
+   * </pre>
    */
   public static class StatusSection {
     public static final Text NAME = new Text("repl");
@@ -138,8 +148,13 @@ public class ReplicationSchema {
    * Holds the order in which files needed for replication were closed. The intent is to be able to
    * guarantee that files which were closed earlier were replicated first and we don't replay data
    * in the wrong order on our peers
-   * <p>
-   * <code>encodedTimeOfClosure\x00hdfs://localhost:8020/accumulo/wal/tserver+port/WAL order:source_table_id [] -&gt; Status Protobuf</code>
+   *
+   * <pre>
+   * <code>
+   * encodedTimeOfClosure\x00hdfs://localhost:8020/accumulo/wal/tserver+port/WAL
+   *   order:source_table_id [] -&gt; Status Protobuf
+   * </code>
+   * </pre>
    */
   public static class OrderSection {
     public static final Text NAME = new Text("order");

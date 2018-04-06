@@ -60,8 +60,8 @@ public class NonConfiguredVolume implements Volume {
 
   @Override
   public boolean isValidPath(Path p) {
-    throw new UnsupportedOperationException(
-        "Cannot determine if path is valid because this Volume isn't configured in accumulo-site.xml");
+    throw new UnsupportedOperationException("Cannot determine if path is valid"
+        + " because this Volume isn't configured in accumulo-site.xml");
   }
 
   @Override

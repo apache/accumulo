@@ -106,7 +106,8 @@ public class ClientConfiguration extends CompositeConfiguration {
      * @since 1.7.0
      */
     KERBEROS_SERVER_PRIMARY("kerberos.server.primary", "accumulo", PropertyType.STRING,
-        "The first component of the Kerberos principal, the 'primary', that Accumulo servers use to login");
+        "The first component of the Kerberos principal, the 'primary', "
+            + "that Accumulo servers use to login");
 
     private String key;
     private String defaultValue;
@@ -217,9 +218,9 @@ public class ClientConfiguration extends CompositeConfiguration {
         AbstractConfiguration abstractConfiguration = (AbstractConfiguration) c;
         if (!abstractConfiguration.isDelimiterParsingDisabled()
             && abstractConfiguration.getListDelimiter() != '\0') {
-          log.warn(
-              "Client configuration constructed with a Configuration that did not have list delimiter disabled or overridden, multi-valued config "
-                  + "properties may be unavailable");
+          log.warn("Client configuration constructed with a Configuration that did not have "
+              + "list delimiter disabled or overridden, multi-valued config "
+              + "properties may be unavailable");
           abstractConfiguration.setListDelimiter('\0');
         }
       }

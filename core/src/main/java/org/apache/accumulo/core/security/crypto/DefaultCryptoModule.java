@@ -63,7 +63,8 @@ public class DefaultCryptoModule implements CryptoModule {
     String cipherTransformation = getCipherTransformation(params);
 
     log.trace(String.format(
-        "Using cipher suite \"%s\" with key length %d with RNG \"%s\" and RNG provider \"%s\" and key encryption strategy \"%s\"",
+        "Using cipher suite \"%s\" with key length %d with"
+            + " RNG \"%s\" and RNG provider \"%s\" and key encryption strategy" + " \"%s\"",
         cipherTransformation, params.getKeyLength(), params.getRandomNumberGenerator(),
         params.getRandomNumberGeneratorProvider(), params.getKeyEncryptionStrategyClass()));
 
@@ -81,8 +82,8 @@ public class DefaultCryptoModule implements CryptoModule {
             new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()),
             params.getSecureRandom());
       } catch (InvalidKeyException e) {
-        log.error(
-            "Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
+        log.error("Accumulo encountered an unknown error in generating the"
+            + " secret key object (SecretKeySpec) for an encrypted stream");
         throw new RuntimeException(e);
       }
 
@@ -94,12 +95,12 @@ public class DefaultCryptoModule implements CryptoModule {
             new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()),
             new IvParameterSpec(params.getInitializationVector()));
       } catch (InvalidKeyException e) {
-        log.error(
-            "Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
+        log.error("Accumulo encountered an unknown error in generating the"
+            + " secret key object (SecretKeySpec) for an encrypted stream");
         throw new RuntimeException(e);
       } catch (InvalidAlgorithmParameterException e) {
-        log.error(
-            "Accumulo encountered an unknown error in setting up the initialization vector for an encrypted stream");
+        log.error("Accumulo encountered an unknown error in setting up the"
+            + " initialization vector for an encrypted stream");
         throw new RuntimeException(e);
       }
     }
@@ -157,8 +158,9 @@ public class DefaultCryptoModule implements CryptoModule {
 
     if (cipherMode == Cipher.ENCRYPT_MODE) {
 
-      StringBuilder errorBuf = new StringBuilder(
-          "The following problems were found with the CryptoModuleParameters object you provided for an encrypt operation:\n");
+      StringBuilder errorBuf = new StringBuilder("The following problems were"
+          + " found with the CryptoModuleParameters object you provided for an"
+          + " encrypt operation:\n");
       boolean allIsWell = true;
 
       allIsWell = validateNotEmpty(params.getAlgorithmName(), allIsWell, errorBuf,
@@ -190,8 +192,9 @@ public class DefaultCryptoModule implements CryptoModule {
       return allIsWell;
 
     } else if (cipherMode == Cipher.DECRYPT_MODE) {
-      StringBuilder errorBuf = new StringBuilder(
-          "The following problems were found with the CryptoModuleParameters object you provided for a decrypt operation:\n");
+      StringBuilder errorBuf = new StringBuilder("The following problems were"
+          + " found with the CryptoModuleParameters object you provided for a"
+          + " decrypt operation:\n");
       boolean allIsWell = true;
 
       allIsWell = validateNotEmpty(params.getPadding(), allIsWell, errorBuf,
@@ -404,11 +407,11 @@ public class DefaultCryptoModule implements CryptoModule {
           params.setBlockStreamSize(0);
       } else {
 
-        log.trace(
-            "Read something off of the encrypted input stream that was not the encryption header marker, so pushing back bytes and returning the given stream");
+        log.trace("Read something off of the encrypted input stream that was"
+            + " not the encryption header marker, so pushing back bytes and"
+            + " returning the given stream");
         // Push these bytes back on to the stream. This method is a bit roundabout but isolates our
-        // code
-        // from having to understand the format that DataOuputStream uses for its bytes.
+        // code from having to understand the format that DataOuputStream uses for its bytes.
         ByteArrayOutputStream tempByteOut = new ByteArrayOutputStream();
         DataOutputStream tempOut = new DataOutputStream(tempByteOut);
         tempOut.writeUTF(marker);

@@ -410,7 +410,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
       float memoryMB = ((float) bucketMemory.totalSize()) / ((float) (1024 * 1024));
 
       log.trace(
-          "Block cache LRU eviction completed. Freed {} bytes. Priority Sizes: Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
+          "Block cache LRU eviction completed. Freed {} bytes. Priority Sizes:"
+              + " Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
           bytesFreed, singleMB, bucketSingle.totalSize(), multiMB, bucketMulti.totalSize(),
           memoryMB, bucketMemory.totalSize());
 
@@ -599,8 +600,10 @@ public class LruBlockCache implements BlockCache, HeapSize {
     float freeMB = ((float) freeSize) / ((float) (1024 * 1024));
     float maxMB = ((float) maxSize) / ((float) (1024 * 1024));
     log.debug(
-        "Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB ({}), Counts: Blocks={}, Access={}, Hit={}, Miss={}, Evictions={}, Evicted={},"
-            + "Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={}, Duplicate Reads={}",
+        "Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB"
+            + " ({}), Counts: Blocks={}, Access={}, Hit={}, Miss={}, Evictions={},"
+            + " Evicted={}, Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={},"
+            + " Duplicate Reads={}",
         sizeMB, totalSize, freeMB, freeSize, maxMB, maxSize, size(), stats.getRequestCount(),
         stats.getHitCount(), stats.getMissCount(), stats.getEvictionCount(),
         stats.getEvictedCount(), stats.getHitRatio() * 100, stats.getMissRatio() * 100,

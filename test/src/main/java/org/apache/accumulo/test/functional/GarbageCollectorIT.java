@@ -304,8 +304,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
       Text row = new Text(String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(),
-          i,
-          "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
+          i, "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
+              + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
       Mutation delFlag = new Mutation(row);
       delFlag.put(emptyText, emptyText, new Value(new byte[] {}));
       bw.addMutation(delFlag);

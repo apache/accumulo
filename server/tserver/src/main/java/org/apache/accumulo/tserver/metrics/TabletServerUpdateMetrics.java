@@ -34,9 +34,8 @@ public class TabletServerUpdateMetrics extends AbstractMetricsImpl
     super();
     reset();
     try {
-      OBJECT_NAME = new ObjectName(
-          "accumulo.server.metrics:service=TServerInfo,name=TabletServerUpdateMetricsMBean,instance="
-              + Thread.currentThread().getName());
+      OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,"
+          + "name=TabletServerUpdateMetricsMBean,instance=" + Thread.currentThread().getName());
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }

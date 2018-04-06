@@ -142,12 +142,16 @@ abstract public class TransformingIterator extends WrappingIterator implements O
 
   @Override
   public IteratorOptions describeOptions() {
-    String desc = "This iterator allows ranges of key to be transformed (with the exception of row transformations).";
+    String desc = "This iterator allows ranges of key to be transformed (with"
+        + " the exception of row transformations).";
     String authDesc = "Comma-separated list of user's scan authorizations.  "
         + "If excluded or empty, then no visibility check is performed on transformed keys.";
-    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.  "
-        + "Users should keep this limit in mind when deciding what to transform.  That is, if transforming the column family for example, then all "
-        + "keys sharing the same row and column family must fit within this limit (along with their associated values)";
+    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use"
+        + " for buffering keys before throwing a BufferOverflowException. Users"
+        + " should keep this limit in mind when deciding what to transform. That"
+        + " is, if transforming the column family for example, then all keys"
+        + " sharing the same row and column family must fit within this limit"
+        + " (along with their associated values)";
     HashMap<String,String> namedOptions = new HashMap<>();
     namedOptions.put(AUTH_OPT, authDesc);
     namedOptions.put(MAX_BUFFER_SIZE_OPT, bufferDesc);

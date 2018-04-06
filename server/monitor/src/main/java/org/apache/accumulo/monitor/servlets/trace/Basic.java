@@ -162,8 +162,8 @@ abstract class Basic extends BasicServlet {
           conn.securityOperations().getUserAuthorizations(principal));
       return scanner;
     } catch (AccumuloSecurityException ex) {
-      sb.append(
-          "<h2>Unable to read trace table: check trace username and password configuration.</h2>\n");
+      sb.append("<h2>Unable to read trace table: check trace username "
+          + "and password configuration.</h2>\n");
       return null;
     } catch (TableNotFoundException ex) {
       return new NullScanner();

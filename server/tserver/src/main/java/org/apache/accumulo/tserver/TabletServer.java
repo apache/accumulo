@@ -149,6 +149,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
+import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProvider;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
@@ -811,7 +812,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       if (log.isDebugEnabled()) {
         log.debug(String.format(
-            "MultiScanSess %s %,d entries in %.2f secs (lookup_time:%.2f secs tablets:%,d ranges:%,d) ",
+            "MultiScanSess %s %,d entries in %.2f secs"
+                + " (lookup_time:%.2f secs tablets:%,d ranges:%,d) ",
             TServerUtils.clientAddress.get(), session.numEntries, (t2 - session.startTime) / 1000.0,
             session.totalLookupTime / 1000.0, session.numTablets, session.numRanges));
       }
@@ -1036,9 +1038,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             } catch (FSError ex) { // happens when DFS is localFS
               log.warn("logging mutations failed, retrying");
             } catch (Throwable t) {
-              log.error(
-                  "Unknown exception logging mutations, counts for mutations in flight not decremented!",
-                  t);
+              log.error("Unknown exception logging mutations, counts"
+                  + " for mutations in flight not decremented!", t);
               throw new RuntimeException(t);
             }
           }
@@ -1360,9 +1361,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           } catch (FSError ex) { // happens when DFS is localFS
             log.warn("logging mutations failed, retrying");
           } catch (Throwable t) {
-            log.error(
-                "Unknown exception logging mutations, counts for mutations in flight not decremented!",
-                t);
+            log.error("Unknown exception logging mutations, counts for"
+                + " mutations in flight not decremented!", t);
             throw new RuntimeException(t);
           }
         }
@@ -1606,9 +1606,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
         if (getCredentials().getToken().getClass().getName()
             .equals(credentials.getTokenClassName())) {
-          log.error(
-              "Got message from a service with a mismatched configuration. Please ensure a compatible configuration.",
-              e);
+          log.error("Got message from a service with a mismatched configuration."
+              + " Please ensure a compatible configuration.", e);
         }
         throw e;
       }
@@ -1952,9 +1951,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames)
         throws TException {
       log.warn("Garbage collector is attempting to remove logs through the tablet server");
-      log.warn(
-          "This is probably because your file Garbage Collector is an older version than your tablet servers.\n"
-              + "Restart your file Garbage Collector.");
+      log.warn("This is probably because your file"
+          + " Garbage Collector is an older version than your tablet servers.\n"
+          + "Restart your file Garbage Collector.");
     }
   }
 
@@ -2530,8 +2529,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         new ReplicationServicer.Processor<ReplicationServicer.Iface>(handler));
     ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy,
         handler.getClass(), getConfiguration());
-    ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<>(
-        repl);
+    // @formatter:off
+    ReplicationServicer.Processor<ReplicationServicer.Iface> processor =
+      new ReplicationServicer.Processor<>(repl);
+    // @formatter:on
     AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
         ? Property.TSERV_MAX_MESSAGE_SIZE
@@ -2573,8 +2574,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
       } catch (KeeperException e) {
         if (KeeperException.Code.NOAUTH == e.code()) {
-          log.error(
-              "Failed to write to ZooKeeper. Ensure that accumulo-site.xml, specifically instance.secret, is consistent.");
+          log.error("Failed to write to ZooKeeper. Ensure that"
+              + " accumulo-site.xml, specifically instance.secret, is consistent.");
         }
         throw e;
       }
@@ -2666,9 +2667,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         // out here? AUTH_FAILURE?
         // If we get the error, do we just put it on a timer and retry the exists(String, Watcher)
         // call?
-        log.error(
-            "Failed to perform initial check for authentication tokens in ZooKeeper. Delegation token authentication will be unavailable.",
-            e);
+        log.error("Failed to perform initial check for authentication tokens in"
+            + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
 
@@ -3392,7 +3392,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
   private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
-  private final SharedRateLimiterFactory.RateProvider rateProvider = new SharedRateLimiterFactory.RateProvider() {
+  private final RateProvider rateProvider = new RateProvider() {
     @Override
     public long getDesiredRate() {
       return getConfiguration().getMemoryInBytes(Property.TSERV_MAJC_THROUGHPUT);

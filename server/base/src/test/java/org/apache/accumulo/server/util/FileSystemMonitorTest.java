@@ -46,7 +46,8 @@ public class FileSystemMonitorTest {
         "devpts /dev/pts devpts rw,seclabel,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000 0 0",
         "tmpfs /run tmpfs rw,seclabel,nosuid,nodev,mode=755 0 0",
         "tmpfs /sys/fs/cgroup tmpfs ro,seclabel,nosuid,nodev,noexec,mode=755 0 0",
-        "cgroup /sys/fs/cgroup/systemd cgroup rw,nosuid,nodev,noexec,relatime,xattr,release_agent=/usr/lib/systemd/systemd-cgroups-agent,name=systemd 0 0",
+        "cgroup /sys/fs/cgroup/systemd cgroup rw,nosuid,nodev,noexec,relatime,xattr,"
+            + "release_agent=/usr/lib/systemd/systemd-cgroups-agent,name=systemd 0 0",
         "pstore /sys/fs/pstore pstore rw,nosuid,nodev,noexec,relatime 0 0",
         "cgroup /sys/fs/cgroup/cpuset cgroup rw,nosuid,nodev,noexec,relatime,cpuset 0 0",
         "cgroup /sys/fs/cgroup/cpu,cpuacct cgroup rw,nosuid,nodev,noexec,relatime,cpuacct,cpu 0 0",
@@ -62,7 +63,8 @@ public class FileSystemMonitorTest {
         "/dev/vda2 /ignoreme reiserfs rw 0 0",
         "rpc_pipefs /var/lib/nfs/rpc_pipefs rpc_pipefs rw,relatime 0 0",
         "selinuxfs /sys/fs/selinux selinuxfs rw,relatime 0 0",
-        "systemd-1 /proc/sys/fs/binfmt_misc autofs rw,relatime,fd=32,pgrp=1,timeout=300,minproto=5,maxproto=5,direct 0 0",
+        "systemd-1 /proc/sys/fs/binfmt_misc autofs rw,relatime,fd=32,pgrp=1,"
+            + "timeout=300,minproto=5,maxproto=5,direct 0 0",
         "debugfs /sys/kernel/debug debugfs rw,relatime 0 0",
         "mqueue /dev/mqueue mqueue rw,seclabel,relatime 0 0",
         "hugetlbfs /dev/hugepages hugetlbfs rw,seclabel,relatime 0 0",

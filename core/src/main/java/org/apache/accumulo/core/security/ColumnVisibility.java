@@ -218,7 +218,7 @@ public class ColumnVisibility {
   /*
    * Walks an expression's AST in order to:
    *  1) roll up expressions with the same operant (`a&(b&c) becomes a&b&c`)
-   *  2) sorts labels lexicographically (permutations of `a&b&c` are re-ordered to appear as `a&b&c`)
+   *  2) sort labels lexicographically (permutations of `a&b&c` are re-ordered to appear as `a&b&c`)
    *  3) dedupes labels (`a&b&a` becomes `a&b`)
    */
   // @formatter:on
@@ -540,7 +540,8 @@ public class ColumnVisibility {
    *   .
    *   .
    *   .
-   * ColumnVisibility cv = new ColumnVisibility(quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;));
+   * String s = quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;);
+   * ColumnVisibility cv = new ColumnVisibility(s);
    * </pre>
    *
    * @param term

@@ -91,8 +91,8 @@ public class SampleExample {
     print(scanner);
     System.out.println();
 
-    System.out.println(
-        "Scanning with sampler configuration.  Data was written before sampler was set on table, scan should fail.");
+    System.out.println("Scanning with sampler configuration. Data was written"
+        + " before sampler was set on table, scan should fail.");
     scanner.setSamplerConfiguration(sc1);
     try {
       print(scanner);
@@ -113,8 +113,8 @@ public class SampleExample {
     bw.addMutation(createMutation("2317", "milk, eggs, bread, parmigiano-reggiano, butter",
         "file://groceries/9/txt"));
     bw.close();
-    System.out.println(
-        "Scanning sample after updating content for docId 2317 (should see content change in sample data) : ");
+    System.out.println("Scanning sample after updating content for docId 2317"
+        + " (should see content change in sample data) : ");
     print(scanner);
     System.out.println();
 
@@ -126,8 +126,8 @@ public class SampleExample {
     conn.tableOperations().compact(opts.getTableName(),
         new CompactionConfig().setCompactionStrategy(NO_SAMPLE_STRATEGY));
 
-    System.out.println(
-        "Scanning with old sampler configuration.  Sample data was created using new configuration with a compaction.  Scan should fail.");
+    System.out.println("Scanning with old sampler configuration. Sample data"
+        + " was created using new configuration with a compaction. Scan should fail.");
     try {
       // try scanning with old sampler configuration
       print(scanner);

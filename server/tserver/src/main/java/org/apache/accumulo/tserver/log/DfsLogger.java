@@ -402,8 +402,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
             // The DefaultCryptoModule will want to read the parameters from the underlying file, so
             // we will put the file back to that spot.
-            org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+            // @formatter:off
+            org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
+              org.apache.accumulo.core.security.crypto.CryptoModuleFactory
                 .getCryptoModule(DefaultCryptoModule.class.getName());
+            // @formatter:on
 
             CryptoModuleParameters params = CryptoModuleFactory
                 .createParamsObjectFromAccumuloConfiguration(conf);
@@ -428,8 +431,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
       }
     } catch (EOFException e) {
-      log.warn(
-          "Got EOFException trying to read WAL header information, assuming the rest of the file has no data.");
+      log.warn("Got EOFException trying to read WAL header information,"
+          + " assuming the rest of the file has no data.");
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }
@@ -475,8 +478,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
       flush = logFile.getClass().getMethod("hflush");
 
       // Initialize the crypto operations.
-      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+      // @formatter:off
+      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
+        org.apache.accumulo.core.security.crypto.CryptoModuleFactory
           .getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
+      // @formatter:on
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
       logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));
@@ -600,8 +606,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       write(key, EMPTY);
     } catch (IllegalArgumentException e) {
-      log.error(
-          "Signature of sync method changed. Accumulo is likely incompatible with this version of Hadoop.");
+      log.error("Signature of sync method changed. Accumulo is likely"
+          + " incompatible with this version of Hadoop.");
       throw new RuntimeException(e);
     }
   }

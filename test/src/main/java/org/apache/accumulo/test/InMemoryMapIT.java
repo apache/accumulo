@@ -95,10 +95,8 @@ public class InMemoryMapIT {
     if (!NativeMap.isLoaded()) {
       fail("Missing the native library from " + nativeMapLocation.getAbsolutePath()
           + "\nYou need to build the libaccumulo binary first. "
-          + "\nTry running 'mvn clean install -Dit.test=InMemoryMapIT -Dtest=foo -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip'");
-      // afterwards, you can run the following
-      // mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo -DfailIfNoTests=false -Dfindbugs.skip
-      // -Dcheckstyle.skip -pl :accumulo-test
+          + "\nTry running 'mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo"
+          + " -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip'");
     }
     log.debug("Native map loaded");
 

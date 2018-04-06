@@ -247,8 +247,8 @@ public class Initialize implements KeywordExecutable {
     log.info("Accumulo data dirs are "
         + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
     log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
-    log.info(
-        "Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
+    log.info("Checking if Zookeeper is available. If this hangs, then you need"
+        + " to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Zookeeper needs to be up and running in order to init. Exiting ...");
@@ -259,16 +259,16 @@ public class Initialize implements KeywordExecutable {
       c.beep();
       c.println();
       c.println();
-      c.println(
-          "Warning!!! Your instance secret is still set to the default, this is not secure. We highly recommend you change it.");
+      c.println("Warning!!! Your instance secret is still set to the default,"
+          + " this is not secure. We highly recommend you change it.");
       c.println();
       c.println();
       c.println("You can change the instance secret in accumulo by using:");
       c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName()
           + " oldPassword newPassword.");
-      c.println(
-          "You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. "
-              + "Without this accumulo will not operate correctly");
+      c.println("You will also need to edit your secret in your configuration"
+          + " file by adding the property instance.secret to your"
+          + " conf/accumulo-site.xml. Without this accumulo will not operate" + " correctly");
     }
     try {
       if (isInitialized(fs)) {
@@ -382,8 +382,8 @@ public class Initialize implements KeywordExecutable {
         if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
           log.error("FATAL: Default filesystem value ('fs.defaultFS' or 'fs.default.name') of '"
               + defaultFsUri + "' was found in the Hadoop configuration");
-          log.error(
-              "FATAL: Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
+          log.error("FATAL: Please ensure that the Hadoop core-site.xml is on"
+              + " the classpath using 'general.classpaths' in accumulo-site.xml");
         }
       }
 
@@ -409,8 +409,8 @@ public class Initialize implements KeywordExecutable {
           // Fail if the site configuration doesn't contain appropriate credentials to login as
           // servers
           if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
-            log.error(
-                "FATAL: No Kerberos credentials provided, and Accumulo is not properly configured for server login");
+            log.error("FATAL: No Kerberos credentials provided, and Accumulo is"
+                + " not properly configured for server login");
             return false;
           }
 
@@ -814,7 +814,8 @@ public class Initialize implements KeywordExecutable {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS
             + " and should not appear in " + Property.INSTANCE_VOLUMES
-            + ". It is highly recommended that this property be removed as data could still be written to this volume.");
+            + ". It is highly recommended that this property be removed as data"
+            + " could still be written to this volume.");
     }
 
     if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(

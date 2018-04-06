@@ -126,8 +126,8 @@ public class ShowTrace extends Basic {
     sb.append(
         String.format("<span class='table-caption'>Trace %s started at<br>%s</span></caption>", id,
             dateString(start)));
-    sb.append(
-        "<tr><th>Time</th><th>Start</th><th>Service@Location</th><th>Name</th><th>Addl Data</th></tr>");
+    sb.append("<tr><th>Time</th><th>Start</th><th>Service@Location</th>"
+        + "<th>Name</th><th>Addl Data</th></tr>");
 
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
@@ -139,8 +139,8 @@ public class ShowTrace extends Basic {
     });
     tree.nodes.keySet().removeAll(visited);
     if (!tree.nodes.isEmpty()) {
-      sb.append(
-          "<tr><td colspan=10>The following spans are not rooted (probably due to a parent span of length 0ms):<td></tr>\n");
+      sb.append("<tr><td colspan=10>The following spans are not rooted"
+          + " (probably due to a parent span of length 0ms):<td></tr>\n");
       for (RemoteSpan span : TraceDump.sortByStart(tree.nodes.values())) {
         appendRow(sb, 0, span, finalStart);
       }

@@ -174,9 +174,8 @@ public final class ZKAuthenticator implements Authenticator {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
       }
     } else
-      throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST); // user
-                                                                                           // doesn't
-                                                                                           // exist
+      // user doesn't exist
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
 
   @Override

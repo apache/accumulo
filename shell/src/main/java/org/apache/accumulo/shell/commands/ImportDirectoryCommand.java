@@ -29,7 +29,8 @@ public class ImportDirectoryCommand extends Command {
 
   @Override
   public String description() {
-    return "bulk imports an entire directory of data files to the current table.  The boolean argument determines if accumulo sets the time.";
+    return "bulk imports an entire directory of data files to the current"
+        + " table. The boolean argument determines if accumulo sets the time.";
   }
 
   @Override

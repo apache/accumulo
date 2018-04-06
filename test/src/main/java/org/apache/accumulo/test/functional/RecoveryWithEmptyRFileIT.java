@@ -67,8 +67,8 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
 
   @Test
   public void replaceMissingRFile() throws Exception {
-    log.info(
-        "Ingest some data, verify it was stored properly, replace an underlying rfile with an empty one and verify we can scan.");
+    log.info("Ingest some data, verify it was stored properly, replace an"
+        + " underlying rfile with an empty one and verify we can scan.");
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
     ReadWriteIT.ingest(connector, cluster.getClientConfig(), "root", ROWS, COLS, 50, 0, tableName);

@@ -187,8 +187,8 @@ public class MetricsConfiguration {
       }
     } else {
       if (!alreadyWarned)
-        log.warn(
-            "ACCUMULO_CONF_DIR variable not found in environment. Metrics collection will be disabled.");
+        log.warn("ACCUMULO_CONF_DIR variable not found in environment. Metrics"
+            + " collection will be disabled.");
       alreadyWarned = true;
       notFound = true;
       return;
@@ -215,8 +215,7 @@ public class MetricsConfiguration {
   public static void main(String[] args) throws Exception {
     MetricsConfiguration mc = new MetricsConfiguration("master");
     while (true) {
-      System.out.println(
-          "------------------------------------------------------------------------------------------------");
+      System.out.println("-----------------------------------------------------------------------");
       long t1 = System.currentTimeMillis();
       System.out.println(mc.isEnabled() + " took: " + (System.currentTimeMillis() - t1));
       Thread.sleep(1000);

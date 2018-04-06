@@ -86,24 +86,25 @@ import com.google.common.collect.Multimap;
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer implements ConfigurationObserver {
 
+  private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
+
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
-  public static final String HOST_BALANCER_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "balancer.host.regex.";
-  public static final String HOST_BALANCER_OOB_CHECK_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX
-      .getKey() + "balancer.host.regex.oob.period";
+  public static final String HOST_BALANCER_PREFIX = PROP_PREFIX + "balancer.host.regex.";
+  public static final String HOST_BALANCER_OOB_CHECK_KEY = PROP_PREFIX
+      + "balancer.host.regex.oob.period";
   private static final String HOST_BALANCER_OOB_DEFAULT = "5m";
   @Deprecated
-  public static final String HOST_BALANCER_POOL_RECHECK_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX
-      .getKey() + "balancer.host.regex.pool.check";
-  public static final String HOST_BALANCER_REGEX_USING_IPS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX
-      .getKey() + "balancer.host.regex.is.ip";
-  public static final String HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX
-      .getKey() + "balancer.host.regex.concurrent.migrations";
+  public static final String HOST_BALANCER_POOL_RECHECK_KEY = PROP_PREFIX
+      + "balancer.host.regex.pool.check";
+  public static final String HOST_BALANCER_REGEX_USING_IPS_KEY = PROP_PREFIX
+      + "balancer.host.regex.is.ip";
+  public static final String HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY = PROP_PREFIX
+      + "balancer.host.regex.concurrent.migrations";
   private static final int HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT = 250;
   protected static final String DEFAULT_POOL = "HostTableLoadBalancer.ALL";
   private static final int DEFAULT_OUTSTANDING_MIGRATIONS = 0;
-  public static final String HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX
-      .getKey() + "balancer.host.regex.max.outstanding.migrations";
+  public static final String HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY = PROP_PREFIX
+      + "balancer.host.regex.max.outstanding.migrations";
 
   protected long oobCheckMillis = AccumuloConfiguration.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
 
@@ -130,8 +131,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    *          map of current tservers
    * @return current servers grouped by pool name, if not a match it is put into a default pool.
    */
-  protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>> splitCurrentByRegex(
-      SortedMap<TServerInstance,TabletServerStatus> current) {
+  // @formatter:off
+  protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>>
+    splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
+  // @formatter:on
     LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
@@ -373,9 +376,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             }
             String tid = tableIdMap.get(table);
             if (null == tid) {
-              LOG.warn(
-                  "Unable to check for out of bounds tablets for table {}, it may have been deleted or renamed.",
-                  table);
+              LOG.warn("Unable to check for out of bounds tablets for table {},"
+                  + " it may have been deleted or renamed.", table);
               continue;
             }
             try {
@@ -400,17 +402,15 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
                     iter.next();
                   }
                   TServerInstance nextTS = iter.next();
-                  LOG.info(
-                      "Tablet {} is currently outside the bounds of the regex, migrating from {} to {}",
-                      ke, e.getKey(), nextTS);
+                  LOG.info("Tablet {} is currently outside the bounds of the"
+                      + " regex, migrating from {} to {}", ke, e.getKey(), nextTS);
                   migrationsOut.add(new TabletMigration(ke, e.getKey(), nextTS));
                   if (migrationsOut.size() >= this.maxTServerMigrations) {
                     break;
                   }
                 } else {
-                  LOG.warn(
-                      "No tablet servers online for pool {}, unable to migrate out of bounds tablets",
-                      poolName);
+                  LOG.warn("No tablet servers online for pool {}, unable to"
+                      + " migrate out of bounds tablets", poolName);
                 }
               }
             } catch (TException e1) {

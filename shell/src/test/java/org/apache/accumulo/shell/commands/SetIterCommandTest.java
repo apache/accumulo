@@ -121,7 +121,8 @@ public class SetIterCommandTest {
     EasyMock.replay(conn, cli, shellState, reader, tableOperations);
 
     cmd.execute(
-        "setiter -all -p 21 -t foo -class org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
+        "setiter -all -p 21 -t foo"
+            + " -class org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
         cli, shellState);
 
     EasyMock.verify(conn, cli, shellState, reader, tableOperations);

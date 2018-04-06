@@ -163,7 +163,8 @@ public class MasterServlet extends BasicServlet {
               + " Note that deleted records are \"inserted\" and will make the ingest "
               + "rate increase in the near-term.");
       masterStatus.addSortableColumn("Entries<br />Read", new NumberType<Long>(),
-          "The total number of Key/Value pairs read on the server side.  Not all may be returned because of filtering.");
+          "The total number of Key/Value pairs read on the server side. Not"
+              + " all may be returned because of filtering.");
       masterStatus.addSortableColumn("Entries<br />Returned", new NumberType<Long>(),
           "The total number of Key/Value pairs returned as a result of scans.");
       masterStatus.addSortableColumn("Hold&nbsp;Time", new DurationType(0l, 0l),

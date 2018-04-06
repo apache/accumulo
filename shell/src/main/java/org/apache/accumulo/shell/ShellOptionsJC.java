@@ -120,8 +120,9 @@ public class ShellOptionsJC {
 
   // Note: Don't use "password = true" because then it will prompt even if we have a token
   @Parameter(names = {"-p", "--password"},
-      description = "password (can be specified as 'pass:<password>', 'file:<local file containing the password>', "
-          + "'env:<variable containing the pass>', or stdin)",
+      description = "password (can be specified as 'pass:<password>',"
+          + " 'file:<local file containing the password>', 'env:<variable containing"
+          + " the pass>', or stdin)",
       converter = PasswordConverter.class)
   private String password;
 
@@ -178,8 +179,9 @@ public class ShellOptionsJC {
   private boolean hdfsZooInstance;
 
   @Parameter(names = {"-z", "--zooKeeperInstance"},
-      description = "use a zookeeper instance with the given instance name and list of zoo hosts. "
-          + "Syntax: -z <zoo-instance-name> <zoo-hosts>. Where <zoo-hosts> is a comma separated list of zookeeper servers.",
+      description = "use a zookeeper instance with the given instance name and"
+          + " list of zoo hosts. Syntax: -z <zoo-instance-name> <zoo-hosts>. Where"
+          + " <zoo-hosts> is a comma separated list of zookeeper servers.",
       arity = 2)
   private List<String> zooKeeperInstance = new ArrayList<>();
 
@@ -189,9 +191,11 @@ public class ShellOptionsJC {
   @Parameter(names = "--sasl", description = "use SASL to connect to Accumulo (Kerberos)")
   private boolean useSasl = false;
 
-  @Parameter(names = "--config-file", description = "read the given client config file. "
-      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
-      + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+  @Parameter(names = "--config-file",
+      description = "read the given client"
+          + " config file. If omitted, the path searched can be specified with"
+          + " $ACCUMULO_CLIENT_CONF_PATH, which defaults to"
+          + " ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
   private String clientConfigFile = null;
 
   @Parameter(names = {"-zi", "--zooKeeperInstanceName"},
@@ -200,8 +204,8 @@ public class ShellOptionsJC {
   private String zooKeeperInstanceName;
 
   @Parameter(names = {"-zh", "--zooKeeperHosts"},
-      description = "use a zookeeper instance with the given comma separated list of zookeeper servers. "
-          + "This parameter is used in conjunction with -zi.")
+      description = "use a zookeeper instance with the given comma separated"
+          + " list of zookeeper servers. This parameter is used in conjunction with -zi.")
   private String zooKeeperHosts;
 
   @Parameter(names = "--auth-timeout",

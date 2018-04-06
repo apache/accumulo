@@ -36,9 +36,13 @@ import org.slf4j.LoggerFactory;
  * users capable of impersonating another user, the users which may be impersonated and the hosts in
  * which the impersonator may issue requests from.
  *
- * <code>INSTANCE_RPC_SASL_PROXYUSERS=rpc_user={allowed_accumulo_users=[...], allowed_client_hosts=[...]</code>
- * <code>INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION=rpc_user:user,user,user;...</code>
- * <code>INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION=host,host:host...</code>
+ * <pre>
+ * <code>
+ * INSTANCE_RPC_SASL_PROXYUSERS=rpc_user={allowed_accumulo_users=[...], allowed_client_hosts=[...]
+ * INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION=rpc_user:user,user,user;...
+ * INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION=host,host:host...
+ * </code>
+ * </pre>
  *
  * @see Property#INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION
  * @see Property#INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION
@@ -216,8 +220,8 @@ public class UserImpersonation {
     }
 
     if (userConfigs.length != hostConfigs.length) {
-      String msg = String.format(
-          "Should have equal number of user and host impersonation elements in configuration. Got %d and %d elements, respectively.",
+      String msg = String.format("Should have equal number of user and host"
+          + " impersonation elements in configuration. Got %d and %d elements," + " respectively.",
           userConfigs.length, hostConfigs.length);
       throw new IllegalArgumentException(msg);
     }

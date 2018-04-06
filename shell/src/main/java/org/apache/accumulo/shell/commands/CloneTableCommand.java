@@ -90,8 +90,8 @@ public class CloneTableCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    setPropsOption = new Option("s", "set", true,
-        "set initial properties before the table comes online. Expects <prop>=<value>{,<prop>=<value>}");
+    setPropsOption = new Option("s", "set", true, "set initial properties"
+        + " before the table comes online. Expects <prop>=<value>{,<prop>=<value>}");
     o.addOption(setPropsOption);
     excludePropsOption = new Option("e", "exclude", true,
         "exclude properties that should not be copied from source table. Expects <prop>{,<prop>}");

@@ -164,9 +164,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
           }
         }
       } catch (IOException e) {
-        log.warn(
-            "Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml",
-            e);
+        log.warn("Failed to extract sensitive properties from Hadoop"
+            + " CredentialProvider, falling back to accumulo-site.xml", e);
       }
     }
   }

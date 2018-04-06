@@ -192,7 +192,8 @@ public class ProblemServlet extends BasicServlet {
         return "-";
       ProblemReport p = (ProblemReport) obj;
       return String.format(
-          "<a href='/op?table=%s&action=clearProblem&redir=%s&resource=%s&ptype=%s'>clear this problem</a>",
+          "<a href='/op?table=%s&action=clearProblem&redir=%s"
+              + "&resource=%s&ptype=%s'>clear this problem</a>",
           encode(p.getTableName()), currentPage, encode(p.getResource()),
           encode(p.getProblemType().name()));
     }

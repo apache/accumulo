@@ -171,21 +171,19 @@ public class VisServlet extends BasicServlet {
     sb.append("<div class='left'>\n");
     sb.append("<div id='parameters' class='nowrap'>\n");
     // shape select box
-    sb.append(
-        "<span class='viscontrol'>Shape: <select id='shape' onchange='setShape(this)'><option>Circles</option><option")
-        .append(!cfg.useCircles ? " selected='true'" : "")
+    sb.append("<span class='viscontrol'>Shape: <select id='shape' onchange='setShape(this)'>"
+        + "<option>Circles</option><option").append(!cfg.useCircles ? " selected='true'" : "")
         .append(">Squares</option></select></span>\n");
     // size select box
-    sb.append(
-        "&nbsp;&nbsp<span class='viscontrol'>Size: <select id='size' onchange='setSize(this)'><option")
-        .append(cfg.spacing == 10 ? " selected='true'" : "").append(">10</option><option")
-        .append(cfg.spacing == 20 ? " selected='true'" : "").append(">20</option><option")
-        .append(cfg.spacing == 40 ? " selected='true'" : "").append(">40</option><option")
-        .append(cfg.spacing == 80 ? " selected='true'" : "")
+    sb.append("&nbsp;&nbsp<span class='viscontrol'>Size: <select id='size' "
+        + "onchange='setSize(this)'><option").append(cfg.spacing == 10 ? " selected='true'" : "")
+        .append(">10</option><option").append(cfg.spacing == 20 ? " selected='true'" : "")
+        .append(">20</option><option").append(cfg.spacing == 40 ? " selected='true'" : "")
+        .append(">40</option><option").append(cfg.spacing == 80 ? " selected='true'" : "")
         .append(">80</option></select></span>\n");
     // motion select box
-    sb.append(
-        "&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'>");
+    sb.append("&nbsp;&nbsp<span class='viscontrol'>"
+        + "Motion: <select id='motion' onchange='setMotion(this)'>");
     sb.append("<option selected='true'></option>");
     addOptions(sb, null);
     sb.append("</select></span>\n");

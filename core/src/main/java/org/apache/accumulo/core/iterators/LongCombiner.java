@@ -104,8 +104,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("longcombiner");
-    io.setDescription(
-        "LongCombiner can interpret Values as Longs in a variety of encodings (variable length, fixed length, or string) before combining");
+    io.setDescription("LongCombiner can interpret Values as Longs in a variety of encodings"
+        + " (variable length, fixed length, or string) before combining");
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }

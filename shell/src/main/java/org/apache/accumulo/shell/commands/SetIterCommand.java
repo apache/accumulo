@@ -154,9 +154,11 @@ public class SetIterCommand extends Command {
     ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
     final String aggregatorClass = options.get("aggregatorClass");
+    // @formatter:off
     @SuppressWarnings("deprecation")
-    String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class
-        .getName();
+    String deprecatedAggregatorClassName =
+      org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
+    // @formatter:on
     if (aggregatorClass != null && !shellState.getConnector().tableOperations()
         .testClassLoad(tableName, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
@@ -203,9 +205,11 @@ public class SetIterCommand extends Command {
     }
 
     final String aggregatorClass = options.get("aggregatorClass");
+    // @formatter:off
     @SuppressWarnings("deprecation")
-    String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class
-        .getName();
+    String deprecatedAggregatorClassName =
+      org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
+    // @formatter:on
     if (aggregatorClass != null && !shellState.getConnector().namespaceOperations()
         .testClassLoad(namespace, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
@@ -346,8 +350,8 @@ public class SetIterCommand extends Command {
       } while (!iterOptions.validateOptions(options));
     } else {
       reader.flush();
-      reader.println(
-          "The iterator class does not implement OptionDescriber. Consider this for better iterator configuration using this setiter command.");
+      reader.println("The iterator class does not implement OptionDescriber."
+          + " Consider this for better iterator configuration using this setiter" + " command.");
       iteratorName = reader.readLine("Name for iterator (enter to skip): ");
       if (null == iteratorName) {
         reader.println();

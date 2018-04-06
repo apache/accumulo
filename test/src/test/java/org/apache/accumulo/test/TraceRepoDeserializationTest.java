@@ -28,7 +28,8 @@ import org.junit.Test;
 public class TraceRepoDeserializationTest {
 
   // Zookeeper data for a merge request
-  static private final String oldValue = "rO0ABXNyAC1vcmcuYXBhY2hlLmFjY3VtdWxvLm1hc3Rlci50YWJsZU9wcy5UcmFjZVJlc"
+  static private final String oldValue = "rO0ABXNyAC1vcmcuYXBhY2hlLmFjY3VtdWx"
+      + "vLm1hc3Rlci50YWJsZU9wcy5UcmFjZVJlc"
       + "G8AAAAAAAAAAQIAAkwABHJlcG90AB9Mb3JnL2FwYWNoZS9hY2N1bXVsby9mYXRlL1Jl"
       + "cG87TAAFdGluZm90AChMb3JnL2FwYWNoZS9hY2N1bXVsby90cmFjZS90aHJpZnQvVEl"
       + "uZm87eHBzcgAwb3JnLmFwYWNoZS5hY2N1bXVsby5tYXN0ZXIudGFibGVPcHMuVGFibG"

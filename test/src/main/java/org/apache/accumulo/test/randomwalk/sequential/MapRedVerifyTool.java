@@ -121,10 +121,12 @@ public class MapRedVerifyTool extends Configured implements Tool {
         // Do the explicit check to see if the user has the permission to get a delegation token
         if (!conn.securityOperations().hasSystemPermission(conn.whoami(),
             SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
-          log.error(newPrincipal + " doesn't have the "
-              + SystemPermission.OBTAIN_DELEGATION_TOKEN.name()
-              + " SystemPermission neccesary to obtain a delegation token. MapReduce tasks cannot automatically use the client's"
-              + " credentials on remote servers. Delegation tokens provide a means to run MapReduce without distributing the user's credentials.");
+          log.error(
+              newPrincipal + " doesn't have the " + SystemPermission.OBTAIN_DELEGATION_TOKEN.name()
+                  + " SystemPermission neccesary to obtain a delegation token."
+                  + " MapReduce tasks cannot automatically use the client's credentials"
+                  + " on remote servers. Delegation tokens provide a means to run"
+                  + " MapReduce without distributing the user's credentials.");
           throw new IllegalStateException(
               conn.whoami() + " does not have permission to obtain a delegation token");
         }

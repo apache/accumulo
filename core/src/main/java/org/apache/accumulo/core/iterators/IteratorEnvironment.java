@@ -55,7 +55,8 @@ public interface IteratorEnvironment {
    *     SortedKeyValueIterator&lt;Key,Value&gt; source;
    *     SortedKeyValueIterator&lt;Key,Value&gt; sampleIter;
    *     &#64;Override
-   *     void init(SortedKeyValueIterator&lt;Key,Value&gt; source, Map&lt;String,String&gt; options, IteratorEnvironment env) {
+   *     void init(SortedKeyValueIterator&lt;Key,Value&gt; source, Map&lt;String,String&gt; options,
+   *       IteratorEnvironment env) {
    *       IteratorEnvironment sampleEnv = env.cloneWithSamplingEnabled();
    *       //do some sanity checks on sampling config
    *       validateSamplingConfiguration(sampleEnv.getSamplerConfiguration());

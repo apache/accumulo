@@ -37,27 +37,33 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*
- * This class governs the space in Zookeeper that advertises the status of Write-Ahead Logs
- * in use by tablet servers and the replication machinery.
+/**
+ * This class governs the space in Zookeeper that advertises the status of Write-Ahead Logs in use
+ * by tablet servers and the replication machinery.
  *
- * The Master needs to know the state of the WALs to mark tablets during recovery.
- * The GC needs to know when a log is no longer needed so it can be removed.
- * The replication mechanism needs to know when a log is closed and can be forwarded to the destination table.
+ * <p>
+ * The Master needs to know the state of the WALs to mark tablets during recovery. The GC needs to
+ * know when a log is no longer needed so it can be removed. The replication mechanism needs to know
+ * when a log is closed and can be forwarded to the destination table.
  *
- * The state of the WALs is kept in Zookeeper under /accumulo/<instanceid>/wals.
- * For each server, there is a znode formatted like the TServerInstance.toString(): "host:port[sessionid]".
- * Under the server znode, is a node for each log, using the UUID for the log.
- * In each of the WAL znodes, is the current state of the log, and the full path to the log.
+ * <p>
+ * The state of the WALs is kept in Zookeeper under /accumulo/&lt;instanceid&gt;/wals. For each
+ * server, there is a znode formatted like the TServerInstance.toString(): "host:port[sessionid]".
+ * Under the server znode, is a node for each log, using the UUID for the log. In each of the WAL
+ * znodes, is the current state of the log, and the full path to the log.
  *
- * The state [OPEN, CLOSED, UNREFERENCED] is what the tablet server believes to be the state of the file.
+ * <p>
+ * The state [OPEN, CLOSED, UNREFERENCED] is what the tablet server believes to be the state of the
+ * file.
  *
- * In the event of a recovery, the log is identified as belonging to a dead server.  The master will update
- * the tablets assigned to that server with log references. Once all tablets have been reassigned and the log
- * references are removed, the log will be eligible for deletion.
+ * <p>
+ * In the event of a recovery, the log is identified as belonging to a dead server. The master will
+ * update the tablets assigned to that server with log references. Once all tablets have been
+ * reassigned and the log references are removed, the log will be eligible for deletion.
  *
- * Even when a log is UNREFERENCED by the tablet server, the replication mechanism may still need the log.
- * The GC will defer log removal until replication is finished with it.
+ * <p>
+ * Even when a log is UNREFERENCED by the tablet server, the replication mechanism may still need
+ * the log. The GC will defer log removal until replication is finished with it.
  *
  */
 public class WalStateManager {

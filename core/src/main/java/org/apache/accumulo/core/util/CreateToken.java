@@ -66,8 +66,9 @@ public class CreateToken implements KeywordExecutable {
     public String tokenClassName = PasswordToken.class.getName();
 
     @Parameter(names = {"-f", "--file"},
-        description = "The filename to save the auth token to. Multiple tokens can be stored in the same file,"
-            + " but only the first for each user will be recognized.")
+        description = "The filename to save the auth token to. Multiple tokens"
+            + " can be stored in the same file, but only the first for each user will"
+            + " be recognized.")
     public String tokenFile = null;
   }
 

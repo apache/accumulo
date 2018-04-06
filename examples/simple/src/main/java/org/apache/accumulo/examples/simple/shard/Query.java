@@ -50,11 +50,13 @@ public class Query {
     List<String> terms = new ArrayList<>();
 
     @Parameter(names = {"--sample"},
-        description = "Do queries against sample, useful when sample is built using column qualifier")
+        description = "Do queries against sample, useful when sample is built"
+            + " using column qualifier")
     private boolean useSample = false;
 
     @Parameter(names = {"--sampleCutoff"},
-        description = "Use sample data to determine if a query might return a number of documents over the cutoff.  This check is per tablet.")
+        description = "Use sample data to determine if a query might return a"
+            + " number of documents over the cutoff. This check is per tablet.")
     private Integer sampleCutoff = null;
   }
 

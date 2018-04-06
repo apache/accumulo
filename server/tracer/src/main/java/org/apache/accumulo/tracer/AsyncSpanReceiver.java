@@ -173,7 +173,8 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         if (now - lastNotificationOfDroppedSpans > 60 * 1000) {
           log.warn("Tracing spans are being dropped because there are already " + maxQueueSize
               + " spans queued for delivery.\n"
-              + "This does not affect performance, security or data integrity, but distributed tracing information is being lost.");
+              + "This does not affect performance, security or data integrity,"
+              + " but distributed tracing information is being lost.");
           lastNotificationOfDroppedSpans = now;
         }
         return;

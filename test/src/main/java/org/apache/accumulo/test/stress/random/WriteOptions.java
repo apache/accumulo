@@ -129,9 +129,8 @@ class WriteOptions extends ClientOnDefaultTable {
 
     if (min_ref == null && max_ref != null) {
       // we don't support just specifying a max yet
-      throw new IllegalArgumentException(String.format(
-          "[%s] Maximum value supplied, but no minimum. Must supply a minimum with a maximum value.",
-          label));
+      throw new IllegalArgumentException(String.format("[%s] Maximum value supplied,"
+          + " but no minimum. Must supply a minimum with a maximum value.", label));
     } else if (min_ref != null && max_ref != null) {
       // if a user supplied lower and upper bounds, we need to verify
       // that min <= max

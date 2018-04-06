@@ -1385,9 +1385,8 @@ public class RFile {
         ArrayList<ByteSequence> setCF;
 
         if (lcg.columnFamilies == null) {
-          Preconditions.checkState(lcg.isDefaultLG,
-              " Group %s has null families. Only expect default locality group to have null families.",
-              lcg.name);
+          Preconditions.checkState(lcg.isDefaultLG, "Group %s has null families. "
+              + "Only expect default locality group to have null families.", lcg.name);
           setCF = new ArrayList<>();
         } else {
           setCF = new ArrayList<>(lcg.columnFamilies.keySet());

@@ -488,9 +488,9 @@ public class MutationTest {
       }
       sb.append(" ");
     }
-    assertEquals(
-        "80322031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 06000000 00000001 ",
-        sb.toString());
+    assertEquals("80322031 32333435 36373839 20313233 34353637"
+        + " 38392031 32333435 36373839 20313233 34353637"
+        + " 38392031 32333435 36373839 06000000 00000001 ", sb.toString());
 
   }
 
@@ -673,8 +673,8 @@ public class MutationTest {
     try {
       m.put("cf", "cq", "v");
     } catch (IllegalStateException e) {
-      fail(
-          "Calling Mutation#hashCode then Mutation#put should not result in an IllegalStateException.");
+      fail("Calling Mutation#hashCode then Mutation#put should not result in an"
+          + " IllegalStateException.");
     }
   }
 
@@ -687,8 +687,8 @@ public class MutationTest {
       m.put("cf", "cq", "v");
       m2.put("cf", "cq", "v");
     } catch (IllegalStateException e) {
-      fail(
-          "Calling Mutation#equals then Mutation#put should not result in an IllegalStateException.");
+      fail("Calling Mutation#equals then Mutation#put should not result in an"
+          + " IllegalStateException.");
     }
   }
 }

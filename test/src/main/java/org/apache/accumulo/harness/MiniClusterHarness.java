@@ -54,10 +54,11 @@ public class MiniClusterHarness {
 
   private static final AtomicLong COUNTER = new AtomicLong(0);
 
-  public static final String USE_SSL_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useSslForIT",
-      USE_CRED_PROVIDER_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useCredProviderForIT",
-      USE_KERBEROS_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useKrbForIT",
-      TRUE = Boolean.toString(true);
+  private static final String PROP_PREFIX = "org.apache.accumulo.test.functional.";
+  public static final String USE_SSL_FOR_IT_OPTION = PROP_PREFIX + "useSslForIT";
+  public static final String USE_CRED_PROVIDER_FOR_IT_OPTION = PROP_PREFIX + "useCredProviderForIT";
+  public static final String USE_KERBEROS_FOR_IT_OPTION = PROP_PREFIX + "useKrbForIT";
+  public static final String TRUE = Boolean.toString(true);
 
   // TODO These are defined in MiniKdc >= 2.6.0. Can be removed when minimum Hadoop dependency is
   // increased to that.

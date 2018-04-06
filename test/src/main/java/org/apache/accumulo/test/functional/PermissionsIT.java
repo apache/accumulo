@@ -61,8 +61,10 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// This test verifies the default permissions so a clean instance must be used. A shared instance might
-// not be representative of a fresh installation.
+/**
+ * This test verifies the default permissions so a clean instance must be used. A shared instance
+ * might not be representative of a fresh installation.
+ */
 @Category(MiniClusterOnlyTests.class)
 public class PermissionsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);

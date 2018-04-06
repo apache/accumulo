@@ -197,8 +197,9 @@ public class ZooKeeperInstance implements Instance {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
       byte[] iidb = zooCache.get(instanceNamePath);
       if (iidb == null) {
-        throw new RuntimeException("Instance name " + instanceName
-            + " does not exist in zookeeper.  Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+        throw new RuntimeException(
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
       }
       instanceId = new String(iidb, UTF_8);
     }

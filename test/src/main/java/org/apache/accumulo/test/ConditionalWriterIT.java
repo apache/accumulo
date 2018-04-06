@@ -1325,9 +1325,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       // Conditional-update to a table we only have read on should fail
       try {
         Status status = cw1.write(cm1).getStatus();
-        Assert.fail(
-            "Expected exception writing conditional mutation to table the user doesn't have write access to, Got status: "
-                + status);
+        Assert.fail("Expected exception writing conditional mutation to table"
+            + " the user doesn't have write access to, Got status: " + status);
       } catch (AccumuloSecurityException ase) {
 
       }
@@ -1335,9 +1334,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       // Conditional-update to a table we only have writer on should fail
       try {
         Status status = cw2.write(cm1).getStatus();
-        Assert.fail(
-            "Expected exception writing conditional mutation to table the user doesn't have read access to. Got status: "
-                + status);
+        Assert.fail("Expected exception writing conditional mutation to table"
+            + " the user doesn't have read access to. Got status: " + status);
       } catch (AccumuloSecurityException ase) {
 
       }
@@ -1561,8 +1559,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       log.info("Trace output:" + traceOutput);
       if (traceCount > 0) {
         int lastPos = 0;
-        for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations"
-            .split(",")) {
+        String[] parts = ("traceTest, startScan,startConditionalUpdate,conditionalUpdate"
+            + ",Check conditions,apply conditional mutations").split(",");
+        for (String part : parts) {
           log.info("Looking in trace output for '" + part + "'");
           int pos = traceOutput.indexOf(part);
           if (-1 == pos) {

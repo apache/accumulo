@@ -35,8 +35,12 @@ import org.apache.accumulo.core.data.Key;
  * To configure Accumulo to generate sample data on one thousandth of the rows, the following
  * SamplerConfiguration could be created and used to configure a table.
  *
- * <p>
- * {@code new SamplerConfiguration(RowSampler.class.getName()).setOptions(ImmutableMap.of("hasher","murmur3_32","modulus","1009"))}
+ * <pre>
+ * <code>
+ * new SamplerConfiguration(RowSampler.class.getName()).setOptions(
+ *   ImmutableMap.of("hasher","murmur3_32","modulus","1009"));
+ * </code>
+ * </pre>
  *
  * @since 1.8.0
  */

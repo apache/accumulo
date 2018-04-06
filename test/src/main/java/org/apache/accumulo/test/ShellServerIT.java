@@ -801,9 +801,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void classpath() throws Exception {
     // classpath
-    ts.exec("classpath", true,
-        "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are",
-        true);
+    ts.exec("classpath", true, "Level 2: Java Classloader (loads everything"
+        + " defined by java classpath) URL classpath items are", true);
   }
 
   @Test
@@ -1010,9 +1009,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(3, countFiles(cloneId));
 
     String clone2 = table + "_clone_2";
-    ts.exec(
-        "clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler="
-            + RowSampler.class.getName() + " " + clone + " " + clone2);
+    ts.exec("clonetable -s"
+        + " table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler="
+        + RowSampler.class.getName() + " " + clone + " " + clone2);
     String clone2Id = getTableId(clone2);
 
     assertEquals(3, countFiles(clone2Id));
@@ -1060,9 +1059,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert 3900 doc uril file://final_project.txt");
 
     String clone1 = table + "_clone_1";
-    ts.exec(
-        "clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler="
-            + RowSampler.class.getName() + " " + table + " " + clone1);
+    ts.exec("clonetable -s"
+        + " table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler="
+        + RowSampler.class.getName() + " " + table + " " + clone1);
 
     ts.exec("compact -t " + clone1 + " -w --sf-no-sample");
 
@@ -1074,9 +1073,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // create table where table sample config differs from whats in file
     String clone2 = table + "_clone_2";
-    ts.exec(
-        "clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler="
-            + RowSampler.class.getName() + " " + clone1 + " " + clone2);
+    ts.exec("clonetable -s"
+        + " table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler="
+        + RowSampler.class.getName() + " " + clone1 + " " + clone2);
 
     ts.exec("table " + clone2);
     ts.exec("scan --sample", false, "SampleNotPresentException", true);
@@ -1342,11 +1341,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
         + "deleteiter deletescaniter listiter setiter setscaniter "
         + "grant revoke systempermissions tablepermissions userpermissions " + "execfile history "
         + "authenticate cls clear notable sleep table user whoami "
-        + "clonetable config createtable deletetable droptable du exporttable importtable offline online renametable tables "
+        + "clonetable config createtable deletetable droptable du exporttable "
+        + "importtable offline online renametable tables "
         + "addsplits compact constraint flush getgropus getsplits merge setgroups "
         + "addauths createuser deleteuser dropuser getauths passwd setauths users "
-        + "delete deletemany deleterows egrep formatter interpreter grep importdirectory insert maxrow scan")
-            .split(" ")) {
+        + "delete deletemany deleterows egrep formatter interpreter grep "
+        + "importdirectory insert maxrow scan").split(" ")) {
       ts.exec("help " + c, true);
     }
   }
@@ -1737,9 +1737,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("tables", true, "thing2.thingy", false);
 
     // put constraints on a namespace
-    ts.exec(
-        "constraint -ns thing3 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint",
-        true);
+    ts.exec("constraint -ns thing3 -a"
+        + " org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
     ts.exec("createtable thing3.constrained", true);
     ts.exec("table thing3.constrained", true);
     ts.exec("constraint -d 1");
@@ -1909,8 +1908,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static final String REAL_CONTEXT = "REAL";
   private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
       + "/target/" + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
-  private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test.functional.ValueReversingIterator";
-  private static final String SUMMING_COMBINER_ITERATOR = "org.apache.accumulo.core.iterators.user.SummingCombiner";
+  private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test."
+      + "functional.ValueReversingIterator";
+  private static final String SUMMING_COMBINER_ITERATOR = "org.apache.accumulo.core."
+      + "iterators.user.SummingCombiner";
   private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators"
       + ".ColumnFamilyCounter";
 

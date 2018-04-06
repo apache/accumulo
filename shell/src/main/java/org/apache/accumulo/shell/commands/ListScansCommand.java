@@ -32,7 +32,8 @@ public class ListScansCommand extends Command {
 
   @Override
   public String description() {
-    return "lists what scans are currently running in accumulo. See the accumulo.core.client.admin.ActiveScan javadoc for more information about columns.";
+    return "lists what scans are currently running in accumulo. See the"
+        + " accumulo.core.client.admin.ActiveScan javadoc for more information" + " about columns.";
   }
 
   @Override

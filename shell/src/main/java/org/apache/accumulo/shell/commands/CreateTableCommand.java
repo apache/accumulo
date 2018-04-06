@@ -183,7 +183,8 @@ public class CreateTableCommand extends Command {
     createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false,
         "prevent creation of the normal default iterator set");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
-        "prevent users from writing data they cannot read.  When enabling this, consider disabling bulk import and alter table.");
+        "prevent users from writing data they cannot read. When enabling this,"
+            + " consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
     createTableOptInitProp = new Option("prop", "init-properties", true,
         "user defined initial properties");

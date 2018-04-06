@@ -74,9 +74,8 @@ public class QuotedStringTokenizer implements Iterable<String> {
         } else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') {
           token[tokenLength++] = inputBytes[i];
         } else {
-          throw new BadArgumentException(
-              "can only escape single quotes, double quotes, the space character, the backslash, and hex input",
-              input, i);
+          throw new BadArgumentException("can only escape single quotes, double"
+              + " quotes, the space character, the backslash, and hex input", input, i);
         }
       } else if (hexChars != null) {
         // in a hex escape sequence

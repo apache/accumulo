@@ -271,8 +271,11 @@ public class ThriftUtil {
 
           // Wrap the real factory with our own that will set the protocol on the Socket before
           // returning it
-          ProtocolOverridingSSLSocketFactory wrappingSslSockFactory = new ProtocolOverridingSSLSocketFactory(
-              sslSockFactory, new String[] {sslParams.getClientProtocol()});
+          // @formatter:off
+          ProtocolOverridingSSLSocketFactory wrappingSslSockFactory =
+            new ProtocolOverridingSSLSocketFactory(sslSockFactory,
+                new String[] {sslParams.getClientProtocol()});
+          // @formatter:on
 
           // Create the TSocket from that
           transport = createClient(wrappingSslSockFactory, address.getHost(), address.getPort(),
@@ -312,9 +315,8 @@ public class ThriftUtil {
               // The current user has no credentials, let it fail naturally at the RPC layer (no
               // ticket)
               // We know this won't work, but we can't do anything else
-              log.warn(
-                  "The current user is a proxy user but there is no underlying real user (likely that RPCs will fail): {}",
-                  currentUser);
+              log.warn("The current user is a proxy user but there is no"
+                  + " underlying real user (likely that RPCs will fail): {}", currentUser);
               userForRpc = currentUser;
             }
           } else {
@@ -349,8 +351,8 @@ public class ThriftUtil {
           // will attempt to re-login to make the next attempt work.
           // Sadly, we have no way to determine the actual reason we got this TTransportException
           // other than inspecting the exception msg.
-          log.debug(
-              "Caught TTransportException opening SASL transport, checking if re-login is necessary before propagating the exception.");
+          log.debug("Caught TTransportException opening SASL transport,"
+              + " checking if re-login is necessary before propagating the" + " exception.");
           attemptClientReLogin();
 
           throw e;

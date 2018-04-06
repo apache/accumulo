@@ -33,18 +33,15 @@ import org.apache.accumulo.core.util.ComparablePair;
  * component a date which is reverse sorted, we can do so with the following example:
  *
  * <pre>
- * {
- *   &#064;code
- *   StringLexicoder stringEncoder = new StringLexicoder();
- *   ReverseLexicoder&lt;Date&gt; dateEncoder = new ReverseLexicoder&lt;Date&gt;(new DateLexicoder());
- *   PairLexicoder&lt;String,Date&gt; pairLexicoder = new PairLexicoder&lt;String,Date&gt;(stringEncoder,
- *       dateEncoder);
- *   byte[] pair1 = pairLexicoder.encode(new ComparablePair&lt;String,Date&gt;(&quot;com.google&quot;, new Date()));
- *   byte[] pair2 = pairLexicoder.encode(
- *       new ComparablePair&lt;String,Date&gt;(&quot;com.google&quot;, new Date(System.currentTimeMillis() + 500)));
- *   byte[] pair3 = pairLexicoder.encode(new ComparablePair&lt;String,Date&gt;(&quot;org.apache&quot;,
- *       new Date(System.currentTimeMillis() + 1000)));
- * }
+ * <code>
+ * StringLexicoder strEncoder = new StringLexicoder();
+ * ReverseLexicoder&lt;Date&gt; dateEnc = new ReverseLexicoder&lt;&gt;(new DateLexicoder());
+ * PairLexicoder&lt;String,Date&gt; pair = new PairLexicoder&lt;&gt;(strEncoder, dateEnc);
+ * long now = System.currentTimeMillis();
+ * byte[] pair1 = pair.encode(new ComparablePair&lt;&gt;(&quot;com&quot;, new Date(now)));
+ * byte[] pair2 = pair.encode(new ComparablePair&lt;&gt;(&quot;com&quot;, new Date(now + 500)));
+ * byte[] pair3 = pair.encode(new ComparablePair&lt;&gt;(&quot;org&quot;, new Date(now + 1000)));
+ * </code>
  * </pre>
  *
  * In the example, pair2 will be sorted before pair1. pair3 will occur last since 'org' is sorted

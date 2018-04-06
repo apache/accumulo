@@ -121,13 +121,15 @@ public class Validate extends Test {
       accuAuths = conn.securityOperations()
           .getUserAuthorizations(WalkingSecurity.get(state, env).getTabUserName());
     } catch (ThriftSecurityException ae) {
-      if (ae
-          .getCode() == org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.USER_DOESNT_EXIST) {
+      // @formatter:off
+      if (ae.getCode()
+          == org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.USER_DOESNT_EXIST) {
         if (tableUserExists)
           throw new AccumuloException("Table user didn't exist when they should.", ae);
         else
           return;
       }
+      // @formatter:on
       throw new AccumuloException("Unexpected exception!", ae);
     }
     if (!auths.equals(accuAuths))

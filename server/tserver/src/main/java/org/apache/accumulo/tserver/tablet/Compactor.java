@@ -242,7 +242,8 @@ public class Compactor implements Callable<CompactionStats> {
       }
 
       log.debug(String.format(
-          "Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec",
+          "Compaction %s %,d read | %,d written | %,6d entries/sec"
+              + " | %,6.3f secs | %,12d bytes | %9.3f byte/sec",
           extent, majCStats.getEntriesRead(), majCStats.getEntriesWritten(),
           (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
           mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0)));

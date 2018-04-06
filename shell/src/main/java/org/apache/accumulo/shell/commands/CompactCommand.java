@@ -47,9 +47,12 @@ public class CompactCommand extends TableOperation {
 
   @Override
   public String description() {
-    return "Initiates a major compaction on tablets within the specified range that have one or more files.  If no file selection options are specified, then "
-        + "all files will be compacted.  Options that configure output settings are only applied to this compaction and not later compactions.  If multiple "
-        + "concurrent user initiated compactions specify iterators or a compaction strategy, then all but one will fail to start.";
+    return "Initiates a major compaction on tablets within the specified range"
+        + " that have one or more files. If no file selection options are"
+        + " specified, then all files will be compacted. Options that configure"
+        + " output settings are only applied to this compaction and not later"
+        + " compactions. If multiple concurrent user initiated compactions specify"
+        + " iterators or a compaction strategy, then all but one will fail to" + " start.";
   }
 
   @Override
@@ -204,37 +207,48 @@ public class CompactCommand extends TableOperation {
     opts.addOption(cancelOpt);
 
     enoSampleOption = new Option(null, "sf-no-sample", false,
-        "Select files that have no sample data or sample data that differes from the table configuration.");
+        "Select files that have no sample data or sample data that differes"
+            + " from the table configuration.");
     opts.addOption(enoSampleOption);
     enameOption = newLAO("sf-ename",
-        "Select files using regular expression to match file names. Only matches against last part of path.");
+        "Select files using regular expression to match file names. Only"
+            + " matches against last part of path.");
     opts.addOption(enameOption);
     epathOption = newLAO("sf-epath",
-        "Select files using regular expression to match file paths to compact. Matches against full path.");
+        "Select files using regular expression to match file paths to compact."
+            + " Matches against full path.");
     opts.addOption(epathOption);
     sizeLtOption = newLAO("sf-lt-esize",
-        "Selects files less than specified size.  Uses the estimated size of file in metadata table.  Can use K,M, and G suffixes");
+        "Selects files less than specified size.  Uses the estimated size of"
+            + " file in metadata table. Can use K,M, and G suffixes");
     opts.addOption(sizeLtOption);
     sizeGtOption = newLAO("sf-gt-esize",
-        "Selects files greater than specified size.  Uses the estimated size of file in metadata table.  Can use K,M, and G suffixes");
+        "Selects files greater than specified size. Uses the estimated size of"
+            + " file in metadata table. Can use K,M, and G suffixes");
     opts.addOption(sizeGtOption);
     minFilesOption = newLAO("min-files",
-        "Only compacts if at least the specified number of files are selected.  When no file selection criteria are given, all files are selected.");
+        "Only compacts if at least the specified number of files are selected."
+            + " When no file selection criteria are given, all files are selected.");
     opts.addOption(minFilesOption);
     outBlockSizeOpt = newLAO("out-data-bs",
-        "Rfile data block size to use for compaction output file.  Can use K,M, and G suffixes. Uses table settings if not specified.");
+        "Rfile data block size to use for compaction output file. Can use K,M,"
+            + " and G suffixes. Uses table settings if not specified.");
     opts.addOption(outBlockSizeOpt);
     outHdfsBlockSizeOpt = newLAO("out-hdfs-bs",
-        "HDFS block size to use for compaction output file.  Can use K,M, and G suffixes. Uses table settings if not specified.");
+        "HDFS block size to use for compaction output file. Can use K,M, and G"
+            + " suffixes. Uses table settings if not specified.");
     opts.addOption(outHdfsBlockSizeOpt);
     outIndexBlockSizeOpt = newLAO("out-index-bs",
-        "Rfile index block size to use for compaction output file.  Can use K,M, and G suffixes. Uses table settings if not specified.");
+        "Rfile index block size to use for compaction output file. Can use"
+            + " K,M, and G suffixes. Uses table settings if not specified.");
     opts.addOption(outIndexBlockSizeOpt);
     outCompressionOpt = newLAO("out-compress",
-        "Compression to use for compaction output file. Either snappy, gz, lzo, or none. Uses table settings if not specified.");
+        "Compression to use for compaction output file. Either snappy, gz, lzo,"
+            + " or none. Uses table settings if not specified.");
     opts.addOption(outCompressionOpt);
     outReplication = newLAO("out-replication",
-        "HDFS replication to use for compaction output file. Uses table settings if not specified.");
+        "HDFS replication to use for compaction output file. Uses table"
+            + " settings if not specified.");
     opts.addOption(outReplication);
 
     return opts;

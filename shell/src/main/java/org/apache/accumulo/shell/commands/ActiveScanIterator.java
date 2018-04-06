@@ -67,7 +67,8 @@ class ActiveScanIterator implements Iterator<String> {
     this.tsIter = tservers.iterator();
 
     final String header = String.format(
-        " %-21s| %-21s| %-9s| %-9s| %-7s| %-6s| %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s",
+        " %-21s| %-21s| %-9s| %-9s| %-7s| %-6s|"
+            + " %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s",
         "TABLET SERVER", "CLIENT", "AGE", "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS",
         "AUTHORIZATIONS", "TABLET", "SCAN ID", "ITERATORS", "ITERATOR OPTIONS");
 

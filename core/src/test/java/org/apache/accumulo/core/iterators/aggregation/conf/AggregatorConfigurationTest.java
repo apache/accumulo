@@ -47,11 +47,14 @@ public class AggregatorConfigurationTest {
   @SuppressWarnings("deprecation")
   private void runTest(Text colf) {
     String encodedCols;
-    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac3 = new org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig(
-        colf, "com.foo.SuperAgg");
+    // @formatter:off
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac3 =
+      new org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig(colf, "com.foo.SuperAgg");
     encodedCols = ac3.encodeColumns();
-    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac4 = org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac4 =
+      org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig
         .decodeColumns(encodedCols, "com.foo.SuperAgg");
+    // @formatter:on
 
     assertEquals(colf, ac4.getColumnFamily());
     assertNull(ac4.getColumnQualifier());
@@ -59,11 +62,15 @@ public class AggregatorConfigurationTest {
 
   @SuppressWarnings("deprecation")
   private void runTest(Text colf, Text colq) {
-    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac = new org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig(
-        colf, colq, "com.foo.SuperAgg");
+    // @formatter:off
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac =
+      new org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig(colf, colq,
+        "com.foo.SuperAgg");
     String encodedCols = ac.encodeColumns();
-    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac2 = org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig
+    org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig ac2 =
+      org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig
         .decodeColumns(encodedCols, "com.foo.SuperAgg");
+    // @formatter:on
 
     assertEquals(colf, ac2.getColumnFamily());
     assertEquals(colq, ac2.getColumnQualifier());

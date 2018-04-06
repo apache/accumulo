@@ -84,8 +84,8 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     if (null == tcreds) {
       // Not all calls require authentication (e.g. closeMultiScan). We need to let these pass
       // through.
-      log.trace(
-          "Did not find a TCredentials object in the first two positions of the argument list, not updating principal");
+      log.trace("Did not find a TCredentials object in the first two positions"
+          + " of the argument list, not updating principal");
       return;
     }
 
@@ -99,9 +99,8 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     if (SaslMechanism.DIGEST_MD5 == UGIAssumingProcessor.rpcMechanism()
         && DelegationTokenImpl.class.isAssignableFrom(tokenClass)) {
       if (!principal.equals(tcreds.principal)) {
-        log.warn(
-            "{} issued RPC with delegation token over DIGEST-MD5 as the Accumulo principal {}. Disallowing RPC",
-            principal, tcreds.principal);
+        log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the"
+            + "Accumulo principal {}. Disallowing RPC", principal, tcreds.principal);
         throw new ThriftSecurityException("RPC principal did not match provided Accumulo principal",
             SecurityErrorCode.BAD_CREDENTIALS);
       }
@@ -138,8 +137,8 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
       }
       String clientAddr = TServerUtils.clientAddress.get();
       if (!usersWithHosts.getHosts().contains(clientAddr)) {
-        final String msg = "Principal in credentials object allowed mismatched Kerberos principals, but not on "
-            + clientAddr;
+        final String msg = "Principal in credentials object allowed mismatched"
+            + " Kerberos principals, but not on " + clientAddr;
         log.warn(msg);
         throw new ThriftSecurityException(msg, SecurityErrorCode.BAD_CREDENTIALS);
       }

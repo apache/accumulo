@@ -137,8 +137,8 @@ public class ClientOpts extends Help {
   @Parameter(names = {"-tc", "--tokenClass"}, description = "Token class")
   private String tokenClassName = null;
 
-  @DynamicParameter(names = "-l",
-      description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
+  @DynamicParameter(names = "-l", description = "login properties in the format key=value. "
+      + "Reuse -l for each property (prompt for properties if this option is missing")
   public Map<String,String> loginProps = new LinkedHashMap<>();
 
   public AuthenticationToken getToken() {
@@ -205,8 +205,8 @@ public class ClientOpts extends Help {
   public boolean saslEnabled = false;
 
   @Parameter(names = "--config-file", description = "Read the given client config file. "
-      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
-      + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, which "
+      + "defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
   public String clientConfigFile = null;
 
   public void startDebugLogging() {

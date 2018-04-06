@@ -82,8 +82,8 @@ public class MultipleHasTopCalls extends OutputVerifyingTestCase {
   }
 
   IllegalStateException badStateException(boolean expectedState) {
-    return new IllegalStateException(
-        "Multiple sequential calls to hasTop should not alter the state or return value of the iterator. Expected '"
-            + expectedState + ", but got '" + !expectedState + "'.");
+    return new IllegalStateException("Multiple sequential calls to hasTop"
+        + " should not alter the state or return value of the iterator. Expected '" + expectedState
+        + ", but got '" + !expectedState + "'.");
   }
 }

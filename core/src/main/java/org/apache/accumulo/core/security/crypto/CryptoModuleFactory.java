@@ -28,8 +28,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This factory module exists to assist other classes in loading crypto modules.
- *
- *
  */
 public class CryptoModuleFactory {
 
@@ -110,13 +108,15 @@ public class CryptoModuleFactory {
 
       } catch (InstantiationException e) {
         log.warn(String.format(
-            "Got instantiation exception %s when instantiating crypto module \"%s\".  No encryption will be used.",
+            "Got instantiation exception %s when"
+                + " instantiating crypto module \"%s\". No encryption will be used.",
             e.getCause().getClass().getName(), cryptoModuleClassname));
         log.warn("InstantiationException", e.getCause());
         return new NullCryptoModule();
       } catch (IllegalAccessException e) {
         log.warn(String.format(
-            "Got illegal access exception when trying to instantiate crypto module \"%s\".  No encryption will be used.",
+            "Got illegal access exception when trying to"
+                + " instantiate crypto module \"%s\". No encryption will be used.",
             cryptoModuleClassname));
         log.warn("IllegalAccessException", e);
         return new NullCryptoModule();
@@ -165,9 +165,8 @@ public class CryptoModuleFactory {
     try {
       keyEncryptionStrategyClazz = AccumuloVFSClassLoader.loadClass(className);
     } catch (ClassNotFoundException e1) {
-      log.warn(String.format(
-          "Could not find configured secret key encryption strategy \"%s\".  No encryption will be used.",
-          className));
+      log.warn(String.format("Could not find configured secret key encryption"
+          + " strategy \"%s\". No encryption will be used.", className));
       return new NullSecretKeyEncryptionStrategy();
     }
 
@@ -183,8 +182,9 @@ public class CryptoModuleFactory {
     }
 
     if (!implementsSecretKeyStrategy) {
-      log.warn(
-          "Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface. No encryption will be used.");
+      log.warn("Configured Accumulo secret key encryption strategy \"%s\" does"
+          + " not implement the SecretKeyEncryptionStrategy interface. No"
+          + " encryption will be used.");
       return new NullSecretKeyEncryptionStrategy();
     } else {
       try {
@@ -193,15 +193,15 @@ public class CryptoModuleFactory {
         log.debug("Successfully instantiated secret key encryption strategy " + className);
 
       } catch (InstantiationException e) {
-        log.warn(String.format(
-            "Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  No encryption will be used.",
-            e.getCause().getClass().getName(), className));
+        log.warn(String.format("Got instantiation exception %s when"
+            + " instantiating secret key encryption strategy \"%s\". No"
+            + " encryption will be used.", e.getCause().getClass().getName(), className));
         log.warn("InstantiationException", e.getCause());
         return new NullSecretKeyEncryptionStrategy();
       } catch (IllegalAccessException e) {
-        log.warn(String.format(
-            "Got illegal access exception when trying to instantiate secret key encryption strategy \"%s\".  No encryption will be used.",
-            className));
+        log.warn(String.format("Got illegal access exception when trying to"
+            + " instantiate secret key encryption strategy \"%s\". No encryption"
+            + " will be used.", className));
         log.warn("IllegalAccessException", e);
         return new NullSecretKeyEncryptionStrategy();
       }

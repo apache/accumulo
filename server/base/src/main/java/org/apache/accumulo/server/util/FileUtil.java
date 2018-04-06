@@ -241,8 +241,10 @@ public class FileUtil {
         return .5;
       }
 
-      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(
-          readers);
+      // @formatter:off
+      List<SortedKeyValueIterator<Key,Value>> iters =
+        new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
+      // @formatter:on
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow
@@ -324,9 +326,9 @@ public class FileUtil {
 
       if (numKeys == 0) {
         if (useIndex) {
-          log.warn(
-              "Failed to find mid point using indexes, falling back to data files which is slower. No entries between "
-                  + prevEndRow + " and " + endRow + " for " + mapFiles);
+          log.warn("Failed to find mid point using indexes, falling back to"
+              + " data files which is slower. No entries between " + prevEndRow + " and " + endRow
+              + " for " + mapFiles);
           // need to pass original map files, not possibly reduced indexes
           return findMidPoint(fs, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
         }
@@ -334,8 +336,10 @@ public class FileUtil {
             + endRow + " for " + mapFiles);
       }
 
-      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(
-          readers);
+      // @formatter:off
+      List<SortedKeyValueIterator<Key,Value>> iters =
+        new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
+      // @formatter:on
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow

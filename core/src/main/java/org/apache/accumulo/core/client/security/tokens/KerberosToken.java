@@ -70,8 +70,8 @@ public class KerberosToken implements AuthenticationToken {
     // There is also KERBEROS_SSL but that appears to be deprecated/OBE
     checkArgument(
         AuthenticationMethod.KERBEROS == authMethod || AuthenticationMethod.PROXY == authMethod,
-        "KerberosToken expects KERBEROS or PROXY authentication for the current UserGroupInformation user. Saw "
-            + authMethod);
+        "KerberosToken expects KERBEROS or PROXY authentication for the current "
+            + "UserGroupInformation user. Saw " + authMethod);
   }
 
   /**

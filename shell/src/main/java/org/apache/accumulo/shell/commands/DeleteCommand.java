@@ -100,7 +100,8 @@ public class DeleteCommand extends Command {
     o.addOption(timestampOpt);
 
     timeoutOption = new Option(null, "timeout", true,
-        "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+        "time before insert should fail if no data is written. If no unit is"
+            + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s" + " or 100ms");
     timeoutOption.setArgName("timeout");
     o.addOption(timeoutOption);
 

@@ -81,7 +81,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
-  protected static final String REDUCE_ON_FULL_COMPACTION_ONLY_OPTION = "reduceOnFullCompactionOnly";
+  // @formatter:off
+  protected static final String REDUCE_ON_FULL_COMPACTION_ONLY_OPTION =
+    "reduceOnFullCompactionOnly";
+  // @formatter:on
 
   private boolean isMajorCompaction;
   private boolean reduceOnFullCompactionOnly;
@@ -190,9 +193,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         loggedMsgCache.get(this.getClass().getName(), new Callable<Boolean>() {
           @Override
           public Boolean call() throws Exception {
-            sawDeleteLog.error(
-                "Combiner of type {} saw a delete during a partial compaction.  This could cause undesired results.  See ACCUMULO-2232.  Will not log subsequent "
-                    + "occurences for at least 1 hour.",
+            sawDeleteLog.error("Combiner of type {} saw a delete during a"
+                + " partial compaction. This could cause undesired results. See"
+                + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
                 Combiner.this.getClass().getSimpleName());
             // the value is not used and does not matter
             return Boolean.TRUE;

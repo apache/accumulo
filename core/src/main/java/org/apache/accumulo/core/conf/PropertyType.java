@@ -41,45 +41,56 @@ public enum PropertyType {
   PREFIX(null, Predicates.<String> alwaysFalse(), null),
 
   TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
-      "A non-negative integer optionally followed by a unit of time (whitespace disallowed), as in 30s.\n"
-          + "If no unit of time is specified, seconds are assumed. Valid units are 'ms', 's', 'm', 'h' for milliseconds, seconds, minutes, and hours.\n"
-          + "Examples of valid durations are '600', '30s', '45m', '30000ms', '3d', and '1h'.\n"
-          + "Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '', and 'a'.\n"
-          + "Unless otherwise stated, the max value for the duration represented in milliseconds is "
-          + Long.MAX_VALUE),
+      "A non-negative integer optionally followed by a unit of time (whitespace"
+          + " disallowed), as in 30s.\n"
+          + "If no unit of time is specified, seconds are assumed. Valid units"
+          + " are 'ms', 's', 'm', 'h' for milliseconds, seconds," + " minutes, and" + " hours.\n"
+          + "Examples of valid durations are '600', '30s', '45m', '30000ms'," + " '3d', and '1h'.\n"
+          + "Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '',"
+          + " and 'a'.\nUnless otherwise stated, the max value for the duration"
+          + " represented in milliseconds is " + Long.MAX_VALUE),
 
   MEMORY("memory", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
-      "A positive integer optionally followed by a unit of memory (whitespace disallowed), as in 2G.\n"
-          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M', 'G', for bytes, kilobytes, megabytes, and gigabytes.\n"
+      "A positive integer optionally followed by a unit of memory (whitespace"
+          + " disallowed), as in 2G.\n"
+          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K',"
+          + " 'M', 'G', for bytes, kilobytes, megabytes, and gigabytes.\n"
           + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G'.\n"
-          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.\n"
-          + "Unless otherwise stated, the max value for the memory represented in bytes is "
+          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G',"
+          + " '1,024K', '', and 'a'.\n"
+          + "Unless otherwise stated, the max value for the memory represented in" + " bytes is "
           + Long.MAX_VALUE),
 
   HOSTLIST("host list",
       new Matches(
           "[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?(?:,[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?)*"),
       "A comma-separated list of hostnames or ip addresses, with optional port numbers.\n"
-          + "Examples of valid host lists are 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
+          + "Examples of valid host lists are"
+          + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
   @SuppressWarnings("unchecked")
   PORT("port",
       Predicates.or(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}")),
-      "An positive integer in the range 1024-65535 (not already in use or specified elsewhere in the configuration),\n"
-          + "zero to indicate any open ephemeral port, or a range of positive integers specified as M-N"),
+      "An positive integer in the range 1024-65535 (not already in use or"
+          + " specified elsewhere in the configuration),\n"
+          + "zero to indicate any open ephemeral port, or a range of positive"
+          + " integers specified as M-N"),
 
   COUNT("count", new Bounds(0, Integer.MAX_VALUE),
       "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
 
   FRACTION("fraction/percentage", new FractionPredicate(),
-      "A floating point number that represents either a fraction or, if suffixed with the '%' character, a percentage.\n"
-          + "Examples of valid fractions/percentages are '10', '1000%', '0.05', '5%', '0.2%', '0.0005'.\n"
-          + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
+      "A floating point number that represents either a fraction or, if"
+          + " suffixed with the '%' character, a percentage.\n"
+          + "Examples of valid fractions/percentages are '10', '1000%', '0.05',"
+          + " '5%', '0.2%', '0.0005'.\n"
+          + "Examples of invalid fractions/percentages are '', '10 percent'," + " 'Hulk Hogan'"),
 
   PATH("path", Predicates.<String> alwaysTrue(),
-      "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property. The "
-          + "following environment variables will be substituted: "
+      "A string that represents a filesystem path, which can be either relative"
+          + " or absolute to some directory. The filesystem depends on the property."
+          + " The following environment variables will be substituted: "
           + Constants.PATH_PROPERTY_ENV_VARS),
 
   ABSOLUTEPATH("absolute path", new Predicate<String>() {
@@ -87,7 +98,8 @@ public enum PropertyType {
     public boolean apply(final String input) {
       return input == null || input.trim().isEmpty() || new Path(input.trim()).isAbsolute();
     }
-  }, "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified."),
+  }, "An absolute filesystem path. The filesystem depends on the property."
+      + " This is the same as path, but enforces that its root is explicitly" + " specified."),
 
   CLASSNAME("java class", new Matches("[\\w$.]*"),
       "A fully qualified java class name representing a class on the classpath.\n"
@@ -101,7 +113,8 @@ public enum PropertyType {
       "One of 'none', 'log', 'flush' or 'sync'."),
 
   STRING("string", Predicates.<String> alwaysTrue(),
-      "An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies."),
+      "An arbitrary string of characters whose format is unspecified and"
+          + " interpreted based on the context of the property to which it applies."),
 
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),

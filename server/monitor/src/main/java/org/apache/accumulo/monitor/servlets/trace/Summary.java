@@ -189,7 +189,9 @@ public class Summary extends Basic {
     trace.addSortableColumn("max", new DurationType(), "Longest span duration");
     trace.addSortableColumn("avg", new DurationType(), "Average span duration");
     trace.addSortableColumn("Histogram", new HistogramType(),
-        "Counts of spans of different duration. Columns start at milliseconds, and each column is ten times longer: tens of milliseconds, seconds, tens of seconds, etc.");
+        "Counts of spans of different duration. Columns start at milliseconds,"
+            + " and each column is ten times longer: tens of milliseconds, seconds,"
+            + " tens of seconds, etc.");
 
     for (Entry<String,Stats> entry : summary.entrySet()) {
       Stats stat = entry.getValue();

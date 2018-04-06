@@ -147,9 +147,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         Connector conn = instance.getConnector(principal, token);
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
-        log.warn(
-            "Failed to automatically obtain DelegationToken, Mappers/Reducers will likely fail to communicate with Accumulo",
-            e);
+        log.warn("Failed to automatically obtain DelegationToken, "
+            + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
       }
     }
     // DelegationTokens can be passed securely from user to task without serializing insecurely in
@@ -771,8 +770,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       boolean supportBatchScan = !(tableConfig.isOfflineScan()
           || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
-        throw new IllegalArgumentException(
-            "BatchScanner optimization not available for offline scan, isolated, or local iterators");
+        throw new IllegalArgumentException("BatchScanner optimization not available for offline"
+            + " scan, isolated, or local iterators");
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       if (batchScan && !autoAdjust)

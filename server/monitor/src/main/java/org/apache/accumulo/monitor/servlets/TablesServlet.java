@@ -98,13 +98,17 @@ public class TablesServlet extends BasicServlet {
     tableList.addSortableColumn("Ingest", new NumberType<Long>(),
         "The number of Key/Value pairs inserted.  Note that deletes are 'inserted'.");
     tableList.addSortableColumn("Entries<br />Read", new NumberType<Long>(),
-        "The number of Key/Value pairs read on the server side.  Not all key values read may be returned to client because of filtering.");
+        "The number of Key/Value pairs read on the server side. Not all key"
+            + " values read may be returned to client because of filtering.");
     tableList.addSortableColumn("Entries<br />Returned", new NumberType<Long>(),
-        "The number of Key/Value pairs returned to clients during queries.  This is <b>not</b> the number of scans.");
+        "The number of Key/Value pairs returned to clients during queries."
+            + " This is <b>not</b> the number of scans.");
     tableList.addSortableColumn("Hold&nbsp;Time", new DurationType(0l, 0l),
-        "The amount of time that ingest operations are suspended while waiting for data to be written to disk.");
+        "The amount of time that ingest operations are suspended while waiting"
+            + " for data to be written to disk.");
     tableList.addSortableColumn("Running<br />Scans", new CompactionsType("scans"),
-        "Information about the scans threads.  Shows how many threads are running and how much work is queued for the threads.");
+        "Information about the scans threads. Shows how many threads are"
+            + " running and how much work is queued for the threads.");
     tableList.addSortableColumn("Minor<br />Compactions", new CompactionsType("minor"),
         "Flushing memory to disk is called a \"minor compaction.\" "
             + "Multiple tablets can be minor compacted simultaneously, but " + ""
@@ -113,9 +117,10 @@ public class TablesServlet extends BasicServlet {
             + "indicated using parentheses. So <tt> 2 (3)</tt> indicates there are "
             + "two compactions running and three queued waiting for resources.");
     tableList.addSortableColumn("Major<br />Compactions", new CompactionsType("major"),
-        "Gathering up many small files and rewriting them as one larger file is called a 'Major Compaction'. "
-            + "Major Compactions are performed as a consequence of new files created from Minor Compactions and Bulk Load operations.  "
-            + "They reduce the number of files used during queries.");
+        "Gathering up many small files and rewriting them as one larger file is"
+            + " called a 'Major Compaction'. Major Compactions are performed as a"
+            + " consequence of new files created from Minor Compactions and Bulk Load"
+            + " operations. They reduce the number of files used during queries.");
     SortedMap<String,TableInfo> tableStats = new TreeMap<>();
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)

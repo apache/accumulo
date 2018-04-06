@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -245,8 +246,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         }
       });
     } catch (AccumuloSecurityException e) {
-      if (e
-          .getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
       else
         throw e;
@@ -297,8 +297,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         }
       });
     } catch (AccumuloSecurityException e) {
-      if (e
-          .getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
       else
         throw e;
@@ -349,8 +348,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         }
       });
     } catch (AccumuloSecurityException e) {
-      if (e
-          .getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
       else
         throw e;

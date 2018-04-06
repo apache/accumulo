@@ -442,8 +442,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           ports[0] = port;
         }
       } catch (NumberFormatException e1) {
-        throw new IllegalArgumentException(
-            "Invalid port syntax. Must be a single positive integers or a range (M-N) of positive integers");
+        throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
+            + "integers or a range (M-N) of positive integers");
       }
     }
     return ports;

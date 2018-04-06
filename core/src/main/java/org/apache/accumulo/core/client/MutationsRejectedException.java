@@ -174,9 +174,12 @@ public class MutationsRejectedException extends AccumuloException {
    * @deprecated since 1.7.0 see {@link #getSecurityErrorCodes()}
    */
   @Deprecated
-  public Map<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> getAuthorizationFailuresMap() {
+  // @formatter:off
+  public Map<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>>
+    getAuthorizationFailuresMap() {
     return transformKeys(af, TabletIdImpl.TID_2_KE_OLD);
   }
+  // @formatter:on
 
   /**
    * @return the internal mapping of TabletID to SecurityErrorCodes

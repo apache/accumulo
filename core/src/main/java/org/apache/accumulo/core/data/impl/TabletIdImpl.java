@@ -28,7 +28,9 @@ public class TabletIdImpl implements TabletId {
   private KeyExtent ke;
 
   @SuppressWarnings("deprecation")
-  public static final Function<org.apache.accumulo.core.data.KeyExtent,TabletId> KE_2_TID_OLD = new Function<org.apache.accumulo.core.data.KeyExtent,TabletId>() {
+  // @formatter:off
+  public static final Function<org.apache.accumulo.core.data.KeyExtent,TabletId> KE_2_TID_OLD =
+    new Function<org.apache.accumulo.core.data.KeyExtent,TabletId>() {
     @Override
     public TabletId apply(org.apache.accumulo.core.data.KeyExtent input) {
       // the following if null check is to appease findbugs... grumble grumble spent a good part of
@@ -40,9 +42,12 @@ public class TabletIdImpl implements TabletId {
       return new TabletIdImpl(input);
     }
   };
+  // @formatter:on
 
   @SuppressWarnings("deprecation")
-  public static final Function<TabletId,org.apache.accumulo.core.data.KeyExtent> TID_2_KE_OLD = new Function<TabletId,org.apache.accumulo.core.data.KeyExtent>() {
+  // @formatter:off
+  public static final Function<TabletId,org.apache.accumulo.core.data.KeyExtent> TID_2_KE_OLD =
+    new Function<TabletId,org.apache.accumulo.core.data.KeyExtent>() {
     @Override
     public org.apache.accumulo.core.data.KeyExtent apply(TabletId input) {
       if (input == null)
@@ -50,8 +55,8 @@ public class TabletIdImpl implements TabletId {
       return new org.apache.accumulo.core.data.KeyExtent(input.getTableId(), input.getEndRow(),
           input.getPrevEndRow());
     }
-
   };
+  // @formatter:on
 
   @Deprecated
   public TabletIdImpl(org.apache.accumulo.core.data.KeyExtent ke) {
