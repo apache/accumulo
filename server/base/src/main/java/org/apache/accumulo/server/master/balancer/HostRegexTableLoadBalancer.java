@@ -89,10 +89,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   public static final String HOST_BALANCER_OOB_CHECK_KEY = PROP_PREFIX
       + "balancer.host.regex.oob.period";
   private static final String HOST_BALANCER_OOB_DEFAULT = "5m";
-  public static final String HOST_BALANCER_REGEX_USING_IPS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX
-      .getKey() + "balancer.host.regex.is.ip";
-  public static final String HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX
-      .getKey() + "balancer.host.regex.concurrent.migrations";
+  public static final String HOST_BALANCER_REGEX_USING_IPS_KEY = PROP_PREFIX
+      + "balancer.host.regex.is.ip";
+  public static final String HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY = PROP_PREFIX
+      + "balancer.host.regex.concurrent.migrations";
   private static final int HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT = 250;
   protected static final String DEFAULT_POOL = "HostTableLoadBalancer.ALL";
   private static final int DEFAULT_OUTSTANDING_MIGRATIONS = 0;

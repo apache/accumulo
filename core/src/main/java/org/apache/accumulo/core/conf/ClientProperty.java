@@ -34,7 +34,8 @@ public enum ClientProperty {
 
   // Authentication
   AUTH_METHOD("auth.method", "password",
-      "Authentication method (i.e password, kerberos, provider). Set more properties for chosen method below.",
+      "Authentication method (i.e password,"
+          + " kerberos, provider). Set more properties for chosen method below.",
       "", true),
   AUTH_USERNAME("auth.username", "", "Accumulo username/principal for chosen authentication method",
       "", true),
@@ -51,11 +52,13 @@ public enum ClientProperty {
   BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.sec", "120",
       "Max amount of time (in seconds) to hold data in memory before flushing it"),
   BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.max.timeout.sec", "0",
-      "Max amount of time (in seconds) an unresponsive server will be re-tried. An exception is thrown when this timeout is exceeded. Set to zero for no timeout."),
+      "Max amount" + " of time (in seconds) an unresponsive server will be re-tried. An"
+          + " exception is thrown when this timeout is exceeded. Set to zero for no timeout."),
   BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.max.write.threads", "3",
       "Maximum number of threads to use for writing data to tablet servers."),
   BATCH_WRITER_DURABILITY("batch.writer.durability", "default",
-      "Change the durability for the BatchWriter session. To use the table's durability setting. use \"default\" which is the table's durability setting."),
+      "Change the" + " durability for the BatchWriter session. To use the table's durability"
+          + " setting. use \"default\" which is the table's durability setting."),
 
   // SSL
   SSL_ENABLED("ssl.enabled", "false", "Enable SSL for client RPC"),

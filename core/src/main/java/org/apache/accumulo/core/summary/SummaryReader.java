@@ -174,8 +174,10 @@ public class SummaryReader {
   public static SummaryReader load(Configuration conf, AccumuloConfiguration aConf,
       InputStream inputStream, long length, Predicate<SummarizerConfiguration> summarySelector,
       SummarizerFactory factory) throws IOException {
-    org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader = new CachableBlockFile.Reader(
-        (InputStream & Seekable) inputStream, length, conf, aConf);
+    // @formatter:off
+    org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader =
+      new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length, conf, aConf);
+    // @formatter:on
     return load(bcReader, summarySelector, factory);
   }
 
@@ -242,8 +244,10 @@ public class SummaryReader {
     // read summarizer configuration
     String summarizerClazz = in.readUTF();
     String configId = in.readUTF();
-    org.apache.accumulo.core.client.summary.SummarizerConfiguration.Builder scb = SummarizerConfiguration
-        .builder(summarizerClazz).setPropertyId(configId);
+    // @formatter:off
+    org.apache.accumulo.core.client.summary.SummarizerConfiguration.Builder scb =
+      SummarizerConfiguration.builder(summarizerClazz).setPropertyId(configId);
+    // @formatter:on
     int numOpts = WritableUtils.readVInt(in);
     for (int i = 0; i < numOpts; i++) {
       String k = in.readUTF();

@@ -319,9 +319,8 @@ public class TraceServer implements Watcher {
         }
       }
     } catch (MutationsRejectedException | RuntimeException exception) {
-      log.warn(
-          "Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: "
-              + exception);
+      log.warn("Problem flushing traces, resetting writer. Set log level to"
+          + " DEBUG to see stacktrace. cause: " + exception);
       log.debug("flushing traces failed due to exception", exception);
       resetWriter();
       /* XXX e.g. if the writer was closed between when we grabbed it and when we called flush. */

@@ -512,12 +512,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     String keepers = getZooKeepers(keepersOption, properties);
 
     if (keepers == null) {
-      throw new IllegalArgumentException(
-          "ZooKeepers must be set using -z or -zh on command line or in accumulo-client.properties");
+      throw new IllegalArgumentException("ZooKeepers must be set using -z or"
+          + " -zh on command line or in accumulo-client.properties");
     }
     if (instanceName == null) {
-      throw new IllegalArgumentException(
-          "Instance name must be set using -z or -zi on command line or in accumulo-client.properties");
+      throw new IllegalArgumentException("Instance name must be set using -z or"
+          + " -zi on command line or in accumulo-client.properties");
     }
     return new ZooKeeperInstance(instanceName, keepers);
   }

@@ -51,18 +51,24 @@ public enum PropertyType {
 
   BYTES("bytes", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
       "A positive integer optionally followed by a unit of memory (whitespace disallowed).\n"
-          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M' or 'G' for bytes, kilobytes, megabytes, gigabytes.\n"
+          + "If no unit is specified, bytes are assumed. Valid units are 'B',"
+          + " 'K', 'M' or 'G' for bytes, kilobytes, megabytes, gigabytes.\n"
           + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
-          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.\n"
+          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G',"
+          + " '1,024K', '', and 'a'.\n"
           + "Unless otherwise stated, the max value for the memory represented in bytes is "
           + Long.MAX_VALUE),
 
   MEMORY("memory", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G", "%"),
-      "A positive integer optionally followed by a unit of memory or a percentage (whitespace disallowed).\n"
-          + "If a percentage is specified, memory will be a percentage of the max memory allocated to a Java process (set by the JVM option -Xmx).\n"
-          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M', 'G', '%' for bytes, kilobytes, megabytes, gigabytes, and percentage.\n"
+      "A positive integer optionally followed by a unit of memory or a"
+          + " percentage (whitespace disallowed).\n"
+          + "If a percentage is specified, memory will be a percentage of the"
+          + " max memory allocated to a Java process (set by the JVM option -Xmx).\n"
+          + "If no unit is specified, bytes are assumed. Valid units are 'B',"
+          + " 'K', 'M', 'G', '%' for bytes, kilobytes, megabytes, gigabytes, and" + " percentage.\n"
           + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
-          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.\n"
+          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G',"
+          + " '1,024K', '', and 'a'.\n"
           + "Unless otherwise stated, the max value for the memory represented in bytes is "
           + Long.MAX_VALUE),
 
@@ -76,8 +82,10 @@ public enum PropertyType {
 
   @SuppressWarnings("unchecked")
   PORT("port", or(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}")),
-      "An positive integer in the range 1024-65535 (not already in use or specified elsewhere in the configuration),\n"
-          + "zero to indicate any open ephemeral port, or a range of positive integers specified as M-N"),
+      "An positive integer in the range 1024-65535 (not already in use or"
+          + " specified elsewhere in the configuration),\n"
+          + "zero to indicate any open ephemeral port, or a range of positive"
+          + " integers specified as M-N"),
 
   COUNT("count", new Bounds(0, Integer.MAX_VALUE),
       "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
@@ -90,13 +98,15 @@ public enum PropertyType {
           + "Examples of invalid fractions/percentages are '', '10 percent'," + " 'Hulk Hogan'"),
 
   PATH("path", x -> true,
-      "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property. The "
-          + "following environment variables will be substituted: "
+      "A string that represents a filesystem path, which can be either relative"
+          + " or absolute to some directory. The filesystem depends on the property."
+          + " The following environment variables will be substituted: "
           + Constants.PATH_PROPERTY_ENV_VARS),
 
   ABSOLUTEPATH("absolute path",
       x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
-      "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified."),
+      "An absolute filesystem path. The filesystem depends on the property."
+          + " This is the same as path, but enforces that its root is explicitly" + " specified."),
 
   CLASSNAME("java class", new Matches("[\\w$.]*"),
       "A fully qualified java class name representing a class on the classpath.\n"
@@ -110,7 +120,8 @@ public enum PropertyType {
       "One of 'none', 'log', 'flush' or 'sync'."),
 
   STRING("string", x -> true,
-      "An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies."),
+      "An arbitrary string of characters whose format is unspecified and"
+          + " interpreted based on the context of the property to which it applies."),
 
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),

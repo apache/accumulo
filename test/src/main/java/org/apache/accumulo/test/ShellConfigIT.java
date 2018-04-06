@@ -79,7 +79,10 @@ public class ShellConfigIT extends AccumuloClusterHarness {
         clientPropsFile = mac.getConfig().getClientPropsFile();
         break;
       case STANDALONE:
-        StandaloneAccumuloClusterConfiguration standaloneConf = (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
+        // @formatter:off
+        StandaloneAccumuloClusterConfiguration standaloneConf =
+          (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
+        // @formatter:on
         clientPropsFile = standaloneConf.getClientPropsFile();
         break;
       default:

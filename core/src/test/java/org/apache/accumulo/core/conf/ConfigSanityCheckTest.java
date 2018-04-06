@@ -26,8 +26,10 @@ public class ConfigSanityCheckTest {
   private Map<String,String> m;
 
   // These are used when a valid class is needed for testing
-  private static final String DEFAULT_CRYPTO_MODULE = "org.apache.accumulo.core.security.crypto.DefaultCryptoModule";
-  private static final String DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY = "org.apache.accumulo.core.security.crypto.NonCachingSecretKeyEncryptionStrategy";
+  private static final String PROPS_PREFIX = "org.apache.accumulo.core.security.crypto.";
+  private static final String DEFAULT_CRYPTO_MODULE = PROPS_PREFIX + "DefaultCryptoModule";
+  private static final String DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY = PROPS_PREFIX
+      + "NonCachingSecretKeyEncryptionStrategy";
 
   @Before
   public void setUp() {

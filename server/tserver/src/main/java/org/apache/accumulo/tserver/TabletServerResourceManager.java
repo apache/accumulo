@@ -202,13 +202,16 @@ public class TabletServerResourceManager {
       // Still check block cache sizes when using native maps.
       if (dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime.maxMemory()) {
         throw new IllegalArgumentException(String.format(
-            "Block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d",
+            "Block cache sizes %,d" + " and mutation queue size %,d is too large for this JVM"
+                + " configuration %,d",
             dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
       }
     } else if (maxMemory + dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime
         .maxMemory()) {
       throw new IllegalArgumentException(String.format(
-          "Maximum tablet server map memory %,d block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d",
+          "Maximum tablet server"
+              + " map memory %,d block cache sizes %,d and mutation queue size %,d is"
+              + " too large for this JVM configuration %,d",
           maxMemory, dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
     }
     runtime.gc();
@@ -474,9 +477,8 @@ public class TabletServerResourceManager {
               TabletStateImpl tabletReport = tabletReportsCopy.get(keyExtent);
 
               if (tabletReport == null) {
-                log.warn(
-                    "Memory manager asked to compact nonexistent tablet {}; manager implementation might be misbehaving",
-                    keyExtent);
+                log.warn("Memory manager asked to compact nonexistent tablet"
+                    + " {}; manager implementation might be misbehaving", keyExtent);
                 continue;
               }
               Tablet tablet = tabletReport.getTablet();
@@ -494,9 +496,8 @@ public class TabletServerResourceManager {
                       }
                     }
                   }
-                  log.debug(
-                      "Ignoring memory manager recommendation: not minor compacting closed tablet {}",
-                      keyExtent);
+                  log.debug("Ignoring memory manager recommendation: not minor"
+                      + " compacting closed tablet {}", keyExtent);
                 } else {
                   log.info("Ignoring memory manager recommendation: not minor compacting {}",
                       keyExtent);

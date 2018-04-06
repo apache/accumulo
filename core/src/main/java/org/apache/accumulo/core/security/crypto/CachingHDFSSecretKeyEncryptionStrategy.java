@@ -165,14 +165,13 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
             "Could not initialize key encryption cache, malformed key encryption key file", e);
       } catch (IOException e) {
         if (invalidFile) {
-          throw new IOException(
-              "Could not initialize key encryption cache, malformed key encryption key file. Expected key of lengh "
-                  + keyEncryptionKeyLength + " but file contained "
-                  + (fs.getFileStatus(pathToKey).getLen() - 4) + "bytes for key encryption key.");
+          throw new IOException("Could not initialize key encryption cache,"
+              + " malformed key encryption key file. Expected key of lengh "
+              + keyEncryptionKeyLength + " but file contained "
+              + (fs.getFileStatus(pathToKey).getLen() - 4) + "bytes for key encryption key.");
         } else {
-          throw new IOException(
-              "Could not initialize key encryption cache, unable to access or find key encryption key file",
-              e);
+          throw new IOException("Could not initialize key encryption cache,"
+              + " unable to access or find key encryption key file", e);
         }
       } finally {
         IOUtils.closeQuietly(in);

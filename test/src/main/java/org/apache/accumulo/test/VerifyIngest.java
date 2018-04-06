@@ -185,7 +185,8 @@ public class VerifyIngest {
 
             if (expectedRow >= (opts.rows + opts.startRow)) {
               log.error(
-                  "expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get batch returned data passed end key",
+                  "expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get"
+                      + " batch returned data passed end key",
                   expectedRow, (opts.rows + opts.startRow));
               errors++;
               break;

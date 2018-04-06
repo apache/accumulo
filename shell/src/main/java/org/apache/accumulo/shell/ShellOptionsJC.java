@@ -189,8 +189,11 @@ public class ShellOptionsJC {
   private boolean useSasl = false;
 
   @Parameter(names = "--config-file",
-      description = "Read the given accumulo-client.properties file. If omitted, the following locations will be searched "
-          + "~/.accumulo/accumulo-client.properties:$ACCUMULO_CONF_DIR/accumulo-client.properties:/etc/accumulo/accumulo-client.properties")
+      description = "Read the given"
+          + " accumulo-client.properties file. If omitted, the following locations will be"
+          + " searched ~/.accumulo/accumulo-client.properties:"
+          + "$ACCUMULO_CONF_DIR/accumulo-client.properties:"
+          + "/etc/accumulo/accumulo-client.properties")
   private String clientConfigFile = null;
 
   @Parameter(names = {"-zi", "--zooKeeperInstanceName"},
@@ -221,13 +224,14 @@ public class ShellOptionsJC {
         if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
           if (!UserGroupInformation.isSecurityEnabled()) {
             throw new IllegalArgumentException(
-                "Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in accumulo-client.properties");
+                "Kerberos security is not" + " enabled. Run with --sasl or set 'sasl.enabled' in"
+                    + " accumulo-client.properties");
           }
           UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
           username = ugi.getUserName();
         } else {
-          throw new IllegalArgumentException(
-              "Username is not set. Run with '-u myuser' or set 'auth.username' in accumulo-client.properties");
+          throw new IllegalArgumentException("Username is not set. Run with '-u"
+              + " myuser' or set 'auth.username' in accumulo-client.properties");
         }
       }
     }

@@ -146,7 +146,8 @@ public class MajorCompactionRequest implements Cloneable {
   public List<Summary> getSummaries(Collection<FileRef> files,
       Predicate<SummarizerConfiguration> summarySelector) throws IOException {
     Preconditions.checkState(volumeManager != null,
-        "Getting summaries is not supported at this time.  Its only supported when CompactionStrategy.gatherInformation() is called.");
+        "Getting summaries is not" + " supported at this time. It's only supported when"
+            + " CompactionStrategy.gatherInformation() is called.");
     SummaryCollection sc = new SummaryCollection();
     SummarizerFactory factory = new SummarizerFactory(tableConfig);
     for (FileRef file : files) {
@@ -167,7 +168,8 @@ public class MajorCompactionRequest implements Cloneable {
 
   public FileSKVIterator openReader(FileRef ref) throws IOException {
     Preconditions.checkState(volumeManager != null,
-        "Opening files is not supported at this time.  Its only supported when CompactionStrategy.gatherInformation() is called.");
+        "Opening files is not" + " supported at this time. It's only supported when"
+            + " CompactionStrategy.gatherInformation() is called.");
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();

@@ -42,11 +42,14 @@ public class HiddenCommand extends Command {
     if (rand.nextInt(10) == 0) {
       shellState.getReader().beep();
       shellState.getReader().println();
-      shellState.getReader().println(new String(Base64.getDecoder().decode(
-          "ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88LgogICAgLyB8ICd8ICcgXAog"
-              + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
-              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK"),
-          UTF_8));
+      shellState.getReader()
+          .println(new String(Base64.getDecoder()
+              .decode("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8g"
+                  + "IF88LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgIC"
+                  + "AgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAg"
+                  + "IC8gIF9fICBcCiAgICAvICAvICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvIC"
+                  + "AvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK"),
+              UTF_8));
     } else {
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
     }

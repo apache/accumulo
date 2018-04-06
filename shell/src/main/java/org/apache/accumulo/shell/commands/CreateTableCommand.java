@@ -226,9 +226,8 @@ public class CreateTableCommand extends Command {
       try {
         iteratorSetting = shellState.iteratorProfiles.get(profileName).get(0);
       } catch (NullPointerException ex) {
-        throw new IllegalArgumentException(
-            "invalid iterator argument. Either profile does not exist or unexpected spaces in argument list.",
-            ex);
+        throw new IllegalArgumentException("invalid iterator argument. Either"
+            + " profile does not exist or unexpected spaces in argument list.", ex);
       }
       // handle case where only the profile is supplied. Use all scopes by default if no scope args
       // are provided.
@@ -280,7 +279,8 @@ public class CreateTableCommand extends Command {
 
   @Override
   public String description() {
-    return "creates a new table, with optional aggregators, iterators, locality groups and optionally pre-split";
+    return "creates a new table, with optional aggregators, iterators, locality"
+        + " groups and optionally pre-split";
   }
 
   @Override
@@ -320,7 +320,8 @@ public class CreateTableCommand extends Command {
     createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
 
     createTableOptIteratorProps = new Option("i", "iter", true,
-        "initialize iterator at table creation using profile. If no scope supplied, all scopes are activated.");
+        "initialize" + " iterator at table creation using profile. If no scope supplied, all"
+            + " scopes are activated.");
     createTableOptIteratorProps.setArgName("profile[:[all]|[scan[,]][minc[,]][majc]]");
     createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);
 

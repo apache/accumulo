@@ -155,8 +155,8 @@ public class MasterClient {
         }
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug(
-            "Contacted a Master which is no longer active, re-creating the connection to the active Master");
+        log.debug("Contacted a Master which is no longer active, re-creating"
+            + " the connection to the active Master");
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {

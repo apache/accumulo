@@ -830,7 +830,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       if (log.isTraceEnabled()) {
         log.trace(String.format(
-            "MultiScanSess %s %,d entries in %.2f secs (lookup_time:%.2f secs tablets:%,d ranges:%,d) ",
+            "MultiScanSess %s %,d entries in %.2f secs"
+                + " (lookup_time:%.2f secs tablets:%,d ranges:%,d) ",
             TServerUtils.clientAddress.get(), session.numEntries, (t2 - session.startTime) / 1000.0,
             session.totalLookupTime / 1000.0, session.numTablets, session.numRanges));
       }
@@ -2648,8 +2649,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     ReplicationServicer.Iface rpcProxy = RpcWrapper.service(handler);
     ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy,
         handler.getClass(), getConfiguration());
-    ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<>(
-        repl);
+    // @formatter:off
+    ReplicationServicer.Processor<ReplicationServicer.Iface> processor =
+      new ReplicationServicer.Processor<>(repl);
+    // @formatter:on
     AccumuloConfiguration conf = getServerConfigurationFactory().getSystemConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
         ? Property.TSERV_MAX_MESSAGE_SIZE

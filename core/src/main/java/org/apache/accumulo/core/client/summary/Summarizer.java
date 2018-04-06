@@ -24,18 +24,18 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
-//checkstyle and the formatter are in conflict, so turn off the formatter
-//@formatter:off
 /**
- * <p>
- * Instances of this interface can be configured for Accumulo tables. When Accumulo compacts files, it will use this Factory to create {@link Collector} and
- * {@link Combiner} objects to generate summary information about the data in the file.
+ * Instances of this interface can be configured for Accumulo tables. When Accumulo compacts files,
+ * it will use this Factory to create {@link Collector} and {@link Combiner} objects to generate
+ * summary information about the data in the file.
  *
  * <p>
- * In order to merge summary information from multiple files, Accumulo will use this factory to create a {@link Combiner} object.
+ * In order to merge summary information from multiple files, Accumulo will use this factory to
+ * create a {@link Combiner} object.
  *
  * <p>
- * Below is an example of a very simple summarizer that will compute the number of deletes, total number of keys, min timestamp and max timestamp.
+ * Below is an example of a very simple summarizer that will compute the number of deletes, total
+ * number of keys, min timestamp and max timestamp.
  *
  * <pre>
  * <code>
@@ -140,18 +140,21 @@ import org.apache.accumulo.core.data.Value;
  * </pre>
  *
  * <p>
- * The reason a Summarizer is a factory for a Collector and Combiner is to make it very clear in the API that Accumulo uses them independently at different
- * times. Therefore its not advisable to share internal state between the Collector and Combiner. The example implementation shows that the Collectors design
- * allows for very efficient collection of specialized summary information. Creating {@link String} + {@link Long} pairs is deferred until the summarize method
- * is called.
+ * The reason a Summarizer is a factory for a Collector and Combiner is to make it very clear in the
+ * API that Accumulo uses them independently at different times. Therefore its not advisable to
+ * share internal state between the Collector and Combiner. The example implementation shows that
+ * the Collectors design allows for very efficient collection of specialized summary information.
+ * Creating {@link String} + {@link Long} pairs is deferred until the summarize method is called.
  *
  * <p>
  * Summary data can be used by Compaction Strategies to decide which files to compact.
  *
  * <p>
- * Summary data is persisted, so ideally the same summarizer class with the same options should always produce the same results.  If you need to change the behavior
- * of a summarizer, then consider doing this by adding a new option.  If the same summarizer is configured twice with different options, then Accumulo will store and
- * merge each one separately.  This can allow old and new behavior to coexists simultaneously.
+ * Summary data is persisted, so ideally the same summarizer class with the same options should
+ * always produce the same results. If you need to change the behavior of a summarizer, then
+ * consider doing this by adding a new option. If the same summarizer is configured twice with
+ * different options, then Accumulo will store and merge each one separately. This can allow old and
+ * new behavior to coexists simultaneously.
  *
  * @since 2.0.0
  *
@@ -162,7 +165,6 @@ import org.apache.accumulo.core.data.Value;
  * @see RFile#summaries()
  * @see SummarizerConfiguration
  */
- //@formatter:on
 public interface Summarizer {
 
   public static interface StatisticConsumer {

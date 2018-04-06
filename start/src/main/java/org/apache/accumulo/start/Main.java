@@ -216,8 +216,8 @@ public class Main {
         Comparator.comparing(KeywordExecutable::keyword));
     executables.addAll(getExecutables(getClassLoader()).values());
 
-    System.out.println(
-        "\nUsage: accumulo <command> [--help] (<argument> ...)\n\n  --help   Prints usage for specified command");
+    System.out.println("\nUsage: accumulo <command> [--help] (<argument> ...)\n\n"
+        + "  --help   Prints usage for specified command");
     System.out.println("\nCore Commands:");
     printCommands(executables, UsageGroup.CORE);
 

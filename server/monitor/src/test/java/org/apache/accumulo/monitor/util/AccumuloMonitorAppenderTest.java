@@ -110,22 +110,26 @@ public class AccumuloMonitorAppenderTest {
       byte[] location = loc == 0 ? null : ("loc" + loc).getBytes(UTF_8);
       return new MonitorLocation(loc, location);
     };
-    Function<MonitorLocation,AppenderSkeleton> appenderFactory = newLocation -> new AppenderSkeleton() {
+    Function<MonitorLocation,AppenderSkeleton> appenderFactory = newLocation -> {
 
-      {
-        this.name = "Appender for " + newLocation.getLocation();
-      }
+      return new AppenderSkeleton() {
 
-      @Override
-      public boolean requiresLayout() {
-        return false;
-      }
+        {
+          this.name = "Appender for " + newLocation.getLocation();
+        }
 
-      @Override
-      public void close() {}
+        @Override
+        public boolean requiresLayout() {
+          return false;
+        }
 
-      @Override
-      protected void append(LoggingEvent event) {}
+        @Override
+        public void close() {}
+
+        @Override
+        protected void append(LoggingEvent event) {}
+
+      };
 
     };
 

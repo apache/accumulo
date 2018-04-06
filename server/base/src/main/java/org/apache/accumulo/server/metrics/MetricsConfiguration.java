@@ -154,8 +154,8 @@ public class MetricsConfiguration {
         .getResource("accumulo-metrics.xml");
     if (metricsUrl == null) {
       if (!alreadyWarned)
-        log.warn(
-            "accumulo-metrics.xml was not found on classpath. Metrics collection will be disabled.");
+        log.warn("accumulo-metrics.xml was not found on classpath. Metrics"
+            + " collection will be disabled.");
       alreadyWarned = true;
       notFound = true;
       return;

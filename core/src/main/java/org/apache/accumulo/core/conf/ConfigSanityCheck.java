@@ -36,7 +36,7 @@ public class ConfigSanityCheck {
   private static final String PREFIX = "BAD CONFIG ";
   private static final String NULL_CIPHER = "NullCipher";
   private static final String NULL_CRYPTO_MODULE = "NullCryptoModule";
-  private static final String NULL_SECRET_KEY_ENCRYPTION_STRATEGY = "NullSecretKeyEncryptionStrategy";
+  private static final String NULL_SECRET_KEY_CRYPT_STRATEGY = "NullSecretKeyEncryptionStrategy";
   @SuppressWarnings("deprecation")
   private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
   @SuppressWarnings("deprecation")
@@ -58,7 +58,7 @@ public class ConfigSanityCheck {
     boolean usingVolumes = false;
     String cipherSuite = NULL_CIPHER;
     String keyAlgorithm = NULL_CIPHER;
-    String secretKeyEncryptionStrategy = NULL_SECRET_KEY_ENCRYPTION_STRATEGY;
+    String secretKeyEncryptionStrategy = NULL_SECRET_KEY_CRYPT_STRATEGY;
     String cryptoModule = NULL_CRYPTO_MODULE;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
@@ -112,7 +112,7 @@ public class ConfigSanityCheck {
       }
       if (key.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey())) {
         secretKeyEncryptionStrategy = Objects.requireNonNull(value);
-        if (!secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
+        if (!secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_CRYPT_STRATEGY)) {
           verifyValidClassName(key, secretKeyEncryptionStrategy, SecretKeyEncryptionStrategy.class);
         }
       }
@@ -135,7 +135,7 @@ public class ConfigSanityCheck {
     }
 
     if (cryptoModule.equals(NULL_CRYPTO_MODULE)
-        ^ secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
+        ^ secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_CRYPT_STRATEGY)) {
       fatal(Property.CRYPTO_MODULE_CLASS.getKey() + " and "
           + Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()
           + " must both be configured.");

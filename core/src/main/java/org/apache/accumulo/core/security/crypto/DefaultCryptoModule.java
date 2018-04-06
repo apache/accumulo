@@ -74,7 +74,8 @@ public class DefaultCryptoModule implements CryptoModule {
   public CryptoModuleParameters initializeCipher(CryptoModuleParameters params) {
 
     log.trace(String.format(
-        "Using cipher suite \"%s\" with key length %d with RNG \"%s\" and RNG provider \"%s\" and key encryption strategy \"%s\"",
+        "Using cipher suite \"%s\" with key length %d with"
+            + " RNG \"%s\" and RNG provider \"%s\" and key encryption strategy" + " \"%s\"",
         params.getCipherSuite(), params.getKeyLength(), params.getRandomNumberGenerator(),
         params.getRandomNumberGeneratorProvider(), params.getKeyEncryptionStrategyClass()));
 
@@ -98,12 +99,12 @@ public class DefaultCryptoModule implements CryptoModule {
     try {
       initCipher(params, cipher, Cipher.ENCRYPT_MODE);
     } catch (InvalidKeyException e) {
-      log.error(
-          "Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
+      log.error("Accumulo encountered an unknown error in generating the secret"
+          + " key object (SecretKeySpec) for an encrypted stream");
       throw new RuntimeException(e);
     } catch (InvalidAlgorithmParameterException e) {
-      log.error(
-          "Accumulo encountered an unknown error in setting up the initialization vector for an encrypted stream");
+      log.error("Accumulo encountered an unknown error in setting up the"
+          + " initialization vector for an encrypted stream");
       throw new RuntimeException(e);
     }
 

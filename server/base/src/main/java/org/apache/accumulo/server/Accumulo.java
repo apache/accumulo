@@ -182,10 +182,10 @@ public class Accumulo {
               String setting = new String(buffer, 0, bytes, UTF_8);
               setting = setting.trim();
               if (bytes > 0 && Integer.parseInt(setting) > 10) {
-                log.warn(
-                    "System swappiness setting is greater than ten ({}) which can cause time-sensitive operations to be delayed. "
-                        + " Accumulo is time sensitive because it needs to maintain distributed lock agreement.",
-                    setting);
+                log.warn("System swappiness setting is greater than ten ({})"
+                    + " which can cause time-sensitive operations to be delayed."
+                    + " Accumulo is time sensitive because it needs to maintain"
+                    + " distributed lock agreement.", setting);
               }
             }
           }

@@ -40,7 +40,8 @@ public class ServerOpts extends Help {
   }
 
   @Parameter(names = "-o", splitter = NullSplitter.class,
-      description = "Overrides configuration set in accumulo-site.xml (but NOT system-wide config set in Zookeeper). Expected format: -o <key>=<value>")
+      description = "Overrides configuration set in accumulo-site.xml (but NOT system-wide config"
+          + " set in Zookeeper). Expected format: -o <key>=<value>")
   private List<String> properties = new ArrayList<>();
 
   public String getAddress() {

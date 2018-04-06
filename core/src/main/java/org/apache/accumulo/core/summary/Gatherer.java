@@ -209,10 +209,9 @@ public class Gatherer {
         location = tservers.get(idx);
       }
 
+      // merge contiguous ranges
       List<Range> merged = Range
-          .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange())); // merge
-                                                                                                    // contiguous
-                                                                                                    // ranges
+          .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange()));
       List<TRowRange> ranges = merged.stream().map(r -> toClippedExtent(r).toThrift())
           .collect(Collectors.toList()); // clip ranges to queried range
 

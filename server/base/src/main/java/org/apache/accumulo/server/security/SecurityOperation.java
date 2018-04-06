@@ -187,9 +187,8 @@ public class SecurityOperation {
         }
       } else {
         if (!(context.getCredentials().equals(creds))) {
-          log.debug(
-              "Provided credentials did not match server's expected credentials. Expected {} but got {}",
-              context.getCredentials(), creds);
+          log.debug("Provided credentials did not match server's expected"
+              + " credentials. Expected {} but got {}", context.getCredentials(), creds);
           throw new ThriftSecurityException(creds.getPrincipal(),
               SecurityErrorCode.BAD_CREDENTIALS);
         }
@@ -793,9 +792,8 @@ public class SecurityOperation {
 
     try {
       permHandle.grantNamespacePermission(user, namespace, permission);
-      log.info(
-          "Granted namespace permission {} for user {} on the namespace {} at the request of user {}",
-          permission, user, namespace, c.getPrincipal());
+      log.info("Granted namespace permission {} for user {} on the namespace {}"
+          + " at the request of user {}", permission, user, namespace, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (NamespaceNotFoundException e) {
@@ -849,9 +847,8 @@ public class SecurityOperation {
 
     try {
       permHandle.revokeNamespacePermission(user, namespace, permission);
-      log.info(
-          "Revoked namespace permission {} for user {} on the namespace {} at the request of user {}",
-          permission, user, namespace, c.getPrincipal());
+      log.info("Revoked namespace permission {} for user {} on the namespace {}"
+          + " at the request of user {}", permission, user, namespace, c.getPrincipal());
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();

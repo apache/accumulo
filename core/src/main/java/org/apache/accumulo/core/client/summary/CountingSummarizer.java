@@ -30,32 +30,36 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.commons.lang.mutable.MutableLong;
 
-//checkstyle and formatter are in conflict
-//@formatter:off
 /**
- * This class counts arbitrary keys while defending against too many keys and keys that are too long.
+ * This class counts arbitrary keys while defending against too many keys and keys that are too
+ * long.
  *
  * <p>
- * During collection and summarization this class will use the functions from {@link #converter()} and {@link #encoder()}. For each key/value the function from
- * {@link #converter()} will be called to create zero or more counter objects. A counter associated with each counter object will be incremented, as long as
- * there are not too many counters and the counter object is not too long.
+ * During collection and summarization this class will use the functions from {@link #converter()}
+ * and {@link #encoder()}. For each key/value the function from {@link #converter()} will be called
+ * to create zero or more counter objects. A counter associated with each counter object will be
+ * incremented, as long as there are not too many counters and the counter object is not too long.
  *
  * <p>
- * When {@link Summarizer.Collector#summarize(Summarizer.StatisticConsumer)} is called, the function from {@link #encoder()} will be used to convert counter
- * objects to strings. These strings will be used to emit statistics. Overriding {@link #encoder()} is optional. One reason to override is if the counter object
- * contains binary or special data. For example, a function that base64 encodes counter objects could be created.
+ * When {@link Summarizer.Collector#summarize(Summarizer.StatisticConsumer)} is called, the function
+ * from {@link #encoder()} will be used to convert counter objects to strings. These strings will be
+ * used to emit statistics. Overriding {@link #encoder()} is optional. One reason to override is if
+ * the counter object contains binary or special data. For example, a function that base64 encodes
+ * counter objects could be created.
  *
  * <p>
  * If the counter key type is mutable, then consider overriding {@link #copier()}.
  *
  * <p>
- * The function returned by {@link #converter()} will be called frequently and should be very efficient. The function returned by {@link #encoder()} will be
- * called less frequently and can be more expensive. The reason these two functions exists is to avoid the conversion to string for each key value, if that
- * conversion is unnecessary.
+ * The function returned by {@link #converter()} will be called frequently and should be very
+ * efficient. The function returned by {@link #encoder()} will be called less frequently and can be
+ * more expensive. The reason these two functions exists is to avoid the conversion to string for
+ * each key value, if that conversion is unnecessary.
  *
  * <p>
- * Below is an example implementation that counts column visibilities. This example avoids converting column visibility to string for each key/value. This
- * example shows the source code for {@link VisibilitySummarizer}.
+ * Below is an example implementation that counts column visibilities. This example avoids
+ * converting column visibility to string for each key/value. This example shows the source code for
+ * {@link VisibilitySummarizer}.
  *
  * <pre>
  * <code>
@@ -75,11 +79,11 @@ import org.apache.commons.lang.mutable.MutableLong;
  * </pre>
  *
  * @param <K>
- *          The counter key type. This type must have good implementations of {@link Object#hashCode()} and {@link Object#equals(Object)}.
+ *          The counter key type. This type must have good implementations of
+ *          {@link Object#hashCode()} and {@link Object#equals(Object)}.
  * @see CounterSummary
  * @since 2.0.0
  */
-//@formatter:on
 public abstract class CountingSummarizer<K> implements Summarizer {
 
   /**

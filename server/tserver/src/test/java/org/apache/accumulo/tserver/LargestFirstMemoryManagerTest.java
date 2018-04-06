@@ -195,8 +195,10 @@ public class LargestFirstMemoryManagerTest {
     final String deletedTableId = "1";
     Function<Table.ID,Boolean> existenceCheck = tableId -> !deletedTableId
         .contentEquals(tableId.canonicalID());
-    LargestFirstMemoryManagerWithExistenceCheck mgr = new LargestFirstMemoryManagerWithExistenceCheck(
-        existenceCheck);
+    // @formatter:off
+    LargestFirstMemoryManagerWithExistenceCheck mgr =
+      new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
+    // @formatter:on
     ServerConfiguration config = new ServerConfiguration() {
       ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 

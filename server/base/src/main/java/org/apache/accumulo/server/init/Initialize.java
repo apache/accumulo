@@ -252,8 +252,8 @@ public class Initialize implements KeywordExecutable {
     log.info("Accumulo data dirs are {}",
         Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
     log.info("Zookeeper server is {}", sconf.get(Property.INSTANCE_ZK_HOST));
-    log.info(
-        "Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
+    log.info("Checking if Zookeeper is available. If this hangs, then you need"
+        + " to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Zookeeper needs to be up and running in order to init. Exiting ...");
@@ -270,9 +270,9 @@ public class Initialize implements KeywordExecutable {
       c.println();
       c.println("You can change the instance secret in accumulo by using:");
       c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
-      c.println(
-          "You will also need to edit your secret in your configuration file by adding the property instance.secret to your accumulo-site.xml. "
-              + "Without this accumulo will not operate correctly");
+      c.println("You will also need to edit your secret in your configuration"
+          + " file by adding the property instance.secret to your"
+          + " accumulo-site.xml. Without this accumulo will not operate" + " correctly");
     }
     try {
       if (isInitialized(fs)) {
@@ -307,9 +307,8 @@ public class Initialize implements KeywordExecutable {
     } else if (!instanceDfsDir.isEmpty()) {
       log.error("FATAL: Change the property {} to use a different filesystem,", INSTANCE_DFS_URI);
     } else {
-      log.error(
-          "FATAL: You are using the default URI for the filesystem. Set the property {} to use a different filesystem,",
-          Property.INSTANCE_VOLUMES);
+      log.error("FATAL: You are using the default URI for the filesystem. Set"
+          + " the property {} to use a different filesystem,", Property.INSTANCE_VOLUMES);
     }
     log.error("FATAL: or change the property {} to use a different directory.", INSTANCE_DFS_DIR);
     log.error("FATAL: The current value of {} is |{}|", INSTANCE_DFS_URI, instanceDfsUri);
@@ -384,10 +383,11 @@ public class Initialize implements KeywordExecutable {
         // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
         if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
           log.error(
-              "FATAL: Default filesystem value ('fs.defaultFS' or 'fs.default.name') of '{}' was found in the Hadoop configuration",
+              "FATAL: Default filesystem value ('fs.defaultFS' or"
+                  + " 'fs.default.name') of '{}' was found in the Hadoop configuration",
               defaultFsUri);
-          log.error(
-              "FATAL: Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
+          log.error("FATAL: Please ensure that the Hadoop core-site.xml is on"
+              + " the classpath using 'general.classpaths' in accumulo-site.xml");
         }
       }
 
@@ -439,8 +439,8 @@ public class Initialize implements KeywordExecutable {
 
     if (opts.uploadAccumuloSite) {
       try {
-        log.info(
-            "Uploading properties in accumulo-site.xml to Zookeeper. Properties that cannot be set in Zookeeper will be skipped:");
+        log.info("Uploading properties in accumulo-site.xml to Zookeeper."
+            + " Properties that cannot be set in Zookeeper will be skipped:");
         Map<String,String> entries = new TreeMap<>();
         SiteConfiguration.getInstance().getProperties(entries, x -> true, false);
         for (Map.Entry<String,String> entry : entries.entrySet()) {
@@ -858,8 +858,10 @@ public class Initialize implements KeywordExecutable {
         .fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst()))
-        log.error("{} is set to be replaced in {} and should not appear in {}"
-            + ". It is highly recommended that this property be removed as data could still be written to this volume.",
+        log.error(
+            "{} is set to be replaced in {} and should not appear in {}."
+                + " It is highly recommended that this property be removed as data"
+                + " could still be written to this volume.",
             aBasePath, Property.INSTANCE_VOLUMES_REPLACEMENTS, Property.INSTANCE_VOLUMES);
     }
 
@@ -936,8 +938,8 @@ public class Initialize implements KeywordExecutable {
         if (isInitialized(fs)) {
           if (!opts.forceResetSecurity) {
             ConsoleReader c = getConsoleReader();
-            String userEnteredName = c.readLine(
-                "WARNING: This will remove all users from Accumulo! If you wish to proceed enter the instance name: ");
+            String userEnteredName = c.readLine("WARNING: This will remove all"
+                + " users from Accumulo! If you wish to proceed enter the instance" + " name: ");
             if (userEnteredName != null && !instance.getInstanceName().equals(userEnteredName)) {
               log.error("Aborted reset security: Instance name did not match current instance.");
               return;

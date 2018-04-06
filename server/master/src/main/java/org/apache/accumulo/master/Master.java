@@ -1235,8 +1235,10 @@ public class Master extends AccumuloServerContext
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy = HighlyAvailableServiceWrapper.service(impl,
         this);
-    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<>(
-        RpcWrapper.service(haReplicationProxy));
+    // @formatter:off
+    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
+      new ReplicationCoordinator.Processor<>(RpcWrapper.service(haReplicationProxy));
+    // @formatter:on
     ServerAddress replAddress = TServerUtils.startServer(this, hostname,
         Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null,

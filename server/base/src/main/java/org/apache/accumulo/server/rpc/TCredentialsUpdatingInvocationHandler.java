@@ -111,9 +111,8 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     if (!KerberosToken.class.isAssignableFrom(tokenClass)
         && !SystemToken.class.isAssignableFrom(tokenClass)) {
       // Don't include messages about SystemToken since it's internal
-      log.debug(
-          "Will not update principal on authentication tokens other than KerberosToken. Received {}",
-          tokenClass);
+      log.debug("Will not update principal on authentication tokens other than"
+          + " KerberosToken. Received {}", tokenClass);
       throw new ThriftSecurityException("Did not receive a valid token",
           SecurityErrorCode.BAD_CREDENTIALS);
     }

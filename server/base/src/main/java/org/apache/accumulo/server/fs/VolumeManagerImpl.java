@@ -239,9 +239,8 @@ public class VolumeManagerImpl implements VolumeManager {
           synchronized (WARNED_ABOUT_SYNCONCLOSE) {
             if (!WARNED_ABOUT_SYNCONCLOSE.contains(entry.getKey())) {
               WARNED_ABOUT_SYNCONCLOSE.add(entry.getKey());
-              log.warn(
-                  "{} set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss",
-                  DFS_DATANODE_SYNCONCLOSE);
+              log.warn("{} set to false in hdfs-site.xml: data loss is possible"
+                  + " on hard system reset or power loss", DFS_DATANODE_SYNCONCLOSE);
             }
           }
         }

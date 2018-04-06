@@ -1557,9 +1557,10 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         String traceOutput = finalBuffer.toString();
         log.info("Trace output:" + traceOutput);
         if (traceCount > 0) {
+          String[] parts = ("traceTest, startScan,startConditionalUpdate,conditionalUpdate"
+              + ",Check conditions,apply conditional mutations").split(",");
           int lastPos = 0;
-          for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations"
-              .split(",")) {
+          for (String part : parts) {
             log.info("Looking in trace output for '" + part + "'");
             int pos = traceOutput.indexOf(part);
             if (-1 == pos) {

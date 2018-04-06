@@ -54,20 +54,25 @@ public enum Property {
           + " (future) other parts of the code."),
   @Experimental
   CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING,
-      "Describes the cipher suite to use for rfile encryption. The value must be either NullCipher or in the form of algorithm/mode/padding, "
-          + "e.g. AES/CBC/NoPadding"),
+      "Describes the cipher suite to use for rfile encryption. The value must"
+          + " be either NullCipher or in the form of algorithm/mode/padding, e.g."
+          + " AES/CBC/NoPadding"),
   @Experimental
   CRYPTO_WAL_CIPHER_SUITE("crypto.wal.cipher.suite", "", PropertyType.STRING,
-      "Describes the cipher suite to use for the write-ahead log. Defaults to 'cyrpto.cipher.suite' "
-          + "and will use that value for WAL encryption unless otherwise specified. Valid suite values include: an empty string, NullCipher, or a string the "
-          + "form of algorithm/mode/padding, e.g. AES/CBC/NOPadding"),
+      "Describes the cipher suite to use for the write-ahead log. Defaults to"
+          + " 'cyrpto.cipher.suite' and will use that value for WAL encryption unless"
+          + " otherwise specified. Valid suite values include: an empty string,"
+          + " NullCipher, or a string the form of algorithm/mode/padding, e.g."
+          + " AES/CBC/NOPadding"),
   @Experimental
   CRYPTO_CIPHER_KEY_ALGORITHM_NAME("crypto.cipher.key.algorithm.name", "NullCipher",
       PropertyType.STRING,
-      "States the name of the algorithm used for the key for the corresponding cipher suite. The key type must be compatible with the cipher suite."),
+      "States the name of the algorithm used for the key for the corresponding"
+          + " cipher suite. The key type must be compatible with the cipher suite."),
   @Experimental
   CRYPTO_BLOCK_STREAM_SIZE("crypto.block.stream.size", "1K", PropertyType.BYTES,
-      "The size of the buffer above the cipher stream. Used for reading files and padding walog entries."),
+      "The size of the buffer above the cipher stream. Used for reading files"
+          + " and padding walog entries."),
   @Experimental
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
       "Specifies the key length *in bits* to use for the symmetric key, "
@@ -115,7 +120,8 @@ public enum Property {
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
-      "Properties in this category related to the configuration of SSL keys for RPC. See also instance.ssl.enabled"),
+      "Properties in this category related to the configuration of SSL keys for"
+          + " RPC. See also instance.ssl.enabled"),
   RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "", PropertyType.PATH,
       "Path of the keystore file for the server's private SSL key"),
   @Sensitive
@@ -175,11 +181,14 @@ public enum Property {
           + "Do not change after accumulo is initialized."),
   @Sensitive
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
-      "A secret unique to a given instance that all servers must know in order to communicate with one another."
-          + "It should be changed prior to the initialization of Accumulo. To change it after Accumulo has been initialized, use the ChangeSecret tool "
-          + "and then update accumulo-site.xml everywhere. Before using the ChangeSecret tool, make sure Accumulo is not running and you are logged "
-          + "in as the user that controls Accumulo files in HDFS.  To use the ChangeSecret tool, run the command: "
-          + "./bin/accumulo org.apache.accumulo.server.util.ChangeSecret"),
+      "A secret unique to a given instance that all servers must know in order"
+          + " to communicate with one another. It should be changed prior to the"
+          + " initialization of Accumulo. To change it after Accumulo has been"
+          + " initialized, use the ChangeSecret tool and then update accumulo-site.xml"
+          + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
+          + " running and you are logged in as the user that controls Accumulo files in"
+          + " HDFS. To use the ChangeSecret tool, run the command: ./bin/accumulo"
+          + " org.apache.accumulo.server.util.ChangeSecret"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
       "A comma seperated list of dfs uris to use. Files will be stored across"
           + " these filesystems. If this is empty, then instance.dfs.uri will be used."
@@ -239,12 +248,15 @@ public enum Property {
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud."),
+      "Properties in this category affect the behavior of accumulo overall, but"
+          + " do not have to be consistent throughout a cloud."),
   @Deprecated
   GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
-      "This property is deprecated. The class path should instead be configured by the launch environment (for example, accumulo-env.sh). "
-          + "A list of all of the places to look for a class. Order does matter, as it will look for the jar "
-          + "starting in the first location to the last. Supports full regex on filename alone."),
+      "This property is deprecated. The class path should instead be configured"
+          + " by the launch environment (for example, accumulo-env.sh). A list of all"
+          + " of the places to look for a class. Order does matter, as it will look for"
+          + " the jar starting in the first location to the last. Supports full regex"
+          + " on filename alone."),
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
       AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
       "A list of all of the places where changes in jars or classes will force "
@@ -264,8 +276,9 @@ public enum Property {
           + "principal. Leave blank if not using kerberoized hdfs"),
   GENERAL_KERBEROS_RENEWAL_PERIOD("general.kerberos.renewal.period", "30s",
       PropertyType.TIMEDURATION,
-      "The amount of time between attempts to perform "
-          + "Kerberos ticket renewals. This does not equate to how often tickets are actually renewed (which is performed at 80% of the ticket lifetime)."),
+      "The amount of time between attempts to perform Kerberos ticket renewals."
+          + " This does not equate to how often tickets are actually renewed (which is"
+          + " performed at 80% of the ticket lifetime)."),
   GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a server."),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
@@ -279,11 +292,13 @@ public enum Property {
   GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "",
       PropertyType.STRING, "Comma-separated list of paths to CredentialProviders"),
   GENERAL_LEGACY_METRICS("general.legacy.metrics", "false", PropertyType.BOOLEAN,
-      "Use the old metric infrastructure configured by accumulo-metrics.xml, instead of Hadoop Metrics2"),
+      "Use the old metric infrastructure configured by accumulo-metrics.xml,"
+          + " instead of Hadoop Metrics2"),
   GENERAL_ARBITRARY_PROP_PREFIX("general.custom.", null, PropertyType.PREFIX,
-      "Prefix to be used for user defined system-wide properties. "
-          + "This may be particularly useful for system-wide configuration for various user-implementations of "
-          + "pluggable Accumulo features, such as the balancer or volume chooser."),
+      "Prefix to be used for user defined system-wide properties. This may be"
+          + " particularly useful for system-wide configuration for various"
+          + " user-implementations of pluggable Accumulo features, such as the balancer"
+          + " or volume chooser."),
   GENERAL_DELEGATION_TOKEN_LIFETIME("general.delegation.token.lifetime", "7d",
       PropertyType.TIMEDURATION,
       "The length of time that delegation tokens and secret keys are valid"),
@@ -331,7 +346,8 @@ public enum Property {
       "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
-      "The number of threads used to run fault-tolerant executions (FATE). These are primarily table operations like merge."),
+      "The number of threads used to run fault-tolerant executions (FATE)."
+          + " These are primarily table operations like merge."),
   MASTER_REPLICATION_SCAN_INTERVAL("master.replication.status.scan.interval", "30s",
       PropertyType.TIMEDURATION,
       "Amount of time to sleep before scanning the status section of the "
@@ -358,8 +374,9 @@ public enum Property {
       "Specifies a default blocksize for the tserver caches"),
   TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class",
       "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
-      "Specifies the class name of the block cache factory implementation. Alternative implementation is "
-          + "org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager"),
+      "Specifies the class name of the block cache factory implementation."
+          + " Alternative implementation is"
+          + " org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager"),
   TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks."),
   TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "25%", PropertyType.MEMORY,
@@ -372,26 +389,34 @@ public enum Property {
       "The port used for handling client connections on the tablet servers"),
   @Deprecated
   TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "1M", PropertyType.BYTES,
-      "This setting is deprecated. See tserver.total.mutation.queue.max. "
-          + "The amount of memory to use to store write-ahead-log mutations-per-session before flushing them. Since the buffer is per write session, consider the"
-          + " max number of concurrent writer when configuring. When using Hadoop 2, Accumulo will call hsync() on the WAL . For a small number of "
-          + "concurrent writers, increasing this buffer size decreases the frequncy of hsync calls. For a large number of concurrent writers a small buffers "
-          + "size is ok because of group commit."),
+      "This setting is deprecated. See tserver.total.mutation.queue.max. The"
+          + " amount of memory to use to store write-ahead-log mutations-per-session"
+          + " before flushing them. Since the buffer is per write session, consider the"
+          + " max number of concurrent writer when configuring. When using Hadoop 2,"
+          + " Accumulo will call hsync() on the WAL . For a small number of concurrent"
+          + " writers, increasing this buffer size decreases the frequncy of hsync"
+          + " calls. For a large number of concurrent writers a small buffers size is"
+          + " ok because of group commit."),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them."),
   TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300",
       PropertyType.COUNT,
-      "To find a tablets split points, all RFiles are opened and their indexes are read. This setting determines how many "
-          + "RFiles can be opened at once. When there are more RFiles than this setting multiple passes "
-          + "must be made, which is slower. However opening too many RFiles at once can cause problems."),
+      "To find a tablets split points, all RFiles are opened and their indexes"
+          + " are read. This setting determines how many RFiles can be opened at once."
+          + " When there are more RFiles than this setting multiple passes must be"
+          + " made, which is slower. However opening too many RFiles at once can cause"
+          + " problems."),
   TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1g", PropertyType.BYTES,
-      "The maximum size for each write-ahead log. See comment for property tserver.memory.maps.max"),
+      "The maximum size for each write-ahead log. See comment for property"
+          + " tserver.memory.maps.max"),
   TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION,
       "The maximum age for each write-ahead log."),
   TSERV_WALOG_TOLERATED_CREATION_FAILURES("tserver.walog.tolerated.creation.failures", "50",
       PropertyType.COUNT,
-      "The maximum number of failures tolerated when creating a new write-ahead log.  Values < 0 will allow unlimited creation failures."
-          + " Exceeding this number of failures consecutively trying to create a new write-ahead log causes the TabletServer to exit."),
+      "The maximum number of failures tolerated when creating a new write-ahead"
+          + " log. Negative values will allow unlimited creation failures. Exceeding this"
+          + " number of failures consecutively trying to create a new write-ahead log"
+          + " causes the TabletServer to exit."),
   TSERV_WALOG_TOLERATED_WAIT_INCREMENT("tserver.walog.tolerated.wait.increment", "1000ms",
       PropertyType.TIMEDURATION,
       "The amount of time to wait between failures to create or write a write-ahead log."),
@@ -406,14 +431,18 @@ public enum Property {
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
       "Maximum total RFiles that all tablets in a tablet server can open for scans. "),
   TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION,
-      "Tablet servers leave previously used RFiles open for future queries. "
-          + "This setting determines how much time an unused RFile should be kept open until it is closed."),
+      "Tablet servers leave previously used RFiles open for future queries."
+          + " This setting determines how much time an unused RFile should be kept open"
+          + " until it is closed."),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
-      "An in-memory data store for accumulo implemented in c++ that increases the amount of data accumulo can hold in memory and avoids Java GC pauses."),
+      "An in-memory data store for accumulo implemented in c++ that increases"
+          + " the amount of data accumulo can hold in memory and avoids Java GC" + " pauses."),
   TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
-      "Maximum amount of memory that can be used to buffer data written to a tablet server. There are two other properties that can effectively limit memory"
-          + " usage table.compaction.minor.logs.threshold and tserver.walog.max.size. Ensure that table.compaction.minor.logs.threshold *"
-          + " tserver.walog.max.size >= this property."),
+      "Maximum amount of memory that can be used to buffer data written to a"
+          + " tablet server. There are two other properties that can effectively limit"
+          + " memory usage table.compaction.minor.logs.threshold and"
+          + " tserver.walog.max.size. Ensure that table.compaction.minor.logs.threshold"
+          + " * tserver.walog.max.size >= this property."),
   TSERV_MEM_MGMT("tserver.memory.manager",
       "org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager", PropertyType.CLASSNAME,
       "An implementation of MemoryManger that accumulo will use."),
@@ -436,7 +465,8 @@ public enum Property {
   TSERV_MAJC_MAXCONCURRENT("tserver.compaction.major.concurrent.max", "3", PropertyType.COUNT,
       "The maximum number of concurrent major compactions for a tablet server"),
   TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.BYTES,
-      "Maximum number of bytes to read or write per second over all major compactions on a TabletServer, or 0B for unlimited."),
+      "Maximum number of bytes to read or write per second over all major"
+          + " compactions on a TabletServer, or 0B for unlimited."),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server"),
   TSERV_MAJC_TRACE_PERCENT("tserver.compaction.major.trace.percent", "0.1", PropertyType.FRACTION,
@@ -459,13 +489,17 @@ public enum Property {
           + " minor compacted file because it may have been modified by iterators. The"
           + " file dumped to the local dir is an exact copy of what was in memory."),
   TSERV_BULK_PROCESS_THREADS("tserver.bulk.process.threads", "1", PropertyType.COUNT,
-      "The master will task a tablet server with pre-processing a bulk import RFile prior to assigning it to the appropriate tablet servers. This configuration"
-          + " value controls the number of threads used to process the files."),
+      "The master will task a tablet server with pre-processing a bulk import"
+          + " RFile prior to assigning it to the appropriate tablet servers. This"
+          + " configuration value controls the number of threads used to process the" + " files."),
   TSERV_BULK_ASSIGNMENT_THREADS("tserver.bulk.assign.threads", "1", PropertyType.COUNT,
-      "The master delegates bulk import RFile processing and assignment to tablet servers. After file has been processed, the tablet server will assign"
-          + " the file to the appropriate tablets on all servers. This property controls the number of threads used to communicate to the other servers."),
+      "The master delegates bulk import RFile processing and assignment to"
+          + " tablet servers. After file has been processed, the tablet server will"
+          + " assign the file to the appropriate tablets on all servers. This property"
+          + " controls the number of threads used to communicate to the other" + " servers."),
   TSERV_BULK_RETRY("tserver.bulk.retry.max", "5", PropertyType.COUNT,
-      "The number of times the tablet server will attempt to assign a RFile to a tablet as it migrates and splits."),
+      "The number of times the tablet server will attempt to assign a RFile to"
+          + " a tablet as it migrates and splits."),
   TSERV_BULK_TIMEOUT("tserver.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request."),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT,
@@ -475,11 +509,14 @@ public enum Property {
   TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server."),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
-      "The maximum time for a tablet server to be in the \"memory full\" state. If the tablet server cannot write out memory"
-          + " in this much time, it will assume there is some failure local to its node, and quit. A value of zero is equivalent to forever."),
+      "The maximum time for a tablet server to be in the \"memory full\" state."
+          + " If the tablet server cannot write out memory in this much time, it will"
+          + " assume there is some failure local to its node, and quit. A value of zero"
+          + " is equivalent to forever."),
   TSERV_WAL_BLOCKSIZE("tserver.wal.blocksize", "0", PropertyType.BYTES,
-      "The size of the HDFS blocks used to write to the Write-Ahead log. If zero, it will be 110% of tserver.walog.max.size (that is, try to use just one"
-          + " block)"),
+      "The size of the HDFS blocks used to write to the Write-Ahead log. If"
+          + " zero, it will be 110% of tserver.walog.max.size (that is, try to use just"
+          + " one block)"),
   TSERV_WAL_REPLICATION("tserver.wal.replication", "0", PropertyType.COUNT,
       "The replication to use when writing the Write-Ahead log to HDFS. If"
           + " zero, it will use the HDFS default replication setting."),
@@ -490,7 +527,8 @@ public enum Property {
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN,
       "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
-      "The number of threads for the distributed work queue. These threads are used for copying failed bulk import RFiles."),
+      "The number of threads for the distributed work queue. These threads are"
+          + " used for copying failed bulk import RFiles."),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents"
           + " problems recovering from sudden system resets."),
@@ -512,15 +550,21 @@ public enum Property {
   TSERV_ASSIGNMENT_MAXCONCURRENT("tserver.assignment.concurrent.max", "2", PropertyType.COUNT,
       "The number of threads available to load tablets. Recoveries are still performed serially."),
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
-      "If a flush to the write-ahead log takes longer than this period of time, debugging information will written, and may result in a log rollover."),
+      "If a flush to the write-ahead log takes longer than this period of time,"
+          + " debugging information will written, and may result in a log rollover."),
   TSERV_SUMMARY_PARTITION_THREADS("tserver.summary.partition.threads", "10", PropertyType.COUNT,
-      "Summary data must be retrieved from RFiles.  For a large number of RFiles, the files are broken into partitions of 100K files.  This setting determines "
-          + "how many of these groups of 100K RFiles will be processed concurrently."),
+      "Summary data must be retrieved from RFiles. For a large number of"
+          + " RFiles, the files are broken into partitions of 100K files. This setting"
+          + " determines how many of these groups of 100K RFiles will be processed"
+          + " concurrently."),
   TSERV_SUMMARY_REMOTE_THREADS("tserver.summary.remote.threads", "128", PropertyType.COUNT,
-      "For a partitioned group of 100K RFiles, those files are grouped by tablet server.  Then a remote tablet server is asked to gather summary data.  This "
-          + "setting determines how many concurrent request are made per partition."),
+      "For a partitioned group of 100K RFiles, those files are grouped by"
+          + " tablet server. Then a remote tablet server is asked to gather summary"
+          + " data. This setting determines how many concurrent request are made per"
+          + " partition."),
   TSERV_SUMMARY_RETRIEVAL_THREADS("tserver.summary.retrieval.threads", "10", PropertyType.COUNT,
-      "The number of threads on each tablet server available to retrieve summary data, that is not currently in cache, from RFiles."),
+      "The number of threads on each tablet server available to retrieve"
+          + " summary data, that is not currently in cache, from RFiles."),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -587,10 +631,13 @@ public enum Property {
       "The SimpleDateFormat string used to configure "
           + "the date shown on the 'Recent Logs' monitor page"),
   MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
-      "A JSON Map of Strings. Each String should be an HTML tag of an external resource (JS or CSS) to be imported by the Monitor. \n"
-          + "Be sure to wrap with CDATA tags. If this value is set, all of the external resources in the <head> tag of the Monitor will be replaced with \n"
-          + "the tags set here. Be sure the jquery tag is first since other scripts will depend on it. The resources that are used by default "
-          + "can be seen in accumulo/server/monitor/src/main/resources/templates/default.ftl"),
+      "A JSON Map of Strings. Each String should be an HTML tag of an external"
+          + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
+          + " with CDATA tags. If this value is set, all of the external resources"
+          + " in the <head> tag of the Monitor will be replaced with the tags set here."
+          + " Be sure the jquery tag is first since other scripts will depend on it."
+          + " The resources that are used by default can be seen in"
+          + " accumulo/server/monitor/src/main/resources/templates/default.ftl"),
 
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of distributed tracing."),
@@ -611,7 +658,8 @@ public enum Property {
       "The password for the user used to store distributed traces"),
   @Sensitive
   TRACE_TOKEN_PROPERTY_PREFIX("trace.token.property.", null, PropertyType.PREFIX,
-      "The prefix used to create a token for storing distributed traces. For each property required by trace.token.type, place this prefix in front of it."),
+      "The prefix used to create a token for storing distributed traces. For"
+          + " each property required by trace.token.type, place this prefix in front of it."),
   TRACE_TOKEN_TYPE("trace.token.type", PasswordToken.class.getName(), PropertyType.CLASSNAME,
       "An AuthenticationToken type supported by the authorizer"),
 
@@ -629,14 +677,17 @@ public enum Property {
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties."),
   TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
-      "Minimum ratio of total input size to maximum input RFile size for running a major compaction. When adjusting this property you may want to also "
-          + "adjust table.file.max. Want to avoid the situation where only merging minor compactions occur."),
+      "Minimum ratio of total input size to maximum input RFile size for"
+          + " running a major compaction. When adjusting this property you may want to"
+          + " also adjust table.file.max. Want to avoid the situation where only"
+          + " merging minor compactions occur."),
   TABLE_MAJC_COMPACTALL_IDLETIME("table.compaction.major.everything.idle", "1h",
       PropertyType.TIMEDURATION,
-      "After a tablet has been idle (no mutations) for this time period it may have all "
-          + "of its RFiles compacted into one. There is no guarantee an idle tablet will be compacted. "
-          + "Compactions of idle tablets are only started when regular compactions are not running. Idle "
-          + "compactions only take place for tablets that have one or more RFiles."),
+      "After a tablet has been idle (no mutations) for this time period it may"
+          + " have all of its RFiles compacted into one. There is no guarantee an idle"
+          + " tablet will be compacted. Compactions of idle tablets are only started"
+          + " when regular compactions are not running. Idle compactions only take"
+          + " place for tablets that have one or more RFiles."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES,
       "A tablet is split when the combined size of RFiles exceeds this amount."),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.BYTES,
@@ -650,7 +701,8 @@ public enum Property {
           + "tablet will be compacted."),
   TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "0",
       PropertyType.BYTES,
-      "The max RFile size used for a merging minor compaction. The default value of 0 disables a max file size."),
+      "The max RFile size used for a merging minor compaction. The default"
+          + " value of 0 disables a max file size."),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
@@ -661,32 +713,41 @@ public enum Property {
       "This property can be set to allow the LoadBalanceByTable load balancer"
           + " to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
-      "Compression algorithm used on index and data blocks before they are written. Possible values: gz, snappy, lzo, none"),
+      "Compression algorithm used on index and data blocks before they are"
+          + " written. Possible values: gz, snappy, lzo, none"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.BYTES,
       "The maximum size of data blocks in RFiles before they are compressed and written."),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K",
       PropertyType.BYTES,
       "The maximum size of index blocks in RFiles before they are compressed and written."),
   TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.BYTES,
-      "The HDFS block size used when writing RFiles. When set to 0B, the value/defaults of HDFS property 'dfs.block.size' will be used."),
+      "The HDFS block size used when writing RFiles. When set to 0B, the"
+          + " value/defaults of HDFS property 'dfs.block.size' will be used."),
   TABLE_FILE_REPLICATION("table.file.replication", "0", PropertyType.COUNT,
-      "The number of replicas for a table's RFiles in HDFS. When set to 0, HDFS defaults are used."),
+      "The number of replicas for a table's RFiles in HDFS. When set to 0, HDFS"
+          + " defaults are used."),
   TABLE_FILE_MAX("table.file.max", "15", PropertyType.COUNT,
-      "The maximum number of RFiles each tablet in a table can have. When adjusting this property you may want to consider adjusting"
-          + " table.compaction.major.ratio also. Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a"
-          + " tablet from having more RFiles than can be opened. Setting this property low may throttle ingest and increase query performance."),
+      "The maximum number of RFiles each tablet in a table can have. When"
+          + " adjusting this property you may want to consider adjusting"
+          + " table.compaction.major.ratio also. Setting this property to 0 will make"
+          + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
+          + " from having more RFiles than can be opened. Setting this property low may"
+          + " throttle ingest and increase query performance."),
   TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256K", PropertyType.BYTES,
-      "The maximum size summary that will be stored. The number of"
-          + " RFiles that had summary data exceeding this threshold is reported by Summary.getFileStatistics().getLarge().  When adjusting this"
-          + " consider the expected number RFiles with summaries on each tablet server and the summary cache size."),
+      "The maximum size summary that will be stored. The number of RFiles that"
+          + " had summary data exceeding this threshold is reported by"
+          + " Summary.getFileStatistics().getLarge(). When adjusting this consider the"
+          + " expected number RFiles with summaries on each tablet server and the"
+          + " summary cache size."),
   @Deprecated
   TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN,
       "This setting is deprecated.  Use table.durability=none instead."),
   TABLE_BLOOM_ENABLED("table.bloom.enabled", "false", PropertyType.BOOLEAN,
       "Use bloom filters on this table."),
   TABLE_BLOOM_LOAD_THRESHOLD("table.bloom.load.threshold", "1", PropertyType.COUNT,
-      "This number of seeks that would actually use a bloom filter must occur before a RFile's bloom filter is loaded."
-          + " Set this to zero to initiate loading of bloom filters when a RFile is opened."),
+      "This number of seeks that would actually use a bloom filter must occur"
+          + " before a RFile's bloom filter is loaded. Set this to zero to initiate"
+          + " loading of bloom filters when a RFile is opened."),
   TABLE_BLOOM_SIZE("table.bloom.size", "1048576", PropertyType.COUNT,
       "Bloom filter size, as number of keys."),
   TABLE_BLOOM_ERRORRATE("table.bloom.error.rate", "0.5%", PropertyType.FRACTION,
@@ -780,25 +841,34 @@ public enum Property {
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN,
       "Is replication enabled for the given table"),
   TABLE_REPLICATION_TARGET("table.replication.target.", null, PropertyType.PREFIX,
-      "Enumerate a mapping of other systems which this table should "
-          + "replicate their data to. The key suffix is the identifying cluster name and the value is an identifier for a location on the target system, "
-          + "e.g. the ID of the table on the target to replicate to"),
+      "Enumerate a mapping of other systems which this table should replicate"
+          + " their data to. The key suffix is the identifying cluster name and the"
+          + " value is an identifier for a location on the target system, e.g. the ID"
+          + " of the table on the target to replicate to"),
   TABLE_SAMPLER("table.sampler", "", PropertyType.CLASSNAME,
-      "The name of a class that implements org.apache.accumulo.core.Sampler.  Setting this option enables storing a sample of data which can be scanned."
-          + "  Always having a current sample can useful for query optimization and data comprehension.   After enabling sampling for an existing table, a compaction "
-          + "is needed to compute the sample for existing data.  The compact command in the shell has an option to only compact RFiles without sample data."),
+      "The name of a class that implements org.apache.accumulo.core.Sampler."
+          + " Setting this option enables storing a sample of data which can be"
+          + " scanned. Always having a current sample can useful for query optimization"
+          + " and data comprehension. After enabling sampling for an existing table,"
+          + " a compaction is needed to compute the sample for existing data. The"
+          + " compact command in the shell has an option to only compact RFiles without"
+          + " sample data."),
   TABLE_SAMPLER_OPTS("table.sampler.opt.", null, PropertyType.PREFIX,
       "The property is used to set options for a sampler. If a sample had two"
           + " options like hasher and modulous, then the two properties"
           + " table.sampler.opt.hasher=${hash algorithm} and"
           + " table.sampler.opt.modulous=${mod} would be set."),
   TABLE_SUSPEND_DURATION("table.suspend.duration", "0s", PropertyType.TIMEDURATION,
-      "For tablets belonging to this table: When a tablet server dies, allow the tablet server this duration to revive before reassigning its tablets"
-          + "to other tablet servers."),
+      "For tablets belonging to this table: When a tablet server dies, allow"
+          + " the tablet server this duration to revive before reassigning its tablets"
+          + " to other tablet servers."),
   TABLE_SUMMARIZER_PREFIX("table.summarizer.", null, PropertyType.PREFIX,
-      "Prefix for configuring summarizers for a table.  Using this prefix multiple summarizers can be configured with options for each one. Each summarizer configured "
-          + "should have a unique id, this id can be anything. To add a summarizer set table.summarizer.<unique id>=<summarizer class name>.  If the summarizer has options, "
-          + "then for each option set table.summarizer.<unique id>.opt.<key>=<value>."),
+      "Prefix for configuring summarizers for a table. Using this prefix"
+          + " multiple summarizers can be configured with options for each one. Each"
+          + " summarizer configured should have a unique id, this id can be anything."
+          + " To add a summarizer set table.summarizer.<unique id>=<summarizer class"
+          + " name>. If the summarizer has options, then for each option set"
+          + " table.summarizer.<unique id>.opt.<key>=<value>."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(

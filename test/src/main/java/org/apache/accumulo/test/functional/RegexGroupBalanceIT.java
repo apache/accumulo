@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -169,8 +170,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       throws TableNotFoundException {
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-      org.apache.accumulo.core.client.impl.Table.ID tableId = org.apache.accumulo.core.client.impl.Table.ID
-          .of(conn.tableOperations().tableIdMap().get(tablename));
+      ID tableId = ID.of(conn.tableOperations().tableIdMap().get(tablename));
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
 
       Table<String,String,MutableInt> groupLocationCounts = HashBasedTable.create();

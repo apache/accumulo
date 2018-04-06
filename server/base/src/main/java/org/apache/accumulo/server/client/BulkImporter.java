@@ -628,8 +628,10 @@ public class BulkImporter {
           files.put(entry.getKey(), tabletFiles);
 
           for (PathSize pathSize : entry.getValue()) {
-            org.apache.accumulo.core.data.thrift.MapFileInfo mfi = new org.apache.accumulo.core.data.thrift.MapFileInfo(
-                pathSize.estSize);
+            // @formatter:off
+            org.apache.accumulo.core.data.thrift.MapFileInfo mfi =
+              new org.apache.accumulo.core.data.thrift.MapFileInfo(pathSize.estSize);
+            // @formatter:on
             tabletFiles.put(pathSize.path.toString(), mfi);
           }
         }

@@ -319,7 +319,8 @@ public class FileUtil {
       if (numKeys == 0) {
         if (useIndex) {
           log.warn(
-              "Failed to find mid point using indexes, falling back to data files which is slower. No entries between {} and {} for {}",
+              "Failed to find mid point using indexes, falling back to"
+                  + " data files which is slower. No entries between {} and {} for {}",
               prevEndRow, endRow, mapFiles);
           // need to pass original map files, not possibly reduced indexes
           return findMidPoint(fs, tabletDirectory, acuConf, prevEndRow, endRow, origMapFiles,

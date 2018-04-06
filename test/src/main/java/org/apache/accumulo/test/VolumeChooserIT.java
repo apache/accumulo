@@ -105,8 +105,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     v4 = new Path("file://" + v4f.getAbsolutePath());
 
     systemPreferredVolumes = v1.toString() + "," + v2.toString();
-    siteConfig.put(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, systemPreferredVolumes); // exclude
-                                                                                            // v4
+    // exclude v4
+    siteConfig.put(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
     siteConfig.put(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER),
