@@ -374,8 +374,9 @@ public abstract class GroupBalancer extends TabletBalancer {
 
       Integer extraCount = extraCounts.get(group);
 
-      checkArgument(extraCount != null && extraCount >= num, "group=%s num=%s extraCount=%s", group,
-          num, extraCount);
+      // don't wrap precondition check due to https://github.com/spotbugs/spotbugs/issues/462
+      String formatString = "group=%s num=%s extraCount=%s";
+      checkArgument(extraCount != null && extraCount >= num, formatString, group, num, extraCount);
 
       MutableInt initialCount = initialCounts.get(group);
 
