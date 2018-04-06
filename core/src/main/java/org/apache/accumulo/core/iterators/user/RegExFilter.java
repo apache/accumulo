@@ -153,8 +153,8 @@ public class RegExFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("regex");
-    io.setDescription(
-        "The RegExFilter/Iterator allows you to filter for key/value pairs based on regular expressions");
+    io.setDescription("The RegExFilter/Iterator allows you to filter for"
+        + " key/value pairs based on regular expressions");
     io.addNamedOption(RegExFilter.ROW_REGEX, "regular expression on row");
     io.addNamedOption(RegExFilter.COLF_REGEX, "regular expression on column family");
     io.addNamedOption(RegExFilter.COLQ_REGEX, "regular expression on column qualifier");

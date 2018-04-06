@@ -52,16 +52,17 @@ import org.slf4j.LoggerFactory;
  * SystemClassLoader that loads JVM classes
  *       ^
  *       |
- * AccumuloClassLoader loads jars from locations in general.classpaths. Usually the URLs for HADOOP_HOME, ZOOKEEPER_HOME, ACCUMULO_HOME/lib and their associated directories
+ * AccumuloClassLoader loads jars from locations in general.classpaths.
+ * Usually the URLs for HADOOP_HOME, ZOOKEEPER_HOME, ACCUMULO_HOME and their associated directories
  *       ^
  *       |
- * VFSClassLoader that loads jars from locations in general.vfs.classpaths.  Can be used to load accumulo jar from HDFS
+ * VFSClassLoader that loads jars from locations in general.vfs.classpaths.
+ * Can be used to load accumulo jar from HDFS
  *       ^
  *       |
- * AccumuloReloadingVFSClassLoader That loads jars from locations in general.dynamic.classpaths.  Used to load jar dynamically.
- *
+ * AccumuloReloadingVFSClassLoader That loads jars from locations in general.dynamic.classpaths.
+ * Used to load jar dynamically.
  * </pre>
- *
  *
  */
 public class AccumuloVFSClassLoader {
@@ -356,12 +357,12 @@ public class AccumuloVFSClassLoader {
                 + ": Accumulo Classloader (loads everything defined by general.classpaths)";
             break;
           case 4:
-            classLoaderDescription = level
-                + ": Accumulo Dynamic Classloader (loads everything defined by general.dynamic.classpaths)";
+            classLoaderDescription = level + ": Accumulo Dynamic Classloader "
+                + "(loads everything defined by general.dynamic.classpaths)";
             break;
           default:
-            classLoaderDescription = level
-                + ": Mystery Classloader (someone probably added a classloader and didn't update the switch statement in "
+            classLoaderDescription = level + ": Mystery Classloader ("
+                + "someone probably added a classloader and didn't update the switch statement in "
                 + AccumuloVFSClassLoader.class.getName() + ")";
             break;
         }

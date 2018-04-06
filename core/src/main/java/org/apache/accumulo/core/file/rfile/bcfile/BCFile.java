@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -28,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -550,8 +551,10 @@ public final class BCFile {
   }
 
   // sha256 of some random data
-  private static final byte[] NO_CPYPTO_KEY = "ce18cf53c4c5077f771249b38033fa14bcb31cca0e5e95a371ee72daa8342ea2"
-      .getBytes(StandardCharsets.UTF_8);
+  // @formatter:off
+  private static final byte[] NO_CPYPTO_KEY =
+    "ce18cf53c4c5077f771249b38033fa14bcb31cca0e5e95a371ee72daa8342ea2".getBytes(UTF_8);
+  // @formatter:on
 
   // This class is used as a place holder in the cache for RFiles that have no crypto....
   private static final BCFileCryptoModuleParameters NO_CRYPTO = new BCFileCryptoModuleParameters() {

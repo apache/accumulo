@@ -49,8 +49,10 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       if (!fs.exists(pathToKey)) {
 
         if (encryptionMode == Cipher.UNWRAP_MODE) {
-          log.error("There was a call to decrypt the session key but no key encryption key exists. "
-              + "Either restore it, reconfigure the conf file to point to it in HDFS, or throw the affected data away and begin again.");
+          log.error("There was a call to decrypt the session key but no key"
+              + " encryption key exists. Either restore it, reconfigure the conf"
+              + " file to point to it in HDFS, or throw the affected data away and"
+              + " begin again.");
           throw new RuntimeException(
               "Could not find key encryption key file in configured location in HDFS ("
                   + pathToKeyName + ")");

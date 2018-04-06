@@ -55,8 +55,9 @@ public interface OptionDescriber {
      *          is a list of descriptions of additional options that don't have fixed names (null if
      *          unused). The descriptions are intended to describe a category, and the user will
      *          provide parameter names and values in that category; e.g., the FilteringIterator
-     *          needs a list of Filters intended to be named by their priority numbers, so its<br>
-     *          {@code unnamedOptionDescriptions = Collections.singletonList("<filterPriorityNumber> <ageoff|regex|filterClass>")}
+     *          needs a list of Filters intended to be named by their priority numbers, so it's<br>
+     *          {@code unnamedOptionDescriptions = Collections}<br>
+     *          {@code .singletonList("<filterPriorityNumber> <ageoff|regex|filterClass>")}
      */
     public IteratorOptions(String name, String description, Map<String,String> namedOptions,
         List<String> unnamedOptionDescriptions) {

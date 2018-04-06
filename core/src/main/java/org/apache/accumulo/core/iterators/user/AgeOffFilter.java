@@ -85,8 +85,8 @@ public class AgeOffFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.addNamedOption(TTL, "time to live (milliseconds)");
-    io.addNamedOption(CURRENT_TIME,
-        "if set, use the given value as the absolute time in milliseconds as the current time of day");
+    io.addNamedOption(CURRENT_TIME, "if set, use the given value as the"
+        + " absolute time in milliseconds as the current time of day");
     io.setName("ageoff");
     io.setDescription(
         "AgeOffFilter removes entries with timestamps more than <ttl> milliseconds old");

@@ -57,7 +57,8 @@ public class AccumuloSecurityException extends Exception {
       case TOKEN_EXPIRED:
         return "The supplied token expired, please update and try again";
       case INSUFFICIENT_PROPERTIES:
-        return "The login properties supplied are not sufficient for authentication. Please check the requested properties and try again";
+        return "The login properties supplied are not sufficient for authentication. "
+            + "Please check the requested properties and try again";
       case DEFAULT_SECURITY_ERROR:
       default:
         return "Unknown security exception";

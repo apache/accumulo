@@ -28,8 +28,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This factory module exists to assist other classes in loading crypto modules.
- *
- *
  */
 public class CryptoModuleFactory {
 

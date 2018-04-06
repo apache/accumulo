@@ -35,14 +35,13 @@ import org.apache.commons.collections.map.LRUMap;
 
 import com.google.common.base.Preconditions;
 
-//formatter was adding spaces that checkstyle did not like, so turned off formatter
-//@formatter:off
 /**
- * This class provides an API for writing RFiles. It can be used to create file for bulk import into Accumulo using
- * {@link TableOperations#importDirectory(String, String, String, boolean)}
+ * This class provides an API for writing RFiles. It can be used to create file for bulk import into
+ * Accumulo using {@link TableOperations#importDirectory(String, String, String, boolean)}
  *
  * <p>
- * A RFileWriter has the following constraints. Violating these constraints will result in runtime exceptions.
+ * A RFileWriter has the following constraints. Violating these constraints will result in runtime
+ * exceptions.
  *
  * <ul>
  * <li>Keys must be appended in sorted order within a locality group.</li>
@@ -70,9 +69,11 @@ import com.google.common.base.Preconditions;
  *       writer.startNewLocalityGroup("groupB", "columnFam3", "columnFam4");
  *       writer.append(localityGroup2Data);
  *
- *       // The default locality group must be started last. The column families for the default group do not need to be specified.
+ *       // The default locality group must be started last.
+ *       // The column families for the default group do not need to be specified.
  *       writer.startDefaultLocalityGroup();
- *       // Data appended here can not contain any column families specified in previous locality groups.
+ *       // Data appended here can not contain any
+ *       // column families specified in previous locality groups.
  *       writer.append(defaultGroupData);
  *
  *       // This is a try-with-resources so the writer is closed here at the end of the code block.
@@ -85,7 +86,6 @@ import com.google.common.base.Preconditions;
  *
  * @since 1.8.0
  */
-// @formatter:on
 public class RFileWriter implements AutoCloseable {
 
   private FileSKVWriter writer;

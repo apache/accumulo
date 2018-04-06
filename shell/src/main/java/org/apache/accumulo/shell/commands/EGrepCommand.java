@@ -43,8 +43,9 @@ public class EGrepCommand extends GrepCommand {
 
   @Override
   public String description() {
-    return "searches each row, column family, column qualifier and value, in parallel, on the server side "
-        + "(using a java Matcher, so put .* before and after your term if you're not matching the whole element)";
+    return "searches each row, column family, column qualifier and value, in"
+        + " parallel, on the server side (using a java Matcher, so put .* before"
+        + " and after your term if you're not matching the whole element)";
   }
 
   @Override
@@ -56,7 +57,8 @@ public class EGrepCommand extends GrepCommand {
   public Options getOptions() {
     final Options opts = super.getOptions();
     matchSubstringOption = new Option("g", "global", false,
-        "forces the use of the find() expression matcher, causing substring matches to return true");
+        "forces the use of the find() expression matcher, causing substring"
+            + " matches to return true");
     opts.addOption(matchSubstringOption);
     return opts;
   }

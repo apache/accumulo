@@ -396,7 +396,8 @@ public class ShellTest {
 
     input.set("\n\n");
     exec(
-        "setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo",
+        "setiter -scan"
+            + " -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo",
         true);
 
     input.set("bar\nname value\n");

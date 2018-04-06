@@ -18,13 +18,13 @@
 package org.apache.accumulo.core.client.admin;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -39,7 +39,7 @@ public class CompactionConfig {
   private boolean flush = true;
   private boolean wait = true;
   private List<IteratorSetting> iterators = Collections.emptyList();
-  private CompactionStrategyConfig compactionStrategy = CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
+  private CompactionStrategyConfig compactionStrategy = DEFAULT_STRATEGY;
 
   /**
    * @param start

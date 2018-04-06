@@ -264,8 +264,8 @@ public class Initialize implements KeywordExecutable {
       c.beep();
       c.println();
       c.println();
-      c.println(
-          "Warning!!! Your instance secret is still set to the default, this is not secure. We highly recommend you change it.");
+      c.println("Warning!!! Your instance secret is still set to the default,"
+          + " this is not secure. We highly recommend you change it.");
       c.println();
       c.println();
       c.println("You can change the instance secret in accumulo by using:");
@@ -413,8 +413,8 @@ public class Initialize implements KeywordExecutable {
           // Fail if the site configuration doesn't contain appropriate credentials to login as
           // servers
           if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
-            log.error(
-                "FATAL: No Kerberos credentials provided, and Accumulo is not properly configured for server login");
+            log.error("FATAL: No Kerberos credentials provided, and Accumulo is"
+                + " not properly configured for server login");
             return false;
           }
 

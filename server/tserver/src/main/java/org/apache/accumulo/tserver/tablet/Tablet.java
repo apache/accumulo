@@ -632,9 +632,9 @@ public class Tablet implements TabletCommitter {
           }
           if (!results.isEmpty()
               && yieldPosition.compareTo(results.get(results.size() - 1).getKey()) <= 0) {
-            throw new IOException(
-                "Underlying iterator yielded to a position that does not follow the last key returned: "
-                    + yieldPosition + " <= " + results.get(results.size() - 1).getKey());
+            throw new IOException("Underlying iterator yielded to a position"
+                + " that does not follow the last key returned: " + yieldPosition + " <= "
+                + results.get(results.size() - 1).getKey());
           }
           addUnfinishedRange(lookupResult, range, yieldPosition, false);
 

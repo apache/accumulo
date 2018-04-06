@@ -100,8 +100,8 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
   @Override
   public IteratorOptions describeOptions() {
     return new IteratorOptions("filter", "Filter accepts or rejects each Key/Value pair",
-        Collections.singletonMap("negate",
-            "default false keeps k/v that pass accept method, true rejects k/v that pass accept method"),
+        Collections.singletonMap("negate", "default false keeps k/v that pass"
+            + " accept method, true rejects k/v that pass accept method"),
         null);
   }
 

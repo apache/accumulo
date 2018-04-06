@@ -270,9 +270,10 @@ public class Accumulo {
           new ZooStore<Accumulo>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
               ZooReaderWriter.getInstance()));
       if (!(fate.list().isEmpty())) {
-        throw new AccumuloException(
-            "Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. "
-                + "Please see the README document for instructions on what to do under your previous version.");
+        throw new AccumuloException("Aborting upgrade because there are"
+            + " outstanding FATE transactions from a previous Accumulo version."
+            + " Please see the README document for instructions on what to do under"
+            + " your previous version.");
       }
     } catch (Exception exception) {
       log.error("Problem verifying Fate readiness", exception);

@@ -150,8 +150,9 @@ public class DefaultCryptoModule implements CryptoModule {
 
     if (cipherMode == Cipher.ENCRYPT_MODE) {
 
-      StringBuilder errorBuf = new StringBuilder(
-          "The following problems were found with the CryptoModuleParameters object you provided for an encrypt operation:\n");
+      StringBuilder errorBuf = new StringBuilder("The following problems were"
+          + " found with the CryptoModuleParameters object you provided for an"
+          + " encrypt operation:\n");
       boolean allIsWell = true;
 
       allIsWell = validateNotEmpty(params.getCipherSuite(), allIsWell, errorBuf,
@@ -181,8 +182,9 @@ public class DefaultCryptoModule implements CryptoModule {
       return allIsWell;
 
     } else if (cipherMode == Cipher.DECRYPT_MODE) {
-      StringBuilder errorBuf = new StringBuilder(
-          "The following problems were found with the CryptoModuleParameters object you provided for a decrypt operation:\n");
+      StringBuilder errorBuf = new StringBuilder("The following problems were"
+          + " found with the CryptoModuleParameters object you provided for a"
+          + " decrypt operation:\n");
       boolean allIsWell = true;
 
       allIsWell = validateNotZero(params.getKeyLength(), allIsWell, errorBuf,
@@ -383,11 +385,11 @@ public class DefaultCryptoModule implements CryptoModule {
           params.setBlockStreamSize(0);
       } else {
 
-        log.trace(
-            "Read something off of the encrypted input stream that was not the encryption header marker, so pushing back bytes and returning the given stream");
+        log.trace("Read something off of the encrypted input stream that was"
+            + " not the encryption header marker, so pushing back bytes and"
+            + " returning the given stream");
         // Push these bytes back on to the stream. This method is a bit roundabout but isolates our
-        // code
-        // from having to understand the format that DataOuputStream uses for its bytes.
+        // code from having to understand the format that DataOuputStream uses for its bytes.
         ByteArrayOutputStream tempByteOut = new ByteArrayOutputStream();
         DataOutputStream tempOut = new DataOutputStream(tempByteOut);
         tempOut.writeUTF(marker);

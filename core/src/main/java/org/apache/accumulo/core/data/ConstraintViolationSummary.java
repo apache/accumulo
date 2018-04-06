@@ -78,7 +78,8 @@ public class ConstraintViolationSummary {
   @Override
   public String toString() {
     return String.format(
-        "ConstraintViolationSummary(constrainClass:%s, violationCode:%d, violationDescription:%s, numberOfViolatingMutations:%d)",
+        "ConstraintViolationSummary(constrainClass:%s, violationCode:%d,"
+            + " violationDescription:%s, numberOfViolatingMutations:%d)",
         constrainClass, violationCode, violationDescription, numberOfViolatingMutations);
   }
 

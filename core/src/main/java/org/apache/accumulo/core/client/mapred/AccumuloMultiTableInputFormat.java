@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.mapred.InputFormatBase.RecordReaderBase;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
@@ -68,7 +69,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
       throws IOException {
     log.setLevel(getLogLevel(job));
-    InputFormatBase.RecordReaderBase<Key,Value> recordReader = new InputFormatBase.RecordReaderBase<Key,Value>() {
+    RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<Key,Value>() {
 
       @Override
       public boolean next(Key key, Value value) throws IOException {

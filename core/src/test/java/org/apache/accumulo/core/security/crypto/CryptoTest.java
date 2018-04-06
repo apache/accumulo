@@ -65,7 +65,10 @@ public class CryptoTest {
   private static final String MARKER_STRING = "1 2 3 a b c";
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
-  public static final String CRYPTO_ON_KEK_OFF_CONF = "crypto-on-no-key-encryption-accumulo-site.xml";
+  // @formatter:off
+  public static final String CRYPTO_ON_KEK_OFF_CONF =
+    "crypto-on-no-key-encryption-accumulo-site.xml";
+  // @formatter:on
 
   // Used for kek file testing
   private static File kekWorks;

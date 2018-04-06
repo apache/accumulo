@@ -86,8 +86,8 @@ public class CertUtils {
     @Parameter(names = {"--local-keystore"}, description = "Target path for generated keystore")
     String localKeystore = null;
 
-    @Parameter(names = {"--root-keystore"},
-        description = "Path to root truststore, generated with generate-all, or used for signing with generate-local")
+    @Parameter(names = {"--root-keystore"}, description = "Path to root truststore,"
+        + " generated with generate-all, or used for signing with generate-local")
     String rootKeystore = null;
 
     @Parameter(names = {"--root-truststore"},
@@ -97,12 +97,14 @@ public class CertUtils {
     @Parameter(names = {"--keystore-type"}, description = "Type of keystore file to use")
     String keystoreType = "JKS";
 
-    @Parameter(names = {"--root-keystore-password"},
-        description = "Password for root keystore, falls back to --keystore-password if not provided")
+    @Parameter(names = {"--root-keystore-password"}, description = "Password for root keystore,"
+        + " falls back to --keystore-password if not provided")
     String rootKeystorePassword = null;
 
     @Parameter(names = {"--keystore-password"},
-        description = "Password used to encrypt keystores.  If omitted, the instance-wide secret will be used.  If specified, the password must also be explicitly configured in Accumulo.")
+        description = "Password used to encrypt keystores."
+            + " If omitted, the instance-wide secret will be used. If specified, the"
+            + " password must also be explicitly configured in Accumulo.")
     String keystorePassword = null;
 
     @Parameter(names = {"--truststore-password"},

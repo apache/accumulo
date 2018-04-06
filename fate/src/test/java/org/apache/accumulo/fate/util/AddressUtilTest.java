@@ -62,20 +62,20 @@ public class AddressUtilTest extends TestCase {
     }
     try {
       if (expectException) {
-        log.info(
-            "AddressUtil is (hopefully) going to spit out an error about DNS lookups. you can ignore it.");
+        log.info("AddressUtil is (hopefully) going to spit out an error about DNS lookups. "
+            + "you can ignore it.");
       }
       int result = AddressUtil.getAddressCacheNegativeTtl(null);
       if (expectException) {
-        fail(
-            "The JVM Security settings cache DNS failures forever. In this case we expect an exception but didn't get one.");
+        fail("The JVM Security settings cache DNS failures forever. "
+            + "In this case we expect an exception but didn't get one.");
       }
       assertEquals("Didn't get the ttl we expected", expectedTtl, result);
     } catch (IllegalArgumentException exception) {
       if (!expectException) {
         log.error("Got an exception when we weren't expecting.", exception);
-        fail(
-            "We only expect to throw an IllegalArgumentException when the JVM caches DNS failures forever.");
+        fail("We only expect to throw an IllegalArgumentException when the JVM "
+            + "caches DNS failures forever.");
       }
     }
   }
@@ -90,8 +90,8 @@ public class AddressUtilTest extends TestCase {
       return;
     }
     try {
-      log.info(
-          "AddressUtil is (hopefully) going to spit out an error about DNS lookups. you can ignore it.");
+      log.info("AddressUtil is (hopefully) going to spit out an error about DNS lookups. "
+          + "you can ignore it.");
       AddressUtil.getAddressCacheNegativeTtl(null);
       fail("The JVM Security settings cache DNS failures forever, this should cause an exception.");
     } catch (IllegalArgumentException exception) {

@@ -173,9 +173,8 @@ public class TraceServer implements Watcher {
         if (timeMutation != null)
           writer.addMutation(timeMutation);
       } catch (MutationsRejectedException exception) {
-        log.warn(
-            "Unable to write mutation to table; discarding span. set log level to DEBUG for span information and stacktrace. cause: "
-                + exception);
+        log.warn("Unable to write mutation to table; discarding span. set log"
+            + " level to DEBUG for span information and stacktrace. cause: " + exception);
         if (log.isDebugEnabled()) {
           log.debug("discarded span due to rejection of mutation: " + spanMutation, exception);
         }
@@ -184,9 +183,8 @@ public class TraceServer implements Watcher {
          * mutation to a writer that has been closed since we retrieved it
          */
       } catch (RuntimeException exception) {
-        log.warn(
-            "Unable to write mutation to table; discarding span. set log level to DEBUG for stacktrace. cause: "
-                + exception);
+        log.warn("Unable to write mutation to table; discarding span. set log"
+            + " level to DEBUG for stacktrace. cause: " + exception);
         log.debug("unable to write mutation to table due to exception.", exception);
       }
     }
@@ -336,9 +334,8 @@ public class TraceServer implements Watcher {
       writer = connector.createBatchWriter(tableName,
           new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS));
     } catch (Exception ex) {
-      log.warn(
-          "Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause: "
-              + ex);
+      log.warn("Unable to create a batch writer, will retry. Set log level to"
+          + " DEBUG to see stacktrace. cause: " + ex);
       log.debug("batch writer creation failed with exception.", ex);
     } finally {
       /* Trade in the new writer (even if null) for the one we need to close. */

@@ -125,8 +125,8 @@ public class SortedLogRecovery {
     }
 
     if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
-      throw new RuntimeException(
-          "COMPACTION_FINISH (without preceding COMPACTION_START) not followed by successful minor compaction");
+      throw new RuntimeException("COMPACTION_FINISH (without preceding"
+          + " COMPACTION_START) not followed by successful minor compaction");
 
     for (int i = 0; i < recoveryLogs.size(); i++) {
       Path logfile = recoveryLogs.get(i);
@@ -170,8 +170,8 @@ public class SortedLogRecovery {
 
     if (key.tserverSession.compareTo(lastStartToFinish.tserverSession) != 0) {
       if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
-        throw new RuntimeException(
-            "COMPACTION_FINISH (without preceding COMPACTION_START) is not followed by a successful minor compaction.");
+        throw new RuntimeException("COMPACTION_FINISH (without preceding"
+            + " COMPACTION_START) is not followed by a successful minor compaction.");
       lastStartToFinish.update(key.tserverSession);
     }
     KeyExtent alternative = extent;

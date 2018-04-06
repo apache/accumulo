@@ -41,14 +41,12 @@ public class DefaultCryptoModuleUtils {
       secureRandom.nextBytes(throwAway);
 
     } catch (NoSuchAlgorithmException e) {
-      log.error(String.format(
-          "Accumulo configuration file specified a secure random generator \"%s\" that was not found by any provider.",
-          secureRNG));
+      log.error(String.format("Accumulo configuration file specified a secure"
+          + " random generator \"%s\" that was not found by any provider.", secureRNG));
       throw new RuntimeException(e);
     } catch (NoSuchProviderException e) {
-      log.error(String.format(
-          "Accumulo configuration file specified a secure random provider \"%s\" that does not exist",
-          secureRNGProvider));
+      log.error(String.format("Accumulo configuration file specified a secure"
+          + " random provider \"%s\" that does not exist", secureRNGProvider));
       throw new RuntimeException(e);
     }
     return secureRandom;
@@ -67,13 +65,13 @@ public class DefaultCryptoModuleUtils {
           cipher = Cipher.getInstance(cipherSuite, securityProvider);
         }
       } catch (NoSuchAlgorithmException e) {
-        log.error(String.format(
-            "Accumulo configuration file contained a cipher suite \"%s\" that was not recognized by any providers",
-            cipherSuite));
+        log.error(String.format("Accumulo configuration file contained a cipher"
+            + " suite \"%s\" that was not recognized by any providers", cipherSuite));
         throw new RuntimeException(e);
       } catch (NoSuchPaddingException e) {
         log.error(String.format(
-            "Accumulo configuration file contained a cipher, \"%s\" with a padding that was not recognized by any providers",
+            "Accumulo configuration file contained a"
+                + " cipher, \"%s\" with a padding that was not recognized by any" + " providers",
             cipherSuite));
         throw new RuntimeException(e);
       } catch (NoSuchProviderException e) {

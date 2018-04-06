@@ -177,7 +177,8 @@ public class NativeMapPerformanceTest {
     sleepUninterruptibly(3, TimeUnit.SECONDS);
 
     System.out.printf(
-        "mapType:%10s   put rate:%,6.2f  scan rate:%,6.2f  get rate:%,6.2f  delete time : %6.2f  mem : %,d%n",
+        "mapType:%10s   put rate:%,6.2f  scan rate:%,6.2f  get"
+            + " rate:%,6.2f  delete time : %6.2f  mem : %,d%n",
         "" + mapType, (numRows * numCols) / ((tpe - tps) / 1000.0), (size) / ((tie - tis) / 1000.0),
         numLookups / ((tge - tgs) / 1000.0), (tde - tds) / 1000.0, memUsed);
 

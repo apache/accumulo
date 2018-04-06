@@ -82,23 +82,22 @@ import com.google.common.base.Joiner;
 /*
  * Differences from previous TabletServerBatchWriter
  *   + As background threads finish sending mutations to tablet servers they decrement memory usage
- *   + Once the queue of unprocessed mutations reaches 50% it is always pushed to the background threads,
- *      even if they are currently processing... new mutations are merged with mutations currently
- *      processing in the background
+ *   + Once the queue of unprocessed mutations reaches 50% it is always pushed
+ *     to the background threads, even if they are currently processing... new
+ *     mutations are merged with mutations currently processing in the background
  *   + Failed mutations are held for 1000ms and then re-added to the unprocessed queue
  *   + Flush holds adding of new mutations so it does not wait indefinitely
  *
  * Considerations
  *   + All background threads must catch and note Throwable
- *   + mutations for a single tablet server are only processed by one thread concurrently (if new mutations
- *      come in for a tablet server while one thread is processing mutations for it, no other thread should
- *      start processing those mutations)
+ *   + mutations for a single tablet server are only processed by one thread
+ *     concurrently (if new mutations come in for a tablet server while one
+ *     thread is processing mutations for it, no other thread should
+ *     start processing those mutations)
  *
  * Memory accounting
  *   + when a mutation enters the system memory is incremented
  *   + when a mutation successfully leaves the system memory is decremented
- *
- *
  *
  */
 

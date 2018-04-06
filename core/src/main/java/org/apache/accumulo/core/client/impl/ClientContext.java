@@ -253,14 +253,12 @@ public class ClientContext {
                 log.trace("Loaded sensitive value for {} from CredentialProvider", key);
                 return new String(value);
               } else {
-                log.trace(
-                    "Tried to load sensitive value for {} from CredentialProvider, but none was found",
-                    key);
+                log.trace("Tried to load sensitive value for {} from CredentialProvider, "
+                    + "but none was found", key);
               }
             } catch (IOException e) {
-              log.warn(
-                  "Failed to extract sensitive property ({}) from Hadoop CredentialProvider, falling back to base AccumuloConfiguration",
-                  key, e);
+              log.warn("Failed to extract sensitive property ({}) from Hadoop CredentialProvider,"
+                  + " falling back to base AccumuloConfiguration", key, e);
             }
           }
         }
@@ -325,9 +323,8 @@ public class ClientContext {
               }
             }
           } catch (IOException e) {
-            log.warn(
-                "Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml",
-                e);
+            log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, "
+                + "falling back to accumulo-site.xml", e);
           }
         }
       }
@@ -336,9 +333,9 @@ public class ClientContext {
         String credProviderPaths = config
             .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (null != credProviderPaths && !credProviderPaths.isEmpty()) {
-          org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
-          hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
-          return hadoopConf;
+          org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
+          hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
+          return hConf;
         }
 
         log.trace("Did not find credential provider configuration in ClientConfiguration");

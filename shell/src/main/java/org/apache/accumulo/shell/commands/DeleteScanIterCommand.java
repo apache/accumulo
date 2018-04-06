@@ -77,7 +77,8 @@ public class DeleteScanIterCommand extends Command {
 
   @Override
   public String description() {
-    return "deletes a table-specific scan iterator so it is no longer used during this shell session";
+    return "deletes a table-specific scan iterator so it is no longer used"
+        + " during this shell session";
   }
 
   @Override

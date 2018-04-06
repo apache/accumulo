@@ -583,9 +583,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           // Do not silently spin when we repeatedly fail to get the location for a tablet
           locationFailures++;
           if (5 == locationFailures || 0 == locationFailures % 50) {
-            log.warn(
-                "Having difficulty locating hosting tabletserver for split {} on table {}. Seen {} failures.",
-                split, tableName, locationFailures);
+            log.warn("Having difficulty locating hosting tabletserver for split {} on table {}."
+                + " Seen {} failures.", split, tableName, locationFailures);
           }
 
           tabLocator.invalidateCache(tl.tablet_extent);

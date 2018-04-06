@@ -27,8 +27,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Bytes;
 
-/*
- * Code to shorten keys that will be placed into RFile indexes. This code attempts to find a key thats between two keys that shorter.
+/**
+ * Code to shorten keys that will be placed into RFile indexes. This code attempts to find a key
+ * thats between two keys that shorter.
  */
 public class KeyShortener {
 

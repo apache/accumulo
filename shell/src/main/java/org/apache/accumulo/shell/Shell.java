@@ -342,9 +342,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
       if (hasToken) { // implied hasTokenOptions
         // Fully qualified name so we don't shadow java.util.Properties
-        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props;
-        // and line wrap it because the package name is so long
-        props = new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
+        // @formatter:off
+        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props =
+          new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
+        // @formatter:on
 
         if (!loginOptions.isEmpty()) {
           props.putAllStrings(loginOptions);
@@ -1173,8 +1174,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void checkTableState() {
     if (getTableName().isEmpty())
-      throw new IllegalStateException(
-          "Not in a table context. Please use 'table <tableName>' to switch to a table, or use '-t' to specify a table if option is available.");
+      throw new IllegalStateException("Not in a table context. Please use"
+          + " 'table <tableName>' to switch to a table, or use '-t' to specify a"
+          + " table if option is available.");
   }
 
   private final void printConstraintViolationException(ConstraintViolationException cve) {

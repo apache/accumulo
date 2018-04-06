@@ -88,7 +88,8 @@ public class VisibilityFilterTest {
     int count = 0;
     while (filter.hasTop()) {
       count++;
-      // System.out.println(DefaultFormatter.formatEntry(Collections.singletonMap(filter.getTopKey(),
+      // System.out.println(DefaultFormatter.formatEntry(
+      // Collections.singletonMap(filter.getTopKey(),
       // filter.getTopValue()).entrySet().iterator().next(),
       // false));
       assertEquals(expectedCF, filter.getTopKey().getColumnFamily());

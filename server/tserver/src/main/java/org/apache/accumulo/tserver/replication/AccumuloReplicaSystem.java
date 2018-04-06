@@ -280,9 +280,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
         if (null == peerTserverStr) {
           // Something went wrong, and we didn't get a valid tserver from the remote for some reason
-          log.warn(
-              "Did not receive tserver from master at {}, cannot proceed with replication. Will retry.",
-              target);
+          log.warn("Did not receive tserver from master at {}, cannot proceed"
+              + " with replication. Will retry.", target);
           continue;
         }
 
@@ -322,9 +321,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         }
       }
 
-      log.info(
-          "No progress was made after {} attempts to replicate {}, returning so file can be re-queued",
-          numAttempts, p);
+      log.info("No progress was made after {} attempts to replicate {},"
+          + " returning so file can be re-queued", numAttempts, p);
 
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
@@ -481,7 +479,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             }
           } catch (TableNotFoundException e) {
             log.error(
-                "Tried to update status in replication table for {} as {}, but the table did not exist",
+                "Tried to update status in replication table for {} as"
+                    + " {}, but the table did not exist",
                 p, ProtobufUtil.toString(currentStatus), e);
             throw new RuntimeException("Replication table did not exist, will retry", e);
           } finally {
@@ -508,9 +507,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         }
       }
     } catch (LogHeaderIncompleteException e) {
-      log.warn(
-          "Could not read header from {}, assuming that there is no data present in the WAL, therefore replication is complete",
-          p);
+      log.warn("Could not read header from {}, assuming that there is no data"
+          + " present in the WAL, therefore replication is complete", p);
       Status newStatus;
       // Bump up the begin to the (infinite) end, trying to be accurate
       if (status.getInfiniteEnd()) {
@@ -797,8 +795,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           }
           break;
         default:
-          log.trace(
-              "Ignorning WAL entry which doesn't contain mutations, should not have received such entries");
+          log.trace("Ignorning WAL entry which doesn't contain mutations,"
+              + " should not have received such entries");
           break;
       }
     }

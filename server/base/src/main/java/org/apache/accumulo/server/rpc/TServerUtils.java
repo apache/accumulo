@@ -461,8 +461,8 @@ public class TServerUtils {
           "Expected hostname of '{}' but got '{}'. Ensure the entries in the Accumulo hosts files (e.g. masters, tservers) are the FQDN for each host when using SASL.",
           fqdn, hostname);
       transport.close();
-      throw new RuntimeException(
-          "SASL requires that the address the thrift server listens on is the same as the FQDN for this host");
+      throw new RuntimeException("SASL requires that the address the thrift"
+          + " server listens on is the same as the FQDN for this host");
     }
 
     final UserGroupInformation serverUser;

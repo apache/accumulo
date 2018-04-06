@@ -2388,8 +2388,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       assertEquals(1, results.size());
       status = results.get(s2bb("00347"));
       if (ConditionalStatus.VIOLATED != status) {
-        log.info(
-            "ConditionalUpdate was not rejected by server due to table constraint. Sleeping and retrying");
+        log.info("ConditionalUpdate was not rejected by server due to table"
+            + " constraint. Sleeping and retrying");
         Thread.sleep(5000);
         continue;
       }

@@ -95,8 +95,9 @@ public class DUCommand extends Command {
 
   @Override
   public String description() {
-    return "prints how much space, in bytes, is used by files referenced by a table.  "
-        + "When multiple tables are specified it prints how much space, in bytes, is used by files shared between tables, if any.";
+    return "prints how much space, in bytes, is used by files referenced by a"
+        + " table. When multiple tables are specified it prints how much space, in"
+        + " bytes, is used by files shared between tables, if any.";
   }
 
   @Override

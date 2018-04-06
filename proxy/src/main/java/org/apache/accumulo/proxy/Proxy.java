@@ -152,8 +152,8 @@ public class Proxy implements KeywordExecutable {
     String zookeepers = props.getProperty(ZOOKEEPERS_KEY);
 
     if (!useMini && !useMock && instance == null) {
-      System.err.println(
-          "Properties file must contain one of : useMiniAccumulo=true, useMockInstance=true, or instance=<instance name>");
+      System.err.println("Properties file must contain one of : useMiniAccumulo=true,"
+          + " useMockInstance=true, or instance=<instance name>");
       System.exit(1);
     }
 

@@ -100,8 +100,8 @@ public class ColumnAgeOffFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("colageoff");
-    io.setDescription(
-        "ColumnAgeOffFilter ages off columns at different rates given a time to live in milliseconds for each column");
+    io.setDescription("ColumnAgeOffFilter ages off columns at different rates"
+        + " given a time to live in milliseconds for each column");
     io.addUnnamedOption("<col fam>[:<col qual>] <Long> (escape non-alphanum chars using %<hex>)");
     return io;
   }

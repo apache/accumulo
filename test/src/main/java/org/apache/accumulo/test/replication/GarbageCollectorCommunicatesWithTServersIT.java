@@ -411,8 +411,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     Assert.assertNotEquals("Current active WAL on tserver should not be the original WAL we saw",
         walName, activeWal);
 
-    log.info(
-        "Ensuring that replication status does get closed after WAL is no longer in use by Tserver");
+    log.info("Ensuring that replication status does get closed after WAL is no"
+        + " longer in use by Tserver");
 
     do {
       Map<String,Status> replicationStatuses = getMetadataStatusForTable(table);

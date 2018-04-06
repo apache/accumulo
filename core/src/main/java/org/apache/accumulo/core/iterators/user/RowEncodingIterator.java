@@ -173,8 +173,10 @@ public abstract class RowEncodingIterator
 
   @Override
   public IteratorOptions describeOptions() {
-    String desc = "This iterator encapsulates an entire row of Key/Value pairs into a single Key/Value pair.";
-    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.";
+    String desc = "This iterator encapsulates an entire row of Key/Value pairs"
+        + " into a single Key/Value pair.";
+    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use"
+        + " for buffering keys before throwing a BufferOverflowException.";
     HashMap<String,String> namedOptions = new HashMap<>();
     namedOptions.put(MAX_BUFFER_SIZE_OPT, bufferDesc);
     return new IteratorOptions(getClass().getSimpleName(), desc, namedOptions, null);

@@ -32,12 +32,8 @@ import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SetShellIterCommand extends SetIterCommand {
-
-  private static final Logger log = LoggerFactory.getLogger(SetShellIterCommand.class);
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

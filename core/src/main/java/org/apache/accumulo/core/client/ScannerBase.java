@@ -201,7 +201,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * <pre>
    * <code>
    *   // could cache this if creating many scanners to avoid RPCs.
-   *   SamplerConfiguration samplerConfig = connector.tableOperations().getSamplerConfiguration(table);
+   *   SamplerConfiguration samplerConfig =
+   *     connector.tableOperations().getSamplerConfiguration(table);
    *   // verify table's sample data is generated in an expected way before using
    *   userCode.verifySamplerConfig(samplerConfig);
    *   scanner.setSamplerCongiguration(samplerConfig);

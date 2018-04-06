@@ -81,8 +81,8 @@ public class MiniAccumuloRunner {
   private static void printProperties() {
     System.out.println("#mini Accumulo cluster runner properties.");
     System.out.println("#");
-    System.out.println(
-        "#uncomment following propeties to use, propeties not set will use default or random value");
+    System.out.println("#uncomment following propeties to use, propeties not"
+        + " set will use default or random value");
     System.out.println();
     System.out.println("#" + INSTANCE_NAME_PROP + "=devTest");
     System.out.println("#" + DIRECTORY_PROP + "=/tmp/mac1");

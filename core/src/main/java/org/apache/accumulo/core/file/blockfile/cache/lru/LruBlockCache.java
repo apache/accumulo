@@ -370,7 +370,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       float memoryMB = ((float) bucketMemory.totalSize()) / ((float) (1024 * 1024));
 
       log.trace(
-          "Block cache LRU eviction completed. Freed {} bytes. Priority Sizes: Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
+          "Block cache LRU eviction completed. Freed {} bytes. Priority Sizes:"
+              + " Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
           bytesFreed, singleMB, bucketSingle.totalSize(), multiMB, bucketMulti.totalSize(),
           memoryMB, bucketMemory.totalSize());
 

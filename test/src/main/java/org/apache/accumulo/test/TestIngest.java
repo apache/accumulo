@@ -78,8 +78,8 @@ public class TestIngest {
     @Parameter(names = "--cols", description = "the number of columns to ingest per row")
     public int cols = 1;
 
-    @Parameter(names = "--random",
-        description = "insert random rows and use the given number to seed the psuedo-random number generator")
+    @Parameter(names = "--random", description = "insert random rows and use"
+        + " the given number to seed the psuedo-random number generator")
     public Integer random = null;
 
     @Parameter(names = "--size", description = "the size of the value to ingest")
@@ -344,7 +344,8 @@ public class TestIngest {
     double elapsed = (stopTime - startTime) / 1000.0;
 
     System.out.printf(
-        "%,12d records written | %,8d records/sec | %,12d bytes written | %,8d bytes/sec | %6.3f secs   %n",
+        "%,12d records written | %,8d records/sec | %,12d bytes written"
+            + " | %,8d bytes/sec | %6.3f secs   %n",
         totalValues, (int) (totalValues / elapsed), bytesWritten, (int) (bytesWritten / elapsed),
         elapsed);
   }

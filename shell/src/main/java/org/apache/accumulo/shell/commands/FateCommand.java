@@ -253,7 +253,8 @@ public class FateCommand extends Command {
     secretOption.setOptionalArg(false);
     o.addOption(secretOption);
     statusOption = new Option("t", "status-type", true,
-        "filter 'print' on the transaction status type(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");
+        "filter 'print' on the transaction status type(s) {NEW, IN_PROGRESS,"
+            + " FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");
     statusOption.setArgs(Option.UNLIMITED_VALUES);
     statusOption.setOptionalArg(false);
     o.addOption(statusOption);

@@ -40,12 +40,14 @@ public enum PropertyType {
   PREFIX(null, x -> false, null),
 
   TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
-      "A non-negative integer optionally followed by a unit of time (whitespace disallowed), as in 30s.\n"
-          + "If no unit of time is specified, seconds are assumed. Valid units are 'ms', 's', 'm', 'h' for milliseconds, seconds, minutes, and hours.\n"
-          + "Examples of valid durations are '600', '30s', '45m', '30000ms', '3d', and '1h'.\n"
-          + "Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '', and 'a'.\n"
-          + "Unless otherwise stated, the max value for the duration represented in milliseconds is "
-          + Long.MAX_VALUE),
+      "A non-negative integer optionally followed by a unit of time (whitespace"
+          + " disallowed), as in 30s.\n"
+          + "If no unit of time is specified, seconds are assumed. Valid units"
+          + " are 'ms', 's', 'm', 'h' for milliseconds, seconds," + " minutes, and" + " hours.\n"
+          + "Examples of valid durations are '600', '30s', '45m', '30000ms'," + " '3d', and '1h'.\n"
+          + "Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '',"
+          + " and 'a'.\nUnless otherwise stated, the max value for the duration"
+          + " represented in milliseconds is " + Long.MAX_VALUE),
 
   BYTES("bytes", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
       "A positive integer optionally followed by a unit of memory (whitespace disallowed).\n"
@@ -68,7 +70,8 @@ public enum PropertyType {
       new Matches(
           "[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?(?:,[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?)*"),
       "A comma-separated list of hostnames or ip addresses, with optional port numbers.\n"
-          + "Examples of valid host lists are 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
+          + "Examples of valid host lists are"
+          + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
   @SuppressWarnings("unchecked")
@@ -80,9 +83,11 @@ public enum PropertyType {
       "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
 
   FRACTION("fraction/percentage", new FractionPredicate(),
-      "A floating point number that represents either a fraction or, if suffixed with the '%' character, a percentage.\n"
-          + "Examples of valid fractions/percentages are '10', '1000%', '0.05', '5%', '0.2%', '0.0005'.\n"
-          + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
+      "A floating point number that represents either a fraction or, if"
+          + " suffixed with the '%' character, a percentage.\n"
+          + "Examples of valid fractions/percentages are '10', '1000%', '0.05',"
+          + " '5%', '0.2%', '0.0005'.\n"
+          + "Examples of invalid fractions/percentages are '', '10 percent'," + " 'Hulk Hogan'"),
 
   PATH("path", x -> true,
       "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property. The "

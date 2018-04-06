@@ -164,9 +164,8 @@ public class FinishedWorkUpdater implements Runnable {
           try {
             replBw.addMutation(replMutation);
           } catch (MutationsRejectedException e) {
-            log.error(
-                "Error writing mutations to update replication Status messages in StatusSection, will retry",
-                e);
+            log.error("Error writing mutations to update replication Status"
+                + " messages in StatusSection, will retry", e);
             return;
           }
         }
@@ -179,9 +178,8 @@ public class FinishedWorkUpdater implements Runnable {
       try {
         replBw.close();
       } catch (MutationsRejectedException e) {
-        log.error(
-            "Error writing mutations to update replication Status messages in StatusSection, will retry",
-            e);
+        log.error("Error writing mutations to update replication Status"
+            + " messages in StatusSection, will retry", e);
       }
     }
   }

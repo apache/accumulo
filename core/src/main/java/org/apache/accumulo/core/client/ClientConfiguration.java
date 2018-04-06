@@ -97,7 +97,8 @@ public class ClientConfiguration {
      * @since 1.7.0
      */
     KERBEROS_SERVER_PRIMARY("kerberos.server.primary", "accumulo", PropertyType.STRING,
-        "The first component of the Kerberos principal, the 'primary', that Accumulo servers use to login");
+        "The first component of the Kerberos principal, the 'primary', "
+            + "that Accumulo servers use to login");
 
     private String key;
     private String defaultValue;

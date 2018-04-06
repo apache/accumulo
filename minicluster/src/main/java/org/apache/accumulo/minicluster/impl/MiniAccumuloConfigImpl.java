@@ -194,8 +194,8 @@ public class MiniAccumuloConfigImpl {
     }
 
     if (!CredentialProviderFactoryShim.isHadoopCredentialProviderAvailable()) {
-      throw new RuntimeException(
-          "Cannot use CredentialProvider when implementation is not available. Be sure to use >=Hadoop-2.6.0");
+      throw new RuntimeException("Cannot use CredentialProvider when"
+          + " implementation is not available. Be sure to use >=Hadoop-2.6.0");
     }
 
     File keystoreFile = new File(getConfDir(), "credential-provider.jks");

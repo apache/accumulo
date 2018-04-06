@@ -72,7 +72,8 @@ public class Merge {
         converter = MemoryConverter.class)
     Long goalSize = null;
     @Parameter(names = {"-f", "--force"},
-        description = "merge small tablets even if merging them to larger tablets might cause a split")
+        description = "merge small tablets even if merging them to larger"
+            + " tablets might cause a split")
     boolean force = false;
     @Parameter(names = {"-b", "--begin"}, description = "start tablet",
         converter = TextConverter.class)

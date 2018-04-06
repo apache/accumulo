@@ -42,17 +42,25 @@ import org.slf4j.LoggerFactory;
 public class CredentialProviderFactoryShim {
   private static final Logger log = LoggerFactory.getLogger(CredentialProviderFactoryShim.class);
 
-  public static final String HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME = "org.apache.hadoop.security.alias.JavaKeyStoreProvider$Factory";
-  public static final String HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME = "getProviders";
+  // @formatter:off
+  public static final String HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME =
+    "org.apache.hadoop.security.alias.JavaKeyStoreProvider$Factory";
+  public static final String HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME =
+    "getProviders";
 
-  public static final String HADOOP_CRED_PROVIDER_CLASS_NAME = "org.apache.hadoop.security.alias.CredentialProvider";
-  public static final String HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME = "getCredentialEntry";
+  public static final String HADOOP_CRED_PROVIDER_CLASS_NAME =
+    "org.apache.hadoop.security.alias.CredentialProvider";
+  public static final String HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME =
+    "getCredentialEntry";
   public static final String HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME = "getAliases";
-  public static final String HADOOP_CRED_PROVIDER_CREATE_CREDENTIAL_ENTRY_METHOD_NAME = "createCredentialEntry";
+  public static final String HADOOP_CRED_PROVIDER_CREATE_CREDENTIAL_ENTRY_METHOD_NAME =
+    "createCredentialEntry";
   public static final String HADOOP_CRED_PROVIDER_FLUSH_METHOD_NAME = "flush";
 
-  public static final String HADOOP_CRED_ENTRY_CLASS_NAME = "org.apache.hadoop.security.alias.CredentialProvider$CredentialEntry";
+  public static final String HADOOP_CRED_ENTRY_CLASS_NAME =
+    "org.apache.hadoop.security.alias.CredentialProvider$CredentialEntry";
   public static final String HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME = "getCredential";
+  // @formatter:on
 
   public static final String CREDENTIAL_PROVIDER_PATH = "hadoop.security.credential.provider.path";
 

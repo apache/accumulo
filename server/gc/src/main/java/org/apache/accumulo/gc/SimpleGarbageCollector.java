@@ -274,8 +274,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
             .substring(MetadataSchema.DeletesSection.getRowPrefix().length());
         result.add(cand);
         if (almostOutOfMemory(Runtime.getRuntime())) {
-          log.info(
-              "List of delete candidates has exceeded the memory threshold. Attempting to delete what has been gathered so far.");
+          log.info("List of delete candidates has exceeded the memory"
+              + " threshold. Attempting to delete what has been gathered so far.");
           return true;
         }
       }

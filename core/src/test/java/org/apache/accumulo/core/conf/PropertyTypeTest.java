@@ -54,7 +54,8 @@ public class PropertyTypeTest {
   @Test
   public void testGetFormatDescription() {
     assertEquals(
-        "An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies.",
+        "An arbitrary string of characters whose format is unspecified"
+            + " and interpreted based on the context of the property to which it" + " applies.",
         PropertyType.STRING.getFormatDescription());
   }
 

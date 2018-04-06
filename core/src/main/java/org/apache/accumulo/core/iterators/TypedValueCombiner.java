@@ -202,8 +202,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
-    io.addNamedOption(LOSSY,
-        "if true, failed decodes are ignored. Otherwise combiner will error on failed decodes (default false): <TRUE|FALSE>");
+    io.addNamedOption(LOSSY, "if true, failed decodes are ignored. Otherwise"
+        + " combiner will error on failed decodes (default false): <TRUE|FALSE>");
     return io;
   }
 

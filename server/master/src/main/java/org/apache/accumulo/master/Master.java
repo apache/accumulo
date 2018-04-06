@@ -241,14 +241,14 @@ public class Master extends AccumuloServerContext
   static final boolean O = false;
   // @formatter:off
   static final boolean transitionOK[][] = {
-      //                              INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */                   {X,     X,        O,        O,      O,         O,          X},
-      /* HAVE_LOCK */                 {O,     X,        X,        X,      O,         O,          X},
-      /* SAFE_MODE */                 {O,     O,        X,        X,      X,         O,          X},
-      /* NORMAL */                    {O,     O,        X,        X,      X,         O,          X},
-      /* UNLOAD_METADATA_TABLETS */   {O,     O,        X,        X,      X,         X,          X},
-      /* UNLOAD_ROOT_TABLET */        {O,     O,        O,        X,      X,         X,          X},
-      /* STOP */                      {O,     O,        O,        O,      O,         X,          X}};
+      //                            INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL */                 {X,     X,        O,        O,      O,         O,          X},
+      /* HAVE_LOCK */               {O,     X,        X,        X,      O,         O,          X},
+      /* SAFE_MODE */               {O,     O,        X,        X,      X,         O,          X},
+      /* NORMAL */                  {O,     O,        X,        X,      X,         O,          X},
+      /* UNLOAD_METADATA_TABLETS */ {O,     O,        X,        X,      X,         X,          X},
+      /* UNLOAD_ROOT_TABLET */      {O,     O,        O,        X,      X,         X,          X},
+      /* STOP */                    {O,     O,        O,        O,      O,         X,          X}};
   //@formatter:on
   synchronized void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -335,8 +335,9 @@ public class Master extends AccumuloServerContext
       // the upgrade.
       // Change to Guava's Verify once we use Guava 17.
       if (null != fate) {
-        throw new IllegalStateException(
-            "Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
+        throw new IllegalStateException("Access to Fate should not have been"
+            + " initialized prior to the Master transitioning to active. Please"
+            + " save all logs and file a bug.");
       }
       Accumulo.abortIfFateTransactions();
       try {
@@ -496,12 +497,14 @@ public class Master extends AccumuloServerContext
         // Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
         if (!haveUpgradedZooKeeper) {
-          throw new IllegalStateException(
-              "We should only attempt to upgrade Accumulo's metadata table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+          throw new IllegalStateException("We should only attempt to upgrade"
+              + " Accumulo's metadata table if we've already upgraded ZooKeeper."
+              + " Please save all logs and file a bug.");
         }
         if (null != fate) {
-          throw new IllegalStateException(
-              "Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
+          throw new IllegalStateException("Access to Fate should not have been"
+              + " initialized prior to the Master finishing upgrades. Please save"
+              + " all logs and file a bug.");
         }
         Runnable upgradeTask = new Runnable() {
           int version = accumuloPersistentVersion;
@@ -1046,9 +1049,8 @@ public class Master extends AccumuloServerContext
               }
           }
         } catch (Throwable t) {
-          log.error(
-              "Error occurred reading / switching master goal state. Will continue with attempt to update status",
-              t);
+          log.error("Error occurred reading / switching master goal state. Will"
+              + " continue with attempt to update status", t);
         }
 
         try {

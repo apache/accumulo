@@ -27,34 +27,38 @@ import org.apache.hadoop.io.Text;
 
 public class CfCqSliceOpts {
   public static final String OPT_MIN_CF = "minCf";
-  public static final String OPT_MIN_CF_DESC = "UTF-8 encoded string representing minimum column family. "
-      + "Optional parameter. If minCf and minCq are undefined, the column slice will start at the first column "
-      + "of each row. If you want to do an exact match on column families, it's more efficient to leave minCf "
-      + "and maxCf undefined and use the scanner's fetchColumnFamily method.";
+  public static final String OPT_MIN_CF_DESC = "UTF-8 encoded string"
+      + " representing minimum column family. Optional parameter. If minCf and minCq"
+      + " are undefined, the column slice will start at the first column of each row."
+      + " If you want to do an exact match on column families, it's more efficient to"
+      + " leave minCf and maxCf undefined and use the scanner's fetchColumnFamily" + " method.";
 
   public static final String OPT_MIN_CQ = "minCq";
-  public static final String OPT_MIN_CQ_DESC = "UTF-8 encoded string representing minimum column qualifier. "
-      + "Optional parameter. If minCf and minCq are undefined, the column slice will start at the first column "
-      + "of each row.";
+  public static final String OPT_MIN_CQ_DESC = "UTF-8 encoded string"
+      + " representing minimum column qualifier. Optional parameter. If minCf and"
+      + " minCq are undefined, the column slice will start at the first column of" + " each row.";
 
   public static final String OPT_MAX_CF = "maxCf";
-  public static final String OPT_MAX_CF_DESC = "UTF-8 encoded string representing maximum column family. "
-      + "Optional parameter. If minCf and minCq are undefined, the column slice will start at the first column "
-      + "of each row. If you want to do an exact match on column families, it's more efficient to leave minCf "
-      + "and maxCf undefined and use the scanner's fetchColumnFamily method.";
+  public static final String OPT_MAX_CF_DESC = "UTF-8 encoded string"
+      + " representing maximum column family. Optional parameter. If minCf and minCq"
+      + " are undefined, the column slice will start at the first column of each row."
+      + " If you want to do an exact match on column families, it's more efficient to"
+      + " leave minCf and maxCf undefined and use the scanner's fetchColumnFamily" + " method.";
 
   public static final String OPT_MAX_CQ = "maxCq";
-  public static final String OPT_MAX_CQ_DESC = "UTF-8 encoded string representing maximum column qualifier. "
-      + "Optional parameter. If maxCf and MaxCq are undefined, the column slice will end at the last column of "
-      + "each row.";
+  public static final String OPT_MAX_CQ_DESC = "UTF-8 encoded string"
+      + " representing maximum column qualifier. Optional parameter. If maxCf and"
+      + " MaxCq are undefined, the column slice will end at the last column of each" + " row.";
 
   public static final String OPT_MIN_INCLUSIVE = "minInclusive";
-  public static final String OPT_MIN_INCLUSIVE_DESC = "UTF-8 encoded string indicating whether to include the "
-      + "minimum column in the slice range. Optional parameter, default is true.";
+  public static final String OPT_MIN_INCLUSIVE_DESC = "UTF-8 encoded string"
+      + " indicating whether to include the minimum column in the slice range."
+      + " Optional parameter, default is true.";
 
   public static final String OPT_MAX_INCLUSIVE = "maxInclusive";
-  public static final String OPT_MAX_INCLUSIVE_DESC = "UTF-8 encoded string indicating whether to include the "
-      + "maximum column in the slice range. Optional parameter, default is true.";
+  public static final String OPT_MAX_INCLUSIVE_DESC = "UTF-8 encoded string"
+      + " indicating whether to include the maximum column in the slice range."
+      + " Optional parameter, default is true.";
 
   Text minCf;
   Text minCq;

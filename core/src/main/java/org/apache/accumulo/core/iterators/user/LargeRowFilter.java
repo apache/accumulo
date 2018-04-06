@@ -256,7 +256,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
   @Override
   public IteratorOptions describeOptions() {
-    String description = "This iterator suppresses rows that exceed a specified number of columns. Once\n"
+    String description = "This iterator suppresses rows that exceed a specified"
+        + " number of columns. Once\n"
         + "a row exceeds the threshold, a marker is emitted and the row is always\n"
         + "suppressed by this iterator after that point in time.\n"
         + " This iterator works in a similar way to the RowDeletingIterator. See its\n"

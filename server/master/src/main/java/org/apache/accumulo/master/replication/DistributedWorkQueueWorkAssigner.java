@@ -168,9 +168,8 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
       // continuing
       // to add more work entries
       if (getQueueSize() > maxQueueSize) {
-        log.warn(
-            "Queued replication work exceeds configured maximum ({}), sleeping to allow work to occur",
-            maxQueueSize);
+        log.warn("Queued replication work exceeds configured maximum ({}),"
+            + " sleeping to allow work to occur", maxQueueSize);
         return;
       }
 

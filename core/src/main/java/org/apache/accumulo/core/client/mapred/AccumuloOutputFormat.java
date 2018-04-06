@@ -128,9 +128,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
         Connector conn = instance.getConnector(principal, token);
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
-        log.warn(
-            "Failed to automatically obtain DelegationToken, Mappers/Reducers will likely fail to communicate with Accumulo",
-            e);
+        log.warn("Failed to automatically obtain DelegationToken, "
+            + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
       }
     }
     // DelegationTokens can be passed securely from user to task without serializing insecurely in

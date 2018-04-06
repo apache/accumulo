@@ -65,9 +65,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
         if (total > MIN && total < MAX) {
           break;
         }
-        log.debug(
-            "Expected number of watchers to be contained in ({}, {}), but actually was {}. Sleeping and retrying",
-            MIN, MAX, total);
+        log.debug("Expected number of watchers to be contained in ({}, {}), but"
+            + " actually was {}. Sleeping and retrying", MIN, MAX, total);
         Thread.sleep(5000);
       }
     }
