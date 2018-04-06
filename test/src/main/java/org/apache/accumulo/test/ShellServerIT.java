@@ -2199,7 +2199,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Assert.assertTrue(output.contains(tmpTable));
 
     ts.input.set("\n5000\n\n");
-    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff -t " + tmpTable, true);
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
     output = ts.exec("listshelliter");
     Assert.assertTrue(output.contains("Profile : profile1"));
 
@@ -2232,12 +2232,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Assert.assertTrue(output.contains(tmpTable));
 
     ts.input.set("\n5000\n\n");
-    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff -t " + tmpTable, true);
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
     output = ts.exec("listshelliter");
     Assert.assertTrue(output.contains("Profile : profile1"));
 
     ts.input.set("2\n");
-    ts.exec("setshelliter -n iter2 -p 11 -pn profile2 -vers -t " + tmpTable, true);
+    ts.exec("setshelliter -n iter2 -p 11 -pn profile2 -vers", true);
     output = ts.exec("listshelliter");
     Assert.assertTrue(output.contains("Profile : profile2"));
 
@@ -2266,7 +2266,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String output = ts.exec("tables");
     Assert.assertTrue(output.contains(tmpTable));
     ts.input.set("\n5000\n\n");
-    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff -t " + tmpTable, true);
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
     output = ts.exec("listshelliter");
     Assert.assertTrue(output.contains("Profile : profile1"));
     // test various bad argument calls
