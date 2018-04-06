@@ -55,8 +55,8 @@ public class NativeMapIT {
   }
 
   private Key newKey(int r, int cf, int cq, int cv, int ts, boolean deleted) {
-    Key k = new Key(new Text(String.format("r%09d", r)), new Text(String.format("cf%09d", cf)), new Text(String.format("cq%09d", cq)), new Text(String.format(
-        "cv%09d", cv)), ts);
+    Key k = new Key(new Text(String.format("r%09d", r)), new Text(String.format("cf%09d", cf)),
+        new Text(String.format("cq%09d", cq)), new Text(String.format("cv%09d", cv)), ts);
 
     k.setDeleted(deleted);
 
@@ -69,7 +69,8 @@ public class NativeMapIT {
 
   public static File nativeMapLocation() {
     File projectDir = new File(System.getProperty("user.dir")).getParentFile();
-    File nativeMapDir = new File(projectDir, "server/native/target/accumulo-native-" + Constants.VERSION + "/accumulo-native-" + Constants.VERSION);
+    File nativeMapDir = new File(projectDir, "server/native/target/accumulo-native-"
+        + Constants.VERSION + "/accumulo-native-" + Constants.VERSION);
     return nativeMapDir;
   }
 
@@ -79,7 +80,8 @@ public class NativeMapIT {
     Assert.assertTrue(NativeMap.isLoaded());
   }
 
-  private void verifyIterator(int start, int end, int valueOffset, Iterator<Entry<Key,Value>> iter) {
+  private void verifyIterator(int start, int end, int valueOffset,
+      Iterator<Entry<Key,Value>> iter) {
     for (int i = start; i <= end; i++) {
       assertTrue(iter.hasNext());
       Entry<Key,Value> entry = iter.next();
@@ -133,12 +135,16 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = newKey(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
+              Value value = new Value(
+                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
+                      .getBytes(UTF_8));
 
               nm.put(key, value);
 
               key = newKey(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
+              value = new Value(
+                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
+                      .getBytes(UTF_8));
 
               nm.put(key, value);
             }
@@ -155,7 +161,9 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = num - 1; ts >= 0; ts--) {
               Key key = newKey(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
+              Value value = new Value(
+                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
+                      .getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
               Entry<Key,Value> entry = iter.next();
@@ -163,7 +171,9 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = newKey(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
+              value = new Value(
+                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
+                      .getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
               entry = iter.next();
@@ -183,7 +193,9 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = newKey(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
+              Value value = new Value(
+                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run)
+                      .getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
 
@@ -194,7 +206,9 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = newKey(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
+              value = new Value(
+                  (i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run)
+                      .getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
 
@@ -391,7 +405,8 @@ public class NativeMapIT {
     long mem2 = nm.getMemoryUsed();
 
     if (mem1 != mem2) {
-      throw new RuntimeException("Memory changed after inserting duplicate data " + mem1 + " " + mem2);
+      throw new RuntimeException(
+          "Memory changed after inserting duplicate data " + mem1 + " " + mem2);
     }
 
     for (int i = start; i <= end; i++) {
@@ -401,7 +416,8 @@ public class NativeMapIT {
     long mem3 = nm.getMemoryUsed();
 
     if (mem1 != mem3) {
-      throw new RuntimeException("Memory changed after inserting duplicate data " + mem1 + " " + mem3);
+      throw new RuntimeException(
+          "Memory changed after inserting duplicate data " + mem1 + " " + mem3);
     }
 
     byte bigrow[] = new byte[1000000];
@@ -426,7 +442,8 @@ public class NativeMapIT {
     long mem5 = nm.getMemoryUsed();
 
     if (mem4 != mem5) {
-      throw new RuntimeException("Memory changed after inserting duplicate data " + mem4 + " " + mem5);
+      throw new RuntimeException(
+          "Memory changed after inserting duplicate data " + mem4 + " " + mem5);
     }
 
     val = nm.get(new Key(new Text(bigrow)));
@@ -460,8 +477,8 @@ public class NativeMapIT {
 
     for (int i = 0; i < 100000; i++) {
 
-      Key k = new Key(getRandomBytes(r, 97), getRandomBytes(r, 13), getRandomBytes(r, 31), getRandomBytes(r, 11), (r.nextLong() & 0x7fffffffffffffffl), false,
-          false);
+      Key k = new Key(getRandomBytes(r, 97), getRandomBytes(r, 13), getRandomBytes(r, 31),
+          getRandomBytes(r, 11), (r.nextLong() & 0x7fffffffffffffffl), false, false);
       Value v = new Value(getRandomBytes(r, 511));
 
       testData.add(new Pair<>(k, v));

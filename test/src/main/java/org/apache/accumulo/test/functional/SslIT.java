@@ -24,8 +24,9 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 /**
- * Do a selection of ITs with SSL turned on that cover a range of different connection scenarios. Note that you can run *all* the ITs against SSL-enabled mini
- * clusters with `mvn verify -DuseSslForIT`
+ * Do a selection of ITs with SSL turned on that cover a range of different connection scenarios.
+ * Note that you can run *all* the ITs against SSL-enabled mini clusters with `mvn verify
+ * -DuseSslForIT`
  *
  */
 public class SslIT extends ConfigurableMacBase {
@@ -37,7 +38,8 @@ public class SslIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
-    configureForSsl(cfg, getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
+    configureForSsl(cfg,
+        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
   }
 
   @Test
@@ -59,8 +61,9 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void bulk() throws Exception {
-    BulkIT.runTest(getConnector(), cluster.getFileSystem(), new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"), "root", getUniqueNames(1)[0],
-        this.getClass().getName(), testName.getMethodName());
+    BulkIT.runTest(getConnector(), cluster.getFileSystem(),
+        new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"), "root",
+        getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
   }
 
   @Test

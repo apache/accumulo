@@ -39,9 +39,11 @@ public class NamespaceNotFoundException extends Exception {
    *          the specific reason why it failed
    */
   public NamespaceNotFoundException(String namespaceId, String namespaceName, String description) {
-    super("Namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
-        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " does not exist"
-        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super(
+        "Namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
+            + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "")
+            + " does not exist"
+            + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.namespace = namespaceName;
   }
 
@@ -55,7 +57,8 @@ public class NamespaceNotFoundException extends Exception {
    * @param cause
    *          the exception that caused this failure
    */
-  public NamespaceNotFoundException(String namespaceId, String namespaceName, String description, Throwable cause) {
+  public NamespaceNotFoundException(String namespaceId, String namespaceName, String description,
+      Throwable cause) {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
   }

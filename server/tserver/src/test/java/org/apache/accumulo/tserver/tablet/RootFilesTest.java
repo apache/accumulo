@@ -44,7 +44,8 @@ import org.junit.rules.TemporaryFolder;
 public class RootFilesTest {
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   private class TestWrapper {
     File rootTabletDir;
@@ -55,7 +56,8 @@ public class RootFilesTest {
     VolumeManager vm;
     AccumuloConfiguration conf;
 
-    TestWrapper(VolumeManager vm, AccumuloConfiguration conf, String compactName, String... inputFiles) throws IOException {
+    TestWrapper(VolumeManager vm, AccumuloConfiguration conf, String compactName,
+        String... inputFiles) throws IOException {
       this.vm = vm;
       this.conf = conf;
 
@@ -86,11 +88,13 @@ public class RootFilesTest {
     }
 
     public void finishReplacement() throws IOException {
-      RootFiles.finishReplacement(conf, vm, new Path(rootTabletDir.toURI()), oldDatafiles, compactName);
+      RootFiles.finishReplacement(conf, vm, new Path(rootTabletDir.toURI()), oldDatafiles,
+          compactName);
     }
 
     public Collection<String> cleanupReplacement(String... expectedFiles) throws IOException {
-      Collection<String> ret = RootFiles.cleanupReplacement(vm, vm.listStatus(new Path(rootTabletDir.toURI())), true);
+      Collection<String> ret = RootFiles.cleanupReplacement(vm,
+          vm.listStatus(new Path(rootTabletDir.toURI())), true);
 
       HashSet<String> expected = new HashSet<>();
       for (String efile : expectedFiles)

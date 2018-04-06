@@ -38,8 +38,8 @@ import junit.framework.TestCase;
  * Tests the concurrent LruBlockCache.
  * <p>
  *
- * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to and do what they should, and that cached blocks are
- * accessible when expected to be.
+ * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to
+ * and do what they should, and that cached blocks are accessible when expected to be.
  */
 public class TestLruBlockCache extends TestCase {
 
@@ -51,10 +51,12 @@ public class TestLruBlockCache extends TestCase {
     cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(1000027));
     cc.set(Property.TSERV_SUMMARYCACHE_SIZE, Long.toString(1000029));
 
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.93f).acceptableFactor(0.97f).singleFactor(0.20f).multiFactor(0.30f)
-        .memoryFactor(0.50f).mapConcurrencyLevel(5).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.93f)
+        .acceptableFactor(0.97f).singleFactor(0.20f).multiFactor(0.30f).memoryFactor(0.50f)
+        .mapConcurrencyLevel(5).buildMap().forEach(cc::set);
 
-    String defaultPrefix = BlockCacheManager.CACHE_PROPERTY_BASE + LruBlockCacheConfiguration.PROPERTY_PREFIX + ".default.";
+    String defaultPrefix = BlockCacheManager.CACHE_PROPERTY_BASE
+        + LruBlockCacheConfiguration.PROPERTY_PREFIX + ".default.";
 
     // this should be overridden by cache type specific setting
     cc.set(defaultPrefix + LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, "0.6");
@@ -178,7 +180,8 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).buildMap()
+        .forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
 
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
@@ -197,7 +200,8 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(1, cache.getEvictionCount());
 
     // Our expected size overruns acceptable limit
-    assertTrue(expectedCacheSize > (maxSize * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
+    assertTrue(
+        expectedCacheSize > (maxSize * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
 
     // But the cache did not grow beyond max
     assertTrue(cache.heapSize() < maxSize);
@@ -225,8 +229,9 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.25f).multiFactor(0.50f)
-        .memoryFactor(0.25f).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f)
+        .acceptableFactor(0.99f).singleFactor(0.25f).multiFactor(0.50f).memoryFactor(0.25f)
+        .buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
@@ -255,13 +260,15 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(cache.getEvictedCount(), 2);
 
     // Our expected size overruns acceptable limit
-    assertTrue(expectedCacheSize > (maxSize * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
+    assertTrue(
+        expectedCacheSize > (maxSize * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
 
     // But the cache did not grow beyond max
     assertTrue(cache.heapSize() <= maxSize);
 
     // And is now below the acceptable limit
-    assertTrue(cache.heapSize() <= (maxSize * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
+    assertTrue(
+        cache.heapSize() <= (maxSize * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
 
     // We expect fairness across the two priorities.
     // This test makes multi go barely over its limit, in-memory
@@ -272,8 +279,10 @@ public class TestLruBlockCache extends TestCase {
 
     // And all others to be cached
     for (int i = 1; i < 4; i++) {
-      assertTrue(Arrays.equals(cache.getBlock(singleBlocks[i].blockName).getBuffer(), singleBlocks[i].buf));
-      assertTrue(Arrays.equals(cache.getBlock(multiBlocks[i].blockName).getBuffer(), multiBlocks[i].buf));
+      assertTrue(Arrays.equals(cache.getBlock(singleBlocks[i].blockName).getBuffer(),
+          singleBlocks[i].buf));
+      assertTrue(
+          Arrays.equals(cache.getBlock(multiBlocks[i].blockName).getBuffer(), multiBlocks[i].buf));
     }
     manager.stop();
   }
@@ -289,8 +298,9 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f)
-        .memoryFactor(0.34f).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f)
+        .acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f).memoryFactor(0.34f)
+        .buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
@@ -412,8 +422,9 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.66f).acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f)
-        .memoryFactor(0.34f).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.66f)
+        .acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f).memoryFactor(0.34f)
+        .buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
@@ -488,8 +499,10 @@ public class TestLruBlockCache extends TestCase {
   private long calculateBlockSize(long maxSize, int numBlocks) {
     long roughBlockSize = maxSize / numBlocks;
     int numEntries = (int) Math.ceil((1.2) * maxSize / roughBlockSize);
-    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
-        + (LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
+    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
+        + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
+        + (LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL
+            * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
     long negateBlockSize = totalOverhead / numEntries;
     negateBlockSize += CachedBlock.PER_BLOCK_OVERHEAD;
     return ClassSize.align((long) Math.floor((roughBlockSize - negateBlockSize) * 0.99f));
@@ -498,11 +511,14 @@ public class TestLruBlockCache extends TestCase {
   private long calculateBlockSizeDefault(long maxSize, int numBlocks) {
     long roughBlockSize = maxSize / numBlocks;
     int numEntries = (int) Math.ceil((1.2) * maxSize / roughBlockSize);
-    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
-        + (LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
+    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
+        + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
+        + (LruBlockCacheConfiguration.DEFAULT_CONCURRENCY_LEVEL
+            * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
     long negateBlockSize = totalOverhead / numEntries;
     negateBlockSize += CachedBlock.PER_BLOCK_OVERHEAD;
-    return ClassSize.align((long) Math.floor((roughBlockSize - negateBlockSize) * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
+    return ClassSize.align((long) Math.floor(
+        (roughBlockSize - negateBlockSize) * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
   }
 
   private static class Block implements HeapSize {
@@ -516,7 +532,8 @@ public class TestLruBlockCache extends TestCase {
 
     @Override
     public long heapSize() {
-      return CachedBlock.PER_BLOCK_OVERHEAD + ClassSize.align(blockName.length()) + ClassSize.align(buf.length);
+      return CachedBlock.PER_BLOCK_OVERHEAD + ClassSize.align(blockName.length())
+          + ClassSize.align(buf.length);
     }
   }
 }

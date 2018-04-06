@@ -86,7 +86,8 @@ public class TablesResource {
     TableManager tableManager = TableManager.getInstance();
 
     // Add tables to the list
-    for (Map.Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
+    for (Map.Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance())
+        .entrySet()) {
       String tableName = entry.getKey();
       Table.ID tableId = entry.getValue();
       TableInfo tableInfo = tableStats.get(tableId);
@@ -97,7 +98,8 @@ public class TablesResource {
         if (holdTime == null)
           holdTime = 0.;
 
-        tableList.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
+        tableList.addTable(
+            new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
       } else {
         tableList.addTable(new TableInformation(tableName, tableId, tableState.name()));
       }
@@ -114,7 +116,8 @@ public class TablesResource {
    */
   @Path("{tableId}")
   @GET
-  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
+  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(
+      regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
     Instance instance = Monitor.getContext().getInstance();
     Table.ID tableId = Table.ID.of(tableIdStr);
 
@@ -128,9 +131,12 @@ public class TablesResource {
     if (RootTable.ID.equals(tableId)) {
       locs.add(instance.getRootTabletLocation());
     } else {
-      String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
-      MetaDataTableScanner scanner = new MetaDataTableScanner(Monitor.getContext(), new Range(KeyExtent.getMetadataEntry(tableId, new Text()),
-          KeyExtent.getMetadataEntry(tableId, null)), systemTableName);
+      String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME
+          : MetadataTable.NAME;
+      MetaDataTableScanner scanner = new MetaDataTableScanner(Monitor.getContext(),
+          new Range(KeyExtent.getMetadataEntry(tableId, new Text()),
+              KeyExtent.getMetadataEntry(tableId, null)),
+          systemTableName);
 
       while (scanner.hasNext()) {
         TabletLocationState state = scanner.next();

@@ -62,8 +62,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ACCUMULO-4574. Test to verify that changing table state to online / offline {@link org.apache.accumulo.core.client.admin.TableOperations#online(String)} when
- * the table is already in that state returns without blocking.
+ * ACCUMULO-4574. Test to verify that changing table state to online / offline
+ * {@link org.apache.accumulo.core.client.admin.TableOperations#online(String)} when the table is
+ * already in that state returns without blocking.
  */
 public class TableChangeStateIT extends AccumuloClusterHarness {
 
@@ -85,9 +86,11 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Validate that {@code TableOperations} online operation does not block when table is already online and fate transaction lock is held by other operations.
-   * The test creates, populates a table and then runs a compaction with a slow iterator so that operation takes long enough to simulate the condition. After
-   * the online operation while compaction is running completes, the test is complete and the compaction is canceled so that other tests can run.
+   * Validate that {@code TableOperations} online operation does not block when table is already
+   * online and fate transaction lock is held by other operations. The test creates, populates a
+   * table and then runs a compaction with a slow iterator so that operation takes long enough to
+   * simulate the condition. After the online operation while compaction is running completes, the
+   * test is complete and the compaction is canceled so that other tests can run.
    *
    * @throws Exception
    *           any exception is a test failure.
@@ -109,7 +112,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing1 = task.get();
 
-    log.trace("Online 1 in {} ms", TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
+    log.trace("Online 1 in {} ms",
+        TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
@@ -124,16 +128,20 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing2 = task.get();
 
-    log.trace("Online 2 in {} ms", TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
+    log.trace("Online 2 in {} ms",
+        TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
 
     assertEquals("verify table is back online", TableState.ONLINE, getTableState(tableName));
 
-    // launch a full table compaction with the slow iterator to ensure table lock is acquired and held by the compaction
+    // launch a full table compaction with the slow iterator to ensure table lock is acquired and
+    // held by the compaction
 
     Future<?> compactTask = pool.submit(new SlowCompactionRunner(tableName));
-    assertTrue("verify that compaction running and fate transaction exists", blockUntilCompactionRunning(tableName));
+    assertTrue("verify that compaction running and fate transaction exists",
+        blockUntilCompactionRunning(tableName));
 
-    // try to set online while fate transaction is in progress - before ACCUMULO-4574 this would block
+    // try to set online while fate transaction is in progress - before ACCUMULO-4574 this would
+    // block
 
     onlineOp = new OnLineCallable(tableName);
 
@@ -142,19 +150,24 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
     OnlineOpTiming timing3 = task.get();
 
     assertTrue("online should take less time than expected compaction time",
-        timing3.runningTime() < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
+        timing3.runningTime() < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS,
+            TimeUnit.MILLISECONDS));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
-    assertTrue("verify compaction still running and fate transaction still exists", blockUntilCompactionRunning(tableName));
+    assertTrue("verify compaction still running and fate transaction still exists",
+        blockUntilCompactionRunning(tableName));
 
     // test complete, cancel compaction and move on.
     connector.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
-    log.debug("Time for unblocked online {} ms", TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for online when offline {} ms", TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for blocked online {} ms", TimeUnit.MILLISECONDS.convert(timing3.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for unblocked online {} ms",
+        TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for online when offline {} ms",
+        TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for blocked online {} ms",
+        TimeUnit.MILLISECONDS.convert(timing3.runningTime(), TimeUnit.NANOSECONDS));
 
     // block if compaction still running
     compactTask.get();
@@ -173,8 +186,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
     List<String> tservers = connector.instanceOperations().getTabletServers();
 
     /*
-     * wait for compaction to start - The compaction will acquire a fate transaction lock that used to block a subsequent online command while the fate
-     * transaction lock was held.
+     * wait for compaction to start - The compaction will acquire a fate transaction lock that used
+     * to block a subsequent online command while the fate transaction lock was held.
      */
     while (runningCompactions == 0) {
 
@@ -202,8 +215,9 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Checks fates in zookeeper looking for transaction associated with a compaction as a double check that the test will be valid because the running compaction
-   * does have a fate transaction lock.
+   * Checks fates in zookeeper looking for transaction associated with a compaction as a double
+   * check that the test will be valid because the running compaction does have a fate transaction
+   * lock.
    *
    * @return true if corresponding fate transaction found, false otherwise
    */
@@ -219,9 +233,11 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
+          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
@@ -259,7 +275,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Create the provided table and populate with some data using a batch writer. The table is scanned to ensure it was populated as expected.
+   * Create the provided table and populate with some data using a batch writer. The table is
+   * scanned to ensure it was populated as expected.
    *
    * @param tableName
    *          the name of the table
@@ -275,7 +292,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       // populate
       for (int i = 0; i < NUM_ROWS; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(UTF_8)));
+        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
+            new Value("junk".getBytes(UTF_8)));
         bw.addMutation(m);
       }
       bw.close();
@@ -290,13 +308,16 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
           count++;
         }
 
-        log.trace("Scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
+        log.trace("Scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS
+            .convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
 
         if (count != NUM_ROWS) {
-          throw new IllegalStateException(String.format("Number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
+          throw new IllegalStateException(
+              String.format("Number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
         }
       }
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException | TableExistsException ex) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | TableExistsException ex) {
       throw new IllegalStateException("Create data failed with exception", ex);
     }
   }
@@ -356,7 +377,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       // stop timing
       status.setComplete();
 
-      log.trace("Online completed in {} ms", TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
+      log.trace("Online completed in {} ms",
+          TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
 
       return status;
     }
@@ -396,11 +418,13 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
         log.trace("Start compaction");
 
-        connector.tableOperations().compact(tableName, new Text("0"), new Text("z"), compactIterators, true, true);
+        connector.tableOperations().compact(tableName, new Text("0"), new Text("z"),
+            compactIterators, true, true);
 
         log.trace("Compaction wait is complete");
 
-        log.trace("Slow compaction of {} rows took {} ms", NUM_ROWS, TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
+        log.trace("Slow compaction of {} rows took {} ms", NUM_ROWS, TimeUnit.MILLISECONDS
+            .convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
 
         // validate that number of rows matches expected.
 
@@ -417,17 +441,20 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
             count++;
           }
 
-          log.trace("After compaction, scan time for {} rows {} ms", NUM_ROWS,
-              TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
+          log.trace("After compaction, scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS
+              .convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
 
           if (count != NUM_ROWS) {
-            throw new IllegalStateException(String.format("After compaction, number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
+            throw new IllegalStateException(
+                String.format("After compaction, number of rows %1$d does not match expected %2$d",
+                    count, NUM_ROWS));
           }
         }
       } catch (TableNotFoundException ex) {
         throw new IllegalStateException("test failed, table " + tableName + " does not exist", ex);
       } catch (AccumuloSecurityException ex) {
-        throw new IllegalStateException("test failed, could not add iterator due to security exception", ex);
+        throw new IllegalStateException(
+            "test failed, could not add iterator due to security exception", ex);
       } catch (AccumuloException ex) {
         // test cancels compaction on complete, so ignore it as an exception.
         if (!ex.getMessage().contains("Compaction canceled")) {

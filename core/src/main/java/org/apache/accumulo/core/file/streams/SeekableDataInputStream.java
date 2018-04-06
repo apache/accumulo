@@ -23,7 +23,8 @@ import java.io.InputStream;
 import org.apache.hadoop.fs.Seekable;
 
 /**
- * A wrapper converting a {@link Seekable} {@code InputStream} into a {@code Seekable} {@link DataInputStream}
+ * A wrapper converting a {@link Seekable} {@code InputStream} into a {@code Seekable}
+ * {@link DataInputStream}
  */
 public class SeekableDataInputStream extends DataInputStream implements Seekable {
   public <StreamType extends InputStream & Seekable> SeekableDataInputStream(StreamType stream) {

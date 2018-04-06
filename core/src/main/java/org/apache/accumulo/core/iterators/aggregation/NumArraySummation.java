@@ -26,7 +26,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.SummingArrayCombiner} with
+ * @deprecated since 1.4, replaced by
+ *             {@link org.apache.accumulo.core.iterators.user.SummingArrayCombiner} with
  *             {@link org.apache.accumulo.core.iterators.user.SummingArrayCombiner.Type#VARLEN}
  */
 @Deprecated

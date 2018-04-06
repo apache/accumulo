@@ -27,8 +27,8 @@ import org.apache.accumulo.core.conf.ClientProperty;
 @SuppressWarnings("deprecation")
 public class ClientConfConverter {
 
-  private static Map<String, String> confProps = new HashMap<>();
-  private static Map<String, String> propsConf = new HashMap<>();
+  private static Map<String,String> confProps = new HashMap<>();
+  private static Map<String,String> propsConf = new HashMap<>();
 
   static {
     propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(),
@@ -58,7 +58,7 @@ public class ClientConfConverter {
     propsConf.put(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
         ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
 
-    for (Map.Entry<String, String> entry : propsConf.entrySet()) {
+    for (Map.Entry<String,String> entry : propsConf.entrySet()) {
       confProps.put(entry.getValue(), entry.getKey());
     }
   }
@@ -89,7 +89,8 @@ public class ClientConfConverter {
       String val = clientConf.getString(confKey);
       String propKey = confProps.get(confKey);
       if (propKey == null) {
-        if (!confKey.equals(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey())) {
+        if (!confKey
+            .equals(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey())) {
           props.setProperty(confKey, val);
         }
       } else {

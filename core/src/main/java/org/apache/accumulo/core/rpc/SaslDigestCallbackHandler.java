@@ -25,7 +25,8 @@ import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.TokenIdentifier;
 
 /**
- * Common serialization methods across the client and server callback handlers for SASL. Serialization and deserialization methods must be kept in sync.
+ * Common serialization methods across the client and server callback handlers for SASL.
+ * Serialization and deserialization methods must be kept in sync.
  */
 public abstract class SaslDigestCallbackHandler implements CallbackHandler {
 
@@ -60,7 +61,8 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
    *          The TokenIdentifier from the client
    * @see #encodePassword(byte[])
    */
-  public <T extends TokenIdentifier> char[] getPassword(SecretManager<T> secretManager, T tokenid) throws InvalidToken {
+  public <T extends TokenIdentifier> char[] getPassword(SecretManager<T> secretManager, T tokenid)
+      throws InvalidToken {
     return encodePassword(secretManager.retrievePassword(tokenid));
   }
 

@@ -68,7 +68,8 @@ public class MetricsConfiguration {
   private String enabledName = null;
 
   /**
-   * Background thread that pokes the XMLConfiguration file to see if it has changed. If it has, then the Configuration Listener will get an event.
+   * Background thread that pokes the XMLConfiguration file to see if it has changed. If it has,
+   * then the Configuration Listener will get an event.
    *
    */
   private class MetricsConfigWatcher extends Daemon {
@@ -126,7 +127,8 @@ public class MetricsConfiguration {
     if (notFound) {
       if (notFoundCount <= CONFIG_FILE_CHECK_COUNTER) {
         return null;
-      } else if ((notFoundCount > CONFIG_FILE_CHECK_COUNTER) && ((System.currentTimeMillis() - lastCheckTime) > CONFIG_FILE_CHECK_INTERVAL)) {
+      } else if ((notFoundCount > CONFIG_FILE_CHECK_COUNTER)
+          && ((System.currentTimeMillis() - lastCheckTime) > CONFIG_FILE_CHECK_INTERVAL)) {
         notFoundCount = 0;
         lastCheckTime = System.currentTimeMillis();
         notFound = false;
@@ -148,10 +150,12 @@ public class MetricsConfiguration {
   }
 
   private void loadConfiguration() {
-    URL metricsUrl = MetricsConfiguration.class.getClassLoader().getResource("accumulo-metrics.xml");
+    URL metricsUrl = MetricsConfiguration.class.getClassLoader()
+        .getResource("accumulo-metrics.xml");
     if (metricsUrl == null) {
       if (!alreadyWarned)
-        log.warn("accumulo-metrics.xml was not found on classpath. Metrics collection will be disabled.");
+        log.warn(
+            "accumulo-metrics.xml was not found on classpath. Metrics collection will be disabled.");
       alreadyWarned = true;
       notFound = true;
       return;
@@ -199,7 +203,8 @@ public class MetricsConfiguration {
   public static void main(String[] args) throws Exception {
     MetricsConfiguration mc = new MetricsConfiguration("master");
     while (true) {
-      System.out.println("------------------------------------------------------------------------------------------------");
+      System.out.println(
+          "------------------------------------------------------------------------------------------------");
       long t1 = System.currentTimeMillis();
       System.out.println(mc.isEnabled() + " took: " + (System.currentTimeMillis() - t1));
       Thread.sleep(1000);

@@ -58,7 +58,8 @@ public class ZooKeeperStatus implements Runnable {
 
     @Override
     public boolean equals(Object obj) {
-      return obj == this || (obj != null && obj instanceof ZooKeeperState && 0 == compareTo((ZooKeeperState) obj));
+      return obj == this
+          || (obj != null && obj instanceof ZooKeeperState && 0 == compareTo((ZooKeeperState) obj));
     }
 
     @Override
@@ -94,7 +95,8 @@ public class ZooKeeperStatus implements Runnable {
 
       TreeSet<ZooKeeperState> update = new TreeSet<>();
 
-      String zookeepers[] = SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST).split(",");
+      String zookeepers[] = SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST)
+          .split(",");
       for (String keeper : zookeepers) {
         int clients = 0;
         String mode = "unknown";

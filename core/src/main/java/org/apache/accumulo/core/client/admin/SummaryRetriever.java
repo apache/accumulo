@@ -35,9 +35,10 @@ import org.apache.hadoop.io.Text;
 public interface SummaryRetriever {
 
   /**
-   * Forces a flush of data in memory to files before summary data is retrieved. Data recently written to Accumulo may be in memory. Summary data is only
-   * retrieved from files. Therefore recently written data may not be represented in summaries, unless this options is set to true. This is optional and
-   * defaults to false.
+   * Forces a flush of data in memory to files before summary data is retrieved. Data recently
+   * written to Accumulo may be in memory. Summary data is only retrieved from files. Therefore
+   * recently written data may not be represented in summaries, unless this options is set to true.
+   * This is optional and defaults to false.
    *
    * @return this
    */
@@ -64,17 +65,21 @@ public interface SummaryRetriever {
   SummaryRetriever endRow(CharSequence endRow);
 
   /**
-   * Filters which summary data is retrieved. By default all summary data present is retrieved. If only a subset of summary data is needed, then its best to be
-   * selective in order to avoid polluting summary data cache.
+   * Filters which summary data is retrieved. By default all summary data present is retrieved. If
+   * only a subset of summary data is needed, then its best to be selective in order to avoid
+   * polluting summary data cache.
    *
    * <p>
-   * Each set of summary data is generated using a specific {@link SummarizerConfiguration}. The methods {@link #withConfiguration(Collection)} and
-   * {@link #withConfiguration(SummarizerConfiguration...)} allow selecting sets of summary data based on exact {@link SummarizerConfiguration} matches. This
-   * method enables less exact matching using regular expressions.
+   * Each set of summary data is generated using a specific {@link SummarizerConfiguration}. The
+   * methods {@link #withConfiguration(Collection)} and
+   * {@link #withConfiguration(SummarizerConfiguration...)} allow selecting sets of summary data
+   * based on exact {@link SummarizerConfiguration} matches. This method enables less exact matching
+   * using regular expressions.
    *
    * <p>
-   * The regular expression passed to this method is used in the following way on the server side to match {@link SummarizerConfiguration} object. When a
-   * {@link SummarizerConfiguration} matches, the summary data generated using that configuration is returned.
+   * The regular expression passed to this method is used in the following way on the server side to
+   * match {@link SummarizerConfiguration} object. When a {@link SummarizerConfiguration} matches,
+   * the summary data generated using that configuration is returned.
    *
    * <pre>
    * <code>
@@ -90,23 +95,28 @@ public interface SummaryRetriever {
   SummaryRetriever withMatchingConfiguration(String regex);
 
   /**
-   * Allows specifying a set of summaries, generated using the specified configs, to retrieve. By default will retrieve all present.
+   * Allows specifying a set of summaries, generated using the specified configs, to retrieve. By
+   * default will retrieve all present.
    *
    * <p>
-   * Using this method to be more selective may pull less data in to the tablet servers summary cache.
+   * Using this method to be more selective may pull less data in to the tablet servers summary
+   * cache.
    */
   SummaryRetriever withConfiguration(SummarizerConfiguration... config);
 
   /**
-   * Allows specifying a set of summaries, generated using the specified configs, to retrieve. By default will retrieve all present.
+   * Allows specifying a set of summaries, generated using the specified configs, to retrieve. By
+   * default will retrieve all present.
    *
    * <p>
-   * Using this method to be more selective may pull less data in to the tablet servers summary cache.
+   * Using this method to be more selective may pull less data in to the tablet servers summary
+   * cache.
    */
   SummaryRetriever withConfiguration(Collection<SummarizerConfiguration> configs);
 
   /**
    * @return a map of counter groups to counts
    */
-  List<Summary> retrieve() throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  List<Summary> retrieve()
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 }

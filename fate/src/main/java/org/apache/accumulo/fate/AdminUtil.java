@@ -72,7 +72,8 @@ public class AdminUtil<T> {
     private final List<String> wlocks;
     private final String top;
 
-    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks, List<String> wlocks, String top) {
+    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
+        List<String> wlocks, String top) {
       this.txid = tid;
       this.status = status;
       this.debug = debug;
@@ -82,7 +83,8 @@ public class AdminUtil<T> {
     }
 
     /**
-     * @return This fate operations transaction id, formatted in the same way as FATE transactions are in the Accumulo logs.
+     * @return This fate operations transaction id, formatted in the same way as FATE transactions
+     *         are in the Accumulo logs.
      */
     public String getTxid() {
       return String.format("%016x", txid);
@@ -129,8 +131,9 @@ public class AdminUtil<T> {
     private final Map<String,List<String>> danglingWaitingLocks;
 
     /**
-     * Convert FATE transactions IDs in keys of map to format that used in printing and logging FATE transactions ids. This is done so that if the map is
-     * printed, the output can be used to search Accumulo's logs.
+     * Convert FATE transactions IDs in keys of map to format that used in printing and logging FATE
+     * transactions ids. This is done so that if the map is printed, the output can be used to
+     * search Accumulo's logs.
      */
     private static Map<String,List<String>> convert(Map<Long,List<String>> danglocks) {
       if (danglocks.isEmpty()) {
@@ -139,12 +142,14 @@ public class AdminUtil<T> {
 
       Map<String,List<String>> ret = new HashMap<>();
       for (Entry<Long,List<String>> entry : danglocks.entrySet()) {
-        ret.put(String.format("%016x", entry.getKey()), Collections.unmodifiableList(entry.getValue()));
+        ret.put(String.format("%016x", entry.getKey()),
+            Collections.unmodifiableList(entry.getValue()));
       }
       return Collections.unmodifiableMap(ret);
     }
 
-    private FateStatus(List<TransactionStatus> transactions, Map<Long,List<String>> danglingHeldLocks, Map<Long,List<String>> danglingWaitingLocks) {
+    private FateStatus(List<TransactionStatus> transactions,
+        Map<Long,List<String>> danglingHeldLocks, Map<Long,List<String>> danglingWaitingLocks) {
       this.transactions = Collections.unmodifiableList(transactions);
       this.danglingHeldLocks = convert(danglingHeldLocks);
       this.danglingWaitingLocks = convert(danglingWaitingLocks);
@@ -155,27 +160,32 @@ public class AdminUtil<T> {
     }
 
     /**
-     * Get locks that are held by non existent FATE transactions. These are table or namespace locks.
+     * Get locks that are held by non existent FATE transactions. These are table or namespace
+     * locks.
      *
-     * @return map where keys are transaction ids and values are a list of table IDs and/or namespace IDs. The transaction IDs are in the same format as
-     *         transaction IDs in the Accumulo logs.
+     * @return map where keys are transaction ids and values are a list of table IDs and/or
+     *         namespace IDs. The transaction IDs are in the same format as transaction IDs in the
+     *         Accumulo logs.
      */
     public Map<String,List<String>> getDanglingHeldLocks() {
       return danglingHeldLocks;
     }
 
     /**
-     * Get locks that are waiting to be aquired by non existent FATE transactions. These are table or namespace locks.
+     * Get locks that are waiting to be aquired by non existent FATE transactions. These are table
+     * or namespace locks.
      *
-     * @return map where keys are transaction ids and values are a list of table IDs and/or namespace IDs. The transaction IDs are in the same format as
-     *         transaction IDs in the Accumulo logs.
+     * @return map where keys are transaction ids and values are a list of table IDs and/or
+     *         namespace IDs. The transaction IDs are in the same format as transaction IDs in the
+     *         Accumulo logs.
      */
     public Map<String,List<String>> getDanglingWaitingLocks() {
       return danglingWaitingLocks;
     }
   }
 
-  public FateStatus getStatus(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public FateStatus getStatus(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath,
+      Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
     Map<Long,List<String>> heldLocks = new HashMap<>();
     Map<Long,List<String>> waitingLocks = new HashMap<>();
@@ -257,7 +267,8 @@ public class AdminUtil<T> {
 
       zs.unreserve(tid, 0);
 
-      if ((filterTxid != null && !filterTxid.contains(tid)) || (filterStatus != null && !filterStatus.contains(status)))
+      if ((filterTxid != null && !filterTxid.contains(tid))
+          || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
       statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top));
@@ -266,22 +277,26 @@ public class AdminUtil<T> {
     return new FateStatus(statuses, heldLocks, waitingLocks);
   }
 
-  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath) throws KeeperException, InterruptedException {
+  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath)
+      throws KeeperException, InterruptedException {
     print(zs, zk, lockPath, new Formatter(System.out), null, null);
   }
 
-  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath, Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath, Formatter fmt,
+      Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
 
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
-      fmt.format("txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n", txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(),
-          txStatus.getHeldLocks(), txStatus.getWaitingLocks(), txStatus.getTop());
+      fmt.format("txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n",
+          txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
+          txStatus.getWaitingLocks(), txStatus.getTop());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 
-    if (fateStatus.getDanglingHeldLocks().size() != 0 || fateStatus.getDanglingWaitingLocks().size() != 0) {
+    if (fateStatus.getDanglingHeldLocks().size() != 0
+        || fateStatus.getDanglingWaitingLocks().size() != 0) {
       fmt.format("%nThe following locks did not have an associated FATE operation%n");
       for (Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet())
         fmt.format("txid: %s  locked: %s%n", entry.getKey(), entry.getValue());
@@ -368,7 +383,8 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public void deleteLocks(TStore<T> zs, IZooReaderWriter zk, String path, String txidStr) throws KeeperException, InterruptedException {
+  public void deleteLocks(TStore<T> zs, IZooReaderWriter zk, String path, String txidStr)
+      throws KeeperException, InterruptedException {
     // delete any locks assoc w/ fate operation
     List<String> lockedIds = zk.getChildren(path);
 

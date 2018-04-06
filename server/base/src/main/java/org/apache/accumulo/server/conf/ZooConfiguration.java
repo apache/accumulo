@@ -37,7 +37,8 @@ public class ZooConfiguration extends AccumuloConfiguration {
 
   private final ZooCache propCache;
   private final AccumuloConfiguration parent;
-  private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
+  private final Map<String,String> fixedProps = Collections
+      .synchronizedMap(new HashMap<String,String>());
   private final String propPathPrefix;
 
   protected ZooConfiguration(String instanceId, ZooCache propCache, AccumuloConfiguration parent) {
@@ -71,7 +72,8 @@ public class ZooConfiguration extends AccumuloConfiguration {
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
-        log.error("Using parent value for {} due to improperly formatted {}: {}", key, property.getType(), value);
+        log.error("Using parent value for {} due to improperly formatted {}: {}", key,
+            property.getType(), value);
       value = parent.get(property);
     }
     return value;

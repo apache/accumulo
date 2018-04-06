@@ -68,7 +68,8 @@ public class ProblemsResource {
     ProblemSummary problems = new ProblemSummary();
 
     if (Monitor.getProblemException() == null) {
-      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary()
+          .entrySet()) {
         Integer readCount = null, writeCount = null, loadCount = null;
 
         for (ProblemType pt : ProblemType.values()) {
@@ -82,9 +83,11 @@ public class ProblemsResource {
           }
         }
 
-        String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(), entry.getKey());
+        String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(),
+            entry.getKey());
 
-        problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(), readCount, writeCount, loadCount));
+        problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(),
+            readCount, writeCount, loadCount));
       }
     }
     return problems;
@@ -99,12 +102,14 @@ public class ProblemsResource {
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
   @Path("summary")
-  public void clearTableProblems(@QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID) {
+  public void clearTableProblems(
+      @QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
       ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(Table.ID.of(tableID));
     } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : tableID), e);
+      log.error("Failed to delete problem reports for table "
+          + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : tableID), e);
     }
   }
 
@@ -120,17 +125,21 @@ public class ProblemsResource {
     ProblemDetail problems = new ProblemDetail();
 
     if (Monitor.getProblemException() == null) {
-      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary()
+          .entrySet()) {
         ArrayList<ProblemReport> problemReports = new ArrayList<>();
-        Iterator<ProblemReport> iter = entry.getKey() == null ? ProblemReports.getInstance(Monitor.getContext()).iterator() : ProblemReports.getInstance(
-            Monitor.getContext()).iterator(entry.getKey());
+        Iterator<ProblemReport> iter = entry.getKey() == null
+            ? ProblemReports.getInstance(Monitor.getContext()).iterator()
+            : ProblemReports.getInstance(Monitor.getContext()).iterator(entry.getKey());
         while (iter.hasNext())
           problemReports.add(iter.next());
         for (ProblemReport pr : problemReports) {
-          String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(), pr.getTableId());
+          String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(),
+              pr.getTableId());
 
-          problems.addProblemDetail(new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(), pr.getServer(), pr.getTime(), pr
-              .getResource(), pr.getException()));
+          problems.addProblemDetail(
+              new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(),
+                  pr.getServer(), pr.getTime(), pr.getResource(), pr.getException()));
         }
       }
     }
@@ -150,13 +159,17 @@ public class ProblemsResource {
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
   @Path("details")
-  public void clearDetailsProblems(@QueryParam("table") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID, @QueryParam("resource") @NotNull @Pattern(
-      regexp = RESOURCE_REGEX) String resource, @QueryParam("ptype") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String ptype) {
+  public void clearDetailsProblems(
+      @QueryParam("table") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID,
+      @QueryParam("resource") @NotNull @Pattern(regexp = RESOURCE_REGEX) String resource,
+      @QueryParam("ptype") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(Table.ID.of(tableID), ProblemType.valueOf(ptype), resource);
+      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(Table.ID.of(tableID),
+          ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + (StringUtils.isBlank(tableID) ? "" : tableID), e);
+      log.error("Failed to delete problem reports for table "
+          + (StringUtils.isBlank(tableID) ? "" : tableID), e);
     }
   }
 

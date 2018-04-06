@@ -42,14 +42,17 @@ public class Main {
 
   public static void main(final String[] args) {
     try {
-      // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when using
+      // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
+      // using
       // the VFSClassLoader with jars in HDFS.
       ClassLoader loader = getClassLoader();
       Class<?> confClass = null;
       try {
-        confClass = AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
+        confClass = AccumuloClassLoader.getClassLoader()
+            .loadClass("org.apache.hadoop.conf.Configuration");
       } catch (ClassNotFoundException e) {
-        log.error("Unable to find Hadoop Configuration class on classpath, check configuration.", e);
+        log.error("Unable to find Hadoop Configuration class on classpath, check configuration.",
+            e);
         System.exit(1);
       }
       Object conf = null;
@@ -60,11 +63,13 @@ public class Main {
         System.exit(1);
       }
       try {
-        Method getClassByNameOrNullMethod = conf.getClass().getMethod("getClassByNameOrNull", String.class);
+        Method getClassByNameOrNullMethod = conf.getClass().getMethod("getClassByNameOrNull",
+            String.class);
         getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
         getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
       } catch (Exception e) {
-        log.error("Error pre-loading JobConf and JobConfigurable classes, VFS classloader with " + "system classes in HDFS may not work correctly", e);
+        log.error("Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
+            + "system classes in HDFS may not work correctly", e);
         System.exit(1);
       }
 
@@ -77,7 +82,8 @@ public class Main {
         System.exit(1);
       }
 
-      // determine whether a keyword was used or a class name, and execute it with the remaining args
+      // determine whether a keyword was used or a class name, and execute it with the remaining
+      // args
       String keywordOrClassName = args[0];
       KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
       if (keywordExec != null) {
@@ -95,10 +101,12 @@ public class Main {
   public static synchronized ClassLoader getClassLoader() {
     if (classLoader == null) {
       try {
-        ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
+        ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader")
+            .invoke(null);
         classLoader = clTmp;
         Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (ClassNotFoundException | IOException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+      } catch (ClassNotFoundException | IOException | IllegalAccessException
+          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
           | SecurityException e) {
         log.error("Problem initializing the class loader", e);
         System.exit(1);
@@ -107,10 +115,12 @@ public class Main {
     return classLoader;
   }
 
-  public static synchronized Class<?> getVFSClassLoader() throws IOException, ClassNotFoundException {
+  public static synchronized Class<?> getVFSClassLoader()
+      throws IOException, ClassNotFoundException {
     if (vfsClassLoader == null) {
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-      Class<?> vfsClassLoaderTmp = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
+      Class<?> vfsClassLoaderTmp = AccumuloClassLoader.getClassLoader()
+          .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
       vfsClassLoader = vfsClassLoaderTmp;
     }
     return vfsClassLoader;
@@ -132,7 +142,8 @@ public class Main {
     try {
       classWithMain = getClassLoader().loadClass(className);
     } catch (ClassNotFoundException cnfe) {
-      System.out.println("Invalid argument: Java <main class> '" + className + "' was not found.  Please use the wholly qualified package name.");
+      System.out.println("Invalid argument: Java <main class> '" + className
+          + "' was not found.  Please use the wholly qualified package name.");
       printUsage();
       System.exit(1);
     }
@@ -146,8 +157,10 @@ public class Main {
     } catch (Throwable t) {
       log.error("Could not run main method on '" + classWithMain.getName() + "'.", t);
     }
-    if (main == null || !Modifier.isPublic(main.getModifiers()) || !Modifier.isStatic(main.getModifiers())) {
-      System.out.println(classWithMain.getName() + " must implement a public static void main(String args[]) method");
+    if (main == null || !Modifier.isPublic(main.getModifiers())
+        || !Modifier.isStatic(main.getModifiers())) {
+      System.out.println(classWithMain.getName()
+          + " must implement a public static void main(String args[]) method");
       System.exit(1);
     }
     final Method finalMain = main;
@@ -194,18 +207,22 @@ public class Main {
   }
 
   public static void printCommands(TreeSet<KeywordExecutable> set, UsageGroup group) {
-    set.stream().filter(e -> e.usageGroup() == group).forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
+    set.stream().filter(e -> e.usageGroup() == group)
+        .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
   }
 
   public static void printUsage() {
-    TreeSet<KeywordExecutable> executables = new TreeSet<>(Comparator.comparing(KeywordExecutable::keyword));
+    TreeSet<KeywordExecutable> executables = new TreeSet<>(
+        Comparator.comparing(KeywordExecutable::keyword));
     executables.addAll(getExecutables(getClassLoader()).values());
 
-    System.out.println("\nUsage: accumulo <command> [--help] (<argument> ...)\n\n  --help   Prints usage for specified command");
+    System.out.println(
+        "\nUsage: accumulo <command> [--help] (<argument> ...)\n\n  --help   Prints usage for specified command");
     System.out.println("\nCore Commands:");
     printCommands(executables, UsageGroup.CORE);
 
-    System.out.println("  <main class> args              Runs Java <main class> located on Accumulo classpath");
+    System.out.println(
+        "  <main class> args              Runs Java <main class> located on Accumulo classpath");
 
     System.out.println("\nProcess Commands:");
     printCommands(executables, UsageGroup.PROCESS);
@@ -223,7 +240,8 @@ public class Main {
     return servicesMap;
   }
 
-  public static Map<String,KeywordExecutable> checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
+  public static Map<String,KeywordExecutable> checkDuplicates(
+      final Iterable<? extends KeywordExecutable> services) {
     TreeSet<String> blacklist = new TreeSet<>();
     TreeMap<String,KeywordExecutable> results = new TreeMap<>();
     for (KeywordExecutable service : services) {
@@ -245,6 +263,7 @@ public class Main {
   }
 
   private static void warnDuplicate(final KeywordExecutable service) {
-    log.warn("Ambiguous duplicate binding for keyword '{}' found: {}", service.keyword(), service.getClass().getName());
+    log.warn("Ambiguous duplicate binding for keyword '{}' found: {}", service.keyword(),
+        service.getClass().getName());
   }
 }

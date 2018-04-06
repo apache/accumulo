@@ -99,6 +99,7 @@ public class VisibilityConstraintTest {
   @Test
   @Ignore
   public void testMalformedVisibility() {
-    // TODO: ACCUMULO-1006 Should test for returning error code 1, but not sure how since ColumnVisibility won't let us construct a bad one in the first place
+    // TODO: ACCUMULO-1006 Should test for returning error code 1, but not sure how since
+    // ColumnVisibility won't let us construct a bad one in the first place
   }
 }

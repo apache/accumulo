@@ -65,7 +65,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
   public void test() throws Exception {
     Connector c = this.getConnector();
     c.tableOperations().create("test");
-    Collection<ProcessReference> tservers = getCluster().getProcesses().get(ServerType.TABLET_SERVER);
+    Collection<ProcessReference> tservers = getCluster().getProcesses()
+        .get(ServerType.TABLET_SERVER);
     ArrayList<Integer> tserverPids = new ArrayList<>(tservers.size());
     for (ProcessReference tserver : tservers) {
       Process p = tserver.getProcess();
@@ -80,11 +81,13 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     }
 
     for (int pid : tserverPids) {
-      assertEquals(0, Runtime.getRuntime().exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
+      assertEquals(0, Runtime.getRuntime()
+          .exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
     }
     UtilWaitThread.sleep(20 * 1000);
     for (int pid : tserverPids) {
-      assertEquals(0, Runtime.getRuntime().exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
+      assertEquals(0, Runtime.getRuntime()
+          .exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
     }
     SortedSet<Text> splits = new TreeSet<>();
     for (String split : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
@@ -120,7 +123,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
-        log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment", unassignedTablets);
+        log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
+            unassignedTablets);
         Thread.sleep(3000);
       }
     }
@@ -138,8 +142,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
     for (int i = 1; i < counts.size(); i++) {
       int diff = Math.abs(counts.get(0) - counts.get(i));
-      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size() + " but was " + diff + ". Counts " + counts,
-          diff <= counts.size());
+      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
+          + " but was " + diff + ". Counts " + counts, diff <= counts.size());
     }
   }
 }

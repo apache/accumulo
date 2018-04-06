@@ -34,8 +34,8 @@ public class RolllingStatsTest {
   private static final double TOLERANCE = 1.0 / 1000;
 
   private static void assertFuzzyEquals(double expected, double actual) {
-    Assert.assertTrue(String.format("expected: %f, actual: %f diff: %f", expected, actual, Math.abs(expected - actual)),
-        DoubleMath.fuzzyEquals(expected, actual, TOLERANCE));
+    Assert.assertTrue(String.format("expected: %f, actual: %f diff: %f", expected, actual,
+        Math.abs(expected - actual)), DoubleMath.fuzzyEquals(expected, actual, TOLERANCE));
   }
 
   private static void checkAgreement(DescriptiveStatistics ds, RollingStats rs) {

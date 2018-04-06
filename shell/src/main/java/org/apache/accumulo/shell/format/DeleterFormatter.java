@@ -40,7 +40,8 @@ public class DeleterFormatter extends DefaultFormatter {
   private boolean force;
   private boolean more;
 
-  public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner, FormatterConfig config, Shell shellState, boolean force) {
+  public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner,
+      FormatterConfig config, Shell shellState, boolean force) {
     super.initialize(scanner, config);
     this.writer = writer;
     this.shellState = shellState;
@@ -82,7 +83,8 @@ public class DeleterFormatter extends DefaultFormatter {
         delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       }
       if (delete) {
-        m.putDelete(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
+        m.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
+            new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
         try {
           writer.addMutation(m);
         } catch (MutationsRejectedException e) {
@@ -92,7 +94,8 @@ public class DeleterFormatter extends DefaultFormatter {
               log.trace(cvs.toString());
         }
       }
-      shellState.getReader().print(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
+      shellState.getReader()
+          .print(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
     } catch (IOException e) {
       log.error("Cannot write to console", e);
       throw new RuntimeException(e);

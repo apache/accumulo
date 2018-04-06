@@ -57,17 +57,28 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     SortedMap<Key,Value> map = new TreeMap<>();
     SortedMap<Key,Value> map2 = new TreeMap<>();
     final Map<Text,Boolean> toInclude = new HashMap<>();
-    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 1l), new Value("val1".getBytes()));
-    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq2"), new Text("cv1"), 2l), new Value("val2".getBytes()));
-    map.put(new Key(new Text("r2"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 3l), new Value("val3".getBytes()));
-    map.put(new Key(new Text("r2"), new Text("cf2"), new Text("cq1"), new Text("cv1"), 4l), new Value("val4".getBytes()));
-    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 5l), new Value("val4".getBytes()));
-    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv2"), 6l), new Value("val4".getBytes()));
-    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 7l), new Value("".getBytes()));
-    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text(""), 8l), new Value("val1".getBytes()));
-    map.put(new Key(new Text("r4"), new Text("cf1"), new Text(""), new Text("cv1"), 9l), new Value("val1".getBytes()));
-    map.put(new Key(new Text("r4"), new Text(""), new Text("cq1"), new Text("cv1"), 10l), new Value("val1".getBytes()));
-    map.put(new Key(new Text(""), new Text("cf1"), new Text("cq1"), new Text("cv1"), 11l), new Value("val1".getBytes()));
+    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 1l),
+        new Value("val1".getBytes()));
+    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq2"), new Text("cv1"), 2l),
+        new Value("val2".getBytes()));
+    map.put(new Key(new Text("r2"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 3l),
+        new Value("val3".getBytes()));
+    map.put(new Key(new Text("r2"), new Text("cf2"), new Text("cq1"), new Text("cv1"), 4l),
+        new Value("val4".getBytes()));
+    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 5l),
+        new Value("val4".getBytes()));
+    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv2"), 6l),
+        new Value("val4".getBytes()));
+    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 7l),
+        new Value("".getBytes()));
+    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text(""), 8l),
+        new Value("val1".getBytes()));
+    map.put(new Key(new Text("r4"), new Text("cf1"), new Text(""), new Text("cv1"), 9l),
+        new Value("val1".getBytes()));
+    map.put(new Key(new Text("r4"), new Text(""), new Text("cq1"), new Text("cv1"), 10l),
+        new Value("val1".getBytes()));
+    map.put(new Key(new Text(""), new Text("cf1"), new Text("cq1"), new Text("cv1"), 11l),
+        new Value("val1".getBytes()));
     boolean b = true;
     int trueCount = 0;
     for (Key k : map.keySet()) {
@@ -122,8 +133,10 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     assertEquals(resultMap, map2);
   }
 
-  private void pkv(SortedMap<Key,Value> map, String row, String cf, String cq, String cv, long ts, String val) {
-    map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts), new Value(val.getBytes()));
+  private void pkv(SortedMap<Key,Value> map, String row, String cf, String cq, String cv, long ts,
+      String val) {
+    map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts),
+        new Value(val.getBytes()));
   }
 
   public void testContinue() throws Exception {
@@ -151,7 +164,8 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
-    assertEquals(map1, WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
+    assertEquals(map1,
+        WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
 
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
@@ -159,7 +173,8 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
-    assertEquals(map2, WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
+    assertEquals(map2,
+        WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
 
     iter.next();
 
@@ -179,14 +194,16 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     map.putAll(map1);
     map.putAll(map2);
 
-    MultiIterator source = new MultiIterator(Collections.singletonList(new SortedMapIterator(map)), new Range(null, true, new Text("row1"), true));
+    MultiIterator source = new MultiIterator(Collections.singletonList(new SortedMapIterator(map)),
+        new Range(null, true, new Text("row1"), true));
     WholeColumnFamilyIterator iter = new WholeColumnFamilyIterator(source);
 
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
     iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
-    assertEquals(map1, WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
+    assertEquals(map1,
+        WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
 
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do

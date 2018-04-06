@@ -73,8 +73,9 @@ class WriteExportFiles extends MasterRepo {
     if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
       Tables.clearCache(conn.getInstance());
       if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(), tableInfo.tableName, TableOperation.EXPORT,
-            TableOperationExceptionType.OTHER, "Table is not offline");
+        throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
+            tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
+            "Table is not offline");
       }
     }
   }
@@ -82,7 +83,8 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    long reserved = Utils.reserveNamespace(tableInfo.namespaceID, tid, false, true, TableOperation.EXPORT)
+    long reserved = Utils.reserveNamespace(tableInfo.namespaceID, tid, false, true,
+        TableOperation.EXPORT)
         + Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
     if (reserved > 0)
       return reserved;
@@ -102,14 +104,17 @@ class WriteExportFiles extends MasterRepo {
       return 500;
     }
 
-    // use the same range to check for walogs that we used to check for hosted (or future hosted) tablets
-    // this is done as a separate scan after we check for locations, because walogs are okay only if there is no location
+    // use the same range to check for walogs that we used to check for hosted (or future hosted)
+    // tablets
+    // this is done as a separate scan after we check for locations, because walogs are okay only if
+    // there is no location
     metaScanner.clearColumns();
     metaScanner.fetchColumnFamily(LogColumnFamily.NAME);
 
     if (metaScanner.iterator().hasNext()) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(), tableInfo.tableName, TableOperation.EXPORT,
-          TableOperationExceptionType.OTHER, "Write ahead logs found for table");
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
+          tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
+          "Write ahead logs found for table");
     }
 
     return 0;
@@ -118,10 +123,12 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      exportTable(master.getFileSystem(), master, tableInfo.tableName, tableInfo.tableID, tableInfo.exportDir);
+      exportTable(master.getFileSystem(), master, tableInfo.tableName, tableInfo.tableID,
+          tableInfo.exportDir);
     } catch (IOException ioe) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(), tableInfo.tableName, TableOperation.EXPORT,
-          TableOperationExceptionType.OTHER, "Failed to create export files " + ioe.getMessage());
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
+          tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
+          "Failed to create export files " + ioe.getMessage());
     }
     Utils.unreserveNamespace(tableInfo.namespaceID, tid, false);
     Utils.unreserveTable(tableInfo.tableID, tid, false);
@@ -135,10 +142,12 @@ class WriteExportFiles extends MasterRepo {
     Utils.unreserveTable(tableInfo.tableID, tid, false);
   }
 
-  public static void exportTable(VolumeManager fs, AccumuloServerContext context, String tableName, Table.ID tableID, String exportDir) throws Exception {
+  public static void exportTable(VolumeManager fs, AccumuloServerContext context, String tableName,
+      Table.ID tableID, String exportDir) throws Exception {
 
     fs.mkdirs(new Path(exportDir));
-    Path exportMetaFilePath = fs.getVolumeByPath(new Path(exportDir)).getFileSystem().makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
+    Path exportMetaFilePath = fs.getVolumeByPath(new Path(exportDir)).getFileSystem()
+        .makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
 
     FSDataOutputStream fileOut = fs.create(exportMetaFilePath, false);
     ZipOutputStream zipOut = new ZipOutputStream(fileOut);
@@ -176,8 +185,10 @@ class WriteExportFiles extends MasterRepo {
     }
   }
 
-  private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath, Map<String,String> uniqueFiles) throws IOException {
-    BufferedWriter distcpOut = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt"), false), UTF_8));
+  private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
+      Map<String,String> uniqueFiles) throws IOException {
+    BufferedWriter distcpOut = new BufferedWriter(
+        new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt"), false), UTF_8));
 
     try {
       for (String file : uniqueFiles.values()) {
@@ -197,13 +208,15 @@ class WriteExportFiles extends MasterRepo {
     }
   }
 
-  private static Map<String,String> exportMetadata(VolumeManager fs, AccumuloServerContext context, Table.ID tableID, ZipOutputStream zipOut,
-      DataOutputStream dataOut) throws IOException, TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  private static Map<String,String> exportMetadata(VolumeManager fs, AccumuloServerContext context,
+      Table.ID tableID, ZipOutputStream zipOut, DataOutputStream dataOut)
+      throws IOException, TableNotFoundException, AccumuloException, AccumuloSecurityException {
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_METADATA_FILE));
 
     Map<String,String> uniqueFiles = new HashMap<>();
 
-    Scanner metaScanner = context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner metaScanner = context.getConnector().createScanner(MetadataTable.NAME,
+        Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
@@ -226,8 +239,10 @@ class WriteExportFiles extends MasterRepo {
         if (existingPath == null) {
           uniqueFiles.put(filename, path);
         } else if (!existingPath.equals(path)) {
-          // make sure file names are unique, should only apply for tables with file names generated by Accumulo 1.3 and earlier
-          throw new IOException("Cannot export table with nonunique file names " + filename + ". Major compact table.");
+          // make sure file names are unique, should only apply for tables with file names generated
+          // by Accumulo 1.3 and earlier
+          throw new IOException("Cannot export table with nonunique file names " + filename
+              + ". Major compact table.");
         }
 
       }
@@ -235,15 +250,17 @@ class WriteExportFiles extends MasterRepo {
     return uniqueFiles;
   }
 
-  private static void exportConfig(AccumuloServerContext context, Table.ID tableID, ZipOutputStream zipOut, DataOutputStream dataOut) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, IOException {
+  private static void exportConfig(AccumuloServerContext context, Table.ID tableID,
+      ZipOutputStream zipOut, DataOutputStream dataOut)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
     Connector conn = context.getConnector();
 
     DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();
     Map<String,String> systemConfig = conn.instanceOperations().getSystemConfiguration();
 
-    TableConfiguration tableConfig = context.getServerConfigurationFactory().getTableConfiguration(tableID);
+    TableConfiguration tableConfig = context.getServerConfigurationFactory()
+        .getTableConfiguration(tableID);
 
     OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8);
 
@@ -254,7 +271,8 @@ class WriteExportFiles extends MasterRepo {
         Property key = Property.getPropertyByKey(prop.getKey());
 
         if (key == null || !defaultConfig.get(key).equals(prop.getValue())) {
-          if (!prop.getValue().equals(siteConfig.get(prop.getKey())) && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
+          if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
+              && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
             osw.append(prop.getKey() + "=" + prop.getValue() + "\n");
           }
         }

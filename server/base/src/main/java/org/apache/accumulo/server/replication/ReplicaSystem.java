@@ -38,12 +38,14 @@ public interface ReplicaSystem {
    *          Instance of ReplicaSystemHelper
    * @return A new Status for the progress that was made
    */
-  public Status replicate(Path p, Status status, ReplicationTarget target, ReplicaSystemHelper helper);
+  public Status replicate(Path p, Status status, ReplicationTarget target,
+      ReplicaSystemHelper helper);
 
   /**
    * Configure the implementation with necessary information from the system configuration
    * <p>
-   * For example, we only need one implementation for Accumulo, but, for each peer, we have a ZK quorum and instance name
+   * For example, we only need one implementation for Accumulo, but, for each peer, we have a ZK
+   * quorum and instance name
    */
   public void configure(String configuration);
 }

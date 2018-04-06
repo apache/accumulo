@@ -34,7 +34,8 @@ import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
 
-  private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap, Range range, IteratorSetting iteratorSetting) throws IOException {
+  private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap,
+      Range range, IteratorSetting iteratorSetting) throws IOException {
     org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
@@ -56,7 +57,8 @@ public class FirstEntryInRowIteratorTest {
     Value emptyValue = new Value("".getBytes());
     IteratorSetting iteratorSetting = new IteratorSetting(1, FirstEntryInRowIterator.class);
     FirstEntryInRowIterator.setNumScansBeforeSeek(iteratorSetting, 10);
-    assertTrue(iteratorSetting.getOptions().containsKey(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME));
+    assertTrue(
+        iteratorSetting.getOptions().containsKey(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME));
     sourceMap.put(new Key("r1", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r2", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r3", "cf", "cq"), emptyValue);
@@ -71,17 +73,20 @@ public class FirstEntryInRowIteratorTest {
     }
     resultMap.clear();
 
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), (new Key("r2")).followingKey(PartialKey.ROW)), iteratorSetting);
+    numNexts = process(sourceMap, resultMap,
+        new Range(new Key("r1"), (new Key("r2")).followingKey(PartialKey.ROW)), iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 2);
 
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r2", "cf2")), iteratorSetting);
+    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r2", "cf2")),
+        iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 2);
 
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")), iteratorSetting);
+    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")),
+        iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 3);
   }

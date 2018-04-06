@@ -44,7 +44,8 @@ public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {
     private boolean disabled = false;
 
     /**
-     * SingleRowIter must be passed a PeekingIterator so that it can peek at the next entry to see if it belongs in the current row or not.
+     * SingleRowIter must be passed a PeekingIterator so that it can peek at the next entry to see
+     * if it belongs in the current row or not.
      */
     public SingleRowIter(PeekingIterator<Entry<Key,Value>> source) {
       this.source = source;
@@ -83,7 +84,8 @@ public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {
     }
 
     /**
-     * Get a count of entries read from the row (only equals the number of entries in the row when the row has been read fully).
+     * Get a count of entries read from the row (only equals the number of entries in the row when
+     * the row has been read fully).
      */
     public long getCount() {
       return count;
@@ -120,8 +122,9 @@ public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {
   /**
    * Returns true if there is at least one more row to get.
    *
-   * If the last row hasn't been fully read, this method will read through the end of the last row so it can determine if the underlying iterator has a next
-   * row. The last row is disabled from future use.
+   * If the last row hasn't been fully read, this method will read through the end of the last row
+   * so it can determine if the underlying iterator has a next row. The last row is disabled from
+   * future use.
    */
   @Override
   public boolean hasNext() {

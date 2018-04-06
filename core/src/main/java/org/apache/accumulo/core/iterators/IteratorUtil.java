@@ -64,8 +64,9 @@ public class IteratorUtil {
   private static final Logger log = LoggerFactory.getLogger(IteratorUtil.class);
 
   /**
-   * Even though this type is not in a public API package, its used by methods in the public API. Therefore it should be treated as public API and should not
-   * reference any non public API types. Also this type can not be moved.
+   * Even though this type is not in a public API package, its used by methods in the public API.
+   * Therefore it should be treated as public API and should not reference any non public API types.
+   * Also this type can not be moved.
    */
   public static enum IteratorScope {
     majc, minc, scan;
@@ -82,7 +83,8 @@ public class IteratorUtil {
   }
 
   /**
-   * Fetch the correct configuration key prefix for the given scope. Throws an IllegalArgumentException if no property exists for the given scope.
+   * Fetch the correct configuration key prefix for the given scope. Throws an
+   * IllegalArgumentException if no property exists for the given scope.
    */
   static Property getProperty(IteratorScope scope) {
     requireNonNull(scope);
@@ -102,7 +104,8 @@ public class IteratorUtil {
    * Generate the initial (default) properties for a table
    *
    * @param limitVersion
-   *          include a VersioningIterator at priority 20 that retains a single version of a given K/V pair.
+   *          include a VersioningIterator at priority 20 that retains a single version of a given
+   *          K/V pair.
    * @return A map of Table properties
    */
   public static Map<String,String> generateInitialTableProperties(boolean limitVersion) {
@@ -110,18 +113,22 @@ public class IteratorUtil {
 
     if (limitVersion) {
       for (IteratorScope iterScope : IteratorScope.values()) {
-        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "20," + VersioningIterator.class.getName());
+        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers",
+            "20," + VersioningIterator.class.getName());
         props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
       }
     }
 
-    props.put(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1", DefaultKeySizeConstraint.class.getName());
+    props.put(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1",
+        DefaultKeySizeConstraint.class.getName());
 
     return props;
   }
 
-  public static void mergeIteratorConfig(List<IterInfo> destList, Map<String,Map<String,String>> destOpts, List<IterInfo> tableIters,
-      Map<String,Map<String,String>> tableOpts, List<IterInfo> ssi, Map<String,Map<String,String>> ssio) {
+  public static void mergeIteratorConfig(List<IterInfo> destList,
+      Map<String,Map<String,String>> destOpts, List<IterInfo> tableIters,
+      Map<String,Map<String,String>> tableOpts, List<IterInfo> ssi,
+      Map<String,Map<String,String>> ssio) {
     destList.addAll(tableIters);
     destList.addAll(ssi);
     Collections.sort(destList, new IterInfoComparator());
@@ -139,7 +146,8 @@ public class IteratorUtil {
 
   }
 
-  public static void parseIterConf(IteratorScope scope, List<IterInfo> iters, Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
+  public static void parseIterConf(IteratorScope scope, List<IterInfo> iters,
+      Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
     final Property scopeProperty = getProperty(scope);
     final String scopePropertyKey = scopeProperty.getKey();
 
@@ -172,15 +180,17 @@ public class IteratorUtil {
     Collections.sort(iters, new IterInfoComparator());
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
-      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, IteratorEnvironment env) throws IOException {
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(
+      IteratorScope scope, SortedKeyValueIterator<K,V> source, KeyExtent extent,
+      AccumuloConfiguration conf, IteratorEnvironment env) throws IOException {
     List<IterInfo> emptyList = Collections.emptyList();
     Map<String,Map<String,String>> emptyMap = Collections.emptyMap();
     return loadIterators(scope, source, extent, conf, emptyList, emptyMap, env);
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
-      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IteratorSetting> iterators, IteratorEnvironment env)
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(
+      IteratorScope scope, SortedKeyValueIterator<K,V> source, KeyExtent extent,
+      AccumuloConfiguration conf, List<IteratorSetting> iterators, IteratorEnvironment env)
       throws IOException {
 
     List<IterInfo> ssiList = new ArrayList<>();
@@ -194,20 +204,23 @@ public class IteratorUtil {
     return loadIterators(scope, source, extent, conf, ssiList, ssio, env, true);
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
-      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(
+      IteratorScope scope, SortedKeyValueIterator<K,V> source, KeyExtent extent,
+      AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env) throws IOException {
     return loadIterators(scope, source, extent, conf, ssiList, ssio, env, true);
   }
 
-  private static void parseIteratorConfiguration(IteratorScope scope, List<IterInfo> iters, Map<String,Map<String,String>> ssio,
-      Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
+  private static void parseIteratorConfiguration(IteratorScope scope, List<IterInfo> iters,
+      Map<String,Map<String,String>> ssio, Map<String,Map<String,String>> allOptions,
+      AccumuloConfiguration conf) {
     parseIterConf(scope, iters, allOptions, conf);
 
     mergeOptions(ssio, allOptions);
   }
 
-  private static void mergeOptions(Map<String,Map<String,String>> ssio, Map<String,Map<String,String>> allOptions) {
+  private static void mergeOptions(Map<String,Map<String,String>> ssio,
+      Map<String,Map<String,String>> allOptions) {
     for (Entry<String,Map<String,String>> entry : ssio.entrySet()) {
       if (entry.getValue() == null)
         continue;
@@ -220,40 +233,52 @@ public class IteratorUtil {
     }
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
-      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(
+      IteratorScope scope, SortedKeyValueIterator<K,V> source, KeyExtent extent,
+      AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
 
-    return loadIteratorsHelper(scope, source, extent, conf, ssiList, ssio, env, useAccumuloClassLoader, conf.get(Property.TABLE_CLASSPATH));
+    return loadIteratorsHelper(scope, source, extent, conf, ssiList, ssio, env,
+        useAccumuloClassLoader, conf.get(Property.TABLE_CLASSPATH));
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
-      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext) throws IOException {
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(
+      IteratorScope scope, SortedKeyValueIterator<K,V> source, KeyExtent extent,
+      AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext)
+      throws IOException {
 
-    return loadIteratorsHelper(scope, source, extent, conf, ssiList, ssio, env, useAccumuloClassLoader, classLoaderContext);
+    return loadIteratorsHelper(scope, source, extent, conf, ssiList, ssio, env,
+        useAccumuloClassLoader, classLoaderContext);
   }
 
-  private static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIteratorsHelper(IteratorScope scope,
-      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext) throws IOException {
+  private static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIteratorsHelper(
+      IteratorScope scope, SortedKeyValueIterator<K,V> source, KeyExtent extent,
+      AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext)
+      throws IOException {
 
     List<IterInfo> iters = new ArrayList<>(ssiList);
     Map<String,Map<String,String>> allOptions = new HashMap<>();
     parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
-    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, classLoaderContext);
+    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader,
+        classLoaderContext);
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(SortedKeyValueIterator<K,V> source,
-      Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env, boolean useAccumuloClassLoader, String context)
-      throws IOException {
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(
+      SortedKeyValueIterator<K,V> source, Collection<IterInfo> iters,
+      Map<String,Map<String,String>> iterOpts, IteratorEnvironment env,
+      boolean useAccumuloClassLoader, String context) throws IOException {
     return loadIterators(source, iters, iterOpts, env, useAccumuloClassLoader, context, null);
   }
 
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(SortedKeyValueIterator<K,V> source,
-      Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env, boolean useAccumuloClassLoader, String context,
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(
+      SortedKeyValueIterator<K,V> source, Collection<IterInfo> iters,
+      Map<String,Map<String,String>> iterOpts, IteratorEnvironment env,
+      boolean useAccumuloClassLoader, String context,
       Map<String,Class<? extends SortedKeyValueIterator<K,V>>> classCache) throws IOException {
-    // wrap the source in a SynchronizedIterator in case any of the additional configured iterators want to use threading
+    // wrap the source in a SynchronizedIterator in case any of the additional configured iterators
+    // want to use threading
     SortedKeyValueIterator<K,V> prev = source;
 
     try {
@@ -290,20 +315,26 @@ public class IteratorUtil {
   }
 
   @SuppressWarnings("unchecked")
-  private static <K extends WritableComparable<?>,V extends Writable> Class<? extends SortedKeyValueIterator<K,V>> loadClass(boolean useAccumuloClassLoader,
-      String context, IterInfo iterInfo) throws ClassNotFoundException, IOException {
+  private static <K extends WritableComparable<?>,V extends Writable> Class<? extends SortedKeyValueIterator<K,V>> loadClass(
+      boolean useAccumuloClassLoader, String context, IterInfo iterInfo)
+      throws ClassNotFoundException, IOException {
     Class<? extends SortedKeyValueIterator<K,V>> clazz;
     if (useAccumuloClassLoader) {
       if (context != null && !context.equals("")) {
-        clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader.getContextManager().loadClass(context, iterInfo.className,
-            SortedKeyValueIterator.class);
-        log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className, context, clazz.getClassLoader());
+        clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader
+            .getContextManager()
+            .loadClass(context, iterInfo.className, SortedKeyValueIterator.class);
+        log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
+            context, clazz.getClassLoader());
       } else {
-        clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader.loadClass(iterInfo.className, SortedKeyValueIterator.class);
-        log.trace("Iterator class {} loaded from AccumuloVFSClassLoader: {}", iterInfo.className, clazz.getClassLoader());
+        clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader
+            .loadClass(iterInfo.className, SortedKeyValueIterator.class);
+        log.trace("Iterator class {} loaded from AccumuloVFSClassLoader: {}", iterInfo.className,
+            clazz.getClassLoader());
       }
     } else {
-      clazz = (Class<? extends SortedKeyValueIterator<K,V>>) Class.forName(iterInfo.className).asSubclass(SortedKeyValueIterator.class);
+      clazz = (Class<? extends SortedKeyValueIterator<K,V>>) Class.forName(iterInfo.className)
+          .asSubclass(SortedKeyValueIterator.class);
       log.trace("Iterator class {} loaded from classpath", iterInfo.className);
     }
     return clazz;
@@ -344,11 +375,13 @@ public class IteratorUtil {
   }
 
   public static TIteratorSetting toTIteratorSetting(IteratorSetting is) {
-    return new TIteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
+    return new TIteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(),
+        is.getOptions());
   }
 
   public static IteratorSetting toIteratorSetting(TIteratorSetting tis) {
-    return new IteratorSetting(tis.getPriority(), tis.getName(), tis.getIteratorClass(), tis.getProperties());
+    return new IteratorSetting(tis.getPriority(), tis.getName(), tis.getIteratorClass(),
+        tis.getProperties());
   }
 
   public static IteratorConfig toIteratorConfig(List<IteratorSetting> iterators) {
@@ -395,7 +428,8 @@ public class IteratorUtil {
     return toIteratorSettings(ic);
   }
 
-  public static SortedKeyValueIterator<Key,Value> setupSystemScanIterators(SortedKeyValueIterator<Key,Value> source, Set<Column> cols, Authorizations auths,
+  public static SortedKeyValueIterator<Key,Value> setupSystemScanIterators(
+      SortedKeyValueIterator<Key,Value> source, Set<Column> cols, Authorizations auths,
       byte[] defaultVisibility) throws IOException {
     DeletingIterator delIter = new DeletingIterator(source, false);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);

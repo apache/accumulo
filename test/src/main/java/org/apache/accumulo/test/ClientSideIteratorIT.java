@@ -62,7 +62,8 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     resultSet3.add(new Key("part2", "", "DOC2"));
   }
 
-  private void checkResults(final Iterable<Entry<Key,Value>> scanner, final List<Key> results, final PartialKey pk) {
+  private void checkResults(final Iterable<Entry<Key,Value>> scanner, final List<Key> results,
+      final PartialKey pk) {
     int i = 0;
     for (Entry<Key,Value> entry : scanner) {
       assertTrue(entry.getKey().equals(results.get(i++), pk));
@@ -100,7 +101,8 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     bw.flush();
 
     final IteratorSetting si = new IteratorSetting(10, tableName, IntersectingIterator.class);
-    try (ClientSideIteratorScanner csis = new ClientSideIteratorScanner(conn.createScanner(tableName, new Authorizations()))) {
+    try (ClientSideIteratorScanner csis = new ClientSideIteratorScanner(
+        conn.createScanner(tableName, new Authorizations()))) {
       IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
       csis.addScanIterator(si);
       checkResults(csis, resultSet3, PartialKey.ROW_COLFAM_COLQUAL);
@@ -125,7 +127,8 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    try (Scanner scanner = conn.createScanner(tableName, new Authorizations()); ClientSideIteratorScanner csis = new ClientSideIteratorScanner(scanner)) {
+    try (Scanner scanner = conn.createScanner(tableName, new Authorizations());
+        ClientSideIteratorScanner csis = new ClientSideIteratorScanner(scanner)) {
 
       final IteratorSetting si = new IteratorSetting(10, "localvers", VersioningIterator.class);
       si.addOption("maxVersions", "2");

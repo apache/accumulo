@@ -59,7 +59,8 @@ public class DistributedTrace {
    * @deprecated since 1.7, use {@link DistributedTrace#enable(String, String, Properties)} instead
    */
   @Deprecated
-  public static void enable(Instance instance, ZooReader zoo, String application, String address) throws IOException, KeeperException, InterruptedException {
+  public static void enable(Instance instance, ZooReader zoo, String application, String address)
+      throws IOException, KeeperException, InterruptedException {
     enable(address, application);
   }
 
@@ -71,49 +72,55 @@ public class DistributedTrace {
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process. If service name is null, the simple name of the class will be used.
+   * Enable tracing by setting up SpanReceivers for the current process. If service name is null,
+   * the simple name of the class will be used.
    */
   public static void enable(String service) {
     enable(null, service);
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it will be determined. If service name is null, the simple name
-   * of the class will be used.
+   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it
+   * will be determined. If service name is null, the simple name of the class will be used.
    */
   public static void enable(String hostname, String service) {
     enable(hostname, service, new Properties());
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it will be determined. If service name is null, the simple name
-   * of the class will be used. Properties required in the client configuration include
-   * {@link org.apache.accumulo.core.client.ClientConfiguration.ClientProperty#TRACE_SPAN_RECEIVERS} and any properties specific to the span receiver.
+   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it
+   * will be determined. If service name is null, the simple name of the class will be used.
+   * Properties required in the client configuration include
+   * {@link org.apache.accumulo.core.client.ClientConfiguration.ClientProperty#TRACE_SPAN_RECEIVERS}
+   * and any properties specific to the span receiver.
    */
   public static void enable(String hostname, String service, Properties properties) {
     String spanReceivers = ClientProperty.TRACE_SPAN_RECEIVERS.getValue(properties);
     String zookeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(properties);
-    long timeout = ConfigurationTypeHelper.getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getValue(properties));
+    long timeout = ConfigurationTypeHelper
+        .getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getValue(properties));
     String zkPath = ClientProperty.TRACE_ZOOKEEPER_PATH.getValue(properties);
-    Map<String,String> props = ClientProperty.toMap(ClientProperty.getPrefix(properties, ClientProperty.TRACE_SPAN_RECEIVER_PREFIX));
+    Map<String,String> props = ClientProperty
+        .toMap(ClientProperty.getPrefix(properties, ClientProperty.TRACE_SPAN_RECEIVER_PREFIX));
     enableTracing(hostname, service, spanReceivers, zookeepers, timeout, zkPath, props);
   }
 
   /**
-   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it will be determined. If service name is null, the simple name
-   * of the class will be used.
+   * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it
+   * will be determined. If service name is null, the simple name of the class will be used.
    */
   public static void enable(String hostname, String service, AccumuloConfiguration conf) {
     String spanReceivers = conf.get(Property.TRACE_SPAN_RECEIVERS);
     String zookeepers = conf.get(Property.INSTANCE_ZK_HOST);
     long timeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     String zkPath = conf.get(Property.TRACE_ZK_PATH);
-    Map<String,String> properties = conf.getAllPropertiesWithPrefix(Property.TRACE_SPAN_RECEIVER_PREFIX);
+    Map<String,String> properties = conf
+        .getAllPropertiesWithPrefix(Property.TRACE_SPAN_RECEIVER_PREFIX);
     enableTracing(hostname, service, spanReceivers, zookeepers, timeout, zkPath, properties);
   }
 
-  private static void enableTracing(String hostname, String service, String spanReceivers, String zookeepers, long timeout, String zkPath,
-      Map<String,String> properties) {
+  private static void enableTracing(String hostname, String service, String spanReceivers,
+      String zookeepers, long timeout, String zkPath, Map<String,String> properties) {
     Configuration conf = new Configuration(false);
     conf.set(Property.TRACE_SPAN_RECEIVERS.toString(), spanReceivers);
 
@@ -122,7 +129,9 @@ public class DistributedTrace {
     setProperty(conf, TRACER_ZK_TIMEOUT, (int) timeout);
     setProperty(conf, TRACER_ZK_PATH, zkPath);
     for (Entry<String,String> property : properties.entrySet()) {
-      setProperty(conf, property.getKey().substring(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey().length()), property.getValue());
+      setProperty(conf,
+          property.getKey().substring(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey().length()),
+          property.getValue());
     }
     if (hostname != null) {
       setProperty(conf, TRACE_HOST_PROPERTY, hostname);

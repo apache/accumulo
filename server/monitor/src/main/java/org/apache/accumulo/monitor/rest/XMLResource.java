@@ -54,7 +54,8 @@ public class XMLResource {
     }
 
     // Add Monitor information
-    SummaryInformation xml = new SummaryInformation(mmi.tServerInfo.size(), MasterResource.getTables(), TablesResource.getTables());
+    SummaryInformation xml = new SummaryInformation(mmi.tServerInfo.size(),
+        MasterResource.getTables(), TablesResource.getTables());
 
     // Add tserver information
     for (TabletServerStatus status : mmi.tServerInfo) {

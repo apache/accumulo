@@ -107,9 +107,11 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       batchCheck(c, tableName, null, null, "Test");
 
       // This iterator is in the test iterators jar file
-      IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+      IteratorSetting cfg = new IteratorSetting(21, "reverse",
+          "org.apache.accumulo.test.functional.ValueReversingIterator");
 
-      // Check that ValueReversingIterator is not already on the classpath by not setting the context. This should fail.
+      // Check that ValueReversingIterator is not already on the classpath by not setting the
+      // context. This should fail.
       try {
         scanCheck(c, tableName, cfg, null, "tseT");
         fail("This should have failed because context was not set");
@@ -161,9 +163,11 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       scanCheck(c, tableName, null, null, "Test");
       batchCheck(c, tableName, null, null, "Test");
       // This iterator is in the test iterators jar file
-      IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+      IteratorSetting cfg = new IteratorSetting(21, "reverse",
+          "org.apache.accumulo.test.functional.ValueReversingIterator");
 
-      // Check that ValueReversingIterator is not already on the classpath by not setting the context. This should fail.
+      // Check that ValueReversingIterator is not already on the classpath by not setting the
+      // context. This should fail.
       try {
         scanCheck(c, tableName, cfg, null, "tseT");
         fail("This should have failed because context was not set");
@@ -206,9 +210,11 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY); Scanner two = c.createScanner(tableName, Authorizations.EMPTY)) {
+      try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY);
+          Scanner two = c.createScanner(tableName, Authorizations.EMPTY)) {
 
-        IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+        IteratorSetting cfg = new IteratorSetting(21, "reverse",
+            "org.apache.accumulo.test.functional.ValueReversingIterator");
         one.addScanIterator(cfg);
         one.setClassLoaderContext(CONTEXT);
 
@@ -252,7 +258,8 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       bw.close();
 
       try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY)) {
-        IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+        IteratorSetting cfg = new IteratorSetting(21, "reverse",
+            "org.apache.accumulo.test.functional.ValueReversingIterator");
         one.addScanIterator(cfg);
         one.setClassLoaderContext(CONTEXT);
 
@@ -278,7 +285,8 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     }
   }
 
-  private void scanCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {
+  private void scanCheck(Connector c, String tableName, IteratorSetting cfg, String context,
+      String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
       if (null != context) {
         bs.setClassLoaderContext(context);
@@ -296,7 +304,8 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     }
   }
 
-  private void batchCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {
+  private void batchCheck(Connector c, String tableName, IteratorSetting cfg, String context,
+      String expected) throws Exception {
     try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       if (null != context) {

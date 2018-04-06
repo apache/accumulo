@@ -81,7 +81,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 2) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <inputtable> <outputtable>");
+        throw new IllegalArgumentException(
+            "Usage : " + MRTester.class.getName() + " <inputtable> <outputtable>");
       }
 
       String user = getAdminPrincipal();
@@ -89,7 +90,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       String table1 = args[0];
       String table2 = args[1];
 
-      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(),
+          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloInputFormat.class);
@@ -118,7 +120,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

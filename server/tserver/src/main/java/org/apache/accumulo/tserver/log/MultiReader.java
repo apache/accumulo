@@ -35,8 +35,9 @@ import org.apache.hadoop.io.WritableComparable;
 /**
  * Provide simple Map.Reader methods over multiple Maps.
  *
- * Presently only supports next() and seek() and works on all the Map directories within a directory. The primary purpose of this class is to merge the results
- * of multiple Reduce jobs that result in Map output files.
+ * Presently only supports next() and seek() and works on all the Map directories within a
+ * directory. The primary purpose of this class is to merge the results of multiple Reduce jobs that
+ * result in Map output files.
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MultiReader {
@@ -113,7 +114,8 @@ public class MultiReader {
       heap.add(new Index(new Reader(ns.makeQualified(child.getPath()), ns.getConf())));
     }
     if (!foundFinish)
-      throw new IOException("Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
+      throw new IOException(
+          "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
   }
 
   private static void copy(Writable src, Writable dest) throws IOException {

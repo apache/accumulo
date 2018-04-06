@@ -46,7 +46,8 @@ class FinishCreateTable extends MasterRepo {
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 
-    LoggerFactory.getLogger(FinishCreateTable.class).debug("Created table " + tableInfo.tableId + " " + tableInfo.tableName);
+    LoggerFactory.getLogger(FinishCreateTable.class)
+        .debug("Created table " + tableInfo.tableId + " " + tableInfo.tableName);
 
     return null;
   }

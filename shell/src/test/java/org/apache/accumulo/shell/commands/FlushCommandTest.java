@@ -24,7 +24,8 @@ public class FlushCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is exclusive", new FlushCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
+    assertTrue("-b should say it is exclusive",
+        new FlushCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
   }
 
 }

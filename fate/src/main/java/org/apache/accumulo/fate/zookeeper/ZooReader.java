@@ -60,7 +60,8 @@ public class ZooReader implements IZooReader {
       return;
     }
 
-    log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper", retry.retriesCompleted());
+    log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper",
+        retry.retriesCompleted());
     throw e;
   }
 
@@ -70,14 +71,16 @@ public class ZooReader implements IZooReader {
   }
 
   @Override
-  public byte[] getData(String zPath, boolean watch, Stat stat) throws KeeperException, InterruptedException {
+  public byte[] getData(String zPath, boolean watch, Stat stat)
+      throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
       try {
         return getZooKeeper().getData(zPath, watch, stat);
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;
@@ -89,14 +92,16 @@ public class ZooReader implements IZooReader {
   }
 
   @Override
-  public byte[] getData(String zPath, Watcher watcher, Stat stat) throws KeeperException, InterruptedException {
+  public byte[] getData(String zPath, Watcher watcher, Stat stat)
+      throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
       try {
         return getZooKeeper().getData(zPath, watcher, stat);
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;
@@ -115,7 +120,8 @@ public class ZooReader implements IZooReader {
         return getZooKeeper().exists(zPath, false);
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;
@@ -127,14 +133,16 @@ public class ZooReader implements IZooReader {
   }
 
   @Override
-  public Stat getStatus(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
+  public Stat getStatus(String zPath, Watcher watcher)
+      throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
       try {
         return getZooKeeper().exists(zPath, watcher);
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;
@@ -153,7 +161,8 @@ public class ZooReader implements IZooReader {
         return getZooKeeper().getChildren(zPath, false);
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;
@@ -165,14 +174,16 @@ public class ZooReader implements IZooReader {
   }
 
   @Override
-  public List<String> getChildren(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
+  public List<String> getChildren(String zPath, Watcher watcher)
+      throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
       try {
         return getZooKeeper().getChildren(zPath, watcher);
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;
@@ -191,7 +202,8 @@ public class ZooReader implements IZooReader {
         return getZooKeeper().exists(zPath, false) != null;
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;
@@ -203,14 +215,16 @@ public class ZooReader implements IZooReader {
   }
 
   @Override
-  public boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
+  public boolean exists(String zPath, Watcher watcher)
+      throws KeeperException, InterruptedException {
     final Retry retry = getRetryFactory().createRetry();
     while (true) {
       try {
         return getZooKeeper().exists(zPath, watcher) != null;
       } catch (KeeperException e) {
         final Code code = e.code();
-        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, e);
         } else {
           throw e;

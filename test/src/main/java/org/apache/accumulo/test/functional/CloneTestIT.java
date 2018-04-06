@@ -77,8 +77,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     c.tableOperations().create(table1);
 
-    c.tableOperations().setProperty(table1, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1M");
-    c.tableOperations().setProperty(table1, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "2M");
+    c.tableOperations().setProperty(table1, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(),
+        "1M");
+    c.tableOperations().setProperty(table1,
+        Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "2M");
     c.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "23");
 
     BatchWriter bw = writeData(table1, c);
@@ -107,8 +109,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
 
     Assert.assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
-    Assert.assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(), tableProps.get(Property.TABLE_FILE_MAX.getKey()));
-    Assert.assertEquals("2M", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
+    Assert.assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),
+        tableProps.get(Property.TABLE_FILE_MAX.getKey()));
+    Assert.assertEquals("2M",
+        tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
 
     c.tableOperations().delete(table1);
     c.tableOperations().delete(table2);
@@ -127,7 +131,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
       HashMap<String,String> actual = new HashMap<>();
 
       for (Entry<Key,Value> entry : scanner)
-        actual.put(entry.getKey().getRowData().toString() + ":" + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
+        actual.put(entry.getKey().getRowData().toString() + ":"
+            + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
 
       Assert.assertEquals(expected, actual);
     }
@@ -157,8 +162,12 @@ public class CloneTestIT extends AccumuloClusterHarness {
           Path p = new Path(cq.toString());
           FileSystem fs = cluster.getFileSystem();
           Assert.assertTrue("File does not exist: " + p, fs.exists(p));
-        } else if (cf.equals(MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
-          Assert.assertEquals("Saw unexpected cq", MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq);
+        } else if (cf.equals(
+            MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
+          Assert.assertEquals("Saw unexpected cq",
+              MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
+                  .getColumnQualifier(),
+              cq);
           Path tabletDir = new Path(entry.getValue().toString());
           Path tableDir = tabletDir.getParent();
           Path tablesDir = tableDir.getParent();
@@ -173,7 +182,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
-  private BatchWriter writeData(String table1, Connector c) throws TableNotFoundException, MutationsRejectedException {
+  private BatchWriter writeData(String table1, Connector c)
+      throws TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
 
     Mutation m1 = new Mutation("001");

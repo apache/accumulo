@@ -25,7 +25,8 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 public class BlockCacheManagerFactory {
 
   /**
-   * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class' using the AccumuloVFSClassLoader
+   * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class' using the
+   * AccumuloVFSClassLoader
    *
    * @param conf
    *          accumulo configuration
@@ -33,10 +34,13 @@ public class BlockCacheManagerFactory {
    * @throws Exception
    *           error loading block cache manager implementation class
    */
-  public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf) throws Exception {
+  public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf)
+      throws Exception {
     String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
-    Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
-    BlockCacheManager.LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
+    Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl,
+        BlockCacheManager.class);
+    BlockCacheManager.LOG.info("Created new block cache manager of type: {}",
+        clazz.getSimpleName());
     return clazz.newInstance();
   }
 
@@ -49,10 +53,13 @@ public class BlockCacheManagerFactory {
    * @throws Exception
    *           error loading block cache manager implementation class
    */
-  public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf) throws Exception {
+  public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf)
+      throws Exception {
     String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
-    Class<? extends BlockCacheManager> clazz = Class.forName(impl).asSubclass(BlockCacheManager.class);
-    BlockCacheManager.LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
+    Class<? extends BlockCacheManager> clazz = Class.forName(impl)
+        .asSubclass(BlockCacheManager.class);
+    BlockCacheManager.LOG.info("Created new block cache factory of type: {}",
+        clazz.getSimpleName());
     return clazz.newInstance();
   }
 

@@ -47,10 +47,12 @@ import org.apache.hadoop.fs.Path;
 public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   private static abstract class Test {
-    // Do any work that blocks in this method. This method is not always called before shouldCompact(). See CompactionStrategy javadocs.
+    // Do any work that blocks in this method. This method is not always called before
+    // shouldCompact(). See CompactionStrategy javadocs.
     void gatherInformation(MajorCompactionRequest request) {}
 
-    abstract boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request);
+    abstract boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request);
   }
 
   private static class SummaryTest extends Test {
@@ -72,18 +74,22 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     @Override
     void gatherInformation(MajorCompactionRequest request) {
       gatherCalled = true;
-      Collection<SummarizerConfiguration> configs = SummarizerConfiguration.fromTableProperties(request.getTableProperties());
+      Collection<SummarizerConfiguration> configs = SummarizerConfiguration
+          .fromTableProperties(request.getTableProperties());
       if (configs.size() == 0) {
         summaryConfigured = false;
       } else {
-        Set<SummarizerConfiguration> configsSet = configs instanceof Set ? (Set<SummarizerConfiguration>) configs : new HashSet<>(configs);
+        Set<SummarizerConfiguration> configsSet = configs instanceof Set
+            ? (Set<SummarizerConfiguration>) configs
+            : new HashSet<>(configs);
         okFiles = new HashSet<>();
 
         for (FileRef fref : request.getFiles().keySet()) {
           Map<SummarizerConfiguration,Summary> sMap = new HashMap<>();
           Collection<Summary> summaries;
           try {
-            summaries = request.getSummaries(Collections.singletonList(fref), conf -> configsSet.contains(conf));
+            summaries = request.getSummaries(Collections.singletonList(fref),
+                conf -> configsSet.contains(conf));
           } catch (IOException e) {
             throw new UncheckedIOException(e);
           }
@@ -100,7 +106,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
               break;
             }
 
-            if (summary != null && summary.getFileStatistics().getExtra() > 0 && selectExtraSummary) {
+            if (summary != null && summary.getFileStatistics().getExtra() > 0
+                && selectExtraSummary) {
               needsCompaction = true;
               break;
             }
@@ -115,10 +122,12 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request) {
 
       if (!gatherCalled) {
-        Collection<SummarizerConfiguration> configs = SummarizerConfiguration.fromTableProperties(request.getTableProperties());
+        Collection<SummarizerConfiguration> configs = SummarizerConfiguration
+            .fromTableProperties(request.getTableProperties());
         return configs.size() > 0;
       }
 
@@ -126,7 +135,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
         return false;
       }
 
-      // Its possible the set of files could change between gather and now. So this will default to compacting any files that are unknown.
+      // Its possible the set of files could change between gather and now. So this will default to
+      // compacting any files that are unknown.
       return !okFiles.contains(file.getKey());
     }
   }
@@ -141,7 +151,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     void gatherInformation(MajorCompactionRequest request) {
       gatherCalled = true;
 
-      SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
+      SamplerConfigurationImpl sc = SamplerConfigurationImpl
+          .newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
       if (sc == null) {
         samplingConfigured = false;
       } else {
@@ -159,10 +170,12 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request) {
 
       if (!gatherCalled) {
-        SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
+        SamplerConfigurationImpl sc = SamplerConfigurationImpl
+            .newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
         return sc != null;
       }
 
@@ -182,7 +195,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request) {
       return shouldCompact(file.getValue().getSize(), esize);
     }
 
@@ -197,7 +211,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request) {
       return pattern.matcher(getInput(file.getKey().path())).matches();
     }
 
@@ -318,7 +333,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   @Override
   public void gatherInformation(MajorCompactionRequest request) throws IOException {
-    // Gather any information that requires blocking calls here. This is only called before getCompactionPlan() is called.
+    // Gather any information that requires blocking calls here. This is only called before
+    // getCompactionPlan() is called.
     for (Test test : tests) {
       test.gatherInformation(request);
     }

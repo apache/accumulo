@@ -18,7 +18,8 @@
 package org.apache.accumulo.core.client;
 
 /**
- * Exception thrown when a table does not have sampling configured or when sampling is configured but it differs from what was requested.
+ * Exception thrown when a table does not have sampling configured or when sampling is configured
+ * but it differs from what was requested.
  *
  * @since 1.8.0
  */

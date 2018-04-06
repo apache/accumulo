@@ -38,9 +38,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Provides a way to push work out to tablet servers via zookeeper and wait for that work to be done. Any tablet server can pick up a work item and process it.
+ * Provides a way to push work out to tablet servers via zookeeper and wait for that work to be
+ * done. Any tablet server can pick up a work item and process it.
  *
- * Worker processes watch a zookeeper node for tasks to be performed. After getting an exclusive lock on the node, the worker will perform the task.
+ * Worker processes watch a zookeeper node for tasks to be performed. After getting an exclusive
+ * lock on the node, the worker will perform the task.
  */
 public class DistributedWorkQueue {
 
@@ -106,11 +108,13 @@ public class DistributedWorkQueue {
               try {
                 processor.newProcessor().process(child, zoo.getData(childPath, null));
 
-                // if the task fails, then its entry in the Q is not deleted... so it will be retried
+                // if the task fails, then its entry in the Q is not deleted... so it will be
+                // retried
                 try {
                   zoo.recursiveDelete(childPath, NodeMissingPolicy.SKIP);
                 } catch (Exception e) {
-                  log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
+                  log.error("Error received when trying to delete entry in zookeeper " + childPath,
+                      e);
                 }
 
               } catch (Exception e) {
@@ -120,7 +124,8 @@ public class DistributedWorkQueue {
               try {
                 zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
               } catch (Exception e) {
-                log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
+                log.error("Error received when trying to delete entry in zookeeper " + childPath,
+                    e);
               }
 
             } finally {
@@ -158,14 +163,16 @@ public class DistributedWorkQueue {
     this(path, config, new Random().nextInt(60 * 1000), 60 * 1000);
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, long timerInitialDelay, long timerPeriod) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, long timerInitialDelay,
+      long timerPeriod) {
     this.path = path;
     this.config = config;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
   }
 
-  public void startProcessing(final Processor processor, ThreadPoolExecutor executorService) throws KeeperException, InterruptedException {
+  public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
+      throws KeeperException, InterruptedException {
 
     threadPool = executorService;
 

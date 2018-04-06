@@ -63,7 +63,8 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
   @Before
   public void updateMajcDelay() throws Exception {
     Connector c = getConnector();
-    majcDelay = c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
+    majcDelay = c.instanceOperations().getSystemConfiguration()
+        .get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
     if (getClusterType() == ClusterType.STANDALONE) {
       // Gotta wait for the cluster to get out of the default sleep value
@@ -103,7 +104,8 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
       assertEquals("count == " + count, 0, count);
       getConnector().tableOperations().flush(tableName, null, null, true);
 
-      getConnector().tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+      getConnector().tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(),
+          "1.0");
       sleepUninterruptibly(4, TimeUnit.SECONDS);
 
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);

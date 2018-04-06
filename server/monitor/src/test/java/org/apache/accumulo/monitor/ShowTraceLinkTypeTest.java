@@ -25,7 +25,8 @@ import org.junit.Test;
 
 public class ShowTraceLinkTypeTest {
   private static RemoteSpan rs(long start, long stop, String description) {
-    return new RemoteSpan("sender", "svc", 0l, 0l, 0l, start, stop, description, Collections.emptyMap(), Collections.emptyList());
+    return new RemoteSpan("sender", "svc", 0l, 0l, 0l, start, stop, description,
+        Collections.emptyMap(), Collections.emptyList());
   }
 
   @Test

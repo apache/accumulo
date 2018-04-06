@@ -50,7 +50,8 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateLog(String tableIdStr, WalEdits data, TCredentials tcreds) throws RemoteReplicationException, TException {
+  public long replicateLog(String tableIdStr, WalEdits data, TCredentials tcreds)
+      throws RemoteReplicationException, TException {
     Table.ID tableId = Table.ID.of(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
     tabletServer.getSecurityOperation().authenticateUser(tabletServer.rpcCreds(), tcreds);
@@ -61,12 +62,14 @@ public class ReplicationServicerHandler implements Iface {
       tableName = Tables.getTableName(tabletServer.getInstance(), tableId);
     } catch (TableNotFoundException e) {
       log.error("Could not find table with id {}", tableId);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST, "Table with id " + tableId + " does not exist");
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,
+          "Table with id " + tableId + " does not exist");
     }
 
     AccumuloConfiguration conf = tabletServer.getConfiguration();
 
-    Map<String,String> replicationHandlers = conf.getAllPropertiesWithPrefix(Property.TSERV_REPLICATION_REPLAYERS);
+    Map<String,String> replicationHandlers = conf
+        .getAllPropertiesWithPrefix(Property.TSERV_REPLICATION_REPLAYERS);
     String propertyForHandlerTable = Property.TSERV_REPLICATION_REPLAYERS.getKey() + tableId;
 
     String handlerClassForTable = replicationHandlers.get(propertyForHandlerTable);
@@ -86,8 +89,8 @@ public class ReplicationServicerHandler implements Iface {
       clz = untypedClz.asSubclass(AccumuloReplicationReplayer.class);
     } catch (ClassNotFoundException e) {
       log.error("Could not instantiate replayer class {}", handlerClassForTable, e);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER, "Could not instantiate replayer class "
-          + handlerClassForTable);
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER,
+          "Could not instantiate replayer class " + handlerClassForTable);
     }
 
     // Create an instance
@@ -96,7 +99,8 @@ public class ReplicationServicerHandler implements Iface {
       replayer = clz.newInstance();
     } catch (InstantiationException | IllegalAccessException e1) {
       log.error("Could not instantiate replayer class {}", clz.getName());
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER, "Could not instantiate replayer class" + clz.getName());
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER,
+          "Could not instantiate replayer class" + clz.getName());
     }
 
     long entriesReplicated;
@@ -104,8 +108,8 @@ public class ReplicationServicerHandler implements Iface {
       entriesReplicated = replayer.replicateLog(tabletServer, tableName, data);
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Could not get connection", e);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE, "Cannot get connector as "
-          + tabletServer.getCredentials().getPrincipal());
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE,
+          "Cannot get connector as " + tabletServer.getCredentials().getPrincipal());
     }
 
     log.debug("Replicated {} mutations to {}", entriesReplicated, tableName);
@@ -114,7 +118,8 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds) throws RemoteReplicationException, TException {
+  public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds)
+      throws RemoteReplicationException, TException {
     throw new UnsupportedOperationException();
   }
 

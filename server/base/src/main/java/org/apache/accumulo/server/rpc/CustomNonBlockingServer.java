@@ -29,7 +29,8 @@ import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
 
 /**
- * This class implements a custom non-blocking thrift server that stores the client address in thread-local storage for the invocation.
+ * This class implements a custom non-blocking thrift server that stores the client address in
+ * thread-local storage for the invocation.
  */
 public class CustomNonBlockingServer extends THsHaServer {
 
@@ -53,7 +54,8 @@ public class CustomNonBlockingServer extends THsHaServer {
     // start the selector
     try {
       // Hack in our SelectAcceptThread impl
-      SelectAcceptThread selectAcceptThread_ = new CustomSelectAcceptThread((TNonblockingServerTransport) serverTransport_);
+      SelectAcceptThread selectAcceptThread_ = new CustomSelectAcceptThread(
+          (TNonblockingServerTransport) serverTransport_);
       // Set the private field before continuing.
       selectAcceptThreadField.set(this, selectAcceptThread_);
 
@@ -68,16 +70,19 @@ public class CustomNonBlockingServer extends THsHaServer {
   }
 
   /**
-   * Custom wrapper around {@link org.apache.thrift.server.TNonblockingServer.SelectAcceptThread} to create our {@link CustomFrameBuffer}.
+   * Custom wrapper around {@link org.apache.thrift.server.TNonblockingServer.SelectAcceptThread} to
+   * create our {@link CustomFrameBuffer}.
    */
   private class CustomSelectAcceptThread extends SelectAcceptThread {
 
-    public CustomSelectAcceptThread(TNonblockingServerTransport serverTransport) throws IOException {
+    public CustomSelectAcceptThread(TNonblockingServerTransport serverTransport)
+        throws IOException {
       super(serverTransport);
     }
 
     @Override
-    protected FrameBuffer createFrameBuffer(final TNonblockingTransport trans, final SelectionKey selectionKey, final AbstractSelectThread selectThread) {
+    protected FrameBuffer createFrameBuffer(final TNonblockingTransport trans,
+        final SelectionKey selectionKey, final AbstractSelectThread selectThread) {
       if (processorFactory_.isAsyncProcessor()) {
         throw new IllegalStateException("This implementation does not support AsyncProcessors");
       }
@@ -87,12 +92,13 @@ public class CustomNonBlockingServer extends THsHaServer {
   }
 
   /**
-   * Custom wrapper around {@link org.apache.thrift.server.AbstractNonblockingServer.FrameBuffer} to extract the client's network location before accepting the
-   * request.
+   * Custom wrapper around {@link org.apache.thrift.server.AbstractNonblockingServer.FrameBuffer} to
+   * extract the client's network location before accepting the request.
    */
   private class CustomFrameBuffer extends FrameBuffer {
 
-    public CustomFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey, AbstractSelectThread selectThread) {
+    public CustomFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
+        AbstractSelectThread selectThread) {
       super(trans, selectionKey, selectThread);
     }
 
@@ -101,7 +107,8 @@ public class CustomNonBlockingServer extends THsHaServer {
       if (trans_ instanceof TNonblockingSocket) {
         TNonblockingSocket tsock = (TNonblockingSocket) trans_;
         Socket sock = tsock.getSocketChannel().socket();
-        TServerUtils.clientAddress.set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
+        TServerUtils.clientAddress
+            .set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
       }
       super.invoke();
     }

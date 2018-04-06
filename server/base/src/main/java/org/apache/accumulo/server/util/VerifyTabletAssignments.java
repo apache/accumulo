@@ -65,7 +65,8 @@ public class VerifyTabletAssignments {
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
 
   static class Opts extends ClientOpts {
-    @Parameter(names = {"-v", "--verbose"}, description = "verbose mode (prints locations of tablets)")
+    @Parameter(names = {"-v", "--verbose"},
+        description = "verbose mode (prints locations of tablets)")
     boolean verbose = false;
   }
 
@@ -73,15 +74,17 @@ public class VerifyTabletAssignments {
     Opts opts = new Opts();
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
 
-    ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), opts.getClientConfiguration());
+    ClientContext context = new ClientContext(opts.getInstance(),
+        new Credentials(opts.getPrincipal(), opts.getToken()), opts.getClientConfiguration());
     Connector conn = opts.getConnector();
     for (String table : conn.tableOperations().list())
       checkTable(context, opts, table, null);
 
   }
 
-  private static void checkTable(final ClientContext context, final Opts opts, String tableName, HashSet<KeyExtent> check) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, InterruptedException {
+  private static void checkTable(final ClientContext context, final Opts opts, String tableName,
+      HashSet<KeyExtent> check) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InterruptedException {
 
     if (check == null)
       System.out.println("Checking table " + tableName);
@@ -145,7 +148,8 @@ public class VerifyTabletAssignments {
       checkTable(context, opts, tableName, failures);
   }
 
-  private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures, MultiScanResult scanResult) {
+  private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,
+      MultiScanResult scanResult) {
     for (TKeyExtent tke : scanResult.failures.keySet()) {
       KeyExtent ke = new KeyExtent(tke);
       System.out.println(" Tablet " + ke + " failed at " + server);
@@ -153,7 +157,8 @@ public class VerifyTabletAssignments {
     }
   }
 
-  private static void checkTabletServer(ClientContext context, Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
+  private static void checkTabletServer(ClientContext context,
+      Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
       throws ThriftSecurityException, TException, NoSuchScanIDException {
     TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), context);
 
@@ -189,8 +194,9 @@ public class VerifyTabletAssignments {
     Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is = client.startMultiScan(tinfo, context.rpcCreds(), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
-        Authorizations.EMPTY.getAuthorizationsBB(), false, null, 0L, null);
+    InitialMultiScan is = client.startMultiScan(tinfo, context.rpcCreds(), batch, emptyListColumn,
+        emptyListIterInfo, emptyMapSMapSS, Authorizations.EMPTY.getAuthorizationsBB(), false, null,
+        0L, null);
     if (is.result.more) {
       MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
       checkFailures(entry.getKey(), failures, result);

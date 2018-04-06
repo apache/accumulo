@@ -55,7 +55,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
   private MockRemoveCompleteReplicationRecords rcrr;
   private Connector conn;
 
-  private static class MockRemoveCompleteReplicationRecords extends RemoveCompleteReplicationRecords {
+  private static class MockRemoveCompleteReplicationRecords
+      extends RemoveCompleteReplicationRecords {
 
     public MockRemoveCompleteReplicationRecords(Connector conn) {
       super(conn);
@@ -72,8 +73,10 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
   public void initialize() throws Exception {
     conn = getConnector();
     rcrr = new MockRemoveCompleteReplicationRecords(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
   }
 
@@ -120,7 +123,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, createTableId(i), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
+      StatusSection.add(m, createTableId(i),
+          ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       bw.addMutation(m);
     }
 
@@ -143,7 +147,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void replicatedClosedWorkRecordsAreNotRemovedWithoutClosedStatusRecords() throws Exception {
+  public void replicatedClosedWorkRecordsAreNotRemovedWithoutClosedStatusRecords()
+      throws Exception {
     BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
 
@@ -152,25 +157,29 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     builder.setEnd(10000);
     builder.setInfiniteEnd(false);
 
-    // Write out numRecords entries to both replication and metadata tables, none of which are fully replicated
+    // Write out numRecords entries to both replication and metadata tables, none of which are fully
+    // replicated
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, createTableId(i), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
+      StatusSection.add(m, createTableId(i),
+          ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       replBw.addMutation(m);
     }
 
     // Add two records that we can delete
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
-    StatusSection.add(m, Table.ID.of("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    StatusSection.add(m, Table.ID.of("5"),
+        ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
     numRecords++;
 
     fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     m = new Mutation(fileToRemove);
-    StatusSection.add(m, Table.ID.of("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    StatusSection.add(m, Table.ID.of("6"),
+        ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
     numRecords++;
@@ -205,7 +214,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     builder.setInfiniteEnd(false);
 
     long time = System.currentTimeMillis();
-    // Write out numRecords entries to both replication and metadata tables, none of which are fully replicated
+    // Write out numRecords entries to both replication and metadata tables, none of which are fully
+    // replicated
     for (int i = 0; i < numRecords; i++) {
       builder.setCreatedTime(time++);
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
@@ -228,7 +238,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     filesToRemove.add(fileToRemove);
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", Table.ID.of("5"));
-    Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
+    Value value = ProtobufUtil.toValue(
+        builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
     StatusSection.add(m, Table.ID.of("5"), value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
@@ -243,7 +254,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     filesToRemove.add(fileToRemove);
     m = new Mutation(fileToRemove);
-    value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
+    value = ProtobufUtil.toValue(
+        builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
     target = new ReplicationTarget("peer1", "6", Table.ID.of("6"));
     StatusSection.add(m, Table.ID.of("6"), value);
     WorkSection.add(m, target.toText(), value);
@@ -295,11 +307,13 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     builder.setEnd(10000);
     builder.setInfiniteEnd(false);
 
-    // Write out numRecords entries to both replication and metadata tables, none of which are fully replicated
+    // Write out numRecords entries to both replication and metadata tables, none of which are fully
+    // replicated
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, createTableId(i), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
+      StatusSection.add(m, createTableId(i),
+          ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       replBw.addMutation(m);
     }
 
@@ -307,7 +321,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", Table.ID.of("5"));
-    Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
+    Value value = ProtobufUtil
+        .toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
     StatusSection.add(m, Table.ID.of("5"), value);
     WorkSection.add(m, target.toText(), value);
     target = new ReplicationTarget("peer2", "5", Table.ID.of("5"));

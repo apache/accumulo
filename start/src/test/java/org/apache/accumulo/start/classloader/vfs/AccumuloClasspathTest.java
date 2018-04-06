@@ -25,9 +25,11 @@ public class AccumuloClasspathTest {
 
   private static void assertPattern(String output, String pattern, boolean shouldMatch) {
     if (shouldMatch) {
-      Assert.assertTrue("Pattern " + pattern + " did not match output: " + output, output.matches(pattern));
+      Assert.assertTrue("Pattern " + pattern + " did not match output: " + output,
+          output.matches(pattern));
     } else {
-      Assert.assertFalse("Pattern " + pattern + " should not match output: " + output, output.matches(pattern));
+      Assert.assertFalse("Pattern " + pattern + " should not match output: " + output,
+          output.matches(pattern));
     }
   }
 

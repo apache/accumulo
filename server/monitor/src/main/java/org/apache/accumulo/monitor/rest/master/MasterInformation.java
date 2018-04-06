@@ -119,10 +119,13 @@ public class MasterInformation {
    * @param deadLoggers
    *          Number of dead loggers
    */
-  public MasterInformation(String master, int onlineTabletServers, int totalTabletServers, String lastGC, int tablets, int unassignedTablets, long entries,
-      double ingest, double entriesRead, double entriesReturned, long holdTime, double osLoad, int tables, int deadTabletServersCount, long lookups,
-      long uptime, String gcStatus, String masterGoalState, String masterState, BadTabletServers badTabletServers,
-      ServersShuttingDown tabletServersShuttingDown, DeadServerList deadTabletServers, DeadLoggerList deadLoggers) {
+  public MasterInformation(String master, int onlineTabletServers, int totalTabletServers,
+      String lastGC, int tablets, int unassignedTablets, long entries, double ingest,
+      double entriesRead, double entriesReturned, long holdTime, double osLoad, int tables,
+      int deadTabletServersCount, long lookups, long uptime, String gcStatus,
+      String masterGoalState, String masterState, BadTabletServers badTabletServers,
+      ServersShuttingDown tabletServersShuttingDown, DeadServerList deadTabletServers,
+      DeadLoggerList deadLoggers) {
 
     this.master = master;
     this.onlineTabletServers = onlineTabletServers;

@@ -32,9 +32,10 @@ import org.apache.accumulo.core.security.Authorizations;
 /**
  * provides scanner functionality
  *
- * "Clients can iterate over multiple column families, and there are several mechanisms for limiting the rows, columns, and timestamps traversed by a scan. For
- * example, we could restrict [a] scan ... to only produce anchors whose columns match [a] regular expression ..., or to only produce anchors whose timestamps
- * fall within ten days of the current time."
+ * "Clients can iterate over multiple column families, and there are several mechanisms for limiting
+ * the rows, columns, and timestamps traversed by a scan. For example, we could restrict [a] scan
+ * ... to only produce anchors whose columns match [a] regular expression ..., or to only produce
+ * anchors whose timestamps fall within ten days of the current time."
  *
  */
 public class ScannerImpl extends ScannerOptions implements Scanner {
@@ -92,7 +93,8 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(context, tableId, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
+    return new ScannerIterator(context, tableId, authorizations, range, size, getTimeOut(), this,
+        isolated, readaheadThreshold);
   }
 
   @Override
@@ -131,7 +133,8 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized void setReadaheadThreshold(long batches) {
     if (0 > batches) {
-      throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
+      throw new IllegalArgumentException(
+          "Number of batches before read-ahead must be non-negative");
     }
 
     readaheadThreshold = batches;

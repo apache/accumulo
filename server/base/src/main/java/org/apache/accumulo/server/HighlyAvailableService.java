@@ -17,8 +17,8 @@
 package org.apache.accumulo.server;
 
 /**
- * This interface allows service implementations which support running multiple instances concurrently with only one active instance to report whether or not
- * they are the active service.
+ * This interface allows service implementations which support running multiple instances
+ * concurrently with only one active instance to report whether or not they are the active service.
  */
 public interface HighlyAvailableService {
 

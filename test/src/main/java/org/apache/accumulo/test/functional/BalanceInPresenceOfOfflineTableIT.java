@@ -58,7 +58,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Start a new table, create many splits, and offline before they can rebalance. Then try to have a different table balance
+ * Start a new table, create many splits, and offline before they can rebalance. Then try to have a
+ * different table balance
  */
 public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
@@ -88,10 +89,12 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   private Connector connector;
 
   @Before
-  public void setupTables() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+  public void setupTables() throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException {
     Connector conn = getConnector();
     // Need at least two tservers
-    Assume.assumeTrue("Not enough tservers to run test", conn.instanceOperations().getTabletServers().size() >= 2);
+    Assume.assumeTrue("Not enough tservers to run test",
+        conn.instanceOperations().getTabletServers().size() >= 2);
 
     // set up splits
     final SortedSet<Text> splits = new TreeSet<>();
@@ -112,7 +115,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     // actual test table
     connector.tableOperations().create(TEST_TABLE);
-    connector.tableOperations().setProperty(TEST_TABLE, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    connector.tableOperations().setProperty(TEST_TABLE, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+        "10K");
   }
 
   @Test
@@ -184,7 +188,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       long[] tabletsPerServer = new long[stats.getTServerInfoSize()];
       Arrays.fill(tabletsPerServer, 0l);
       for (int i = 0; i < stats.getTServerInfoSize(); i++) {
-        for (Map.Entry<String,TableInfo> entry : stats.getTServerInfo().get(i).getTableMap().entrySet()) {
+        for (Map.Entry<String,TableInfo> entry : stats.getTServerInfo().get(i).getTableMap()
+            .entrySet()) {
           tabletsPerServer[i] += entry.getValue().getTablets();
         }
       }
@@ -196,7 +201,9 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       long min = NumberUtils.min(tabletsPerServer), max = NumberUtils.max(tabletsPerServer);
       log.debug("Min={}, Max={}", min, max);
       if ((min / ((double) max)) < 0.5) {
-        log.debug("ratio of min to max tablets per server should be roughly even. sleeping for {}ms", currentWait);
+        log.debug(
+            "ratio of min to max tablets per server should be roughly even. sleeping for {}ms",
+            currentWait);
         continue;
       }
       balancingWorked = true;

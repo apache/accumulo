@@ -26,11 +26,13 @@ import com.google.common.cache.CacheBuilder;
 public class Table {
 
   /**
-   * Object representing an internal table ID. This class was created to help with type safety. For help obtaining the value of a table ID from Zookeeper, see
+   * Object representing an internal table ID. This class was created to help with type safety. For
+   * help obtaining the value of a table ID from Zookeeper, see
    * {@link Tables#getTableId(Instance, String)}
    *
-   * Uses an internal cache and private constructor for storing a WeakReference of every Table.ID. Therefore, a Table.ID can't be instantiated outside this
-   * class and is accessed by calling Table.ID.{@link #of(String)}.
+   * Uses an internal cache and private constructor for storing a WeakReference of every Table.ID.
+   * Therefore, a Table.ID can't be instantiated outside this class and is accessed by calling
+   * Table.ID.{@link #of(String)}.
    */
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 7399913185860577809L;
@@ -55,7 +57,8 @@ public class Table {
       try {
         return cache.get(canonical, () -> new Table.ID(canonical));
       } catch (ExecutionException e) {
-        throw new AssertionError("This should never happen: ID constructor should never return null.");
+        throw new AssertionError(
+            "This should never happen: ID constructor should never return null.");
       }
     }
   }

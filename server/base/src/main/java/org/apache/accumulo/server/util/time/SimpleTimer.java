@@ -30,8 +30,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
- * Generic singleton timer. Don't use this if you are going to do anything that will take very long. Please use it to reduce the number of threads dedicated to
- * simple events.
+ * Generic singleton timer. Don't use this if you are going to do anything that will take very long.
+ * Please use it to reduce the number of threads dedicated to simple events.
  *
  */
 public class SimpleTimer {
@@ -51,8 +51,8 @@ public class SimpleTimer {
   private static final int DEFAULT_THREAD_POOL_SIZE = 1;
 
   /**
-   * Gets the timer instance. If an instance has already been created, it will have the number of threads supplied when it was constructed, and the size
-   * provided here is ignored.
+   * Gets the timer instance. If an instance has already been created, it will have the number of
+   * threads supplied when it was constructed, and the size provided here is ignored.
    *
    * @param threadPoolSize
    *          number of threads
@@ -63,15 +63,17 @@ public class SimpleTimer {
       SimpleTimer.instanceThreadPoolSize = threadPoolSize;
     } else {
       if (SimpleTimer.instanceThreadPoolSize != threadPoolSize) {
-        log.warn("Asked to create SimpleTimer with thread pool size {}, existing instance has {}", threadPoolSize, instanceThreadPoolSize);
+        log.warn("Asked to create SimpleTimer with thread pool size {}, existing instance has {}",
+            threadPoolSize, instanceThreadPoolSize);
       }
     }
     return instance;
   }
 
   /**
-   * Gets the timer instance. If an instance has already been created, it will have the number of threads supplied when it was constructed, and the size
-   * provided by the configuration here is ignored. If a null configuration is supplied, the number of threads defaults to 1.
+   * Gets the timer instance. If an instance has already been created, it will have the number of
+   * threads supplied when it was constructed, and the size provided by the configuration here is
+   * ignored. If a null configuration is supplied, the number of threads defaults to 1.
    *
    * @param conf
    *          configuration from which to get the number of threads
@@ -98,8 +100,9 @@ public class SimpleTimer {
   }
 
   private SimpleTimer(int threadPoolSize) {
-    executor = Executors.newScheduledThreadPool(threadPoolSize, new ThreadFactoryBuilder().setNameFormat("SimpleTimer-%d").setDaemon(true)
-        .setUncaughtExceptionHandler(new ExceptionHandler()).build());
+    executor = Executors.newScheduledThreadPool(threadPoolSize,
+        new ThreadFactoryBuilder().setNameFormat("SimpleTimer-%d").setDaemon(true)
+            .setUncaughtExceptionHandler(new ExceptionHandler()).build());
   }
 
   /**

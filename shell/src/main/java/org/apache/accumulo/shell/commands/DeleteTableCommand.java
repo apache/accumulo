@@ -35,7 +35,8 @@ public class DeleteTableCommand extends TableOperation {
   private Option forceOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     if (cl.hasOption(forceOpt.getOpt())) {
       super.force();
     } else {

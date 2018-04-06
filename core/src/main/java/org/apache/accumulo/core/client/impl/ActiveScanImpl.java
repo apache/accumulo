@@ -54,7 +54,9 @@ public class ActiveScanImpl extends ActiveScan {
   private String user;
   private Authorizations authorizations;
 
-  ActiveScanImpl(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan) throws TableNotFoundException {
+  ActiveScanImpl(Instance instance,
+      org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan)
+      throws TableNotFoundException {
     this.scanId = activeScan.scanId;
     this.client = activeScan.client;
     this.user = activeScan.user;

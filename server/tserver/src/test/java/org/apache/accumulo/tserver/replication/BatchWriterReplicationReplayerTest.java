@@ -122,7 +122,8 @@ public class BatchWriterReplicationReplayerTest {
     expectedMutation.put("cf", "cq4", sMutation.getSystemTimestamp(), "value");
     expectedMutation.put("cf", "cq5", sMutation.getSystemTimestamp(), "value");
 
-    expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY)).andReturn(bwCfg.getMaxMemory());
+    expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
+        .andReturn(bwCfg.getMaxMemory());
     expect(conn.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));
@@ -193,7 +194,8 @@ public class BatchWriterReplicationReplayerTest {
     // We expect our peer name to be preserved in the mutation that gets written
     expectedMutation.addReplicationSource(peerName);
 
-    expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY)).andReturn(bwCfg.getMaxMemory());
+    expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
+        .andReturn(bwCfg.getMaxMemory());
     expect(conn.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));

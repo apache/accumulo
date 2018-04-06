@@ -28,7 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Execute a command, leveraging Hadoop's {@link ShellCommandExecutor}, on a remote host. SSH configuration provided by {@link RemoteShellOptions}.
+ * Execute a command, leveraging Hadoop's {@link ShellCommandExecutor}, on a remote host. SSH
+ * configuration provided by {@link RemoteShellOptions}.
  */
 public class RemoteShell extends ShellCommandExecutor {
   private static final Logger log = LoggerFactory.getLogger(RemoteShell.class);
@@ -36,13 +37,15 @@ public class RemoteShell extends ShellCommandExecutor {
   protected RemoteShellOptions options;
   protected String hostname;
 
-  public RemoteShell(String hostname, String[] execString, File dir, Map<String,String> env, long timeout, RemoteShellOptions options) {
+  public RemoteShell(String hostname, String[] execString, File dir, Map<String,String> env,
+      long timeout, RemoteShellOptions options) {
     super(execString, dir, env, timeout);
     this.hostname = hostname;
     setRemoteShellOptions(options);
   }
 
-  public RemoteShell(String hostname, String[] execString, File dir, Map<String,String> env, RemoteShellOptions options) {
+  public RemoteShell(String hostname, String[] execString, File dir, Map<String,String> env,
+      RemoteShellOptions options) {
     super(execString, dir, env);
     this.hostname = hostname;
     setRemoteShellOptions(options);
@@ -78,7 +81,8 @@ public class RemoteShell extends ShellCommandExecutor {
 
     String remoteCmd = StringUtils.join(super.getExecString(), ' ');
 
-    String cmd = String.format("%1$s %2$s %3$s \"%4$s\"", options.getSshCommand(), options.getSshOptions(), hostWithUser, remoteCmd);
+    String cmd = String.format("%1$s %2$s %3$s \"%4$s\"", options.getSshCommand(),
+        options.getSshOptions(), hostWithUser, remoteCmd);
 
     log.debug("Executing full command [{}]", cmd);
 

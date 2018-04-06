@@ -23,7 +23,8 @@ import org.apache.commons.cli.CommandLine;
 public class SleepCommand extends Command {
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     final double secs = Double.parseDouble(cl.getArgs()[0]);
     Thread.sleep((long) (secs * 1000));
     return 0;

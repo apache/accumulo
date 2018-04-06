@@ -43,7 +43,8 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     final AtomicReference<Exception> ref = new AtomicReference<>();
     final int THREADS = 5;
-    ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(THREADS));
+    ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS,
+        new ArrayBlockingQueue<>(THREADS));
     for (int i = 0; i < THREADS; i++) {
       final int index = i;
       Runnable r = new Runnable() {

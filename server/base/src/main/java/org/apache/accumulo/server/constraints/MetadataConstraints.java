@@ -60,18 +60,26 @@ public class MetadataConstraints implements Constraint {
 
   {
     for (int i = 0; i < 256; i++) {
-      validTableNameChars[i] = ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!' || i == '+';
+      validTableNameChars[i] = ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!'
+          || i == '+';
     }
   }
 
-  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<>(Arrays.asList(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN,
-      TabletsSection.ServerColumnFamily.LOCK_COLUMN, TabletsSection.ServerColumnFamily.FLUSH_COLUMN, TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
+  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<>(Arrays.asList(
+      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
+      TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
+      TabletsSection.ServerColumnFamily.TIME_COLUMN, TabletsSection.ServerColumnFamily.LOCK_COLUMN,
+      TabletsSection.ServerColumnFamily.FLUSH_COLUMN,
+      TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
 
-  private static final HashSet<Text> validColumnFams = new HashSet<>(Arrays.asList(TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME,
-      ScanFileColumnFamily.NAME, DataFileColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME, TabletsSection.LastLocationColumnFamily.NAME,
-      TabletsSection.FutureLocationColumnFamily.NAME, ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME));
+  private static final HashSet<Text> validColumnFams = new HashSet<>(Arrays.asList(
+      TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME,
+      DataFileColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME,
+      TabletsSection.LastLocationColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME,
+      ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME));
 
   private static boolean isValidColumn(ColumnUpdate cu) {
 
@@ -183,12 +191,16 @@ public class MetadataConstraints implements Constraint {
 
       } else if (columnFamily.equals(TabletsSection.BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
-          // splits, which also write the time reference, are allowed to write this reference even when
-          // the transaction is not running because the other half of the tablet is holding a reference
+          // splits, which also write the time reference, are allowed to write this reference even
+          // when
+          // the transaction is not running because the other half of the tablet is holding a
+          // reference
           // to the file.
           boolean isSplitMutation = false;
-          // When a tablet is assigned, it re-writes the metadata. It should probably only update the location information,
-          // but it writes everything. We allow it to re-write the bulk information if it is setting the location.
+          // When a tablet is assigned, it re-writes the metadata. It should probably only update
+          // the location information,
+          // but it writes everything. We allow it to re-write the bulk information if it is setting
+          // the location.
           // See ACCUMULO-1230.
           boolean isLocationMutation = false;
 
@@ -201,11 +213,13 @@ public class MetadataConstraints implements Constraint {
           for (ColumnUpdate update : mutation.getUpdates()) {
             if (new ColumnFQ(update).equals(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN)) {
               isSplitMutation = true;
-            } else if (new Text(update.getColumnFamily()).equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
+            } else if (new Text(update.getColumnFamily())
+                .equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
               isLocationMutation = true;
             } else if (new Text(update.getColumnFamily()).equals(DataFileColumnFamily.NAME)) {
               dataFiles.add(new Text(update.getColumnQualifier()));
-            } else if (new Text(update.getColumnFamily()).equals(TabletsSection.BulkFileColumnFamily.NAME)) {
+            } else if (new Text(update.getColumnFamily())
+                .equals(TabletsSection.BulkFileColumnFamily.NAME)) {
               loadedFiles.add(new Text(update.getColumnQualifier()));
 
               if (!new String(update.getValue(), UTF_8).equals(tidString)) {
@@ -218,7 +232,8 @@ public class MetadataConstraints implements Constraint {
             long tid = Long.parseLong(tidString);
 
             try {
-              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator().transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
+              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)
+                  || !getArbitrator().transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
                 violations = addViolation(violations, 8);
               }
             } catch (Exception ex) {
@@ -231,18 +246,22 @@ public class MetadataConstraints implements Constraint {
       } else {
         if (!isValidColumn(columnUpdate)) {
           violations = addViolation(violations, 2);
-        } else if (new ColumnFQ(columnUpdate).equals(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN) && columnUpdate.getValue().length > 0
+        } else if (new ColumnFQ(columnUpdate)
+            .equals(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN)
+            && columnUpdate.getValue().length > 0
             && (violations == null || !violations.contains((short) 4))) {
           KeyExtent ke = new KeyExtent(new Text(mutation.getRow()), (Text) null);
 
           Text per = KeyExtent.decodePrevEndRow(new Value(columnUpdate.getValue()));
 
-          boolean prevEndRowLessThanEndRow = per == null || ke.getEndRow() == null || per.compareTo(ke.getEndRow()) < 0;
+          boolean prevEndRowLessThanEndRow = per == null || ke.getEndRow() == null
+              || per.compareTo(ke.getEndRow()) < 0;
 
           if (!prevEndRowLessThanEndRow) {
             violations = addViolation(violations, 3);
           }
-        } else if (new ColumnFQ(columnUpdate).equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
+        } else if (new ColumnFQ(columnUpdate)
+            .equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
           if (zooCache == null) {
             zooCache = new ZooCache();
           }
@@ -271,7 +290,8 @@ public class MetadataConstraints implements Constraint {
     if (violations != null) {
       log.debug("violating metadata mutation : {}", new String(mutation.getRow(), UTF_8));
       for (ColumnUpdate update : mutation.getUpdates()) {
-        log.debug(" update: {}:{} value {}", new String(update.getColumnFamily(), UTF_8), new String(update.getColumnQualifier(), UTF_8),
+        log.debug(" update: {}:{} value {}", new String(update.getColumnFamily(), UTF_8),
+            new String(update.getColumnQualifier(), UTF_8),
             (update.isDeleted() ? "[delete]" : new String(update.getValue(), UTF_8)));
       }
     }

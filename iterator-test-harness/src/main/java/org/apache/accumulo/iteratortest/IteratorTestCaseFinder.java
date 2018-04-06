@@ -48,10 +48,12 @@ public class IteratorTestCaseFinder {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    ImmutableSet<ClassInfo> classes = cp.getTopLevelClasses(IteratorTestCase.class.getPackage().getName());
+    ImmutableSet<ClassInfo> classes = cp
+        .getTopLevelClasses(IteratorTestCase.class.getPackage().getName());
 
     final List<IteratorTestCase> testCases = new ArrayList<>();
-    // final Set<Class<? extends IteratorTestCase>> classes = reflections.getSubTypesOf(IteratorTestCase.class);
+    // final Set<Class<? extends IteratorTestCase>> classes =
+    // reflections.getSubTypesOf(IteratorTestCase.class);
     for (ClassInfo classInfo : classes) {
       Class<?> clz;
       try {
@@ -61,7 +63,8 @@ public class IteratorTestCaseFinder {
         continue;
       }
 
-      if (clz.isInterface() || Modifier.isAbstract(clz.getModifiers()) || !IteratorTestCase.class.isAssignableFrom(clz)) {
+      if (clz.isInterface() || Modifier.isAbstract(clz.getModifiers())
+          || !IteratorTestCase.class.isAssignableFrom(clz)) {
         log.debug("Skipping " + clz);
         continue;
       }

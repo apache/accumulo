@@ -136,14 +136,16 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
   }
 
   private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(WholeRowIterator.class, Collections.emptyMap(), new Range(), INPUT_DATA);
+    return new IteratorTestInput(WholeRowIterator.class, Collections.emptyMap(), new Range(),
+        INPUT_DATA);
   }
 
   private static IteratorTestOutput getIteratorOutput() {
     return new IteratorTestOutput(OUTPUT_DATA);
   }
 
-  public WholeRowIteratorTest(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestCase testCase) {
+  public WholeRowIteratorTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
     super(input, expectedOutput, testCase);
   }
 

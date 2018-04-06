@@ -103,7 +103,8 @@ public class PreferredVolumeChooserTest {
   @Test
   public void testTableScopeUsingDefaultScopeProperty() throws Exception {
     expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("3,2").once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn("3,2").once();
     replay(confFactory, tableConf, systemConf);
 
     String[] volumes = chooseForTable();
@@ -114,7 +115,8 @@ public class PreferredVolumeChooserTest {
   @Test
   public void testTableScopeWithNoConfig() throws Exception {
     expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(null).once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn(null).once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
@@ -135,7 +137,8 @@ public class PreferredVolumeChooserTest {
   @Test
   public void testTableScopeWithUnrecognizedVolumes() throws Exception {
     expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("4").once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn("4").once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
@@ -145,7 +148,8 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeUsingLoggerProperty() throws Exception {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn("2,1").once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn("2,1").once();
     replay(confFactory, tableConf, systemConf);
 
     String[] volumes = choose(ChooserScope.LOGGER);
@@ -155,8 +159,10 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeUsingDefaultProperty() throws Exception {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("3,2").once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(null).once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn("3,2").once();
     replay(confFactory, tableConf, systemConf);
 
     String[] volumes = choose(ChooserScope.LOGGER);
@@ -166,8 +172,10 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithNoConfig() throws Exception {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(null).once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(null).once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn(null).once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
@@ -177,7 +185,8 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithEmptySet() throws Exception {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(",").once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(",").once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
@@ -187,8 +196,10 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithUnrecognizedVolumes() throws Exception {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("4").once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(null).once();
+    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn("4").once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);

@@ -39,7 +39,8 @@ public class AccumuloMultiTableInputFormatTest {
   public TestName testName = new TestName();
 
   /**
-   * Verify {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects get correctly serialized in the JobContext.
+   * Verify {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects get correctly
+   * serialized in the JobContext.
    */
   @Test
   public void testTableQueryConfigSerialization() throws IOException {
@@ -47,11 +48,13 @@ public class AccumuloMultiTableInputFormatTest {
     String table2Name = testName.getMethodName() + "2";
     JobConf job = new JobConf();
 
-    InputTableConfig table1 = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
+    InputTableConfig table1 = new InputTableConfig()
+        .setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    InputTableConfig table2 = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
+    InputTableConfig table2 = new InputTableConfig()
+        .setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 

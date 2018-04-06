@@ -110,7 +110,8 @@ public class ZooStore<T> implements TStore<T> {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = idgenerator.nextLong() & 0x7fffffffffffffffl;
-        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8), NodeExistsPolicy.FAIL);
+        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
+            NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
         // exist, so just try another random #
@@ -142,7 +143,8 @@ public class ZooStore<T> implements TStore<T> {
           long tid = parseTid(txdir);
 
           synchronized (this) {
-            // this check makes reserve pick up where it left off, so that it cycles through all as it is repeatedly called.... failing to do so can lead to
+            // this check makes reserve pick up where it left off, so that it cycles through all as
+            // it is repeatedly called.... failing to do so can lead to
             // starvation where fate ops that sort higher and hold a lock are never reserved.
             if (txdir.compareTo(lastReserved) <= 0)
               continue;
@@ -163,7 +165,8 @@ public class ZooStore<T> implements TStore<T> {
           // have reserved id, status should not change
 
           try {
-            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir, null), UTF_8));
+            TStatus status = TStatus
+                .valueOf(new String(zk.getData(path + "/" + txdir, null), UTF_8));
             if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
@@ -217,9 +220,11 @@ public class ZooStore<T> implements TStore<T> {
   private void unreserve(long tid) {
     synchronized (this) {
       if (!reserved.remove(tid))
-        throw new IllegalStateException("Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+        throw new IllegalStateException(
+            "Tried to unreserve id that was not reserved " + String.format("%016x", tid));
 
-      // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite loop when tx is stuck in NEW...
+      // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite
+      // loop when tx is stuck in NEW...
       // only do this when something external has called reserve(tid)...
       if (reservationsWaiting > 0)
         this.notifyAll();
@@ -234,7 +239,8 @@ public class ZooStore<T> implements TStore<T> {
 
     synchronized (this) {
       if (!reserved.remove(tid))
-        throw new IllegalStateException("Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+        throw new IllegalStateException(
+            "Tried to unreserve id that was not reserved " + String.format("%016x", tid));
 
       if (deferTime > 0)
         defered.put(tid, System.currentTimeMillis() + deferTime);
@@ -247,7 +253,8 @@ public class ZooStore<T> implements TStore<T> {
   private void verifyReserved(long tid) {
     synchronized (this) {
       if (!reserved.contains(tid))
-        throw new IllegalStateException("Tried to operate on unreserved transaction " + String.format("%016x", tid));
+        throw new IllegalStateException(
+            "Tried to operate on unreserved transaction " + String.format("%016x", tid));
     }
   }
 
@@ -380,7 +387,8 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+      zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8),
+          NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -408,7 +416,8 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8),
+            NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
         byte[] data = new byte[sera.length + 2];

@@ -56,10 +56,12 @@ public class MetaSplitIT extends AccumuloClusterHarness {
       Collection<Text> splits = conn.tableOperations().listSplits(MetadataTable.NAME);
       // We expect a single split
       if (!splits.equals(Arrays.asList(new Text("~")))) {
-        log.info("Existing splits on metadata table. Saving them, and applying single original split of '~'");
+        log.info(
+            "Existing splits on metadata table. Saving them, and applying single original split of '~'");
         metadataSplits = splits;
         conn.tableOperations().merge(MetadataTable.NAME, null, null);
-        conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(Collections.singleton(new Text("~"))));
+        conn.tableOperations().addSplits(MetadataTable.NAME,
+            new TreeSet<>(Collections.singleton(new Text("~"))));
       }
     }
   }
@@ -122,7 +124,8 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  private static void checkMetadataSplits(int numSplits, TableOperations opts) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
+  private static void checkMetadataSplits(int numSplits, TableOperations opts)
+      throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       InterruptedException {
     for (int i = 0; i < 10; i++) {
       if (opts.listSplits(MetadataTable.NAME).size() == numSplits) {

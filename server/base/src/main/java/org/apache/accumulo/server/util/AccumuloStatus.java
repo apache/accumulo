@@ -26,7 +26,8 @@ public class AccumuloStatus {
   /**
    * Determines if there could be an accumulo instance running via zookeeper lock checking
    *
-   * @return true iff all servers show no indication of being registered in zookeeper, otherwise false
+   * @return true iff all servers show no indication of being registered in zookeeper, otherwise
+   *         false
    * @throws IOException
    *           if there are issues connecting to ZooKeeper to determine service status
    */

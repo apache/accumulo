@@ -43,7 +43,8 @@ import com.beust.jcommander.Parameter;
 public class SplitLarge {
 
   static class Opts extends Help {
-    @Parameter(names = "-m", description = "the maximum size of the key/value pair to shunt to the small file")
+    @Parameter(names = "-m",
+        description = "the maximum size of the key/value pair to shunt to the small file")
     long maxSize = 10 * 1024 * 1024;
     @Parameter(description = "<file.rf> { <file.rf> ... }")
     List<String> files = new ArrayList<>();
@@ -58,7 +59,8 @@ public class SplitLarge {
     for (String file : opts.files) {
       AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
       Path path = new Path(file);
-      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
+      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
+          aconf);
       try (Reader iter = new RFile.Reader(rdr)) {
 
         if (!file.endsWith(".rf")) {
@@ -68,8 +70,13 @@ public class SplitLarge {
         String largeName = file.substring(0, file.length() - 3) + "_large.rf";
 
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
-        try (Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", null, conf, aconf), blockSize);
-            Writer large = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(largeName), "gz", null, conf, aconf), blockSize)) {
+        try (
+            Writer small = new RFile.Writer(
+                new CachableBlockFile.Writer(fs, new Path(smallName), "gz", null, conf, aconf),
+                blockSize);
+            Writer large = new RFile.Writer(
+                new CachableBlockFile.Writer(fs, new Path(largeName), "gz", null, conf, aconf),
+                blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();
 

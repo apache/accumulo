@@ -85,8 +85,9 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
- * An abstract input format to provide shared methods common to all other input format classes. At the very least, any classes inheriting from this class will
- * need to define their own {@link RecordReader}.
+ * An abstract input format to provide shared methods common to all other input format classes. At
+ * the very least, any classes inheriting from this class will need to define their own
+ * {@link RecordReader}.
  */
 public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
@@ -126,7 +127,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo info) throws AccumuloSecurityException {
+  public static void setConnectionInfo(JobConf job, ConnectionInfo info)
+      throws AccumuloSecurityException {
     setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
     setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
   }
@@ -135,10 +137,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the configuration as a means to pass the token to MapReduce tasks. This
-   * information is BASE64 encoded to provide a charset safe conversion to a string, but this conversion is not intended to be secure. {@link PasswordToken} is
-   * one example that is insecure in this way; however {@link DelegationToken}s, acquired using
-   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this concern.
+   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the
+   * configuration as a means to pass the token to MapReduce tasks. This information is BASE64
+   * encoded to provide a charset safe conversion to a string, but this conversion is not intended
+   * to be secure. {@link PasswordToken} is one example that is insecure in this way; however
+   * {@link DelegationToken}s, acquired using
+   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this
+   * concern.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -150,7 +155,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead
    */
   @Deprecated
-  public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
@@ -158,17 +164,20 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         Connector conn = instance.getConnector(principal, token);
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
-        log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely fail to communicate with Accumulo", e);
+        log.warn(
+            "Failed to automatically obtain DelegationToken, Mappers/Reducers will likely fail to communicate with Accumulo",
+            e);
       }
     }
-    // DelegationTokens can be passed securely from user to task without serializing insecurely in the configuration
+    // DelegationTokens can be passed securely from user to task without serializing insecurely in
+    // the configuration
     if (token instanceof DelegationTokenImpl) {
       DelegationTokenImpl delegationToken = (DelegationTokenImpl) token;
 
       // Convert it into a Hadoop Token
       AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
-      Token<AuthenticationTokenIdentifier> hadoopToken = new Token<>(identifier.getBytes(), delegationToken.getPassword(), identifier.getKind(),
-          delegationToken.getServiceName());
+      Token<AuthenticationTokenIdentifier> hadoopToken = new Token<>(identifier.getBytes(),
+          delegationToken.getPassword(), identifier.getKind(), delegationToken.getServiceName());
 
       // Add the Hadoop Token to the Job so it gets serialized and passed along.
       job.getCredentials().addToken(hadoopToken.getService(), hadoopToken);
@@ -181,7 +190,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
+   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt
+   * to be more secure than storing it in the Configuration.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -193,7 +203,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead
    */
   @Deprecated
-  public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {
+  public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
+      throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
   }
 
@@ -224,7 +235,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
+   * Gets the authenticated token from either the specified token file or directly from the
+   * configuration, whichever was used when the job was configured.
    *
    * @param job
    *          the Hadoop context for the configured job
@@ -252,7 +264,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    */
   @Deprecated
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job, ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
+    setZooKeeperInstance(job,
+        ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -286,7 +299,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the configuration.
+   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
+   * configuration.
    *
    * @param job
    *          the Hadoop context for the configured job
@@ -325,7 +339,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Sets the {@link org.apache.accumulo.core.security.Authorizations} used to scan. Must be a subset of the user's authorization. Defaults to the empty set.
+   * Sets the {@link org.apache.accumulo.core.security.Authorizations} used to scan. Must be a
+   * subset of the user's authorization. Defaults to the empty set.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -364,7 +379,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
-   * Check whether a configuration is fully configured to be used with an Accumulo {@link InputFormat}.
+   * Check whether a configuration is fully configured to be used with an Accumulo
+   * {@link InputFormat}.
    *
    * @param job
    *          the Hadoop context for the configured job
@@ -417,10 +433,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * An abstract base class to be used to create {@link org.apache.hadoop.mapred.RecordReader} instances that convert from Accumulo
-   * {@link org.apache.accumulo.core.data.Key}/{@link org.apache.accumulo.core.data.Value} pairs to the user's K/V types.
+   * An abstract base class to be used to create {@link org.apache.hadoop.mapred.RecordReader}
+   * instances that convert from Accumulo
+   * {@link org.apache.accumulo.core.data.Key}/{@link org.apache.accumulo.core.data.Value} pairs to
+   * the user's K/V types.
    *
-   * Subclasses must implement {@link #next(Object, Object)} to update key and value, and also to update the following variables:
+   * Subclasses must implement {@link #next(Object, Object)} to update key and value, and also to
+   * update the following variables:
    * <ul>
    * <li>Key {@link #currentKey} (used for progress reporting)</li>
    * <li>int {@link #numKeysRead} (used for progress reporting)</li>
@@ -456,7 +475,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      *          the table name for which the scanner is configured
      * @since 1.7.0
      */
-    private void setupIterators(JobConf job, ScannerBase scanner, String tableName, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+    private void setupIterators(JobConf job, ScannerBase scanner, String tableName,
+        org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       List<IteratorSetting> iterators = null;
 
       if (null == split) {
@@ -485,7 +505,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
      */
     @Deprecated
-    protected void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split) {
+    protected void setupIterators(JobConf job, Scanner scanner, String tableName,
+        RangeInputSplit split) {
       setupIterators(job, (ScannerBase) scanner, tableName, split);
     }
 
@@ -518,7 +539,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
 
-      // in case the table name changed, we can still use the previous name for terms of configuration,
+      // in case the table name changed, we can still use the previous name for terms of
+      // configuration,
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
@@ -531,9 +553,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         BatchInputSplit multiRangeSplit = (BatchInputSplit) baseSplit;
 
         try {
-          // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit will not span tablets
+          // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
+          // will not span tablets
           int scanThreads = 1;
-          scanner = instance.getConnector(principal, token).createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
+          scanner = instance.getConnector(principal, token)
+              .createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
           if (null != classLoaderContext) {
             scanner.setClassLoaderContext(classLoaderContext);
@@ -566,12 +590,15 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(instance, new Credentials(principal, token), Table.ID.of(baseSplit.getTableId()), authorizations);
+            scanner = new OfflineScanner(instance, new Credentials(principal, token),
+                Table.ID.of(baseSplit.getTableId()), authorizations);
           } else if (DeprecationUtil.isMockInstance(instance)) {
-            scanner = instance.getConnector(principal, token).createScanner(baseSplit.getTableName(), authorizations);
+            scanner = instance.getConnector(principal, token)
+                .createScanner(baseSplit.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(job);
-            ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
+            ClientContext context = new ClientContext(instance, new Credentials(principal, token),
+                clientConf);
             scanner = new ScannerImpl(context, Table.ID.of(baseSplit.getTableId()), authorizations);
           }
           if (isIsolated) {
@@ -590,7 +617,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         scanner.setRange(baseSplit.getRange());
         scannerBase = scanner;
       } else {
-        throw new IllegalArgumentException("Can not initialize from " + baseSplit.getClass().toString());
+        throw new IllegalArgumentException(
+            "Can not initialize from " + baseSplit.getClass().toString());
       }
 
       Collection<Pair<Text,Text>> columns = baseSplit.getFetchedColumns();
@@ -645,8 +673,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId, List<Range> ranges) throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId,
+      List<Range> ranges)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
     Instance instance = getInstance(job);
     Connector conn = instance.getConnector(getPrincipal(job), getAuthenticationToken(job));
@@ -655,11 +684,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Gets the splits of the tables that have been set on the job by reading the metadata table for the specified ranges.
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for
+   * the specified ranges.
    *
    * @return the splits from the tables based on the ranges.
    * @throws java.io.IOException
-   *           if a table set on the job doesn't exist or an error occurs initializing the tablet locator
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
+   *           locator
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
@@ -692,15 +723,19 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       AuthenticationToken token = getAuthenticationToken(job);
 
       boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
-      boolean supportBatchScan = !(tableConfig.isOfflineScan() || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
+      boolean supportBatchScan = !(tableConfig.isOfflineScan()
+          || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
-        throw new IllegalArgumentException("BatchScanner optimization not available for offline scan, isolated, or local iterators");
+        throw new IllegalArgumentException(
+            "BatchScanner optimization not available for offline scan, isolated, or local iterators");
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       if (batchScan && !autoAdjust)
-        throw new IllegalArgumentException("AutoAdjustRanges must be enabled when using BatchScanner optimization");
+        throw new IllegalArgumentException(
+            "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-      List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
+      List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
+          : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<>(1);
         ranges.add(new Range());
@@ -720,10 +755,12 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           }
         } else {
           tl = InputConfigurator.getTabletLocator(CLASS, job, tableId);
-          // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
+          // its possible that the cache could contain complete, but old information about a tables
+          // tablets... so clear it
           tl.invalidateCache();
 
-          ClientContext context = new ClientContext(getInstance(job), new Credentials(getPrincipal(job), getAuthenticationToken(job)),
+          ClientContext context = new ClientContext(getInstance(job),
+              new Credentials(getPrincipal(job), getAuthenticationToken(job)),
               getClientConfiguration(job));
           while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
             if (!DeprecationUtil.isMockInstance(instance)) {
@@ -766,7 +803,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
-            BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
+            BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
+                new String[] {location});
             SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
 
             splits.add(split);
@@ -775,8 +813,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for (Range r : extentRanges.getValue()) {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
-                RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(), ke.clip(r), new String[] {location});
-                SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+                RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+                    ke.clip(r), new String[] {location});
+                SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths,
+                    logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -797,7 +837,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       if (!autoAdjust)
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
-          RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(), entry.getKey(), entry.getValue().toArray(new String[0]));
+          RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+              entry.getKey(), entry.getValue().toArray(new String[0]));
           SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());

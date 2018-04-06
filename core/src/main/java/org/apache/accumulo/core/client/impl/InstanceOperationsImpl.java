@@ -62,7 +62,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+  public void setProperty(final String property, final String value)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
@@ -74,7 +75,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException {
+  public void removeProperty(final String property)
+      throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
     MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
       @Override
@@ -85,29 +87,36 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
-      @Override
-      public Map<String,String> execute(ClientService.Client client) throws Exception {
-        return client.getConfiguration(Tracer.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT);
-      }
-    });
+  public Map<String,String> getSystemConfiguration()
+      throws AccumuloException, AccumuloSecurityException {
+    return ServerClient.execute(context,
+        new ClientExecReturn<Map<String,String>,ClientService.Client>() {
+          @Override
+          public Map<String,String> execute(ClientService.Client client) throws Exception {
+            return client.getConfiguration(Tracer.traceInfo(), context.rpcCreds(),
+                ConfigurationType.CURRENT);
+          }
+        });
   }
 
   @Override
-  public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
-      @Override
-      public Map<String,String> execute(ClientService.Client client) throws Exception {
-        return client.getConfiguration(Tracer.traceInfo(), context.rpcCreds(), ConfigurationType.SITE);
-      }
-    });
+  public Map<String,String> getSiteConfiguration()
+      throws AccumuloException, AccumuloSecurityException {
+    return ServerClient.execute(context,
+        new ClientExecReturn<Map<String,String>,ClientService.Client>() {
+          @Override
+          public Map<String,String> execute(ClientService.Client client) throws Exception {
+            return client.getConfiguration(Tracer.traceInfo(), context.rpcCreds(),
+                ConfigurationType.SITE);
+          }
+        });
   }
 
   @Override
   public List<String> getTabletServers() {
     Instance instance = context.getInstance();
-    ZooCache cache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache cache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
     String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     List<String> results = new ArrayList<>();
     for (String candidate : cache.getChildren(path)) {
@@ -125,14 +134,16 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
+  public List<ActiveScan> getActiveScans(String tserver)
+      throws AccumuloException, AccumuloSecurityException {
     final HostAndPort parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
       client = ThriftUtil.getTServerClient(parsedTserver, context);
 
       List<ActiveScan> as = new ArrayList<>();
-      for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(Tracer.traceInfo(), context.rpcCreds())) {
+      for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client
+          .getActiveScans(Tracer.traceInfo(), context.rpcCreds())) {
         try {
           as.add(new ActiveScanImpl(context.getInstance(), activeScan));
         } catch (TableNotFoundException e) {
@@ -153,7 +164,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException {
+  public boolean testClassLoad(final String className, final String asTypeName)
+      throws AccumuloException, AccumuloSecurityException {
     return ServerClient.execute(context, new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
@@ -163,14 +175,16 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
+  public List<ActiveCompaction> getActiveCompactions(String tserver)
+      throws AccumuloException, AccumuloSecurityException {
     final HostAndPort parsedTserver = HostAndPort.fromString(tserver);
     Client client = null;
     try {
       client = ThriftUtil.getTServerClient(parsedTserver, context);
 
       List<ActiveCompaction> as = new ArrayList<>();
-      for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client.getActiveCompactions(Tracer.traceInfo(), context.rpcCreds())) {
+      for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client
+          .getActiveCompactions(Tracer.traceInfo(), context.rpcCreds())) {
         as.add(new ActiveCompactionImpl(context.getInstance(), activeCompaction));
       }
       return as;
@@ -191,7 +205,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     TTransport transport = null;
     try {
       transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver, false), context);
-      TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
+      TabletClientService.Client client = ThriftUtil
+          .createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(Tracer.traceInfo(), context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);

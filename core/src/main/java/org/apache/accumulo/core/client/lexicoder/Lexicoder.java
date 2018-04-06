@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 /**
- * A lexicoder provides methods to convert to/from byte arrays. The byte arrays are constructed so that their sort order corresponds their parameterized class's
- * native Java sort order.
+ * A lexicoder provides methods to convert to/from byte arrays. The byte arrays are constructed so
+ * that their sort order corresponds their parameterized class's native Java sort order.
  *
  * @since 1.6.0
  */

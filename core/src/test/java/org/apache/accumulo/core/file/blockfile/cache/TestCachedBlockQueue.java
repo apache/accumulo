@@ -52,11 +52,13 @@ public class TestCachedBlockQueue extends TestCase {
     queue.add(cb10);
 
     // We expect cb1 through cb8 to be in the queue
-    long expectedSize = cb1.heapSize() + cb2.heapSize() + cb3.heapSize() + cb4.heapSize() + cb5.heapSize() + cb6.heapSize() + cb7.heapSize() + cb8.heapSize();
+    long expectedSize = cb1.heapSize() + cb2.heapSize() + cb3.heapSize() + cb4.heapSize()
+        + cb5.heapSize() + cb6.heapSize() + cb7.heapSize() + cb8.heapSize();
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue.getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue
+        .getList();
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
     assertEquals(blocks.poll().getName(), "cb3");
@@ -102,12 +104,13 @@ public class TestCachedBlockQueue extends TestCase {
     // and we must always maintain heapSize >= maxSize once we achieve it.
 
     // We expect cb0 through cb8 to be in the queue
-    long expectedSize = cb1.heapSize() + cb2.heapSize() + cb3.heapSize() + cb4.heapSize() + cb5.heapSize() + cb6.heapSize() + cb7.heapSize() + cb8.heapSize()
-        + cb0.heapSize();
+    long expectedSize = cb1.heapSize() + cb2.heapSize() + cb3.heapSize() + cb4.heapSize()
+        + cb5.heapSize() + cb6.heapSize() + cb7.heapSize() + cb8.heapSize() + cb0.heapSize();
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue.getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue
+        .getList();
     assertEquals(blocks.poll().getName(), "cb0");
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
@@ -120,7 +123,8 @@ public class TestCachedBlockQueue extends TestCase {
 
   }
 
-  private static class CachedBlock extends org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock {
+  private static class CachedBlock
+      extends org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock {
     public CachedBlock(long heapSize, String name, long accessTime) {
       super(name, new byte[(int) (heapSize - CachedBlock.PER_BLOCK_OVERHEAD)], accessTime, false);
     }

@@ -21,8 +21,8 @@ import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 
 /**
- * An interface that accepts some input for testing a {@link SortedKeyValueIterator}, runs the specific implementation of the test and returns the outcome from
- * that iterator.
+ * An interface that accepts some input for testing a {@link SortedKeyValueIterator}, runs the
+ * specific implementation of the test and returns the outcome from that iterator.
  */
 public interface IteratorTestCase {
 
@@ -36,7 +36,8 @@ public interface IteratorTestCase {
   IteratorTestOutput test(IteratorTestInput testInput);
 
   /**
-   * Compute whether or not the expected and actual output is a success or failure for this implementation.
+   * Compute whether or not the expected and actual output is a success or failure for this
+   * implementation.
    *
    * @param expected
    *          The expected output from the user.

@@ -24,7 +24,8 @@ public class DeleteManyCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is inclusive", new DeleteManyCommand().getOptions().getOption("b").getDescription().contains("row (inclusive)"));
+    assertTrue("-b should say it is inclusive", new DeleteManyCommand().getOptions().getOption("b")
+        .getDescription().contains("row (inclusive)"));
   }
 
 }

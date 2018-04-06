@@ -96,14 +96,17 @@ public class RegExFilter extends Filter {
     if (orFields)
       return ((matches(rowMatcher, rowMatcher == null ? null : key.getRowData()))
           || (matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData()))
-          || (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())) || (matches(valueMatcher, value.get(), 0, value.get().length)));
+          || (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData()))
+          || (matches(valueMatcher, value.get(), 0, value.get().length)));
     return ((matches(rowMatcher, rowMatcher == null ? null : key.getRowData()))
         && (matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData()))
-        && (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())) && (matches(valueMatcher, value.get(), 0, value.get().length)));
+        && (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData()))
+        && (matches(valueMatcher, value.get(), 0, value.get().length)));
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(ROW_REGEX)) {
       rowMatcher = Pattern.compile(options.get(ROW_REGEX)).matcher("");
@@ -150,14 +153,16 @@ public class RegExFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("regex");
-    io.setDescription("The RegExFilter/Iterator allows you to filter for key/value pairs based on regular expressions");
+    io.setDescription(
+        "The RegExFilter/Iterator allows you to filter for key/value pairs based on regular expressions");
     io.addNamedOption(RegExFilter.ROW_REGEX, "regular expression on row");
     io.addNamedOption(RegExFilter.COLF_REGEX, "regular expression on column family");
     io.addNamedOption(RegExFilter.COLQ_REGEX, "regular expression on column qualifier");
     io.addNamedOption(RegExFilter.VALUE_REGEX, "regular expression on value");
     io.addNamedOption(RegExFilter.OR_FIELDS, "use OR instead of AND when multiple regexes given");
     io.addNamedOption(RegExFilter.MATCH_SUBSTRING, "match on substrings");
-    io.addNamedOption(RegExFilter.ENCODING, "character encoding of byte array value (default is " + ENCODING_DEFAULT + ")");
+    io.addNamedOption(RegExFilter.ENCODING,
+        "character encoding of byte array value (default is " + ENCODING_DEFAULT + ")");
     return io;
   }
 
@@ -195,8 +200,9 @@ public class RegExFilter extends Filter {
   }
 
   /**
-   * Encode the terms to match against in the iterator. Same as calling {@link #setRegexs(IteratorSetting, String, String, String, String, boolean, boolean)}
-   * with matchSubstring set to false
+   * Encode the terms to match against in the iterator. Same as calling
+   * {@link #setRegexs(IteratorSetting, String, String, String, String, boolean, boolean)} with
+   * matchSubstring set to false
    *
    * @param si
    *          ScanIterator config to be updated
@@ -211,7 +217,8 @@ public class RegExFilter extends Filter {
    * @param orFields
    *          if true, any of the non-null terms can match to return the entry
    */
-  public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm, String valueTerm, boolean orFields) {
+  public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm,
+      String valueTerm, boolean orFields) {
     setRegexs(si, rowTerm, cfTerm, cqTerm, valueTerm, orFields, false);
   }
 
@@ -231,7 +238,8 @@ public class RegExFilter extends Filter {
    * @param matchSubstring
    *          if true then search expressions will match on partial strings
    */
-  public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm, String valueTerm, boolean orFields, boolean matchSubstring) {
+  public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm,
+      String valueTerm, boolean orFields, boolean matchSubstring) {
 
     if (rowTerm != null)
       si.addOption(RegExFilter.ROW_REGEX, rowTerm);

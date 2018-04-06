@@ -52,7 +52,8 @@ public class RestoreZookeeper {
     }
 
     @Override
-    public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException {
+    public void startElement(String uri, String localName, String name, Attributes attributes)
+        throws SAXException {
       if ("node".equals(name)) {
         String child = attributes.getValue("name");
         if (child == null)
@@ -88,7 +89,8 @@ public class RestoreZookeeper {
         data = Base64.getDecoder().decode(data);
       try {
         try {
-          zk.putPersistentData(path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
+          zk.putPersistentData(path, data,
+              overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
         } catch (KeeperException e) {
           if (e.code().equals(KeeperException.Code.NODEEXISTS))
             throw new RuntimeException(path + " exists.  Remove it first.");

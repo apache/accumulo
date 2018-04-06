@@ -51,7 +51,8 @@ public interface AccumuloCluster {
   /**
    * Utility method to get a connector to the cluster.
    */
-  Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Get the client configuration for the cluster
@@ -91,7 +92,8 @@ public interface AccumuloCluster {
   FileSystem getFileSystem() throws IOException;
 
   /**
-   * @return A path on {@link FileSystem} this cluster is running on that can be used for temporary files
+   * @return A path on {@link FileSystem} this cluster is running on that can be used for temporary
+   *         files
    */
   Path getTemporaryPath();
 }

@@ -48,13 +48,15 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
   }
 
   /**
-   * AbstractID objects are considered equal if, and only if, they are of the same type and have the same canonical identifier.
+   * AbstractID objects are considered equal if, and only if, they are of the same type and have the
+   * same canonical identifier.
    */
   @Override
   public boolean equals(final Object obj) {
     if (this == obj)
       return true;
-    return obj != null && Objects.equals(getClass(), obj.getClass()) && Objects.equals(canonicalID(), ((AbstractId) obj).canonicalID());
+    return obj != null && Objects.equals(getClass(), obj.getClass())
+        && Objects.equals(canonicalID(), ((AbstractId) obj).canonicalID());
   }
 
   @Override

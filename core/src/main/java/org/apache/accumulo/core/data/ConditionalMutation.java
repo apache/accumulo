@@ -28,7 +28,8 @@ import java.util.Set;
 import org.apache.hadoop.io.Text;
 
 /**
- * A Mutation that contains a list of conditions that must all be met before the mutation is applied.
+ * A Mutation that contains a list of conditions that must all be met before the mutation is
+ * applied.
  *
  * @since 1.6.0
  */
@@ -105,6 +106,7 @@ public class ConditionalMutation extends Mutation {
 
   @Override
   public void setReplicationSources(Set<String> sources) {
-    throw new UnsupportedOperationException("Conditional Mutations are not supported for replication");
+    throw new UnsupportedOperationException(
+        "Conditional Mutations are not supported for replication");
   }
 }

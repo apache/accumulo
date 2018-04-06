@@ -82,7 +82,8 @@ public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
 
   static class AdminOpts extends ClientOpts {
-    @Parameter(names = {"-f", "--force"}, description = "force the given server to stop by removing its lock")
+    @Parameter(names = {"-f", "--force"},
+        description = "force the given server to stop by removing its lock")
     boolean force = false;
   }
 
@@ -103,7 +104,8 @@ public class Admin implements KeywordExecutable {
     @Parameter(names = "--fixFiles", description = "Remove dangling file pointers")
     boolean fixFiles = false;
 
-    @Parameter(names = {"-t", "--table"}, description = "Table to check, if not set checks all tables")
+    @Parameter(names = {"-t", "--table"},
+        description = "Table to check, if not set checks all tables")
     String tableName = null;
   }
 
@@ -117,7 +119,8 @@ public class Admin implements KeywordExecutable {
   static class ListInstancesCommand {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
-    @Parameter(names = "--print-all", description = "print information for all instances, not just those with names")
+    @Parameter(names = "--print-all",
+        description = "print information for all instances, not just those with names")
     boolean printAll = false;
   }
 
@@ -129,7 +132,8 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandDescription = "print out non-default configuration settings")
   static class DumpConfigCommand {
-    @Parameter(names = {"-a", "--all"}, description = "print the system and all table configurations")
+    @Parameter(names = {"-a", "--all"},
+        description = "print the system and all table configurations")
     boolean allConfiguration = false;
     @Parameter(names = {"-d", "--directory"}, description = "directory to place config files")
     String directory = null;
@@ -139,7 +143,8 @@ public class Admin implements KeywordExecutable {
     boolean namespaceConfiguration = false;
     @Parameter(names = {"-t", "--tables"}, description = "print per-table configuration")
     List<String> tables = new ArrayList<>();
-    @Parameter(names = {"-u", "--users"}, description = "print users and their authorizations and permissions")
+    @Parameter(names = {"-u", "--users"},
+        description = "print users and their authorizations and permissions")
     boolean users = false;
   }
 
@@ -223,7 +228,8 @@ public class Admin implements KeywordExecutable {
       int rc = 0;
 
       if (cl.getParsedCommand().equals("listInstances")) {
-        ListInstances.listInstances(instance.getZooKeepers(), listIntancesOpts.printAll, listIntancesOpts.printErrors);
+        ListInstances.listInstances(instance.getZooKeepers(), listIntancesOpts.printAll,
+            listIntancesOpts.printErrors);
       } else if (cl.getParsedCommand().equals("ping")) {
         if (ping(context, pingCommand.args) != 0)
           rc = 4;
@@ -233,10 +239,12 @@ public class Admin implements KeywordExecutable {
           rc = 5;
         System.out.println("\n*** Looking for missing files ***\n");
         if (checkTabletsCommand.tableName == null) {
-          if (RemoveEntriesForMissingFiles.checkAllTables(context, checkTabletsCommand.fixFiles) != 0)
+          if (RemoveEntriesForMissingFiles.checkAllTables(context,
+              checkTabletsCommand.fixFiles) != 0)
             rc = 6;
         } else {
-          if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName, checkTabletsCommand.fixFiles) != 0)
+          if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName,
+              checkTabletsCommand.fixFiles) != 0)
             rc = 6;
         }
 
@@ -271,7 +279,8 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private static int ping(ClientContext context, List<String> args) throws AccumuloException, AccumuloSecurityException {
+  private static int ping(ClientContext context, List<String> args)
+      throws AccumuloException, AccumuloSecurityException {
 
     InstanceOperations io = context.getConnector().instanceOperations();
 
@@ -296,11 +305,12 @@ public class Admin implements KeywordExecutable {
   }
 
   /**
-   * flushing during shutdown is a performance optimization, its not required. The method will make an attempt to initiate flushes of all tables and give up if
-   * it takes too long.
+   * flushing during shutdown is a performance optimization, its not required. The method will make
+   * an attempt to initiate flushes of all tables and give up if it takes too long.
    *
    */
-  private static void flushAll(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
+  private static void flushAll(final ClientContext context)
+      throws AccumuloException, AccumuloSecurityException {
 
     final AtomicInteger flushesStarted = new AtomicInteger(0);
 
@@ -353,7 +363,8 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private static void stopServer(final ClientContext context, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
+  private static void stopServer(final ClientContext context, final boolean tabletServersToo)
+      throws AccumuloException, AccumuloSecurityException {
     MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
@@ -362,19 +373,21 @@ public class Admin implements KeywordExecutable {
     });
   }
 
-  private static void stopTabletServer(final ClientContext context, List<String> servers, final boolean force) throws AccumuloException,
-      AccumuloSecurityException {
+  private static void stopTabletServer(final ClientContext context, List<String> servers,
+      final boolean force) throws AccumuloException, AccumuloSecurityException {
     if (context.getInstance().getMasterLocations().size() == 0) {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
     final Instance instance = context.getInstance();
     final String zTServerRoot = getTServersZkPath(instance);
-    final ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    final ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
     for (String server : servers) {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
-        final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
+        final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc,
+            address.toString());
         log.info("Stopping server {}", finalServer);
         MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
           @Override
@@ -404,9 +417,11 @@ public class Admin implements KeywordExecutable {
    *
    * @param hostAndPort
    *          The host and port for a TabletServer
-   * @return The host and port with the session ID in square-brackets appended, or the original value.
+   * @return The host and port with the session ID in square-brackets appended, or the original
+   *         value.
    */
-  static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache, String hostAndPort) {
+  static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache,
+      String hostAndPort) {
     try {
       long sessionId = ZooLock.getSessionId(zooCache, zTServerRoot + "/" + hostAndPort);
       if (0 == sessionId) {
@@ -427,10 +442,14 @@ public class Admin implements KeywordExecutable {
   private static final MessageFormat createTableFormat = new MessageFormat("createtable {0}\n");
   private static final MessageFormat createUserFormat = new MessageFormat("createuser {0}\n");
   private static final MessageFormat nsConfigFormat = new MessageFormat("config -ns {0} -s {1}\n");
-  private static final MessageFormat sysPermFormat = new MessageFormat("grant System.{0} -s -u {1}\n");
-  private static final MessageFormat nsPermFormat = new MessageFormat("grant Namespace.{0} -ns {1} -u {2}\n");
-  private static final MessageFormat tablePermFormat = new MessageFormat("grant Table.{0} -t {1} -u {2}\n");
-  private static final MessageFormat userAuthsFormat = new MessageFormat("setauths -u {0} -s {1}\n");
+  private static final MessageFormat sysPermFormat = new MessageFormat(
+      "grant System.{0} -s -u {1}\n");
+  private static final MessageFormat nsPermFormat = new MessageFormat(
+      "grant Namespace.{0} -ns {1} -u {2}\n");
+  private static final MessageFormat tablePermFormat = new MessageFormat(
+      "grant Table.{0} -t {1} -u {2}\n");
+  private static final MessageFormat userAuthsFormat = new MessageFormat(
+      "setauths -u {0} -s {1}\n");
 
   private DefaultConfiguration defaultConfig;
   private Map<String,String> siteConfig, systemConfig;
@@ -442,7 +461,8 @@ public class Admin implements KeywordExecutable {
     if (opts.directory != null) {
       outputDirectory = new File(opts.directory);
       if (!outputDirectory.isDirectory()) {
-        throw new IllegalArgumentException(opts.directory + " does not exist on the local filesystem.");
+        throw new IllegalArgumentException(
+            opts.directory + " does not exist on the local filesystem.");
       }
       if (!outputDirectory.canWrite()) {
         throw new IllegalArgumentException(opts.directory + " is not writable");
@@ -511,8 +531,9 @@ public class Admin implements KeywordExecutable {
     return defaultValue;
   }
 
-  private void printNameSpaceConfiguration(Connector connector, String namespace, File outputDirectory) throws IOException, AccumuloException,
-      AccumuloSecurityException, NamespaceNotFoundException {
+  private void printNameSpaceConfiguration(Connector connector, String namespace,
+      File outputDirectory)
+      throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
     FileWriter nsWriter = new FileWriter(namespaceScript);
     nsWriter.write(createNsFormat.format(new String[] {namespace}));
@@ -523,16 +544,18 @@ public class Admin implements KeywordExecutable {
     for (Entry<String,String> entry : props.entrySet()) {
       String defaultValue = getDefaultConfigValue(entry.getKey());
       if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
-        if (!entry.getValue().equals(siteConfig.get(entry.getKey())) && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
-          nsWriter.write(nsConfigFormat.format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
+        if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
+            && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
+          nsWriter.write(nsConfigFormat
+              .format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
         }
       }
     }
     nsWriter.close();
   }
 
-  private static void printUserConfiguration(Connector connector, String user, File outputDirectory) throws IOException, AccumuloException,
-      AccumuloSecurityException {
+  private static void printUserConfiguration(Connector connector, String user, File outputDirectory)
+      throws IOException, AccumuloException, AccumuloSecurityException {
     File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
     FileWriter userWriter = new FileWriter(userScript);
     userWriter.write(createUserFormat.format(new String[] {user}));
@@ -561,7 +584,8 @@ public class Admin implements KeywordExecutable {
     userWriter.close();
   }
 
-  private void printSystemConfiguration(Connector connector, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
+  private void printSystemConfiguration(Connector connector, File outputDirectory)
+      throws IOException, AccumuloException, AccumuloSecurityException {
     Configuration conf = new Configuration(false);
     TreeMap<String,String> site = new TreeMap<>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
@@ -583,8 +607,8 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private void printTableConfiguration(Connector connector, String tableName, File outputDirectory) throws AccumuloException, TableNotFoundException,
-      IOException, AccumuloSecurityException {
+  private void printTableConfiguration(Connector connector, String tableName, File outputDirectory)
+      throws AccumuloException, TableNotFoundException, IOException, AccumuloSecurityException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     FileWriter writer = new FileWriter(tableBackup);
     writer.write(createTableFormat.format(new String[] {tableName}));
@@ -596,8 +620,10 @@ public class Admin implements KeywordExecutable {
       if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
         String defaultValue = getDefaultConfigValue(prop.getKey());
         if (defaultValue == null || !defaultValue.equals(prop.getValue())) {
-          if (!prop.getValue().equals(siteConfig.get(prop.getKey())) && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
-            writer.write(configFormat.format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
+          if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
+              && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
+            writer.write(configFormat
+                .format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
           }
         }
       }

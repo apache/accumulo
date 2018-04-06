@@ -58,7 +58,8 @@ public class SerializationUtil {
     try {
       cm = c.asSubclass(parentClass);
     } catch (ClassCastException e) {
-      throw new IllegalArgumentException(classname + " is not a subclass of " + parentClass.getName(), e);
+      throw new IllegalArgumentException(
+          classname + " is not a subclass of " + parentClass.getName(), e);
     }
     try {
       return cm.newInstance();
@@ -145,10 +146,11 @@ public class SerializationUtil {
   /**
    * Serializes an {@code Object} to the specified stream.
    * <p>
-   * The stream will be closed once the object is written. This avoids the need for a finally clause, and maybe also exception handling, in the application
-   * code.
+   * The stream will be closed once the object is written. This avoids the need for a finally
+   * clause, and maybe also exception handling, in the application code.
    * <p>
-   * The stream passed in is not buffered internally within this method. This is the responsibility of your application if desired.
+   * The stream passed in is not buffered internally within this method. This is the responsibility
+   * of your application if desired.
    *
    * @param obj
    *          the object to serialize to bytes, may be null
@@ -194,10 +196,11 @@ public class SerializationUtil {
   /**
    * Deserializes an {@code Object} from the specified stream.
    * <p>
-   * The stream will be closed once the object is written. This avoids the need for a finally clause, and maybe also exception handling, in the application
-   * code.
+   * The stream will be closed once the object is written. This avoids the need for a finally
+   * clause, and maybe also exception handling, in the application code.
    * <p>
-   * The stream passed in is not buffered internally within this method. This is the responsibility of your application if desired.
+   * The stream passed in is not buffered internally within this method. This is the responsibility
+   * of your application if desired.
    *
    * @param inputStream
    *          the serialized object input stream, must not be null

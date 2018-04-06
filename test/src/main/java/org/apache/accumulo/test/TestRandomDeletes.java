@@ -61,7 +61,8 @@ public class TestRandomDeletes {
 
     @Override
     public boolean equals(Object obj) {
-      return this == obj || (obj != null && obj instanceof RowColumn && 0 == compareTo((RowColumn) obj));
+      return this == obj
+          || (obj != null && obj instanceof RowColumn && 0 == compareTo((RowColumn) obj));
     }
 
     @Override
@@ -78,23 +79,25 @@ public class TestRandomDeletes {
     }
   }
 
-  private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts, String tableName) throws Exception {
+  private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts,
+      String tableName) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<>();
     Connector conn = opts.getConnector();
     try (Scanner scanner = conn.createScanner(tableName, auths)) {
       scanner.setBatchSize(scanOpts.scanBatchSize);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
-        Column column = new Column(TextUtil.getBytes(key.getColumnFamily()), TextUtil.getBytes(key.getColumnQualifier()), TextUtil.getBytes(key
-            .getColumnVisibility()));
+        Column column = new Column(TextUtil.getBytes(key.getColumnFamily()),
+            TextUtil.getBytes(key.getColumnQualifier()),
+            TextUtil.getBytes(key.getColumnVisibility()));
         result.add(new RowColumn(key.getRow(), column, key.getTimestamp()));
       }
     }
     return result;
   }
 
-  private static long scrambleDeleteHalfAndCheck(ClientOnDefaultTable opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts, String tableName, Set<RowColumn> rows)
-      throws Exception {
+  private static long scrambleDeleteHalfAndCheck(ClientOnDefaultTable opts, ScannerOpts scanOpts,
+      BatchWriterOpts bwOpts, String tableName, Set<RowColumn> rows) throws Exception {
     int result = 0;
     ArrayList<RowColumn> entries = new ArrayList<>(rows);
     java.util.Collections.shuffle(entries);
@@ -105,8 +108,8 @@ public class TestRandomDeletes {
     for (int i = 0; i < (entries.size() + 1) / 2; i++) {
       RowColumn rc = entries.get(i);
       Mutation m = new Mutation(rc.row);
-      m.putDelete(new Text(rc.column.columnFamily), new Text(rc.column.columnQualifier), new ColumnVisibility(rc.column.getColumnVisibility()),
-          rc.timestamp + 1);
+      m.putDelete(new Text(rc.column.columnFamily), new Text(rc.column.columnQualifier),
+          new ColumnVisibility(rc.column.getColumnVisibility()), rc.timestamp + 1);
       mutations.addMutation(m);
       rows.remove(rc);
       result++;

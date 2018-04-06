@@ -24,7 +24,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * A simple future wrapper that will set an atomic boolean to true if a future is successfully canceled
+ * A simple future wrapper that will set an atomic boolean to true if a future is successfully
+ * canceled
  */
 public class CancelFlagFuture<T> implements Future<T> {
 
@@ -61,7 +62,8 @@ public class CancelFlagFuture<T> implements Future<T> {
   }
 
   @Override
-  public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+  public T get(long timeout, TimeUnit unit)
+      throws InterruptedException, ExecutionException, TimeoutException {
     return wrappedFuture.get(timeout, unit);
   }
 }

@@ -34,7 +34,8 @@ public class ColumnFamilyCounter implements SortedKeyValueIterator<Key,Value> {
   private Value value;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     this.source = source;
   }
 
@@ -54,7 +55,8 @@ public class ColumnFamilyCounter implements SortedKeyValueIterator<Key,Value> {
 
       int count = 1;
 
-      while (source.hasTop() && source.getTopKey().getRowData().equals(currentRow) && source.getTopKey().getColumnFamilyData().equals(currentColf)) {
+      while (source.hasTop() && source.getTopKey().getRowData().equals(currentRow)
+          && source.getTopKey().getColumnFamilyData().equals(currentColf)) {
         count++;
         source.next();
       }
@@ -69,7 +71,8 @@ public class ColumnFamilyCounter implements SortedKeyValueIterator<Key,Value> {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     source.seek(range, columnFamilies, inclusive);
     next();
   }

@@ -31,13 +31,14 @@ import org.apache.hadoop.io.Text;
  * The rules are:
  * <ul>
  * <li>All components of the {@link Key} are optional except the row</li>
- * <li>Components not explicitly set default to empty byte array except the timestamp which defaults to <code>Long.MAX_VALUE</code></li>
+ * <li>Components not explicitly set default to empty byte array except the timestamp which defaults
+ * to <code>Long.MAX_VALUE</code></li>
  * <li>The column qualifier can only be set if the column family has been set first</li>
  * <li>The column visibility can only be set if at least the column family has been set first</li>
  * </ul>
  *
- * The builder supports three types of components: <code>byte[]</code>, <code>Text</code> and <code>CharSequence</code>. <code>CharSequence</code>s must be
- * UTF-8 encoded.
+ * The builder supports three types of components: <code>byte[]</code>, <code>Text</code> and
+ * <code>CharSequence</code>. <code>CharSequence</code>s must be UTF-8 encoded.
  *
  * The builder is mutable and not thread safe.
  *
@@ -47,7 +48,8 @@ import org.apache.hadoop.io.Text;
 public class KeyBuilder {
 
   /**
-   * Base Builder interface which can be used to set the {@link Key} timestamp and delete marker and to build the {@link Key}.
+   * Base Builder interface which can be used to set the {@link Key} timestamp and delete marker and
+   * to build the {@link Key}.
    *
    * @since 2.0
    */
@@ -110,9 +112,11 @@ public class KeyBuilder {
      * @param row
      *          the row to use for the key
      * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     *          the offset within the array of the first byte to be read; must be non-negative and
+     *          no larger than row.length
      * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
+     *          the number of bytes to be read from the given array; must be non-negative and no
+     *          larger than row.length - offset
      * @return this builder
      */
     ColumnFamilyStep row(final byte[] row, int offset, int length);
@@ -149,9 +153,11 @@ public class KeyBuilder {
      * @param columnFamily
      *          the column family to use for the {@link Key}
      * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     *          the offset within the array of the first byte to be read; must be non-negative and
+     *          no larger than row.length
      * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
+     *          the number of bytes to be read from the given array; must be non-negative and no
+     *          larger than row.length - offset
      * @return this builder
      */
     ColumnQualifierStep family(final byte[] columnFamily, int offset, int length);
@@ -197,9 +203,11 @@ public class KeyBuilder {
      * @param columnQualifier
      *          the column qualifier to use for the {@link Key}
      * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     *          the offset within the array of the first byte to be read; must be non-negative and
+     *          no larger than row.length
      * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
+     *          the number of bytes to be read from the given array; must be non-negative and no
+     *          larger than row.length - offset
      * @return this builder
      */
     ColumnVisibilityStep qualifier(final byte[] columnQualifier, int offset, int length);
@@ -245,9 +253,11 @@ public class KeyBuilder {
      * @param columnVisibility
      *          the column visibility to use for the {@link Key}
      * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     *          the offset within the array of the first byte to be read; must be non-negative and
+     *          no larger than row.length
      * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
+     *          the number of bytes to be read from the given array; must be non-negative and no
+     *          larger than row.length - offset
      * @return this builder
      */
     Build visibility(final byte[] columnVisibility, int offset, int length);
@@ -283,7 +293,8 @@ public class KeyBuilder {
   /**
    * @since 2.0
    */
-  static class KeyBuilderImpl implements RowStep, ColumnFamilyStep, ColumnQualifierStep, ColumnVisibilityStep {
+  static class KeyBuilderImpl
+      implements RowStep, ColumnFamilyStep, ColumnQualifierStep, ColumnVisibilityStep {
 
     protected static final byte EMPTY_BYTES[] = new byte[0];
 
@@ -312,7 +323,9 @@ public class KeyBuilder {
     }
 
     private byte[] encodeCharSequence(CharSequence chars) {
-      CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT);
+      CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder()
+          .onMalformedInput(CodingErrorAction.REPORT)
+          .onUnmappableCharacter(CodingErrorAction.REPORT);
       try {
         return encoder.encode(CharBuffer.wrap(chars)).array();
       } catch (CharacterCodingException ex) {
@@ -432,8 +445,10 @@ public class KeyBuilder {
 
     @Override
     public Key build() {
-      return new Key(this.row, this.rowOffset, this.rowLength, this.family, this.familyOffset, this.familyLength, this.qualifier, this.qualifierOffset,
-          this.qualifierLength, this.visibility, this.visibilityOffset, this.visibilityLength, this.timestamp, this.deleted, false);
+      return new Key(this.row, this.rowOffset, this.rowLength, this.family, this.familyOffset,
+          this.familyLength, this.qualifier, this.qualifierOffset, this.qualifierLength,
+          this.visibility, this.visibilityOffset, this.visibilityLength, this.timestamp,
+          this.deleted, false);
     }
   }
 }

@@ -23,6 +23,7 @@ import org.apache.thrift.TException;
 
 public interface MasterMessage {
 
-  void send(TCredentials info, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException;
+  void send(TCredentials info, String serverName, MasterClientService.Iface client)
+      throws TException, ThriftSecurityException;
 
 }

@@ -81,7 +81,8 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
     return new IteratorTestOutput(DATA);
   }
 
-  public JUnitFrameworkTest(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestCase testCase) {
+  public JUnitFrameworkTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
     super(input, expectedOutput, testCase);
   }
 

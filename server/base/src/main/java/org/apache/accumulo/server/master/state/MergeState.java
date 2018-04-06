@@ -34,11 +34,13 @@ public enum MergeState {
    */
   WAITING_FOR_CHOPPED,
   /**
-   * when the number of chopped tablets in the range matches the number of online tablets in the range, take the tablets offline
+   * when the number of chopped tablets in the range matches the number of online tablets in the
+   * range, take the tablets offline
    */
   WAITING_FOR_OFFLINE,
   /**
-   * when the number of chopped, offline tablets equals the number of merge tablets, begin the metadata updates
+   * when the number of chopped, offline tablets equals the number of merge tablets, begin the
+   * metadata updates
    */
   MERGING,
   /**

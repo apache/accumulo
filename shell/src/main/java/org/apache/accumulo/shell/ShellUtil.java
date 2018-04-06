@@ -30,8 +30,9 @@ import org.apache.hadoop.io.Text;
 public class ShellUtil {
 
   /**
-   * Scans the given file line-by-line (ignoring empty lines) and returns a list containing those lines. If decode is set to true, every line is decoded using
-   * {@link Base64} from the UTF-8 bytes of that line before inserting in the list.
+   * Scans the given file line-by-line (ignoring empty lines) and returns a list containing those
+   * lines. If decode is set to true, every line is decoded using {@link Base64} from the UTF-8
+   * bytes of that line before inserting in the list.
    *
    * @param filename
    *          Path to the file that needs to be scanned

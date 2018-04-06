@@ -24,8 +24,9 @@ public class SaslClientDigestCallbackHandlerTest {
 
   @Test
   public void testEquality() {
-    SaslClientDigestCallbackHandler handler1 = new SaslClientDigestCallbackHandler("user", "mypass".toCharArray()), handler2 = new SaslClientDigestCallbackHandler(
-        "user", "mypass".toCharArray());
+    SaslClientDigestCallbackHandler handler1 = new SaslClientDigestCallbackHandler("user",
+        "mypass".toCharArray()),
+        handler2 = new SaslClientDigestCallbackHandler("user", "mypass".toCharArray());
     assertEquals(handler1, handler2);
     assertEquals(handler1.hashCode(), handler2.hashCode());
   }

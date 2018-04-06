@@ -116,15 +116,18 @@ public class StatusUtil {
    *          Offset of records which need to be replicated
    * @return A {@link Status} for the given parameters using the builder
    */
-  public static Status replicatedAndIngested(Status.Builder builder, long recordsReplicated, long recordsIngested) {
-    return builder.setBegin(recordsReplicated).setEnd(recordsIngested).setClosed(false).setInfiniteEnd(false).build();
+  public static Status replicatedAndIngested(Status.Builder builder, long recordsReplicated,
+      long recordsIngested) {
+    return builder.setBegin(recordsReplicated).setEnd(recordsIngested).setClosed(false)
+        .setInfiniteEnd(false).build();
   }
 
   /**
    * @return A {@link Status} for a new file that was just created
    */
   public static synchronized Status fileCreated(long timeCreated) {
-    // We're using a shared builder, so we need to synchronize access on it until we make a Status (which is then immutable)
+    // We're using a shared builder, so we need to synchronize access on it until we make a Status
+    // (which is then immutable)
     CREATED_STATUS_BUILDER.setCreatedTime(timeCreated);
     return CREATED_STATUS_BUILDER.build();
   }
@@ -151,7 +154,8 @@ public class StatusUtil {
   }
 
   /**
-   * @return A {@link Status} for an open file of unspecified length, all of which needs replicating.
+   * @return A {@link Status} for an open file of unspecified length, all of which needs
+   *         replicating.
    */
   public static Status openWithUnknownLength(long timeCreated) {
     Builder builder = Status.newBuilder();
@@ -164,7 +168,8 @@ public class StatusUtil {
   }
 
   /**
-   * @return A {@link Status} for an open file of unspecified length, all of which needs replicating.
+   * @return A {@link Status} for an open file of unspecified length, all of which needs
+   *         replicating.
    */
   public static Status openWithUnknownLength() {
     return INF_END_REPLICATION_STATUS;

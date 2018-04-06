@@ -47,7 +47,8 @@ public class TwoTierCompactionStrategyTest {
 
     HashMap<FileRef,DataFileValue> ret = new HashMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
+      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
+          new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
     }
 
     return ret;
@@ -66,8 +67,8 @@ public class TwoTierCompactionStrategyTest {
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
-    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "10M", "f2", "10M", "f3", "10M", "f4", "10M", "f5", "100M", "f6", "100M", "f7", "100M", "f8",
-        "100M");
+    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "10M", "f2", "10M", "f3", "10M", "f4",
+        "10M", "f5", "100M", "f6", "100M", "f7", "100M", "f8", "100M");
     mcr.setFiles(fileMap);
 
     Assert.assertTrue(ttcs.shouldCompact(mcr));
@@ -85,7 +86,8 @@ public class TwoTierCompactionStrategyTest {
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
-    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G");
+    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4",
+        "2G");
     mcr.setFiles(fileMap);
 
     Assert.assertTrue(ttcs.shouldCompact(mcr));
@@ -94,7 +96,8 @@ public class TwoTierCompactionStrategyTest {
     List<FileRef> filesToCompact = ttcs.getCompactionPlan(mcr).inputFiles;
     Assert.assertEquals(fileMap.keySet(), new HashSet<>(filesToCompact));
     Assert.assertEquals(4, filesToCompact.size());
-    Assert.assertEquals(largeCompressionType, ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
+    Assert.assertEquals(largeCompressionType,
+        ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
   }
 
   @Test
@@ -114,8 +117,10 @@ public class TwoTierCompactionStrategyTest {
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
-    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "1G", "f2", "10M", "f3", "10M", "f4", "10M", "f5", "10M", "f6", "10M", "f7", "10M");
-    Map<FileRef,DataFileValue> filesToCompactMap = createFileMap("f2", "10M", "f3", "10M", "f4", "10M", "f5", "10M", "f6", "10M", "f7", "10M");
+    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "1G", "f2", "10M", "f3", "10M", "f4",
+        "10M", "f5", "10M", "f6", "10M", "f7", "10M");
+    Map<FileRef,DataFileValue> filesToCompactMap = createFileMap("f2", "10M", "f3", "10M", "f4",
+        "10M", "f5", "10M", "f6", "10M", "f7", "10M");
     mcr.setFiles(fileMap);
 
     Assert.assertTrue(ttcs.shouldCompact(mcr));

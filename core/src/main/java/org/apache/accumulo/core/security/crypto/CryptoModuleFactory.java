@@ -40,8 +40,9 @@ public class CryptoModuleFactory {
   /**
    * This method returns a crypto module based on settings in the given configuration parameter.
    *
-   * @return a class implementing the CryptoModule interface. It will *never* return null; rather, it will return a class which obeys the interface but makes no
-   *         changes to the underlying data.
+   * @return a class implementing the CryptoModule interface. It will *never* return null; rather,
+   *         it will return a class which obeys the interface but makes no changes to the underlying
+   *         data.
    */
   public static CryptoModule getCryptoModule(AccumuloConfiguration conf) {
     String cryptoModuleClassname = conf.get(Property.CRYPTO_MODULE_CLASS);
@@ -75,21 +76,26 @@ public class CryptoModuleFactory {
     log.debug("About to instantiate crypto module {}", cryptoModuleClassname);
 
     try {
-      CryptoModule cryptoModule = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname).asSubclass(CryptoModule.class).newInstance();
+      CryptoModule cryptoModule = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname)
+          .asSubclass(CryptoModule.class).newInstance();
 
       log.debug("Successfully instantiated crypto module {}", cryptoModuleClassname);
 
       return cryptoModule;
     } catch (ClassNotFoundException e1) {
-      throw new IllegalArgumentException("Could not find configured crypto module " + cryptoModuleClassname);
+      throw new IllegalArgumentException(
+          "Could not find configured crypto module " + cryptoModuleClassname);
     } catch (ClassCastException cce) {
-      throw new IllegalArgumentException("Configured Accumulo crypto module " + cryptoModuleClassname + " does not implement the CryptoModule interface.");
+      throw new IllegalArgumentException("Configured Accumulo crypto module "
+          + cryptoModuleClassname + " does not implement the CryptoModule interface.");
     } catch (InstantiationException | IllegalAccessException e) {
-      throw new IllegalArgumentException("Unable to instantiate the crypto module: " + cryptoModuleClassname, e);
+      throw new IllegalArgumentException(
+          "Unable to instantiate the crypto module: " + cryptoModuleClassname, e);
     }
   }
 
-  public static SecretKeyEncryptionStrategy getSecretKeyEncryptionStrategy(AccumuloConfiguration conf) {
+  public static SecretKeyEncryptionStrategy getSecretKeyEncryptionStrategy(
+      AccumuloConfiguration conf) {
     String className = conf.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS);
     return getSecretKeyEncryptionStrategy(className);
   }
@@ -117,23 +123,27 @@ public class CryptoModuleFactory {
     return strategy;
   }
 
-  private static SecretKeyEncryptionStrategy instantiateSecreteKeyEncryptionStrategy(String className) {
+  private static SecretKeyEncryptionStrategy instantiateSecreteKeyEncryptionStrategy(
+      String className) {
 
     log.debug("About to instantiate secret key encryption strategy {}", className);
 
     try {
-      SecretKeyEncryptionStrategy strategy = AccumuloVFSClassLoader.loadClass(className).asSubclass(SecretKeyEncryptionStrategy.class).newInstance();
+      SecretKeyEncryptionStrategy strategy = AccumuloVFSClassLoader.loadClass(className)
+          .asSubclass(SecretKeyEncryptionStrategy.class).newInstance();
 
       log.debug("Successfully instantiated secret key encryption strategy {}", className);
 
       return strategy;
     } catch (ClassNotFoundException e1) {
-      throw new IllegalArgumentException("Could not find configured secret key encryption strategy: " + className);
+      throw new IllegalArgumentException(
+          "Could not find configured secret key encryption strategy: " + className);
     } catch (ClassCastException e) {
-      throw new IllegalArgumentException("Configured Accumulo secret key encryption strategy \"" + className
-          + "\" does not implement the SecretKeyEncryptionStrategy interface.");
+      throw new IllegalArgumentException("Configured Accumulo secret key encryption strategy \""
+          + className + "\" does not implement the SecretKeyEncryptionStrategy interface.");
     } catch (InstantiationException | IllegalAccessException e) {
-      throw new IllegalArgumentException("Unable to instantiate the secret key encryption strategy: " + className, e);
+      throw new IllegalArgumentException(
+          "Unable to instantiate the secret key encryption strategy: " + className, e);
     }
   }
 
@@ -158,13 +168,15 @@ public class CryptoModuleFactory {
   static class NullCryptoModule implements CryptoModule {
 
     @Override
-    public CryptoModuleParameters getEncryptingOutputStream(CryptoModuleParameters params) throws IOException {
+    public CryptoModuleParameters getEncryptingOutputStream(CryptoModuleParameters params)
+        throws IOException {
       params.setEncryptedOutputStream(params.getPlaintextOutputStream());
       return params;
     }
 
     @Override
-    public CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params) throws IOException {
+    public CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params)
+        throws IOException {
       params.setPlaintextInputStream(params.getEncryptedInputStream());
       return params;
     }
@@ -182,23 +194,28 @@ public class CryptoModuleFactory {
 
   }
 
-  public static CryptoModuleParameters createParamsObjectFromAccumuloConfiguration(AccumuloConfiguration conf) {
+  public static CryptoModuleParameters createParamsObjectFromAccumuloConfiguration(
+      AccumuloConfiguration conf) {
     CryptoModuleParameters params = new CryptoModuleParameters();
 
     return fillParamsObjectFromConfiguration(params, conf);
   }
 
-  public static CryptoModuleParameters fillParamsObjectFromConfiguration(CryptoModuleParameters params, AccumuloConfiguration conf) {
+  public static CryptoModuleParameters fillParamsObjectFromConfiguration(
+      CryptoModuleParameters params, AccumuloConfiguration conf) {
     // Get all the options from the configuration
-    Map<String,String> cryptoOpts = new HashMap<>(conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
+    Map<String,String> cryptoOpts = new HashMap<>(
+        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
     cryptoOpts.putAll(conf.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX));
     cryptoOpts.remove(Property.INSTANCE_SECRET.getKey());
-    cryptoOpts.put(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey(), Integer.toString((int) conf.getAsBytes(Property.CRYPTO_BLOCK_STREAM_SIZE)));
+    cryptoOpts.put(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey(),
+        Integer.toString((int) conf.getAsBytes(Property.CRYPTO_BLOCK_STREAM_SIZE)));
 
     return fillParamsObjectFromStringMap(params, cryptoOpts);
   }
 
-  public static CryptoModuleParameters fillParamsObjectFromStringMap(CryptoModuleParameters params, Map<String,String> cryptoOpts) {
+  public static CryptoModuleParameters fillParamsObjectFromStringMap(CryptoModuleParameters params,
+      Map<String,String> cryptoOpts) {
     params.setCipherSuite(cryptoOpts.get(Property.CRYPTO_CIPHER_SUITE.getKey()));
     // If no encryption has been specified, then we abort here.
     if (params.getCipherSuite() == null || params.getCipherSuite().equals("NullCipher")) {
@@ -210,12 +227,15 @@ public class CryptoModuleFactory {
     params.setAllOptions(cryptoOpts);
 
     params.setKeyAlgorithmName(cryptoOpts.get(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey()));
-    params.setKeyEncryptionStrategyClass(cryptoOpts.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
-    params.setKeyLength(Integer.parseInt(cryptoOpts.get(Property.CRYPTO_CIPHER_KEY_LENGTH.getKey())));
-    params.setOverrideStreamsSecretKeyEncryptionStrategy(Boolean.parseBoolean(cryptoOpts.get(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY
-        .getKey())));
+    params.setKeyEncryptionStrategyClass(
+        cryptoOpts.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
+    params
+        .setKeyLength(Integer.parseInt(cryptoOpts.get(Property.CRYPTO_CIPHER_KEY_LENGTH.getKey())));
+    params.setOverrideStreamsSecretKeyEncryptionStrategy(Boolean.parseBoolean(
+        cryptoOpts.get(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY.getKey())));
     params.setRandomNumberGenerator(cryptoOpts.get(Property.CRYPTO_SECURE_RNG.getKey()));
-    params.setRandomNumberGeneratorProvider(cryptoOpts.get(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey()));
+    params.setRandomNumberGeneratorProvider(
+        cryptoOpts.get(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey()));
     params.setSecurityProvider(cryptoOpts.get(Property.CRYPTO_SECURITY_PROVIDER.getKey()));
     String blockStreamSize = cryptoOpts.get(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey());
     if (blockStreamSize != null)

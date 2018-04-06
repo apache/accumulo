@@ -22,7 +22,8 @@ import static java.util.Objects.requireNonNull;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Configuration options for obtaining a delegation token created by {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}
+ * Configuration options for obtaining a delegation token created by
+ * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}
  *
  * @since 1.7.0
  */
@@ -31,8 +32,8 @@ public class DelegationTokenConfig {
   private long lifetime = 0;
 
   /**
-   * Requests a specific lifetime for the token that is different than the default system lifetime. The lifetime must not exceed the secret key lifetime
-   * configured on the servers.
+   * Requests a specific lifetime for the token that is different than the default system lifetime.
+   * The lifetime must not exceed the secret key lifetime configured on the servers.
    *
    * @param lifetime
    *          Token lifetime
@@ -48,7 +49,8 @@ public class DelegationTokenConfig {
   }
 
   /**
-   * The current token lifetime. A value of zero corresponds to using the system configured lifetime.
+   * The current token lifetime. A value of zero corresponds to using the system configured
+   * lifetime.
    *
    * @param unit
    *          The unit of time the lifetime should be returned in

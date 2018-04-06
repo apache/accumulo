@@ -124,8 +124,8 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
           fs.mkdirs(files);
           for (int i = 0; i < 100; i++) {
             FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-                .forFile(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf()).withTableConfiguration(DefaultConfiguration.getInstance())
-                .build();
+                .forFile(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf())
+                .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
               writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
@@ -160,7 +160,8 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
     }
     es.shutdown();
     es.awaitTermination(2, TimeUnit.MINUTES);
-    log.info(String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
+    log.info(
+        String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
     sleepUninterruptibly(30, TimeUnit.SECONDS);
     long getFileInfoOpts = getOpts() - startOps;
     log.info("# opts: {}", getFileInfoOpts);

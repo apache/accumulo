@@ -19,8 +19,8 @@ package org.apache.accumulo.core.util;
 import java.util.function.Predicate;
 
 /**
- * A class that validates arguments of a particular type. Implementations must implement {@link #test(Object)} and should override
- * {@link #invalidMessage(Object)}.
+ * A class that validates arguments of a particular type. Implementations must implement
+ * {@link #test(Object)} and should override {@link #invalidMessage(Object)}.
  */
 public abstract class Validator<T> implements Predicate<T> {
 
@@ -51,8 +51,8 @@ public abstract class Validator<T> implements Predicate<T> {
   }
 
   /**
-   * Creates a new validator that is the conjunction of this one and the given one. An argument passed to the returned validator is valid only if it passes both
-   * validators.
+   * Creates a new validator that is the conjunction of this one and the given one. An argument
+   * passed to the returned validator is valid only if it passes both validators.
    *
    * @param other
    *          other validator
@@ -78,8 +78,8 @@ public abstract class Validator<T> implements Predicate<T> {
   }
 
   /**
-   * Creates a new validator that is the disjunction of this one and the given one. An argument passed to the returned validator is valid only if it passes at
-   * least one of the validators.
+   * Creates a new validator that is the disjunction of this one and the given one. An argument
+   * passed to the returned validator is valid only if it passes at least one of the validators.
    *
    * @param other
    *          other validator
@@ -105,7 +105,8 @@ public abstract class Validator<T> implements Predicate<T> {
   }
 
   /**
-   * Creates a new validator that is the negation of this one. An argument passed to the returned validator is valid only if it fails this one.
+   * Creates a new validator that is the negation of this one. An argument passed to the returned
+   * validator is valid only if it fails this one.
    *
    * @return negated validator
    */

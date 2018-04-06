@@ -55,9 +55,11 @@ public class MutationsRejectedException extends AccumuloException {
    *
    * @since 1.7.0
    */
-  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, Map<TabletId,Set<SecurityErrorCode>> hashMap,
-      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(hashMap, instance) + "  # server errors " + serverSideErrors.size()
+  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
+      Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
+      int unknownErrors, Throwable cause) {
+    super("# constraint violations : " + cvsList.size() + "  security codes: "
+        + format(hashMap, instance) + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = hashMap;
@@ -70,7 +72,8 @@ public class MutationsRejectedException extends AccumuloException {
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       TabletId tabletId = entry.getKey();
-      String tableInfo = Tables.getPrintableTableInfoFromId(instance, Table.ID.of(tabletId.getTableId().toString()));
+      String tableInfo = Tables.getPrintableTableInfoFromId(instance,
+          Table.ID.of(tabletId.getTableId().toString()));
 
       if (!result.containsKey(tableInfo)) {
         result.put(tableInfo, new HashSet<>());

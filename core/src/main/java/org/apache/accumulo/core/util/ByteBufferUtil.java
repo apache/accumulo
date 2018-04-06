@@ -37,7 +37,8 @@ public class ByteBufferUtil {
       return null;
     if (buffer.hasArray()) {
       // did not use buffer.get() because it changes the position
-      return Arrays.copyOfRange(buffer.array(), buffer.position() + buffer.arrayOffset(), buffer.limit() + buffer.arrayOffset());
+      return Arrays.copyOfRange(buffer.array(), buffer.position() + buffer.arrayOffset(),
+          buffer.limit() + buffer.arrayOffset());
     } else {
       byte[] data = new byte[buffer.remaining()];
       // duplicate inorder to avoid changing position
@@ -72,7 +73,8 @@ public class ByteBufferUtil {
 
     if (byteBuffer.hasArray()) {
       Text result = new Text();
-      result.set(byteBuffer.array(), byteBuffer.arrayOffset() + byteBuffer.position(), byteBuffer.remaining());
+      result.set(byteBuffer.array(), byteBuffer.arrayOffset() + byteBuffer.position(),
+          byteBuffer.remaining());
       return result;
     } else {
       return new Text(toBytes(byteBuffer));
@@ -81,7 +83,8 @@ public class ByteBufferUtil {
 
   public static String toString(ByteBuffer bytes) {
     if (bytes.hasArray()) {
-      return new String(bytes.array(), bytes.arrayOffset() + bytes.position(), bytes.remaining(), UTF_8);
+      return new String(bytes.array(), bytes.arrayOffset() + bytes.position(), bytes.remaining(),
+          UTF_8);
     } else {
       return new String(toBytes(bytes), UTF_8);
     }
@@ -112,7 +115,8 @@ public class ByteBufferUtil {
 
   public static ByteArrayInputStream toByteArrayInputStream(ByteBuffer buffer) {
     if (buffer.hasArray()) {
-      return new ByteArrayInputStream(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
+      return new ByteArrayInputStream(buffer.array(), buffer.arrayOffset() + buffer.position(),
+          buffer.remaining());
     } else {
       return new ByteArrayInputStream(toBytes(buffer));
     }

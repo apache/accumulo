@@ -119,8 +119,10 @@ public class ShellOptionsJC {
   }
 
   // Note: Don't use "password = true" because then it will prompt even if we have a token
-  @Parameter(names = {"-p", "--password"}, description = "password (can be specified as 'pass:<password>', 'file:<local file containing the password>', "
-      + "'env:<variable containing the pass>', or stdin)", converter = PasswordConverter.class)
+  @Parameter(names = {"-p", "--password"},
+      description = "password (can be specified as 'pass:<password>', 'file:<local file containing the password>', "
+          + "'env:<variable containing the pass>', or stdin)",
+      converter = PasswordConverter.class)
   private String password;
 
   public static class TokenConverter implements IStringConverter<AuthenticationToken> {
@@ -129,20 +131,25 @@ public class ShellOptionsJC {
       try {
         return Class.forName(value).asSubclass(AuthenticationToken.class).newInstance();
       } catch (Exception e) {
-        // Catching ClassNotFoundException, ClassCastException, InstantiationException and IllegalAccessException
+        // Catching ClassNotFoundException, ClassCastException, InstantiationException and
+        // IllegalAccessException
         log.error("Could not instantiate AuthenticationToken {}", value, e);
         throw new ParameterException(e);
       }
     }
   }
 
-  @Parameter(names = {"-tc", "--tokenClass"}, description = "token type to create, use the -l to pass options", converter = TokenConverter.class)
+  @Parameter(names = {"-tc", "--tokenClass"},
+      description = "token type to create, use the -l to pass options",
+      converter = TokenConverter.class)
   private AuthenticationToken authenticationToken;
 
-  @DynamicParameter(names = {"-l", "--tokenProperty"}, description = "login properties in the format key=value. Reuse -l for each property")
+  @DynamicParameter(names = {"-l", "--tokenProperty"},
+      description = "login properties in the format key=value. Reuse -l for each property")
   private Map<String,String> tokenProperties = new TreeMap<>();
 
-  @Parameter(names = "--disable-tab-completion", description = "disables tab completion (for less overhead when scripting)")
+  @Parameter(names = "--disable-tab-completion",
+      description = "disables tab completion (for less overhead when scripting)")
   private boolean tabCompletionDisabled;
 
   @Parameter(names = "--debug", description = "enables client debugging")
@@ -154,18 +161,23 @@ public class ShellOptionsJC {
   @Parameter(names = {"-?", "--help"}, help = true, description = "display this help")
   private boolean helpEnabled;
 
-  @Parameter(names = {"-e", "--execute-command"}, description = "executes a command, and then exits")
+  @Parameter(names = {"-e", "--execute-command"},
+      description = "executes a command, and then exits")
   private String execCommand;
 
-  @Parameter(names = {"-f", "--execute-file"}, description = "executes commands from a file at startup", converter = FileConverter.class)
+  @Parameter(names = {"-f", "--execute-file"},
+      description = "executes commands from a file at startup", converter = FileConverter.class)
   private File execFile;
 
-  @Parameter(names = {"-fv", "--execute-file-verbose"}, description = "executes commands from a file at startup, with commands shown",
+  @Parameter(names = {"-fv", "--execute-file-verbose"},
+      description = "executes commands from a file at startup, with commands shown",
       converter = FileConverter.class)
   private File execFileVerbose;
 
-  @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts. "
-      + "Syntax: -z <zoo-instance-name> <zoo-hosts>. Where <zoo-hosts> is a comma separated list of zookeeper servers.", arity = 2)
+  @Parameter(names = {"-z", "--zooKeeperInstance"},
+      description = "use a zookeeper instance with the given instance name and list of zoo hosts. "
+          + "Syntax: -z <zoo-instance-name> <zoo-hosts>. Where <zoo-hosts> is a comma separated list of zookeeper servers.",
+      arity = 2)
   private List<String> zooKeeperInstance = new ArrayList<>();
 
   @Parameter(names = {"--ssl"}, description = "use ssl to connect to accumulo")
@@ -174,22 +186,27 @@ public class ShellOptionsJC {
   @Parameter(names = "--sasl", description = "use SASL to connect to Accumulo (Kerberos)")
   private boolean useSasl = false;
 
-  @Parameter(names = "--config-file", description = "Read the given accumulo-client.properties file. If omitted, the following locations will be searched "
-      + "~/.accumulo/accumulo-client.properties:$ACCUMULO_CONF_DIR/accumulo-client.properties:/etc/accumulo/accumulo-client.properties")
+  @Parameter(names = "--config-file",
+      description = "Read the given accumulo-client.properties file. If omitted, the following locations will be searched "
+          + "~/.accumulo/accumulo-client.properties:$ACCUMULO_CONF_DIR/accumulo-client.properties:/etc/accumulo/accumulo-client.properties")
   private String clientConfigFile = null;
 
-  @Parameter(names = {"-zi", "--zooKeeperInstanceName"}, description = "use a zookeeper instance with the given instance name. "
-      + "This parameter is used in conjunction with -zh.")
+  @Parameter(names = {"-zi", "--zooKeeperInstanceName"},
+      description = "use a zookeeper instance with the given instance name. "
+          + "This parameter is used in conjunction with -zh.")
   private String zooKeeperInstanceName;
 
-  @Parameter(names = {"-zh", "--zooKeeperHosts"}, description = "use a zookeeper instance with the given comma separated list of zookeeper servers. "
-      + "This parameter is used in conjunction with -zi.")
+  @Parameter(names = {"-zh", "--zooKeeperHosts"},
+      description = "use a zookeeper instance with the given comma separated list of zookeeper servers. "
+          + "This parameter is used in conjunction with -zi.")
   private String zooKeeperHosts;
 
-  @Parameter(names = "--auth-timeout", description = "minutes the shell can be idle without re-entering a password")
+  @Parameter(names = "--auth-timeout",
+      description = "minutes the shell can be idle without re-entering a password")
   private int authTimeout = 60; // TODO Add validator for positive number
 
-  @Parameter(names = "--disable-auth-timeout", description = "disables requiring the user to re-type a password after being idle")
+  @Parameter(names = "--disable-auth-timeout",
+      description = "disables requiring the user to re-type a password after being idle")
   private boolean authTimeoutDisabled;
 
   @Parameter(hidden = true)
@@ -201,12 +218,14 @@ public class ShellOptionsJC {
       if (username == null || username.isEmpty()) {
         if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
           if (!UserGroupInformation.isSecurityEnabled()) {
-            throw new IllegalArgumentException("Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in accumulo-client.properties");
+            throw new IllegalArgumentException(
+                "Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in accumulo-client.properties");
           }
           UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
           username = ugi.getUserName();
         } else {
-          throw new IllegalArgumentException("Username is not set. Run with '-u myuser' or set 'auth.username' in accumulo-client.properties");
+          throw new IllegalArgumentException(
+              "Username is not set. Run with '-u myuser' or set 'auth.username' in accumulo-client.properties");
         }
       }
     }
@@ -318,7 +337,8 @@ public class ShellOptionsJC {
       try (InputStream is = new FileInputStream(getClientConfigFile())) {
         props.load(is);
       } catch (IOException e) {
-        throw new IllegalArgumentException("Failed to load properties from " + getClientConfigFile());
+        throw new IllegalArgumentException(
+            "Failed to load properties from " + getClientConfigFile());
       }
     }
     if (useSsl()) {

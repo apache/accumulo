@@ -46,7 +46,8 @@ public class RowHash extends Configured implements Tool {
     @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
       Mutation m = new Mutation(row.getRow());
-      m.put(new Text("cf-HASHTYPE"), new Text("cq-MD5BASE64"), new Value(Base64.getEncoder().encode(MD5Hash.digest(data.toString()).getDigest())));
+      m.put(new Text("cf-HASHTYPE"), new Text("cq-MD5BASE64"),
+          new Value(Base64.getEncoder().encode(MD5Hash.digest(data.toString()).getDigest())));
       context.write(null, m);
       context.progress();
     }

@@ -54,7 +54,8 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TABLE_BLOCKCACHE_ENABLED, "false");
   }
 
-  private static Thread slowScan(final Connector c, final String tableName, final AtomicBoolean stop) {
+  private static Thread slowScan(final Connector c, final String tableName,
+      final AtomicBoolean stop) {
     Thread thread = new Thread() {
       @Override
       public void run() {

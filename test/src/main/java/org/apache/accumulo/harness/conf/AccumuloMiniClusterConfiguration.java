@@ -54,7 +54,8 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
     }
 
     this.conf = getConfiguration(type);
-    this.saslEnabled = TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION));
+    this.saslEnabled = TRUE
+        .equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION));
     log.debug("SASL is {}enabled", (saslEnabled ? "" : "not "));
   }
 
@@ -82,7 +83,8 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
 
       ClusterUser rootUser = AccumuloClusterHarness.getKdc().getRootUser();
       try {
-        UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+        UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
+            rootUser.getKeytab().getAbsolutePath());
         return new KerberosToken();
       } catch (IOException e) {
         throw new RuntimeException(e);

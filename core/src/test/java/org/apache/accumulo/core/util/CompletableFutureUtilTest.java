@@ -39,12 +39,14 @@ public class CompletableFutureUtilTest {
           futures.add(CompletableFuture.supplyAsync(() -> num, es));
         }
 
-        CompletableFuture<Integer> mergedFutures = CompletableFutureUtil.merge(futures, Integer::sum, () -> 0);
+        CompletableFuture<Integer> mergedFutures = CompletableFutureUtil.merge(futures,
+            Integer::sum, () -> 0);
         Assert.assertEquals(n * (n + 1) / 2, mergedFutures.get().intValue());
       }
 
       // test zero
-      CompletableFuture<Integer> mergedFutures = CompletableFutureUtil.merge(Collections.emptyList(), Integer::sum, () -> 0);
+      CompletableFuture<Integer> mergedFutures = CompletableFutureUtil
+          .merge(Collections.emptyList(), Integer::sum, () -> 0);
       Assert.assertEquals(0, mergedFutures.get().intValue());
     } finally {
       es.shutdown();

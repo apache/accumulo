@@ -41,34 +41,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This compaction strategy works in concert with the {@link DeletesSummarizer}. Using the statistics from DeleteSummarizer this strategy will compact all files
- * in a table when the number of deletes/non-deletes exceeds a threshold.
+ * This compaction strategy works in concert with the {@link DeletesSummarizer}. Using the
+ * statistics from DeleteSummarizer this strategy will compact all files in a table when the number
+ * of deletes/non-deletes exceeds a threshold.
  *
  * <p>
- * This strategy has two options. First the {@value #THRESHOLD_OPT} option allows setting the point at which a compaction will be triggered. This options
- * defaults to {@value #THRESHOLD_OPT_DEFAULT} and must be in the range (0.0, 1.0]. The second option is {@value #PROCEED_ZERO_NO_SUMMARY_OPT} which determines
- * if the strategy should proceed when a bulk imported file has no summary information.
+ * This strategy has two options. First the {@value #THRESHOLD_OPT} option allows setting the point
+ * at which a compaction will be triggered. This options defaults to {@value #THRESHOLD_OPT_DEFAULT}
+ * and must be in the range (0.0, 1.0]. The second option is {@value #PROCEED_ZERO_NO_SUMMARY_OPT}
+ * which determines if the strategy should proceed when a bulk imported file has no summary
+ * information.
  *
  * <p>
- * If the delete summarizer was configured on a table that already had files, then those files will have not summary information. This strategy can still
- * proceed in this situation. It will fall back to using Accumulo's estimated entires per file in this case. For the files without summary information the
- * estimated number of deletes will be zero. This fall back method will underestimate deletes which will not lead to false positives, except for the case of
- * bulk imported files. Accumulo estimates that bulk imported files have zero entires. The second option {@value #PROCEED_ZERO_NO_SUMMARY_OPT} determines if
- * this strategy should proceed when it sees bulk imported files that do not have summary data. This option defaults to
+ * If the delete summarizer was configured on a table that already had files, then those files will
+ * have not summary information. This strategy can still proceed in this situation. It will fall
+ * back to using Accumulo's estimated entires per file in this case. For the files without summary
+ * information the estimated number of deletes will be zero. This fall back method will
+ * underestimate deletes which will not lead to false positives, except for the case of bulk
+ * imported files. Accumulo estimates that bulk imported files have zero entires. The second option
+ * {@value #PROCEED_ZERO_NO_SUMMARY_OPT} determines if this strategy should proceed when it sees
+ * bulk imported files that do not have summary data. This option defaults to
  * {@value #PROCEED_ZERO_NO_SUMMARY_OPT_DEFAULT}.
  *
  * <p>
  * Bulk files can be generated with summary information by calling
- * {@link AccumuloFileOutputFormat#setSummarizers(org.apache.hadoop.mapred.JobConf, SummarizerConfiguration...)} or
- * {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
+ * {@link AccumuloFileOutputFormat#setSummarizers(org.apache.hadoop.mapred.JobConf, SummarizerConfiguration...)}
+ * or {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
  *
  * <p>
- * When this strategy does not decide to compact based on the number of deletes, then it will defer the decision to the {@link DefaultCompactionStrategy}.
+ * When this strategy does not decide to compact based on the number of deletes, then it will defer
+ * the decision to the {@link DefaultCompactionStrategy}.
  *
  * <p>
- * Configuring this compaction strategy for a table will cause it to always queue compactions, even though it may not decide to compact. These queued
- * compactions may show up on the Accumulo monitor page. This is because summary data can not be read until after compaction is queued and dequeued. When the
- * compaction is dequeued it can then decide not to compact. See <a href=https://issues.apache.org/jira/browse/ACCUMULO-4573>ACCUMULO-4573</a>
+ * Configuring this compaction strategy for a table will cause it to always queue compactions, even
+ * though it may not decide to compact. These queued compactions may show up on the Accumulo monitor
+ * page. This is because summary data can not be read until after compaction is queued and dequeued.
+ * When the compaction is dequeued it can then decide not to compact. See <a
+ * href=https://issues.apache.org/jira/browse/ACCUMULO-4573>ACCUMULO-4573</a>
  *
  * @since 2.0.0
  */
@@ -99,20 +108,26 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
   public void init(Map<String,String> options) {
     this.threshold = Double.parseDouble(options.getOrDefault(THRESHOLD_OPT, THRESHOLD_OPT_DEFAULT));
     if (threshold <= 0.0 || threshold > 1.0) {
-      throw new IllegalArgumentException("Threshold must be in range (0.0, 1.0], saw : " + threshold);
+      throw new IllegalArgumentException(
+          "Threshold must be in range (0.0, 1.0], saw : " + threshold);
     }
 
-    this.proceed_bns = Boolean.parseBoolean(options.getOrDefault(PROCEED_ZERO_NO_SUMMARY_OPT, PROCEED_ZERO_NO_SUMMARY_OPT_DEFAULT));
+    this.proceed_bns = Boolean.parseBoolean(
+        options.getOrDefault(PROCEED_ZERO_NO_SUMMARY_OPT, PROCEED_ZERO_NO_SUMMARY_OPT_DEFAULT));
   }
 
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
-    Collection<SummarizerConfiguration> configuredSummarizers = SummarizerConfiguration.fromTableProperties(request.getTableProperties());
+    Collection<SummarizerConfiguration> configuredSummarizers = SummarizerConfiguration
+        .fromTableProperties(request.getTableProperties());
 
     // check if delete summarizer is configured for table
-    if (configuredSummarizers.stream().map(sc -> sc.getClassName()).anyMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
-      // This is called before gatherInformation, so need to always queue for compaction until info can be gathered. Also its not safe to request summary
-      // information here as its a blocking operation. Blocking operations are not allowed in shouldCompact.
+    if (configuredSummarizers.stream().map(sc -> sc.getClassName())
+        .anyMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
+      // This is called before gatherInformation, so need to always queue for compaction until info
+      // can be gathered. Also its not safe to request summary
+      // information here as its a blocking operation. Blocking operations are not allowed in
+      // shouldCompact.
       return true;
     } else {
       return super.shouldCompact(request);
@@ -123,14 +138,15 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
   public void gatherInformation(MajorCompactionRequest request) throws IOException {
     super.gatherInformation(request);
 
-    Predicate<SummarizerConfiguration> summarizerPredicate = conf -> conf.getClassName().equals(DeletesSummarizer.class.getName())
-        && conf.getOptions().isEmpty();
+    Predicate<SummarizerConfiguration> summarizerPredicate = conf -> conf.getClassName()
+        .equals(DeletesSummarizer.class.getName()) && conf.getOptions().isEmpty();
 
     long total = 0;
     long deletes = 0;
 
     for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
-      Collection<Summary> summaries = request.getSummaries(Collections.singleton(entry.getKey()), summarizerPredicate);
+      Collection<Summary> summaries = request.getSummaries(Collections.singleton(entry.getKey()),
+          summarizerPredicate);
       if (summaries.size() == 1) {
         Summary summary = summaries.iterator().next();
         total += summary.getStatistics().get(TOTAL_STAT);
@@ -150,7 +166,8 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
     long nonDeletes = total - deletes;
 
     if (nonDeletes >= 0) {
-      // check nonDeletes >= 0 because if this is not true then its clear evidence that the estimates are off
+      // check nonDeletes >= 0 because if this is not true then its clear evidence that the
+      // estimates are off
 
       double ratio = deletes / (double) nonDeletes;
       shouldCompact = ratio >= threshold;

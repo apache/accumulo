@@ -37,12 +37,14 @@ import org.slf4j.LoggerFactory;
 /**
  * Read work records from the replication table, create work entries for other nodes to complete.
  * <p>
- * Uses the DistributedWorkQueue to make the work available for any tserver. This approach does not consider the locality of the tabletserver performing the
- * work in relation to the data being replicated (local HDFS blocks).
+ * Uses the DistributedWorkQueue to make the work available for any tserver. This approach does not
+ * consider the locality of the tabletserver performing the work in relation to the data being
+ * replicated (local HDFS blocks).
  * <p>
- * The implementation allows for multiple tservers to concurrently replicate data to peer(s), however it is possible that data for a table is replayed on the
- * peer in a different order than the master. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the cost of replication
- * throughput.
+ * The implementation allows for multiple tservers to concurrently replicate data to peer(s),
+ * however it is possible that data for a table is replayed on the peer in a different order than
+ * the master. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the
+ * cost of replication throughput.
  */
 public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(UnorderedWorkAssigner.class);
@@ -91,10 +93,12 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
         }
 
         log.error("Error reading existing queued replication work from ZooKeeper", e);
-        throw new RuntimeException("Error reading existing queued replication work from ZooKeeper", e);
+        throw new RuntimeException("Error reading existing queued replication work from ZooKeeper",
+            e);
       } catch (InterruptedException e) {
         log.error("Error reading existing queued replication work from ZooKeeper", e);
-        throw new RuntimeException("Error reading existing queued replication work from ZooKeeper", e);
+        throw new RuntimeException("Error reading existing queued replication work from ZooKeeper",
+            e);
       }
     }
   }
@@ -137,7 +141,8 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished
-      if (null == zooCache.get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/" + filename)) {
+      if (null == zooCache.get(
+          ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/" + filename)) {
         work.remove();
       }
     }
@@ -156,8 +161,9 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected Set<String> getQueuedWork(ReplicationTarget target) {
-    String desiredQueueKeySuffix = DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
-        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+    String desiredQueueKeySuffix = DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
         + target.getSourceTableId();
     Set<String> queuedWorkForTarget = new HashSet<>();
     for (String queuedWork : this.queuedWork) {

@@ -94,7 +94,8 @@ public class AccumuloTest {
     FileSystem fs1 = createMock(FileSystem.class);
     Path baseVersion1 = new Path("hdfs://volume1/accumulo/version");
     Path oldVersion1 = new Path("hdfs://volume1/accumulo/version/7");
-    Path newVersion1 = new Path("hdfs://volume1/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
+    Path newVersion1 = new Path(
+        "hdfs://volume1/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
 
     FileStatus[] files1 = mockPersistentVersion("7");
     expect(fs1.listStatus(baseVersion1)).andReturn(files1);
@@ -111,7 +112,8 @@ public class AccumuloTest {
     FileSystem fs2 = createMock(FileSystem.class);
     Path baseVersion2 = new Path("hdfs://volume2/accumulo/version");
     Path oldVersion2 = new Path("hdfs://volume2/accumulo/version/7");
-    Path newVersion2 = new Path("hdfs://volume2/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
+    Path newVersion2 = new Path(
+        "hdfs://volume2/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
 
     FileStatus[] files2 = mockPersistentVersion("7");
     expect(fs2.listStatus(baseVersion2)).andReturn(files2);

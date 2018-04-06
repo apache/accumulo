@@ -31,8 +31,9 @@ import org.apache.commons.cli.CommandLine;
 
 public class RenameTableCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, TableExistsException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException {
     shellState.getConnector().tableOperations().rename(cl.getArgs()[0], cl.getArgs()[1]);
     if (shellState.getTableName().equals(Tables.qualified(cl.getArgs()[0]))) {
       shellState.setTableName(cl.getArgs()[1]);
@@ -51,7 +52,8 @@ public class RenameTableCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }
 

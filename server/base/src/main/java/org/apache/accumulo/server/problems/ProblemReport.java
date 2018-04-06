@@ -52,7 +52,8 @@ public class ProblemReport {
   private String server;
   private long creationTime;
 
-  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server, Throwable e, long creationTime) {
+  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server,
+      Throwable e, long creationTime) {
     requireNonNull(tableId, "tableId is null");
     requireNonNull(problemType, "problemType is null");
     requireNonNull(resource, "resource is null");
@@ -77,7 +78,8 @@ public class ProblemReport {
     this.creationTime = creationTime;
   }
 
-  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server, Throwable e) {
+  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server,
+      Throwable e) {
     this(tableId, problemType, resource, server, e, System.currentTimeMillis());
   }
 
@@ -85,7 +87,8 @@ public class ProblemReport {
     this(tableId, problemType, resource, null, e);
   }
 
-  private ProblemReport(Table.ID table, ProblemType problemType, String resource, byte enc[]) throws IOException {
+  private ProblemReport(Table.ID table, ProblemType problemType, String resource, byte enc[])
+      throws IOException {
     requireNonNull(table, "table is null");
     requireNonNull(problemType, "problemType is null");
     requireNonNull(resource, "resource is null");
@@ -153,7 +156,8 @@ public class ProblemReport {
     removeFromZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
   }
 
-  void removeFromZooKeeper(ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
+  void removeFromZooKeeper(ZooReaderWriter zoorw, Instance instance)
+      throws IOException, KeeperException, InterruptedException {
     String zpath = getZPath(instance);
     zoorw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
   }
@@ -162,7 +166,8 @@ public class ProblemReport {
     saveToZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
   }
 
-  void saveToZooKeeper(ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
+  void saveToZooKeeper(ZooReaderWriter zoorw, Instance instance)
+      throws IOException, KeeperException, InterruptedException {
     zoorw.putPersistentData(getZPath(instance), encode(), NodeExistsPolicy.OVERWRITE);
   }
 
@@ -175,7 +180,8 @@ public class ProblemReport {
     dos.close();
     baos.close();
 
-    String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/" + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
+    String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/"
+        + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
     return zpath;
   }
 
@@ -183,7 +189,8 @@ public class ProblemReport {
     return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
   }
 
-  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
+  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, Instance instance)
+      throws IOException, KeeperException, InterruptedException {
     byte bytes[] = Encoding.decodeBase64FileName(node);
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
@@ -205,7 +212,8 @@ public class ProblemReport {
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 
-    return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, entry.getValue().get());
+    return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource,
+        entry.getValue().get());
   }
 
   public Table.ID getTableId() {
@@ -241,7 +249,8 @@ public class ProblemReport {
   public boolean equals(Object o) {
     if (o instanceof ProblemReport) {
       ProblemReport opr = (ProblemReport) o;
-      return tableId.equals(opr.tableId) && problemType.equals(opr.problemType) && resource.equals(opr.resource);
+      return tableId.equals(opr.tableId) && problemType.equals(opr.problemType)
+          && resource.equals(opr.resource);
     }
     return false;
   }

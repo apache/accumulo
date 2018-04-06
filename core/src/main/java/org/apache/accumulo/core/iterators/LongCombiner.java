@@ -32,14 +32,18 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * A TypedValueCombiner that translates each Value to a Long before reducing, then encodes the reduced Long back to a Value.
+ * A TypedValueCombiner that translates each Value to a Long before reducing, then encodes the
+ * reduced Long back to a Value.
  *
- * Subclasses must implement a typedReduce method: {@code public Long typedReduce(Key key, Iterator<Long> iter);}
+ * Subclasses must implement a typedReduce method:
+ * {@code public Long typedReduce(Key key, Iterator<Long> iter);}
  *
- * This typedReduce method will be passed the most recent Key and an iterator over the Values (translated to Longs) for all non-deleted versions of that Key.
+ * This typedReduce method will be passed the most recent Key and an iterator over the Values
+ * (translated to Longs) for all non-deleted versions of that Key.
  *
- * A required option for this Combiner is "type" which indicates which type of Encoder to use to encode and decode Longs into Values. Supported types are
- * VARNUM, LONG, and STRING which indicate the VarNumEncoder, LongEncoder, and StringEncoder respectively.
+ * A required option for this Combiner is "type" which indicates which type of Encoder to use to
+ * encode and decode Longs into Values. Supported types are VARNUM, LONG, and STRING which indicate
+ * the VarNumEncoder, LongEncoder, and StringEncoder respectively.
  */
 public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static final Encoder<Long> FIXED_LEN_ENCODER = new FixedLenEncoder();
@@ -55,7 +59,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
      */
     VARLEN,
     /**
-     * indicates a fixed-length (8-byte) encoding of a Long using {@link LongCombiner.FixedLenEncoder}
+     * indicates a fixed-length (8-byte) encoding of a Long using
+     * {@link LongCombiner.FixedLenEncoder}
      */
     FIXEDLEN,
     /**
@@ -65,7 +70,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     setEncoder(options);
   }
@@ -98,7 +104,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("longcombiner");
-    io.setDescription("LongCombiner can interpret Values as Longs in a variety of encodings (variable length, fixed length, or string) before combining");
+    io.setDescription(
+        "LongCombiner can interpret Values as Longs in a variety of encodings (variable length, fixed length, or string) before combining");
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }
@@ -116,7 +123,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   }
 
   /**
-   * An Encoder that uses a variable-length encoding for Longs. It uses WritableUtils.writeVLong and WritableUtils.readVLong for encoding and decoding.
+   * An Encoder that uses a variable-length encoding for Longs. It uses WritableUtils.writeVLong and
+   * WritableUtils.readVLong for encoding and decoding.
    */
   public static class VarLenEncoder extends AbstractLexicoder<Long> {
     @Override
@@ -135,7 +143,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
     @Override
     public Long decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility with 1.6; it can be
+      // removed in 2.0. See ACCUMULO-3789.
       return super.decode(b);
     }
 
@@ -170,7 +179,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
     @Override
     public Long decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility with 1.6; it can be
+      // removed in 2.0. See ACCUMULO-3789.
       return super.decode(b);
     }
 
@@ -182,21 +192,30 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     // refactor? it's public, so cannot remove
     public static long decode(byte[] b, int offset) {
       if (b.length < offset + 8)
-        throw new ValueFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + b.length);
-      return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48) + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
-          + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
+        throw new ValueFormatException(
+            "trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8)
+                + " found " + b.length);
+      return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48)
+          + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
+          + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16)
+          + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
     }
 
     public static long decodeStatic(byte[] b, int offset, int len) {
       if (b.length < offset + 8 || len < 8)
-        throw new ValueFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + len);
-      return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48) + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
-          + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
+        throw new ValueFormatException(
+            "trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8)
+                + " found " + len);
+      return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48)
+          + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
+          + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16)
+          + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
     }
   }
 
   /**
-   * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong for encoding and decoding.
+   * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong
+   * for encoding and decoding.
    */
   public static class StringEncoder extends AbstractLexicoder<Long> {
     @Override
@@ -206,7 +225,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
     @Override
     public Long decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility with 1.6; it can be
+      // removed in 2.0. See ACCUMULO-3789.
       return super.decode(b);
     }
 
@@ -255,7 +275,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
    * @param encoderClass
    *          {@code Class<? extends Encoder<Long>>} specifying the encoding type.
    */
-  public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<Long>> encoderClass) {
+  public static void setEncodingType(IteratorSetting is,
+      Class<? extends Encoder<Long>> encoderClass) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());
   }
 

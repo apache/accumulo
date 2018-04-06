@@ -96,17 +96,25 @@ public final class LruBlockCacheConfiguration {
     this.conf = conf;
     this.props = conf.getProperties(PROPERTY_PREFIX, type);
 
-    this.acceptableFactor = get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_ACCEPTABLE_FACTOR);
-    this.minFactor = get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MIN_FACTOR);
-    this.singleFactor = get(SINGLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_SINGLE_FACTOR);
-    this.multiFactor = get(MULTI_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MULTI_FACTOR);
-    this.memoryFactor = get(MEMORY_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MEMORY_FACTOR);
-    this.mapLoadFactor = get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_LOAD_FACTOR);
-    this.mapConcurrencyLevel = get(MAP_CONCURRENCY_PROPERTY).map(Integer::valueOf).filter(i -> i > 0).orElse(DEFAULT_CONCURRENCY_LEVEL);
+    this.acceptableFactor = get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
+        .orElse(DEFAULT_ACCEPTABLE_FACTOR);
+    this.minFactor = get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
+        .orElse(DEFAULT_MIN_FACTOR);
+    this.singleFactor = get(SINGLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
+        .orElse(DEFAULT_SINGLE_FACTOR);
+    this.multiFactor = get(MULTI_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
+        .orElse(DEFAULT_MULTI_FACTOR);
+    this.memoryFactor = get(MEMORY_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
+        .orElse(DEFAULT_MEMORY_FACTOR);
+    this.mapLoadFactor = get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
+        .orElse(DEFAULT_LOAD_FACTOR);
+    this.mapConcurrencyLevel = get(MAP_CONCURRENCY_PROPERTY).map(Integer::valueOf)
+        .filter(i -> i > 0).orElse(DEFAULT_CONCURRENCY_LEVEL);
     this.useEvictionThread = get(EVICTION_THREAD_PROPERTY).map(Boolean::valueOf).orElse(true);
 
     if (this.getSingleFactor() + this.getMultiFactor() + this.getMemoryFactor() != 1) {
-      throw new IllegalArgumentException("Single, multi, and memory factors " + " should total 1.0");
+      throw new IllegalArgumentException(
+          "Single, multi, and memory factors " + " should total 1.0");
     }
     if (this.getMinFactor() >= this.getAcceptableFactor()) {
       throw new IllegalArgumentException("minFactor must be smaller than acceptableFactor");
@@ -218,9 +226,11 @@ public final class LruBlockCacheConfiguration {
 
   @Override
   public String toString() {
-    return super.toString() + ", acceptableFactor: " + this.getAcceptableFactor() + ", minFactor: " + this.getMinFactor() + ", singleFactor: "
-        + this.getSingleFactor() + ", multiFactor: " + this.getMultiFactor() + ", memoryFactor: " + this.getMemoryFactor() + ", mapLoadFactor: "
-        + this.getMapLoadFactor() + ", mapConcurrencyLevel: " + this.getMapConcurrencyLevel() + ", useEvictionThread: " + this.isUseEvictionThread();
+    return super.toString() + ", acceptableFactor: " + this.getAcceptableFactor() + ", minFactor: "
+        + this.getMinFactor() + ", singleFactor: " + this.getSingleFactor() + ", multiFactor: "
+        + this.getMultiFactor() + ", memoryFactor: " + this.getMemoryFactor() + ", mapLoadFactor: "
+        + this.getMapLoadFactor() + ", mapConcurrencyLevel: " + this.getMapConcurrencyLevel()
+        + ", useEvictionThread: " + this.isUseEvictionThread();
   }
 
   public long getMaxSize() {

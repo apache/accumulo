@@ -56,14 +56,16 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
   public VisibilityFilter() {}
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     validateOptions(options);
     this.filterInvalid = Boolean.parseBoolean(options.get(FILTER_INVALID_ONLY));
 
     if (!filterInvalid) {
       String auths = options.get(AUTHS);
-      Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations() : new Authorizations(auths.getBytes(UTF_8));
+      Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations()
+          : new Authorizations(auths.getBytes(UTF_8));
       this.ve = new VisibilityEvaluator(authObj);
     }
     this.cache = new LRUMap(1000);
@@ -108,10 +110,12 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("visibilityFilter");
-    io.setDescription("The VisibilityFilter allows you to filter for key/value pairs by a set of authorizations or filter invalid labels from corrupt files.");
+    io.setDescription(
+        "The VisibilityFilter allows you to filter for key/value pairs by a set of authorizations or filter invalid labels from corrupt files.");
     io.addNamedOption(FILTER_INVALID_ONLY,
         "if 'true', the iterator is instructed to ignore the authorizations and only filter invalid visibility labels (default: false)");
-    io.addNamedOption(AUTHS, "the serialized set of authorizations to filter against (default: empty string, accepts only entries visible by all)");
+    io.addNamedOption(AUTHS,
+        "the serialized set of authorizations to filter against (default: empty string, accepts only entries visible by all)");
     return io;
   }
 

@@ -83,49 +83,54 @@ import org.apache.commons.lang.mutable.MutableLong;
 public abstract class CountingSummarizer<K> implements Summarizer {
 
   /**
-   * A configuration option for specifying the maximum number of unique counters an instance of this summarizer should track. If not specified, a default of
-   * {@value #MAX_COUNTER_DEFAULT} will be used.
+   * A configuration option for specifying the maximum number of unique counters an instance of this
+   * summarizer should track. If not specified, a default of {@value #MAX_COUNTER_DEFAULT} will be
+   * used.
    */
   public static final String MAX_COUNTERS_OPT = "maxCounters";
 
   /**
-   * A configuration option for specifying the maximum length of an individual counter key. If not specified, a default of {@value #MAX_CKL_DEFAULT} will be
-   * used.
+   * A configuration option for specifying the maximum length of an individual counter key. If not
+   * specified, a default of {@value #MAX_CKL_DEFAULT} will be used.
    */
   public static final String MAX_COUNTER_LEN_OPT = "maxCounterLen";
 
   /**
-   * A configuration option to determine if delete keys should be counted. If set to true then delete keys will not be passed to the {@link Converter} and the
-   * statistic {@value #DELETES_IGNORED_STAT} will track the number of deleted ignored. This options defaults to {@value #INGNORE_DELETES_DEFAULT}.
+   * A configuration option to determine if delete keys should be counted. If set to true then
+   * delete keys will not be passed to the {@link Converter} and the statistic
+   * {@value #DELETES_IGNORED_STAT} will track the number of deleted ignored. This options defaults
+   * to {@value #INGNORE_DELETES_DEFAULT}.
    */
   public static final String INGNORE_DELETES_OPT = "ignoreDeletes";
 
   /**
-   * This prefixes all counters when emitting statistics in {@link Summarizer.Collector#summarize(Summarizer.StatisticConsumer)}.
+   * This prefixes all counters when emitting statistics in
+   * {@link Summarizer.Collector#summarize(Summarizer.StatisticConsumer)}.
    */
   public static final String COUNTER_STAT_PREFIX = "c:";
 
   /**
-   * This is the name of the statistic that tracks how many counters objects were ignored because the number of unique counters was exceeded. The max number of
-   * unique counters is specified by {@link #MAX_COUNTERS_OPT}.
+   * This is the name of the statistic that tracks how many counters objects were ignored because
+   * the number of unique counters was exceeded. The max number of unique counters is specified by
+   * {@link #MAX_COUNTERS_OPT}.
    */
   public static final String TOO_MANY_STAT = "tooMany";
 
   /**
-   * This is the name of the statistic that tracks how many counter objects were ignored because they were too long. The maximum lenght is specified by
-   * {@link #MAX_COUNTER_LEN_OPT}.
+   * This is the name of the statistic that tracks how many counter objects were ignored because
+   * they were too long. The maximum lenght is specified by {@link #MAX_COUNTER_LEN_OPT}.
    */
   public static final String TOO_LONG_STAT = "tooLong";
 
   /**
-   * This is the name of the statistic that tracks the total number of counter objects emitted by the {@link Converter}. This includes emitted Counter objects
-   * that were ignored.
+   * This is the name of the statistic that tracks the total number of counter objects emitted by
+   * the {@link Converter}. This includes emitted Counter objects that were ignored.
    */
   public static final String EMITTED_STAT = "emitted";
 
   /**
-   * This is the name of the statistic that tracks the total number of deleted keys seen. This statistic is only incremented when the
-   * {@value #INGNORE_DELETES_OPT} option is set to true.
+   * This is the name of the statistic that tracks the total number of deleted keys seen. This
+   * statistic is only incremented when the {@value #INGNORE_DELETES_OPT} option is set to true.
    */
   public static final String DELETES_IGNORED_STAT = "deletesIgnored";
 
@@ -134,7 +139,8 @@ public abstract class CountingSummarizer<K> implements Summarizer {
    */
   public static final String SEEN_STAT = "seen";
 
-  // this default can not be changed as persisted summary data depends on it. See the documentation about persistence in the Summarizer class javadoc.
+  // this default can not be changed as persisted summary data depends on it. See the documentation
+  // about persistence in the Summarizer class javadoc.
   public static final String MAX_COUNTER_DEFAULT = "1024";
 
   // this default can not be changed as persisted summary data depends on it
@@ -143,16 +149,20 @@ public abstract class CountingSummarizer<K> implements Summarizer {
   // this default can not be changed as persisted summary data depends on it
   public static final String INGNORE_DELETES_DEFAULT = "true";
 
-  private static final String[] ALL_STATS = new String[] {TOO_LONG_STAT, TOO_MANY_STAT, EMITTED_STAT, SEEN_STAT, DELETES_IGNORED_STAT};
+  private static final String[] ALL_STATS = new String[] {TOO_LONG_STAT, TOO_MANY_STAT,
+      EMITTED_STAT, SEEN_STAT, DELETES_IGNORED_STAT};
 
   private int maxCounters;
   private int maxCounterKeyLen;
   private boolean ignoreDeletes;
 
   private void init(SummarizerConfiguration conf) {
-    maxCounters = Integer.parseInt(conf.getOptions().getOrDefault(MAX_COUNTERS_OPT, MAX_COUNTER_DEFAULT));
-    maxCounterKeyLen = Integer.parseInt(conf.getOptions().getOrDefault(MAX_COUNTER_LEN_OPT, MAX_CKL_DEFAULT));
-    ignoreDeletes = Boolean.parseBoolean(conf.getOptions().getOrDefault(INGNORE_DELETES_OPT, INGNORE_DELETES_DEFAULT));
+    maxCounters = Integer
+        .parseInt(conf.getOptions().getOrDefault(MAX_COUNTERS_OPT, MAX_COUNTER_DEFAULT));
+    maxCounterKeyLen = Integer
+        .parseInt(conf.getOptions().getOrDefault(MAX_COUNTER_LEN_OPT, MAX_CKL_DEFAULT));
+    ignoreDeletes = Boolean
+        .parseBoolean(conf.getOptions().getOrDefault(INGNORE_DELETES_OPT, INGNORE_DELETES_DEFAULT));
   }
 
   /**
@@ -170,12 +180,14 @@ public abstract class CountingSummarizer<K> implements Summarizer {
 
   /**
    *
-   * @return A function that is used to convert each key value to zero or more counter objects. Each function returned should be independent.
+   * @return A function that is used to convert each key value to zero or more counter objects. Each
+   *         function returned should be independent.
    */
   protected abstract Converter<K> converter();
 
   /**
-   * @return A function that is used to convert counter objects to String. The default function calls {@link Object#toString()} on the counter object.
+   * @return A function that is used to convert counter objects to String. The default function
+   *         calls {@link Object#toString()} on the counter object.
    */
   protected Function<K,String> encoder() {
     return Object::toString;
@@ -184,9 +196,10 @@ public abstract class CountingSummarizer<K> implements Summarizer {
   /**
    * Override this if your key type is mutable and subject to change.
    *
-   * @return a function that used to copy the counter object. This function is only used when the collector has never seen the counter object before. In this
-   *         case the collector needs to possibly copy the counter object before using as map key. The default implementation is the
-   *         {@link UnaryOperator#identity()} function.
+   * @return a function that used to copy the counter object. This function is only used when the
+   *         collector has never seen the counter object before. In this case the collector needs to
+   *         possibly copy the counter object before using as map key. The default implementation is
+   *         the {@link UnaryOperator#identity()} function.
    */
   protected UnaryOperator<K> copier() {
     return UnaryOperator.identity();
@@ -197,7 +210,8 @@ public abstract class CountingSummarizer<K> implements Summarizer {
     init(sc);
     return new Collector() {
 
-      // Map used for computing summary incrementally uses ByteSequence for key which is more efficient than converting String for each Key. The
+      // Map used for computing summary incrementally uses ByteSequence for key which is more
+      // efficient than converting String for each Key. The
       // conversion to String is deferred until the summary is requested.
 
       private Map<K,MutableLong> counters = new HashMap<>();
@@ -284,10 +298,13 @@ public abstract class CountingSummarizer<K> implements Summarizer {
 
         if (summary1.size() - ALL_STATS.length > maxCounters) {
           // find the keys with the lowest counts to remove
-          List<String> keysToRemove = summary1.entrySet().stream().filter(e -> e.getKey().startsWith(COUNTER_STAT_PREFIX)) // filter out non counters
-              .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort descending by count
+          List<String> keysToRemove = summary1.entrySet().stream()
+              .filter(e -> e.getKey().startsWith(COUNTER_STAT_PREFIX)) // filter out non counters
+              .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort descending by
+                                                                              // count
               .skip(maxCounters) // skip most frequent
-              .map(e -> e.getKey()).collect(Collectors.toList()); // collect the least frequent counters in a list
+              .map(e -> e.getKey()).collect(Collectors.toList()); // collect the least frequent
+                                                                  // counters in a list
 
           long removedCount = 0;
           for (String key : keysToRemove) {

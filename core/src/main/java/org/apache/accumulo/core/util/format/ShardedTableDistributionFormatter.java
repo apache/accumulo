@@ -25,8 +25,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * Formats the rows in a METADATA table scan to show distribution of shards over servers per day. This can be used to determine the effectiveness of the
- * ShardedTableLoadBalancer
+ * Formats the rows in a METADATA table scan to show distribution of shards over servers per day.
+ * This can be used to determine the effectiveness of the ShardedTableLoadBalancer
  *
  * Use this formatter with the following scan command in the shell:
  *
@@ -38,7 +38,8 @@ public class ShardedTableDistributionFormatter extends AggregatingFormatter {
 
   @Override
   protected void aggregateStats(Entry<Key,Value> entry) {
-    if (entry.getKey().getColumnFamily().toString().equals("~tab") && entry.getKey().getColumnQualifier().toString().equals("loc")) {
+    if (entry.getKey().getColumnFamily().toString().equals("~tab")
+        && entry.getKey().getColumnQualifier().toString().equals("loc")) {
       // The row for the sharded table should look like: <tableId>;yyyyMMhh_N
       String row = entry.getKey().getRow().toString();
       // Parse the day out of the row

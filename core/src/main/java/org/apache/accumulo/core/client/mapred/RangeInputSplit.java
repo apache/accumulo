@@ -24,7 +24,8 @@ import org.apache.hadoop.mapred.InputSplit;
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
  */
-public class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit implements InputSplit {
+public class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit
+    implements InputSplit {
 
   public RangeInputSplit() {
     super();

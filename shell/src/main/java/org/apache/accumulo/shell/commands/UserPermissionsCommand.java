@@ -34,13 +34,15 @@ public class UserPermissionsCommand extends Command {
   private Option userOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
 
     String delim = "";
     shellState.getReader().print("System permissions: ");
     for (SystemPermission p : SystemPermission.values()) {
-      if (p != null && shellState.getConnector().securityOperations().hasSystemPermission(user, p)) {
+      if (p != null
+          && shellState.getConnector().securityOperations().hasSystemPermission(user, p)) {
         shellState.getReader().print(delim + "System." + p.name());
         delim = ", ";
       }
@@ -51,7 +53,8 @@ public class UserPermissionsCommand extends Command {
     for (String n : shellState.getConnector().namespaceOperations().list()) {
       delim = "";
       for (NamespacePermission p : NamespacePermission.values()) {
-        if (p != null && shellState.getConnector().securityOperations().hasNamespacePermission(user, n, p)) {
+        if (p != null
+            && shellState.getConnector().securityOperations().hasNamespacePermission(user, n, p)) {
           if (runOnce) {
             shellState.getReader().print("\nNamespace permissions (" + n + "): ");
             runOnce = false;
@@ -68,7 +71,8 @@ public class UserPermissionsCommand extends Command {
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";
       for (TablePermission p : TablePermission.values()) {
-        if (shellState.getConnector().securityOperations().hasTablePermission(user, t, p) && p != null) {
+        if (shellState.getConnector().securityOperations().hasTablePermission(user, t, p)
+            && p != null) {
           if (runOnce) {
             shellState.getReader().print("\nTable permissions (" + t + "): ");
             runOnce = false;

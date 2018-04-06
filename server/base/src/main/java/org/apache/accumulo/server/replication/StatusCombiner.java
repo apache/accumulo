@@ -83,7 +83,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("StatusCombiner");
-    io.setDescription("Combiner that joins multiple Status protobufs to track replication metadata");
+    io.setDescription(
+        "Combiner that joins multiple Status protobufs to track replication metadata");
     return io;
   }
 
@@ -93,7 +94,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
 
     setEncoder(new StatusEncoder());
@@ -111,7 +113,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       if (null == combined) {
         if (!iter.hasNext()) {
           if (log.isTraceEnabled()) {
-            log.trace("Returned single value: {} {}", key.toStringNoTruncate(), ProtobufUtil.toString(status));
+            log.trace("Returned single value: {} {}", key.toStringNoTruncate(),
+                ProtobufUtil.toString(status));
           }
           return status;
         } else {
@@ -124,7 +127,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     }
 
     if (log.isTraceEnabled()) {
-      log.trace("Combined: {} {}", key.toStringNoTruncate(), ProtobufUtil.toString(combined.build()));
+      log.trace("Combined: {} {}", key.toStringNoTruncate(),
+          ProtobufUtil.toString(combined.build()));
     }
 
     return combined.build();
@@ -140,7 +144,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
    */
   public void combine(Builder combined, Status status) {
     if (log.isTraceEnabled()) {
-      log.trace("Combining {} into {}", status.toString().replace("\n", ", "), builderToString(combined));
+      log.trace("Combining {} into {}", status.toString().replace("\n", ", "),
+          builderToString(combined));
     }
 
     // offset up to which replication is completed
@@ -167,7 +172,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
   }
 
   private String builderToString(Builder builder) {
-    return "begin: " + builder.getBegin() + ", end: " + builder.getEnd() + ", infiniteEnd: " + builder.getInfiniteEnd() + ", closed: " + builder.getClosed()
-        + ", createdTime: " + builder.getCreatedTime();
+    return "begin: " + builder.getBegin() + ", end: " + builder.getEnd() + ", infiniteEnd: "
+        + builder.getInfiniteEnd() + ", closed: " + builder.getClosed() + ", createdTime: "
+        + builder.getCreatedTime();
   }
 }

@@ -153,7 +153,8 @@ public class RelativeKey implements Writable {
       common++;
     }
     // no differences found
-    // either exact or matches the part checked, so if they are the same length, they are an exact match,
+    // either exact or matches the part checked, so if they are the same length, they are an exact
+    // match,
     // and if not, then they have a common prefix over all the checks we've done
     return prevLen == curLen ? -1 : maxChecks;
   }
@@ -230,7 +231,8 @@ public class RelativeKey implements Writable {
     }
   }
 
-  public static SkippR fastSkip(DataInput in, Key seekKey, MutableByteSequence value, Key prevKey, Key currKey, int entriesLeft) throws IOException {
+  public static SkippR fastSkip(DataInput in, Key seekKey, MutableByteSequence value, Key prevKey,
+      Key currKey, int entriesLeft) throws IOException {
     // this method mostly avoids object allocation and only does compares when the row changes
 
     MutableByteSequence row, cf, cq, cv;
@@ -329,7 +331,7 @@ public class RelativeKey implements Writable {
         // read a new row, so need to compare...
         rowCmp = row.compareTo(stopRow);
         changed = true;
-      }// else the row is the same as the last, so no need to compare
+      } // else the row is the same as the last, so no need to compare
 
       if ((fieldsSame & CF_SAME) != CF_SAME) {
 
@@ -413,8 +415,9 @@ public class RelativeKey implements Writable {
       tcv = (fieldsSame & CV_SAME) == CV_SAME ? cv : pcv;
       tts = (fieldsSame & TS_SAME) == TS_SAME ? ts : pts;
 
-      newPrevKey = new Key(trow.getBackingArray(), trow.offset(), trow.length(), tcf.getBackingArray(), tcf.offset(), tcf.length(), tcq.getBackingArray(),
-          tcq.offset(), tcq.length(), tcv.getBackingArray(), tcv.offset(), tcv.length(), tts);
+      newPrevKey = new Key(trow.getBackingArray(), trow.offset(), trow.length(),
+          tcf.getBackingArray(), tcf.offset(), tcf.length(), tcq.getBackingArray(), tcq.offset(),
+          tcq.length(), tcv.getBackingArray(), tcv.offset(), tcv.length(), tts);
       newPrevKey.setDeleted(pdel);
     } else if (count == 1) {
       if (currKey != null)
@@ -426,8 +429,9 @@ public class RelativeKey implements Writable {
     }
 
     RelativeKey result = new RelativeKey();
-    result.key = new Key(row.getBackingArray(), row.offset(), row.length(), cf.getBackingArray(), cf.offset(), cf.length(), cq.getBackingArray(), cq.offset(),
-        cq.length(), cv.getBackingArray(), cv.offset(), cv.length(), ts);
+    result.key = new Key(row.getBackingArray(), row.offset(), row.length(), cf.getBackingArray(),
+        cf.offset(), cf.length(), cq.getBackingArray(), cq.offset(), cq.length(),
+        cv.getBackingArray(), cv.offset(), cv.length(), ts);
     result.key.setDeleted((fieldsSame & DELETED) != 0);
     result.prevKey = result.key;
 
@@ -444,7 +448,8 @@ public class RelativeKey implements Writable {
     read(in, mbseq, len);
   }
 
-  private static void read(DataInput in, MutableByteSequence mbseqDestination, int len) throws IOException {
+  private static void read(DataInput in, MutableByteSequence mbseqDestination, int len)
+      throws IOException {
     if (mbseqDestination.getBackingArray().length < len) {
       mbseqDestination.setArray(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
     }
@@ -468,7 +473,8 @@ public class RelativeKey implements Writable {
     return data;
   }
 
-  private static void readPrefix(DataInput in, MutableByteSequence dest, ByteSequence prefixSource) throws IOException {
+  private static void readPrefix(DataInput in, MutableByteSequence dest, ByteSequence prefixSource)
+      throws IOException {
     int prefixLen = WritableUtils.readVInt(in);
     int remainingLen = WritableUtils.readVInt(in);
     int len = prefixLen + remainingLen;
@@ -476,7 +482,8 @@ public class RelativeKey implements Writable {
       dest.setArray(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
     }
     if (prefixSource.isBackedByArray()) {
-      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(), dest.getBackingArray(), 0, prefixLen);
+      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(),
+          dest.getBackingArray(), 0, prefixLen);
     } else {
       byte[] prefixArray = prefixSource.toArray();
       System.arraycopy(prefixArray, 0, dest.getBackingArray(), 0, prefixLen);
@@ -502,10 +509,12 @@ public class RelativeKey implements Writable {
     out.write(bs.getBackingArray(), bs.offset(), bs.length());
   }
 
-  private static void writePrefix(DataOutput out, ByteSequence bs, int commonPrefixLength) throws IOException {
+  private static void writePrefix(DataOutput out, ByteSequence bs, int commonPrefixLength)
+      throws IOException {
     WritableUtils.writeVInt(out, commonPrefixLength);
     WritableUtils.writeVInt(out, bs.length() - commonPrefixLength);
-    out.write(bs.getBackingArray(), bs.offset() + commonPrefixLength, bs.length() - commonPrefixLength);
+    out.write(bs.getBackingArray(), bs.offset() + commonPrefixLength,
+        bs.length() - commonPrefixLength);
   }
 
   @Override

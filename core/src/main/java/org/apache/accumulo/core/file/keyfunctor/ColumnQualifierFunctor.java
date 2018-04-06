@@ -33,7 +33,8 @@ public class ColumnQualifierFunctor implements KeyFunctor {
     keyData = new byte[row.length() + cf.length() + cq.length()];
     System.arraycopy(row.getBackingArray(), row.offset(), keyData, 0, row.length());
     System.arraycopy(cf.getBackingArray(), cf.offset(), keyData, row.length(), cf.length());
-    System.arraycopy(cq.getBackingArray(), cq.offset(), keyData, row.length() + cf.length(), cq.length());
+    System.arraycopy(cq.getBackingArray(), cq.offset(), keyData, row.length() + cf.length(),
+        cq.length());
 
     return new org.apache.hadoop.util.bloom.Key(keyData, 1.0);
   }

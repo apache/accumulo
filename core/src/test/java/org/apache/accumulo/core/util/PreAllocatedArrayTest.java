@@ -53,7 +53,8 @@ public class PreAllocatedArrayTest {
   }
 
   /**
-   * Test method for {@link org.apache.accumulo.core.util.PreAllocatedArray#set(int, java.lang.Object)}.<br>
+   * Test method for
+   * {@link org.apache.accumulo.core.util.PreAllocatedArray#set(int, java.lang.Object)}.<br>
    * Test method for {@link org.apache.accumulo.core.util.PreAllocatedArray#get(int)}.<br>
    * Test method for {@link org.apache.accumulo.core.util.PreAllocatedArray#iterator()}.
    */

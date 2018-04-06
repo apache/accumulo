@@ -45,7 +45,8 @@ public class AccumuloInputFormatTest {
   public void testSetIterator() throws IOException {
     Job job = Job.getInstance();
 
-    IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
+    IteratorSetting is = new IteratorSetting(1, "WholeRow",
+        "org.apache.accumulo.core.iterators.WholeRowIterator");
     AccumuloInputFormat.addIterator(job, is);
     Configuration conf = job.getConfiguration();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -58,9 +59,12 @@ public class AccumuloInputFormatTest {
   public void testAddIterator() throws IOException {
     Job job = Job.getInstance();
 
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
-    IteratorSetting iter = new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
+    AccumuloInputFormat.addIterator(job,
+        new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions",
+        "org.apache.accumulo.core.iterators.VersioningIterator"));
+    IteratorSetting iter = new IteratorSetting(3, "Count",
+        "org.apache.accumulo.core.iterators.CountingIterator");
     iter.addOption("v1", "1");
     iter.addOption("junk", "\0omg:!\\xyzzy");
     AccumuloInputFormat.addIterator(job, iter);
@@ -73,13 +77,15 @@ public class AccumuloInputFormatTest {
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
     assertEquals(1, setting.getPriority());
-    assertEquals("org.apache.accumulo.core.iterators.user.WholeRowIterator", setting.getIteratorClass());
+    assertEquals("org.apache.accumulo.core.iterators.user.WholeRowIterator",
+        setting.getIteratorClass());
     assertEquals("WholeRow", setting.getName());
     assertEquals(0, setting.getOptions().size());
 
     setting = list.get(1);
     assertEquals(2, setting.getPriority());
-    assertEquals("org.apache.accumulo.core.iterators.VersioningIterator", setting.getIteratorClass());
+    assertEquals("org.apache.accumulo.core.iterators.VersioningIterator",
+        setting.getIteratorClass());
     assertEquals("Versions", setting.getName());
     assertEquals(0, setting.getOptions().size());
 
@@ -93,10 +99,12 @@ public class AccumuloInputFormatTest {
   }
 
   /**
-   * Test adding iterator options where the keys and values contain both the FIELD_SEPARATOR character (':') and ITERATOR_SEPARATOR (',') characters. There
-   * should be no exceptions thrown when trying to parse these types of option entries.
+   * Test adding iterator options where the keys and values contain both the FIELD_SEPARATOR
+   * character (':') and ITERATOR_SEPARATOR (',') characters. There should be no exceptions thrown
+   * when trying to parse these types of option entries.
    *
-   * This test makes sure that the expected raw values, as appears in the Job, are equal to what's expected.
+   * This test makes sure that the expected raw values, as appears in the Job, are equal to what's
+   * expected.
    */
   @Test
   public void testIteratorOptionEncoding() throws Throwable {
@@ -132,9 +140,12 @@ public class AccumuloInputFormatTest {
   public void testGetIteratorSettings() throws IOException {
     Job job = Job.getInstance();
 
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
-    AccumuloInputFormat.addIterator(job, new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
+    AccumuloInputFormat.addIterator(job,
+        new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions",
+        "org.apache.accumulo.core.iterators.VersioningIterator"));
+    AccumuloInputFormat.addIterator(job,
+        new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
 
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
 
@@ -149,7 +160,8 @@ public class AccumuloInputFormatTest {
 
     setting = list.get(1);
     assertEquals(2, setting.getPriority());
-    assertEquals("org.apache.accumulo.core.iterators.VersioningIterator", setting.getIteratorClass());
+    assertEquals("org.apache.accumulo.core.iterators.VersioningIterator",
+        setting.getIteratorClass());
     assertEquals("Versions", setting.getName());
 
     setting = list.get(2);

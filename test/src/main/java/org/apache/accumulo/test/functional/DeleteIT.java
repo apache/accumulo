@@ -49,14 +49,17 @@ public class DeleteIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     AuthenticationToken token = getAdminToken();
     if (token instanceof KerberosToken) {
-      deleteTest(c, getCluster(), getAdminPrincipal(), null, tableName, getAdminUser().getKeytab().getAbsolutePath());
+      deleteTest(c, getCluster(), getAdminPrincipal(), null, tableName,
+          getAdminUser().getKeytab().getAbsolutePath());
     } else if (token instanceof PasswordToken) {
       PasswordToken passwdToken = (PasswordToken) token;
-      deleteTest(c, getCluster(), getAdminPrincipal(), new String(passwdToken.getPassword(), UTF_8), tableName, null);
+      deleteTest(c, getCluster(), getAdminPrincipal(), new String(passwdToken.getPassword(), UTF_8),
+          tableName, null);
     }
   }
 
-  public static void deleteTest(Connector c, AccumuloCluster cluster, String user, String password, String tableName, String keytab) throws Exception {
+  public static void deleteTest(Connector c, AccumuloCluster cluster, String user, String password,
+      String tableName, String keytab) throws Exception {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     TestIngest.Opts opts = new TestIngest.Opts();
     vopts.setTableName(tableName);
@@ -88,11 +91,13 @@ public class DeleteIT extends AccumuloClusterHarness {
     assertTrue("Expected one of password or keytab", null != password || null != keytab);
     if (null != password) {
       assertNull("Given password, expected null keytab", keytab);
-      args = new String[] {"-u", user, "-p", password, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName};
+      args = new String[] {"-u", user, "-p", password, "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--table", tableName};
     }
     if (null != keytab) {
       assertNull("Given keytab, expect null password", password);
-      args = new String[] {"-u", user, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--table", tableName, "--keytab", keytab};
+      args = new String[] {"-u", user, "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "--table", tableName, "--keytab", keytab};
     }
 
     assertEquals(0, cluster.getClusterControl().exec(TestRandomDeletes.class, args));

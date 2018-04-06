@@ -28,14 +28,17 @@ import org.apache.accumulo.core.data.Value;
 import com.google.common.math.IntMath;
 
 /**
- * Summarizer that computes summary information about field lengths. Specifically key length, row length, family length, qualifier length, visibility length,
- * and value length. Incrementally computes minimum, maximum, count, sum, and log2 histogram of the lengths.
+ * Summarizer that computes summary information about field lengths. Specifically key length, row
+ * length, family length, qualifier length, visibility length, and value length. Incrementally
+ * computes minimum, maximum, count, sum, and log2 histogram of the lengths.
  *
  * @since 2.0.0
  */
 public class EntryLengthSummarizer implements Summarizer {
 
-  /* Helper function that calculates the various statistics that is used for the Collector methods. */
+  /*
+   * Helper function that calculates the various statistics that is used for the Collector methods.
+   */
   private static class LengthStats {
     private long min = Long.MAX_VALUE;
     private long max = Long.MIN_VALUE;
@@ -79,7 +82,8 @@ public class EntryLengthSummarizer implements Summarizer {
   }
 
   /* Helper functions for merging that is used by the Combiner. */
-  private static void merge(String key, BiFunction<Long,Long,Long> mergeFunc, Map<String,Long> stats1, Map<String,Long> stats2) {
+  private static void merge(String key, BiFunction<Long,Long,Long> mergeFunc,
+      Map<String,Long> stats1, Map<String,Long> stats2) {
     Long mergeVal = stats2.get(key);
 
     if (mergeVal != null) {
@@ -87,12 +91,12 @@ public class EntryLengthSummarizer implements Summarizer {
     }
   }
 
-  private static void merge(String prefix, Map<String, Long> stats1, Map<String,Long> stats2) {
-    merge(prefix+".min", Long::min, stats1, stats2);
-    merge(prefix+".max", Long::max, stats1, stats2);
-    merge(prefix+".sum", Long::sum, stats1, stats2);
+  private static void merge(String prefix, Map<String,Long> stats1, Map<String,Long> stats2) {
+    merge(prefix + ".min", Long::min, stats1, stats2);
+    merge(prefix + ".max", Long::max, stats1, stats2);
+    merge(prefix + ".sum", Long::sum, stats1, stats2);
     for (int i = 0; i < 32; i++) {
-      merge(prefix+".logHist."+i, Long::sum, stats1, stats2);
+      merge(prefix + ".logHist." + i, Long::sum, stats1, stats2);
     }
   }
 

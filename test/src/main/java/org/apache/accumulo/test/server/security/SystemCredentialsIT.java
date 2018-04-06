@@ -52,12 +52,16 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
   @Test
   public void testSystemCredentials() throws Exception {
-    assertEquals(0, exec(SystemCredentialsIT.class, "good", getCluster().getZooKeepers()).waitFor());
-    assertEquals(FAIL_CODE, exec(SystemCredentialsIT.class, "bad", getCluster().getZooKeepers()).waitFor());
-    assertEquals(BAD_PASSWD_FAIL_CODE, exec(SystemCredentialsIT.class, "bad_password", getCluster().getZooKeepers()).waitFor());
+    assertEquals(0,
+        exec(SystemCredentialsIT.class, "good", getCluster().getZooKeepers()).waitFor());
+    assertEquals(FAIL_CODE,
+        exec(SystemCredentialsIT.class, "bad", getCluster().getZooKeepers()).waitFor());
+    assertEquals(BAD_PASSWD_FAIL_CODE,
+        exec(SystemCredentialsIT.class, "bad_password", getCluster().getZooKeepers()).waitFor());
   }
 
-  public static void main(final String[] args) throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+  public static void main(final String[] args)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     Credentials creds = null;
     if (args.length < 2)
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
@@ -95,25 +99,29 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         }
 
         @Override
-        public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String principal, AuthenticationToken token)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
         @Deprecated
         @Override
-        public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String user, CharSequence pass)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
         @Deprecated
         @Override
-        public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String user, ByteBuffer pass)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
         @Deprecated
         @Override
-        public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String user, byte[] pass)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
@@ -155,25 +163,29 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         }
 
         @Override
-        public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String principal, AuthenticationToken token)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
         @Deprecated
         @Override
-        public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String user, CharSequence pass)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
         @Deprecated
         @Override
-        public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String user, ByteBuffer pass)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
         @Deprecated
         @Override
-        public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+        public Connector getConnector(String user, byte[] pass)
+            throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }
 
@@ -198,7 +210,8 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     } catch (RuntimeException e) {
       // catch the runtime exception from the scanner iterator
       if (e.getCause() instanceof AccumuloSecurityException
-          && ((AccumuloSecurityException) e.getCause()).getSecurityErrorCode() == SecurityErrorCode.BAD_CREDENTIALS) {
+          && ((AccumuloSecurityException) e.getCause())
+              .getSecurityErrorCode() == SecurityErrorCode.BAD_CREDENTIALS) {
         e.printStackTrace(System.err);
         System.exit(FAIL_CODE);
       }

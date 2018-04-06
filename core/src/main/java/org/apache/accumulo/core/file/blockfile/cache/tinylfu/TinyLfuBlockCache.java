@@ -43,8 +43,8 @@ import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
- * A block cache that is memory bounded using the W-TinyLFU eviction algorithm. This implementation delegates to a Caffeine cache to provide concurrent O(1)
- * read and write operations.
+ * A block cache that is memory bounded using the W-TinyLFU eviction algorithm. This implementation
+ * delegates to a Caffeine cache to provide concurrent O(1) read and write operations.
  * <ul>
  * <li>W-TinyLFU: http://arxiv.org/pdf/1512.00727.pdf</li>
  * <li>Caffeine: https://github.com/ben-manes/caffeine</li>
@@ -60,15 +60,17 @@ public final class TinyLfuBlockCache implements BlockCache {
   private ScheduledExecutorService statsExecutor;
 
   public TinyLfuBlockCache(Configuration conf, CacheType type) {
-    cache = Caffeine.newBuilder().initialCapacity((int) Math.ceil(1.2 * conf.getMaxSize(type) / conf.getBlockSize()))
+    cache = Caffeine.newBuilder()
+        .initialCapacity((int) Math.ceil(1.2 * conf.getMaxSize(type) / conf.getBlockSize()))
         .weigher((String blockName, Block block) -> {
           int keyWeight = ClassSize.align(blockName.length()) + ClassSize.STRING;
           return keyWeight + block.weight();
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
-    statsExecutor = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true).build());
-    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, TimeUnit.SECONDS);
+    statsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+        .setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true).build());
+    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
+        TimeUnit.SECONDS);
   }
 
   @Override
@@ -113,7 +115,8 @@ public final class TinyLfuBlockCache implements BlockCache {
     double maxMB = ((double) policy.getMaximum()) / ((double) (1024 * 1024));
     double sizeMB = ((double) policy.weightedSize().getAsLong()) / ((double) (1024 * 1024));
     double freeMB = maxMB - sizeMB;
-    log.debug("Cache Size={}MB, Free={}MB, Max={}MB, Blocks={}", sizeMB, freeMB, maxMB, cache.estimatedSize());
+    log.debug("Cache Size={}MB, Free={}MB, Max={}MB, Blocks={}", sizeMB, freeMB, maxMB,
+        cache.estimatedSize());
     log.debug(cache.stats().toString());
   }
 
@@ -130,7 +133,8 @@ public final class TinyLfuBlockCache implements BlockCache {
 
     int weight() {
       int indexWeight = lastIndexWeight + SizeConstants.SIZEOF_INT + ClassSize.REFERENCE;
-      return indexWeight + ClassSize.align(getBuffer().length) + SizeConstants.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
+      return indexWeight + ClassSize.align(getBuffer().length) + SizeConstants.SIZEOF_LONG
+          + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
     }
 
     public byte[] getBuffer() {
@@ -233,7 +237,8 @@ public final class TinyLfuBlockCache implements BlockCache {
     if (deps.size() == 0) {
       block = cache.get(blockName, k -> load(blockName, loader, Collections.emptyMap()));
     } else {
-      // This code path exist to handle the case where dependencies may need to be loaded. Loading dependencies will access the cache. Cache load functions
+      // This code path exist to handle the case where dependencies may need to be loaded. Loading
+      // dependencies will access the cache. Cache load functions
       // should not access the cache.
       block = cache.getIfPresent(blockName);
 
@@ -244,9 +249,11 @@ public final class TinyLfuBlockCache implements BlockCache {
           return null;
         }
 
-        // Use asMap because it will not increment stats, getIfPresent recorded a miss above. Use computeIfAbsent because it is possible another thread loaded
+        // Use asMap because it will not increment stats, getIfPresent recorded a miss above. Use
+        // computeIfAbsent because it is possible another thread loaded
         // the data since this thread called getIfPresent.
-        block = cache.asMap().computeIfAbsent(blockName, k -> load(blockName, loader, resolvedDeps));
+        block = cache.asMap().computeIfAbsent(blockName,
+            k -> load(blockName, loader, resolvedDeps));
       }
     }
 

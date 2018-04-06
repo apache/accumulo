@@ -60,7 +60,8 @@ public class ContinuousIngest {
     visibilities = new ArrayList<>();
 
     FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
+    BufferedReader in = new BufferedReader(
+        new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
 
     String line;
 
@@ -90,17 +91,20 @@ public class ContinuousIngest {
     Connector conn = clientOpts.getConnector();
 
     if (!conn.tableOperations().exists(clientOpts.getTableName())) {
-      throw new TableNotFoundException(null, clientOpts.getTableName(), "Consult the README and create the table before starting ingest.");
+      throw new TableNotFoundException(null, clientOpts.getTableName(),
+          "Consult the README and create the table before starting ingest.");
     }
 
-    BatchWriter bw = conn.createBatchWriter(clientOpts.getTableName(), bwOpts.getBatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(clientOpts.getTableName(),
+        bwOpts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
 
     Random r = new Random();
 
     byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes(UTF_8);
 
-    System.out.printf("UUID %d %s%n", System.currentTimeMillis(), new String(ingestInstanceId, UTF_8));
+    System.out.printf("UUID %d %s%n", System.currentTimeMillis(),
+        new String(ingestInstanceId, UTF_8));
 
     long count = 0;
     final int flushInterval = 1000000;
@@ -132,7 +136,8 @@ public class ContinuousIngest {
         firstColFams[index] = cf;
         firstColQuals[index] = cq;
 
-        Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r, opts.checksum);
+        Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r,
+            opts.checksum);
         count++;
         bw.addMutation(m);
       }
@@ -147,7 +152,8 @@ public class ContinuousIngest {
           long rowLong = genLong(opts.min, opts.max, r);
           byte[] prevRow = genRow(prevRows[index]);
           prevRows[index] = rowLong;
-          Mutation m = genMutation(rowLong, r.nextInt(opts.maxColF), r.nextInt(opts.maxColQ), cv, ingestInstanceId, count, prevRow, r, opts.checksum);
+          Mutation m = genMutation(rowLong, r.nextInt(opts.maxColF), r.nextInt(opts.maxColQ), cv,
+              ingestInstanceId, count, prevRow, r, opts.checksum);
           count++;
           bw.addMutation(m);
         }
@@ -160,8 +166,8 @@ public class ContinuousIngest {
       // create one big linked list, this makes all of the first inserts
       // point to something
       for (int index = 0; index < flushInterval - 1; index++) {
-        Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index], cv, ingestInstanceId, count, genRow(prevRows[index + 1]), r,
-            opts.checksum);
+        Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index], cv,
+            ingestInstanceId, count, genRow(prevRows[index + 1]), r, opts.checksum);
         count++;
         bw.addMutation(m);
       }
@@ -174,18 +180,21 @@ public class ContinuousIngest {
     clientOpts.stopTracing();
   }
 
-  private static long flush(BatchWriter bw, long count, final int flushInterval, long lastFlushTime) throws MutationsRejectedException {
+  private static long flush(BatchWriter bw, long count, final int flushInterval, long lastFlushTime)
+      throws MutationsRejectedException {
     long t1 = System.currentTimeMillis();
     bw.flush();
     long t2 = System.currentTimeMillis();
-    System.out.printf("FLUSH %d %d %d %d %d%n", t2, (t2 - lastFlushTime), (t2 - t1), count, flushInterval);
+    System.out.printf("FLUSH %d %d %d %d %d%n", t2, (t2 - lastFlushTime), (t2 - t1), count,
+        flushInterval);
     lastFlushTime = t2;
     return lastFlushTime;
   }
 
-  public static Mutation genMutation(long rowLong, int cfInt, int cqInt, ColumnVisibility cv, byte[] ingestInstanceId, long count, byte[] prevRow, Random r,
-      boolean checksum) {
-    // Adler32 is supposed to be faster, but according to wikipedia is not good for small data.... so used CRC32 instead
+  public static Mutation genMutation(long rowLong, int cfInt, int cqInt, ColumnVisibility cv,
+      byte[] ingestInstanceId, long count, byte[] prevRow, Random r, boolean checksum) {
+    // Adler32 is supposed to be faster, but according to wikipedia is not good for small data....
+    // so used CRC32 instead
     CRC32 cksum = null;
 
     byte[] rowString = genRow(rowLong);
@@ -203,7 +212,8 @@ public class ContinuousIngest {
 
     Mutation m = new Mutation(new Text(rowString));
 
-    m.put(new Text(cfString), new Text(cqString), cv, createValue(ingestInstanceId, count, prevRow, cksum));
+    m.put(new Text(cfString), new Text(cqString), cv,
+        createValue(ingestInstanceId, count, prevRow, cksum));
     return m;
   }
 
@@ -219,7 +229,8 @@ public class ContinuousIngest {
     return FastFormat.toZeroPaddedString(rowLong, 16, 16, EMPTY_BYTES);
   }
 
-  private static Value createValue(byte[] ingestInstanceId, long count, byte[] prevRow, Checksum cksum) {
+  private static Value createValue(byte[] ingestInstanceId, long count, byte[] prevRow,
+      Checksum cksum) {
     int dataLen = ingestInstanceId.length + 16 + (prevRow == null ? 0 : prevRow.length) + 3;
     if (cksum != null)
       dataLen += 8;

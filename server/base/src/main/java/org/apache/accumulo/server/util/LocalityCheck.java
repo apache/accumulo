@@ -73,12 +73,14 @@ public class LocalityCheck {
     for (Entry<String,Long> entry : totalBlocks.entrySet()) {
       final String host = entry.getKey();
       final Long blocksForHost = entry.getValue();
-      System.out.println(String.format("%15s %5.1f %8d", host, (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
+      System.out.println(String.format("%15s %5.1f %8d", host,
+          (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
     }
     return 0;
   }
 
-  private void addBlocks(VolumeManager fs, String host, ArrayList<String> files, Map<String,Long> totalBlocks, Map<String,Long> localBlocks) throws Exception {
+  private void addBlocks(VolumeManager fs, String host, ArrayList<String> files,
+      Map<String,Long> totalBlocks, Map<String,Long> localBlocks) throws Exception {
     long allBlocks = 0;
     long matchingBlocks = 0;
     if (!totalBlocks.containsKey(host)) {
@@ -89,7 +91,8 @@ public class LocalityCheck {
       Path filePath = new Path(file);
       FileSystem ns = fs.getVolumeByPath(filePath).getFileSystem();
       FileStatus fileStatus = ns.getFileStatus(filePath);
-      BlockLocation[] fileBlockLocations = ns.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
+      BlockLocation[] fileBlockLocations = ns.getFileBlockLocations(fileStatus, 0,
+          fileStatus.getLen());
       for (BlockLocation blockLocation : fileBlockLocations) {
         allBlocks++;
         for (String location : blockLocation.getHosts()) {

@@ -55,7 +55,8 @@ public class RandomWriter {
 
     @Override
     public Mutation next() {
-      Text row_value = new Text(Long.toString(((r.nextLong() & 0x7fffffffffffffffl) / 177) % 100000000000l));
+      Text row_value = new Text(
+          Long.toString(((r.nextLong() & 0x7fffffffffffffffl) / 177) % 100000000000l));
       Mutation m = new Mutation(row_value);
       for (int column = 0; column < num_columns_per_row; column++) {
         Text column_fam = new Text("col_fam");
@@ -99,7 +100,8 @@ public class RandomWriter {
     log.info("starting at {} for user {}", start, opts.getPrincipal());
     try {
       Connector connector = opts.getConnector();
-      BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+      BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
+          bwOpts.getBatchWriterConfig());
       log.info("Writing {} mutations...", opts.count);
       bw.addMutations(new RandomMutationGenerator(opts.count));
       bw.close();

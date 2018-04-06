@@ -38,25 +38,28 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
 /**
- * RFile is Accumulo's internal storage format for Key Value pairs. This class is a Factory that enables creating a {@link Scanner} for reading and a
- * {@link RFileWriter} for writing Rfiles.
+ * RFile is Accumulo's internal storage format for Key Value pairs. This class is a Factory that
+ * enables creating a {@link Scanner} for reading and a {@link RFileWriter} for writing Rfiles.
  *
  * <p>
- * The {@link Scanner} created by this class makes it easy to experiment with real data from a live system on a developers workstation. Also the {@link Scanner}
- * can be used to write tools to analyze Accumulo's raw data.
+ * The {@link Scanner} created by this class makes it easy to experiment with real data from a live
+ * system on a developers workstation. Also the {@link Scanner} can be used to write tools to
+ * analyze Accumulo's raw data.
  *
  * @since 1.8.0
  */
 public class RFile {
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Supports setting the required input sources for reading a RFile.
+   * This is an intermediate interface in a larger builder pattern. Supports setting the required
+   * input sources for reading a RFile.
    *
    * @since 1.8.0
    */
   public static interface InputArguments {
     /**
-     * Specify RFiles to read from. When multiple inputs are specified the {@link Scanner} constructed will present a merged view.
+     * Specify RFiles to read from. When multiple inputs are specified the {@link Scanner}
+     * constructed will present a merged view.
      *
      * @param inputs
      *          one or more RFiles to read.
@@ -65,7 +68,8 @@ public class RFile {
     ScannerOptions from(RFileSource... inputs);
 
     /**
-     * Specify RFiles to read from. When multiple are specified the {@link Scanner} constructed will present a merged view.
+     * Specify RFiles to read from. When multiple are specified the {@link Scanner} constructed will
+     * present a merged view.
      *
      * @param files
      *          one or more RFiles to read.
@@ -75,13 +79,15 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a FileSystem to read RFile(s) from.
+   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a
+   * FileSystem to read RFile(s) from.
    *
    * @since 1.8.0
    */
   public static interface ScannerFSOptions extends ScannerOptions {
     /**
-     * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be constructed using configuration on the classpath.
+     * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be
+     * constructed using configuration on the classpath.
      *
      * @param fs
      *          use this FileSystem to open files.
@@ -91,36 +97,41 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Supports setting optional parameters for reading RFile(s) and building a scanner over
-   * RFile(s).
+   * This is an intermediate interface in a larger builder pattern. Supports setting optional
+   * parameters for reading RFile(s) and building a scanner over RFile(s).
    *
    * @since 1.8.0
    */
   public static interface ScannerOptions {
 
     /**
-     * By default the {@link Scanner} created will setup the default Accumulo system iterators. The iterators do things like the following :
+     * By default the {@link Scanner} created will setup the default Accumulo system iterators. The
+     * iterators do things like the following :
      *
      * <ul>
      * <li>Suppress deleted data</li>
      * <li>Filter based on @link {@link Authorizations}</li>
-     * <li>Filter columns specified by functions like {@link Scanner#fetchColumn(Text, Text)} and {@link Scanner#fetchColumnFamily(Text)}</li>
+     * <li>Filter columns specified by functions like {@link Scanner#fetchColumn(Text, Text)} and
+     * {@link Scanner#fetchColumnFamily(Text)}</li>
      * </ul>
      *
      * <p>
-     * Calling this method will turn off these system iterators and allow reading the raw data in an RFile. When reading the raw data, delete data and delete
-     * markers may be seen. Delete markers are {@link Key}s with the delete flag set.
+     * Calling this method will turn off these system iterators and allow reading the raw data in an
+     * RFile. When reading the raw data, delete data and delete markers may be seen. Delete markers
+     * are {@link Key}s with the delete flag set.
      *
      * <p>
-     * Disabling system iterators will cause {@link #withAuthorizations(Authorizations)}, {@link Scanner#fetchColumn(Text, Text)}, and
-     * {@link Scanner#fetchColumnFamily(Text)} to throw runtime exceptions.
+     * Disabling system iterators will cause {@link #withAuthorizations(Authorizations)},
+     * {@link Scanner#fetchColumn(Text, Text)}, and {@link Scanner#fetchColumnFamily(Text)} to throw
+     * runtime exceptions.
      *
      * @return this
      */
     public ScannerOptions withoutSystemIterators();
 
     /**
-     * The authorizations passed here will be used to filter Keys, from the {@link Scanner}, based on the content of the column visibility field.
+     * The authorizations passed here will be used to filter Keys, from the {@link Scanner}, based
+     * on the content of the column visibility field.
      *
      * @param auths
      *          scan with these authorizations
@@ -129,7 +140,8 @@ public class RFile {
     public ScannerOptions withAuthorizations(Authorizations auths);
 
     /**
-     * Enabling this option will cache RFiles data in memory. This option is useful when doing lots of random accesses.
+     * Enabling this option will cache RFiles data in memory. This option is useful when doing lots
+     * of random accesses.
      *
      * @param cacheSize
      *          the size of the data cache in bytes.
@@ -138,8 +150,9 @@ public class RFile {
     public ScannerOptions withDataCache(long cacheSize);
 
     /**
-     * Enabling this option will cache RFiles indexes in memory. Index data within a RFile is used to find data when seeking to a {@link Key}. This option is
-     * useful when doing lots of random accesses.
+     * Enabling this option will cache RFiles indexes in memory. Index data within a RFile is used
+     * to find data when seeking to a {@link Key}. This option is useful when doing lots of random
+     * accesses.
      *
      * @param cacheSize
      *          the size of the index cache in bytes.
@@ -148,16 +161,17 @@ public class RFile {
     public ScannerOptions withIndexCache(long cacheSize);
 
     /**
-     * This option allows limiting the {@link Scanner} from reading data outside of a given range. A scanner will not see any data outside of this range even if
-     * the RFile(s) have data outside the range.
+     * This option allows limiting the {@link Scanner} from reading data outside of a given range. A
+     * scanner will not see any data outside of this range even if the RFile(s) have data outside
+     * the range.
      *
      * @return this
      */
     public ScannerOptions withBounds(Range range);
 
     /**
-     * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for a table can be obtained by calling
-     * {@link TableOperations#getProperties(String)}
+     * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for
+     * a table can be obtained by calling {@link TableOperations#getProperties(String)}
      *
      * @param props
      *          iterable over Accumulo table key value properties.
@@ -187,13 +201,15 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Supports setting the required input sources for reading summary data from an RFile.
+   * This is an intermediate interface in a larger builder pattern. Supports setting the required
+   * input sources for reading summary data from an RFile.
    *
    * @since 2.0.0
    */
   public static interface SummaryInputArguments {
     /**
-     * Specify RFiles to read from. When multiple inputs are specified the summary data will be merged.
+     * Specify RFiles to read from. When multiple inputs are specified the summary data will be
+     * merged.
      *
      * @param inputs
      *          one or more RFiles to read.
@@ -212,13 +228,15 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a FileSystem to read RFile summary data from.
+   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a
+   * FileSystem to read RFile summary data from.
    *
    * @since 2.0.0
    */
   public static interface SummaryFSOptions extends SummaryOptions {
     /**
-     * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be constructed using configuration on the classpath.
+     * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be
+     * constructed using configuration on the classpath.
      *
      * @param fs
      *          use this FileSystem to open files.
@@ -228,23 +246,28 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a large builder pattern. Allows setting options for retrieving summary data.
+   * This is an intermediate interface in a large builder pattern. Allows setting options for
+   * retrieving summary data.
    *
    * @since 2.0.0
    */
   public static interface SummaryOptions {
     /**
-     * This method allows retrieving a subset of summary data from a file. If a file has lots of separate summaries, reading a subset may be faster.
+     * This method allows retrieving a subset of summary data from a file. If a file has lots of
+     * separate summaries, reading a subset may be faster.
      *
      * @param summarySelector
-     *          Only read summary data that was generated with configuration that this predicate matches.
+     *          Only read summary data that was generated with configuration that this predicate
+     *          matches.
      * @return this
      */
     SummaryOptions selectSummaries(Predicate<SummarizerConfiguration> summarySelector);
 
     /**
-     * Summary data may possibly be stored at a more granular level than the entire file. However there is no guarantee of this. If the data was stored at a
-     * more granular level, then this will get a subset of the summary data. The subset will very likely be an inaccurate approximation.
+     * Summary data may possibly be stored at a more granular level than the entire file. However
+     * there is no guarantee of this. If the data was stored at a more granular level, then this
+     * will get a subset of the summary data. The subset will very likely be an inaccurate
+     * approximation.
      *
      * @param startRow
      *          A non-null start row. The startRow is used exclusively.
@@ -263,8 +286,10 @@ public class RFile {
     SummaryOptions startRow(CharSequence startRow);
 
     /**
-     * Summary data may possibly be stored at a more granular level than the entire file. However there is no guarantee of this. If the data was stored at a
-     * more granular level, then this will get a subset of the summary data. The subset will very likely be an inaccurate approximation.
+     * Summary data may possibly be stored at a more granular level than the entire file. However
+     * there is no guarantee of this. If the data was stored at a more granular level, then this
+     * will get a subset of the summary data. The subset will very likely be an inaccurate
+     * approximation.
      *
      * @param endRow
      *          A non-null end row. The end row is used inclusively.
@@ -300,7 +325,8 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Supports setting the required output sink to write a RFile to.
+   * This is an intermediate interface in a larger builder pattern. Supports setting the required
+   * output sink to write a RFile to.
    *
    * @since 1.8.0
    */
@@ -321,14 +347,15 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a FileSystem to write to.
+   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a
+   * FileSystem to write to.
    *
    * @since 1.8.0
    */
   public static interface WriterFSOptions extends WriterOptions {
     /**
-     * Optionally provide a FileSystem to open a file to write a RFile. If not specified, the FileSystem will be constructed using configuration on the
-     * classpath.
+     * Optionally provide a FileSystem to open a file to write a RFile. If not specified, the
+     * FileSystem will be constructed using configuration on the classpath.
      *
      * @param fs
      *          use this FileSystem to open files.
@@ -338,14 +365,16 @@ public class RFile {
   }
 
   /**
-   * This is an intermediate interface in a larger builder pattern. Supports setting optional parameters for creating a RFile and building a RFileWriter.
+   * This is an intermediate interface in a larger builder pattern. Supports setting optional
+   * parameters for creating a RFile and building a RFileWriter.
    *
    * @since 1.8.0
    */
   public static interface WriterOptions {
 
     /**
-     * Enable generating summary data in the created RFile by running {@link Summarizer}'s based on the specified configuration.
+     * Enable generating summary data in the created RFile by running {@link Summarizer}'s based on
+     * the specified configuration.
      *
      * @param summarizerConf
      *          Configuration for summarizer to run.
@@ -359,19 +388,21 @@ public class RFile {
      * @param samplerConf
      *          configuration to use when generating sample data.
      * @throws IllegalArgumentException
-     *           if table properties were previously specified and the table properties also specify a sampler.
+     *           if table properties were previously specified and the table properties also specify
+     *           a sampler.
      * @return this
      */
     public WriterOptions withSampler(SamplerConfiguration samplerConf);
 
     /**
-     * Create an RFile using the same configuration as an Accumulo table. Properties for a table can be obtained by calling
-     * {@link TableOperations#getProperties(String)}
+     * Create an RFile using the same configuration as an Accumulo table. Properties for a table can
+     * be obtained by calling {@link TableOperations#getProperties(String)}
      *
      * @param props
      *          iterable over Accumulo table key value properties.
      * @throws IllegalArgumentException
-     *           if sampler was previously specified and the table properties also specify a sampler.
+     *           if sampler was previously specified and the table properties also specify a
+     *           sampler.
      * @return this
      */
     public WriterOptions withTableProperties(Iterable<Entry<String,String>> props);
@@ -383,8 +414,10 @@ public class RFile {
 
     /**
      * @param maxSize
-     *          As keys are added to an RFile the visibility field is validated. Validating the visibility field requires parsing it. In order to make
-     *          validation faster, previously seen visibilities are cached. This option allows setting the maximum size of this cache.
+     *          As keys are added to an RFile the visibility field is validated. Validating the
+     *          visibility field requires parsing it. In order to make validation faster, previously
+     *          seen visibilities are cached. This option allows setting the maximum size of this
+     *          cache.
      * @return this
      */
     public WriterOptions withVisibilityCacheSize(int maxSize);

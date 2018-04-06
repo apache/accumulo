@@ -63,7 +63,8 @@ public class WorkMakerIT extends ConfigurableMacBase {
     }
 
     @Override
-    public void addWorkRecord(Text file, Value v, Map<String,String> targets, Table.ID sourceTableId) {
+    public void addWorkRecord(Text file, Value v, Map<String,String> targets,
+        Table.ID sourceTableId) {
       super.addWorkRecord(file, v, targets, sourceTableId);
     }
 
@@ -78,8 +79,10 @@ public class WorkMakerIT extends ConfigurableMacBase {
   public void setupInstance() throws Exception {
     conn = getConnector();
     ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
   }
 
   @Test
@@ -92,7 +95,8 @@ public class WorkMakerIT extends ConfigurableMacBase {
     // Create a status record for a file
     long timeCreated = System.currentTimeMillis();
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId.getUtf8()), StatusUtil.fileCreatedValue(timeCreated));
+    m.put(StatusSection.NAME, new Text(tableId.getUtf8()),
+        StatusUtil.fileCreatedValue(timeCreated));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -108,7 +112,8 @@ public class WorkMakerIT extends ConfigurableMacBase {
       // Invoke the addWorkRecord method to create a Work record from the Status record earlier
       expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
       workMaker.setBatchWriter(bw);
-      workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(timeCreated), ImmutableMap.of("remote_cluster_1", "4"), tableId);
+      workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(timeCreated),
+          ImmutableMap.of("remote_cluster_1", "4"), tableId);
     }
 
     // Scan over just the WorkSection
@@ -136,7 +141,8 @@ public class WorkMakerIT extends ConfigurableMacBase {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId.getUtf8()), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+    m.put(StatusSection.NAME, new Text(tableId.getUtf8()),
+        StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -149,13 +155,15 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
       MockWorkMaker workMaker = new MockWorkMaker(conn);
 
-      Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
+      Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4",
+          "remote_cluster_2", "6", "remote_cluster_3", "8");
 
       for (Entry<String,String> cluster : targetClusters.entrySet()) {
         expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));
       }
       workMaker.setBatchWriter(bw);
-      workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(System.currentTimeMillis()), targetClusters, tableId);
+      workMaker.addWorkRecord(new Text(file),
+          StatusUtil.fileCreatedValue(System.currentTimeMillis()), targetClusters, tableId);
     }
 
     try (Scanner s = ReplicationTable.getScanner(conn)) {
@@ -171,11 +179,13 @@ public class WorkMakerIT extends ConfigurableMacBase {
       }
 
       for (ReplicationTarget expected : expectedTargets) {
-        Assert.assertTrue("Did not find expected target: " + expected, actualTargets.contains(expected));
+        Assert.assertTrue("Did not find expected target: " + expected,
+            actualTargets.contains(expected));
         actualTargets.remove(expected);
       }
 
-      Assert.assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
+      Assert.assertTrue("Found extra replication work entries: " + actualTargets,
+          actualTargets.isEmpty());
     }
   }
 
@@ -187,7 +197,8 @@ public class WorkMakerIT extends ConfigurableMacBase {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+    m.put(StatusSection.NAME, new Text(tableId),
+        StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -199,11 +210,13 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
       MockWorkMaker workMaker = new MockWorkMaker(conn);
 
-      conn.tableOperations().setProperty(ReplicationTable.NAME, Property.TABLE_REPLICATION_TARGET.getKey() + "remote_cluster_1", "4");
+      conn.tableOperations().setProperty(ReplicationTable.NAME,
+          Property.TABLE_REPLICATION_TARGET.getKey() + "remote_cluster_1", "4");
 
       workMaker.setBatchWriter(bw);
 
-      // If we don't shortcircuit out, we should get an exception because ServerConfiguration.getTableConfiguration
+      // If we don't shortcircuit out, we should get an exception because
+      // ServerConfiguration.getTableConfiguration
       // won't work with MockAccumulo
       workMaker.run();
     }

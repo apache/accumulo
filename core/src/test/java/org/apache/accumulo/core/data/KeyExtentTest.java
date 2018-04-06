@@ -45,7 +45,8 @@ import org.junit.Test;
 
 public class KeyExtentTest {
   KeyExtent nke(String t, String er, String per) {
-    return new KeyExtent(Table.ID.of(t), er == null ? null : new Text(er), per == null ? null : new Text(per));
+    return new KeyExtent(Table.ID.of(t), er == null ? null : new Text(er),
+        per == null ? null : new Text(per));
   }
 
   KeyExtent ke;

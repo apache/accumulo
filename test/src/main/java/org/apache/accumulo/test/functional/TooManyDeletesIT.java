@@ -48,8 +48,10 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
 
     NewTableConfiguration ntc = new NewTableConfiguration().enableSummarization(sc);
     HashMap<String,String> props = new HashMap<>();
-    props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(), TooManyDeletesCompactionStrategy.class.getName());
-    props.put(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + TooManyDeletesCompactionStrategy.THRESHOLD_OPT, ".25");
+    props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),
+        TooManyDeletesCompactionStrategy.class.getName());
+    props.put(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()
+        + TooManyDeletesCompactionStrategy.THRESHOLD_OPT, ".25");
     // ensure compaction does not happen because of the number of files
     props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
     ntc.setProperties(props);
@@ -64,7 +66,8 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       }
     }
 
-    List<Summary> summaries = c.tableOperations().summaries(table).flush(true).withConfiguration(sc).retrieve();
+    List<Summary> summaries = c.tableOperations().summaries(table).flush(true).withConfiguration(sc)
+        .retrieve();
     Assert.assertEquals(1, summaries.size());
 
     Summary summary = summaries.get(0);
@@ -96,14 +99,16 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       }
     }
 
-    // after a flush occurs Accumulo will check if a major compaction is needed. This check should call the compaction strategy, which should decide to compact
+    // after a flush occurs Accumulo will check if a major compaction is needed. This check should
+    // call the compaction strategy, which should decide to compact
     // all files based on the number of deletes.
     c.tableOperations().flush(table, null, null, true);
 
     // wait for the compaction to happen
     while (true) {
       // the flush should cause
-      summaries = c.tableOperations().summaries(table).flush(false).withConfiguration(sc).retrieve();
+      summaries = c.tableOperations().summaries(table).flush(false).withConfiguration(sc)
+          .retrieve();
       Assert.assertEquals(1, summaries.size());
 
       summary = summaries.get(0);

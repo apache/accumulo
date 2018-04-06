@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Reader corresponding to BlockedOutputStream. Expects all data to be in the form of size (int) data (size bytes) junk (however many bytes it takes to complete
- * a block)
+ * Reader corresponding to BlockedOutputStream. Expects all data to be in the form of size (int)
+ * data (size bytes) junk (however many bytes it takes to complete a block)
  */
 public class BlockedInputStream extends InputStream {
   byte[] array;
@@ -62,7 +62,8 @@ public class BlockedInputStream extends InputStream {
     if (readPos == array.length)
       readPos = 0;
     else if (readPos > array.length)
-      throw new RuntimeException("Unexpected state, this should only ever increase or cycle on the boundry!");
+      throw new RuntimeException(
+          "Unexpected state, this should only ever increase or cycle on the boundry!");
     return toRet;
   }
 
@@ -110,7 +111,8 @@ public class BlockedInputStream extends InputStream {
       finished = true;
       return false;
     } else if (size == 0)
-      throw new RuntimeException("Empty block written, this shouldn't happen with this BlockedOutputStream.");
+      throw new RuntimeException(
+          "Empty block written, this shouldn't happen with this BlockedOutputStream.");
 
     // We have already checked, not concerned with looping the buffer here
     int bufferAvailable = array.length - readPos;

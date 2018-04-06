@@ -40,14 +40,17 @@ public class SetShellIterCommand extends SetIterCommand {
   private static final Logger log = LoggerFactory.getLogger(SetShellIterCommand.class);
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, IOException, ShellCommandException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
+      ShellCommandException {
     return super.execute(fullCommand, cl, shellState);
   }
 
   @Override
-  protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
-      final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
+  protected void setTableProperties(final CommandLine cl, final Shell shellState,
+      final int priority, final Map<String,String> options, final String classname,
+      final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException,
+      TableNotFoundException {
     // instead of setting table properties, just put the options in a list to use at scan time
 
     String profile = cl.getOptionValue(profileOpt.getOpt());

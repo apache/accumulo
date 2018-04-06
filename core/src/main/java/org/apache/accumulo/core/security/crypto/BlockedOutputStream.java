@@ -39,7 +39,8 @@ public class BlockedOutputStream extends OutputStream {
     int remainder = bufferSize % blockSize;
     if (remainder != 0)
       remainder = blockSize - remainder;
-    // some buffer space + bytes to make the buffer evened up with the cipher block size - 4 bytes for the size int
+    // some buffer space + bytes to make the buffer evened up with the cipher block size - 4 bytes
+    // for the size int
     bb = ByteBuffer.allocate(bufferSize + remainder - 4);
   }
 
@@ -67,7 +68,8 @@ public class BlockedOutputStream extends OutputStream {
 
   @Override
   public void write(int b) throws IOException {
-    // Checking before provides same functionality but causes the case of previous flush() failing to now throw a buffer out of bounds error
+    // Checking before provides same functionality but causes the case of previous flush() failing
+    // to now throw a buffer out of bounds error
     if (bb.remaining() == 0)
       flush();
     bb.put((byte) b);
@@ -75,7 +77,8 @@ public class BlockedOutputStream extends OutputStream {
 
   @Override
   public void write(byte b[], int off, int len) throws IOException {
-    // Can't recurse here in case the len is large and the blocksize is small (and the stack is small)
+    // Can't recurse here in case the len is large and the blocksize is small (and the stack is
+    // small)
     // So we'll just fill up the buffer over and over
     while (len >= bb.remaining()) {
       int remaining = bb.remaining();
@@ -85,7 +88,8 @@ public class BlockedOutputStream extends OutputStream {
       off += remaining;
       len -= remaining;
     }
-    // And then write the remainder (and this is guaranteed to not fill the buffer, so we won't flush afteward
+    // And then write the remainder (and this is guaranteed to not fill the buffer, so we won't
+    // flush afteward
     bb.put(b, off, len);
   }
 

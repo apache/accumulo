@@ -42,13 +42,16 @@ import org.slf4j.LoggerFactory;
 /**
  * Convenience class which starts a single MAC instance for a test to leverage.
  *
- * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the logical place) because we need to start the
- * MiniAccumuloCluster in a static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation,
- * the actual test classes can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
+ * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the
+ * logical place) because we need to start the MiniAccumuloCluster in a static BeforeClass-annotated
+ * method. Because it is static and invoked before any other BeforeClass methods in the
+ * implementation, the actual test classes can't expose any information to tell the base class that
+ * it is to perform the one-MAC-per-class semantics.
  *
- * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in
- * a method annotated with the {@link org.junit.BeforeClass} JUnit annotation and {@link #stopMiniCluster()} in a method annotated with the
- * {@link org.junit.AfterClass} JUnit annotation.
+ * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or
+ * {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in a method annotated with
+ * the {@link org.junit.BeforeClass} JUnit annotation and {@link #stopMiniCluster()} in a method
+ * annotated with the {@link org.junit.AfterClass} JUnit annotation.
  */
 @Category(MiniClusterOnlyTests.class)
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
@@ -69,13 +72,14 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   }
 
   /**
-   * Starts a MiniAccumuloCluster instance with the default configuration but also provides the caller the opportunity to update the configuration before the
-   * MiniAccumuloCluster is started.
+   * Starts a MiniAccumuloCluster instance with the default configuration but also provides the
+   * caller the opportunity to update the configuration before the MiniAccumuloCluster is started.
    *
    * @param miniClusterCallback
    *          A callback to configure the minicluster before it is started.
    */
-  public static void startMiniClusterWithConfig(MiniClusterConfigurationCallback miniClusterCallback) throws Exception {
+  public static void startMiniClusterWithConfig(
+      MiniClusterConfigurationCallback miniClusterCallback) throws Exception {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
 
@@ -92,14 +96,16 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       // Login as the client
       ClusterUser rootUser = krb.getRootUser();
       // Get the krb token
-      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
+          rootUser.getKeytab().getAbsolutePath());
       token = new KerberosToken();
     } else {
       rootPassword = "rootPasswordShared1";
       token = new PasswordToken(rootPassword);
     }
 
-    cluster = harness.create(SharedMiniClusterBase.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token,
+    cluster = harness.create(SharedMiniClusterBase.class.getName(),
+        System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token,
         miniClusterCallback, krb);
     cluster.start();
 
@@ -107,22 +113,29 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       final String traceTable = Property.TRACE_TABLE.getDefaultValue();
       final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
       // Login as the trace user
-      // Open a connector as the system user (ensures the user will exist for us to assign permissions to)
-      UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
+      // Open a connector as the system user (ensures the user will exist for us to assign
+      // permissions to)
+      UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
+          systemUser.getKeytab().getAbsolutePath());
       Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken());
 
       // Then, log back in as the "root" user and do the grant
-      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
+          rootUser.getKeytab().getAbsolutePath());
       conn = cluster.getConnector(principal, token);
 
       // Create the trace table
       conn.tableOperations().create(traceTable);
 
-      // Trace user (which is the same kerberos principal as the system user, but using a normal KerberosToken) needs
+      // Trace user (which is the same kerberos principal as the system user, but using a normal
+      // KerberosToken) needs
       // to have the ability to read, write and alter the trace table
-      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.READ);
-      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.WRITE);
-      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.ALTER_TABLE);
+      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+          TablePermission.READ);
+      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+          TablePermission.WRITE);
+      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+          TablePermission.ALTER_TABLE);
     }
   }
 
@@ -153,7 +166,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   public static AuthenticationToken getToken() {
     if (token instanceof KerberosToken) {
       try {
-        UserGroupInformation.loginUserFromKeytab(getPrincipal(), krb.getRootUser().getKeytab().getAbsolutePath());
+        UserGroupInformation.loginUserFromKeytab(getPrincipal(),
+            krb.getRootUser().getKeytab().getAbsolutePath());
       } catch (IOException e) {
         throw new RuntimeException("Failed to login", e);
       }
@@ -197,7 +211,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   @Override
   public ClusterUser getUser(int offset) {
     if (null == krb) {
-      String user = SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
+      String user = SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_"
+          + offset;
       // Password is the username
       return new ClusterUser(user, user);
     } else {

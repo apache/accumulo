@@ -34,7 +34,8 @@ import org.apache.accumulo.core.data.thrift.TSummary;
 import com.google.common.base.Preconditions;
 
 /**
- * This class facilitates merging, storing, and serializing (to/from thrift) intermediate summary information.
+ * This class facilitates merging, storing, and serializing (to/from thrift) intermediate summary
+ * information.
  */
 public class SummaryCollection {
 
@@ -58,7 +59,8 @@ public class SummaryCollection {
       this.filesLarge = tSummary.getFilesLarge();
     }
 
-    public void merge(MergedSummary other, SummarizerConfiguration config, SummarizerFactory factory) {
+    public void merge(MergedSummary other, SummarizerConfiguration config,
+        SummarizerFactory factory) {
 
       if (summary == null && other.summary != null) {
         summary = new HashMap<>(other.summary);
@@ -151,7 +153,8 @@ public class SummaryCollection {
     this.deletedFiles += other.deletedFiles;
   }
 
-  public static SummaryCollection merge(SummaryCollection sc1, SummaryCollection sc2, SummarizerFactory factory) {
+  public static SummaryCollection merge(SummaryCollection sc1, SummaryCollection sc2,
+      SummarizerFactory factory) {
     SummaryCollection ret = new SummaryCollection();
     ret.merge(sc1, factory);
     ret.merge(sc2, factory);
@@ -165,7 +168,8 @@ public class SummaryCollection {
       SummarizerConfiguration config = entry.getKey();
       MergedSummary ms = entry.getValue();
 
-      ret.add(new Summary(ms.summary, config, totalFiles, (totalFiles - deletedFiles) - ms.filesContaining, ms.filesExceedingBoundry, ms.filesLarge,
+      ret.add(new Summary(ms.summary, config, totalFiles,
+          (totalFiles - deletedFiles) - ms.filesContaining, ms.filesExceedingBoundry, ms.filesLarge,
           deletedFiles));
     }
 

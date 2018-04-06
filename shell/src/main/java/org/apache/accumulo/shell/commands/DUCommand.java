@@ -40,8 +40,8 @@ public class DUCommand extends Command {
   private Option optTablePattern, optHumanReadble, optNamespace;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException,
-      NamespaceNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws IOException, TableNotFoundException, NamespaceNotFoundException {
 
     final SortedSet<String> tables = new TreeSet<>(Arrays.asList(cl.getArgs()));
 
@@ -51,7 +51,8 @@ public class DUCommand extends Command {
 
     if (cl.hasOption(optNamespace.getOpt())) {
       Instance instance = shellState.getInstance();
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(instance, cl.getOptionValue(optNamespace.getOpt()));
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(instance,
+          cl.getOptionValue(optNamespace.getOpt()));
       tables.addAll(Namespaces.getTableNames(instance, namespaceId));
     }
 
@@ -74,7 +75,8 @@ public class DUCommand extends Command {
     // sanity check...make sure the user-specified tables exist
     for (String tableName : tables) {
       if (!shellState.getConnector().tableOperations().exists(tableName)) {
-        throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
+        throw new TableNotFoundException(tableName, tableName,
+            "specified table that doesn't exist");
       }
     }
 
@@ -82,7 +84,8 @@ public class DUCommand extends Command {
       String valueFormat = prettyPrint ? "%9s" : "%,24d";
       for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tables)) {
         Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
-        shellState.getReader().println(String.format(valueFormat + " %s", value, usage.getTables()));
+        shellState.getReader()
+            .println(String.format(valueFormat + " %s", value, usage.getTables()));
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);
@@ -103,10 +106,12 @@ public class DUCommand extends Command {
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names");
     optTablePattern.setArgName("pattern");
 
-    optHumanReadble = new Option("h", "human-readable", false, "format large sizes to human readable units");
+    optHumanReadble = new Option("h", "human-readable", false,
+        "format large sizes to human readable units");
     optHumanReadble.setArgName("human readable output");
 
-    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace");
+    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,
+        "name of a namespace");
     optNamespace.setArgName("namespace");
 
     o.addOption(OptUtil.tableOpt("table to examine"));

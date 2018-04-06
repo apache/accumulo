@@ -43,16 +43,21 @@ public class Tables {
 
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
 
-  private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
-  // Per instance cache will expire after 10 minutes in case we encounter an instance not used frequently
-  private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
-  private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
+  private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission(
+      "tablesPermission");
+  // Per instance cache will expire after 10 minutes in case we encounter an instance not used
+  // frequently
+  private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder()
+      .expireAfterAccess(10, TimeUnit.MINUTES).build();
+  private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder()
+      .expireAfterAccess(10, TimeUnit.MINUTES).build();
 
   /**
-   * Lookup table ID in ZK. Throw TableNotFoundException if not found. Also wraps NamespaceNotFoundException in TableNotFoundException if namespace is not
-   * found.
+   * Lookup table ID in ZK. Throw TableNotFoundException if not found. Also wraps
+   * NamespaceNotFoundException in TableNotFoundException if namespace is not found.
    */
-  public static Table.ID getTableId(Instance instance, String tableName) throws TableNotFoundException {
+  public static Table.ID getTableId(Instance instance, String tableName)
+      throws TableNotFoundException {
     try {
       return _getTableId(instance, tableName);
     } catch (NamespaceNotFoundException e) {
@@ -61,8 +66,8 @@ public class Tables {
   }
 
   /**
-   * Return the cached ZooCache for provided instance. ZooCache is initially created with a watcher that will clear the TableMap cache for that instance when
-   * WatchedEvent occurs.
+   * Return the cached ZooCache for provided instance. ZooCache is initially created with a watcher
+   * that will clear the TableMap cache for that instance when WatchedEvent occurs.
    */
   private static ZooCache getZooCache(final Instance instance) {
     SecurityManager sm = System.getSecurityManager();
@@ -76,7 +81,8 @@ public class Tables {
       return instanceToZooCache.get(uuid, () -> {
         final String zks = instance.getZooKeepers();
         final int timeOut = instance.getZooKeepersSessionTimeOut();
-        return new ZooCacheFactory().getZooCache(zks, timeOut, watchedEvent -> instanceToMapCache.invalidate(uuid));
+        return new ZooCacheFactory().getZooCache(zks, timeOut,
+            watchedEvent -> instanceToMapCache.invalidate(uuid));
       });
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
@@ -86,10 +92,12 @@ public class Tables {
   /**
    * Lookup table ID in ZK. If not found, clears cache and tries again.
    */
-  public static Table.ID _getTableId(Instance instance, String tableName) throws NamespaceNotFoundException, TableNotFoundException {
+  public static Table.ID _getTableId(Instance instance, String tableName)
+      throws NamespaceNotFoundException, TableNotFoundException {
     Table.ID tableId = getNameToIdMap(instance).get(tableName);
     if (tableId == null) {
-      // maybe the table exist, but the cache was not updated yet... so try to clear the cache and check again
+      // maybe the table exist, but the cache was not updated yet... so try to clear the cache and
+      // check again
       clearCache(instance);
       tableId = getNameToIdMap(instance).get(tableName);
       if (tableId == null) {
@@ -103,7 +111,8 @@ public class Tables {
     return tableId;
   }
 
-  public static String getTableName(Instance instance, Table.ID tableId) throws TableNotFoundException {
+  public static String getTableName(Instance instance, Table.ID tableId)
+      throws TableNotFoundException {
     String tableName = getIdToNameMap(instance).get(tableId);
     if (tableName == null)
       throw new TableNotFoundException(tableId.canonicalID(), null, null);
@@ -119,13 +128,15 @@ public class Tables {
   }
 
   /**
-   * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared manually by calling {@link #clearCache(Instance)} or
-   * automatically cleared by ZooCache watcher created in {@link #getZooCache(Instance)}. See ACCUMULO-4778.
+   * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared
+   * manually by calling {@link #clearCache(Instance)} or automatically cleared by ZooCache watcher
+   * created in {@link #getZooCache(Instance)}. See ACCUMULO-4778.
    */
   private static TableMap getTableMap(final Instance instance) {
     TableMap map;
     try {
-      map = instanceToMapCache.get(instance.getInstanceID(), () -> new TableMap(instance, getZooCache(instance)));
+      map = instanceToMapCache.get(instance.getInstanceID(),
+          () -> new TableMap(instance, getZooCache(instance)));
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
     }
@@ -165,7 +176,8 @@ public class Tables {
     } catch (TableNotFoundException e) {
       // handled in the string formatting
     }
-    return tableName == null ? String.format("?(ID:%s)", tableId.canonicalID()) : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
+    return tableName == null ? String.format("?(ID:%s)", tableId.canonicalID())
+        : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
   }
 
   public static String getPrintableTableInfoFromName(Instance instance, String tableName) {
@@ -175,7 +187,8 @@ public class Tables {
     } catch (TableNotFoundException e) {
       // handled in the string formatting
     }
-    return tableId == null ? String.format("%s(?)", tableName) : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
+    return tableId == null ? String.format("%s(?)", tableName)
+        : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
   }
 
   public static TableState getTableState(Instance instance, Table.ID tableId) {
@@ -183,8 +196,8 @@ public class Tables {
   }
 
   /**
-   * Get the current state of the table using the tableid. The boolean clearCache, if true will clear the table state in zookeeper before fetching the state.
-   * Added with ACCUMULO-4574.
+   * Get the current state of the table using the tableid. The boolean clearCache, if true will
+   * clear the table state in zookeeper before fetching the state. Added with ACCUMULO-4574.
    *
    * @param instance
    *          the Accumulo instance.
@@ -194,9 +207,11 @@ public class Tables {
    *          if true clear the table state in zookeeper before checking status
    * @return the table state.
    */
-  public static TableState getTableState(Instance instance, Table.ID tableId, boolean clearCachedState) {
+  public static TableState getTableState(Instance instance, Table.ID tableId,
+      boolean clearCachedState) {
 
-    String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId.canonicalID() + Constants.ZTABLE_STATE;
+    String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId.canonicalID()
+        + Constants.ZTABLE_STATE;
 
     if (clearCachedState) {
       Tables.clearCacheByPath(instance, statePath);
@@ -250,12 +265,14 @@ public class Tables {
    * @throws IllegalArgumentException
    *           if the table doesn't exist in ZooKeeper
    */
-  public static Namespace.ID getNamespaceId(Instance instance, Table.ID tableId) throws TableNotFoundException {
+  public static Namespace.ID getNamespaceId(Instance instance, Table.ID tableId)
+      throws TableNotFoundException {
     checkArgument(instance != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
 
     ZooCache zc = getZooCache(instance);
-    byte[] n = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
+    byte[] n = zc.get(
+        ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
 
     // We might get null out of ZooCache if this tableID doesn't exist
     if (null == n) {

@@ -44,22 +44,26 @@ public class SiteConfigurationTest {
   }
 
   @Test
-  public void testOnlySensitivePropertiesExtractedFromCredentialProvider() throws SecurityException, NoSuchMethodException {
+  public void testOnlySensitivePropertiesExtractedFromCredentialProvider()
+      throws SecurityException, NoSuchMethodException {
     if (!isCredentialProviderAvailable) {
       return;
     }
 
-    SiteConfiguration siteCfg = EasyMock.createMockBuilder(SiteConfiguration.class).addMockedMethod("getHadoopConfiguration").createMock();
+    SiteConfiguration siteCfg = EasyMock.createMockBuilder(SiteConfiguration.class)
+        .addMockedMethod("getHadoopConfiguration").createMock();
 
     siteCfg.set(Property.INSTANCE_SECRET, "ignored");
 
-    // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret', 'general.rpc.timeout'=>'timeout'}
+    // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
+    // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
     Assert.assertNotNull(keystore);
     String keystorePath = new File(keystore.getFile()).getAbsolutePath();
 
     Configuration hadoopConf = new Configuration();
-    hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, "jceks://file" + keystorePath);
+    hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH,
+        "jceks://file" + keystorePath);
 
     EasyMock.expect(siteCfg.getHadoopConfiguration()).andReturn(hadoopConf).once();
 
@@ -71,7 +75,8 @@ public class SiteConfigurationTest {
 
     Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
     Assert.assertEquals(null, props.get("ignored.property"));
-    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
+    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
+        props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
   }
 
   @Test

@@ -40,8 +40,9 @@ public class TableNotFoundException extends Exception {
    *          the specific reason why it failed
    */
   public TableNotFoundException(String tableId, String tableName, String description) {
-    super("Table" + (tableName != null && !tableName.isEmpty() ? " " + tableName : "") + (tableId != null && !tableId.isEmpty() ? " (Id=" + tableId + ")" : "")
-        + " does not exist" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super("Table" + (tableName != null && !tableName.isEmpty() ? " " + tableName : "")
+        + (tableId != null && !tableId.isEmpty() ? " (Id=" + tableId + ")" : "") + " does not exist"
+        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.tableName = tableName;
   }
 
@@ -55,7 +56,8 @@ public class TableNotFoundException extends Exception {
    * @param cause
    *          the exception that caused this failure
    */
-  public TableNotFoundException(String tableId, String tableName, String description, Throwable cause) {
+  public TableNotFoundException(String tableId, String tableName, String description,
+      Throwable cause) {
     this(tableId, tableName, description);
     super.initCause(cause);
   }
@@ -72,10 +74,12 @@ public class TableNotFoundException extends Exception {
    * @param tableName
    *          the original specified table
    * @param e
-   *          indicates that a table wasn't found because the namespace specified in the table name wasn't found
+   *          indicates that a table wasn't found because the namespace specified in the table name
+   *          wasn't found
    */
   public TableNotFoundException(String tableName, NamespaceNotFoundException e) {
-    this(null, tableName, "Namespace " + Tables.qualify(tableName).getFirst() + " does not exist.", e);
+    this(null, tableName, "Namespace " + Tables.qualify(tableName).getFirst() + " does not exist.",
+        e);
   }
 
   /**

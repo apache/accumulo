@@ -27,28 +27,34 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * Filters key/value pairs for a range of column families and a range of column qualifiers. Only keys which fall in both ranges will be passed by the filter.
- * Note that if you have a small, well-defined set of column families it will be much more efficient to configure locality groups to isolate that data instead
- * of configuring this iterator to seek over it.
+ * Filters key/value pairs for a range of column families and a range of column qualifiers. Only
+ * keys which fall in both ranges will be passed by the filter. Note that if you have a small,
+ * well-defined set of column families it will be much more efficient to configure locality groups
+ * to isolate that data instead of configuring this iterator to seek over it.
  *
- * This filter may be more efficient than the CfCqSliceFilter or the ColumnSlice filter for small slices of large rows as it will seek to the next potential
- * match once it determines that it has iterated past the end of a slice.
+ * This filter may be more efficient than the CfCqSliceFilter or the ColumnSlice filter for small
+ * slices of large rows as it will seek to the next potential match once it determines that it has
+ * iterated past the end of a slice.
  *
- * @see org.apache.accumulo.core.iterators.user.CfCqSliceOpts for a description of this iterator's options.
+ * @see org.apache.accumulo.core.iterators.user.CfCqSliceOpts for a description of this iterator's
+ *      options.
  */
 public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescriber {
 
   private static final FilterResult SKIP_TO_HINT = FilterResult.of(false, AdvanceResult.USE_HINT);
   private static final FilterResult SKIP_TO_NEXT = FilterResult.of(false, AdvanceResult.NEXT);
-  private static final FilterResult SKIP_TO_NEXT_ROW = FilterResult.of(false, AdvanceResult.NEXT_ROW);
+  private static final FilterResult SKIP_TO_NEXT_ROW = FilterResult.of(false,
+      AdvanceResult.NEXT_ROW);
   private static final FilterResult SKIP_TO_NEXT_CF = FilterResult.of(false, AdvanceResult.NEXT_CF);
   private static final FilterResult INCLUDE_AND_NEXT = FilterResult.of(true, AdvanceResult.NEXT);
-  private static final FilterResult INCLUDE_AND_NEXT_CF = FilterResult.of(true, AdvanceResult.NEXT_CF);
+  private static final FilterResult INCLUDE_AND_NEXT_CF = FilterResult.of(true,
+      AdvanceResult.NEXT_CF);
 
   private CfCqSliceOpts cso;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     cso = new CfCqSliceOpts(options);
   }
@@ -86,7 +92,8 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
         return SKIP_TO_NEXT_CF;
       }
       if (maxCqCmp == 0) {
-        // special-case here: we know we're at the last CQ in the slice, so skip to the next CF in the row.
+        // special-case here: we know we're at the last CQ in the slice, so skip to the next CF in
+        // the row.
         return INCLUDE_AND_NEXT_CF;
       }
     }

@@ -48,7 +48,8 @@ public class ZooReaderWriterFactory {
   }
 
   /**
-   * Gets a reader/writer, retrieving ZooKeeper information from the site configuration. The same instance may be returned for multiple calls.
+   * Gets a reader/writer, retrieving ZooKeeper information from the site configuration. The same
+   * instance may be returned for multiple calls.
    *
    * @return reader/writer
    */
@@ -56,7 +57,8 @@ public class ZooReaderWriterFactory {
     synchronized (ZooReaderWriterFactory.class) {
       if (instance == null) {
         AccumuloConfiguration conf = SiteConfiguration.getInstance();
-        instance = getZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST), (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+        instance = getZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST),
+            (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
             conf.get(Property.INSTANCE_SECRET));
       }
       return instance;

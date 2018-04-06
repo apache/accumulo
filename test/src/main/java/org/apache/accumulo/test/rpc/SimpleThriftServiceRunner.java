@@ -23,7 +23,8 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TSimpleServer;
 
 /**
- * A utility for starting a simple thrift server, and providing a corresponding client for in-memory testing of thrift behavior
+ * A utility for starting a simple thrift server, and providing a corresponding client for in-memory
+ * testing of thrift behavior
  */
 public class SimpleThriftServiceRunner {
 

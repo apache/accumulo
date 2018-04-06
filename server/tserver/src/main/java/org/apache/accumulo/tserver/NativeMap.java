@@ -53,11 +53,14 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 
 /**
- * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid pauses caused by Java GC.
+ * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid
+ * pauses caused by Java GC.
  *
- * The strategy for dealing with native memory allocated for the native map is that java code using the native map should call delete() as soon as it is
- * finished using the native map. When the NativeMap object is garbage collected its native resources will be released if needed. However waiting for java GC
- * would be a mistake for long lived NativeMaps. Long lived objects are not garbage collected quickly, therefore a process could easily use too much memory.
+ * The strategy for dealing with native memory allocated for the native map is that java code using
+ * the native map should call delete() as soon as it is finished using the native map. When the
+ * NativeMap object is garbage collected its native resources will be released if needed. However
+ * waiting for java GC would be a mistake for long lived NativeMaps. Long lived objects are not
+ * garbage collected quickly, therefore a process could easily use too much memory.
  *
  */
 public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
@@ -93,17 +96,20 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     // Exit if native libraries could not be loaded
     if (!isLoaded()) {
-      log.error("FATAL! Accumulo native libraries were requested but could not be be loaded. Either set '{}' to false in accumulo-site.xml "
-          + " or make sure native libraries are created in directories set by the JVM system property 'accumulo.native.lib.path' in accumulo-env.sh!",
+      log.error(
+          "FATAL! Accumulo native libraries were requested but could not be be loaded. Either set '{}' to false in accumulo-site.xml "
+              + " or make sure native libraries are created in directories set by the JVM system property 'accumulo.native.lib.path' in accumulo-env.sh!",
           Property.TSERV_NATIVEMAP_ENABLED);
       System.exit(1);
     }
   }
 
   /**
-   * If native libraries are not loaded, the specified search path will be used to attempt to load them. Directories will be searched by using the
-   * system-specific library naming conventions. A path directly to a file can also be provided. Loading will continue until the search path is exhausted, or
-   * until the native libraries are found and successfully loaded, whichever occurs first.
+   * If native libraries are not loaded, the specified search path will be used to attempt to load
+   * them. Directories will be searched by using the system-specific library naming conventions. A
+   * path directly to a file can also be provided. Loading will continue until the search path is
+   * exhausted, or until the native libraries are found and successfully loaded, whichever occurs
+   * first.
    *
    * @param searchPath
    *          a list of files and directories to search
@@ -180,13 +186,16 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   private static native long createNM();
 
-  // private static native void putNM(long nmPointer, byte[] kd, int cfo, int cqo, int cvo, int tl, long ts, boolean del, byte[] value);
+  // private static native void putNM(long nmPointer, byte[] kd, int cfo, int cqo, int cvo, int tl,
+  // long ts, boolean del, byte[] value);
 
-  private static native void singleUpdate(long nmPointer, byte[] row, byte cf[], byte cq[], byte cv[], long ts, boolean del, byte[] value, int mutationCount);
+  private static native void singleUpdate(long nmPointer, byte[] row, byte cf[], byte cq[],
+      byte cv[], long ts, boolean del, byte[] value, int mutationCount);
 
   private static native long startUpdate(long nmPointer, byte[] row);
 
-  private static native void update(long nmPointer, long updateID, byte cf[], byte cq[], byte cv[], long ts, boolean del, byte[] value, int mutationCount);
+  private static native void update(long nmPointer, long updateID, byte cf[], byte cq[], byte cv[],
+      long ts, boolean del, byte[] value, int mutationCount);
 
   private static native int sizeNM(long nmPointer);
 
@@ -231,17 +240,20 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       deleteNM(nmPtr);
       allocatedNativeMaps.remove(nmPtr);
     } else {
-      throw new RuntimeException(String.format("Attempt to delete native map that is not allocated 0x%016x ", nmPtr));
+      throw new RuntimeException(
+          String.format("Attempt to delete native map that is not allocated 0x%016x ", nmPtr));
     }
   }
 
   private static native long createNMI(long nmp, int fieldLens[]);
 
-  private static native long createNMI(long nmp, byte[] row, byte cf[], byte cq[], byte cv[], long ts, boolean del, int fieldLens[]);
+  private static native long createNMI(long nmp, byte[] row, byte cf[], byte cq[], byte cv[],
+      long ts, boolean del, int fieldLens[]);
 
   private static native boolean nmiNext(long nmiPointer, int fieldLens[]);
 
-  private static native void nmiGetData(long nmiPointer, byte[] row, byte cf[], byte cq[], byte cv[], byte[] valData);
+  private static native void nmiGetData(long nmiPointer, byte[] row, byte cf[], byte cq[],
+      byte cv[], byte[] valData);
 
   private static native long nmiGetTS(long nmiPointer);
 
@@ -249,12 +261,17 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   private class ConcurrentIterator implements Iterator<Map.Entry<Key,Value>> {
 
-    // in order to get good performance when there are multiple threads reading, need to read a lot while the
-    // the read lock is held..... lots of threads trying to get the read lock very often causes serious slow
-    // downs.... also reading a lot of entries at once lessens the impact of concurrent writes... if only
-    // one entry were read at a time and there were concurrent writes, then iteration could be n*log(n)
+    // in order to get good performance when there are multiple threads reading, need to read a lot
+    // while the
+    // the read lock is held..... lots of threads trying to get the read lock very often causes
+    // serious slow
+    // downs.... also reading a lot of entries at once lessens the impact of concurrent writes... if
+    // only
+    // one entry were read at a time and there were concurrent writes, then iteration could be
+    // n*log(n)
 
-    // increasing this number has a positive effect on concurrent read performance, but negatively effects
+    // increasing this number has a positive effect on concurrent read performance, but negatively
+    // effects
     // concurrent writers
     private static final int MAX_READ_AHEAD_ENTRIES = 16;
     private static final int READ_AHEAD_BYTES = 4096;
@@ -294,7 +311,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       // as we keep filling, increase the read ahead buffer
       if (nextEntries.length < MAX_READ_AHEAD_ENTRIES)
-        nextEntries = new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
+        nextEntries = new PreAllocatedArray<>(
+            Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
 
       while (source.hasNext() && end < nextEntries.length) {
         Entry<Key,Value> ne = source.next();
@@ -355,10 +373,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   private class NMIterator implements Iterator<Map.Entry<Key,Value>> {
 
     /**
-     * The strategy for dealing with native memory allocated for iterators is to simply delete that memory when this Java Object is garbage collected.
+     * The strategy for dealing with native memory allocated for iterators is to simply delete that
+     * memory when this Java Object is garbage collected.
      *
-     * These iterators are likely short lived object and therefore will be quickly garbage collected. Even if the objects are long lived and therefore more
-     * slowly garbage collected they only hold a small amount of native memory.
+     * These iterators are likely short lived object and therefore will be quickly garbage
+     * collected. Even if the objects are long lived and therefore more slowly garbage collected
+     * they only hold a small amount of native memory.
      *
      */
 
@@ -377,8 +397,9 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       expectedModCount = modCount;
 
-      nmiPointer = createNMI(nmPointer, key.getRowData().toArray(), key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(), key
-          .getColumnVisibilityData().toArray(), key.getTimestamp(), key.isDeleted(), fieldsLens);
+      nmiPointer = createNMI(nmPointer, key.getRowData().toArray(),
+          key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(),
+          key.getColumnVisibilityData().toArray(), key.getTimestamp(), key.isDeleted(), fieldsLens);
 
       hasNext = nmiPointer != 0;
     }
@@ -489,12 +510,14 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     List<ColumnUpdate> updates = mutation.getUpdates();
     if (updates.size() == 1) {
       ColumnUpdate update = updates.get(0);
-      singleUpdate(nmPointer, mutation.getRow(), update.getColumnFamily(), update.getColumnQualifier(), update.getColumnVisibility(), update.getTimestamp(),
+      singleUpdate(nmPointer, mutation.getRow(), update.getColumnFamily(),
+          update.getColumnQualifier(), update.getColumnVisibility(), update.getTimestamp(),
           update.isDeleted(), update.getValue(), mutationCount++);
     } else if (updates.size() > 1) {
       long uid = startUpdate(nmPointer, mutation.getRow());
       for (ColumnUpdate update : updates) {
-        update(nmPointer, uid, update.getColumnFamily(), update.getColumnQualifier(), update.getColumnVisibility(), update.getTimestamp(), update.isDeleted(),
+        update(nmPointer, uid, update.getColumnFamily(), update.getColumnQualifier(),
+            update.getColumnVisibility(), update.getTimestamp(), update.isDeleted(),
             update.getValue(), mutationCount++);
       }
     }
@@ -541,8 +564,9 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       modCount++;
 
-      singleUpdate(nmPointer, key.getRowData().toArray(), key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(), key
-          .getColumnVisibilityData().toArray(), key.getTimestamp(), key.isDeleted(), value.get(), 0);
+      singleUpdate(nmPointer, key.getRowData().toArray(), key.getColumnFamilyData().toArray(),
+          key.getColumnQualifierData().toArray(), key.getColumnVisibilityData().toArray(),
+          key.getTimestamp(), key.isDeleted(), value.get(), 0);
     } finally {
       wlock.unlock();
     }
@@ -700,7 +724,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
 
       if (interruptFlag != null && interruptFlag.get())
         throw new IterationInterruptedException();
@@ -729,7 +754,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }
 

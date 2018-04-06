@@ -27,8 +27,8 @@ public class ConfigurationTypeHelperTest {
 
   @Test
   public void testGetMemoryInBytes() throws Exception {
-    Arrays.<Function<String,Long>> asList(ConfigurationTypeHelper::getFixedMemoryAsBytes, ConfigurationTypeHelper::getMemoryAsBytes).stream()
-        .forEach(memFunc -> {
+    Arrays.<Function<String,Long>> asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
+        ConfigurationTypeHelper::getMemoryAsBytes).stream().forEach(memFunc -> {
           assertEquals(42l, memFunc.apply("42").longValue());
           assertEquals(42l, memFunc.apply("42b").longValue());
           assertEquals(42l, memFunc.apply("42B").longValue());
@@ -39,8 +39,10 @@ public class ConfigurationTypeHelperTest {
           assertEquals(42l * 1024l * 1024l * 1024l, memFunc.apply("42G").longValue());
           assertEquals(42l * 1024l * 1024l * 1024l, memFunc.apply("42g").longValue());
         });
-    assertEquals(Runtime.getRuntime().maxMemory() / 10, ConfigurationTypeHelper.getMemoryAsBytes("10%"));
-    assertEquals(Runtime.getRuntime().maxMemory() / 5, ConfigurationTypeHelper.getMemoryAsBytes("20%"));
+    assertEquals(Runtime.getRuntime().maxMemory() / 10,
+        ConfigurationTypeHelper.getMemoryAsBytes("10%"));
+    assertEquals(Runtime.getRuntime().maxMemory() / 5,
+        ConfigurationTypeHelper.getMemoryAsBytes("20%"));
   }
 
   @Test(expected = IllegalArgumentException.class)

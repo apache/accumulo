@@ -57,7 +57,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 
 /**
- * A balancer that evenly spreads groups of tablets across all tablet server. This balancer accomplishes the following two goals :
+ * A balancer that evenly spreads groups of tablets across all tablet server. This balancer
+ * accomplishes the following two goals :
  *
  * <ul>
  * <li>Evenly spreads each group across all tservers.
@@ -65,7 +66,8 @@ import com.google.common.collect.Multimap;
  * </ul>
  *
  * <p>
- * To use this balancer you must extend it and implement {@link #getPartitioner()}. See {@link RegexGroupBalancer} as an example.
+ * To use this balancer you must extend it and implement {@link #getPartitioner()}. See
+ * {@link RegexGroupBalancer} as an example.
  */
 
 public abstract class GroupBalancer extends TabletBalancer {
@@ -103,7 +105,8 @@ public abstract class GroupBalancer extends TabletBalancer {
   /**
    * @return Examine current tserver and migrations and return true if balancing should occur.
    */
-  protected boolean shouldBalance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations) {
+  protected boolean shouldBalance(SortedMap<TServerInstance,TabletServerStatus> current,
+      Set<KeyExtent> migrations) {
 
     if (current.size() < 2) {
       return false;
@@ -119,8 +122,8 @@ public abstract class GroupBalancer extends TabletBalancer {
   }
 
   @Override
-  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
-      Map<KeyExtent,TServerInstance> assignments) {
+  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
+      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
 
     if (current.size() == 0) {
       return;
@@ -159,23 +162,32 @@ public abstract class GroupBalancer extends TabletBalancer {
   }
 
   @Override
-  public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
+  public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
+      Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
 
-    // The terminology extra and expected are used in this code. Expected tablets is the number of tablets a tserver must have for a given group and is
-    // numInGroup/numTservers. Extra tablets are any tablets more than the number expected for a given group. If numInGroup % numTservers > 0, then a tserver
+    // The terminology extra and expected are used in this code. Expected tablets is the number of
+    // tablets a tserver must have for a given group and is
+    // numInGroup/numTservers. Extra tablets are any tablets more than the number expected for a
+    // given group. If numInGroup % numTservers > 0, then a tserver
     // may have one extra tablet for a group.
     //
     // Assume we have 4 tservers and group A has 11 tablets.
     // * expected tablets : group A is expected to have 2 tablets on each tservers
-    // * extra tablets : group A may have an additional tablet on each tserver. Group A has a total of 3 extra tablets.
+    // * extra tablets : group A may have an additional tablet on each tserver. Group A has a total
+    // of 3 extra tablets.
     //
-    // This balancer also evens out the extra tablets across all groups. The terminology extraExpected and extraExtra is used to describe these tablets.
-    // ExtraExpected is totalExtra/numTservers. ExtraExtra is totalExtra%numTservers. Each tserver should have at least expectedExtra extra tablets and at most
+    // This balancer also evens out the extra tablets across all groups. The terminology
+    // extraExpected and extraExtra is used to describe these tablets.
+    // ExtraExpected is totalExtra/numTservers. ExtraExtra is totalExtra%numTservers. Each tserver
+    // should have at least expectedExtra extra tablets and at most
     // one extraExtra tablets. All extra tablets on a tserver must be from different groups.
     //
-    // Assume we have 6 tservers and three groups (G1, G2, G3) with 9 tablets each. Each tserver is expected to have one tablet from each group and could
-    // possibly have 2 tablets from a group. Below is an illustration of an ideal balancing of extra tablets. To understand the illustration, the first column
-    // shows tserver T1 with 2 tablets from G1, 1 tablet from G2, and two tablets from G3. EE means empty, put it there so eclipse formating would not mess up
+    // Assume we have 6 tservers and three groups (G1, G2, G3) with 9 tablets each. Each tserver is
+    // expected to have one tablet from each group and could
+    // possibly have 2 tablets from a group. Below is an illustration of an ideal balancing of extra
+    // tablets. To understand the illustration, the first column
+    // shows tserver T1 with 2 tablets from G1, 1 tablet from G2, and two tablets from G3. EE means
+    // empty, put it there so eclipse formating would not mess up
     // table.
     //
     // T1 | T2 | T3 | T4 | T5 | T6
@@ -186,8 +198,10 @@ public abstract class GroupBalancer extends TabletBalancer {
     // G2 | G2 | G2 | G2 | G2 | G2 <-- expected tablets for group 2
     // G3 | G3 | G3 | G3 | G3 | G3 <-- expected tablets for group 3
     //
-    // Do not want to balance the extra tablets like the following. There are two problem with this. First extra tablets are not evenly spread. Since there are
-    // a total of 9 extra tablets, every tserver is expected to have at least one extra tablet. Second tserver T1 has two extra tablet for group G1. This
+    // Do not want to balance the extra tablets like the following. There are two problem with this.
+    // First extra tablets are not evenly spread. Since there are
+    // a total of 9 extra tablets, every tserver is expected to have at least one extra tablet.
+    // Second tserver T1 has two extra tablet for group G1. This
     // violates the principal that a tserver can only have one extra tablet for a given group.
     //
     // T1 | T2 | T3 | T4 | T5 | T6
@@ -253,7 +267,8 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     Moves moves = new Moves();
 
-    // The order of the following steps is important, because as ordered each step should not move any tablets moved by a previous step.
+    // The order of the following steps is important, because as ordered each step should not move
+    // any tablets moved by a previous step.
     balanceExpected(tservers, moves);
     if (moves.size() < getMaxMigrations()) {
       balanceExtraExpected(tservers, expectedExtra, moves);
@@ -359,7 +374,8 @@ public abstract class GroupBalancer extends TabletBalancer {
 
       Integer extraCount = extraCounts.get(group);
 
-      checkArgument(extraCount != null && extraCount >= num, "group=%s num=%s extraCount=%s", group, num, extraCount);
+      checkArgument(extraCount != null && extraCount >= num, "group=%s num=%s extraCount=%s", group,
+          num, extraCount);
 
       MutableInt initialCount = initialCounts.get(group);
 
@@ -496,7 +512,8 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
   }
 
-  private void balanceExtraExtra(Map<TServerInstance,TserverGroupInfo> tservers, int maxExtraGroups, Moves moves) {
+  private void balanceExtraExtra(Map<TServerInstance,TserverGroupInfo> tservers, int maxExtraGroups,
+      Moves moves) {
     HashBasedTable<String,TServerInstance,TserverGroupInfo> surplusExtra = HashBasedTable.create();
     for (TserverGroupInfo tgi : tservers.values()) {
       Map<String,Integer> extras = tgi.getExtras();
@@ -531,7 +548,8 @@ public abstract class GroupBalancer extends TabletBalancer {
               serversGroupsToRemove.add(new Pair<>(group, srcTgi.getTserverInstance()));
             }
 
-            if (destTgi.getExtras().size() >= maxExtraGroups || moves.size() >= getMaxMigrations()) {
+            if (destTgi.getExtras().size() >= maxExtraGroups
+                || moves.size() >= getMaxMigrations()) {
               break;
             }
           }
@@ -552,7 +570,8 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
   }
 
-  private boolean balanceExtraMultiple(Map<TServerInstance,TserverGroupInfo> tservers, int maxExtraGroups, Moves moves) {
+  private boolean balanceExtraMultiple(Map<TServerInstance,TserverGroupInfo> tservers,
+      int maxExtraGroups, Moves moves) {
     Multimap<String,TserverGroupInfo> extraMultiple = HashMultimap.create();
 
     for (TserverGroupInfo tgi : tservers.values()) {
@@ -566,7 +585,8 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, false);
     if (moves.size() < getMaxMigrations() && extraMultiple.size() > 0) {
-      // no place to move so must exceed maxExtra temporarily... subsequent balancer calls will smooth things out
+      // no place to move so must exceed maxExtra temporarily... subsequent balancer calls will
+      // smooth things out
       balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, true);
       return false;
     } else {
@@ -574,8 +594,9 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
   }
 
-  private void balanceExtraMultiple(Map<TServerInstance,TserverGroupInfo> tservers, int maxExtraGroups, Moves moves,
-      Multimap<String,TserverGroupInfo> extraMultiple, boolean alwaysAdd) {
+  private void balanceExtraMultiple(Map<TServerInstance,TserverGroupInfo> tservers,
+      int maxExtraGroups, Moves moves, Multimap<String,TserverGroupInfo> extraMultiple,
+      boolean alwaysAdd) {
 
     ArrayList<Pair<String,TserverGroupInfo>> serversToRemove = new ArrayList<>();
     for (TserverGroupInfo destTgi : tservers.values()) {
@@ -596,7 +617,8 @@ public abstract class GroupBalancer extends TabletBalancer {
               serversToRemove.add(new Pair<>(group, srcTgi));
             }
 
-            if (destTgi.getExtras().size() >= maxExtraGroups || moves.size() >= getMaxMigrations()) {
+            if (destTgi.getExtras().size() >= maxExtraGroups
+                || moves.size() >= getMaxMigrations()) {
               break;
             }
           }
@@ -613,7 +635,8 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
   }
 
-  private void balanceExtraExpected(Map<TServerInstance,TserverGroupInfo> tservers, int expectedExtra, Moves moves) {
+  private void balanceExtraExpected(Map<TServerInstance,TserverGroupInfo> tservers,
+      int expectedExtra, Moves moves) {
 
     HashBasedTable<String,TServerInstance,TserverGroupInfo> extraSurplus = HashBasedTable.create();
 
@@ -721,7 +744,8 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
   }
 
-  private void populateMigrations(Set<TServerInstance> current, List<TabletMigration> migrationsOut, Moves moves) {
+  private void populateMigrations(Set<TServerInstance> current, List<TabletMigration> migrationsOut,
+      Moves moves) {
     if (moves.size() == 0) {
       return;
     }
@@ -747,16 +771,20 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
   }
 
-  static class LocationFunction implements Function<Iterator<Entry<Key,Value>>,Pair<KeyExtent,Location>> {
+  static class LocationFunction
+      implements Function<Iterator<Entry<Key,Value>>,Pair<KeyExtent,Location>> {
     @Override
     public Pair<KeyExtent,Location> apply(Iterator<Entry<Key,Value>> input) {
       Location loc = Location.NONE;
       KeyExtent extent = null;
       while (input.hasNext()) {
         Entry<Key,Value> entry = input.next();
-        if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
-          loc = new Location(new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()));
-        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+        if (entry.getKey().getColumnFamily()
+            .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
+          loc = new Location(
+              new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()));
+        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN
+            .hasColumns(entry.getKey())) {
           extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
         }
       }
@@ -771,7 +799,8 @@ public abstract class GroupBalancer extends TabletBalancer {
     @Override
     public Iterator<Pair<KeyExtent,Location>> iterator() {
       try {
-        Scanner scanner = new IsolatedScanner(context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+        Scanner scanner = new IsolatedScanner(
+            context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
         MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
         scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));

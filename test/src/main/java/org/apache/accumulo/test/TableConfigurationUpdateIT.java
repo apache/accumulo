@@ -55,7 +55,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
 
-    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, inst, DefaultConfiguration.getInstance());
+    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
+        inst, DefaultConfiguration.getInstance());
 
     // Cache invalidates 25% of the time
     int randomMax = 4;
@@ -63,7 +64,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     int numThreads = 2;
     // Number of iterations per thread
     int iterations = 100000;
-    AccumuloConfiguration tableConf = new TableConfiguration(inst, org.apache.accumulo.core.client.impl.Table.ID.of(table), defaultConf);
+    AccumuloConfiguration tableConf = new TableConfiguration(inst,
+        org.apache.accumulo.core.client.impl.Table.ID.of(table), defaultConf);
 
     long start = System.currentTimeMillis();
     ExecutorService svc = Executors.newFixedThreadPool(numThreads);
@@ -85,8 +87,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     }
 
     long end = System.currentTimeMillis();
-    log.debug("{} with {} iterations and {} threads and cache invalidates {}% took {} second(s)", tableConf, iterations, numThreads, ((1. / randomMax) * 100.),
-        (end - start) / 1000);
+    log.debug("{} with {} iterations and {} threads and cache invalidates {}% took {} second(s)",
+        tableConf, iterations, numThreads, ((1. / randomMax) * 100.), (end - start) / 1000);
   }
 
   public static class TableConfRunner implements Callable<Exception> {
@@ -95,7 +97,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     private CountDownLatch countDown;
     private int iterations, randMax;
 
-    public TableConfRunner(int randMax, int iterations, AccumuloConfiguration tableConf, CountDownLatch countDown) {
+    public TableConfRunner(int randMax, int iterations, AccumuloConfiguration tableConf,
+        CountDownLatch countDown) {
       this.randMax = randMax;
       this.iterations = iterations;
       this.tableConf = tableConf;

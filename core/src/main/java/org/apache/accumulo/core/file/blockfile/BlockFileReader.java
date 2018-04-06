@@ -20,7 +20,8 @@ import java.io.IOException;
 
 /**
  *
- * Provides a generic interface for a Reader for a BlockBaseFile format. Supports the minimal interface required.
+ * Provides a generic interface for a Reader for a BlockBaseFile format. Supports the minimal
+ * interface required.
  *
  * Read a metaBlock and a dataBlock
  *

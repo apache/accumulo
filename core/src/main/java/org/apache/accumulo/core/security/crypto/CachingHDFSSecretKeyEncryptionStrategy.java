@@ -42,11 +42,13 @@ import org.slf4j.LoggerFactory;
  */
 public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  private static final Logger log = LoggerFactory.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
 
   @Override
-  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters context) throws IOException {
+  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters context)
+      throws IOException {
     try {
       secretKeyCache.ensureSecretKeyCacheInitialized(context);
       doKeyEncryptionOperation(Cipher.WRAP_MODE, context);
@@ -69,12 +71,15 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     return context;
   }
 
-  private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params) throws IOException {
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()),
+  private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params)
+      throws IOException {
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(
+        params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()),
         params.getSecurityProvider());
 
     try {
-      cipher.init(encryptionMode, new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getKeyAlgorithmName()));
+      cipher.init(encryptionMode,
+          new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getKeyAlgorithmName()));
     } catch (InvalidKeyException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
@@ -82,7 +87,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     if (Cipher.UNWRAP_MODE == encryptionMode) {
       try {
-        Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getKeyAlgorithmName(), Cipher.SECRET_KEY);
+        Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getKeyAlgorithmName(),
+            Cipher.SECRET_KEY);
         params.setPlaintextKey(plaintextKey.getEncoded());
       } catch (InvalidKeyException | NoSuchAlgorithmException e) {
         log.error("{}", e.getMessage(), e);
@@ -110,7 +116,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     public SecretKeyCache() {}
 
-    public synchronized void ensureSecretKeyCacheInitialized(CryptoModuleParameters context) throws IOException {
+    public synchronized void ensureSecretKeyCacheInitialized(CryptoModuleParameters context)
+        throws IOException {
 
       if (initialized) {
         return;
@@ -139,7 +146,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         in = fs.open(pathToKey);
 
         keyEncryptionKeyLength = in.readInt();
-        // If the file length does not correctly relate to the expected key size, there is an inconsistency and
+        // If the file length does not correctly relate to the expected key size, there is an
+        // inconsistency and
         // we have no way of knowing the correct key length.
         // The keyEncryptionKeyLength+4 accounts for the integer read from the file.
         if (fs.getFileStatus(pathToKey).getLen() != keyEncryptionKeyLength + 4) {
@@ -153,26 +161,33 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         initialized = true;
 
       } catch (EOFException e) {
-        throw new IOException("Could not initialize key encryption cache, malformed key encryption key file", e);
+        throw new IOException(
+            "Could not initialize key encryption cache, malformed key encryption key file", e);
       } catch (IOException e) {
         if (invalidFile) {
-          throw new IOException("Could not initialize key encryption cache, malformed key encryption key file. Expected key of lengh " + keyEncryptionKeyLength
-              + " but file contained " + (fs.getFileStatus(pathToKey).getLen() - 4) + "bytes for key encryption key.");
+          throw new IOException(
+              "Could not initialize key encryption cache, malformed key encryption key file. Expected key of lengh "
+                  + keyEncryptionKeyLength + " but file contained "
+                  + (fs.getFileStatus(pathToKey).getLen() - 4) + "bytes for key encryption key.");
         } else {
-          throw new IOException("Could not initialize key encryption cache, unable to access or find key encryption key file", e);
+          throw new IOException(
+              "Could not initialize key encryption cache, unable to access or find key encryption key file",
+              e);
         }
       } finally {
         IOUtils.closeQuietly(in);
       }
     }
 
-    private void initializeKeyEncryptionKey(FileSystem fs, Path pathToKey, CryptoModuleParameters params) throws IOException {
+    private void initializeKeyEncryptionKey(FileSystem fs, Path pathToKey,
+        CryptoModuleParameters params) throws IOException {
       DataOutputStream out = null;
       try {
         out = fs.create(pathToKey);
         // Very important, lets hedge our bets
         fs.setReplication(pathToKey, (short) 5);
-        SecureRandom random = DefaultCryptoModuleUtils.getSecureRandom(params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
+        SecureRandom random = DefaultCryptoModuleUtils.getSecureRandom(
+            params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
         int keyLength = params.getKeyLength();
         byte[] newRandomKeyEncryptionKey = new byte[keyLength / 8];
         random.nextBytes(newRandomKeyEncryptionKey);
@@ -189,7 +204,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     @SuppressWarnings("deprecation")
     private String getFullPathToKey(CryptoModuleParameters params) {
-      String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
+      String pathToKeyName = params.getAllOptions()
+          .get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
       String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
 
       if (pathToKeyName == null) {

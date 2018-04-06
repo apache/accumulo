@@ -28,28 +28,36 @@ public interface IZooReaderWriter extends IZooReader {
 
   ZooKeeper getZooKeeper();
 
-  void recursiveDelete(String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException;
+  void recursiveDelete(String zPath, NodeMissingPolicy policy)
+      throws KeeperException, InterruptedException;
 
   /**
    * Create a persistent node with the default ACL
    *
    * @return true if the node was created or altered; false if it was skipped
    */
-  boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
+  boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException;
 
-  boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
+  boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException;
 
-  void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
+  void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException;
 
-  boolean putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy, List<ACL> acls) throws KeeperException, InterruptedException;
+  boolean putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy,
+      List<ACL> acls) throws KeeperException, InterruptedException;
 
-  String putPersistentSequential(String zPath, byte[] data) throws KeeperException, InterruptedException;
+  String putPersistentSequential(String zPath, byte[] data)
+      throws KeeperException, InterruptedException;
 
-  String putEphemeralSequential(String zPath, byte[] data) throws KeeperException, InterruptedException;
+  String putEphemeralSequential(String zPath, byte[] data)
+      throws KeeperException, InterruptedException;
 
   String putEphemeralData(String zPath, byte[] data) throws KeeperException, InterruptedException;
 
-  void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
+  void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException;
 
   void delete(String path, int version) throws InterruptedException, KeeperException;
 

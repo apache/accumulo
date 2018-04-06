@@ -34,7 +34,8 @@ public class ServerStat {
 
   public ServerStat() {}
 
-  public ServerStat(int max, boolean adjustMax, float significance, String description, String name) {
+  public ServerStat(int max, boolean adjustMax, float significance, String description,
+      String name) {
     this.max = max;
     this.adjustMax = adjustMax;
     this.significance = significance;
@@ -43,7 +44,8 @@ public class ServerStat {
     this.name = name;
   }
 
-  public ServerStat(int max, boolean adjustMax, float significance, String description, boolean derived, String name) {
+  public ServerStat(int max, boolean adjustMax, float significance, String description,
+      boolean derived, String name) {
     this.max = max;
     this.adjustMax = adjustMax;
     this.significance = significance;

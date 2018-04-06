@@ -108,12 +108,14 @@ public class ShellConfigTest {
 
   @Test
   public void testTokenAndOption() throws IOException {
-    assertTrue(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo")));
+    assertTrue(shell.config(
+        args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo")));
   }
 
   @Test
   public void testTokenAndOptionAndPassword() throws IOException {
-    assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo", "-p", "bar")));
+    assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l",
+        "password=foo", "-p", "bar")));
     assertTrue(output.get().contains(ParameterException.class.getName()));
   }
 

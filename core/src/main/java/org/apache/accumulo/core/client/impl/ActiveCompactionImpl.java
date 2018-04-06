@@ -38,7 +38,8 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
   private Instance instance;
 
-  ActiveCompactionImpl(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac) {
+  ActiveCompactionImpl(Instance instance,
+      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac) {
     this.tac = tac;
     this.instance = instance;
   }
@@ -98,7 +99,8 @@ public class ActiveCompactionImpl extends ActiveCompaction {
     ArrayList<IteratorSetting> ret = new ArrayList<>();
 
     for (IterInfo ii : tac.getSsiList()) {
-      IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(), ii.getClassName());
+      IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(),
+          ii.getClassName());
       Map<String,String> options = tac.getSsio().get(ii.getIterName());
       settings.addOptions(options);
 

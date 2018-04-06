@@ -25,8 +25,10 @@ import java.util.function.Supplier;
 
 public class CompletableFutureUtil {
 
-  // create a binary tree of completable future operations, where each node in the tree merges the results of their children when complete
-  public static <T> CompletableFuture<T> merge(List<CompletableFuture<T>> futures, BiFunction<T,T,T> mergeFunc, Supplier<T> nothing) {
+  // create a binary tree of completable future operations, where each node in the tree merges the
+  // results of their children when complete
+  public static <T> CompletableFuture<T> merge(List<CompletableFuture<T>> futures,
+      BiFunction<T,T,T> mergeFunc, Supplier<T> nothing) {
     if (futures.size() == 0) {
       return CompletableFuture.completedFuture(nothing.get());
     }

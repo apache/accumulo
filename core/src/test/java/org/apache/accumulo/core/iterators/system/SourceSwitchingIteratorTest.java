@@ -54,8 +54,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
     put(tm, row, cf, cq, time, new Value(val.getBytes()));
   }
 
-  private void testAndCallNext(SortedKeyValueIterator<Key,Value> rdi, String row, String cf, String cq, long time, String val, boolean callNext)
-      throws Exception {
+  private void testAndCallNext(SortedKeyValueIterator<Key,Value> rdi, String row, String cf,
+      String cq, long time, String val, boolean callNext) throws Exception {
     assertTrue(rdi.hasTop());
     assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
@@ -180,7 +180,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>(tm1);
-    put(tm2, "r1", "cf1", "cq5", 5, "v7"); // should not see this because it should not switch until the row is finished
+    put(tm2, "r1", "cf1", "cq5", 5, "v7"); // should not see this because it should not switch until
+                                           // the row is finished
     put(tm2, "r2", "cf1", "cq1", 5, "v8"); // should see this new row after it switches
 
     // setup a new data source, but it should not switch until the current row is finished
@@ -280,11 +281,13 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
   }
 
-  private Range yield(Range r, SourceSwitchingIterator ssi, YieldCallback<Key> yield) throws IOException {
+  private Range yield(Range r, SourceSwitchingIterator ssi, YieldCallback<Key> yield)
+      throws IOException {
     while (yield.hasYielded()) {
       Key yieldPosition = yield.getPositionAndReset();
       if (!r.contains(yieldPosition)) {
-        throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + r);
+        throw new IOException("Underlying iterator yielded to a position outside of its range: "
+            + yieldPosition + " not in " + r);
       }
       r = new Range(yieldPosition, false, null, r.isEndKeyInclusive());
       ssi.seek(r, new ArrayList<>(), false);
@@ -319,7 +322,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
   }
 
   /**
-   * This iterator which implements yielding will yield after every other next and every other seek call.
+   * This iterator which implements yielding will yield after every other next and every other seek
+   * call.
    */
   private final AtomicBoolean yieldNextKey = new AtomicBoolean(false);
   private final AtomicBoolean yieldSeekKey = new AtomicBoolean(false);
@@ -349,7 +353,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
       yieldNextKey.set(!yieldNextKey.get());
       if (yield.isPresent() && yieldNextKey.get()) {
         yielded = true;
-        // since we are not actually skipping keys underneath, simply use the key following the top key as the yield key
+        // since we are not actually skipping keys underneath, simply use the key following the top
+        // key as the yield key
         yield.get().yield(getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
       }
 
@@ -360,7 +365,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
       boolean yielded = false;
 
       if (!range.isStartKeyInclusive()) {
@@ -368,8 +374,10 @@ public class SourceSwitchingIteratorTest extends TestCase {
         yieldSeekKey.set(!yieldSeekKey.get());
         if (yield.isPresent() && yieldSeekKey.get()) {
           yielded = true;
-          // since we are not actually skipping keys underneath, simply use the key following the range start key
-          yield.get().yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+          // since we are not actually skipping keys underneath, simply use the key following the
+          // range start key
+          yield.get()
+              .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
         }
       }
 

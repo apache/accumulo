@@ -39,7 +39,8 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
   }
 
   Key newKey(int row, int cf, int cq, long time) {
-    return newKey(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq), time);
+    return newKey(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq),
+        time);
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, Value val) {
@@ -54,7 +55,8 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     tm.put(newKey(row, cf, cq, time), new Value((val + "").getBytes()));
   }
 
-  private void testAndCallnext(ColumnFamilySkippingIterator rdi, String row, String cf, String cq, long time, String val) throws Exception {
+  private void testAndCallnext(ColumnFamilySkippingIterator rdi, String row, String cf, String cq,
+      long time, String val) throws Exception {
     assertTrue(rdi.hasTop());
     assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
@@ -159,8 +161,8 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
 
   }
 
-  private void runTest(ColumnFamilySkippingIterator cfi, int total, int expected, HashSet<ByteSequence> allColfams, HashSet<ByteSequence> colfams)
-      throws Exception {
+  private void runTest(ColumnFamilySkippingIterator cfi, int total, int expected,
+      HashSet<ByteSequence> allColfams, HashSet<ByteSequence> colfams) throws Exception {
     cfi.seek(new Range(), colfams, true);
     HashSet<ByteSequence> excpected1 = new HashSet<>(colfams);
     excpected1.retainAll(allColfams);
@@ -172,7 +174,8 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     runTest(cfi, total - expected, excpected2);
   }
 
-  private void runTest(ColumnFamilySkippingIterator cfi, int expected, HashSet<ByteSequence> colfams) throws Exception {
+  private void runTest(ColumnFamilySkippingIterator cfi, int expected,
+      HashSet<ByteSequence> colfams) throws Exception {
     int count = 0;
 
     HashSet<ByteSequence> ocf = new HashSet<>();
@@ -188,7 +191,8 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
   }
 
   public void test3() throws Exception {
-    // construct test where ColumnFamilySkippingIterator might try to seek past the end of the user supplied range
+    // construct test where ColumnFamilySkippingIterator might try to seek past the end of the user
+    // supplied range
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     for (int r = 0; r < 3; r++) {

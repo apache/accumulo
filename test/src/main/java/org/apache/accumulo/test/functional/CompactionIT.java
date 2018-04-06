@@ -156,7 +156,8 @@ public class CompactionIT extends AccumuloClusterHarness {
       }
       executor.shutdown();
       executor.awaitTermination(defaultTimeoutSeconds(), TimeUnit.SECONDS);
-      assertFalse("Failed to successfully run all threads, Check the test output for error", fail.get());
+      assertFalse("Failed to successfully run all threads, Check the test output for error",
+          fail.get());
     }
 
     int finalCount = countFiles(c);

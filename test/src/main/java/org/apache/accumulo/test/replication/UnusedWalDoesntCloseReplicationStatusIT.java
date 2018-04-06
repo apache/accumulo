@@ -75,7 +75,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     final Connector conn = getConnector();
     final String tableName = getUniqueNames(1)[0];
 
-    conn.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+        TablePermission.WRITE);
     conn.tableOperations().create(tableName);
 
     final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
@@ -85,13 +86,15 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     Assert.assertNotNull("Did not find table ID", tableId);
 
     conn.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(tableName,
+        Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     // just sleep
     conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
         ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "50000"));
 
     FileSystem fs = FileSystem.getLocal(new Configuration());
-    File tserverWalDir = new File(accumuloDir, ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
+    File tserverWalDir = new File(accumuloDir,
+        ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
     File tserverWal = new File(tserverWalDir, UUID.randomUUID().toString());
     fs.mkdirs(new Path(tserverWalDir.getAbsolutePath()));
 
@@ -130,7 +133,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     value.write(dos);
 
     key.event = LogEvents.COMPACTION_START;
-    key.filename = accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId + "/t-000001/A000001.rf";
+    key.filename = accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId
+        + "/t-000001/A000001.rf";
     value.mutations = Collections.emptyList();
 
     key.write(dos);
@@ -163,7 +167,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
-        System.out.println(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+        System.out.println(entry.getKey().toStringNoTruncate() + " "
+            + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
       }
 
       log.info("Offline'ing table");
@@ -175,12 +180,15 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       KeyExtent extent = new KeyExtent(tableId, null, null);
       bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       m = new Mutation(extent.getMetadataEntry());
-      m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME, new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
+      m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME,
+          new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
       bw.addMutation(m);
 
       // Add a replication entry for our fake WAL
-      m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri).toString());
-      m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.getUtf8()), new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
+      m = new Mutation(
+          MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri).toString());
+      m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.getUtf8()),
+          new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
       bw.addMutation(m);
       bw.close();
 
@@ -197,7 +205,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
-        log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+        log.info("{} {}", entry.getKey().toStringNoTruncate(),
+            ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
       }
 
       log.info("Bringing table online");

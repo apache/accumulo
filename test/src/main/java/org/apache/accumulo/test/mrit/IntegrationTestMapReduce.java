@@ -46,9 +46,11 @@ import org.slf4j.LoggerFactory;
 /**
  * Run the Integration Tests as a Map-Reduce job.
  * <p>
- * Each of the Integration tests takes 30s to 20m to run. Using a larger cluster, all the tests can be run in parallel and finish much faster.
+ * Each of the Integration tests takes 30s to 20m to run. Using a larger cluster, all the tests can
+ * be run in parallel and finish much faster.
  * <p>
- * To run the tests, you first need a list of the tests. A simple way to get a list, is to scan the accumulo-test jar file for them.
+ * To run the tests, you first need a list of the tests. A simple way to get a list, is to scan the
+ * accumulo-test jar file for them.
  *
  * <pre>
  * $ jar -tf lib/accumulo-test.jar | grep IT.class | tr / . | sed -e 's/.class$//' &gt;tests
@@ -61,13 +63,15 @@ import org.slf4j.LoggerFactory;
  * $ hadoop fs -put tests /tmp/tests
  * </pre>
  *
- * Run the class below as a map-reduce job, giving it the lists of tests, and a place to store the results.
+ * Run the class below as a map-reduce job, giving it the lists of tests, and a place to store the
+ * results.
  *
  * <pre>
  * $ yarn jar lib/accumulo-test-mrit.jar -libjars lib/native/libaccumulo.so /tmp/tests /tmp/results
  * </pre>
  *
- * The result is a list of IT classes that pass or fail. Those classes that fail will be annotated with the particular test that failed within the class.
+ * The result is a list of IT classes that pass or fail. Those classes that fail will be annotated
+ * with the particular test that failed within the class.
  */
 
 public class IntegrationTestMapReduce extends Configured implements Tool {
@@ -91,7 +95,9 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
     }
 
     @Override
-    protected void map(LongWritable key, Text value, final Mapper<LongWritable,Text,Text,Text>.Context context) throws IOException, InterruptedException {
+    protected void map(LongWritable key, Text value,
+        final Mapper<LongWritable,Text,Text,Text>.Context context)
+        throws IOException, InterruptedException {
       isMapReduce = true;
       String className = value.toString();
       if (className.trim().isEmpty()) {
@@ -153,7 +159,8 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
   public static class TestReducer extends Reducer<Text,Text,Text,Text> {
 
     @Override
-    protected void reduce(Text code, Iterable<Text> tests, Reducer<Text,Text,Text,Text>.Context context) throws IOException, InterruptedException {
+    protected void reduce(Text code, Iterable<Text> tests,
+        Reducer<Text,Text,Text,Text>.Context context) throws IOException, InterruptedException {
       StringBuilder result = new StringBuilder("\n");
       for (Text test : tests) {
         result.append("   ");

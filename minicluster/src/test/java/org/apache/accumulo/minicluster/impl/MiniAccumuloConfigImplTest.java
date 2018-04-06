@@ -37,7 +37,8 @@ public class MiniAccumuloConfigImplTest {
   @SuppressWarnings("deprecation")
   private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
 
-  static TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  static TemporaryFolder tempFolder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void setUp() throws IOException {
@@ -48,7 +49,8 @@ public class MiniAccumuloConfigImplTest {
   public void testZookeeperPort() {
 
     // set specific zookeeper port
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setZooKeeperPort(5000).initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
+        .setZooKeeperPort(5000).initialize();
     assertEquals(5000, config.getZooKeeperPort());
 
     // generate zookeeper port
@@ -60,7 +62,8 @@ public class MiniAccumuloConfigImplTest {
   public void testZooKeeperStartupTime() {
 
     // set specific zookeeper startup time
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setZooKeeperStartupTime(5000).initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
+        .setZooKeeperStartupTime(5000).initialize();
     assertEquals(5000, config.getZooKeeperStartupTime());
   }
 
@@ -70,14 +73,16 @@ public class MiniAccumuloConfigImplTest {
     // constructor site config overrides default props
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(INSTANCE_DFS_URI.getKey(), "hdfs://");
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setSiteConfig(siteConfig).initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
+        .setSiteConfig(siteConfig).initialize();
     assertEquals("hdfs://", config.getSiteConfig().get(INSTANCE_DFS_URI.getKey()));
   }
 
   @Test
   public void testMemoryConfig() {
 
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
+        .initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
     assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
     assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));

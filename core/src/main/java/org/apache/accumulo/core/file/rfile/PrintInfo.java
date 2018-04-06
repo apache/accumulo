@@ -56,17 +56,21 @@ public class PrintInfo implements KeywordExecutable {
     boolean hash = false;
     @Parameter(names = {"--histogram"}, description = "print a histogram of the key-value sizes")
     boolean histogram = false;
-    @Parameter(names = {"--printIndex"}, description = "prints information about all the index entries")
+    @Parameter(names = {"--printIndex"},
+        description = "prints information about all the index entries")
     boolean printIndex = false;
-    @Parameter(names = {"--useSample"}, description = "Use sample data for --dump, --vis, --histogram options")
+    @Parameter(names = {"--useSample"},
+        description = "Use sample data for --dump, --vis, --histogram options")
     boolean useSample = false;
     @Parameter(names = {"--summary"}, description = "Print summary data in file")
     boolean printSummary = false;
-    @Parameter(names = {"--keyStats"}, description = "print key length statistics for index and all data")
+    @Parameter(names = {"--keyStats"},
+        description = "print key length statistics for index and all data")
     boolean keyStats = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<>();
-    @Parameter(names = {"-c", "--config"}, variableArity = true, description = "Comma-separated Hadoop configuration files")
+    @Parameter(names = {"-c", "--config"}, variableArity = true,
+        description = "Comma-separated Hadoop configuration files")
     List<String> configFiles = new ArrayList<>();
   }
 
@@ -85,7 +89,8 @@ public class PrintInfo implements KeywordExecutable {
     public void print(String indent) {
       System.out.println(indent + "Up to size      count      %-age");
       for (int i = 1; i < countBuckets.length; i++) {
-        System.out.println(String.format("%s%11.0f : %10d %6.2f%%", indent, Math.pow(10, i), countBuckets[i], sizeBuckets[i] * 100. / totalSize));
+        System.out.println(String.format("%s%11.0f : %10d %6.2f%%", indent, Math.pow(10, i),
+            countBuckets[i], sizeBuckets[i] * 100. / totalSize));
       }
     }
   }
@@ -103,8 +108,8 @@ public class PrintInfo implements KeywordExecutable {
     public void print(String indent) {
       logHistogram.print(indent);
       System.out.println();
-      System.out.printf("%smin:%,11.2f max:%,11.2f avg:%,11.2f stddev:%,11.2f\n", indent, stats.getMin(), stats.getMax(), stats.getMean(),
-          stats.getStandardDeviation());
+      System.out.printf("%smin:%,11.2f max:%,11.2f avg:%,11.2f stddev:%,11.2f\n", indent,
+          stats.getMin(), stats.getMax(), stats.getMean(), stats.getStandardDeviation());
     }
   }
 
@@ -151,12 +156,15 @@ public class PrintInfo implements KeywordExecutable {
       if (arg.contains(":"))
         fs = path.getFileSystem(conf);
       else {
-        log.warn("Attempting to find file across filesystems. Consider providing URI instead of path");
+        log.warn(
+            "Attempting to find file across filesystems. Consider providing URI instead of path");
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       }
-      System.out.println("Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()).toString());
+      System.out.println(
+          "Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()).toString());
 
-      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, SiteConfiguration.getInstance());
+      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
+          SiteConfiguration.getInstance());
       Reader iter = new RFile.Reader(_rdr);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

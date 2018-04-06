@@ -38,7 +38,8 @@ public final class Utils {
   }
 
   /**
-   * Encoding an integer into a variable-length encoding format. Synonymous to <code>Utils#writeVLong(out, n)</code>.
+   * Encoding an integer into a variable-length encoding format. Synonymous to
+   * <code>Utils#writeVLong(out, n)</code>.
    *
    * @param out
    *          output stream
@@ -54,21 +55,29 @@ public final class Utils {
    * Encoding a Long integer into a variable-length encoding format.
    * <ul>
    * <li>if n in [-32, 127): encode in one byte with the actual value. Otherwise,
-   * <li>if n in [-20*2^8, 20*2^8): encode in two bytes: byte[0] = n/256 - 52; byte[1]=n&amp;0xff. Otherwise,
-   * <li>if n IN [-16*2^16, 16*2^16): encode in three bytes: byte[0]=n/2^16 - 88; byte[1]=(n&gt;&gt;8)&amp;0xff; byte[2]=n&amp;0xff. Otherwise,
-   * <li>if n in [-8*2^24, 8*2^24): encode in four bytes: byte[0]=n/2^24 - 112; byte[1] = (n&gt;&gt;16)&amp;0xff; byte[2] = (n&gt;&gt;8)&amp;0xff;
-   * byte[3]=n&amp;0xff. Otherwise:
-   * <li>if n in [-2^31, 2^31): encode in five bytes: byte[0]=-125; byte[1] = (n&gt;&gt;24)&amp;0xff; byte[2]=(n&gt;&gt;16)&amp;0xff;
-   * byte[3]=(n&gt;&gt;8)&amp;0xff; byte[4]=n&amp;0xff;
-   * <li>if n in [-2^39, 2^39): encode in six bytes: byte[0]=-124; byte[1] = (n&gt;&gt;32)&amp;0xff; byte[2]=(n&gt;&gt;24)&amp;0xff;
-   * byte[3]=(n&gt;&gt;16)&amp;0xff; byte[4]=(n&gt;&gt;8)&amp;0xff; byte[5]=n&amp;0xff
-   * <li>if n in [-2^47, 2^47): encode in seven bytes: byte[0]=-123; byte[1] = (n&gt;&gt;40)&amp;0xff; byte[2]=(n&gt;&gt;32)&amp;0xff;
-   * byte[3]=(n&gt;&gt;24)&amp;0xff; byte[4]=(n&gt;&gt;16)&amp;0xff; byte[5]=(n&gt;&gt;8)&amp;0xff; byte[6]=n&amp;0xff;
-   * <li>if n in [-2^55, 2^55): encode in eight bytes: byte[0]=-122; byte[1] = (n&gt;&gt;48)&amp;0xff; byte[2] = (n&gt;&gt;40)&amp;0xff;
-   * byte[3]=(n&gt;&gt;32)&amp;0xff; byte[4]=(n&gt;&gt;24)&amp;0xff; byte[5]=(n&gt;&gt;16)&amp;0xff; byte[6]=(n&gt;&gt;8)&amp;0xff; byte[7]=n&amp;0xff;
-   * <li>if n in [-2^63, 2^63): encode in nine bytes: byte[0]=-121; byte[1] = (n&gt;&gt;54)&amp;0xff; byte[2] = (n&gt;&gt;48)&amp;0xff; byte[3] =
-   * (n&gt;&gt;40)&amp;0xff; byte[4]=(n&gt;&gt;32)&amp;0xff; byte[5]=(n&gt;&gt;24)&amp;0xff; byte[6]=(n&gt;&gt;16)&amp;0xff; byte[7]=(n&gt;&gt;8)&amp;0xff;
-   * byte[8]=n&amp;0xff;
+   * <li>if n in [-20*2^8, 20*2^8): encode in two bytes: byte[0] = n/256 - 52; byte[1]=n&amp;0xff.
+   * Otherwise,
+   * <li>if n IN [-16*2^16, 16*2^16): encode in three bytes: byte[0]=n/2^16 - 88;
+   * byte[1]=(n&gt;&gt;8)&amp;0xff; byte[2]=n&amp;0xff. Otherwise,
+   * <li>if n in [-8*2^24, 8*2^24): encode in four bytes: byte[0]=n/2^24 - 112; byte[1] =
+   * (n&gt;&gt;16)&amp;0xff; byte[2] = (n&gt;&gt;8)&amp;0xff; byte[3]=n&amp;0xff. Otherwise:
+   * <li>if n in [-2^31, 2^31): encode in five bytes: byte[0]=-125; byte[1] =
+   * (n&gt;&gt;24)&amp;0xff; byte[2]=(n&gt;&gt;16)&amp;0xff; byte[3]=(n&gt;&gt;8)&amp;0xff;
+   * byte[4]=n&amp;0xff;
+   * <li>if n in [-2^39, 2^39): encode in six bytes: byte[0]=-124; byte[1] = (n&gt;&gt;32)&amp;0xff;
+   * byte[2]=(n&gt;&gt;24)&amp;0xff; byte[3]=(n&gt;&gt;16)&amp;0xff; byte[4]=(n&gt;&gt;8)&amp;0xff;
+   * byte[5]=n&amp;0xff
+   * <li>if n in [-2^47, 2^47): encode in seven bytes: byte[0]=-123; byte[1] =
+   * (n&gt;&gt;40)&amp;0xff; byte[2]=(n&gt;&gt;32)&amp;0xff; byte[3]=(n&gt;&gt;24)&amp;0xff;
+   * byte[4]=(n&gt;&gt;16)&amp;0xff; byte[5]=(n&gt;&gt;8)&amp;0xff; byte[6]=n&amp;0xff;
+   * <li>if n in [-2^55, 2^55): encode in eight bytes: byte[0]=-122; byte[1] =
+   * (n&gt;&gt;48)&amp;0xff; byte[2] = (n&gt;&gt;40)&amp;0xff; byte[3]=(n&gt;&gt;32)&amp;0xff;
+   * byte[4]=(n&gt;&gt;24)&amp;0xff; byte[5]=(n&gt;&gt;16)&amp;0xff; byte[6]=(n&gt;&gt;8)&amp;0xff;
+   * byte[7]=n&amp;0xff;
+   * <li>if n in [-2^63, 2^63): encode in nine bytes: byte[0]=-121; byte[1] =
+   * (n&gt;&gt;54)&amp;0xff; byte[2] = (n&gt;&gt;48)&amp;0xff; byte[3] = (n&gt;&gt;40)&amp;0xff;
+   * byte[4]=(n&gt;&gt;32)&amp;0xff; byte[5]=(n&gt;&gt;24)&amp;0xff; byte[6]=(n&gt;&gt;16)&amp;0xff;
+   * byte[7]=(n&gt;&gt;8)&amp;0xff; byte[8]=n&amp;0xff;
    * </ul>
    *
    * @param out
@@ -160,12 +169,15 @@ public final class Utils {
   }
 
   /**
-   * Decoding the variable-length integer. Suppose the value of the first byte is FB, and the following bytes are NB[*].
+   * Decoding the variable-length integer. Suppose the value of the first byte is FB, and the
+   * following bytes are NB[*].
    * <ul>
    * <li>if (FB &gt;= -32), return (long)FB;
    * <li>if (FB in [-72, -33]), return (FB+52)&lt;&lt;8 + NB[0]&amp;0xff;
-   * <li>if (FB in [-104, -73]), return (FB+88)&lt;&lt;16 + (NB[0]&amp;0xff)&lt;&lt;8 + NB[1]&amp;0xff;
-   * <li>if (FB in [-120, -105]), return (FB+112)&lt;&lt;24 + (NB[0]&amp;0xff)&lt;&lt;16 + (NB[1]&amp;0xff)&lt;&lt;8 + NB[2]&amp;0xff;
+   * <li>if (FB in [-104, -73]), return (FB+88)&lt;&lt;16 + (NB[0]&amp;0xff)&lt;&lt;8 +
+   * NB[1]&amp;0xff;
+   * <li>if (FB in [-120, -105]), return (FB+112)&lt;&lt;24 + (NB[0]&amp;0xff)&lt;&lt;16 +
+   * (NB[1]&amp;0xff)&lt;&lt;8 + NB[2]&amp;0xff;
    * <li>if (FB in [-128, -121]), return interpret NB[FB+129] as a signed big-endian integer.
    * </ul>
    *
@@ -205,7 +217,8 @@ public final class Utils {
           case 6:
             return ((long) in.readInt()) << 16 | in.readUnsignedShort();
           case 7:
-            return ((long) in.readInt()) << 24 | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
+            return ((long) in.readInt()) << 24 | (in.readUnsignedShort() << 8)
+                | in.readUnsignedByte();
           case 8:
             return in.readLong();
           default:
@@ -248,10 +261,12 @@ public final class Utils {
   }
 
   /**
-   * A generic Version class. We suggest applications built on top of TFile use this class to maintain version information in their meta blocks.
+   * A generic Version class. We suggest applications built on top of TFile use this class to
+   * maintain version information in their meta blocks.
    *
-   * A version number consists of a major version and a minor version. The suggested usage of major and minor version number is to increment major version
-   * number when the new storage format is not backward compatible, and increment the minor version otherwise.
+   * A version number consists of a major version and a minor version. The suggested usage of major
+   * and minor version number is to increment major version number when the new storage format is
+   * not backward compatible, and increment the minor version otherwise.
    */
   public static final class Version implements Comparable<Version> {
     private final short major;
@@ -282,7 +297,8 @@ public final class Utils {
     }
 
     /**
-     * Write the object to a DataOutput. The serialized format of the Version is major version followed by minor version, both as big-endian short integers.
+     * Write the object to a DataOutput. The serialized format of the Version is major version
+     * followed by minor version, both as big-endian short integers.
      *
      * @param out
      *          The DataOutput object.
@@ -359,7 +375,8 @@ public final class Utils {
   }
 
   /**
-   * Lower bound binary search. Find the index to the first element in the list that compares greater than or equal to key.
+   * Lower bound binary search. Find the index to the first element in the list that compares
+   * greater than or equal to key.
    *
    * @param <T>
    *          Type of the input key.

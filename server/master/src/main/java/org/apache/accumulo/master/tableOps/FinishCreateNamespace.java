@@ -42,7 +42,8 @@ class FinishCreateNamespace extends MasterRepo {
 
     env.getEventCoordinator().event("Created namespace %s ", namespaceInfo.namespaceName);
 
-    LoggerFactory.getLogger(FinishCreateNamespace.class).debug("Created table " + namespaceInfo.namespaceId + " " + namespaceInfo.namespaceName);
+    LoggerFactory.getLogger(FinishCreateNamespace.class)
+        .debug("Created table " + namespaceInfo.namespaceId + " " + namespaceInfo.namespaceName);
 
     return null;
   }

@@ -60,7 +60,8 @@ public class RandomizeVolumes {
     Connector c;
     if (opts.getToken() == null) {
       Instance instance = opts.getInstance();
-      AccumuloServerContext context = new AccumuloServerContext(instance, new ServerConfigurationFactory(instance));
+      AccumuloServerContext context = new AccumuloServerContext(instance,
+          new ServerConfigurationFactory(instance));
       c = context.getConnector();
     } else {
       c = opts.getConnector();
@@ -74,7 +75,8 @@ public class RandomizeVolumes {
     }
   }
 
-  public static int randomize(Connector c, String tableName) throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public static int randomize(Connector c, String tableName)
+      throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
     final VolumeManager vm = VolumeManagerImpl.get();
     if (vm.getVolumes().size() < 2) {
       log.error("There are not enough volumes configured");
@@ -117,9 +119,11 @@ public class RandomizeVolumes {
       Mutation m = new Mutation(key.getRow());
 
       VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId);
-      final String newLocation = vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId
-          + Path.SEPARATOR + directory;
-      m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(UTF_8)));
+      final String newLocation = vm.choose(chooserEnv, ServerConstants.getBaseUris())
+          + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+          + directory;
+      m.put(key.getColumnFamily(), key.getColumnQualifier(),
+          new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {
         log.trace("Replacing {} with {}", oldLocation, newLocation);
       }

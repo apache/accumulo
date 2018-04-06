@@ -33,10 +33,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A SortedKeyValueIterator that filters based on ColumnVisibility and optimized for use with system iterators. Prior to 2.0, this class extended
- * {@link org.apache.accumulo.core.iterators.Filter} and all system iterators where wrapped with a <code>SynchronizedIterator</code> during creation of the
- * iterator stack in {@link org.apache.accumulo.core.iterators.IteratorUtil} .loadIterators(). For performance reasons, the synchronization was pushed down the
- * stack to this class.
+ * A SortedKeyValueIterator that filters based on ColumnVisibility and optimized for use with system
+ * iterators. Prior to 2.0, this class extended {@link org.apache.accumulo.core.iterators.Filter}
+ * and all system iterators where wrapped with a <code>SynchronizedIterator</code> during creation
+ * of the iterator stack in {@link org.apache.accumulo.core.iterators.IteratorUtil}
+ * .loadIterators(). For performance reasons, the synchronization was pushed down the stack to this
+ * class.
  */
 public class VisibilityFilter extends SynchronizedServerFilter {
   protected VisibilityEvaluator ve;
@@ -46,7 +48,8 @@ public class VisibilityFilter extends SynchronizedServerFilter {
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
-  private VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultVisibility) {
+  private VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator,
+      Authorizations authorizations, byte[] defaultVisibility) {
     super(iterator);
     this.ve = new VisibilityEvaluator(authorizations);
     this.authorizations = authorizations;
@@ -99,7 +102,8 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     }
   }
 
-  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source, Authorizations authorizations, byte[] defaultVisibility) {
+  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source,
+      Authorizations authorizations, byte[] defaultVisibility) {
     if (authorizations.isEmpty() && defaultVisibility.length == 0) {
       return new EmptyAuthsVisibilityFilter(source);
     } else {

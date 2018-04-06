@@ -37,10 +37,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling CleanUp.shutdown().
+ * Ensures that all threads spawned for ZooKeeper and Thrift connectivity are reaped after calling
+ * CleanUp.shutdown().
  *
- * Because this is destructive across the current context classloader, the normal teardown methods will fail (because they attempt to create a Connector). Until
- * the ZooKeeperInstance and Connector are self-contained WRT resource management, we can't leverage the AccumuloClusterBase.
+ * Because this is destructive across the current context classloader, the normal teardown methods
+ * will fail (because they attempt to create a Connector). Until the ZooKeeperInstance and Connector
+ * are self-contained WRT resource management, we can't leverage the AccumuloClusterBase.
  */
 public class CleanUpIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(CleanUpIT.class);
@@ -152,10 +154,12 @@ public class CleanUpIT extends SharedMiniClusterBase {
     Set<Thread> threads = Thread.getAllStackTraces().keySet();
     for (Thread thread : threads) {
 
-      if (thread.getName().toLowerCase().contains("sendthread") || thread.getName().toLowerCase().contains("eventthread"))
+      if (thread.getName().toLowerCase().contains("sendthread")
+          || thread.getName().toLowerCase().contains("eventthread"))
         count++;
 
-      if (thread.getName().toLowerCase().contains("thrift") && thread.getName().toLowerCase().contains("pool"))
+      if (thread.getName().toLowerCase().contains("thrift")
+          && thread.getName().toLowerCase().contains("pool"))
         count++;
     }
 

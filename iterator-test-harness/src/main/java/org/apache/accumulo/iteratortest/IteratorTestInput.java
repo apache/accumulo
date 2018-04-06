@@ -49,14 +49,16 @@ public class IteratorTestInput {
    * @param iteratorClass
    *          The class for the iterator to test.
    * @param iteratorOptions
-   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of properties).
+   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of
+   *          properties).
    * @param range
-   *          The Range of data to query ({@link Scanner#setRange(Range)}). By default no column families filter is specified.
+   *          The Range of data to query ({@link Scanner#setRange(Range)}). By default no column
+   *          families filter is specified.
    * @param input
    *          A sorted collection of Key-Value pairs acting as the table.
    */
-  public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> iteratorOptions, Range range,
-      SortedMap<Key,Value> input) {
+  public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
+      Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input) {
     this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false);
   }
 
@@ -66,7 +68,8 @@ public class IteratorTestInput {
    * @param iteratorClass
    *          The class for the iterator to test.
    * @param iteratorOptions
-   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of properties).
+   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of
+   *          properties).
    * @param range
    *          The Range of data to query ({@link Scanner#setRange(Range)})
    * @param input
@@ -76,8 +79,9 @@ public class IteratorTestInput {
    * @param inclusive
    *          Whether the families are inclusive or exclusive.
    */
-  public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> iteratorOptions, Range range,
-      SortedMap<Key,Value> input, Collection<ByteSequence> families, boolean inclusive) {
+  public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
+      Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input,
+      Collection<ByteSequence> families, boolean inclusive) {
     // Already immutable
     this.iteratorClass = requireNonNull(iteratorClass);
     // Make it immutable to the test
@@ -116,8 +120,9 @@ public class IteratorTestInput {
 
   @Override
   public String toString() {
-    return "[iteratorClass=" + iteratorClass + ", iteratorOptions=" + iteratorOptions + ", range=" + range + ", families=" + families + ", inclusive="
-        + inclusive + ", input='" + input + "']";
+    return "[iteratorClass=" + iteratorClass + ", iteratorOptions=" + iteratorOptions + ", range="
+        + range + ", families=" + families + ", inclusive=" + inclusive + ", input='" + input
+        + "']";
   }
 
   @Override
@@ -128,7 +133,8 @@ public class IteratorTestInput {
       return false;
     IteratorTestInput that = (IteratorTestInput) o;
 
-    return inclusive == that.inclusive && iteratorClass.equals(that.iteratorClass) && iteratorOptions.equals(that.iteratorOptions) && range.equals(that.range)
+    return inclusive == that.inclusive && iteratorClass.equals(that.iteratorClass)
+        && iteratorOptions.equals(that.iteratorOptions) && range.equals(that.range)
         && families.equals(that.families) && input.equals(that.input);
   }
 

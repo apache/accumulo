@@ -78,7 +78,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // Create a split point that is too large to be an end row and fill it with all 'm'
     SortedSet<Text> partitionKeys = new TreeSet<>();
-    byte data[] = new byte[(int) (ConfigurationTypeHelper.getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
     for (int i = 0; i < data.length; i++) {
       data[i] = 'm';
     }
@@ -90,7 +91,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Assert.fail();
     } catch (AccumuloServerException e) {}
 
-    // Make sure that the information that was written to the table before we tried to add the split point is still correct
+    // Make sure that the information that was written to the table before we tried to add the split
+    // point is still correct
     int counter = 0;
     try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
       for (Entry<Key,Value> entry : scanner) {
@@ -117,14 +119,18 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     final Connector conn = getConnector();
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
-    conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
+    conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
+        "none");
+    conn.tableOperations().setProperty(tableName,
+        Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
     conn.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000");
 
-    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an end row
+    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
+    // end row
     // Fill this key with all m's except the last spot
     BatchWriter batchWriter = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (ConfigurationTypeHelper.getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
     for (int i = 0; i < data.length - 1; i++) {
       data[i] = (byte) 'm';
     }
@@ -136,7 +142,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       m.put("cf", "cq", "value");
       batchWriter.addMutation(m);
     }
-    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time for the table to split if need be.
+    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
+    // for the table to split if need be.
     batchWriter.close();
     conn.tableOperations().flush(tableName, new Text(), new Text("z"), true);
     Thread.sleep(500);
@@ -194,11 +201,13 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       }
     }
 
-    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an end row
+    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
+    // end row
     BatchWriter batchWriter = conn.createBatchWriter(tableName, new BatchWriterConfig());
     byte data[] = new byte[10];
 
-    // Fill key with all j's except for last spot which alternates through 1 through 10 for every j value
+    // Fill key with all j's except for last spot which alternates through 1 through 10 for every j
+    // value
     for (int j = 15; j < 150; j += 1) {
       for (int i = 0; i < data.length - 1; i++) {
         data[i] = (byte) j;
@@ -211,7 +220,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
         batchWriter.addMutation(m);
       }
     }
-    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time for the table to split if need be.
+    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
+    // for the table to split if need be.
     batchWriter.close();
     conn.tableOperations().flush(tableName, new Text(), new Text("z"), true);
 
@@ -229,15 +239,20 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     final Connector conn = getConnector();
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
-    conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
+    conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
+        "none");
+    conn.tableOperations().setProperty(tableName,
+        Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
     conn.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000");
 
-    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an end row
+    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
+    // end row
     BatchWriter batchWriter = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (ConfigurationTypeHelper.getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (ConfigurationTypeHelper
+        .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
 
-    // Fill key with all j's except for last spot which alternates through 1 through 10 for every j value
+    // Fill key with all j's except for last spot which alternates through 1 through 10 for every j
+    // value
     for (int j = 0; j < max; j += spacing) {
       for (int i = 0; i < data.length - 1; i++) {
         data[i] = (byte) j;
@@ -250,7 +265,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
         batchWriter.addMutation(m);
       }
     }
-    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time for the table to split if need be.
+    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
+    // for the table to split if need be.
     batchWriter.close();
     conn.tableOperations().flush(tableName, new Text(), new Text("z"), true);
     Thread.sleep(500);

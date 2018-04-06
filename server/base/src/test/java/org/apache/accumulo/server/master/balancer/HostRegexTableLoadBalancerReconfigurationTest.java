@@ -37,7 +37,8 @@ import org.apache.thrift.TException;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegexTableLoadBalancerTest {
+public class HostRegexTableLoadBalancerReconfigurationTest
+    extends BaseHostRegexTableLoadBalancerTest {
 
   private Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
 
@@ -51,7 +52,8 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
         unassigned.put(ke, null);
       }
     }
-    this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers), Collections.unmodifiableMap(unassigned), assignments);
+    this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
+        Collections.unmodifiableMap(unassigned), assignments);
     Assert.assertEquals(15, assignments.size());
     // Ensure unique tservers
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
@@ -60,7 +62,8 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
           continue;
         }
         if (e.getValue().equals(e2.getValue())) {
-          Assert.fail("Assignment failure. " + e.getKey() + " and " + e2.getKey() + " are assigned to the same host: " + e.getValue());
+          Assert.fail("Assignment failure. " + e.getKey() + " and " + e2.getKey()
+              + " are assigned to the same host: " + e.getValue());
         }
       }
     }
@@ -72,26 +75,31 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
     }
     Set<KeyExtent> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    // Wait to trigger the out of bounds check which will call our version of getOnlineTabletsForTable
+    // Wait to trigger the out of bounds check which will call our version of
+    // getOnlineTabletsForTable
     UtilWaitThread.sleep(3000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
+    DEFAULT_TABLE_PROPERTIES
+        .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
     this.propertiesChanged();
     // Wait to trigger the out of bounds check and the repool check
     UtilWaitThread.sleep(10000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     Assert.assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
-      Assert.assertTrue(migration.newServer.host().startsWith("192.168.0.1") || migration.newServer.host().startsWith("192.168.0.2")
-          || migration.newServer.host().startsWith("192.168.0.3") || migration.newServer.host().startsWith("192.168.0.4")
+      Assert.assertTrue(migration.newServer.host().startsWith("192.168.0.1")
+          || migration.newServer.host().startsWith("192.168.0.2")
+          || migration.newServer.host().startsWith("192.168.0.3")
+          || migration.newServer.host().startsWith("192.168.0.4")
           || migration.newServer.host().startsWith("192.168.0.5"));
     }
   }
 
   @Override
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
+      throws ThriftSecurityException, TException {
     List<TabletStats> tablets = new ArrayList<>();
     // Report assignment information
     for (Entry<KeyExtent,TServerInstance> e : this.assignments.entrySet()) {

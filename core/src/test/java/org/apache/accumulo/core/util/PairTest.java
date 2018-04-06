@@ -99,7 +99,8 @@ public class PairTest {
   }
 
   /**
-   * Test method for {@link org.apache.accumulo.core.util.Pair#toString(java.lang.String, java.lang.String, java.lang.String)}.
+   * Test method for
+   * {@link org.apache.accumulo.core.util.Pair#toString(java.lang.String, java.lang.String, java.lang.String)}.
    */
   @Test
   public void testToStringStringStringString() {

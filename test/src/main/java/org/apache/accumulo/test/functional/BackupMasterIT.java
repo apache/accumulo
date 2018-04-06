@@ -42,7 +42,8 @@ public class BackupMasterIT extends ConfigurableMacBase {
     Process backup = exec(Master.class);
     try {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter writer = new ZooReaderWriterFactory().getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
+      IZooReaderWriter writer = new ZooReaderWriterFactory()
+          .getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
       String root = "/accumulo/" + getConnector().getInstance().getInstanceID();
       List<String> children = Collections.emptyList();
       // wait for 2 lock entries

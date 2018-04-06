@@ -46,8 +46,9 @@ public abstract class TServiceClientWrapper extends TServiceClient {
       throw x;
     }
     if (msg.seqid != seqid_) {
-      throw new TApplicationException(TApplicationException.BAD_SEQUENCE_ID, String.format("%s failed: out of sequence response: expected %d but got %d",
-          methodName, seqid_, msg.seqid));
+      throw new TApplicationException(TApplicationException.BAD_SEQUENCE_ID,
+          String.format("%s failed: out of sequence response: expected %d but got %d", methodName,
+              seqid_, msg.seqid));
     }
     result.read(iprot_);
     iprot_.readMessageEnd();

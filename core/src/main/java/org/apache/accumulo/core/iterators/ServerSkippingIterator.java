@@ -25,9 +25,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * An optimized version of {@link org.apache.accumulo.core.iterators.SkippingIterator}. This class grants protected access to the read only <code>source</code>
- * iterator. For performance reasons, the <code>source</code> iterator is declared final and subclasses directly access it, no longer requiring calls to
- * getSource().
+ * An optimized version of {@link org.apache.accumulo.core.iterators.SkippingIterator}. This class
+ * grants protected access to the read only <code>source</code> iterator. For performance reasons,
+ * the <code>source</code> iterator is declared final and subclasses directly access it, no longer
+ * requiring calls to getSource().
  *
  * @since 2.0
  */
@@ -46,7 +47,8 @@ public abstract class ServerSkippingIterator extends ServerWrappingIterator {
   protected abstract void consume() throws IOException;
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     source.seek(range, columnFamilies, inclusive);
     consume();
   }

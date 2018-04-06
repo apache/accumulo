@@ -58,7 +58,8 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
   @Override
   public boolean cancel(boolean mayInterruptIfRunning) {
     if (!mayInterruptIfRunning)
-      throw new IllegalArgumentException("Cancel will always attempt to interupt running next batch task");
+      throw new IllegalArgumentException(
+          "Cancel will always attempt to interupt running next batch task");
 
     if (state.get() == CANCELED)
       return true;
@@ -78,7 +79,8 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
   }
 
   @Override
-  public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+  public T get(long timeout, TimeUnit unit)
+      throws InterruptedException, ExecutionException, TimeoutException {
 
     ArrayBlockingQueue<Object> localRQ = resultQueue;
 
@@ -102,7 +104,8 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
           stateStr = "UNKNOWN";
           break;
       }
-      throw new IllegalStateException("Tried to get result twice [state=" + stateStr + "(" + st + ")]");
+      throw new IllegalStateException(
+          "Tried to get result twice [state=" + stateStr + "(" + st + ")]");
     }
 
     Object r = localRQ.poll(timeout, unit);

@@ -29,20 +29,25 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class PrintInfo {
-  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path) throws IOException {
+  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path)
+      throws IOException {
     FSDataInputStream fsin = fs.open(path);
     BCFile.Reader bcfr = null;
     try {
-      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, SiteConfiguration.getInstance());
+      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf,
+          SiteConfiguration.getInstance());
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 
       for (Entry<String,MetaIndexEntry> entry : es) {
         PrintStream out = System.out;
         out.println("Meta block     : " + entry.getKey());
-        out.println("      Raw size             : " + String.format("%,d", entry.getValue().getRegion().getRawSize()) + " bytes");
-        out.println("      Compressed size      : " + String.format("%,d", entry.getValue().getRegion().getCompressedSize()) + " bytes");
-        out.println("      Compression type     : " + entry.getValue().getCompressionAlgorithm().getName());
+        out.println("      Raw size             : "
+            + String.format("%,d", entry.getValue().getRegion().getRawSize()) + " bytes");
+        out.println("      Compressed size      : "
+            + String.format("%,d", entry.getValue().getRegion().getCompressedSize()) + " bytes");
+        out.println(
+            "      Compression type     : " + entry.getValue().getCompressionAlgorithm().getName());
         out.println();
       }
     } finally {

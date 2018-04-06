@@ -46,11 +46,12 @@ public class TableRangeOp extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.MERGE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
+    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.MERGE)
+        + Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
   }
 
-  public TableRangeOp(MergeInfo.Operation op, Namespace.ID namespaceId, Table.ID tableId, Text startRow, Text endRow)
-      throws AcceptableThriftTableOperationException {
+  public TableRangeOp(MergeInfo.Operation op, Namespace.ID namespaceId, Table.ID tableId,
+      Text startRow, Text endRow) throws AcceptableThriftTableOperationException {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     this.startRow = TextUtil.getBytes(startRow);
@@ -62,7 +63,8 @@ public class TableRangeOp extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
 
     if (RootTable.ID.equals(tableId) && Operation.MERGE.equals(op)) {
-      log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.", RootTable.NAME);
+      log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
+          RootTable.NAME);
     }
 
     Text start = startRow.length == 0 ? null : new Text(startRow);
@@ -70,7 +72,8 @@ public class TableRangeOp extends MasterRepo {
 
     if (start != null && end != null)
       if (start.compareTo(end) >= 0)
-        throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null, TableOperation.MERGE, TableOperationExceptionType.BAD_RANGE,
+        throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+            TableOperation.MERGE, TableOperationExceptionType.BAD_RANGE,
             "start row must be less than end row");
 
     env.mustBeOnline(tableId);

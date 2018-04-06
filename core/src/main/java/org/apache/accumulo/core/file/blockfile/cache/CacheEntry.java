@@ -27,8 +27,8 @@ public interface CacheEntry {
   byte[] getBuffer();
 
   /**
-   * Optionally cache what is returned by the supplier along with this cache entry. If caching what is returned by the supplier is not supported, its ok to
-   * return null.
+   * Optionally cache what is returned by the supplier along with this cache entry. If caching what
+   * is returned by the supplier is not supported, its ok to return null.
    *
    * <p>
    * This method exists to support building indexes of frequently accessed cached data.
@@ -36,7 +36,8 @@ public interface CacheEntry {
   <T extends Weighbable> T getIndex(Supplier<T> supplier);
 
   /**
-   * The object optionally stored by {@link #getIndex(Supplier)} is a mutable object. Accumulo will call this method whenever the weight of that object changes.
+   * The object optionally stored by {@link #getIndex(Supplier)} is a mutable object. Accumulo will
+   * call this method whenever the weight of that object changes.
    */
   void indexWeightChanged();
 }

@@ -54,7 +54,8 @@ public class AccumuloMonitorAppenderTest {
       // simulate tracker having already been scheduled
       appender.trackerScheduled.compareAndSet(false, true);
       appender.activateOptions();
-      // activateOptions should not trigger a RejectedExecutionException, because we tricked it into thinking it was already called, and therefore it did not
+      // activateOptions should not trigger a RejectedExecutionException, because we tricked it into
+      // thinking it was already called, and therefore it did not
       // schedule the tracker after shutting down
     }
 
@@ -79,7 +80,8 @@ public class AccumuloMonitorAppenderTest {
       Assert.assertEquals(false, executorService.isTerminated());
 
       // make sure executor service executes tasks
-      ScheduledFuture<Long> future = executorService.schedule(() -> counter.getAndIncrement(), 1, TimeUnit.MILLISECONDS);
+      ScheduledFuture<Long> future = executorService.schedule(() -> counter.getAndIncrement(), 1,
+          TimeUnit.MILLISECONDS);
       Assert.assertEquals(Long.valueOf(2), future.get());
       Assert.assertEquals(3, counter.get());
 
@@ -138,11 +140,13 @@ public class AccumuloMonitorAppenderTest {
       updateLocAndVerify(currentLoc, parent, 10);
 
       // verify it's the same after a few times
-      // this verifies the logic in the tracker's run method which compares current location with last to see if a change occurred
+      // this verifies the logic in the tracker's run method which compares current location with
+      // last to see if a change occurred
       AppenderSkeleton lastAppender = (AppenderSkeleton) parent.getAllAppenders().nextElement();
       for (int x = 0; x < 10; x++) {
         Thread.sleep(10);
-        AppenderSkeleton currentAppender = (AppenderSkeleton) parent.getAllAppenders().nextElement();
+        AppenderSkeleton currentAppender = (AppenderSkeleton) parent.getAllAppenders()
+            .nextElement();
         Assert.assertSame(lastAppender, currentAppender);
       }
 
@@ -159,7 +163,8 @@ public class AccumuloMonitorAppenderTest {
     }
   }
 
-  private static void updateLocAndVerify(AtomicLong currentLoc, AccumuloMonitorAppender parent, int newLoc) {
+  private static void updateLocAndVerify(AtomicLong currentLoc, AccumuloMonitorAppender parent,
+      int newLoc) {
     // set the new location
     currentLoc.set(newLoc);
     // wait for the appender to notice the change

@@ -89,10 +89,13 @@ import com.google.common.hash.Hashing;
  * Below is a rough outline of the RPC process.
  *
  * <ol>
- * <li>Clients pick a random tserver and make an RPC to remotely execute {@link #gather(ExecutorService)}.
- * <li> {@link #gather(ExecutorService)} will call make RPC calls to multiple tservers to remotely execute {@link #processPartition(ExecutorService, int, int)}
- * <li> {@link #processPartition(ExecutorService, int, int)} will make RPC calls to multiple tserver to remotely execute
- * <li> {@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, ExecutorService)}
+ * <li>Clients pick a random tserver and make an RPC to remotely execute
+ * {@link #gather(ExecutorService)}.
+ * <li>{@link #gather(ExecutorService)} will call make RPC calls to multiple tservers to remotely
+ * execute {@link #processPartition(ExecutorService, int, int)}
+ * <li>{@link #processPartition(ExecutorService, int, int)} will make RPC calls to multiple tserver
+ * to remotely execute
+ * <li>{@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, ExecutorService)}
  * </ol>
  */
 public class Gatherer {
@@ -113,21 +116,25 @@ public class Gatherer {
 
   private Set<SummarizerConfiguration> summaries;
 
-  public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig) {
+  public Gatherer(ClientContext context, TSummaryRequest request,
+      AccumuloConfiguration tableConfig) {
     this.ctx = context;
     this.tableId = Table.ID.of(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
     this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
     this.clipRange = new Range(startRow, false, endRow, true);
-    this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift).collect(Collectors.toSet());
+    this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
+        .collect(Collectors.toSet());
     this.request = request;
 
     this.summarizerPattern = request.getSummarizerPattern();
 
     if (summarizerPattern != null) {
       Pattern pattern = Pattern.compile(summarizerPattern);
-      // The way conf is converted to string below is documented in the API, so consider this when making changes!
-      summarySelector = conf -> pattern.matcher(conf.getClassName() + " " + new TreeMap<>(conf.getOptions())).matches();
+      // The way conf is converted to string below is documented in the API, so consider this when
+      // making changes!
+      summarySelector = conf -> pattern
+          .matcher(conf.getClassName() + " " + new TreeMap<>(conf.getOptions())).matches();
       if (!summaries.isEmpty()) {
         summarySelector = summarySelector.or(conf -> summaries.contains(conf));
       }
@@ -147,13 +154,15 @@ public class Gatherer {
   /**
    * @param fileSelector
    *          only returns files that match this predicate
-   * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges associated with a file represent the tablets that use the
-   *         file.
+   * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges
+   *         associated with a file represent the tablets that use the file.
    */
-  private Map<String,Map<String,List<TRowRange>>> getFilesGroupedByLocation(Predicate<String> fileSelector) throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+  private Map<String,Map<String,List<TRowRange>>> getFilesGroupedByLocation(
+      Predicate<String> fileSelector)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
-    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).overUserTableId(tableId, startRow, endRow).fetchFiles().fetchLocation().fetchLast()
+    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx)
+        .overUserTableId(tableId, startRow, endRow).fetchFiles().fetchLocation().fetchLast()
         .fetchPrev().build();
 
     // get a subset of files
@@ -175,10 +184,15 @@ public class Gatherer {
 
     for (Entry<String,List<TabletMetadata>> entry : files.entrySet()) {
 
-      String location = entry.getValue().stream().filter(tm -> tm.getLocation() != null) // filter tablets w/o a location
+      String location = entry.getValue().stream().filter(tm -> tm.getLocation() != null) // filter
+                                                                                         // tablets
+                                                                                         // w/o a
+                                                                                         // location
           .map(tm -> tm.getLocation().getHostAndPort().toString()) // convert to host:port strings
           .min(String::compareTo) // find minimum host:port
-          .orElse(entry.getValue().stream().filter(tm -> tm.getLast() != null) // if no locations, then look at last locations
+          .orElse(entry.getValue().stream().filter(tm -> tm.getLast() != null) // if no locations,
+                                                                               // then look at last
+                                                                               // locations
               .map(tm -> tm.getLast().getHostAndPort().toString()) // convert to host:port strings
               .min(String::compareTo).orElse(null)); // find minimum last location or return null
 
@@ -188,13 +202,19 @@ public class Gatherer {
           Collections.sort(tservers);
         }
 
-        // When no location, the approach below will consistently choose the same tserver for the same file (as long as the set of tservers is stable).
-        int idx = Math.abs(Hashing.murmur3_32().hashString(entry.getKey()).asInt()) % tservers.size();
+        // When no location, the approach below will consistently choose the same tserver for the
+        // same file (as long as the set of tservers is stable).
+        int idx = Math.abs(Hashing.murmur3_32().hashString(entry.getKey()).asInt())
+            % tservers.size();
         location = tservers.get(idx);
       }
 
-      List<Range> merged = Range.mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange())); // merge contiguous ranges
-      List<TRowRange> ranges = merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip ranges to queried range
+      List<Range> merged = Range
+          .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange())); // merge
+                                                                                                    // contiguous
+                                                                                                    // ranges
+      List<TRowRange> ranges = merged.stream().map(r -> toClippedExtent(r).toThrift())
+          .collect(Collectors.toList()); // clip ranges to queried range
 
       locations.computeIfAbsent(location, s -> new HashMap<>()).put(entry.getKey(), ranges);
     }
@@ -264,7 +284,8 @@ public class Gatherer {
     private TInfo tinfo;
     private AtomicBoolean cancelFlag;
 
-    public FilesProcessor(TInfo tinfo, HostAndPort location, Map<String,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
+    public FilesProcessor(TInfo tinfo, HostAndPort location, Map<String,List<TRowRange>> allFiles,
+        AtomicBoolean cancelFlag) {
       this.location = location;
       this.allFiles = allFiles;
       this.tinfo = tinfo;
@@ -287,7 +308,8 @@ public class Gatherer {
           }
 
           try {
-            TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(), getRequest(), files);
+            TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
+                getRequest(), files);
             while (!tSums.finished && !cancelFlag.get()) {
               tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
             }
@@ -335,7 +357,8 @@ public class Gatherer {
 
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
-        Predicate<String> fileSelector = file -> Math.abs(Hashing.murmur3_32().hashString(file).asInt()) % modulus == remainder;
+        Predicate<String> fileSelector = file -> Math
+            .abs(Hashing.murmur3_32().hashString(file).asInt()) % modulus == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(file -> previousWork.failedFiles.contains(file));
         }
@@ -344,19 +367,23 @@ public class Gatherer {
 
         List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
         if (previousWork != null) {
-          futures.add(CompletableFuture.completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
+          futures.add(CompletableFuture
+              .completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
         }
 
         for (Entry<String,Map<String,List<TRowRange>>> entry : filesGBL.entrySet()) {
           HostAndPort location = HostAndPort.fromString(entry.getKey());
           Map<String,List<TRowRange>> allFiles = entry.getValue();
 
-          futures.add(CompletableFuture.supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
+          futures.add(CompletableFuture
+              .supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
         }
 
-        future = CompletableFutureUtil.merge(futures, (pf1, pf2) -> ProcessedFiles.merge(pf1, pf2, factory), ProcessedFiles::new);
+        future = CompletableFutureUtil.merge(futures,
+            (pf1, pf2) -> ProcessedFiles.merge(pf1, pf2, factory), ProcessedFiles::new);
 
-        // when all processing is done, check for failed files... and if found starting processing again
+        // when all processing is done, check for failed files... and if found starting processing
+        // again
         future.thenRun(() -> updateFuture());
       } catch (Exception e) {
         future = CompletableFuture.completedFuture(new ProcessedFiles());
@@ -439,7 +466,8 @@ public class Gatherer {
     }
 
     @Override
-    public SummaryCollection get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public SummaryCollection get(long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, TimeoutException {
       long nanosLeft = unit.toNanos(timeout);
       long t1, t2;
       CompletableFuture<ProcessedFiles> futureRef = updateFuture();
@@ -460,9 +488,11 @@ public class Gatherer {
   }
 
   /**
-   * This methods reads a subset of file paths into memory and groups them by location. Then it request sumaries for files from each location/tablet server.
+   * This methods reads a subset of file paths into memory and groups them by location. Then it
+   * request sumaries for files from each location/tablet server.
    */
-  public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus, int remainder) {
+  public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
+      int remainder) {
     PartitionFuture future = new PartitionFuture(Tracer.traceInfo(), execSrv, modulus, remainder);
     future.initiateProcessing();
     return future;
@@ -475,7 +505,8 @@ public class Gatherer {
   /**
    * This method will read summaries from a set of files.
    */
-  public Future<SummaryCollection> processFiles(FileSystemResolver volMgr, Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
+  public Future<SummaryCollection> processFiles(FileSystemResolver volMgr,
+      Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       ExecutorService srp) {
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
@@ -485,13 +516,17 @@ public class Gatherer {
       }, srp));
     }
 
-    return CompletableFutureUtil.merge(futures, (sc1, sc2) -> SummaryCollection.merge(sc1, sc2, factory), SummaryCollection::new);
+    return CompletableFutureUtil.merge(futures,
+        (sc1, sc2) -> SummaryCollection.merge(sc1, sc2, factory), SummaryCollection::new);
   }
 
-  private int countFiles() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  private int countFiles()
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // TODO use a batch scanner + iterator to parallelize counting files
-    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).overUserTableId(tableId, startRow, endRow).fetchFiles().fetchPrev().build();
-    return StreamSupport.stream(tmi.spliterator(), false).mapToInt(tm -> tm.getFiles().size()).sum();
+    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx)
+        .overUserTableId(tableId, startRow, endRow).fetchFiles().fetchPrev().build();
+    return StreamSupport.stream(tmi.spliterator(), false).mapToInt(tm -> tm.getFiles().size())
+        .sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {
@@ -515,7 +550,8 @@ public class Gatherer {
       TSummaries tSums;
       try {
         tSums = ServerClient.execute(ctx, new TabletClientService.Client.Factory(), client -> {
-          TSummaries tsr = client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
+          TSummaries tsr = client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus,
+              remainder);
           while (!tsr.finished && !cancelFlag.get()) {
             tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
           }
@@ -556,10 +592,12 @@ public class Gatherer {
 
     TInfo tinfo = Tracer.traceInfo();
     for (int i = 0; i < numRequest; i++) {
-      futures.add(CompletableFuture.supplyAsync(new GatherRequest(tinfo, i, numRequest, cancelFlag), es));
+      futures.add(
+          CompletableFuture.supplyAsync(new GatherRequest(tinfo, i, numRequest, cancelFlag), es));
     }
 
-    Future<SummaryCollection> future = CompletableFutureUtil.merge(futures, (sc1, sc2) -> SummaryCollection.merge(sc1, sc2, factory), SummaryCollection::new);
+    Future<SummaryCollection> future = CompletableFutureUtil.merge(futures,
+        (sc1, sc2) -> SummaryCollection.merge(sc1, sc2, factory), SummaryCollection::new);
     return new CancelFlagFuture<>(future, cancelFlag);
   }
 
@@ -624,9 +662,11 @@ public class Gatherer {
     }
   }
 
-  private SummaryCollection getSummaries(FileSystemResolver volMgr, String file, List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache) {
+  private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,
+      List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache) {
     Path path = new Path(file);
     Configuration conf = CachedConfiguration.getInstance();
-    return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path, summarySelector, summaryCache, indexCache).getSummaries(ranges);
+    return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path,
+        summarySelector, summaryCache, indexCache).getSummaries(ranges);
   }
 }

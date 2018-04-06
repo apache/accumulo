@@ -76,7 +76,8 @@ public class VolumeManagerImplTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(INSTANCE_DFS_URI, volumes.get(0));
     conf.set(Property.INSTANCE_VOLUMES, StringUtils.join(volumes, ","));
-    conf.set(Property.GENERAL_VOLUME_CHOOSER, "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
+    conf.set(Property.GENERAL_VOLUME_CHOOSER,
+        "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
     thrown.expect(RuntimeException.class);
     VolumeManagerImpl.get(conf);
   }
@@ -87,7 +88,8 @@ public class VolumeManagerImplTest {
     String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
     System.out.println(basePath);
     Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
-    List<String> pathsToTest = Arrays.asList("1/default_tablet", "1/default_tablet/", "1/t-0000001");
+    List<String> pathsToTest = Arrays.asList("1/default_tablet", "1/default_tablet/",
+        "1/t-0000001");
     for (String pathToTest : pathsToTest) {
       Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
       Assert.assertEquals(new Path(expectedBase, pathToTest), fullPath);
@@ -100,7 +102,8 @@ public class VolumeManagerImplTest {
     String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
     System.out.println(basePath);
     Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
-    List<String> pathsToTest = Arrays.asList("1/default_tablet/C0000001.rf", "1/t-0000001/C0000001.rf");
+    List<String> pathsToTest = Arrays.asList("1/default_tablet/C0000001.rf",
+        "1/t-0000001/C0000001.rf");
     for (String pathToTest : pathsToTest) {
       Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
       Assert.assertEquals(new Path(expectedBase, pathToTest), fullPath);
@@ -137,6 +140,7 @@ public class VolumeManagerImplTest {
     VolumeManager vm = VolumeManagerImpl.get(conf);
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Table.ID.of("sometable"));
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
-    Assert.assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
+    Assert.assertTrue("shouldn't see invalid options from misbehaving chooser.",
+        volumes.contains(choice));
   }
 }

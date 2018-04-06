@@ -65,7 +65,8 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
     for (int i = 0; i < 1000; i++) {
       splits.add(new Text(String.format("%03d", i)));
     }
-    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
+    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+        "10000");
     // propagation time
     sleepUninterruptibly(5, TimeUnit.SECONDS);
     for (int i = 0; i < 5; i++) {

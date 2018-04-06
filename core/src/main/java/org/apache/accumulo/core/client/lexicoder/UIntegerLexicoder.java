@@ -19,8 +19,9 @@ package org.apache.accumulo.core.client.lexicoder;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
- * A lexicoder for an unsigned integer. It sorts 0 before -1 and does not preserve the native sort order of a Java integer because Java does not contain an
- * unsigned integer. If Java had an unsigned integer type, this would correspond to its sort order.
+ * A lexicoder for an unsigned integer. It sorts 0 before -1 and does not preserve the native sort
+ * order of a Java integer because Java does not contain an unsigned integer. If Java had an
+ * unsigned integer type, this would correspond to its sort order.
  *
  * @since 1.6.0
  */
@@ -55,7 +56,8 @@ public class UIntegerLexicoder extends AbstractLexicoder<Integer> {
 
   @Override
   public Integer decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
+    // in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 

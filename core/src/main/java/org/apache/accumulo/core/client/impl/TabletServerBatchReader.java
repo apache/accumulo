@@ -54,7 +54,8 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
   private final int batchReaderInstance = getNextBatchReaderInstance();
 
-  public TabletServerBatchReader(ClientContext context, Table.ID tableId, Authorizations authorizations, int numQueryThreads) {
+  public TabletServerBatchReader(ClientContext context, Table.ID tableId,
+      Authorizations authorizations, int numQueryThreads) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
@@ -63,7 +64,8 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableId = tableId;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool = new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
+    queryThreadPool = new SimpleThreadPool(numQueryThreads,
+        "batch scanner " + batchReaderInstance + "-");
 
     ranges = null;
     ex = new Throwable();
@@ -79,11 +81,13 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     return authorizations;
   }
 
-  // WARNING: do not rely upon finalize to close this class. Finalize is not guaranteed to be called.
+  // WARNING: do not rely upon finalize to close this class. Finalize is not guaranteed to be
+  // called.
   @Override
   protected void finalize() {
     if (!queryThreadPool.isShutdown()) {
-      log.warn(TabletServerBatchReader.class.getSimpleName() + " not shutdown; did you forget to call close()?", ex);
+      log.warn(TabletServerBatchReader.class.getSimpleName()
+          + " not shutdown; did you forget to call close()?", ex);
       close();
     }
   }
@@ -112,6 +116,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("batch reader closed");
     }
 
-    return new TabletServerBatchReaderIterator(context, tableId, authorizations, ranges, numThreads, queryThreadPool, this, timeOut);
+    return new TabletServerBatchReaderIterator(context, tableId, authorizations, ranges, numThreads,
+        queryThreadPool, this, timeOut);
   }
 }

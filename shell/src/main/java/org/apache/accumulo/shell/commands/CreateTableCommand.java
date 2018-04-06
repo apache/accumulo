@@ -66,15 +66,17 @@ public class CreateTableCommand extends Command {
   private Option createTableOptIteratorProps;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, IOException, ClassNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException,
+      TableNotFoundException, IOException, ClassNotFoundException {
 
     final String testTableName = cl.getArgs()[0];
     final HashMap<String,String> props = new HashMap<>();
     NewTableConfiguration ntc = new NewTableConfiguration();
 
     if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
-      shellState.getReader().println("Only letters, numbers and underscores are allowed for use in table names.");
+      shellState.getReader()
+          .println("Only letters, numbers and underscores are allowed for use in table names.");
       throw new IllegalArgumentException();
     }
 
@@ -86,7 +88,8 @@ public class CreateTableCommand extends Command {
     final boolean decode = cl.hasOption(base64Opt.getOpt());
 
     if (cl.hasOption(createTableOptSplit.getOpt())) {
-      partitions.addAll(ShellUtil.scanFile(cl.getOptionValue(createTableOptSplit.getOpt()), decode));
+      partitions
+          .addAll(ShellUtil.scanFile(cl.getOptionValue(createTableOptSplit.getOpt()), decode));
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
       if (!shellState.getConnector().tableOperations().exists(oldTable)) {
@@ -126,7 +129,8 @@ public class CreateTableCommand extends Command {
     }
 
     // create table
-    shellState.getConnector().tableOperations().create(tableName, ntc.setTimeType(timeType).setProperties(props));
+    shellState.getConnector().tableOperations().create(tableName,
+        ntc.setTimeType(timeType).setProperties(props));
     if (partitions.size() > 0) {
       shellState.getConnector().tableOperations().addSplits(tableName, partitions);
     }
@@ -142,11 +146,12 @@ public class CreateTableCommand extends Command {
     // Copy options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       if (shellState.getConnector().tableOperations().exists(tableName)) {
-        final Iterable<Entry<String,String>> configuration = shellState.getConnector().tableOperations()
-            .getProperties(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
+        final Iterable<Entry<String,String>> configuration = shellState.getConnector()
+            .tableOperations().getProperties(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
         for (Entry<String,String> entry : configuration) {
           if (Property.isValidTablePropertyKey(entry.getKey())) {
-            shellState.getConnector().tableOperations().setProperty(tableName, entry.getKey(), entry.getValue());
+            shellState.getConnector().tableOperations().setProperty(tableName, entry.getKey(),
+                entry.getValue());
           }
         }
       }
@@ -154,9 +159,11 @@ public class CreateTableCommand extends Command {
 
     if (cl.hasOption(createTableOptEVC.getOpt())) {
       try {
-        shellState.getConnector().tableOperations().addConstraint(tableName, VisibilityConstraint.class.getName());
+        shellState.getConnector().tableOperations().addConstraint(tableName,
+            VisibilityConstraint.class.getName());
       } catch (AccumuloException e) {
-        Shell.log.warn(e.getMessage() + " while setting visibility constraint, but table was created");
+        Shell.log
+            .warn(e.getMessage() + " while setting visibility constraint, but table was created");
       }
     }
 
@@ -164,7 +171,8 @@ public class CreateTableCommand extends Command {
     if (cl.hasOption(createTableOptFormatter.getOpt())) {
       final String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
 
-      shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
+      shellState.getConnector().tableOperations().setProperty(tableName,
+          Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
     }
     return 0;
   }
@@ -172,7 +180,8 @@ public class CreateTableCommand extends Command {
   /**
    * Add supplied locality groups information to a NewTableConfiguration object.
    *
-   * Used in conjunction with createtable shell command to allow locality groups to be configured upon table creation.
+   * Used in conjunction with createtable shell command to allow locality groups to be configured
+   * upon table creation.
    */
   private NewTableConfiguration setLocalityForNewTable(CommandLine cl, NewTableConfiguration ntc) {
     HashMap<String,Set<Text>> localityGroupMap = new HashMap<>();
@@ -187,7 +196,8 @@ public class CreateTableCommand extends Command {
         colFams.add(new Text(family.getBytes(Shell.CHARSET)));
       // check that group names are not duplicated on usage line
       if (localityGroupMap.put(groupName, colFams) != null)
-        throw new IllegalArgumentException("Duplicate locality group name found. Group names must be unique");
+        throw new IllegalArgumentException(
+            "Duplicate locality group name found. Group names must be unique");
     }
     ntc.setLocalityGroups(localityGroupMap);
     return ntc;
@@ -196,9 +206,11 @@ public class CreateTableCommand extends Command {
   /**
    * Add supplied iterator information to NewTableConfiguration object.
    *
-   * Used in conjunction with createtable shell command to allow an iterator to be configured upon table creation.
+   * Used in conjunction with createtable shell command to allow an iterator to be configured upon
+   * table creation.
    */
-  private NewTableConfiguration attachIteratorToNewTable(final CommandLine cl, final Shell shellState, NewTableConfiguration ntc) {
+  private NewTableConfiguration attachIteratorToNewTable(final CommandLine cl,
+      final Shell shellState, NewTableConfiguration ntc) {
     EnumSet<IteratorScope> scopeEnumSet;
     IteratorSetting iteratorSetting;
     if (shellState.iteratorProfiles.size() == 0)
@@ -209,13 +221,17 @@ public class CreateTableCommand extends Command {
       String profileName = parts[0];
       // The iteratorProfiles.get calls below will throw an NPE if the profile does not exist
       // This can occur when the profile actually does not exist or if there is
-      // extraneous spacing in the iterator profile argument list causing the parser to read a scope as a profile.
+      // extraneous spacing in the iterator profile argument list causing the parser to read a scope
+      // as a profile.
       try {
         iteratorSetting = shellState.iteratorProfiles.get(profileName).get(0);
       } catch (NullPointerException ex) {
-        throw new IllegalArgumentException("invalid iterator argument. Either profile does not exist or unexpected spaces in argument list.", ex);
+        throw new IllegalArgumentException(
+            "invalid iterator argument. Either profile does not exist or unexpected spaces in argument list.",
+            ex);
       }
-      // handle case where only the profile is supplied. Use all scopes by default if no scope args are provided.
+      // handle case where only the profile is supplied. Use all scopes by default if no scope args
+      // are provided.
       if (parts.length == 1) {
         // add all scopes to enum set
         scopeEnumSet = EnumSet.allOf(IteratorScope.class);
@@ -225,7 +241,8 @@ public class CreateTableCommand extends Command {
         // there are only three allowable scope values
         if (scopeArgs.size() > 3)
           throw new IllegalArgumentException("Too many scope arguments supplied");
-        // handle the 'all' argument separately since it is not an allowable enum value for IteratorScope
+        // handle the 'all' argument separately since it is not an allowable enum value for
+        // IteratorScope
         // if 'all' is used, it should be the only scope provided
         if (scopeArgs.contains("all")) {
           if (scopeArgs.size() > 1)
@@ -242,7 +259,8 @@ public class CreateTableCommand extends Command {
   }
 
   /**
-   * Validate that the provided scope arguments are valid iterator scope settings. Checking for duplicate entries and invalid scope values.
+   * Validate that the provided scope arguments are valid iterator scope settings. Checking for
+   * duplicate entries and invalid scope values.
    *
    * Returns an EnumSet of scopes to be set.
    */
@@ -274,23 +292,29 @@ public class CreateTableCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    createTableOptCopyConfig = new Option("cc", "copy-config", true, "table to copy configuration from");
-    createTableOptCopySplits = new Option("cs", "copy-splits", true, "table to copy current splits from");
-    createTableOptSplit = new Option("sf", "splits-file", true, "file with a newline-separated list of rows to split the table with");
+    createTableOptCopyConfig = new Option("cc", "copy-config", true,
+        "table to copy configuration from");
+    createTableOptCopySplits = new Option("cs", "copy-splits", true,
+        "table to copy current splits from");
+    createTableOptSplit = new Option("sf", "splits-file", true,
+        "file with a newline-separated list of rows to split the table with");
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
     createTableOptTimeMillis = new Option("tm", "time-millis", false, "use time in milliseconds");
-    createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false, "prevent creation of the normal default iterator set");
+    createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false,
+        "prevent creation of the normal default iterator set");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevent users from writing data they cannot read.  When enabling this, consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
-    createTableOptInitProp = new Option("prop", "init-properties", true, "user defined initial properties");
+    createTableOptInitProp = new Option("prop", "init-properties", true,
+        "user defined initial properties");
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
     createTableOptInitProp.setArgName("properties");
 
-    createTableOptLocalityProps = new Option("l", "locality", true, "create locality groups at table creation");
+    createTableOptLocalityProps = new Option("l", "locality", true,
+        "create locality groups at table creation");
     createTableOptLocalityProps.setArgName("group=col_fam[,col_fam]");
     createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
 
@@ -332,7 +356,8 @@ public class CreateTableCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForNamespaces(root, special);
   }
 }

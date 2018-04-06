@@ -62,7 +62,8 @@ public class MultiIterator extends HeapIterator {
       addSource(skvi);
   }
 
-  private MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence, boolean init) {
+  private MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence,
+      boolean init) {
     super(iters.size());
 
     if (seekFence != null && init) {
@@ -93,7 +94,8 @@ public class MultiIterator extends HeapIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     clear();
 
     if (fence != null) {
@@ -109,7 +111,8 @@ public class MultiIterator extends HeapIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
 }

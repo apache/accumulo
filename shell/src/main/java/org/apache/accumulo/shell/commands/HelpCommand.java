@@ -35,7 +35,8 @@ public class HelpCommand extends Command {
   private Option noWrapOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ShellCommandException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws ShellCommandException, IOException {
     int numColumns = shellState.getReader().getTerminal().getWidth();
     if (cl.hasOption(noWrapOpt.getOpt())) {
       numColumns = Integer.MAX_VALUE;
@@ -47,7 +48,8 @@ public class HelpCommand extends Command {
         i = Math.max(i, cmd.length());
       }
       if (numColumns < 40) {
-        throw new IllegalArgumentException("numColumns must be at least 40 (was " + numColumns + ")");
+        throw new IllegalArgumentException(
+            "numColumns must be at least 40 (was " + numColumns + ")");
       }
       final ArrayList<String> output = new ArrayList<>();
       for (Entry<String,Command[]> cmdGroup : shellState.commandGrouping.entrySet()) {
@@ -67,11 +69,13 @@ public class HelpCommand extends Command {
             endIndex = s.lastIndexOf(" ", numColumns + beginIndex - i - 5);
             if (endIndex == -1 || endIndex < beginIndex) {
               endIndex = numColumns + beginIndex - i - 5 - 1;
-              output.add(String.format("%-" + i + "s  %s  %s-", n, dash, s.substring(beginIndex, endIndex)));
+              output.add(String.format("%-" + i + "s  %s  %s-", n, dash,
+                  s.substring(beginIndex, endIndex)));
               dash = " ";
               beginIndex = endIndex;
             } else {
-              output.add(String.format("%-" + i + "s  %s  %s", n, dash, s.substring(beginIndex, endIndex)));
+              output.add(String.format("%-" + i + "s  %s  %s", n, dash,
+                  s.substring(beginIndex, endIndex)));
               dash = " ";
               beginIndex = endIndex + 1;
             }
@@ -81,7 +85,8 @@ public class HelpCommand extends Command {
               beginIndex++;
             }
           }
-          output.add(String.format("%-" + i + "s  %s  %s", n, dash, s.substring(beginIndex, endIndex)));
+          output.add(
+              String.format("%-" + i + "s  %s  %s", n, dash, s.substring(beginIndex, endIndex)));
         }
         output.add("");
       }
@@ -92,7 +97,8 @@ public class HelpCommand extends Command {
     for (String cmd : cl.getArgs()) {
       final Command c = shellState.commandFactory.get(cmd);
       if (c == null) {
-        shellState.getReader().println(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.", cmd));
+        shellState.getReader().println(String
+            .format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.", cmd));
       } else {
         c.printHelp(shellState, numColumns);
       }
@@ -106,7 +112,8 @@ public class HelpCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForCommands(root, special);
   }
 

@@ -28,7 +28,8 @@ public class ExportTable extends MasterRepo {
 
   private final ExportInfo tableInfo;
 
-  public ExportTable(Namespace.ID namespaceId, String tableName, Table.ID tableId, String exportDir) throws ThriftTableOperationException {
+  public ExportTable(Namespace.ID namespaceId, String tableName, Table.ID tableId, String exportDir)
+      throws ThriftTableOperationException {
     tableInfo = new ExportInfo();
     tableInfo.tableName = tableName;
     tableInfo.exportDir = exportDir;

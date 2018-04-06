@@ -86,11 +86,14 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   @Test
   public void crashAndResumeTserver() throws Exception {
-    // Run the test body. When we get to the point where we need a tserver to go away, get rid of it via crashing
+    // Run the test body. When we get to the point where we need a tserver to go away, get rid of it
+    // via crashing
     suspensionTestBody(new TServerKiller() {
       @Override
-      public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count) throws Exception {
-        List<ProcessReference> procs = new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
+      public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+          throws Exception {
+        List<ProcessReference> procs = new ArrayList<>(
+            getCluster().getProcesses().get(ServerType.TABLET_SERVER));
         Collections.shuffle(procs);
 
         for (int i = 0; i < count; ++i) {
@@ -104,10 +107,12 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   @Test
   public void shutdownAndResumeTserver() throws Exception {
-    // Run the test body. When we get to the point where we need tservers to go away, stop them via a clean shutdown.
+    // Run the test body. When we get to the point where we need tservers to go away, stop them via
+    // a clean shutdown.
     suspensionTestBody(new TServerKiller() {
       @Override
-      public void eliminateTabletServers(final ClientContext ctx, TabletLocations locs, int count) throws Exception {
+      public void eliminateTabletServers(final ClientContext ctx, TabletLocations locs, int count)
+          throws Exception {
         Set<TServerInstance> tserversSet = new HashSet<>();
         for (TabletLocationState tls : locs.locationStates.values()) {
           if (tls.current != null) {
@@ -178,7 +183,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Wait for all of the tablets to hosted ...
     log.info("Waiting on hosting and balance");
     TabletLocations ds;
-    for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+    for (ds = TabletLocations.retrieve(ctx,
+        tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
       Thread.sleep(1000);
     }
 
@@ -193,7 +199,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Pray all of our tservers have at least 1 tablet.
     Assert.assertEquals(TSERVERS, ds.hosted.keySet().size());
 
-    // Kill two tablet servers hosting our tablets. This should put tablets into suspended state, and thus halt balancing.
+    // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
+    // and thus halt balancing.
 
     TabletLocations beforeDeathState = ds;
     log.info("Eliminating tablet servers");
@@ -202,7 +209,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Eventually some tablets will be suspended.
     log.info("Waiting on suspended tablets");
     ds = TabletLocations.retrieve(ctx, tableName);
-    // Until we can scan the metadata table, the master probably can't either, so won't have been able to suspend the tablets.
+    // Until we can scan the metadata table, the master probably can't either, so won't have been
+    // able to suspend the tablets.
     // So we note the time that we were first able to successfully scan the metadata table.
     long killTime = System.nanoTime();
     while (ds.suspended.keySet().size() != 2) {
@@ -213,7 +221,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
 
     // By this point, all tablets should be either hosted or suspended. All suspended tablets should
-    // "belong" to the dead tablet servers, and should be in exactly the same place as before any tserver death.
+    // "belong" to the dead tablet servers, and should be in exactly the same place as before any
+    // tserver death.
     for (HostAndPort server : deadTabletsByServer.keySet()) {
       Assert.assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
     }
@@ -223,28 +232,33 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
     log.info("Restarting " + restartedServer);
     getCluster().getClusterControl().start(ServerType.TABLET_SERVER, null,
-        ImmutableMap.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(), Property.TSERV_PORTSEARCH.getKey(), "false"), 1);
+        ImmutableMap.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
+            Property.TSERV_PORTSEARCH.getKey(), "false"),
+        1);
 
     // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
     log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-    for (ds = TabletLocations.retrieve(ctx, tableName); ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx,
-        tableName)) {
+    for (ds = TabletLocations.retrieve(ctx, tableName); ds.suspended.containsKey(restartedServer)
+        || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx, tableName)) {
       Thread.sleep(1000);
     }
     Assert.assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
     // Finally, after much longer, remaining suspended tablets should be reassigned.
     log.info("Awaiting tablet reassignment for remaining tablets");
-    for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+    for (ds = TabletLocations.retrieve(ctx,
+        tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
       Thread.sleep(1000);
     }
 
     long recoverTime = System.nanoTime();
-    Assert.assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
+    Assert
+        .assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
   }
 
   private static interface TServerKiller {
-    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count) throws Exception;
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception;
   }
 
   private static final AtomicInteger threadCounter = new AtomicInteger(0);
@@ -274,7 +288,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     private TabletLocations() {}
 
-    public static TabletLocations retrieve(final ClientContext ctx, final String tableName) throws Exception {
+    public static TabletLocations retrieve(final ClientContext ctx, final String tableName)
+        throws Exception {
       int sleepTime = 200;
       int remainingAttempts = 30;
 

@@ -66,8 +66,9 @@ public class IndexedDocIteratorTest extends TestCase {
     docColf.append("type".getBytes(), 0, "type".getBytes().length);
   }
 
-  private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies,
-      HashSet<Text> docs, Text[] negatedColumns) {
+  private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow,
+      Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
+      Text[] negatedColumns) {
     StringBuilder sb = new StringBuilder();
     Random r = new Random();
     Value v = new Value(new byte[0]);
@@ -134,24 +135,29 @@ public class IndexedDocIteratorTest extends TestCase {
 
   static TestRFile trf = new TestRFile(DefaultConfiguration.getInstance());
 
-  private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies,
-      Text[] otherColumnFamilies, HashSet<Text> docs) throws IOException {
+  private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows,
+      int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs)
+      throws IOException {
     Text nullText[] = new Text[0];
-    return createIteratorStack(hitRatio, numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, nullText);
+    return createIteratorStack(hitRatio, numRows, numDocsPerRow, columnFamilies,
+        otherColumnFamilies, docs, nullText);
   }
 
-  private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies,
-      Text[] otherColumnFamilies, HashSet<Text> docs, Text[] negatedColumns) throws IOException {
+  private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows,
+      int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
+      Text[] negatedColumns) throws IOException {
     // write a map file
     trf.openWriter(false);
 
-    TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, negatedColumns);
+    TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow,
+        columnFamilies, otherColumnFamilies, docs, negatedColumns);
     trf.writer.startNewLocalityGroup("docs", RFileTest.newColFamByteSequence(docColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(docColf))
         trf.writer.append(entry.getKey(), entry.getValue());
     }
-    trf.writer.startNewLocalityGroup("terms", RFileTest.newColFamByteSequence(indexColf.toString()));
+    trf.writer.startNewLocalityGroup("terms",
+        RFileTest.newColFamByteSequence(indexColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(indexColf))
         trf.writer.append(entry.getKey(), entry.getValue());
@@ -190,7 +196,8 @@ public class IndexedDocIteratorTest extends TestCase {
 
     float hitRatio = 0.5f;
     HashSet<Text> docs = new HashSet<>();
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS,
+        columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IndexedDocIterator.class);
     IndexedDocIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
@@ -228,7 +235,8 @@ public class IndexedDocIteratorTest extends TestCase {
 
     float hitRatio = 0.5f;
     HashSet<Text> docs = new HashSet<>();
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS,
+        columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IndexedDocIterator.class);
     IndexedDocIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
@@ -265,8 +273,10 @@ public class IndexedDocIteratorTest extends TestCase {
 
     float hitRatio = 0.5f;
     HashSet<Text> docs = new HashSet<>();
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
-    SortedKeyValueIterator<Key,Value> source2 = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS,
+        columnFamilies, otherColumnFamilies, docs);
+    SortedKeyValueIterator<Key,Value> source2 = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS,
+        columnFamilies, otherColumnFamilies, docs);
     ArrayList<SortedKeyValueIterator<Key,Value>> sourceIters = new ArrayList<>();
     sourceIters.add(source);
     sourceIters.add(source2);
@@ -311,7 +321,8 @@ public class IndexedDocIteratorTest extends TestCase {
 
     float hitRatio = 0.5f;
     HashSet<Text> docs = new HashSet<>();
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs, negatedColumns);
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS,
+        columnFamilies, otherColumnFamilies, docs, negatedColumns);
     IteratorSetting is = new IteratorSetting(1, IndexedDocIterator.class);
     IndexedDocIterator.setColumnFamilies(is, columnFamilies, notFlags);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);

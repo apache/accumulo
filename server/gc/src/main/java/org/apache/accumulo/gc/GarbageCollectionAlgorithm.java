@@ -93,16 +93,21 @@ public class GarbageCollectionAlgorithm {
     }
 
     if (tokens.length > 3 && path.contains(":")) {
-      if (tokens[tokens.length - 4].equals(ServerConstants.TABLE_DIR) && (expectedLen == 0 || expectedLen == 3)) {
-        relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
-      } else if (tokens[tokens.length - 3].equals(ServerConstants.TABLE_DIR) && (expectedLen == 0 || expectedLen == 2)) {
+      if (tokens[tokens.length - 4].equals(ServerConstants.TABLE_DIR)
+          && (expectedLen == 0 || expectedLen == 3)) {
+        relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
+            + tokens[tokens.length - 1];
+      } else if (tokens[tokens.length - 3].equals(ServerConstants.TABLE_DIR)
+          && (expectedLen == 0 || expectedLen == 2)) {
         relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
       } else {
         throw new IllegalArgumentException(path);
       }
-    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3) && !path.contains(":")) {
+    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
+        && !path.contains(":")) {
       relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
-    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2) && !path.contains(":")) {
+    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)
+        && !path.contains(":")) {
       relPath = tokens[0] + "/" + tokens[1];
     } else {
       throw new IllegalArgumentException(path);
@@ -129,12 +134,14 @@ public class GarbageCollectionAlgorithm {
     return ret;
   }
 
-  private void confirmDeletes(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+  private void confirmDeletes(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     boolean checkForBulkProcessingFiles = false;
     Iterator<String> relativePaths = candidateMap.keySet().iterator();
     while (!checkForBulkProcessingFiles && relativePaths.hasNext())
-      checkForBulkProcessingFiles |= relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
+      checkForBulkProcessingFiles |= relativePaths.next().toLowerCase(Locale.ENGLISH)
+          .contains(Constants.BULK_PREFIX);
 
     if (checkForBulkProcessingFiles) {
       Iterator<String> blipiter = gce.getBlipIterator();
@@ -208,15 +215,21 @@ public class GarbageCollectionAlgorithm {
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", dir);
       } else
-        throw new RuntimeException("Scanner over metadata table returned unexpected column : " + entry.getKey());
+        throw new RuntimeException(
+            "Scanner over metadata table returned unexpected column : " + entry.getKey());
     }
 
-    confirmDeletesFromReplication(gce.getReplicationNeededIterator(), candidateMap.entrySet().iterator());
+    confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
+        candidateMap.entrySet().iterator());
   }
 
-  protected void confirmDeletesFromReplication(Iterator<Entry<String,Status>> replicationNeededIterator, Iterator<Entry<String,String>> candidateMapIterator) {
-    PeekingIterator<Entry<String,Status>> pendingReplication = Iterators.peekingIterator(replicationNeededIterator);
-    PeekingIterator<Entry<String,String>> candidates = Iterators.peekingIterator(candidateMapIterator);
+  protected void confirmDeletesFromReplication(
+      Iterator<Entry<String,Status>> replicationNeededIterator,
+      Iterator<Entry<String,String>> candidateMapIterator) {
+    PeekingIterator<Entry<String,Status>> pendingReplication = Iterators
+        .peekingIterator(replicationNeededIterator);
+    PeekingIterator<Entry<String,String>> candidates = Iterators
+        .peekingIterator(candidateMapIterator);
     while (pendingReplication.hasNext() && candidates.hasNext()) {
       Entry<String,Status> pendingReplica = pendingReplication.peek();
       Entry<String,String> candidate = candidates.peek();
@@ -243,7 +256,8 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws IOException {
+  private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap) throws IOException {
     HashSet<Table.ID> tableIdsWithDeletes = new HashSet<>();
 
     // find the table ids that had dirs deleted
@@ -268,8 +282,9 @@ public class GarbageCollectionAlgorithm {
 
   }
 
-  private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate, List<String> candidates) throws TableNotFoundException,
-      AccumuloException, AccumuloSecurityException {
+  private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate,
+      List<String> candidates)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     Span candidatesSpan = Trace.start("getCandidates");
     try {
       return gce.getCandidates(lastCandidate, candidates);
@@ -278,8 +293,9 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  private void confirmDeletesTrace(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+  private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     Span confirmDeletesSpan = Trace.start("confirmDeletes");
     try {
       confirmDeletes(gce, candidateMap);
@@ -288,8 +304,9 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  private void deleteConfirmed(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws IOException, AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  private void deleteConfirmed(GarbageCollectionEnvironment gce,
+      SortedMap<String,String> candidateMap)
+      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Span deleteSpan = Trace.start("deleteFiles");
     try {
       gce.delete(candidateMap);
@@ -300,7 +317,8 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
-  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, IOException {
+  public void collect(GarbageCollectionEnvironment gce)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException, IOException {
 
     String lastCandidate = "";
 

@@ -59,11 +59,13 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    runTest(getConnector(), getCluster().getFileSystem(), getCluster().getTemporaryPath(), getAdminPrincipal(), getUniqueNames(1)[0],
-        this.getClass().getName(), testName.getMethodName());
+    runTest(getConnector(), getCluster().getFileSystem(), getCluster().getTemporaryPath(),
+        getAdminPrincipal(), getUniqueNames(1)[0], this.getClass().getName(),
+        testName.getMethodName());
   }
 
-  static void runTest(Connector c, FileSystem fs, Path basePath, String principal, String tableName, String filePrefix, String dirSuffix) throws Exception {
+  static void runTest(Connector c, FileSystem fs, Path basePath, String principal, String tableName,
+      String filePrefix, String dirSuffix) throws Exception {
     c.tableOperations().create(tableName);
 
     Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
@@ -96,7 +98,8 @@ public class BulkIT extends AccumuloClusterHarness {
     TestIngest.ingest(c, fs, opts, BWOPTS);
 
     // Make sure the server can modify the files
-    c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(), false);
+    c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(),
+        false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);
     vopts.random = 56;

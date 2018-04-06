@@ -25,11 +25,13 @@ public class GuavaRateLimiter implements RateLimiter {
    * Constructor
    *
    * @param initialRate
-   *          Count of permits which should be made available per second. A nonpositive rate is taken to indicate there should be no limitation on rate.
+   *          Count of permits which should be made available per second. A nonpositive rate is
+   *          taken to indicate there should be no limitation on rate.
    */
   public GuavaRateLimiter(long initialRate) {
     this.currentRate = initialRate;
-    this.rateLimiter = com.google.common.util.concurrent.RateLimiter.create(initialRate > 0 ? initialRate : Long.MAX_VALUE);
+    this.rateLimiter = com.google.common.util.concurrent.RateLimiter
+        .create(initialRate > 0 ? initialRate : Long.MAX_VALUE);
   }
 
   @Override
@@ -41,7 +43,8 @@ public class GuavaRateLimiter implements RateLimiter {
    * Change the rate at which permits are made available.
    *
    * @param newRate
-   *          Count of permits which should be made available per second. A nonpositive rate is taken to indicate that there should be no limitation on rate.
+   *          Count of permits which should be made available per second. A nonpositive rate is
+   *          taken to indicate that there should be no limitation on rate.
    */
   public void setRate(long newRate) {
     this.rateLimiter.setRate(newRate > 0 ? newRate : Long.MAX_VALUE);

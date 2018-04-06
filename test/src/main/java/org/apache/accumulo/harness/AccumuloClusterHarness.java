@@ -56,10 +56,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * General Integration-Test base class that provides access to an Accumulo instance for testing. This instance could be MAC or a standalone instance.
+ * General Integration-Test base class that provides access to an Accumulo instance for testing.
+ * This instance could be MAC or a standalone instance.
  */
 @Category(StandaloneCapableClusterTests.class)
-public abstract class AccumuloClusterHarness extends AccumuloITBase implements MiniClusterConfigurationCallback, ClusterUsers {
+public abstract class AccumuloClusterHarness extends AccumuloITBase
+    implements MiniClusterConfigurationCallback, ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);
   private static final String TRUE = Boolean.toString(true);
 
@@ -83,7 +85,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
     clusterConf = AccumuloClusterPropertyConfiguration.get();
     type = clusterConf.getClusterType();
 
-    if (ClusterType.MINI == type && TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION))) {
+    if (ClusterType.MINI == type
+        && TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION))) {
       krb = new TestingKdc();
       krb.start();
       log.info("MiniKdc started");
@@ -108,25 +111,29 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
 
   @Before
   public void setupCluster() throws Exception {
-    // Before we try to instantiate the cluster, check to see if the test even wants to run against this type of cluster
+    // Before we try to instantiate the cluster, check to see if the test even wants to run against
+    // this type of cluster
     Assume.assumeTrue(canRunTest(type));
 
     switch (type) {
       case MINI:
         MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
-        // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and core-site.xml
+        // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and
+        // core-site.xml
         MiniAccumuloClusterImpl impl = miniClusterHarness.create(this, getAdminToken(), krb);
         cluster = impl;
         // Login as the "root" user
         if (null != krb) {
           ClusterUser rootUser = krb.getRootUser();
           // Log in the 'client' user
-          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
+              rootUser.getKeytab().getAbsolutePath());
         }
         break;
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration conf = (StandaloneAccumuloClusterConfiguration) clusterConf;
-        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(cluster.getConnectionInfo(), conf.getTmpDirectory(), conf.getUsers());
+        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
+            cluster.getConnectionInfo(), conf.getTmpDirectory(), conf.getUsers());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
@@ -135,12 +142,14 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
         standaloneCluster.setServerCmdPrefix(conf.getServerCmdPrefix());
         standaloneCluster.setClientCmdPrefix(conf.getClientCmdPrefix());
 
-        // For SASL, we need to get the Hadoop configuration files as well otherwise UGI will log in as SIMPLE instead of KERBEROS
+        // For SASL, we need to get the Hadoop configuration files as well otherwise UGI will log in
+        // as SIMPLE instead of KERBEROS
         Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
         if (saslEnabled()) {
           UserGroupInformation.setConfiguration(hadoopConfiguration);
           // Login as the admin user to start the tests
-          UserGroupInformation.loginUserFromKeytab(conf.getAdminPrincipal(), conf.getAdminKeytab().getAbsolutePath());
+          UserGroupInformation.loginUserFromKeytab(conf.getAdminPrincipal(),
+              conf.getAdminKeytab().getAbsolutePath());
         }
 
         // Set the implementation
@@ -166,24 +175,32 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
           final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
 
           // Login as the trace user
-          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
+          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
+              systemUser.getKeytab().getAbsolutePath());
 
-          // Open a connector as the system user (ensures the user will exist for us to assign permissions to)
-          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
+          // Open a connector as the system user (ensures the user will exist for us to assign
+          // permissions to)
+          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
+              systemUser.getKeytab().getAbsolutePath());
           Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken());
 
           // Then, log back in as the "root" user and do the grant
-          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
+              rootUser.getKeytab().getAbsolutePath());
           conn = getConnector();
 
           // Create the trace table
           conn.tableOperations().create(traceTable);
 
-          // Trace user (which is the same kerberos principal as the system user, but using a normal KerberosToken) needs
+          // Trace user (which is the same kerberos principal as the system user, but using a normal
+          // KerberosToken) needs
           // to have the ability to read, write and alter the trace table
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.READ);
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.WRITE);
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.ALTER_TABLE);
+          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+              TablePermission.READ);
+          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+              TablePermission.WRITE);
+          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+              TablePermission.ALTER_TABLE);
         }
         break;
       default:
@@ -270,11 +287,13 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
       case MINI:
         if (null == krb) {
           PasswordToken passwordToken = (PasswordToken) getAdminToken();
-          return new ClusterUser(getAdminPrincipal(), new String(passwordToken.getPassword(), UTF_8));
+          return new ClusterUser(getAdminPrincipal(),
+              new String(passwordToken.getPassword(), UTF_8));
         }
         return krb.getRootUser();
       case STANDALONE:
-        return new ClusterUser(getAdminPrincipal(), ((StandaloneAccumuloClusterConfiguration) clusterConf).getAdminKeytab());
+        return new ClusterUser(getAdminPrincipal(),
+            ((StandaloneAccumuloClusterConfiguration) clusterConf).getAdminKeytab());
       default:
         throw new RuntimeException("Unknown cluster type");
     }
@@ -285,11 +304,13 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
     switch (type) {
       case MINI:
         if (null != krb) {
-          // Defer to the TestingKdc when kerberos is on so we can get the keytab instead of a password
+          // Defer to the TestingKdc when kerberos is on so we can get the keytab instead of a
+          // password
           return krb.getClientPrincipal(offset);
         } else {
           // Come up with a mostly unique name
-          String principal = getClass().getSimpleName() + "_" + testName.getMethodName() + "_" + offset;
+          String principal = getClass().getSimpleName() + "_" + testName.getMethodName() + "_"
+              + offset;
           // Username and password are the same
           return new ClusterUser(principal, principal);
         }
@@ -324,22 +345,23 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
     }
   }
 
-  // TODO Really don't want this here. Will ultimately need to abstract configuration method away from MAConfig
+  // TODO Really don't want this here. Will ultimately need to abstract configuration method away
+  // from MAConfig
   // and change over to something more generic
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
   /**
-   * A test may not be capable of running against a given AccumuloCluster. Implementations can override this method to advertise that they cannot (or perhaps do
-   * not) want to run the test.
+   * A test may not be capable of running against a given AccumuloCluster. Implementations can
+   * override this method to advertise that they cannot (or perhaps do not) want to run the test.
    */
   public boolean canRunTest(ClusterType type) {
     return true;
   }
 
   /**
-   * Tries to give a reasonable directory which can be used to create temporary files for the test. Makes a basic attempt to create the directory if it does not
-   * already exist.
+   * Tries to give a reasonable directory which can be used to create temporary files for the test.
+   * Makes a basic attempt to create the directory if it does not already exist.
    *
    * @return A directory which can be expected to exist on the Cluster's FileSystem
    */

@@ -30,8 +30,9 @@ import com.google.common.base.Preconditions;
 /**
  * Mocket - a Mock Socket
  * <p>
- * Implements a bi-directional client-server transport in memory, using two FIFO queues. The output stream of the client is wired to the input stream of the
- * server, and the output stream of the server is wired to the input stream of the client.
+ * Implements a bi-directional client-server transport in memory, using two FIFO queues. The output
+ * stream of the client is wired to the input stream of the server, and the output stream of the
+ * server is wired to the input stream of the client.
  */
 public class Mocket {
 

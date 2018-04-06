@@ -32,13 +32,15 @@ import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
- * A family of combiners that treat values as BigDecimals, encoding and decoding using the built-in BigDecimal String input/output functions.
+ * A family of combiners that treat values as BigDecimals, encoding and decoding using the built-in
+ * BigDecimal String input/output functions.
  */
 public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> {
   private final static BigDecimalEncoder BDE = new BigDecimalEncoder();
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     setEncoder(BDE);
   }
@@ -109,12 +111,14 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
 
     @Override
     public BigDecimal decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility with 1.6; it can be
+      // removed in 2.0. See ACCUMULO-3789.
       return super.decode(b);
     }
 
     @Override
-    protected BigDecimal decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
+    protected BigDecimal decodeUnchecked(byte[] b, int offset, int len)
+        throws ValueFormatException {
       try {
         return new BigDecimal(new String(b, offset, len, UTF_8));
       } catch (NumberFormatException nfe) {

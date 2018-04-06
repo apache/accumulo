@@ -62,7 +62,8 @@ public class FileSystemMonitor {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder(32);
-      sb.append(device).append(" on ").append(mountPoint).append(" as ").append(filesystemType).append(" with options ").append(options);
+      sb.append(device).append(" on ").append(mountPoint).append(" as ").append(filesystemType)
+          .append(" with options ").append(options);
       return sb.toString();
     }
   }
@@ -81,7 +82,8 @@ public class FileSystemMonitor {
     String line;
     while ((line = br.readLine()) != null) {
       Mount mount = new Mount(line);
-      if (mount.device.startsWith(DEVICE_PREFIX) && ACCEPTED_FILESYSTEMS.contains(mount.filesystemType)) {
+      if (mount.device.startsWith(DEVICE_PREFIX)
+          && ACCEPTED_FILESYSTEMS.contains(mount.filesystemType)) {
         log.trace("Retaining mount to check: '{}'", mount);
         mounts.add(mount);
       } else {

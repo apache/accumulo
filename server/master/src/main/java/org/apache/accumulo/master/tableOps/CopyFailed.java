@@ -76,7 +76,8 @@ class CopyFailed extends MasterRepo {
         if (client != null && !client.isActive(tid))
           finished.add(server);
       } catch (TException ex) {
-        log.info("Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
+        log.info(
+            "Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
       }
     }
     if (finished.containsAll(running))
@@ -96,7 +97,8 @@ class CopyFailed extends MasterRepo {
     HashMap<FileRef,String> failures = new HashMap<>();
     HashMap<FileRef,String> loadedFailures = new HashMap<>();
 
-    try (BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(error, BulkImport.FAILURES_TXT)), UTF_8))) {
+    try (BufferedReader in = new BufferedReader(
+        new InputStreamReader(fs.open(new Path(error, BulkImport.FAILURES_TXT)), UTF_8))) {
       String line = null;
       while ((line = in.readLine()) != null) {
         Path path = new Path(line);
@@ -106,13 +108,14 @@ class CopyFailed extends MasterRepo {
     }
 
     /*
-     * I thought I could move files that have no file references in the table. However its possible a clone references a file. Therefore only move files that
-     * have no loaded markers.
+     * I thought I could move files that have no file references in the table. However its possible
+     * a clone references a file. Therefore only move files that have no loaded markers.
      */
 
     // determine which failed files were loaded
     Connector conn = master.getConnector();
-    try (Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
+    try (Scanner mscanner = new IsolatedScanner(
+        conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
 
@@ -136,7 +139,8 @@ class CopyFailed extends MasterRepo {
     }
 
     if (loadedFailures.size() > 0) {
-      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
+      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/"
+          + master.getInstance().getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
           master.getConfiguration());
 
       HashSet<String> workIds = new HashSet<>();

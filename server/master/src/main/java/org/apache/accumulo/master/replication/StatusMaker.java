@@ -52,8 +52,8 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * Reads replication records from the metadata table and creates status records in the replication table. Deletes the record from the metadata table when it's
- * closed.
+ * Reads replication records from the metadata table and creates status records in the replication
+ * table. Deletes the record from the metadata table when it's closed.
  */
 public class StatusMaker {
   private static final Logger log = LoggerFactory.getLogger(StatusMaker.class);
@@ -104,7 +104,8 @@ public class StatusMaker {
           try {
             ReplicationTable.setOnline(conn);
             replicationWriter = ReplicationTable.getBatchWriter(conn);
-          } catch (ReplicationTableOfflineException | AccumuloSecurityException | AccumuloException e) {
+          } catch (ReplicationTableOfflineException | AccumuloSecurityException
+              | AccumuloException e) {
             log.warn("Replication table did not come online");
             replicationWriter = null;
             return;
@@ -122,7 +123,8 @@ public class StatusMaker {
           continue;
         }
 
-        log.debug("Creating replication status record for {} on table {} with {}.", file, tableId, ProtobufUtil.toString(status));
+        log.debug("Creating replication status record for {} on table {} with {}.", file, tableId,
+            ProtobufUtil.toString(status));
 
         Span workSpan = Trace.start("createStatusMutations");
         try {
@@ -188,8 +190,9 @@ public class StatusMaker {
   }
 
   /**
-   * Create a record to track when the file was closed to ensure that replication preference is given to files that have been closed the longest and allow the
-   * work assigner to try to replicate in order that data was ingested (avoid replay in different order)
+   * Create a record to track when the file was closed to ensure that replication preference is
+   * given to files that have been closed the longest and allow the work assigner to try to
+   * replicate in order that data was ingested (avoid replay in different order)
    *
    * @param file
    *          File being replicated
@@ -204,7 +207,8 @@ public class StatusMaker {
     try {
       if (!stat.hasCreatedTime()) {
         try {
-          // If the createdTime is not set, work around the issue by retrieving the WAL creation time
+          // If the createdTime is not set, work around the issue by retrieving the WAL creation
+          // time
           // from HDFS (or the current time if the WAL does not exist). See ACCUMULO-4751
           long createdTime = setAndGetCreatedTime(new Path(file.toString()), tableId.toString());
           stat = Status.newBuilder(stat).setCreatedTime(createdTime).build();
@@ -219,7 +223,8 @@ public class StatusMaker {
         }
       }
 
-      log.info("Creating order record for {} for {} with {}", file, tableId, ProtobufUtil.toString(stat));
+      log.info("Creating order record for {} for {} with {}", file, tableId,
+          ProtobufUtil.toString(stat));
 
       Mutation m = OrderSection.createMutation(file.toString(), stat.getCreatedTime());
       OrderSection.add(m, tableId, value);
@@ -243,11 +248,13 @@ public class StatusMaker {
   }
 
   /**
-   * Because there is only one active Master, and thus one active StatusMaker, the only safe time that we can issue the delete for a Status which is closed is
-   * immediately after writing it to the replication table.
+   * Because there is only one active Master, and thus one active StatusMaker, the only safe time
+   * that we can issue the delete for a Status which is closed is immediately after writing it to
+   * the replication table.
    * <p>
-   * If we try to defer and delete these entries in another thread/process, we will have no assurance that the Status message was propagated to the replication
-   * table. It is easiest, in terms of concurrency, to do this all in one step.
+   * If we try to defer and delete these entries in another thread/process, we will have no
+   * assurance that the Status message was propagated to the replication table. It is easiest, in
+   * terms of concurrency, to do this all in one step.
    *
    * @param k
    *          The Key to delete
@@ -272,7 +279,8 @@ public class StatusMaker {
     }
   }
 
-  private long setAndGetCreatedTime(Path file, String tableId) throws IOException, MutationsRejectedException {
+  private long setAndGetCreatedTime(Path file, String tableId)
+      throws IOException, MutationsRejectedException {
     long createdTime;
     if (fs.exists(file)) {
       createdTime = fs.getFileStatus(file).getModificationTime();

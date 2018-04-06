@@ -23,7 +23,8 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 
 /**
- * This class represents the information a client needs to know to connect to an instance of accumulo.
+ * This class represents the information a client needs to know to connect to an instance of
+ * accumulo.
  *
  */
 public interface Instance {
@@ -81,10 +82,12 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
+   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
+   *             {@link PasswordToken}
    */
   @Deprecated
-  Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, byte[] pass)
+      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Returns a connection to accumulo.
@@ -98,10 +101,12 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
+   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
+   *             {@link PasswordToken}
    */
   @Deprecated
-  Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, ByteBuffer pass)
+      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Returns a connection to this instance of accumulo.
@@ -115,10 +120,12 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
+   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
+   *             {@link PasswordToken}
    */
   @Deprecated
-  Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, CharSequence pass)
+      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Returns a connection to this instance of accumulo.
@@ -126,9 +133,10 @@ public interface Instance {
    * @param principal
    *          a valid accumulo user
    * @param token
-   *          Use the token type configured for the Accumulo instance you are connecting to. An Accumulo instance with default configurations will use
-   *          {@link PasswordToken}
+   *          Use the token type configured for the Accumulo instance you are connecting to. An
+   *          Accumulo instance with default configurations will use {@link PasswordToken}
    * @since 1.5.0
    */
-  Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String principal, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException;
 }

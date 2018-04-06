@@ -44,7 +44,8 @@ public class TabletServerBulkImportInformation {
    * @param oldestAge
    *          tserver bulk import age
    */
-  public TabletServerBulkImportInformation(TabletServerStatus server, int importSize, long oldestAge) {
+  public TabletServerBulkImportInformation(TabletServerStatus server, int importSize,
+      long oldestAge) {
     this.server = server.getName();
     this.importSize = importSize;
     this.oldestAge = oldestAge;

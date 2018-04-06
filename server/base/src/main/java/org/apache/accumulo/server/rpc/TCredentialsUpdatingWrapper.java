@@ -22,17 +22,20 @@ import java.lang.reflect.Proxy;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
 /**
- * Utility method to ensure that the instance of TCredentials which is passed to the implementation of a Thrift service has the correct principal from SASL at
- * the Thrift transport layer when SASL/GSSAPI (kerberos) is enabled. This ensures that we use the strong authentication provided to us and disallow any other
- * principal names that client (malicious or otherwise) might pass in.
+ * Utility method to ensure that the instance of TCredentials which is passed to the implementation
+ * of a Thrift service has the correct principal from SASL at the Thrift transport layer when
+ * SASL/GSSAPI (kerberos) is enabled. This ensures that we use the strong authentication provided to
+ * us and disallow any other principal names that client (malicious or otherwise) might pass in.
  */
 public class TCredentialsUpdatingWrapper {
 
-  public static <T> T service(final T instance, final Class<? extends T> originalClass, AccumuloConfiguration conf) {
+  public static <T> T service(final T instance, final Class<? extends T> originalClass,
+      AccumuloConfiguration conf) {
     InvocationHandler handler = new TCredentialsUpdatingInvocationHandler<>(instance, conf);
 
     @SuppressWarnings("unchecked")
-    T proxiedInstance = (T) Proxy.newProxyInstance(originalClass.getClassLoader(), originalClass.getInterfaces(), handler);
+    T proxiedInstance = (T) Proxy.newProxyInstance(originalClass.getClassLoader(),
+        originalClass.getInterfaces(), handler);
 
     return proxiedInstance;
   }

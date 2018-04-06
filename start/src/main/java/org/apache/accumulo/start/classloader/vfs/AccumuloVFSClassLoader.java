@@ -105,7 +105,8 @@ public class AccumuloVFSClassLoader {
     Runtime.getRuntime().addShutdownHook(new Thread(new AccumuloVFSClassLoaderShutdownThread()));
   }
 
-  public synchronized static <U> Class<? extends U> loadClass(String classname, Class<U> extension) throws ClassNotFoundException {
+  public synchronized static <U> Class<? extends U> loadClass(String classname, Class<U> extension)
+      throws ClassNotFoundException {
     try {
       return getClassLoader().loadClass(classname).asSubclass(extension);
     } catch (IOException e) {
@@ -121,7 +122,8 @@ public class AccumuloVFSClassLoader {
     return resolve(vfs, uris, new ArrayList<>());
   }
 
-  static FileObject[] resolve(FileSystemManager vfs, String uris, ArrayList<FileObject> pathsToMonitor) throws FileSystemException {
+  static FileObject[] resolve(FileSystemManager vfs, String uris,
+      ArrayList<FileObject> pathsToMonitor) throws FileSystemException {
     if (uris == null)
       return new FileObject[0];
 
@@ -153,7 +155,8 @@ public class AccumuloVFSClassLoader {
             pathsToMonitor.add(fo.getParent());
             FileObject[] children = fo.getParent().getChildren();
             for (FileObject child : children) {
-              if (child.getType() == FileType.FILE && child.getName().getBaseName().matches(pattern)) {
+              if (child.getType() == FileType.FILE
+                  && child.getName().getBaseName().matches(pattern)) {
                 classpath.add(child);
               }
             }
@@ -171,8 +174,10 @@ public class AccumuloVFSClassLoader {
     return classpath.toArray(new FileObject[classpath.size()]);
   }
 
-  private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent) throws IOException {
-    String dynamicCPath = AccumuloClassLoader.getAccumuloProperty(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
+  private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent)
+      throws IOException {
+    String dynamicCPath = AccumuloClassLoader.getAccumuloProperty(DYNAMIC_CLASSPATH_PROPERTY_NAME,
+        DEFAULT_DYNAMIC_CLASSPATH_VALUE);
 
     ReloadingClassLoader wrapper = () -> parent;
 
@@ -196,7 +201,8 @@ public class AccumuloVFSClassLoader {
             parent = AccumuloClassLoader.getClassLoader();
           }
 
-          FileObject[] vfsCP = resolve(vfs, AccumuloClassLoader.getAccumuloProperty(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, ""));
+          FileObject[] vfsCP = resolve(vfs, AccumuloClassLoader
+              .getAccumuloProperty(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, ""));
 
           if (vfsCP.length == 0) {
             localLoader = createDynamicClassloader(parent);
@@ -208,11 +214,16 @@ public class AccumuloVFSClassLoader {
           localLoader = createDynamicClassloader(new VFSClassLoader(vfsCP, vfs, parent));
           loader = localLoader;
 
-          // An HDFS FileSystem and Configuration object were created for each unique HDFS namespace in the call to resolve above.
-          // The HDFS Client did us a favor and cached these objects so that the next time someone calls FileSystem.get(uri), they
-          // get the cached object. However, these objects were created not with the system VFS classloader, but the classloader above
-          // it. We need to override the classloader on the Configuration objects. Ran into an issue were log recovery was being attempted
-          // and SequenceFile$Reader was trying to instantiate the key class via WritableName.getClass(String, Configuration)
+          // An HDFS FileSystem and Configuration object were created for each unique HDFS namespace
+          // in the call to resolve above.
+          // The HDFS Client did us a favor and cached these objects so that the next time someone
+          // calls FileSystem.get(uri), they
+          // get the cached object. However, these objects were created not with the system VFS
+          // classloader, but the classloader above
+          // it. We need to override the classloader on the Configuration objects. Ran into an issue
+          // were log recovery was being attempted
+          // and SequenceFile$Reader was trying to instantiate the key class via
+          // WritableName.getClass(String, Configuration)
           for (FileObject fo : vfsCP) {
             if (fo instanceof HdfsFileObject) {
               String uri = fo.getName().getRootURI();
@@ -274,9 +285,11 @@ public class AccumuloVFSClassLoader {
   }
 
   private static File computeTopCacheDir() {
-    String cacheDirPath = AccumuloClassLoader.getAccumuloProperty(VFS_CACHE_DIR, System.getProperty("java.io.tmpdir"));
+    String cacheDirPath = AccumuloClassLoader.getAccumuloProperty(VFS_CACHE_DIR,
+        System.getProperty("java.io.tmpdir"));
     String procName = ManagementFactory.getRuntimeMXBean().getName();
-    return new File(cacheDirPath, "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
+    return new File(cacheDirPath,
+        "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
   }
 
   public interface Printer {
@@ -331,19 +344,24 @@ public class AccumuloVFSClassLoader {
         String classLoaderDescription;
         switch (level) {
           case 1:
-            classLoaderDescription = level + ": Java System Classloader (loads Java system resources)";
+            classLoaderDescription = level
+                + ": Java System Classloader (loads Java system resources)";
             break;
           case 2:
-            classLoaderDescription = level + ": Java Classloader (loads everything defined by java classpath)";
+            classLoaderDescription = level
+                + ": Java Classloader (loads everything defined by java classpath)";
             break;
           case 3:
-            classLoaderDescription = level + ": Accumulo Classloader (loads everything defined by general.classpaths)";
+            classLoaderDescription = level
+                + ": Accumulo Classloader (loads everything defined by general.classpaths)";
             break;
           case 4:
-            classLoaderDescription = level + ": Accumulo Dynamic Classloader (loads everything defined by general.dynamic.classpaths)";
+            classLoaderDescription = level
+                + ": Accumulo Dynamic Classloader (loads everything defined by general.dynamic.classpaths)";
             break;
           default:
-            classLoaderDescription = level + ": Mystery Classloader (someone probably added a classloader and didn't update the switch statement in "
+            classLoaderDescription = level
+                + ": Mystery Classloader (someone probably added a classloader and didn't update the switch statement in "
                 + AccumuloVFSClassLoader.class.getName() + ")";
             break;
         }

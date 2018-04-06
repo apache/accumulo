@@ -72,8 +72,8 @@ public class TservConstraintEnv implements Environment {
       @Override
       public boolean contains(ByteSequence auth) {
         try {
-          return security.authenticatedUserHasAuthorizations(credentials,
-              Collections.singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
+          return security.authenticatedUserHasAuthorizations(credentials, Collections.singletonList(
+              ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
         } catch (ThriftSecurityException e) {
           throw new RuntimeException(e);
         }

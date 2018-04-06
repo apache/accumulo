@@ -91,7 +91,8 @@ public class ColumnUtil {
     ColHashKey(Text cf, Text cq) {
       columnFamily = cf;
       columnQualifier = cq;
-      hashValue = hash(columnFamily.getBytes(), 0, columnFamily.getLength()) + hash(columnQualifier.getBytes(), 0, columnQualifier.getLength());
+      hashValue = hash(columnFamily.getBytes(), 0, columnFamily.getLength())
+          + hash(columnQualifier.getBytes(), 0, columnQualifier.getLength());
     }
 
     void set(Key key) {
@@ -113,8 +114,10 @@ public class ColumnUtil {
 
     public boolean equals(ColHashKey ohk) {
       if (columnFamily == null)
-        return key.compareColumnFamily(ohk.columnFamily) == 0 && key.compareColumnQualifier(ohk.columnQualifier) == 0;
-      return ohk.key.compareColumnFamily(columnFamily) == 0 && ohk.key.compareColumnQualifier(columnQualifier) == 0;
+        return key.compareColumnFamily(ohk.columnFamily) == 0
+            && key.compareColumnQualifier(ohk.columnQualifier) == 0;
+      return ohk.key.compareColumnFamily(columnFamily) == 0
+          && ohk.key.compareColumnQualifier(columnQualifier) == 0;
     }
   }
 }

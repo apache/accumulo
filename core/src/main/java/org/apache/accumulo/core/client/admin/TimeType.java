@@ -26,9 +26,10 @@ public enum TimeType {
   LOGICAL,
 
   /**
-   * This is the default. Tries to ensure that inserted data is stored with the timestamp closest to the machine's time to the nearest millisecond, without
-   * going backwards to guarantee insertion sequence. Note that using this time type can cause time to "skip" forward if a machine has a time that is too far
-   * off. NTP is recommended when using this type.
+   * This is the default. Tries to ensure that inserted data is stored with the timestamp closest to
+   * the machine's time to the nearest millisecond, without going backwards to guarantee insertion
+   * sequence. Note that using this time type can cause time to "skip" forward if a machine has a
+   * time that is too far off. NTP is recommended when using this type.
    */
   MILLIS
 }

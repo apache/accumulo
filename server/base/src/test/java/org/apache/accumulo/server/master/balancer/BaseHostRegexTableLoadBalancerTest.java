@@ -92,24 +92,28 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
     @Deprecated
     @Override
-    public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String user, byte[] pass)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
     @Deprecated
     @Override
-    public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String user, ByteBuffer pass)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
     @Deprecated
     @Override
-    public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String user, CharSequence pass)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String principal, AuthenticationToken token)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
@@ -136,11 +140,16 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   protected static final HashMap<String,String> DEFAULT_TABLE_PROPERTIES = new HashMap<>();
   {
     DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "7s");
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY, "4");
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY, "10");
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
-    DEFAULT_TABLE_PROPERTIES.put(Property.TABLE_LOAD_BALANCER.getKey(), TestDefaultBalancer.class.getName());
+    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY,
+        "4");
+    DEFAULT_TABLE_PROPERTIES
+        .put(HostRegexTableLoadBalancer.HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY, "10");
+    DEFAULT_TABLE_PROPERTIES
+        .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
+    DEFAULT_TABLE_PROPERTIES
+        .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
+    DEFAULT_TABLE_PROPERTIES.put(Property.TABLE_LOAD_BALANCER.getKey(),
+        TestDefaultBalancer.class.getName());
   }
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
@@ -159,8 +168,10 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
     @Override
     public TableConfiguration getTableConfiguration(final Table.ID tableId) {
-      // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration constructor
-      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, this.instance, DefaultConfiguration.getInstance());
+      // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
+      // constructor
+      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
+          this.instance, DefaultConfiguration.getInstance());
       return new TableConfiguration(this.instance, tableId, dummyConf) {
         @Override
         public String get(Property property) {
@@ -190,7 +201,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected class TestDefaultBalancer extends DefaultLoadBalancer {
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
+        throws ThriftSecurityException, TException {
       String tableName = idToTableName(tableId);
       TServerInstance initialLocation = initialTableLocation.get(tableName);
       if (tserver.equals(initialLocation)) {
@@ -207,7 +219,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   protected final TestInstance instance = new TestInstance();
-  protected final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(instance);
+  protected final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
+      instance);
   protected final Map<String,String> servers = new HashMap<>(15);
   protected final SortedMap<TServerInstance,TabletServerStatus> allTabletServers = new TreeMap<>();
   protected final Map<String,List<KeyExtent>> tableExtents = new HashMap<>(3);
@@ -251,23 +264,38 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     initialTableLocation.put(BAZ.getTableName(), new TServerInstance("192.168.0.11:9997", 1));
 
     tableExtents.put(FOO.getTableName(), new ArrayList<>());
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("1"), new Text("0")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("2"), new Text("1")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("3"), new Text("2")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("4"), new Text("3")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("5"), new Text("4")));
+    tableExtents.get(FOO.getTableName())
+        .add(new KeyExtent(FOO.getId(), new Text("1"), new Text("0")));
+    tableExtents.get(FOO.getTableName())
+        .add(new KeyExtent(FOO.getId(), new Text("2"), new Text("1")));
+    tableExtents.get(FOO.getTableName())
+        .add(new KeyExtent(FOO.getId(), new Text("3"), new Text("2")));
+    tableExtents.get(FOO.getTableName())
+        .add(new KeyExtent(FOO.getId(), new Text("4"), new Text("3")));
+    tableExtents.get(FOO.getTableName())
+        .add(new KeyExtent(FOO.getId(), new Text("5"), new Text("4")));
     tableExtents.put(BAR.getTableName(), new ArrayList<>());
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("11"), new Text("10")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("12"), new Text("11")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("13"), new Text("12")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("14"), new Text("13")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("15"), new Text("14")));
+    tableExtents.get(BAR.getTableName())
+        .add(new KeyExtent(BAR.getId(), new Text("11"), new Text("10")));
+    tableExtents.get(BAR.getTableName())
+        .add(new KeyExtent(BAR.getId(), new Text("12"), new Text("11")));
+    tableExtents.get(BAR.getTableName())
+        .add(new KeyExtent(BAR.getId(), new Text("13"), new Text("12")));
+    tableExtents.get(BAR.getTableName())
+        .add(new KeyExtent(BAR.getId(), new Text("14"), new Text("13")));
+    tableExtents.get(BAR.getTableName())
+        .add(new KeyExtent(BAR.getId(), new Text("15"), new Text("14")));
     tableExtents.put(BAZ.getTableName(), new ArrayList<>());
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("21"), new Text("20")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("22"), new Text("21")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("23"), new Text("22")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("24"), new Text("23")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("25"), new Text("24")));
+    tableExtents.get(BAZ.getTableName())
+        .add(new KeyExtent(BAZ.getId(), new Text("21"), new Text("20")));
+    tableExtents.get(BAZ.getTableName())
+        .add(new KeyExtent(BAZ.getId(), new Text("22"), new Text("21")));
+    tableExtents.get(BAZ.getTableName())
+        .add(new KeyExtent(BAZ.getId(), new Text("23"), new Text("22")));
+    tableExtents.get(BAZ.getTableName())
+        .add(new KeyExtent(BAZ.getId(), new Text("24"), new Text("23")));
+    tableExtents.get(BAZ.getTableName())
+        .add(new KeyExtent(BAZ.getId(), new Text("25"), new Text("24")));
 
   }
 
@@ -275,14 +303,16 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     String tid = ke.getTableId().canonicalID();
     String host = tsi.host();
     if (tid.equals("1")
-        && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3") || host.equals("192.168.0.4") || host.equals("192.168.0.5"))) {
+        && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3")
+            || host.equals("192.168.0.4") || host.equals("192.168.0.5"))) {
       return true;
     } else if (tid.equals("2")
-        && (host.equals("192.168.0.6") || host.equals("192.168.0.7") || host.equals("192.168.0.8") || host.equals("192.168.0.9") || host.equals("192.168.0.10"))) {
+        && (host.equals("192.168.0.6") || host.equals("192.168.0.7") || host.equals("192.168.0.8")
+            || host.equals("192.168.0.9") || host.equals("192.168.0.10"))) {
       return true;
-    } else if (tid.equals("3")
-        && (host.equals("192.168.0.11") || host.equals("192.168.0.12") || host.equals("192.168.0.13") || host.equals("192.168.0.14") || host
-            .equals("192.168.0.15"))) {
+    } else if (tid.equals("3") && (host.equals("192.168.0.11") || host.equals("192.168.0.12")
+        || host.equals("192.168.0.13") || host.equals("192.168.0.14")
+        || host.equals("192.168.0.15"))) {
       return true;
     } else {
       return false;

@@ -24,11 +24,11 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 /**
- * When a tablet is assigned, we mark its future location. When the tablet is opened, we set its current location. A tablet should never have both a future and
- * current location.
+ * When a tablet is assigned, we mark its future location. When the tablet is opened, we set its
+ * current location. A tablet should never have both a future and current location.
  *
- * A tablet server is always associated with a unique session id. If the current tablet server has a different session, we know the location information is
- * out-of-date.
+ * A tablet server is always associated with a unique session id. If the current tablet server has a
+ * different session, we know the location information is out-of-date.
  */
 public class TabletLocationState {
 
@@ -46,8 +46,9 @@ public class TabletLocationState {
     }
   }
 
-  public TabletLocationState(KeyExtent extent, TServerInstance future, TServerInstance current, TServerInstance last, SuspendingTServer suspend,
-      Collection<Collection<String>> walogs, boolean chopped) throws BadLocationStateException {
+  public TabletLocationState(KeyExtent extent, TServerInstance future, TServerInstance current,
+      TServerInstance last, SuspendingTServer suspend, Collection<Collection<String>> walogs,
+      boolean chopped) throws BadLocationStateException {
     this.extent = extent;
     this.future = future;
     this.current = current;
@@ -58,7 +59,9 @@ public class TabletLocationState {
     this.walogs = walogs;
     this.chopped = chopped;
     if (current != null && future != null) {
-      throw new BadLocationStateException(extent + " is both assigned and hosted, which should never happen: " + this, extent.getMetadataEntry());
+      throw new BadLocationStateException(
+          extent + " is both assigned and hosted, which should never happen: " + this,
+          extent.getMetadataEntry());
     }
   }
 
@@ -99,7 +102,8 @@ public class TabletLocationState {
   private static final int _HAS_SUSPEND = 1 << 2;
 
   public TabletState getState(Set<TServerInstance> liveServers) {
-    switch ((current == null ? 0 : _HAS_CURRENT) | (future == null ? 0 : _HAS_FUTURE) | (suspend == null ? 0 : _HAS_SUSPEND)) {
+    switch ((current == null ? 0 : _HAS_CURRENT) | (future == null ? 0 : _HAS_FUTURE)
+        | (suspend == null ? 0 : _HAS_SUSPEND)) {
       case 0:
         return TabletState.UNASSIGNED;
 
@@ -108,11 +112,13 @@ public class TabletLocationState {
 
       case _HAS_FUTURE:
       case (_HAS_FUTURE | _HAS_SUSPEND):
-        return liveServers.contains(future) ? TabletState.ASSIGNED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+        return liveServers.contains(future) ? TabletState.ASSIGNED
+            : TabletState.ASSIGNED_TO_DEAD_SERVER;
 
       case _HAS_CURRENT:
       case (_HAS_CURRENT | _HAS_SUSPEND):
-        return liveServers.contains(current) ? TabletState.HOSTED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+        return liveServers.contains(current) ? TabletState.HOSTED
+            : TabletState.ASSIGNED_TO_DEAD_SERVER;
 
       default:
         // Both current and future are set, which is prevented by constructor.

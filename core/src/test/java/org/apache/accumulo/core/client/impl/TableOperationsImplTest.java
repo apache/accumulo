@@ -62,7 +62,8 @@ public class TableOperationsImplTest {
     EasyMock.expectLastCall();
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     EasyMock.expectLastCall();
-    scanner.fetchColumn(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+    scanner.fetchColumn(
+        MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
     EasyMock.expectLastCall();
 

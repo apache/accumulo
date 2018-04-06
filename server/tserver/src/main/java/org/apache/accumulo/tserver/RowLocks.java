@@ -81,7 +81,8 @@ class RowLocks {
     }
   }
 
-  List<RowLock> acquireRowlocks(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
+  List<RowLock> acquireRowlocks(Map<KeyExtent,List<ServerConditionalMutation>> updates,
+      Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
     ArrayList<RowLock> locks = new ArrayList<>();
 
     // assume that mutations are in sorted order to avoid deadlock
@@ -115,7 +116,8 @@ class RowLocks {
       // assume will get locks needed, do something expensive otherwise
       ConditionalMutationSet.defer(updates, deferred, new DeferFilter() {
         @Override
-        public void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
+        public void defer(List<ServerConditionalMutation> scml,
+            List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
           for (ServerConditionalMutation scm : scml) {
             if (rnlf.contains(new ArrayByteSequence(scm.getRow())))
               deferred.add(scm);

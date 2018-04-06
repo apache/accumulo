@@ -53,8 +53,10 @@ import org.slf4j.LoggerFactory;
 public class TableManager {
 
   private static final Logger log = LoggerFactory.getLogger(TableManager.class);
-  private static final Set<TableObserver> observers = Collections.synchronizedSet(new HashSet<TableObserver>());
-  private static final Map<Table.ID,TableState> tableStateCache = Collections.synchronizedMap(new HashMap<>());
+  private static final Set<TableObserver> observers = Collections
+      .synchronizedSet(new HashSet<TableObserver>());
+  private static final Map<Table.ID,TableState> tableStateCache = Collections
+      .synchronizedMap(new HashMap<>());
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
 
   private static TableManager tableManager = null;
@@ -62,33 +64,40 @@ public class TableManager {
   private final Instance instance;
   private ZooCache zooStateCache;
 
-  public static void prepareNewNamespaceState(String instanceId, Namespace.ID namespaceId, String namespace, NodeExistsPolicy existsPolicy)
+  public static void prepareNewNamespaceState(String instanceId, Namespace.ID namespaceId,
+      String namespace, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     String zPath = Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES + "/" + namespaceId;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[0], existsPolicy);
-    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(UTF_8),
+        existsPolicy);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], existsPolicy);
   }
 
-  public static void prepareNewTableState(String instanceId, Table.ID tableId, Namespace.ID namespaceId, String tableName, TableState state,
-      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
+  public static void prepareNewTableState(String instanceId, Table.ID tableId,
+      Namespace.ID namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
     // state gets created last
-    log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})", tableName, tableId, namespaceId);
+    log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
+        tableName, tableId, namespaceId);
     Pair<String,String> qualifiedTableName = Tables.qualify(tableName);
     tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_CONF, new byte[0], existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE, namespaceId.getUtf8(), existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE, namespaceId.getUtf8(),
+        existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(UTF_8),
+        existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
+        existsPolicy);
   }
 
   public synchronized static TableManager getInstance() {
@@ -118,14 +127,16 @@ public class TableManager {
       this(oldState, newState, "");
     }
 
-    public IllegalTableTransitionException(TableState oldState, TableState newState, String message) {
+    public IllegalTableTransitionException(TableState oldState, TableState newState,
+        String message) {
       this.oldState = oldState;
       this.newState = newState;
 
       if (StringUtils.isNotEmpty(message))
         this.message = message;
       else {
-        String defaultMessage = "Error transitioning from " + oldState + " state to " + newState + " state";
+        String defaultMessage = "Error transitioning from " + oldState + " state to " + newState
+            + " state";
         this.message = defaultMessage;
       }
     }
@@ -146,39 +157,42 @@ public class TableManager {
   }
 
   public synchronized void transitionTableState(final Table.ID tableId, final TableState newState) {
-    String statePath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
+    String statePath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_STATE;
 
     try {
-      ZooReaderWriter.getInstance().mutate(statePath, newState.name().getBytes(UTF_8), ZooUtil.PUBLIC, new Mutator() {
-        @Override
-        public byte[] mutate(byte[] oldData) throws Exception {
-          TableState oldState = TableState.UNKNOWN;
-          if (oldData != null)
-            oldState = TableState.valueOf(new String(oldData, UTF_8));
-          boolean transition = true;
-          // +--------+
-          // v |
-          // NEW -> (ONLINE|OFFLINE)+--- DELETING
-          switch (oldState) {
-            case NEW:
-              transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE);
-              break;
-            case ONLINE: // fall-through intended
-            case UNKNOWN:// fall through intended
-            case OFFLINE:
-              transition = (newState != TableState.NEW);
-              break;
-            case DELETING:
-              // Can't transition to any state from DELETING
-              transition = false;
-              break;
-          }
-          if (!transition)
-            throw new IllegalTableTransitionException(oldState, newState);
-          log.debug("Transitioning state for table {} from {} to {}", tableId, oldState, newState);
-          return newState.name().getBytes(UTF_8);
-        }
-      });
+      ZooReaderWriter.getInstance().mutate(statePath, newState.name().getBytes(UTF_8),
+          ZooUtil.PUBLIC, new Mutator() {
+            @Override
+            public byte[] mutate(byte[] oldData) throws Exception {
+              TableState oldState = TableState.UNKNOWN;
+              if (oldData != null)
+                oldState = TableState.valueOf(new String(oldData, UTF_8));
+              boolean transition = true;
+              // +--------+
+              // v |
+              // NEW -> (ONLINE|OFFLINE)+--- DELETING
+              switch (oldState) {
+                case NEW:
+                  transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE);
+                  break;
+                case ONLINE: // fall-through intended
+                case UNKNOWN:// fall through intended
+                case OFFLINE:
+                  transition = (newState != TableState.NEW);
+                  break;
+                case DELETING:
+                  // Can't transition to any state from DELETING
+                  transition = false;
+                  break;
+              }
+              if (!transition)
+                throw new IllegalTableTransitionException(oldState, newState);
+              log.debug("Transitioning state for table {} from {} to {}", tableId, oldState,
+                  newState);
+              return newState.name().getBytes(UTF_8);
+            }
+          });
     } catch (Exception e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Failed to transition table to state {}", newState);
@@ -188,8 +202,10 @@ public class TableManager {
 
   private void updateTableStateCache() {
     synchronized (tableStateCache) {
-      for (String tableId : zooStateCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES))
-        if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null)
+      for (String tableId : zooStateCache
+          .getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES))
+        if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId
+            + Constants.ZTABLE_STATE) != null)
           updateTableStateCache(Table.ID.of(tableId));
     }
   }
@@ -197,7 +213,8 @@ public class TableManager {
   public TableState updateTableStateCache(Table.ID tableId) {
     synchronized (tableStateCache) {
       TableState tState = TableState.UNKNOWN;
-      byte[] data = zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+      byte[] data = zooStateCache.get(
+          ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
       if (data != null) {
         String sState = new String(data, UTF_8);
         try {
@@ -211,26 +228,34 @@ public class TableManager {
     }
   }
 
-  public void addTable(Table.ID tableId, Namespace.ID namespaceId, String tableName, NodeExistsPolicy existsPolicy) throws KeeperException,
-      InterruptedException, NamespaceNotFoundException {
-    prepareNewTableState(instance.getInstanceID(), tableId, namespaceId, tableName, TableState.NEW, existsPolicy);
+  public void addTable(Table.ID tableId, Namespace.ID namespaceId, String tableName,
+      NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException, NamespaceNotFoundException {
+    prepareNewTableState(instance.getInstanceID(), tableId, namespaceId, tableName, TableState.NEW,
+        existsPolicy);
     updateTableStateCache(tableId);
   }
 
-  public void cloneTable(Table.ID srcTableId, Table.ID tableId, String tableName, Namespace.ID namespaceId, Map<String,String> propertiesToSet,
-      Set<String> propertiesToExclude, NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
-    prepareNewTableState(instance.getInstanceID(), tableId, namespaceId, tableName, TableState.NEW, existsPolicy);
+  public void cloneTable(Table.ID srcTableId, Table.ID tableId, String tableName,
+      Namespace.ID namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,
+      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
+    prepareNewTableState(instance.getInstanceID(), tableId, namespaceId, tableName, TableState.NEW,
+        existsPolicy);
 
-    String srcTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + srcTableId + Constants.ZTABLE_CONF;
-    String newTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
-    ZooReaderWriter.getInstance().recursiveCopyPersistent(srcTablePath, newTablePath, NodeExistsPolicy.OVERWRITE);
+    String srcTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/"
+        + srcTableId + Constants.ZTABLE_CONF;
+    String newTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_CONF;
+    ZooReaderWriter.getInstance().recursiveCopyPersistent(srcTablePath, newTablePath,
+        NodeExistsPolicy.OVERWRITE);
 
     for (Entry<String,String> entry : propertiesToSet.entrySet())
       TablePropUtil.setTableProperty(tableId, entry.getKey(), entry.getValue());
 
     for (String prop : propertiesToExclude)
-      ZooReaderWriter.getInstance().recursiveDelete(
-          Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF + "/" + prop, NodeMissingPolicy.SKIP);
+      ZooReaderWriter.getInstance().recursiveDelete(Constants.ZROOT + "/" + instance.getInstanceID()
+          + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF + "/" + prop,
+          NodeMissingPolicy.SKIP);
 
     updateTableStateCache(tableId);
   }
@@ -238,9 +263,11 @@ public class TableManager {
   public void removeTable(Table.ID tableId) throws KeeperException, InterruptedException {
     synchronized (tableStateCache) {
       tableStateCache.remove(tableId);
-      ZooReaderWriter.getInstance().recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
+      ZooReaderWriter.getInstance().recursiveDelete(
+          ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
           NodeMissingPolicy.SKIP);
-      ZooReaderWriter.getInstance().recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
+      ZooReaderWriter.getInstance().recursiveDelete(
+          ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
     }
   }
 
@@ -297,10 +324,10 @@ public class TableManager {
           }
           break;
         case NodeDeleted:
-          if (zPath != null
-              && tableId != null
-              && (zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_STATE) || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_CONF) || zPath
-                  .equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME)))
+          if (zPath != null && tableId != null
+              && (zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_STATE)
+                  || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_CONF)
+                  || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME)))
             tableStateCache.remove(tableId);
           break;
         case None:
@@ -325,8 +352,11 @@ public class TableManager {
     }
   }
 
-  public void removeNamespace(Namespace.ID namespaceId) throws KeeperException, InterruptedException {
-    ZooReaderWriter.getInstance().recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId, NodeMissingPolicy.SKIP);
+  public void removeNamespace(Namespace.ID namespaceId)
+      throws KeeperException, InterruptedException {
+    ZooReaderWriter.getInstance().recursiveDelete(
+        ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId,
+        NodeMissingPolicy.SKIP);
   }
 
 }

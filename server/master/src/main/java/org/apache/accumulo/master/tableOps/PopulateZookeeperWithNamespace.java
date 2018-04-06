@@ -39,7 +39,8 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
   @Override
   public long isReady(long id, Master environment) throws Exception {
-    return Utils.reserveNamespace(namespaceInfo.namespaceId, id, true, false, TableOperation.CREATE);
+    return Utils.reserveNamespace(namespaceInfo.namespaceId, id, true, false,
+        TableOperation.CREATE);
   }
 
   @Override
@@ -49,12 +50,15 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
     try {
       Instance instance = master.getInstance();
 
-      Utils.checkNamespaceDoesNotExist(instance, namespaceInfo.namespaceName, namespaceInfo.namespaceId, TableOperation.CREATE);
+      Utils.checkNamespaceDoesNotExist(instance, namespaceInfo.namespaceName,
+          namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.prepareNewNamespaceState(instance.getInstanceID(), namespaceInfo.namespaceId, namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
+      TableManager.prepareNewNamespaceState(instance.getInstanceID(), namespaceInfo.namespaceId,
+          namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : namespaceInfo.props.entrySet())
-        NamespacePropUtil.setNamespaceProperty(namespaceInfo.namespaceId, entry.getKey(), entry.getValue());
+        NamespacePropUtil.setNamespaceProperty(namespaceInfo.namespaceId, entry.getKey(),
+            entry.getValue());
 
       Tables.clearCache(instance);
 

@@ -44,7 +44,8 @@ public class SummaryWriter implements FileSKVWriter {
   private FileSKVWriter writer;
   private SummarySerializer.Builder[] summaryStores;
 
-  private SummaryWriter(FileSKVWriter writer, SummarizerFactory factory, List<SummarizerConfiguration> configs, long maxSize) {
+  private SummaryWriter(FileSKVWriter writer, SummarizerFactory factory,
+      List<SummarizerConfiguration> configs, long maxSize) {
     this.writer = writer;
     int i = 0;
     summaryStores = new SummarySerializer.Builder[configs.size()];
@@ -59,7 +60,8 @@ public class SummaryWriter implements FileSKVWriter {
   }
 
   @Override
-  public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException {
+  public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
+      throws IOException {
     for (SummarySerializer.Builder ssb : summaryStores) {
       ssb.startNewLocalityGroup(name, columnFamilies);
     }
@@ -107,8 +109,10 @@ public class SummaryWriter implements FileSKVWriter {
     out.write(VER);
     WritableUtils.writeVInt(out, summaryStores.length);
 
-    // Could possibly inline small summaries in the future. Breaking summaries into multiple block is better for caching a subset of summaries. Also, keeping
-    // the index small is good for the case where summaries that do not exist are requested. However multiple blocks cause more random I/O in the case when its
+    // Could possibly inline small summaries in the future. Breaking summaries into multiple block
+    // is better for caching a subset of summaries. Also, keeping
+    // the index small is good for the case where summaries that do not exist are requested. However
+    // multiple blocks cause more random I/O in the case when its
     // not yet in the cache.
 
     for (int i = 0; i < summaryStores.length; i++) {
@@ -117,7 +121,8 @@ public class SummaryWriter implements FileSKVWriter {
       out.writeBoolean(false);
       // write pointer to block that will contain summary data
       WritableUtils.writeVInt(out, i);
-      // write offset of summary data within block. This is not currently used, but it supports storing multiple summaries in an external block in the
+      // write offset of summary data within block. This is not currently used, but it supports
+      // storing multiple summaries in an external block in the
       // future without changing the code.
       WritableUtils.writeVInt(out, 0);
     }
@@ -137,8 +142,10 @@ public class SummaryWriter implements FileSKVWriter {
     return writer.getLength();
   }
 
-  public static FileSKVWriter wrap(FileSKVWriter writer, AccumuloConfiguration tableConfig, boolean useAccumuloStart) {
-    List<SummarizerConfiguration> configs = SummarizerConfigurationUtil.getSummarizerConfigs(tableConfig);
+  public static FileSKVWriter wrap(FileSKVWriter writer, AccumuloConfiguration tableConfig,
+      boolean useAccumuloStart) {
+    List<SummarizerConfiguration> configs = SummarizerConfigurationUtil
+        .getSummarizerConfigs(tableConfig);
 
     if (configs.size() == 0) {
       return writer;

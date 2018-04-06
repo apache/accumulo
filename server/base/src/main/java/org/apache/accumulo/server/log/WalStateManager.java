@@ -125,7 +125,8 @@ public class WalStateManager {
     updateState(tsi, path, WalState.OPEN);
   }
 
-  private void updateState(TServerInstance tsi, Path path, WalState state) throws WalMarkerException {
+  private void updateState(TServerInstance tsi, Path path, WalState state)
+      throws WalMarkerException {
     byte[] data = (state.toString() + "," + path.toString()).getBytes(UTF_8);
     try {
       NodeExistsPolicy policy = NodeExistsPolicy.OVERWRITE;
@@ -234,7 +235,8 @@ public class WalStateManager {
   }
 
   // tablet server can mark the log as closed (but still needed), for replication to begin
-  // master can mark a log as unreferenced after it has made log recovery markers on the tablets that need to be recovered
+  // master can mark a log as unreferenced after it has made log recovery markers on the tablets
+  // that need to be recovered
   public void closeWal(TServerInstance instance, Path path) throws WalMarkerException {
     updateState(instance, path, WalState.CLOSED);
   }

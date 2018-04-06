@@ -46,7 +46,9 @@ class TextMemoryUsageTest extends MemoryUsageTest {
 
   @Override
   public void addEntry(int i) {
-    Text key = new Text(String.format("%0" + keyLen + "d:%0" + colFamLen + "d:%0" + colQualLen + "d", i, 0, 0).getBytes());
+    Text key = new Text(
+        String.format("%0" + keyLen + "d:%0" + colFamLen + "d:%0" + colQualLen + "d", i, 0, 0)
+            .getBytes());
     //
     byte data[] = new byte[dataLen];
     for (int j = 0; j < data.length; j++) {

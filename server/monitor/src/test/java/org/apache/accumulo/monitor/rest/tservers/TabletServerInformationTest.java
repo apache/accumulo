@@ -70,7 +70,8 @@ public class TabletServerInformationTest {
 
     assertEquals("tServerTestName:1234", tsi.server);
     assertEquals("tServerTestName:1234", tsi.hostname);
-    // can only get within a small distance of time, since it is computed from "now" at time of object creation
+    // can only get within a small distance of time, since it is computed from "now" at time of
+    // object creation
     assertTrue(Math.abs((System.currentTimeMillis() - 77) - tsi.lastContact) < 500);
     assertEquals(99, tsi.responseTime);
     assertEquals(1.23, tsi.osload, 0.001);
@@ -88,7 +89,8 @@ public class TabletServerInformationTest {
     assertEquals(4.56, tsi.ingestMB, 0.001);
     assertEquals(5.67, tsi.queryMB, 0.001);
     assertEquals(301, tsi.scans.intValue());
-    assertEquals(0.0, tsi.scansessions, 0.001); // can't test here; this comes from MasterMonitorInfo
+    assertEquals(0.0, tsi.scansessions, 0.001); // can't test here; this comes from
+                                                // MasterMonitorInfo
     assertEquals(tsi.scansessions, tsi.scanssessions, 0.001);
     assertEquals(44, tsi.holdtime);
     assertEquals("tServerTestName:1234", tsi.ip);

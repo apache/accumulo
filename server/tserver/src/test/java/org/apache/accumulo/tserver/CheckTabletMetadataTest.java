@@ -45,20 +45,23 @@ public class CheckTabletMetadataTest {
     tabletMeta.put(k, new Value(val));
   }
 
-  private static void put(TreeMap<Key,Value> tabletMeta, String row, Text cf, String cq, String val) {
+  private static void put(TreeMap<Key,Value> tabletMeta, String row, Text cf, String cq,
+      String val) {
     Key k = new Key(new Text(row), cf, new Text(cq));
     tabletMeta.put(k, new Value(val.getBytes()));
   }
 
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {
     try {
-      Assert.assertNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
+      Assert
+          .assertNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
     } catch (Exception e) {
 
     }
   }
 
-  private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi, Key keyToDelete) {
+  private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi,
+      Key keyToDelete) {
     TreeMap<Key,Value> copy = new TreeMap<>(tabletMeta);
     Assert.assertNotNull(copy.remove(keyToDelete));
     try {
@@ -75,14 +78,16 @@ public class CheckTabletMetadataTest {
 
     TreeMap<Key,Value> tabletMeta = new TreeMap<>();
 
-    put(tabletMeta, "1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(null).get());
+    put(tabletMeta, "1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+        KeyExtent.encodePrevEndRow(null).get());
     put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1".getBytes());
     put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
     put(tabletMeta, "1<", TabletsSection.FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
 
     TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);
 
-    Assert.assertNotNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
+    Assert.assertNotNull(
+        TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
 
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 4));
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 5));
@@ -94,13 +99,16 @@ public class CheckTabletMetadataTest {
 
     assertFail(tabletMeta, new KeyExtent(Table.ID.of("1"), new Text("r"), new Text("m")), tsi);
 
-    assertFail(tabletMeta, ke, tsi, newKey("1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN));
+    assertFail(tabletMeta, ke, tsi,
+        newKey("1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN));
 
-    assertFail(tabletMeta, ke, tsi, newKey("1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN));
+    assertFail(tabletMeta, ke, tsi,
+        newKey("1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN));
 
     assertFail(tabletMeta, ke, tsi, newKey("1<", TabletsSection.ServerColumnFamily.TIME_COLUMN));
 
-    assertFail(tabletMeta, ke, tsi, newKey("1<", TabletsSection.FutureLocationColumnFamily.NAME, "4"));
+    assertFail(tabletMeta, ke, tsi,
+        newKey("1<", TabletsSection.FutureLocationColumnFamily.NAME, "4"));
 
     TreeMap<Key,Value> copy = new TreeMap<>(tabletMeta);
     put(copy, "1<", TabletsSection.CurrentLocationColumnFamily.NAME, "4", "127.0.0.1:9997");

@@ -31,8 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This little class keeps track of writes in progress and allows readers to wait for writes that started before the read. It assumes that the operation ids are
- * monotonically increasing.
+ * This little class keeps track of writes in progress and allows readers to wait for writes that
+ * started before the read. It assumes that the operation ids are monotonically increasing.
  *
  */
 class WriteTracker {
@@ -66,7 +66,8 @@ class WriteTracker {
     }
 
     if (!removed) {
-      throw new IllegalArgumentException("Attempted to finish write not in progress,  operationId " + operationId);
+      throw new IllegalArgumentException(
+          "Attempted to finish write not in progress,  operationId " + operationId);
     }
 
     this.notifyAll();

@@ -22,7 +22,8 @@ public class RandomVolumeChooser implements VolumeChooser {
   private final Random random = new Random();
 
   @Override
-  public String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException {
+  public String choose(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
     return options[random.nextInt(options.length)];
   }
 }

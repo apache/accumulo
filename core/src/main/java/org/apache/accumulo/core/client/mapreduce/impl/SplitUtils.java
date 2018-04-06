@@ -34,10 +34,11 @@ import org.apache.log4j.Level;
 public class SplitUtils {
 
   /**
-   * Central place to set common split configuration not handled by split constructors. The intention is to make it harder to miss optional setters in future
-   * refactor.
+   * Central place to set common split configuration not handled by split constructors. The
+   * intention is to make it harder to miss optional setters in future refactor.
    */
-  public static void updateSplit(RangeInputSplit split, Instance instance, InputTableConfig tableConfig, String principal, AuthenticationToken token,
+  public static void updateSplit(RangeInputSplit split, Instance instance,
+      InputTableConfig tableConfig, String principal, AuthenticationToken token,
       Authorizations auths, Level logLevel) {
     split.setInstanceName(instance.getInstanceName());
     split.setZooKeepers(instance.getZooKeepers());
@@ -59,12 +60,15 @@ public class SplitUtils {
     BigInteger startBI = new BigInteger(SplitUtils.extractBytes(start, maxDepth));
     BigInteger endBI = new BigInteger(SplitUtils.extractBytes(end, maxDepth));
     BigInteger positionBI = new BigInteger(SplitUtils.extractBytes(position, maxDepth));
-    return (float) (positionBI.subtract(startBI).doubleValue() / endBI.subtract(startBI).doubleValue());
+    return (float) (positionBI.subtract(startBI).doubleValue()
+        / endBI.subtract(startBI).doubleValue());
   }
 
   public static long getRangeLength(Range range) throws IOException {
-    Text startRow = range.isInfiniteStartKey() ? new Text(new byte[] {Byte.MIN_VALUE}) : range.getStartKey().getRow();
-    Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE}) : range.getEndKey().getRow();
+    Text startRow = range.isInfiniteStartKey() ? new Text(new byte[] {Byte.MIN_VALUE})
+        : range.getStartKey().getRow();
+    Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE})
+        : range.getEndKey().getRow();
     int maxCommon = Math.min(7, Math.min(startRow.getLength(), stopRow.getLength()));
     long diff = 0;
 

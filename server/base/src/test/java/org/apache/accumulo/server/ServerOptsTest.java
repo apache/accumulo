@@ -48,7 +48,8 @@ public class ServerOptsTest {
   public void testOverrideConfig() {
     SiteConfiguration siteConf = SiteConfiguration.getInstance();
     Assert.assertEquals("localhost:2181", siteConf.get(Property.INSTANCE_ZK_HOST));
-    opts.parseArgs(ServerOptsTest.class.getName(), new String[] {"-o", "instance.zookeeper.host=test:123"});
+    opts.parseArgs(ServerOptsTest.class.getName(),
+        new String[] {"-o", "instance.zookeeper.host=test:123"});
     Assert.assertEquals("test:123", siteConf.get(Property.INSTANCE_ZK_HOST));
   }
 }

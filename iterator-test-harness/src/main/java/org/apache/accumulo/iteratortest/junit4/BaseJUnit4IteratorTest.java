@@ -39,7 +39,8 @@ import org.slf4j.LoggerFactory;
 /**
  * A base JUnit4 test class for users to leverage with the JUnit Parameterized Runner.
  * <p>
- * Users should extend this class and implement a static method using the {@code @Parameters} annotation.
+ * Users should extend this class and implement a static method using the {@code @Parameters}
+ * annotation.
  *
  * <pre>
  * &#064;Parameters
@@ -58,12 +59,14 @@ public class BaseJUnit4IteratorTest {
 
   public final IteratorTestRunner runner;
 
-  public BaseJUnit4IteratorTest(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestCase testCase) {
+  public BaseJUnit4IteratorTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
     this.runner = new IteratorTestRunner(input, expectedOutput, Collections.singleton(testCase));
   }
 
   /**
-   * A helper function to convert input, output and a list of test cases into a two-dimensional array for JUnit's Parameterized runner.
+   * A helper function to convert input, output and a list of test cases into a two-dimensional
+   * array for JUnit's Parameterized runner.
    *
    * @param input
    *          The input
@@ -73,7 +76,8 @@ public class BaseJUnit4IteratorTest {
    *          A list of desired test cases to run.
    * @return A two dimensional array suitable to pass as JUnit's parameters.
    */
-  public static Object[][] createParameters(IteratorTestInput input, IteratorTestOutput output, Collection<IteratorTestCase> testCases) {
+  public static Object[][] createParameters(IteratorTestInput input, IteratorTestOutput output,
+      Collection<IteratorTestCase> testCases) {
     Object[][] parameters = new Object[testCases.size()][3];
     Iterator<IteratorTestCase> testCaseIter = testCases.iterator();
     for (int i = 0; testCaseIter.hasNext(); i++) {

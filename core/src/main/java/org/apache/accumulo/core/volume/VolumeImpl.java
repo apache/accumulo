@@ -29,7 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Basic Volume implementation that contains a FileSystem and a base path that should be used within that filesystem.
+ * Basic Volume implementation that contains a FileSystem and a base path that should be used within
+ * that filesystem.
  */
 public class VolumeImpl implements Volume {
   private static final Logger log = LoggerFactory.getLogger(VolumeImpl.class);
@@ -88,7 +89,8 @@ public class VolumeImpl implements Volume {
   }
 
   /**
-   * Test whether the provided {@link FileSystem} object reference the same actual filesystem as the member <code>fs</code>.
+   * Test whether the provided {@link FileSystem} object reference the same actual filesystem as the
+   * member <code>fs</code>.
    *
    * @param other
    *          The filesystem to compare
@@ -98,7 +100,8 @@ public class VolumeImpl implements Volume {
   }
 
   /**
-   * Tests if the provided {@link Path} is rooted inside this volume, contained within <code>basePath</code>.
+   * Tests if the provided {@link Path} is rooted inside this volume, contained within
+   * <code>basePath</code>.
    *
    * @param other
    *          The path to compare
@@ -116,7 +119,8 @@ public class VolumeImpl implements Volume {
   public boolean equals(Object o) {
     if (o instanceof VolumeImpl) {
       VolumeImpl other = (VolumeImpl) o;
-      return getFileSystem().equals(other.getFileSystem()) && getBasePath().equals(other.getBasePath());
+      return getFileSystem().equals(other.getFileSystem())
+          && getBasePath().equals(other.getBasePath());
     }
 
     return false;

@@ -53,7 +53,8 @@ public class CloneIT extends AccumuloClusterHarness {
     Mutation mut = ke.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+        new Value("/default_tablet".getBytes()));
 
     BatchWriter bw1 = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
@@ -83,8 +84,10 @@ public class CloneIT extends AccumuloClusterHarness {
     Mutation mut = ke.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
-    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf", new DataFileValue(1, 200).encodeAsString());
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+        new Value("/default_tablet".getBytes()));
+    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf",
+        new DataFileValue(1, 200).encodeAsString());
 
     BatchWriter bw1 = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
@@ -98,7 +101,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
     Mutation mut2 = new Mutation(ke.getMetadataEntry());
     mut2.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
-    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf", new DataFileValue(2, 300).encodeAsString());
+    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf",
+        new DataFileValue(2, 300).encodeAsString());
 
     bw1.addMutation(mut2);
     bw1.flush();
@@ -216,8 +220,10 @@ public class CloneIT extends AccumuloClusterHarness {
     assertTrue(files.contains("../0/default_tablet/1_0.rf"));
   }
 
-  private static Mutation deleteTablet(String tid, String endRow, String prevRow, String dir, String file) throws Exception {
-    KeyExtent ke = new KeyExtent(Table.ID.of(tid), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
+  private static Mutation deleteTablet(String tid, String endRow, String prevRow, String dir,
+      String file) throws Exception {
+    KeyExtent ke = new KeyExtent(Table.ID.of(tid), endRow == null ? null : new Text(endRow),
+        prevRow == null ? null : new Text(prevRow));
     Mutation mut = new Mutation(ke.getMetadataEntry());
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
     TabletsSection.ServerColumnFamily.TIME_COLUMN.putDelete(mut);
@@ -227,13 +233,16 @@ public class CloneIT extends AccumuloClusterHarness {
     return mut;
   }
 
-  private static Mutation createTablet(String tid, String endRow, String prevRow, String dir, String file) throws Exception {
-    KeyExtent ke = new KeyExtent(Table.ID.of(tid), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
+  private static Mutation createTablet(String tid, String endRow, String prevRow, String dir,
+      String file) throws Exception {
+    KeyExtent ke = new KeyExtent(Table.ID.of(tid), endRow == null ? null : new Text(endRow),
+        prevRow == null ? null : new Text(prevRow));
     Mutation mut = ke.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
-    mut.put(DataFileColumnFamily.NAME.toString(), file, new DataFileValue(10, 200).encodeAsString());
+    mut.put(DataFileColumnFamily.NAME.toString(), file,
+        new DataFileValue(10, 200).encodeAsString());
 
     return mut;
   }
@@ -370,7 +379,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
     bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
     Mutation mut = createTablet("0", null, null, "/d2", "/d2/file2");
-    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1", new DataFileValue(10, 200).encodeAsString());
+    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1",
+        new DataFileValue(10, 200).encodeAsString());
     bw1.addMutation(mut);
 
     bw1.flush();

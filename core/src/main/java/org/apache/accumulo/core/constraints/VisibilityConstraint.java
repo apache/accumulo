@@ -30,7 +30,8 @@ import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.BadArgumentException;
 
 /**
- * A constraint that checks the visibility of columns against the actor's authorizations. Violation codes:
+ * A constraint that checks the visibility of columns against the actor's authorizations. Violation
+ * codes:
  * <ul>
  * <li>1 = failure to parse visibility expression</li>
  * <li>2 = insufficient authorization</li>

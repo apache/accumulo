@@ -65,8 +65,9 @@ public class MajorCompactionRequest implements Cloneable {
   final private BlockCache summaryCache;
   private Map<FileRef,DataFileValue> files;
 
-  public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason, VolumeManager manager, AccumuloConfiguration tabletConfig,
-      BlockCache summaryCache, BlockCache indexCache) {
+  public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
+      VolumeManager manager, AccumuloConfiguration tabletConfig, BlockCache summaryCache,
+      BlockCache indexCache) {
     this.extent = extent;
     this.reason = reason;
     this.volumeManager = manager;
@@ -76,12 +77,14 @@ public class MajorCompactionRequest implements Cloneable {
     this.indexCache = indexCache;
   }
 
-  public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason, AccumuloConfiguration tabletConfig) {
+  public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
+      AccumuloConfiguration tabletConfig) {
     this(extent, reason, null, tabletConfig, null, null);
   }
 
   public MajorCompactionRequest(MajorCompactionRequest mcr) {
-    this(mcr.extent, mcr.reason, mcr.volumeManager, mcr.tableConfig, mcr.summaryCache, mcr.indexCache);
+    this(mcr.extent, mcr.reason, mcr.volumeManager, mcr.tableConfig, mcr.summaryCache,
+        mcr.indexCache);
     // know this is already unmodifiable, no need to wrap again
     this.files = mcr.files;
   }
@@ -102,35 +105,46 @@ public class MajorCompactionRequest implements Cloneable {
    * Returns all summaries present in each file.
    *
    * <p>
-   * This method can only be called from {@link CompactionStrategy#gatherInformation(MajorCompactionRequest)}. Unfortunately, {@code gatherInformation()} is not
-   * called before {@link CompactionStrategy#shouldCompact(MajorCompactionRequest)}. Therefore {@code shouldCompact()} should just return true when a
-   * compactions strategy wants to use summary information.
+   * This method can only be called from
+   * {@link CompactionStrategy#gatherInformation(MajorCompactionRequest)}. Unfortunately,
+   * {@code gatherInformation()} is not called before
+   * {@link CompactionStrategy#shouldCompact(MajorCompactionRequest)}. Therefore
+   * {@code shouldCompact()} should just return true when a compactions strategy wants to use
+   * summary information.
    *
    * <p>
-   * When using summaries to make compaction decisions, its important to ensure that all summary data fits in the tablet server summary cache. The size of this
-   * cache is configured by code tserver.cache.summary.size}. Also its important to use the summarySelector predicate to only retrieve the needed summary data.
-   * Otherwise uneeded summary data could be brought into the cache.
+   * When using summaries to make compaction decisions, its important to ensure that all summary
+   * data fits in the tablet server summary cache. The size of this cache is configured by code
+   * tserver.cache.summary.size}. Also its important to use the summarySelector predicate to only
+   * retrieve the needed summary data. Otherwise uneeded summary data could be brought into the
+   * cache.
    *
    * <p>
-   * Some files may contain data outside of a tablets range. When {@link Summarizer}'s generate small amounts of summary data, multiple summaries may be stored
-   * within a file for different row ranges. This will allow more accurate summaries to be returned for the case where a file has data outside a tablets range.
-   * However, some summary data outside of the tablets range may still be included. When this happens {@link FileStatistics#getExtra()} will be non zero. Also,
-   * its good to be aware of the other potential causes of inaccuracies {@link FileStatistics#getInaccurate()}
+   * Some files may contain data outside of a tablets range. When {@link Summarizer}'s generate
+   * small amounts of summary data, multiple summaries may be stored within a file for different row
+   * ranges. This will allow more accurate summaries to be returned for the case where a file has
+   * data outside a tablets range. However, some summary data outside of the tablets range may still
+   * be included. When this happens {@link FileStatistics#getExtra()} will be non zero. Also, its
+   * good to be aware of the other potential causes of inaccuracies
+   * {@link FileStatistics#getInaccurate()}
    *
    * <p>
-   * When this method is called with multiple files, it will automatically merge summary data using {@link Combiner#merge(Map, Map)}. If summary information is
-   * needed for each file, then just call this method for each file.
+   * When this method is called with multiple files, it will automatically merge summary data using
+   * {@link Combiner#merge(Map, Map)}. If summary information is needed for each file, then just
+   * call this method for each file.
    *
    * <p>
-   * Writing a compaction strategy that uses summary information is a bit tricky. See the source code for {@link TooManyDeletesCompactionStrategy} as an example
-   * of a compaction strategy.
+   * Writing a compaction strategy that uses summary information is a bit tricky. See the source
+   * code for {@link TooManyDeletesCompactionStrategy} as an example of a compaction strategy.
    *
    * @see Summarizer
    * @see TableOperations#addSummarizers(String, SummarizerConfiguration...)
-   * @see AccumuloFileOutputFormat#setSummarizers(org.apache.hadoop.mapred.JobConf, SummarizerConfiguration...)
+   * @see AccumuloFileOutputFormat#setSummarizers(org.apache.hadoop.mapred.JobConf,
+   *      SummarizerConfiguration...)
    * @see WriterOptions#withSummarizers(SummarizerConfiguration...)
    */
-  public List<Summary> getSummaries(Collection<FileRef> files, Predicate<SummarizerConfiguration> summarySelector) throws IOException {
+  public List<Summary> getSummaries(Collection<FileRef> files,
+      Predicate<SummarizerConfiguration> summarySelector) throws IOException {
     Preconditions.checkState(volumeManager != null,
         "Getting summaries is not supported at this time.  Its only supported when CompactionStrategy.gatherInformation() is called.");
     SummaryCollection sc = new SummaryCollection();
@@ -138,8 +152,9 @@ public class MajorCompactionRequest implements Cloneable {
     for (FileRef file : files) {
       FileSystem fs = volumeManager.getVolumeByPath(file.path()).getFileSystem();
       Configuration conf = CachedConfiguration.getInstance();
-      SummaryCollection fsc = SummaryReader.load(fs, conf, tableConfig, factory, file.path(), summarySelector, summaryCache, indexCache).getSummaries(
-          Collections.singletonList(new Gatherer.RowRange(extent)));
+      SummaryCollection fsc = SummaryReader.load(fs, conf, tableConfig, factory, file.path(),
+          summarySelector, summaryCache, indexCache)
+          .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }
 
@@ -157,7 +172,8 @@ public class MajorCompactionRequest implements Cloneable {
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem ns = volumeManager.getVolumeByPath(ref.path()).getFileSystem();
-    FileSKVIterator openReader = fileFactory.newReaderBuilder().forFile(ref.path().toString(), ns, ns.getConf()).withTableConfiguration(tableConfig)
+    FileSKVIterator openReader = fileFactory.newReaderBuilder()
+        .forFile(ref.path().toString(), ns, ns.getConf()).withTableConfiguration(tableConfig)
         .seekToBeginning().build();
     return openReader;
   }

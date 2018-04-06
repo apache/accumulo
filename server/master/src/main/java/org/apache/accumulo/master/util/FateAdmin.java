@@ -73,8 +73,8 @@ public class FateAdmin {
       System.exit(1);
     }
 
-    System.err
-        .printf("This tool has been deprecated%nFATE administration now available within 'accumulo shell'%n$ fate fail <txid>... | delete <txid>... | print [<txid>...]%n%n");
+    System.err.printf(
+        "This tool has been deprecated%nFATE administration now available within 'accumulo shell'%n$ fate fail <txid>... | delete <txid>... | print [<txid>...]%n%n");
 
     AdminUtil<Master> admin = new AdminUtil<>();
 

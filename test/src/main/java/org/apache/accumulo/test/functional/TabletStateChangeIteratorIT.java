@@ -65,8 +65,8 @@ import org.junit.Test;
 import com.google.common.collect.Sets;
 
 /**
- * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information in the metadata table when there is no work to be done on
- * the tablet (see ACCUMULO-3580)
+ * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information
+ * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
 public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
@@ -76,7 +76,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+  public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,
+      TableNotFoundException {
     String[] tables = getUniqueNames(4);
     final String t1 = tables[0];
     final String t2 = tables[1];
@@ -99,62 +100,79 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     // test the assigned case (no location)
     removeLocation(cloned, t3);
-    assertEquals("Should have two tablets without a loc", 2, findTabletsNeedingAttention(cloned, state));
+    assertEquals("Should have two tablets without a loc", 2,
+        findTabletsNeedingAttention(cloned, state));
 
     // test the cases where the assignment is to a dead tserver
     getConnector().tableOperations().delete(cloned);
     cloneMetadataTable(cloned);
     reassignLocation(cloned, t3);
-    assertEquals("Should have one tablet that needs to be unassigned", 1, findTabletsNeedingAttention(cloned, state));
+    assertEquals("Should have one tablet that needs to be unassigned", 1,
+        findTabletsNeedingAttention(cloned, state));
 
     // test the cases where there is ongoing merges
     state = new State() {
       @Override
       public Collection<MergeInfo> merges() {
-        Table.ID tableIdToModify = Table.ID.of(getConnector().tableOperations().tableIdMap().get(t3));
-        return Collections.singletonList(new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
+        Table.ID tableIdToModify = Table.ID
+            .of(getConnector().tableOperations().tableIdMap().get(t3));
+        return Collections.singletonList(
+            new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
       }
     };
-    assertEquals("Should have 2 tablets that need to be chopped or unassigned", 1, findTabletsNeedingAttention(cloned, state));
+    assertEquals("Should have 2 tablets that need to be chopped or unassigned", 1,
+        findTabletsNeedingAttention(cloned, state));
 
     // test the bad tablet location state case (inconsistent metadata)
     state = new State();
     cloneMetadataTable(cloned);
     addDuplicateLocation(cloned, t3);
-    assertEquals("Should have 1 tablet that needs a metadata repair", 1, findTabletsNeedingAttention(cloned, state));
+    assertEquals("Should have 1 tablet that needs a metadata repair", 1,
+        findTabletsNeedingAttention(cloned, state));
 
     // clean up
     dropTables(t1, t2, t3, cloned);
   }
 
-  private void addDuplicateLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
-    Table.ID tableIdToModify = Table.ID.of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
+  private void addDuplicateLocation(String table, String tableNameToModify)
+      throws TableNotFoundException, MutationsRejectedException {
+    Table.ID tableIdToModify = Table.ID
+        .of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
-    m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"), new Value("fake:9005".getBytes(UTF_8)));
+    m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"),
+        new Value("fake:9005".getBytes(UTF_8)));
     BatchWriter bw = getConnector().createBatchWriter(table, null);
     bw.addMutation(m);
     bw.close();
   }
 
-  private void reassignLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
-    Table.ID tableIdToModify = Table.ID.of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
+  private void reassignLocation(String table, String tableNameToModify)
+      throws TableNotFoundException, MutationsRejectedException {
+    Table.ID tableIdToModify = Table.ID
+        .of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
     try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
       Entry<Key,Value> entry = scanner.iterator().next();
       Mutation m = new Mutation(entry.getKey().getRow());
-      m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(), entry.getKey().getTimestamp());
-      m.put(entry.getKey().getColumnFamily(), new Text("1234567"), entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
+      m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
+          entry.getKey().getTimestamp());
+      m.put(entry.getKey().getColumnFamily(), new Text("1234567"),
+          entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
       BatchWriter bw = getConnector().createBatchWriter(table, null);
       bw.addMutation(m);
       bw.close();
     }
   }
 
-  private void removeLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
-    Table.ID tableIdToModify = Table.ID.of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
-    BatchDeleter deleter = getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
-    deleter.setRanges(Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
+  private void removeLocation(String table, String tableNameToModify)
+      throws TableNotFoundException, MutationsRejectedException {
+    Table.ID tableIdToModify = Table.ID
+        .of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
+    BatchDeleter deleter = getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1,
+        new BatchWriterConfig());
+    deleter.setRanges(
+        Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
     deleter.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     deleter.delete();
     deleter.close();
@@ -173,7 +191,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     return results;
   }
 
-  private void createTable(String t, boolean online) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, TableExistsException {
+  private void createTable(String t, boolean online) throws AccumuloSecurityException,
+      AccumuloException, TableNotFoundException, TableExistsException {
     Connector conn = getConnector();
     conn.tableOperations().create(t);
     conn.tableOperations().online(t, true);
@@ -185,7 +204,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
   }
 
-  private void cloneMetadataTable(String cloned) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
+  private void cloneMetadataTable(String cloned) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, TableExistsException {
     try {
       dropTables(cloned);
     } catch (TableNotFoundException ex) {
@@ -194,7 +214,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     getConnector().tableOperations().clone(MetadataTable.NAME, cloned, true, null, null);
   }
 
-  private void dropTables(String... tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private void dropTables(String... tables)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     for (String t : tables) {
       getConnector().tableOperations().delete(t);
     }
@@ -207,8 +228,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       HashSet<TServerInstance> tservers = new HashSet<>();
       for (String tserver : getConnector().instanceOperations().getTabletServers()) {
         try {
-          String zPath = ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZTSERVERS + "/" + tserver;
-          long sessionId = ZooLock.getSessionId(new ZooCache(getCluster().getZooKeepers(), getConnector().getInstance().getZooKeepersSessionTimeOut()), zPath);
+          String zPath = ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZTSERVERS + "/"
+              + tserver;
+          long sessionId = ZooLock.getSessionId(new ZooCache(getCluster().getZooKeepers(),
+              getConnector().getInstance().getZooKeepersSessionTimeOut()), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
         } catch (Exception e) {
           throw new RuntimeException(e);
@@ -220,7 +243,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     @Override
     public Set<Table.ID> onlineTables() {
       Set<Table.ID> onlineTables = Tables.getIdToNameMap(getConnector().getInstance()).keySet();
-      return Sets.filter(onlineTables, tableId -> Tables.getTableState(getConnector().getInstance(), tableId) == TableState.ONLINE);
+      return Sets.filter(onlineTables, tableId -> Tables.getTableState(getConnector().getInstance(),
+          tableId) == TableState.ONLINE);
     }
 
     @Override

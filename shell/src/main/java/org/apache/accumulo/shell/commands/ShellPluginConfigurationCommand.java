@@ -43,14 +43,16 @@ public abstract class ShellPluginConfigurationCommand extends Command {
 
   private String classOpt;
 
-  ShellPluginConfigurationCommand(final String typeName, final Property tableProp, final String classOpt) {
+  ShellPluginConfigurationCommand(final String typeName, final Property tableProp,
+      final String classOpt) {
     this.pluginType = typeName;
     this.tableProp = tableProp;
     this.classOpt = classOpt;
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     if (cl.hasOption(removePluginOption.getOpt())) {
@@ -60,7 +62,8 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       shellState.getReader().println("Removed " + pluginType + " on " + tableName);
     } else if (cl.hasOption(listPluginOption.getOpt())) {
       // Get the options for this table
-      final Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
+      final Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations()
+          .getProperties(tableName).iterator();
 
       while (iter.hasNext()) {
         Entry<String,String> ent = iter.next();
@@ -81,16 +84,19 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     return 0;
   }
 
-  protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName, final String className) throws AccumuloException,
-      AccumuloSecurityException {
-    shellState.getConnector().tableOperations().setProperty(tableName, tableProp.toString(), className);
+  protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName,
+      final String className) throws AccumuloException, AccumuloSecurityException {
+    shellState.getConnector().tableOperations().setProperty(tableName, tableProp.toString(),
+        className);
   }
 
-  protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
+  protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName)
+      throws AccumuloException, AccumuloSecurityException {
     shellState.getConnector().tableOperations().removeProperty(tableName, tableProp.toString());
   }
 
-  public static <T> Class<? extends T> getPluginClass(final String tableName, final Shell shellState, final Class<T> clazz, final Property pluginProp) {
+  public static <T> Class<? extends T> getPluginClass(final String tableName,
+      final Shell shellState, final Class<T> clazz, final Property pluginProp) {
     Iterator<Entry<String,String>> props;
     try {
       props = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
@@ -109,18 +115,23 @@ public abstract class ShellPluginConfigurationCommand extends Command {
           args[0] = "-t";
           args[1] = tableName;
           CommandLine cl = new BasicParser().parse(o, args);
-          pluginClazz = shellState.getClassLoader(cl, shellState).loadClass(ent.getValue()).asSubclass(clazz);
+          pluginClazz = shellState.getClassLoader(cl, shellState).loadClass(ent.getValue())
+              .asSubclass(clazz);
         } catch (ClassNotFoundException e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Class not found {}", e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Class not found {}",
+              e.getMessage());
           return null;
         } catch (ParseException e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Error parsing table: {} {}", Arrays.toString(args), e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class)
+              .error("Error parsing table: {} {}", Arrays.toString(args), e.getMessage());
           return null;
         } catch (TableNotFoundException e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Table not found: {} {}", tableName, e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class)
+              .error("Table not found: {} {}", tableName, e.getMessage());
           return null;
         } catch (Exception e) {
-          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Error: {}", e.getMessage());
+          LoggerFactory.getLogger(ShellPluginConfigurationCommand.class).error("Error: {}",
+              e.getMessage());
           return null;
         }
 
@@ -136,7 +147,8 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     final Options o = new Options();
     final OptionGroup actionGroup = new OptionGroup();
 
-    pluginClassOption = new Option(classOpt, pluginType, true, "fully qualified name of the " + pluginType + " class to use");
+    pluginClassOption = new Option(classOpt, pluginType, true,
+        "fully qualified name of the " + pluginType + " class to use");
     pluginClassOption.setArgName("className");
 
     // Action to take: apply (default), remove, list

@@ -60,17 +60,23 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Integration Test for https://issues.apache.org/jira/browse/ACCUMULO-4148
  * <p>
- * User had problem writing one Mutation with multiple KV pairs that had the same key. Doing so should write out all pairs in all mutations with a unique id. In
- * typical operation, you would only see the last one when scanning. User had a combiner on the table, and they noticed that when using InMemoryMap with
- * NativeMapWrapper, only the last KV pair was ever written. When InMemoryMap used DefaultMap, all KV pairs were added and the behavior worked as expected.
+ * User had problem writing one Mutation with multiple KV pairs that had the same key. Doing so
+ * should write out all pairs in all mutations with a unique id. In typical operation, you would
+ * only see the last one when scanning. User had a combiner on the table, and they noticed that when
+ * using InMemoryMap with NativeMapWrapper, only the last KV pair was ever written. When InMemoryMap
+ * used DefaultMap, all KV pairs were added and the behavior worked as expected.
  *
- * This IT inserts a variety of Mutations with and without the same KV pairs and then inspects result of InMemoryMap mutate, looking for unique id stored with
- * each key. This unique id, shown as mc= in the MemKey toString, was originally used for scan Isolation. Writing the same key multiple times in the same
- * mutation is a secondary use case, discussed in https://issues.apache.org/jira/browse/ACCUMULO-227. In addition to NativeMapWrapper and DefaultMap,
- * LocalityGroupMap was add in https://issues.apache.org/jira/browse/ACCUMULO-112.
+ * This IT inserts a variety of Mutations with and without the same KV pairs and then inspects
+ * result of InMemoryMap mutate, looking for unique id stored with each key. This unique id, shown
+ * as mc= in the MemKey toString, was originally used for scan Isolation. Writing the same key
+ * multiple times in the same mutation is a secondary use case, discussed in
+ * https://issues.apache.org/jira/browse/ACCUMULO-227. In addition to NativeMapWrapper and
+ * DefaultMap, LocalityGroupMap was add in https://issues.apache.org/jira/browse/ACCUMULO-112.
  *
- * This test has to be an IT in accumulo-test, because libaccumulo is built in 'integration-test' phase of accumulo-native, which currently runs right before
- * accumulo-test. The tests for DefaultMap could move to a unit test in tserver, but they are here for convenience of viewing both at the same time.
+ * This test has to be an IT in accumulo-test, because libaccumulo is built in 'integration-test'
+ * phase of accumulo-native, which currently runs right before accumulo-test. The tests for
+ * DefaultMap could move to a unit test in tserver, but they are here for convenience of viewing
+ * both at the same time.
  */
 @Category(SunnyDayTests.class)
 public class InMemoryMapIT {
@@ -78,17 +84,20 @@ public class InMemoryMapIT {
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void ensureNativeLibrary() throws FileNotFoundException {
     File nativeMapLocation = NativeMapIT.nativeMapLocation();
     System.setProperty("accumulo.native.lib.path", nativeMapLocation.getAbsolutePath());
     if (!NativeMap.isLoaded()) {
-      fail("Missing the native library from " + nativeMapLocation.getAbsolutePath() + "\nYou need to build the libaccumulo binary first. "
+      fail("Missing the native library from " + nativeMapLocation.getAbsolutePath()
+          + "\nYou need to build the libaccumulo binary first. "
           + "\nTry running 'mvn clean install -Dit.test=InMemoryMapIT -Dtest=foo -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip'");
       // afterwards, you can run the following
-      // mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip -pl :accumulo-test
+      // mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo -DfailIfNoTests=false -Dfindbugs.skip
+      // -Dcheckstyle.skip -pl :accumulo-test
     }
   }
 
@@ -209,23 +218,29 @@ public class InMemoryMapIT {
     try {
       Map<String,String> defaultMapConfig = new HashMap<>();
       defaultMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolder.newFolder().getAbsolutePath());
+      defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
+          tempFolder.newFolder().getAbsolutePath());
       defaultMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
       Map<String,String> nativeMapConfig = new HashMap<>();
       nativeMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolder.newFolder().getAbsolutePath());
+      nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
+          tempFolder.newFolder().getAbsolutePath());
       nativeMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
       Map<String,String> localityGroupConfig = new HashMap<>();
       localityGroupConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolder.newFolder().getAbsolutePath());
+      localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
+          tempFolder.newFolder().getAbsolutePath());
       Map<String,String> localityGroupNativeConfig = new HashMap<>();
       localityGroupNativeConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolder.newFolder().getAbsolutePath());
+      localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
+          tempFolder.newFolder().getAbsolutePath());
 
       defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig));
       nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig));
-      localityGroupMap = new InMemoryMap(updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)));
-      localityGroupMapWithNative = new InMemoryMap(updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)));
+      localityGroupMap = new InMemoryMap(
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)));
+      localityGroupMapWithNative = new InMemoryMap(
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)));
     } catch (Exception e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());
@@ -233,9 +248,12 @@ public class InMemoryMapIT {
 
     // ensure the maps are correct type
     assertEquals("Not a DefaultMap", InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType());
-    assertEquals("Not a NativeMapWrapper", InMemoryMap.TYPE_NATIVE_MAP_WRAPPER, nativeMapWrapper.getMapType());
-    assertEquals("Not a LocalityGroupMap", InMemoryMap.TYPE_LOCALITY_GROUP_MAP, localityGroupMap.getMapType());
-    assertEquals("Not a LocalityGroupMap with native", InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE, localityGroupMapWithNative.getMapType());
+    assertEquals("Not a NativeMapWrapper", InMemoryMap.TYPE_NATIVE_MAP_WRAPPER,
+        nativeMapWrapper.getMapType());
+    assertEquals("Not a LocalityGroupMap", InMemoryMap.TYPE_LOCALITY_GROUP_MAP,
+        localityGroupMap.getMapType());
+    assertEquals("Not a LocalityGroupMap with native", InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
+        localityGroupMapWithNative.getMapType());
 
     defaultMap.mutate(mutations);
     nativeMapWrapper.mutate(mutations);
@@ -253,8 +271,10 @@ public class InMemoryMapIT {
    * <p>
    * In this case, equivalent means 2 things.
    * <ul>
-   * <li>The size of both maps generated is equal to the number of key value pairs in all mutations passed</li>
-   * <li>The size of the map generated from the first InMemoryMap equals the size of the map generated from the second</li>
+   * <li>The size of both maps generated is equal to the number of key value pairs in all mutations
+   * passed</li>
+   * <li>The size of the map generated from the first InMemoryMap equals the size of the map
+   * generated from the second</li>
    * <li>Each key value pair in each mutated map has a unique id (kvCount)</li>
    * </ul>
    *
@@ -265,16 +285,21 @@ public class InMemoryMapIT {
    * @param imm2
    *          InMemoryMap to compare
    */
-  private void assertMutatesEquivalent(List<Mutation> mutations, InMemoryMap imm1, InMemoryMap imm2) {
+  private void assertMutatesEquivalent(List<Mutation> mutations, InMemoryMap imm1,
+      InMemoryMap imm2) {
     int mutationKVPairs = countKVPairs(mutations);
 
     List<MemKey> memKeys1 = getArrayOfMemKeys(imm1);
     List<MemKey> memKeys2 = getArrayOfMemKeys(imm2);
 
-    assertEquals("Not all key value pairs included: " + dumpInMemoryMap(imm1, memKeys1), mutationKVPairs, memKeys1.size());
-    assertEquals("InMemoryMaps differ in size: " + dumpInMemoryMap(imm1, memKeys1) + "\n" + dumpInMemoryMap(imm2, memKeys2), memKeys1.size(), memKeys2.size());
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1), mutationKVPairs, getUniqKVCount(memKeys1));
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2), mutationKVPairs, getUniqKVCount(memKeys2));
+    assertEquals("Not all key value pairs included: " + dumpInMemoryMap(imm1, memKeys1),
+        mutationKVPairs, memKeys1.size());
+    assertEquals("InMemoryMaps differ in size: " + dumpInMemoryMap(imm1, memKeys1) + "\n"
+        + dumpInMemoryMap(imm2, memKeys2), memKeys1.size(), memKeys2.size());
+    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1),
+        mutationKVPairs, getUniqKVCount(memKeys1));
+    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2),
+        mutationKVPairs, getUniqKVCount(memKeys2));
 
   }
 

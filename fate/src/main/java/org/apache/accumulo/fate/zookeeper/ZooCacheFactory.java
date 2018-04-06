@@ -29,7 +29,8 @@ public class ZooCacheFactory {
   private static Map<String,ZooCache> instances = new HashMap<>();
 
   /**
-   * Gets a {@link ZooCache}. The same object may be returned for multiple calls with the same arguments.
+   * Gets a {@link ZooCache}. The same object may be returned for multiple calls with the same
+   * arguments.
    *
    * @param zooKeepers
    *          comma-seprated list of ZooKeeper host[:port]s
@@ -50,8 +51,8 @@ public class ZooCacheFactory {
   }
 
   /**
-   * Gets a watched {@link ZooCache}. If the watcher is null, then the same (unwatched) object may be returned for multiple calls with the same remaining
-   * arguments.
+   * Gets a watched {@link ZooCache}. If the watcher is null, then the same (unwatched) object may
+   * be returned for multiple calls with the same remaining arguments.
    *
    * @param zooKeepers
    *          comma-seprated list of ZooKeeper host[:port]s

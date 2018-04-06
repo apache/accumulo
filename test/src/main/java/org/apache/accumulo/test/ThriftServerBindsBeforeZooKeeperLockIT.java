@@ -45,11 +45,13 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their ZK lock.
+ * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their
+ * ZK lock.
  */
 @Category({MiniClusterOnlyTests.class})
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
-  private static final Logger LOG = LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
 
   @Override
   public boolean canRunTest(ClusterType type) {
@@ -97,13 +99,15 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             } else {
               errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
             }
-            LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'", responseCode, errorText);
+            LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
+                responseCode, errorText);
           } catch (Exception e) {
             LOG.debug("Caught exception trying to fetch monitor info", e);
           }
           // Wait before trying again
           Thread.sleep(1000);
-          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually free and the process
+          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
+          // free and the process
           // died trying to bind it. Pick a new port and restart it in that case.
           if (!monitor.isAlive()) {
             freePort = PortUtils.getRandomFreePort();
@@ -129,7 +133,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     while (true) {
       final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
       try {
-        List<String> locks = reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
+        List<String> locks = reader
+            .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
         if (locks.size() > 0) {
           break;
         }
@@ -165,7 +170,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           }
           // Wait before trying again
           Thread.sleep(1000);
-          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually free and the process
+          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
+          // free and the process
           // died trying to bind it. Pick a new port and restart it in that case.
           if (!master.isAlive()) {
             freePort = PortUtils.getRandomFreePort();
@@ -190,7 +196,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     while (true) {
       final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
       try {
-        List<String> locks = reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
+        List<String> locks = reader
+            .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
         if (locks.size() > 0) {
           break;
         }
@@ -226,7 +233,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           }
           // Wait before trying again
           Thread.sleep(1000);
-          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually free and the process
+          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
+          // free and the process
           // died trying to bind it. Pick a new port and restart it in that case.
           if (!master.isAlive()) {
             freePort = PortUtils.getRandomFreePort();
@@ -242,7 +250,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     }
   }
 
-  private Process startProcess(MiniAccumuloClusterImpl cluster, ServerType serverType, int port) throws IOException {
+  private Process startProcess(MiniAccumuloClusterImpl cluster, ServerType serverType, int port)
+      throws IOException {
     final Property property;
     final Class<?> service;
     switch (serverType) {
@@ -262,6 +271,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         throw new IllegalArgumentException("Irrelevant server type for test");
     }
 
-    return cluster._exec(service, serverType, ImmutableMap.of(property.getKey(), Integer.toString(port)));
+    return cluster._exec(service, serverType,
+        ImmutableMap.of(property.getKey(), Integer.toString(port)));
   }
 }

@@ -73,7 +73,8 @@ public class MetadataScanner {
 
     public ColumnOptions fetchLast();
 
-    public Iterable<TabletMetadata> build() throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+    public Iterable<TabletMetadata> build()
+        throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
   }
 
   private static class TabletMetadataIterator implements Iterator<TabletMetadata> {
@@ -147,9 +148,11 @@ public class MetadataScanner {
     }
 
     @Override
-    public Iterable<TabletMetadata> build() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public Iterable<TabletMetadata> build()
+        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       if (ctx != null) {
-        scanner = new IsolatedScanner(ctx.getConnector().createScanner(table, Authorizations.EMPTY));
+        scanner = new IsolatedScanner(
+            ctx.getConnector().createScanner(table, Authorizations.EMPTY));
       } else if (!(scanner instanceof IsolatedScanner)) {
         scanner = new IsolatedScanner(scanner);
       }
@@ -200,7 +203,8 @@ public class MetadataScanner {
 
     @Override
     public ColumnOptions overUserTableId(Table.ID tableId) {
-      Preconditions.checkArgument(!tableId.equals(RootTable.ID) && !tableId.equals(MetadataTable.ID));
+      Preconditions
+          .checkArgument(!tableId.equals(RootTable.ID) && !tableId.equals(MetadataTable.ID));
 
       this.table = MetadataTable.NAME;
       this.userTableId = tableId;

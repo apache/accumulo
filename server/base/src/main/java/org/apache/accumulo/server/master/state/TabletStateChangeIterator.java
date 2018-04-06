@@ -65,7 +65,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private MasterState masterState = MasterState.NORMAL;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     current = parseServers(options.get(SERVERS_OPTION));
     onlineTables = parseTableIDs(options.get(TABLES_OPTION));
@@ -183,7 +184,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
       boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId());
 
       if (debug) {
-        log.debug("{} is {} and should be {} line", tls.extent, tls.getState(current), (shouldBeOnline ? "on" : "off"));
+        log.debug("{} is {} and should be {} line", tls.extent, tls.getState(current),
+            (shouldBeOnline ? "on" : "off"));
       }
       switch (tls.getState(current)) {
         case ASSIGNED:
@@ -201,7 +203,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
             return;
           break;
         default:
-          throw new AssertionError("Inconceivable! The tablet is an unrecognized state: " + tls.getState(current));
+          throw new AssertionError(
+              "Inconceivable! The tablet is an unrecognized state: " + tls.getState(current));
       }
       // table is in the expected state so don't bother returning any information about it
       getSource().next();
@@ -239,7 +242,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    String encoded = Base64.getEncoder()
+        .encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
@@ -252,7 +256,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    String encoded = Base64.getEncoder()
+        .encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MIGRATIONS_OPTION, encoded);
   }
 

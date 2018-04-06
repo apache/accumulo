@@ -35,7 +35,8 @@ public class PasswdCommand extends Command {
   private Option userOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, IOException {
     final String currentUser = shellState.getConnector().whoami();
     final String user = cl.getOptionValue(userOpt.getOpt(), currentUser);
 
@@ -43,13 +44,15 @@ public class PasswdCommand extends Command {
     String passwordConfirm = null;
     String oldPassword = null;
 
-    oldPassword = shellState.readMaskedLine("Enter current password for '" + currentUser + "': ", '*');
+    oldPassword = shellState.readMaskedLine("Enter current password for '" + currentUser + "': ",
+        '*');
     if (oldPassword == null) {
       shellState.getReader().println();
       return 0;
     } // user canceled
 
-    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, new PasswordToken(oldPassword)))
+    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser,
+        new PasswordToken(oldPassword)))
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
 
     password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
@@ -57,7 +60,8 @@ public class PasswdCommand extends Command {
       shellState.getReader().println();
       return 0;
     } // user canceled
-    passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
+    passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ",
+        '*');
     if (passwordConfirm == null) {
       shellState.getReader().println();
       return 0;
@@ -67,7 +71,8 @@ public class PasswdCommand extends Command {
       throw new IllegalArgumentException("Passwords do not match");
     }
     byte[] pass = password.getBytes(UTF_8);
-    shellState.getConnector().securityOperations().changeLocalUserPassword(user, new PasswordToken(pass));
+    shellState.getConnector().securityOperations().changeLocalUserPassword(user,
+        new PasswordToken(pass));
     // update the current credentials if the password changed was for
     // the current user
     if (shellState.getConnector().whoami().equals(user)) {

@@ -32,7 +32,8 @@ public abstract class LexicoderTest extends TestCase {
     assertEquals(new Text(ba2), new Text(ba1));
   }
 
-  public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, Comparator<T> comp, List<T> data) {
+  public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, Comparator<T> comp,
+      List<T> data) {
     List<T> list = new ArrayList<>();
     List<Text> encList = new ArrayList<>();
 

@@ -53,8 +53,10 @@ public class AccumuloOutputFormatTest {
         BatchWriterConfig bwOpts = getBatchWriterOptions(job);
 
         // passive check
-        assertEquals(bwConfig.getMaxLatency(TimeUnit.MILLISECONDS), bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
-        assertEquals(bwConfig.getTimeout(TimeUnit.MILLISECONDS), bwOpts.getTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(bwConfig.getMaxLatency(TimeUnit.MILLISECONDS),
+            bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
+        assertEquals(bwConfig.getTimeout(TimeUnit.MILLISECONDS),
+            bwOpts.getTimeout(TimeUnit.MILLISECONDS));
         assertEquals(bwConfig.getMaxWriteThreads(), bwOpts.getMaxWriteThreads());
         assertEquals(bwConfig.getMaxMemory(), bwOpts.getMaxMemory());
 

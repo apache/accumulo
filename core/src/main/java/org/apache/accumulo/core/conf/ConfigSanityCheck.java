@@ -43,8 +43,9 @@ public class ConfigSanityCheck {
   private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   /**
-   * Validates the given configuration entries. A valid configuration contains only valid properties (i.e., defined or otherwise valid) that are not prefixes
-   * and whose values are formatted correctly for their property types. A valid configuration also contains a value for property
+   * Validates the given configuration entries. A valid configuration contains only valid properties
+   * (i.e., defined or otherwise valid) that are not prefixes and whose values are formatted
+   * correctly for their property types. A valid configuration also contains a value for property
    * {@link Property#INSTANCE_ZK_TIMEOUT} within a valid range.
    *
    * @param entries
@@ -70,7 +71,8 @@ public class ConfigSanityCheck {
       else if (prop.getType() == PropertyType.PREFIX)
         fatal(PREFIX + "incomplete property key (" + key + ")");
       else if (!prop.getType().isValidFormat(value))
-        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ") : " + value);
+        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType()
+            + ") : " + value);
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;
@@ -80,17 +82,21 @@ public class ConfigSanityCheck {
         usingVolumes = value != null && !value.isEmpty();
       }
 
-      // If the block size or block size index is configured to be too large, we throw an exception to avoid potentially corrupting RFiles later
-      if (key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()) || key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey())) {
+      // If the block size or block size index is configured to be too large, we throw an exception
+      // to avoid potentially corrupting RFiles later
+      if (key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey())
+          || key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey())) {
         long bsize = ConfigurationTypeHelper.getFixedMemoryAsBytes(value);
-        Preconditions.checkArgument(bsize > 0 && bsize < Integer.MAX_VALUE, key + " must be greater than 0 and less than " + Integer.MAX_VALUE + " but was: "
-            + bsize);
+        Preconditions.checkArgument(bsize > 0 && bsize < Integer.MAX_VALUE, key
+            + " must be greater than 0 and less than " + Integer.MAX_VALUE + " but was: " + bsize);
       }
 
       if (key.equals(Property.CRYPTO_CIPHER_SUITE.getKey())) {
         cipherSuite = Objects.requireNonNull(value);
-        Preconditions.checkArgument(cipherSuite.equals(NULL_CIPHER) || cipherSuite.split("/").length == 3,
-            "Cipher suite must be NullCipher or in the form algorithm/mode/padding. Suite: " + cipherSuite + " is invalid.");
+        Preconditions.checkArgument(
+            cipherSuite.equals(NULL_CIPHER) || cipherSuite.split("/").length == 3,
+            "Cipher suite must be NullCipher or in the form algorithm/mode/padding. Suite: "
+                + cipherSuite + " is invalid.");
       }
 
       if (key.equals(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey())) {
@@ -113,19 +119,26 @@ public class ConfigSanityCheck {
     }
 
     if (instanceZkTimeoutValue != null) {
-      checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue, new CheckTimeDurationBetween(1000, 300000));
+      checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue,
+          new CheckTimeDurationBetween(1000, 300000));
     }
 
     if (!usingVolumes) {
-      log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI, INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
+      log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI,
+          INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
     }
 
-    if ((cipherSuite.equals(NULL_CIPHER) || keyAlgorithm.equals(NULL_CIPHER)) && !cipherSuite.equals(keyAlgorithm)) {
-      fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " and " + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME + " must both be configured.");
+    if ((cipherSuite.equals(NULL_CIPHER) || keyAlgorithm.equals(NULL_CIPHER))
+        && !cipherSuite.equals(keyAlgorithm)) {
+      fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " and "
+          + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME + " must both be configured.");
     }
 
-    if (cryptoModule.equals(NULL_CRYPTO_MODULE) ^ secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
-      fatal(Property.CRYPTO_MODULE_CLASS.getKey() + " and " + Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey() + " must both be configured.");
+    if (cryptoModule.equals(NULL_CRYPTO_MODULE)
+        ^ secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
+      fatal(Property.CRYPTO_MODULE_CLASS.getKey() + " and "
+          + Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()
+          + " must both be configured.");
     }
   }
 
@@ -181,7 +194,8 @@ public class ConfigSanityCheck {
   }
 
   private static void fatal(String msg) {
-    // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j compatibility
+    // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j
+    // compatibility
     log.error("FATAL: {}", msg);
     throw new SanityCheckException(msg);
   }
@@ -196,13 +210,16 @@ public class ConfigSanityCheck {
    * @param requiredBaseClass
    *          The base class required for the className
    */
-  private static void verifyValidClassName(String confOption, String className, Class<?> requiredBaseClass) {
+  private static void verifyValidClassName(String confOption, String className,
+      Class<?> requiredBaseClass) {
     try {
       ConfigurationTypeHelper.getClassInstance(null, className, requiredBaseClass);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException e) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IOException e) {
       fatal(confOption + " has an invalid class name: " + className);
     } catch (ClassCastException e) {
-      fatal(confOption + " must implement " + requiredBaseClass + ", but the configured class does not: " + className);
+      fatal(confOption + " must implement " + requiredBaseClass
+          + ", but the configured class does not: " + className);
     }
   }
 }

@@ -20,9 +20,11 @@ import javax.management.ObjectName;
 
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 
-public class TabletServerScanMetrics extends AbstractMetricsImpl implements TabletServerScanMetricsMBean {
+public class TabletServerScanMetrics extends AbstractMetricsImpl
+    implements TabletServerScanMetricsMBean {
 
-  static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TabletServerScanMetrics.class);
+  static final org.slf4j.Logger log = org.slf4j.LoggerFactory
+      .getLogger(TabletServerScanMetrics.class);
 
   public static final String METRICS_PREFIX = "tserver.scan";
 
@@ -32,7 +34,9 @@ public class TabletServerScanMetrics extends AbstractMetricsImpl implements Tabl
     super();
     reset();
     try {
-      OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerScanMetricsMBean,instance=" + Thread.currentThread().getName());
+      OBJECT_NAME = new ObjectName(
+          "accumulo.server.metrics:service=TServerInfo,name=TabletServerScanMetricsMBean,instance="
+              + Thread.currentThread().getName());
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }

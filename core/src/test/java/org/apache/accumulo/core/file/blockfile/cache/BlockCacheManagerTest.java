@@ -24,10 +24,14 @@ public class BlockCacheManagerTest {
 
   @Test
   public void testGetPropertyPrefix() throws Exception {
-    Assert.assertEquals("tserver.cache.config.lru.data.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.DATA));
-    Assert.assertEquals("tserver.cache.config.lru.index.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.INDEX));
-    Assert.assertEquals("tserver.cache.config.lru.summary.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.SUMMARY));
-    Assert.assertEquals("tserver.cache.config.lru.default.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru"));
+    Assert.assertEquals("tserver.cache.config.lru.data.",
+        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.DATA));
+    Assert.assertEquals("tserver.cache.config.lru.index.",
+        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.INDEX));
+    Assert.assertEquals("tserver.cache.config.lru.summary.",
+        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.SUMMARY));
+    Assert.assertEquals("tserver.cache.config.lru.default.",
+        BlockCacheManager.getFullyQualifiedPropertyPrefix("lru"));
   }
 
 }

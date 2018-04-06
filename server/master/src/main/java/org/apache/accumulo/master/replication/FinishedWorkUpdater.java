@@ -49,7 +49,8 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * Update the status record in the replication table with work that has been replicated to each configured peer.
+ * Update the status record in the replication table with work that has been replicated to each
+ * configured peer.
  */
 public class FinishedWorkUpdater implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(FinishedWorkUpdater.class);
@@ -90,11 +91,13 @@ public class FinishedWorkUpdater implements Runnable {
         try {
           wholeRow = WholeRowIterator.decodeRow(serializedRow.getKey(), serializedRow.getValue());
         } catch (IOException e) {
-          log.warn("Could not deserialize whole row with key {}", serializedRow.getKey().toStringNoTruncate(), e);
+          log.warn("Could not deserialize whole row with key {}",
+              serializedRow.getKey().toStringNoTruncate(), e);
           continue;
         }
 
-        log.debug("Processing work progress for {} with {} columns", serializedRow.getKey().getRow(), wholeRow.size());
+        log.debug("Processing work progress for {} with {} columns",
+            serializedRow.getKey().getRow(), wholeRow.size());
 
         Map<Table.ID,Long> tableIdToProgress = new HashMap<>();
         boolean error = false;
@@ -120,8 +123,10 @@ public class FinishedWorkUpdater implements Runnable {
             tableIdToProgress.put(target.getSourceTableId(), Long.MAX_VALUE);
           }
 
-          // Find the minimum value for begin (everyone has replicated up to this offset in the file)
-          tableIdToProgress.put(target.getSourceTableId(), Math.min(tableIdToProgress.get(target.getSourceTableId()), status.getBegin()));
+          // Find the minimum value for begin (everyone has replicated up to this offset in the
+          // file)
+          tableIdToProgress.put(target.getSourceTableId(),
+              Math.min(tableIdToProgress.get(target.getSourceTableId()), status.getBegin()));
         }
 
         if (error) {
@@ -130,14 +135,16 @@ public class FinishedWorkUpdater implements Runnable {
 
         // Update the replication table for each source table we found work records for
         for (Entry<Table.ID,Long> entry : tableIdToProgress.entrySet()) {
-          // If the progress is 0, then no one has replicated anything, and we don't need to update anything
+          // If the progress is 0, then no one has replicated anything, and we don't need to update
+          // anything
           if (0 == entry.getValue()) {
             continue;
           }
 
           serializedRow.getKey().getRow(buffer);
 
-          log.debug("For {}, source table ID {} has replicated through {}", serializedRow.getKey().getRow(), entry.getKey(), entry.getValue());
+          log.debug("For {}, source table ID {} has replicated through {}",
+              serializedRow.getKey().getRow(), entry.getKey(), entry.getValue());
 
           Mutation replMutation = new Mutation(buffer);
 
@@ -151,12 +158,15 @@ public class FinishedWorkUpdater implements Runnable {
           // Make the mutation
           StatusSection.add(replMutation, srcTableId, serializedUpdatedStatus);
 
-          log.debug("Updating replication status entry for {} with {}", serializedRow.getKey().getRow(), ProtobufUtil.toString(updatedStatus));
+          log.debug("Updating replication status entry for {} with {}",
+              serializedRow.getKey().getRow(), ProtobufUtil.toString(updatedStatus));
 
           try {
             replBw.addMutation(replMutation);
           } catch (MutationsRejectedException e) {
-            log.error("Error writing mutations to update replication Status messages in StatusSection, will retry", e);
+            log.error(
+                "Error writing mutations to update replication Status messages in StatusSection, will retry",
+                e);
             return;
           }
         }
@@ -169,7 +179,9 @@ public class FinishedWorkUpdater implements Runnable {
       try {
         replBw.close();
       } catch (MutationsRejectedException e) {
-        log.error("Error writing mutations to update replication Status messages in StatusSection, will retry", e);
+        log.error(
+            "Error writing mutations to update replication Status messages in StatusSection, will retry",
+            e);
       }
     }
   }

@@ -70,7 +70,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    final String readAhead = c.instanceOperations().getSystemConfiguration().get(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey());
+    final String readAhead = c.instanceOperations().getSystemConfiguration()
+        .get(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey());
     c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "1");
     try {
       Thread.sleep(1000);
@@ -117,16 +118,20 @@ public class BloomFilterIT extends AccumuloClusterHarness {
 
       log.info("Rewriting with bloom filters");
       c.tableOperations().setProperty(tables[0], Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      c.tableOperations().setProperty(tables[0], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
+      c.tableOperations().setProperty(tables[0], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
+          RowFunctor.class.getName());
 
       c.tableOperations().setProperty(tables[1], Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      c.tableOperations().setProperty(tables[1], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), ColumnFamilyFunctor.class.getName());
+      c.tableOperations().setProperty(tables[1], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
+          ColumnFamilyFunctor.class.getName());
 
       c.tableOperations().setProperty(tables[2], Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      c.tableOperations().setProperty(tables[2], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), ColumnQualifierFunctor.class.getName());
+      c.tableOperations().setProperty(tables[2], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
+          ColumnQualifierFunctor.class.getName());
 
       c.tableOperations().setProperty(tables[3], Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      c.tableOperations().setProperty(tables[3], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
+      c.tableOperations().setProperty(tables[3], Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
+          RowFunctor.class.getName());
 
       // ensure the updates to zookeeper propagate
       UtilWaitThread.sleep(500);
@@ -155,19 +160,22 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         }
       }
     } finally {
-      c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), readAhead);
+      c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(),
+          readAhead);
     }
   }
 
   private void timeCheck(long t1, long t2) throws Exception {
     double improvement = (t1 - t2) * 1.0 / t1;
     if (improvement < .1) {
-      throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2 + " improvement: " + (improvement * 100) + "%)");
+      throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2
+          + " improvement: " + (improvement * 100) + "%)");
     }
     log.info(String.format("Improvement: %.2f%% (%d vs %d)", (improvement * 100), t1, t2));
   }
 
-  private long query(Connector c, String table, int depth, long start, long end, int num, int step) throws Exception {
+  private long query(Connector c, String table, int depth, long start, long end, int num, int step)
+      throws Exception {
     Random r = new Random(42);
 
     HashSet<Long> expected = new HashSet<>();
@@ -195,7 +203,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
           break;
         case 3:
           acuKey = new Key(row, cf, key);
-          range = new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false);
+          range = new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL),
+              false);
           break;
       }
 
@@ -222,7 +231,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     }
   }
 
-  private void write(Connector c, String table, int depth, long start, long end, int step) throws Exception {
+  private void write(Connector c, String table, int depth, long start, long end, int step)
+      throws Exception {
 
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
 

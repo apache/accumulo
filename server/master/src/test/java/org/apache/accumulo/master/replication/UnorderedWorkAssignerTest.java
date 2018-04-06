@@ -67,8 +67,9 @@ public class UnorderedWorkAssignerTest {
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
 
-    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
-        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
         + target.getSourceTableId();
 
     workQueue.addWork(expectedQueueKey, p.toString());
@@ -86,7 +87,8 @@ public class UnorderedWorkAssignerTest {
   public void existingWorkIsReQueued() throws Exception {
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
 
-    List<String> existingWork = Arrays.asList("/accumulo/wal/tserver+port/wal1", "/accumulo/wal/tserver+port/wal2");
+    List<String> existingWork = Arrays.asList("/accumulo/wal/tserver+port/wal1",
+        "/accumulo/wal/tserver+port/wal2");
     expect(workQueue.getWorkQueued()).andReturn(existingWork);
 
     replay(workQueue);
@@ -97,8 +99,10 @@ public class UnorderedWorkAssignerTest {
     verify(workQueue);
 
     Set<String> queuedWork = assigner.getQueuedWork();
-    Assert.assertEquals("Expected existing work and queued work to be the same size", existingWork.size(), queuedWork.size());
-    Assert.assertTrue("Expected all existing work to be queued", queuedWork.containsAll(existingWork));
+    Assert.assertEquals("Expected existing work and queued work to be the same size",
+        existingWork.size(), queuedWork.size());
+    Assert.assertTrue("Expected all existing work to be queued",
+        queuedWork.containsAll(existingWork));
   }
 
   @Test
@@ -112,8 +116,10 @@ public class UnorderedWorkAssignerTest {
 
     expect(conn.getInstance()).andReturn(inst);
     expect(inst.getInstanceID()).andReturn("id");
-    expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal1")).andReturn(null);
-    expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal2")).andReturn(null);
+    expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal1"))
+        .andReturn(null);
+    expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal2"))
+        .andReturn(null);
 
     replay(cache, inst, conn);
 

@@ -37,8 +37,9 @@ import org.apache.commons.cli.CommandLine;
 
 public class RenameNamespaceCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, TableExistsException, NamespaceNotFoundException, NamespaceExistsException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException, NamespaceNotFoundException, NamespaceExistsException {
     String old = cl.getArgs()[0];
     String newer = cl.getArgs()[1];
     boolean resetContext = false;
@@ -70,7 +71,8 @@ public class RenameNamespaceCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForNamespaces(root, special);
   }
 

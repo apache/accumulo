@@ -50,7 +50,8 @@ public class Namespaces {
     public String invalidMessage(String namespace) {
       if (namespace == null)
         return "Namespace cannot be null";
-      return "Namespaces must only contain word characters (letters, digits, and underscores): " + namespace;
+      return "Namespaces must only contain word characters (letters, digits, and underscores): "
+          + namespace;
     }
   };
 
@@ -79,7 +80,8 @@ public class Namespaces {
   };
 
   private static ZooCache getZooCache(Instance instance) {
-    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
   }
 
   public static boolean exists(Instance instance, Namespace.ID namespaceId) {
@@ -88,7 +90,8 @@ public class Namespaces {
     return namespaceIds.contains(namespaceId.canonicalID());
   }
 
-  public static List<Table.ID> getTableIds(Instance instance, Namespace.ID namespaceId) throws NamespaceNotFoundException {
+  public static List<Table.ID> getTableIds(Instance instance, Namespace.ID namespaceId)
+      throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
     List<Table.ID> tableIds = new LinkedList<>();
     for (Entry<String,Table.ID> nameToId : Tables.getNameToIdMap(instance).entrySet())
@@ -97,7 +100,8 @@ public class Namespaces {
     return tableIds;
   }
 
-  public static List<String> getTableNames(Instance instance, Namespace.ID namespaceId) throws NamespaceNotFoundException {
+  public static List<String> getTableNames(Instance instance, Namespace.ID namespaceId)
+      throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
     List<String> names = new LinkedList<>();
     for (String name : Tables.getNameToIdMap(instance).keySet())
@@ -107,13 +111,15 @@ public class Namespaces {
   }
 
   /**
-   * Gets all the namespaces from ZK. The first arg (t) the BiConsumer accepts is the ID and the second (u) is the namespaceName.
+   * Gets all the namespaces from ZK. The first arg (t) the BiConsumer accepts is the ID and the
+   * second (u) is the namespaceName.
    */
   private static void getAllNamespaces(Instance instance, BiConsumer<String,String> biConsumer) {
     final ZooCache zc = getZooCache(instance);
     List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
     for (String id : namespaceIds) {
-      byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
+      byte[] path = zc.get(
+          ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
       if (path != null) {
         biConsumer.accept(id, new String(path, UTF_8));
       }
@@ -141,14 +147,16 @@ public class Namespaces {
   /**
    * Look for namespace ID in ZK. Throw NamespaceNotFoundException if not found.
    */
-  public static Namespace.ID getNamespaceId(Instance instance, String namespaceName) throws NamespaceNotFoundException {
+  public static Namespace.ID getNamespaceId(Instance instance, String namespaceName)
+      throws NamespaceNotFoundException {
     final ArrayList<Namespace.ID> singleId = new ArrayList<>(1);
     getAllNamespaces(instance, (id, name) -> {
       if (name.equals(namespaceName))
         singleId.add(Namespace.ID.of(id));
     });
     if (singleId.isEmpty())
-      throw new NamespaceNotFoundException(null, namespaceName, "getNamespaceId() failed to find namespace");
+      throw new NamespaceNotFoundException(null, namespaceName,
+          "getNamespaceId() failed to find namespace");
     return singleId.get(0);
   }
 
@@ -176,14 +184,17 @@ public class Namespaces {
   /**
    * Look for namespace name in ZK. Throw NamespaceNotFoundException if not found.
    */
-  public static String getNamespaceName(Instance instance, Namespace.ID namespaceId) throws NamespaceNotFoundException {
+  public static String getNamespaceName(Instance instance, Namespace.ID namespaceId)
+      throws NamespaceNotFoundException {
     String name;
     ZooCache zc = getZooCache(instance);
-    byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId.canonicalID() + Constants.ZNAMESPACE_NAME);
+    byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/"
+        + namespaceId.canonicalID() + Constants.ZNAMESPACE_NAME);
     if (path != null)
       name = new String(path, UTF_8);
     else
-      throw new NamespaceNotFoundException(namespaceId.canonicalID(), null, "getNamespaceName() failed to find namespace");
+      throw new NamespaceNotFoundException(namespaceId.canonicalID(), null,
+          "getNamespaceName() failed to find namespace");
     return name;
   }
 

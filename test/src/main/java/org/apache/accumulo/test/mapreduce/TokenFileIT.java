@@ -85,7 +85,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 3) {
-        throw new IllegalArgumentException("Usage : " + MRTokenFileTester.class.getName() + " <token file> <inputtable> <outputtable>");
+        throw new IllegalArgumentException("Usage : " + MRTokenFileTester.class.getName()
+            + " <token file> <inputtable> <outputtable>");
       }
 
       String user = getAdminPrincipal();
@@ -93,7 +94,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
       String table1 = args[1];
       String table2 = args[2];
 
-      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(),
+          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloInputFormat.class);
@@ -125,13 +127,15 @@ public class TokenFileIT extends AccumuloClusterHarness {
       Configuration conf = CachedConfiguration.getInstance();
       conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void testMR() throws Exception {

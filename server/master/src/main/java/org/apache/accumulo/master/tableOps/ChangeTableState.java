@@ -43,8 +43,10 @@ public class ChangeTableState extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    // reserve the table so that this op does not run concurrently with create, clone, or delete table
-    return Utils.reserveNamespace(namespaceId, tid, false, true, top) + Utils.reserveTable(tableId, tid, true, true, top);
+    // reserve the table so that this op does not run concurrently with create, clone, or delete
+    // table
+    return Utils.reserveNamespace(namespaceId, tid, false, true, top)
+        + Utils.reserveTable(tableId, tid, true, true, top);
   }
 
   @Override

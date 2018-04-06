@@ -53,8 +53,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
-  static final List<ServerType> ALL_SERVER_TYPES = Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER,
-      ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
+  static final List<ServerType> ALL_SERVER_TYPES = Collections
+      .unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
+          ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private ConnectionInfo info;
   private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
@@ -126,8 +127,10 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return Connector.builder().forInstance(getInstanceName(), getZooKeepers()).usingToken(user, token).build();
+  public Connector getConnector(String user, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
+    return Connector.builder().forInstance(getInstanceName(), getZooKeepers())
+        .usingToken(user, token).build();
   }
 
   @Override
@@ -142,14 +145,16 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public StandaloneClusterControl getClusterControl() {
-    return new StandaloneClusterControl(accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, clientCmdPrefix, serverCmdPrefix);
+    return new StandaloneClusterControl(accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir,
+        clientCmdPrefix, serverCmdPrefix);
   }
 
   @Override
   public void start() throws IOException {
     StandaloneClusterControl control = getClusterControl();
 
-    // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
+    // TODO We can check the hosts files, but that requires us to be on a host with the
+    // installation. Limitation at the moment.
 
     control.setGoalState(MasterGoalState.NORMAL.toString());
 
@@ -162,7 +167,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public void stop() throws IOException {
     StandaloneClusterControl control = getClusterControl();
 
-    // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
+    // TODO We can check the hosts files, but that requires us to be on a host with the
+    // installation. Limitation at the moment.
 
     for (ServerType type : ALL_SERVER_TYPES) {
       control.stopAllServers(type);
@@ -191,7 +197,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   public ClusterUser getUser(int offset) {
-    checkArgument(offset >= 0 && offset < users.size(), "Invalid offset, should be non-negative and less than " + users.size());
+    checkArgument(offset >= 0 && offset < users.size(),
+        "Invalid offset, should be non-negative and less than " + users.size());
     return users.get(offset);
   }
 

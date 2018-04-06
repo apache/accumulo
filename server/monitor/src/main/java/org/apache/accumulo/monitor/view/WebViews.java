@@ -86,7 +86,8 @@ public class WebViews {
         monitorResources.add(monitorResource);
       }
     } catch (IOException e) {
-      log.error("Error Monitor Resources config property {}: {}", Property.MONITOR_RESOURCES_EXTERNAL, e);
+      log.error("Error Monitor Resources config property {}: {}",
+          Property.MONITOR_RESOURCES_EXTERNAL, e);
       return;
     }
     if (!monitorResources.isEmpty()) {
@@ -151,7 +152,8 @@ public class WebViews {
   @GET
   @Path("tservers")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTabletServers(@QueryParam("s") @Pattern(regexp = SERVER_REGEX_BLANK_OK) String server) {
+  public Map<String,Object> getTabletServers(
+      @QueryParam("s") @Pattern(regexp = SERVER_REGEX_BLANK_OK) String server) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");
@@ -236,9 +238,13 @@ public class WebViews {
   @GET
   @Path("vis")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getServerActivity(@QueryParam("shape") @DefaultValue("circles") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String shape,
+  public Map<String,Object> getServerActivity(
+      @QueryParam("shape") @DefaultValue("circles") @Pattern(
+          regexp = ALPHA_NUM_REGEX_BLANK_OK) String shape,
       @QueryParam("size") @DefaultValue("40") @Min(1) @Max(100) int size,
-      @QueryParam("motion") @DefaultValue("") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String motion, @QueryParam("color") @DefaultValue("allavg") @Pattern(
+      @QueryParam("motion") @DefaultValue("") @Pattern(
+          regexp = ALPHA_NUM_REGEX_BLANK_OK) String motion,
+      @QueryParam("color") @DefaultValue("allavg") @Pattern(
           regexp = ALPHA_NUM_REGEX_BLANK_OK) String color) {
 
     shape = isNotBlank(shape) ? shape : "circles";
@@ -284,9 +290,12 @@ public class WebViews {
   @GET
   @Path("tables/{tableID}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTables(@PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID) throws TableNotFoundException {
+  public Map<String,Object> getTables(
+      @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
+      throws TableNotFoundException {
 
-    String tableName = Tables.getTableName(Monitor.getContext().getInstance(), Table.ID.of(tableID));
+    String tableName = Tables.getTableName(Monitor.getContext().getInstance(),
+        Table.ID.of(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
@@ -309,7 +318,8 @@ public class WebViews {
   @GET
   @Path("trace/summary")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTracesSummary(@QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
+  public Map<String,Object> getTracesSummary(
+      @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
     model.put("title", "Traces for the last&nbsp;" + String.valueOf(minutes) + "&nbsp;minute(s)");
 
@@ -332,10 +342,12 @@ public class WebViews {
   @GET
   @Path("trace/listType")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTracesForType(@QueryParam("type") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String type,
+  public Map<String,Object> getTracesForType(
+      @QueryParam("type") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String type,
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
-    model.put("title", "Traces for " + type + " for the last " + String.valueOf(minutes) + " minute(s)");
+    model.put("title",
+        "Traces for " + type + " for the last " + String.valueOf(minutes) + " minute(s)");
 
     model.put("template", "listType.ftl");
     model.put("js", "listType.js");
@@ -355,7 +367,8 @@ public class WebViews {
   @GET
   @Path("trace/show")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTraceShow(@QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) {
+  public Map<String,Object> getTraceShow(
+      @QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Trace ID " + id);
@@ -394,7 +407,8 @@ public class WebViews {
   @GET
   @Path("problems")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getProblems(@QueryParam("table") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
+  public Map<String,Object> getProblems(
+      @QueryParam("table") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Per-Table Problem Report");

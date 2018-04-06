@@ -22,8 +22,9 @@ import java.util.Iterator;
 import com.google.common.collect.Iterators;
 
 /**
- * An {@link ArrayList} implementation that represents a type-safe pre-allocated array. This should be used exactly like an array, but helps avoid type-safety
- * issues when mixing arrays with generics. The iterator is unmodifiable.
+ * An {@link ArrayList} implementation that represents a type-safe pre-allocated array. This should
+ * be used exactly like an array, but helps avoid type-safety issues when mixing arrays with
+ * generics. The iterator is unmodifiable.
  */
 public class PreAllocatedArray<T> implements Iterable<T> {
 

@@ -49,8 +49,10 @@ public class AccumuloFileOutputFormatTest {
     samplerConfig.addOption("hasher", "murmur3_32");
     samplerConfig.addOption("modulus", "109");
 
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(VisibilitySummarizer.class).addOption(CountingSummarizer.MAX_COUNTERS_OPT, 2048).build();
-    SummarizerConfiguration sc2 = SummarizerConfiguration.builder(FamilySummarizer.class).addOption(CountingSummarizer.MAX_COUNTERS_OPT, 256).build();
+    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(VisibilitySummarizer.class)
+        .addOption(CountingSummarizer.MAX_COUNTERS_OPT, 2048).build();
+    SummarizerConfiguration sc2 = SummarizerConfiguration.builder(FamilySummarizer.class)
+        .addOption(CountingSummarizer.MAX_COUNTERS_OPT, 256).build();
 
     Job job1 = Job.getInstance();
     AccumuloFileOutputFormat.setReplication(job1, a);
@@ -61,16 +63,19 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setSampler(job1, samplerConfig);
     AccumuloFileOutputFormat.setSummarizers(job1, sc1, sc2);
 
-    AccumuloConfiguration acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
+    AccumuloConfiguration acuconf = FileOutputConfigurator
+        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300l, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));
     assertEquals(50l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(10l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+    assertEquals(new SamplerConfigurationImpl(samplerConfig),
+        SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
-    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration.fromTableProperties(acuconf);
+    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration
+        .fromTableProperties(acuconf);
     assertEquals(2, summarizerConfigs.size());
     assertTrue(summarizerConfigs.contains(sc1));
     assertTrue(summarizerConfigs.contains(sc2));
@@ -92,14 +97,16 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job2, e);
     AccumuloFileOutputFormat.setSampler(job2, samplerConfig);
 
-    acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job2.getConfiguration());
+    acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class,
+        job2.getConfiguration());
 
     assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(1300l, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));
     assertEquals(150l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(110l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+    assertEquals(new SamplerConfigurationImpl(samplerConfig),
+        SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
     summarizerConfigs = SummarizerConfiguration.fromTableProperties(acuconf);
     assertEquals(0, summarizerConfigs.size());

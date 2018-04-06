@@ -39,10 +39,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An iterator that provides a sorted-iteration of column qualifiers for a set of column families in a row. It is important to note that this iterator
- * <em>does not</em> adhere to the contract set forth by the {@link SortedKeyValueIterator}. It returns Keys in {@code row+colqual} order instead of
- * {@code row+colfam+colqual} order. This is required for the implementation of this iterator (to work in conjunction with the {@code IntersectingIterator}) but
- * is a code-smell. This iterator should only be used at query time, never at compaction time.
+ * An iterator that provides a sorted-iteration of column qualifiers for a set of column families in
+ * a row. It is important to note that this iterator <em>does not</em> adhere to the contract set
+ * forth by the {@link SortedKeyValueIterator}. It returns Keys in {@code row+colqual} order instead
+ * of {@code row+colfam+colqual} order. This is required for the implementation of this iterator (to
+ * work in conjunction with the {@code IntersectingIterator}) but is a code-smell. This iterator
+ * should only be used at query time, never at compaction time.
  *
  * The table structure should have the following form:
  *
@@ -50,10 +52,11 @@ import org.slf4j.LoggerFactory;
  * row term:docId =&gt; value
  * </pre>
  *
- * Users configuring this iterator must set the option {@link #COLUMNS_KEY}. This value is a comma-separated list of column families that should be "OR"'ed
- * together.
+ * Users configuring this iterator must set the option {@link #COLUMNS_KEY}. This value is a
+ * comma-separated list of column families that should be "OR"'ed together.
  *
- * For example, given the following data and a value of {@code or.iterator.columns="steve,bob"} in the iterator options map:
+ * For example, given the following data and a value of {@code or.iterator.columns="steve,bob"} in
+ * the iterator options map:
  *
  * <pre>
  * row1 bob:4
@@ -102,7 +105,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
       this.iter = Objects.requireNonNull(iter);
       this.term = Objects.requireNonNull(term);
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections.singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams = Collections
+          .singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
       // No current range until we're seek()'ed for the first time
       this.currentRange = null;
     }
@@ -127,17 +131,19 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
     }
 
     /**
-     * Converts the given {@code Range} into the correct {@code Range} for this TermSource (per this expected table structure) and then seeks this TermSource's
-     * SKVI.
+     * Converts the given {@code Range} into the correct {@code Range} for this TermSource (per this
+     * expected table structure) and then seeks this TermSource's SKVI.
      */
     public void seek(Range originalRange) throws IOException {
       // the infinite start key is equivalent to a null startKey on the Range.
       if (!originalRange.isInfiniteStartKey()) {
         Key originalStartKey = originalRange.getStartKey();
         // Pivot the provided range into the range for this term
-        Key newKey = new Key(originalStartKey.getRow(), term, originalStartKey.getColumnQualifier(), originalStartKey.getTimestamp());
+        Key newKey = new Key(originalStartKey.getRow(), term, originalStartKey.getColumnQualifier(),
+            originalStartKey.getTimestamp());
         // Construct the new range, preserving the other attributes on the provided range.
-        currentRange = new Range(newKey, originalRange.isStartKeyInclusive(), originalRange.getEndKey(), originalRange.isEndKeyInclusive());
+        currentRange = new Range(newKey, originalRange.isStartKeyInclusive(),
+            originalRange.getEndKey(), originalRange.isEndKeyInclusive());
       } else {
         currentRange = originalRange;
       }
@@ -148,12 +154,14 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-      sb.append("TermSource{term=").append(term).append(", currentRange=").append(currentRange).append("}");
+      sb.append("TermSource{term=").append(term).append(", currentRange=").append(currentRange)
+          .append("}");
       return sb.toString();
     }
 
     /**
-     * @return True if there is a valid topKey which falls into the range this TermSource's iterator was last seeked to, false otherwise.
+     * @return True if there is a valid topKey which falls into the range this TermSource's iterator
+     *         was last seeked to, false otherwise.
      */
     boolean hasEntryForTerm() {
       if (!iter.hasTop()) {
@@ -180,7 +188,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
     return new OrIterator(this, env);
   }
 
-  public void setTerms(SortedKeyValueIterator<Key,Value> source, Collection<String> terms, IteratorEnvironment env) {
+  public void setTerms(SortedKeyValueIterator<Key,Value> source, Collection<String> terms,
+      IteratorEnvironment env) {
     ArrayList<TermSource> newTerms = new ArrayList<>();
     for (String term : terms) {
       newTerms.add(new TermSource(source.deepCopy(env), new Text(term)));
@@ -218,7 +227,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     LOG.trace("seek() range={}", range);
     // If sources.size is 0, there is nothing to process, so just return.
     if (sources.isEmpty()) {
@@ -288,11 +298,13 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     LOG.trace("init()");
     String columnsValue = options.get(COLUMNS_KEY);
     if (null == columnsValue) {
-      throw new IllegalArgumentException(COLUMNS_KEY + " was not provided in the iterator configuration");
+      throw new IllegalArgumentException(
+          COLUMNS_KEY + " was not provided in the iterator configuration");
     }
     String[] columns = StringUtils.split(columnsValue, ',');
     setTerms(source, Arrays.asList(columns), env);
@@ -303,7 +315,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   public IteratorOptions describeOptions() {
     Map<String,String> options = new HashMap<>();
     options.put(COLUMNS_KEY, "A comma-separated list of families");
-    return new IteratorOptions("OrIterator", "Produces a sorted stream of qualifiers based on families", options, Collections.emptyList());
+    return new IteratorOptions("OrIterator",
+        "Produces a sorted stream of qualifiers based on families", options,
+        Collections.emptyList());
   }
 
   @Override

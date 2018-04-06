@@ -97,8 +97,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     for (LogWriter writer : cluster.getLogWriters()) {
       writer.flush();
     }
-    return Maps.immutableEntry(exitCode,
-        readAll(new FileInputStream(cluster.getConfig().getLogDir() + "/" + clz.getSimpleName() + "_" + p.hashCode() + ".out")));
+    return Maps.immutableEntry(exitCode, readAll(new FileInputStream(cluster.getConfig().getLogDir()
+        + "/" + clz.getSimpleName() + "_" + p.hashCode() + ".out")));
   }
 
   private String readAll(InputStream is) throws IOException {
@@ -137,7 +137,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, hostname, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
-  public synchronized void start(ServerType server, String hostname, Map<String,String> configOverrides, int limit) throws IOException {
+  public synchronized void start(ServerType server, String hostname,
+      Map<String,String> configOverrides, int limit) throws IOException {
     if (limit <= 0) {
       return;
     }
@@ -146,7 +147,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           int count = 0;
-          for (int i = tabletServerProcesses.size(); count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
+          for (int i = tabletServerProcesses.size(); count < limit
+              && i < cluster.getConfig().getNumTservers(); i++, ++count) {
             tabletServerProcesses.add(cluster._exec(TabletServer.class, server, configOverrides));
           }
         }
@@ -158,7 +160,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case ZOOKEEPER:
         if (null == zooKeeperProcess) {
-          zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides, cluster.getZooCfgFile().getAbsolutePath());
+          zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides,
+              cluster.getZooCfgFile().getAbsolutePath());
         }
         break;
       case GARBAGE_COLLECTOR:
@@ -296,7 +299,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     throw new UnsupportedOperationException();
   }
 
-  public void killProcess(ServerType type, ProcessReference procRef) throws ProcessNotFoundException, InterruptedException {
+  public void killProcess(ServerType type, ProcessReference procRef)
+      throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
     switch (type) {
       case MASTER:

@@ -21,7 +21,8 @@ import static java.util.Objects.requireNonNull;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 
 /**
- * A summary of the invocation of an {@link IteratorTestInput} over a {@link IteratorTestCase} with the expected {@link IteratorTestOutput}.
+ * A summary of the invocation of an {@link IteratorTestInput} over a {@link IteratorTestCase} with
+ * the expected {@link IteratorTestOutput}.
  */
 public class IteratorTestReport {
 
@@ -30,7 +31,8 @@ public class IteratorTestReport {
   private final IteratorTestCase testCase;
   private final IteratorTestOutput actualOutput;
 
-  public IteratorTestReport(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestOutput actualOutput, IteratorTestCase testCase) {
+  public IteratorTestReport(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestOutput actualOutput, IteratorTestCase testCase) {
     this.input = requireNonNull(input);
     this.expectedOutput = requireNonNull(expectedOutput);
     this.testCase = requireNonNull(testCase);

@@ -102,7 +102,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     String results = test(20, true);
     if (results != null) {
       if (!results.contains("Session expired")) {
-        log.info("Failed to find 'Session expired' in output, but TServer did die which is expected");
+        log.info(
+            "Failed to find 'Session expired' in output, but TServer did die which is expected");
       }
     }
   }
@@ -143,13 +144,14 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       t.start();
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       // don't need the regular tablet server
-      cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+      cluster.killProcess(ServerType.TABLET_SERVER,
+          cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       c.tableOperations().create("test_ingest");
       assertEquals(1, c.instanceOperations().getTabletServers().size());
       int rows = 100 * 1000;
-      ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows
-          + "");
+      ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z",
+          cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows + "");
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
       // block I/O with some side-channel trickiness
@@ -209,9 +211,11 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     String platform = System.getProperty("os.name");
     String cmd[];
     if (platform.equals("Darwin")) {
-      cmd = new String[] {"gcc", "-arch", "x86_64", "-arch", "i386", "-dynamiclib", "-O3", "-fPIC", source, "-o", lib};
+      cmd = new String[] {"gcc", "-arch", "x86_64", "-arch", "i386", "-dynamiclib", "-O3", "-fPIC",
+          source, "-o", lib};
     } else {
-      cmd = new String[] {"gcc", "-D_GNU_SOURCE", "-Wall", "-fPIC", source, "-shared", "-o", lib, "-ldl"};
+      cmd = new String[] {"gcc", "-D_GNU_SOURCE", "-Wall", "-fPIC", source, "-shared", "-o", lib,
+          "-ldl"};
     }
     Process gcc = Runtime.getRuntime().exec(cmd);
     return gcc.waitFor() == 0;

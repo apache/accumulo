@@ -37,9 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * All the static too methods used for this class, so that we can separate out stuff that isn't using ZooKeeper. That way, we can check the synchronization
- * model more easily, as we only need to check to make sure zooCache is cleared when things are written to ZooKeeper in methods that might use it. These won't,
- * and so don't need to be checked.
+ * All the static too methods used for this class, so that we can separate out stuff that isn't
+ * using ZooKeeper. That way, we can check the synchronization model more easily, as we only need to
+ * check to make sure zooCache is cleared when things are written to ZooKeeper in methods that might
+ * use it. These won't, and so don't need to be checked.
  */
 class ZKSecurityTool {
   private static final Logger log = LoggerFactory.getLogger(ZKSecurityTool.class);
@@ -112,7 +113,8 @@ class ZKSecurityTool {
         out.writeByte(sp.getId());
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
+                                     // this happens
     }
     return bytes.toByteArray();
   }
@@ -139,7 +141,8 @@ class ZKSecurityTool {
         out.writeByte(tp.getId());
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
+                                     // this happens
     }
     return bytes.toByteArray();
   }
@@ -159,7 +162,8 @@ class ZKSecurityTool {
         out.writeByte(tnp.getId());
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
+                                     // this happens
     }
     return bytes.toByteArray();
   }

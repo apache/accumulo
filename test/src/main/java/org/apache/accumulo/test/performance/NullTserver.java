@@ -85,14 +85,16 @@ import org.apache.thrift.TException;
 import com.beust.jcommander.Parameter;
 
 /**
- * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the metadata location entries for a table to
- * point to it. This allows thrift performance to be measured by running any client code that writes to a table.
+ * The purpose of this class is to server as fake tserver that is a data sink like /dev/null.
+ * NullTserver modifies the metadata location entries for a table to point to it. This allows thrift
+ * performance to be measured by running any client code that writes to a table.
  *
  */
 
 public class NullTserver {
 
-  public static class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
+  public static class ThriftClientHandler extends ClientServiceHandler
+      implements TabletClientService.Iface {
 
     private long updateSession = 1;
 
@@ -106,7 +108,8 @@ public class NullTserver {
     }
 
     @Override
-    public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent keyExtent, List<TMutation> mutation) {}
+    public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent keyExtent,
+        List<TMutation> mutation) {}
 
     @Override
     public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
@@ -114,7 +117,8 @@ public class NullTserver {
     }
 
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
+    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid,
+        Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
       return null;
     }
 
@@ -135,92 +139,111 @@ public class NullTserver {
     }
 
     @Override
-    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent, ByteBuffer splitPoint) {
+    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent,
+        ByteBuffer splitPoint) {
 
     }
 
     @Override
-    public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
-        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration tsc,
-        long batchTimeOut, String context) {
+    public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
+        Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns, List<IterInfo> ssiList,
+        Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
+        TSamplerConfiguration tsc, long batchTimeOut, String context) {
       return null;
     }
 
     @Override
-    public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
-        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
-        long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut, String classLoaderContext) {
+    public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent,
+        TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
+        Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
+        boolean isolated, long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut,
+        String classLoaderContext) {
       return null;
     }
 
     @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent, TMutation mutation, TDurability durability) {
+    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent,
+        TMutation mutation, TDurability durability) {
 
     }
 
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials)
+        throws ThriftSecurityException, TException {
       return null;
     }
 
     @Override
-    public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId)
+        throws ThriftSecurityException, TException {
       return null;
     }
 
     @Override
-    public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
+    public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials)
+        throws ThriftSecurityException, TException {
       return null;
     }
 
     @Override
-    public void halt(TInfo tinfo, TCredentials credentials, String lock) throws ThriftSecurityException, TException {}
+    public void halt(TInfo tinfo, TCredentials credentials, String lock)
+        throws ThriftSecurityException, TException {}
 
     @Override
     public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {}
 
     @Override
-    public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {}
+    public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent)
+        throws TException {}
 
     @Override
-    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws TException {}
+    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent,
+        TUnloadTabletGoal goal, long requestTime) throws TException {}
 
     @Override
-    public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
+    public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
+        throws ThriftSecurityException, TException {
       return new ArrayList<>();
     }
 
     @Override
-    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {}
+    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent)
+        throws TException {}
 
     @Override
-    public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {
+    public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent)
+        throws TException {
 
     }
 
     @Override
-    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
+    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
+        ByteBuffer startRow, ByteBuffer endRow) throws TException {
 
     }
 
     @Override
-    public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
+    public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
+        ByteBuffer startRow, ByteBuffer endRow) throws TException {
 
     }
 
     @Override
-    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
+    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
+        throws ThriftSecurityException, TException {
       return new ArrayList<>();
     }
 
     @Override
-    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID,
-        TDurability durability, String classLoaderContext) throws ThriftSecurityException, TException {
+    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials,
+        List<ByteBuffer> authorizations, String tableID, TDurability durability,
+        String classLoaderContext) throws ThriftSecurityException, TException {
       return null;
     }
 
     @Override
-    public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID, Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
+    public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID,
+        Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
         throws NoSuchScanIDException, TException {
       return null;
     }
@@ -237,28 +260,33 @@ public class NullTserver {
     }
 
     @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {}
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames)
+        throws TException {}
 
     @Override
-    public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials, TSummaryRequest request) throws ThriftSecurityException,
-        ThriftTableOperationException, NoSuchScanIDException, TException {
+    public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials,
+        TSummaryRequest request) throws ThriftSecurityException, ThriftTableOperationException,
+        NoSuchScanIDException, TException {
       return null;
     }
 
     @Override
-    public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials, TSummaryRequest request, int modulus, int remainder)
+    public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials,
+        TSummaryRequest request, int modulus, int remainder)
         throws ThriftSecurityException, NoSuchScanIDException, TException {
       return null;
     }
 
     @Override
-    public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials, TSummaryRequest request, Map<String,List<TRowRange>> files)
+    public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials,
+        TSummaryRequest request, Map<String,List<TRowRange>> files)
         throws ThriftSecurityException, NoSuchScanIDException, TException {
       return null;
     }
 
     @Override
-    public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) throws NoSuchScanIDException, TException {
+    public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId)
+        throws NoSuchScanIDException, TException {
       return null;
     }
   }
@@ -266,7 +294,8 @@ public class NullTserver {
   static class Opts extends Help {
     @Parameter(names = {"-i", "--instance"}, description = "instance name", required = true)
     String iname = null;
-    @Parameter(names = {"-z", "--keepers"}, description = "comma-separated list of zookeeper host:ports", required = true)
+    @Parameter(names = {"-z", "--keepers"},
+        description = "comma-separated list of zookeeper host:ports", required = true)
     String keepers = null;
     @Parameter(names = "--table", description = "table to adopt", required = true)
     String tableName = null;
@@ -281,13 +310,16 @@ public class NullTserver {
     // modify metadata
     ZooKeeperInstance zki = new ZooKeeperInstance(opts.iname, opts.keepers);
     Instance inst = HdfsZooInstance.getInstance();
-    AccumuloServerContext context = new AccumuloServerContext(inst, new ServerConfigurationFactory(zki));
+    AccumuloServerContext context = new AccumuloServerContext(inst,
+        new ServerConfigurationFactory(zki));
 
     TransactionWatcher watcher = new TransactionWatcher();
-    ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(inst, new ServerConfigurationFactory(inst)), watcher);
+    ThriftClientHandler tch = new ThriftClientHandler(
+        new AccumuloServerContext(inst, new ServerConfigurationFactory(inst)), watcher);
     Processor<Iface> processor = new Processor<>(tch);
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer", "null tserver", 2, 1, 1000,
-        10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
+    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor,
+        "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
+        HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 

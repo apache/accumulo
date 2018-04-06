@@ -63,7 +63,8 @@ public class ProblemDetailInformation {
    * @param exception
    *          Exception of the problem
    */
-  public ProblemDetailInformation(String tableName, Table.ID tableId, String type, String server, Long time, String resource, String exception) {
+  public ProblemDetailInformation(String tableName, Table.ID tableId, String type, String server,
+      Long time, String resource, String exception) {
     this.tableName = tableName;
     this.tableID = tableId;
     this.type = type;

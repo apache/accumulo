@@ -31,7 +31,8 @@ public class MergeCommand extends Command {
   private Option verboseOpt, forceOpt, sizeOpt, allOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     boolean verbose = shellState.isVerbose();
     boolean force = false;
     boolean all = false;
@@ -53,7 +54,8 @@ public class MergeCommand extends Command {
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
       shellState.getReader().flush();
-      String line = shellState.getReader().readLine("Merge the entire table { " + tableName + " } into one tablet (yes|no)? ");
+      String line = shellState.getReader()
+          .readLine("Merge the entire table { " + tableName + " } into one tablet (yes|no)? ");
       if (line == null)
         return 0;
       if (!line.equalsIgnoreCase("y") && !line.equalsIgnoreCase("yes"))
@@ -94,9 +96,12 @@ public class MergeCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
     verboseOpt = new Option("v", "verbose", false, "verbose output during merge");
-    sizeOpt = new Option("s", "size", true, "merge tablets to the given size over the entire table");
-    forceOpt = new Option("f", "force", false, "merge small tablets to large tablets, even if it goes over the given size");
-    allOpt = new Option("", "all", false, "allow an entire table to be merged into one tablet without prompting the user for confirmation");
+    sizeOpt = new Option("s", "size", true,
+        "merge tablets to the given size over the entire table");
+    forceOpt = new Option("f", "force", false,
+        "merge small tablets to large tablets, even if it goes over the given size");
+    allOpt = new Option("", "all", false,
+        "allow an entire table to be merged into one tablet without prompting the user for confirmation");
     o.addOption(OptUtil.startRowOpt());
     o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to be merged"));

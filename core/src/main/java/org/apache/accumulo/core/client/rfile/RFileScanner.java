@@ -144,7 +144,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
           break;
         case 1:
           Entry<String,Loader> entry = depLoaders.entrySet().iterator().next();
-          depData = Collections.singletonMap(entry.getKey(), getBlock(entry.getKey(), entry.getValue()).getBuffer());
+          depData = Collections.singletonMap(entry.getKey(),
+              getBlock(entry.getKey(), entry.getValue()).getBuffer());
           break;
         default:
           depData = new HashMap<>();
@@ -173,7 +174,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   RFileScanner(Opts opts) {
     if (!opts.auths.equals(Authorizations.EMPTY) && !opts.useSystemIterators) {
-      throw new IllegalArgumentException("Set authorizations and specified not to use system iterators");
+      throw new IllegalArgumentException(
+          "Set authorizations and specified not to use system iterators");
     }
 
     this.opts = opts;
@@ -211,19 +213,22 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   @Override
   public synchronized void fetchColumnFamily(Text col) {
-    Preconditions.checkArgument(opts.useSystemIterators, "Can only fetch columns when using system iterators");
+    Preconditions.checkArgument(opts.useSystemIterators,
+        "Can only fetch columns when using system iterators");
     super.fetchColumnFamily(col);
   }
 
   @Override
   public synchronized void fetchColumn(Text colFam, Text colQual) {
-    Preconditions.checkArgument(opts.useSystemIterators, "Can only fetch columns when using system iterators");
+    Preconditions.checkArgument(opts.useSystemIterators,
+        "Can only fetch columns when using system iterators");
     super.fetchColumn(colFam, colQual);
   }
 
   @Override
   public void fetchColumn(IteratorSetting.Column column) {
-    Preconditions.checkArgument(opts.useSystemIterators, "Can only fetch columns when using system iterators");
+    Preconditions.checkArgument(opts.useSystemIterators,
+        "Can only fetch columns when using system iterators");
     super.fetchColumn(column);
   }
 
@@ -342,13 +347,15 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        readers.add(new RFile.Reader(new CachableBlockFile.Reader("source-" + i, inputStream, sources[i].getLength(), opts.in.getConf(), dataCache, indexCache,
-            DefaultConfiguration.getInstance())));
+        readers.add(new RFile.Reader(
+            new CachableBlockFile.Reader("source-" + i, inputStream, sources[i].getLength(),
+                opts.in.getConf(), dataCache, indexCache, DefaultConfiguration.getInstance())));
       }
 
       if (getSamplerConfiguration() != null) {
         for (int i = 0; i < readers.size(); i++) {
-          readers.set(i, ((Reader) readers.get(i)).getSample(new SamplerConfigurationImpl(getSamplerConfiguration())));
+          readers.set(i, ((Reader) readers.get(i))
+              .getSample(new SamplerConfigurationImpl(getSamplerConfiguration())));
         }
       }
 
@@ -364,21 +371,25 @@ class RFileScanner extends ScannerOptions implements Scanner {
       if (opts.useSystemIterators) {
         SortedSet<Column> cols = this.getFetchedColumns();
         families = LocalityGroupUtil.families(cols);
-        iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(), EMPTY_BYTES);
+        iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(),
+            EMPTY_BYTES);
       }
 
       try {
         if (opts.tableConfig != null && opts.tableConfig.size() > 0) {
           ConfigurationCopy conf = new ConfigurationCopy(opts.tableConfig);
-          iterator = IteratorUtil.loadIterators(IteratorScope.scan, iterator, null, conf, serverSideIteratorList, serverSideIteratorOptions, new IterEnv());
+          iterator = IteratorUtil.loadIterators(IteratorScope.scan, iterator, null, conf,
+              serverSideIteratorList, serverSideIteratorOptions, new IterEnv());
         } else {
-          iterator = IteratorUtil.loadIterators(iterator, serverSideIteratorList, serverSideIteratorOptions, new IterEnv(), false, null);
+          iterator = IteratorUtil.loadIterators(iterator, serverSideIteratorList,
+              serverSideIteratorOptions, new IterEnv(), false, null);
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
 
-      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, families.size() == 0 ? false : true);
+      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families,
+          families.size() == 0 ? false : true);
       return new IteratorAdapter(iterator);
 
     } catch (IOException e) {

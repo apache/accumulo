@@ -34,7 +34,8 @@ public class DistributedWorkQueueWorkAssignerHelper {
   public static final String KEY_SEPARATOR = "|";
 
   /**
-   * Serialize a filename and a {@link ReplicationTarget} into the expected key format for use with the {@link DistributedWorkQueue}
+   * Serialize a filename and a {@link ReplicationTarget} into the expected key format for use with
+   * the {@link DistributedWorkQueue}
    *
    * @param filename
    *          Filename for data to be replicated
@@ -43,8 +44,8 @@ public class DistributedWorkQueueWorkAssignerHelper {
    * @return Key for identifying work in queue
    */
   public static String getQueueKey(String filename, ReplicationTarget replTarget) {
-    return filename + KEY_SEPARATOR + replTarget.getPeerName() + KEY_SEPARATOR + replTarget.getRemoteIdentifier() + KEY_SEPARATOR
-        + replTarget.getSourceTableId();
+    return filename + KEY_SEPARATOR + replTarget.getPeerName() + KEY_SEPARATOR
+        + replTarget.getRemoteIdentifier() + KEY_SEPARATOR + replTarget.getSourceTableId();
   }
 
   /**
@@ -57,22 +58,27 @@ public class DistributedWorkQueueWorkAssignerHelper {
 
     int index = queueKey.indexOf(KEY_SEPARATOR);
     if (-1 == index) {
-      throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
+      throw new IllegalArgumentException(
+          "Could not find expected separator in queue key '" + queueKey + "'");
     }
 
     String filename = queueKey.substring(0, index);
 
     int secondIndex = queueKey.indexOf(KEY_SEPARATOR, index + 1);
     if (-1 == secondIndex) {
-      throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
+      throw new IllegalArgumentException(
+          "Could not find expected separator in queue key '" + queueKey + "'");
     }
 
     int thirdIndex = queueKey.indexOf(KEY_SEPARATOR, secondIndex + 1);
     if (-1 == thirdIndex) {
-      throw new IllegalArgumentException("Could not find expected seperator in queue key '" + queueKey + "'");
+      throw new IllegalArgumentException(
+          "Could not find expected seperator in queue key '" + queueKey + "'");
     }
 
-    return Maps.immutableEntry(filename, new ReplicationTarget(queueKey.substring(index + 1, secondIndex), queueKey.substring(secondIndex + 1, thirdIndex),
-        Table.ID.of(queueKey.substring(thirdIndex + 1))));
+    return Maps.immutableEntry(filename,
+        new ReplicationTarget(queueKey.substring(index + 1, secondIndex),
+            queueKey.substring(secondIndex + 1, thirdIndex),
+            Table.ID.of(queueKey.substring(thirdIndex + 1))));
   }
 }

@@ -19,8 +19,8 @@ package org.apache.accumulo.core.client.lexicoder;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
- * A lexicoder for signed integers. The encoding sorts Integer.MIN_VALUE first and Integer.MAX_VALUE last. The encoding sorts -2 before -1. It corresponds to
- * the sort order of Integer.
+ * A lexicoder for signed integers. The encoding sorts Integer.MIN_VALUE first and Integer.MAX_VALUE
+ * last. The encoding sorts -2 before -1. It corresponds to the sort order of Integer.
  *
  * @since 1.6.0
  */
@@ -35,7 +35,8 @@ public class IntegerLexicoder extends AbstractLexicoder<Integer> {
 
   @Override
   public Integer decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
+    // in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 

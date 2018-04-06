@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.categories;
 
 /**
- * Interface to be used with JUnit Category annotation to represent the integration test is for testing Accumulo's Monitor
+ * Interface to be used with JUnit Category annotation to represent the integration test is for
+ * testing Accumulo's Monitor
  */
 public interface MonitorTests {}

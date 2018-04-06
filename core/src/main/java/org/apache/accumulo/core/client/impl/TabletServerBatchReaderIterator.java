@@ -106,7 +106,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     void receive(List<Entry<Key,Value>> entries);
   }
 
-  public TabletServerBatchReaderIterator(ClientContext context, Table.ID tableId, Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
+  public TabletServerBatchReaderIterator(ClientContext context, Table.ID tableId,
+      Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
       ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
 
     this.context = context;
@@ -120,7 +121,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     this.locator = new TimeoutTabletLocator(timeout, context, tableId);
 
-    timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
+    timeoutTrackers = Collections
+        .synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());
     this.timeout = timeout;
 
@@ -184,8 +186,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg = "The BatchScanner was unexpectedly closed while this Iterator was still in use.";
-          log.error("{} Ensure that a reference to the BatchScanner is retained so that it can be closed when this Iterator is exhausted."
-              + " Not retaining a reference to the BatchScanner guarantees that you are leaking threads in your client JVM.", shortMsg);
+          log.error(
+              "{} Ensure that a reference to the BatchScanner is retained so that it can be closed when this Iterator is exhausted."
+                  + " Not retaining a reference to the BatchScanner guarantees that you are leaking threads in your client JVM.",
+              shortMsg);
           throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
@@ -213,7 +217,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     throw new UnsupportedOperationException();
   }
 
-  private synchronized void lookup(List<Range> ranges, ResultReceiver receiver) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private synchronized void lookup(List<Range> ranges, ResultReceiver receiver)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Column> columns = new ArrayList<>(options.fetchedColumns);
     ranges = Range.mergeOverlapping(ranges);
 
@@ -224,8 +229,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     doLookups(binnedRanges, receiver, columns);
   }
 
-  private void binRanges(TabletLocator tabletLocator, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  private void binRanges(TabletLocator tabletLocator, List<Range> ranges,
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     int lastFailureSize = Integer.MAX_VALUE;
 
@@ -235,9 +241,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
 
       if (failures.size() > 0) {
-        // tried to only do table state checks when failures.size() == ranges.size(), however this did
-        // not work because nothing ever invalidated entries in the tabletLocator cache... so even though
-        // the table was deleted the tablet locator entries for the deleted table were not cleared... so
+        // tried to only do table state checks when failures.size() == ranges.size(), however this
+        // did
+        // not work because nothing ever invalidated entries in the tabletLocator cache... so even
+        // though
+        // the table was deleted the tablet locator entries for the deleted table were not
+        // cleared... so
         // need to always do the check when failures occur
         if (failures.size() >= lastFailureSize)
           if (!Tables.exists(instance, tableId))
@@ -248,7 +257,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         lastFailureSize = failures.size();
 
         if (log.isTraceEnabled())
-          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms", failures.size());
+          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
+              failures.size());
 
         try {
           Thread.sleep(100);
@@ -280,8 +290,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     binnedRanges.putAll(binnedRanges2);
   }
 
-  private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver,
+      List<Column> columns)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (log.isTraceEnabled())
       log.trace("Failed to execute multiscans against {} tablets, retrying...", failures.size());
 
@@ -303,7 +314,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (List<Range> ranges : failures.values())
       allRanges.addAll(ranges);
 
-    // since the first call to binRanges clipped the ranges to within a tablet, we should not get only
+    // since the first call to binRanges clipped the ranges to within a tablet, we should not get
+    // only
     // bin to the set of failed tablets
     binRanges(locator, allRanges, binnedRanges);
 
@@ -324,7 +336,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     private List<Column> columns;
     private int semaphoreSize;
 
-    QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges, Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns) {
+    QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges,
+        Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns) {
       this.tsLocation = tsLocation;
       this.tabletsRanges = tabletsRanges;
       this.receiver = receiver;
@@ -340,7 +353,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     @Override
     public void run() {
       String threadName = Thread.currentThread().getName();
-      Thread.currentThread().setName(threadName + " looking up " + tabletsRanges.size() + " ranges at " + tsLocation);
+      Thread.currentThread()
+          .setName(threadName + " looking up " + tabletsRanges.size() + " ranges at " + tsLocation);
       Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
       Map<KeyExtent,List<Range>> tsFailures = new HashMap<>();
       try {
@@ -349,7 +363,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, timeout);
           timeoutTrackers.put(tsLocation, timeoutTracker);
         }
-        doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns, options, authorizations, timeoutTracker);
+        doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns,
+            options, authorizations, timeoutTracker);
         if (tsFailures.size() > 0) {
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
@@ -408,14 +423,17 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             if (fatalException != null) {
               // we are finished with this batch query
               if (!resultsQueue.offer(LAST_BATCH)) {
-                log.debug("Could not add to result queue after seeing fatalException in processFailures", fatalException);
+                log.debug(
+                    "Could not add to result queue after seeing fatalException in processFailures",
+                    fatalException);
               }
             }
           } else {
             // we are finished with this batch query
             if (fatalException != null) {
               if (!resultsQueue.offer(LAST_BATCH)) {
-                log.debug("Could not add to result queue after seeing fatalException", fatalException);
+                log.debug("Could not add to result queue after seeing fatalException",
+                    fatalException);
               }
             } else {
               try {
@@ -423,7 +441,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               } catch (InterruptedException e) {
                 fatalException = e;
                 if (!resultsQueue.offer(LAST_BATCH)) {
-                  log.debug("Could not add to result queue after seeing fatalException", fatalException);
+                  log.debug("Could not add to result queue after seeing fatalException",
+                      fatalException);
                 }
               }
             }
@@ -434,7 +453,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   }
 
-  private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, final ResultReceiver receiver, List<Column> columns) {
+  private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
+      final ResultReceiver receiver, List<Column> columns) {
 
     if (timedoutServers.containsAll(binnedRanges.keySet())) {
       // all servers have timed out
@@ -462,7 +482,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     if (timedoutServers.size() > 0) {
       // go ahead and fail any timed out servers
-      for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator = binnedRanges.entrySet().iterator(); iterator.hasNext();) {
+      for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator = binnedRanges.entrySet()
+          .iterator(); iterator.hasNext();) {
         Entry<String,Map<KeyExtent,List<Range>>> entry = iterator.next();
         if (timedoutServers.contains(entry.getKey())) {
           failures.putAll(entry.getValue());
@@ -489,14 +510,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
           tabletSubset.put(entry.getKey(), entry.getValue());
           if (tabletSubset.size() >= maxTabletsPerRequest) {
-            QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
+            QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver,
+                columns);
             queryTasks.add(queryTask);
             tabletSubset = new HashMap<>();
           }
         }
 
         if (tabletSubset.size() > 0) {
-          QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
+          QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver,
+              columns);
           queryTasks.add(queryTask);
         }
       }
@@ -511,15 +534,18 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  static void trackScanning(Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned, MultiScanResult scanResult) {
+  static void trackScanning(Map<KeyExtent,List<Range>> failures,
+      Map<KeyExtent,List<Range>> unscanned, MultiScanResult scanResult) {
 
     // translate returned failures, remove them from unscanned, and add them to failures
-    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures, Translators.TKET, new Translator.ListTranslator<>(Translators.TRT));
+    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures,
+        Translators.TKET, new Translator.ListTranslator<>(Translators.TRT));
     unscanned.keySet().removeAll(retFailures.keySet());
     failures.putAll(retFailures);
 
     // translate full scans and remove them from unscanned
-    HashSet<KeyExtent> fullScans = new HashSet<>(Translator.translate(scanResult.fullScans, Translators.TKET));
+    HashSet<KeyExtent> fullScans = new HashSet<>(
+        Translator.translate(scanResult.fullScans, Translators.TKET));
     unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned
@@ -531,11 +557,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       while (iterator.hasNext()) {
         Range range = iterator.next();
 
-        if (range.afterEndKey(nextKey) || (nextKey.equals(range.getEndKey()) && scanResult.partNextKeyInclusive != range.isEndKeyInclusive())) {
+        if (range.afterEndKey(nextKey) || (nextKey.equals(range.getEndKey())
+            && scanResult.partNextKeyInclusive != range.isEndKeyInclusive())) {
           iterator.remove();
         } else if (range.contains(nextKey)) {
           iterator.remove();
-          Range partRange = new Range(nextKey, scanResult.partNextKeyInclusive, range.getEndKey(), range.isEndKeyInclusive());
+          Range partRange = new Range(nextKey, scanResult.partNextKeyInclusive, range.getEndKey(),
+              range.isEndKeyInclusive());
           iterator.add(partRange);
         }
       }
@@ -567,7 +595,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     void check() throws IOException {
       if (System.currentTimeMillis() - activityTime > timeOut) {
         badServers.add(server);
-        throw new IOException("Time exceeded " + (System.currentTimeMillis() - activityTime) + " " + server);
+        throw new IOException(
+            "Time exceeded " + (System.currentTimeMillis() - activityTime) + " " + server);
       }
     }
 
@@ -591,15 +620,20 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  public static void doLookup(ClientContext context, String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
-      Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns, ScannerOptions options, Authorizations authorizations)
+  public static void doLookup(ClientContext context, String server,
+      Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
+      Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns,
+      ScannerOptions options, Authorizations authorizations)
       throws IOException, AccumuloSecurityException, AccumuloServerException {
-    doLookup(context, server, requested, failures, unscanned, receiver, columns, options, authorizations, new TimeoutTracker(Long.MAX_VALUE));
+    doLookup(context, server, requested, failures, unscanned, receiver, columns, options,
+        authorizations, new TimeoutTracker(Long.MAX_VALUE));
   }
 
-  static void doLookup(ClientContext context, String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
-      Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns, ScannerOptions options, Authorizations authorizations,
-      TimeoutTracker timeoutTracker) throws IOException, AccumuloSecurityException, AccumuloServerException {
+  static void doLookup(ClientContext context, String server, Map<KeyExtent,List<Range>> requested,
+      Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned,
+      ResultReceiver receiver, List<Column> columns, ScannerOptions options,
+      Authorizations authorizations, TimeoutTracker timeoutTracker)
+      throws IOException, AccumuloSecurityException, AccumuloServerException {
 
     if (requested.size() == 0) {
       return;
@@ -629,8 +663,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         OpTimer timer = null;
 
         if (log.isTraceEnabled()) {
-          log.trace("tid={} Starting multi scan, tserver={}  #tablets={}  #ranges={} ssil={} ssio={}", Thread.currentThread().getId(), server,
-              requested.size(), sumSizes(requested.values()), options.serverSideIteratorList, options.serverSideIteratorOptions);
+          log.trace(
+              "tid={} Starting multi scan, tserver={}  #tablets={}  #ranges={} ssil={} ssio={}",
+              Thread.currentThread().getId(), server, requested.size(),
+              sumSizes(requested.values()), options.serverSideIteratorList,
+              options.serverSideIteratorOptions);
 
           timer = new OpTimer().start();
         }
@@ -638,11 +675,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         TabletType ttype = TabletType.type(requested.keySet());
         boolean waitForWrites = !ThriftScanner.serversWaitedForWrites.get(ttype).contains(server);
 
-        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translators.KET, new Translator.ListTranslator<>(Translators.RT));
-        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(), thriftTabletRanges,
-            Translator.translate(columns, Translators.CT), options.serverSideIteratorList, options.serverSideIteratorOptions,
+        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested,
+            Translators.KET, new Translator.ListTranslator<>(Translators.RT));
+        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(),
+            thriftTabletRanges, Translator.translate(columns, Translators.CT),
+            options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
-            SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()), options.batchTimeOut, options.classLoaderContext);
+            SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
+            options.batchTimeOut, options.classLoaderContext);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
@@ -650,8 +690,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (timer != null) {
           timer.stop();
-          log.trace("tid={} Got 1st multi scan results, #results={} {} in {}", Thread.currentThread().getId(), scanResult.results.size(),
-              (scanResult.more ? "scanID=" + imsr.scanID : ""), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          log.trace("tid={} Got 1st multi scan results, #results={} {} in {}",
+              Thread.currentThread().getId(), scanResult.results.size(),
+              (scanResult.more ? "scanID=" + imsr.scanID : ""),
+              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
         }
 
         ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.results.size());
@@ -674,7 +716,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           timeoutTracker.check();
 
           if (timer != null) {
-            log.trace("tid={} oid={} Continuing multi scan, scanid={}", Thread.currentThread().getId(), nextOpid.get(), imsr.scanID);
+            log.trace("tid={} oid={} Continuing multi scan, scanid={}",
+                Thread.currentThread().getId(), nextOpid.get(), imsr.scanID);
             timer.reset().start();
           }
 
@@ -682,8 +725,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
           if (timer != null) {
             timer.stop();
-            log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(),
-                scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+            log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
+                Thread.currentThread().getId(), nextOpid.getAndIncrement(),
+                scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
+                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
           }
 
           entries = new ArrayList<>(scanResult.results.size());

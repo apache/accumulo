@@ -45,7 +45,8 @@ public class CurrentTabletResults {
    * @param currentMajorStdDev
    *          major compaction standard deviation
    */
-  public CurrentTabletResults(Double currentMinorAvg, Double currentMinorStdDev, Double currentMajorAvg, Double currentMajorStdDev) {
+  public CurrentTabletResults(Double currentMinorAvg, Double currentMinorStdDev,
+      Double currentMajorAvg, Double currentMajorStdDev) {
     this.currentMinorAvg = currentMinorAvg;
     this.currentMinorStdDev = currentMinorStdDev;
     this.currentMajorAvg = currentMajorAvg;

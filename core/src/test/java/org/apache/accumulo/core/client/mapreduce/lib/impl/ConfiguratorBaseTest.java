@@ -54,10 +54,12 @@ public class ConfiguratorBaseTest {
   }
 
   @Test
-  public void testSetConnectorInfoClassOfQConfigurationStringAuthenticationToken() throws AccumuloSecurityException {
+  public void testSetConnectorInfoClassOfQConfigurationStringAuthenticationToken()
+      throws AccumuloSecurityException {
     Configuration conf = new Configuration();
     assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser", new PasswordToken("testPassword"));
+    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",
+        new PasswordToken("testPassword"));
     assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
     AuthenticationToken token = ConfiguratorBase.getAuthenticationToken(this.getClass(), conf);
@@ -65,32 +67,38 @@ public class ConfiguratorBaseTest {
     assertEquals(new PasswordToken("testPassword"), token);
     assertEquals(
         "inline:" + PasswordToken.class.getName() + ":"
-            + Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(new PasswordToken("testPassword"))),
-        conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
+            + Base64.getEncoder().encodeToString(
+                AuthenticationTokenSerializer.serialize(new PasswordToken("testPassword"))),
+        conf.get(
+            ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
   }
 
   @Test
-  public void testSetConnectorInfoClassOfQConfigurationStringString() throws AccumuloSecurityException {
+  public void testSetConnectorInfoClassOfQConfigurationStringString()
+      throws AccumuloSecurityException {
     Configuration conf = new Configuration();
     assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser", "testFile");
     assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
-    assertEquals("file:testFile", conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
+    assertEquals("file:testFile", conf.get(
+        ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
   }
 
   @Test
   public void testSetZooKeeperInstance() {
     Configuration conf = new Configuration();
-    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf, ClientConfiguration.create().withInstance("testInstanceName").withZkHosts("testZooKeepers")
-        .withSsl(true).withZkTimeout(1234));
-    ClientConfiguration clientConf = ClientConfiguration.deserialize(conf.get(ConfiguratorBase.enumToConfKey(this.getClass(),
-        ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));
+    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf,
+        ClientConfiguration.create().withInstance("testInstanceName").withZkHosts("testZooKeepers")
+            .withSsl(true).withZkTimeout(1234));
+    ClientConfiguration clientConf = ClientConfiguration.deserialize(conf.get(ConfiguratorBase
+        .enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));
     assertEquals("testInstanceName", clientConf.get(ClientProperty.INSTANCE_NAME));
     assertEquals("testZooKeepers", clientConf.get(ClientProperty.INSTANCE_ZK_HOST));
     assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SSL_ENABLED));
     assertEquals("1234", clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
-    assertEquals(ZooKeeperInstance.class.getSimpleName(), conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
+    assertEquals(ZooKeeperInstance.class.getSimpleName(), conf
+        .get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
 
     // We want to test that the correct parameters from the config get passed to the ZKI
     // but that keeps us from being able to make assertions on a valid instance name at ZKI creation
@@ -107,9 +115,12 @@ public class ConfiguratorBaseTest {
     Class<?> mockClass = org.apache.accumulo.core.client.mock.MockInstance.class;
     Configuration conf = new Configuration();
     ConfiguratorBase.setMockInstance(this.getClass(), conf, "testInstanceName");
-    assertEquals("testInstanceName", conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.NAME)));
-    assertEquals(null, conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.ZOO_KEEPERS)));
-    assertEquals(mockClass.getSimpleName(), conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
+    assertEquals("testInstanceName", conf
+        .get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.NAME)));
+    assertEquals(null, conf.get(ConfiguratorBase.enumToConfKey(this.getClass(),
+        ConfiguratorBase.InstanceOpts.ZOO_KEEPERS)));
+    assertEquals(mockClass.getSimpleName(), conf
+        .get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
     Instance instance = ConfiguratorBase.getInstance(this.getClass(), conf);
     assertEquals(mockClass.getName(), instance.getClass().getName());
   }
@@ -135,7 +146,8 @@ public class ConfiguratorBaseTest {
   @Test
   public void testSetVisibiltyCacheSize() {
     Configuration conf = new Configuration();
-    assertEquals(Constants.DEFAULT_VISIBILITY_CACHE_SIZE, ConfiguratorBase.getVisibilityCacheSize(conf));
+    assertEquals(Constants.DEFAULT_VISIBILITY_CACHE_SIZE,
+        ConfiguratorBase.getVisibilityCacheSize(conf));
     ConfiguratorBase.setVisibilityCacheSize(conf, 2000);
     assertEquals(2000, ConfiguratorBase.getVisibilityCacheSize(conf));
   }

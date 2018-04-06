@@ -43,8 +43,8 @@ class TableConfWatcher implements Watcher {
   }
 
   static String toString(WatchedEvent event) {
-    return new StringBuilder("{path=").append(event.getPath()).append(",state=").append(event.getState()).append(",type=").append(event.getType()).append("}")
-        .toString();
+    return new StringBuilder("{path=").append(event.getPath()).append(",state=")
+        .append(event.getState()).append(",type=").append(event.getType()).append("}").toString();
   }
 
   @Override
@@ -62,12 +62,14 @@ class TableConfWatcher implements Watcher {
         if (tableIdString.contains("/")) {
           tableIdString = tableIdString.substring(0, tableIdString.indexOf('/'));
           if (path.startsWith(tablesPrefix + tableIdString + Constants.ZTABLE_CONF + "/"))
-            key = path.substring((tablesPrefix + tableIdString + Constants.ZTABLE_CONF + "/").length());
+            key = path
+                .substring((tablesPrefix + tableIdString + Constants.ZTABLE_CONF + "/").length());
         }
       }
 
       if (tableIdString == null) {
-        log.warn("Zookeeper told me about a path I was not watching: " + path + ", event " + toString(event));
+        log.warn("Zookeeper told me about a path I was not watching: " + path + ", event "
+            + toString(event));
         return;
       }
     }
@@ -88,7 +90,8 @@ class TableConfWatcher implements Watcher {
           // only remove the AccumuloConfiguration object when a
           // table node is deleted, not when a tables property is
           // deleted.
-          ServerConfigurationFactory.removeCachedTableConfiguration(instance.getInstanceID(), tableId);
+          ServerConfigurationFactory.removeCachedTableConfiguration(instance.getInstanceID(),
+              tableId);
         }
         break;
       case None:

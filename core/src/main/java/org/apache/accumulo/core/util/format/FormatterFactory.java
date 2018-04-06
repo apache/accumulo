@@ -26,7 +26,8 @@ import org.slf4j.LoggerFactory;
 public class FormatterFactory {
   private static final Logger log = LoggerFactory.getLogger(FormatterFactory.class);
 
-  public static Formatter getFormatter(Class<? extends Formatter> formatterClass, Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
+  public static Formatter getFormatter(Class<? extends Formatter> formatterClass,
+      Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
     Formatter formatter = null;
     try {
       formatter = formatterClass.newInstance();
@@ -38,7 +39,8 @@ public class FormatterFactory {
     return formatter;
   }
 
-  public static Formatter getDefaultFormatter(Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
+  public static Formatter getDefaultFormatter(Iterable<Entry<Key,Value>> scanner,
+      FormatterConfig config) {
     return getFormatter(DefaultFormatter.class, scanner, config);
   }
 

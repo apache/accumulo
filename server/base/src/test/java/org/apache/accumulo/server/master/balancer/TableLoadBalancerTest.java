@@ -53,7 +53,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class TableLoadBalancerTest {
 
-  private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3", "c4");
+  private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3",
+      "c4");
 
   static private TServerInstance mkts(String address, String session) throws Exception {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
@@ -85,14 +86,15 @@ public class TableLoadBalancerTest {
     // generate some fake tablets
     for (int i = 0; i < tableInfo.tableMap.get(tableId.canonicalID()).onlineTablets; i++) {
       TabletStats stats = new TabletStats();
-      stats.extent = new KeyExtent(tableId, new Text(tserver.host() + String.format("%03d", i + 1)), new Text(tserver.host() + String.format("%03d", i)))
-          .toThrift();
+      stats.extent = new KeyExtent(tableId, new Text(tserver.host() + String.format("%03d", i + 1)),
+          new Text(tserver.host() + String.format("%03d", i))).toThrift();
       result.add(stats);
     }
     return result;
   }
 
-  static class DefaultLoadBalancer extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
+  static class DefaultLoadBalancer
+      extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
 
     public DefaultLoadBalancer(Table.ID table) {
       super(table);
@@ -102,7 +104,8 @@ public class TableLoadBalancerTest {
     public void init(AccumuloServerContext context) {}
 
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
+        throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
   }
@@ -122,7 +125,8 @@ public class TableLoadBalancerTest {
 
     // we don't have real tablet servers to ask: invent some online tablets
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
+        throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
 
@@ -138,7 +142,9 @@ public class TableLoadBalancerTest {
   @Test
   public void test() throws Exception {
     final Instance inst = EasyMock.createMock(Instance.class);
-    EasyMock.expect(inst.getInstanceID()).andReturn(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString()).anyTimes();
+    EasyMock.expect(inst.getInstanceID())
+        .andReturn(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString())
+        .anyTimes();
     EasyMock.expect(inst.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
     EasyMock.expect(inst.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
     EasyMock.replay(inst);
@@ -146,19 +152,22 @@ public class TableLoadBalancerTest {
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(inst) {
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
-        // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration constructor
+        // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
+        // constructor
         NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, inst, null);
         return new TableConfiguration(inst, tableId, dummyConf) {
           @Override
           public String get(Property property) {
-            // fake the get table configuration so the test doesn't try to look in zookeeper for per-table classpath stuff
+            // fake the get table configuration so the test doesn't try to look in zookeeper for
+            // per-table classpath stuff
             return DefaultConfiguration.getInstance().get(property);
           }
         };
       }
     };
 
-    String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"), t3Id = TABLE_ID_MAP.get("t3");
+    String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"),
+        t3Id = TABLE_ID_MAP.get("t3");
     state = new TreeMap<>();
     TServerInstance svr = mkts("10.0.0.1", "0x01020304");
     state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));

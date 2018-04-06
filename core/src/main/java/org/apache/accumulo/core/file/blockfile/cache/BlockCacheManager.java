@@ -35,27 +35,33 @@ public abstract class BlockCacheManager {
   public static interface Configuration {
 
     /**
-     * Before Accumulo's cache implementation was configurable, its built in caches had a configurable size. These sizes were specified by the system properties
-     * {@code tserver.cache.config.data.size}, {@code tserver.cache.config.index.size}, and {code tserver.cache.config.summary.size}. This method returns the
-     * values of those settings. The settings are made available, but cache implementations are under no obligation to use them.
+     * Before Accumulo's cache implementation was configurable, its built in caches had a
+     * configurable size. These sizes were specified by the system properties
+     * {@code tserver.cache.config.data.size}, {@code tserver.cache.config.index.size}, and {code
+     * tserver.cache.config.summary.size}. This method returns the values of those settings. The
+     * settings are made available, but cache implementations are under no obligation to use them.
      *
      */
     long getMaxSize(CacheType type);
 
     /**
-     * Before Accumulo's cache implementation was configurable, its built in cache had a configurable block size. This block size was specified by the system
-     * property {@code tserver.default.blocksize}. This method returns the value of that setting. The setting is made available, but cache implementations are
-     * under no obligation to use it.
+     * Before Accumulo's cache implementation was configurable, its built in cache had a
+     * configurable block size. This block size was specified by the system property
+     * {@code tserver.default.blocksize}. This method returns the value of that setting. The setting
+     * is made available, but cache implementations are under no obligation to use it.
      *
      */
     long getBlockSize();
 
     /**
-     * This method provides a way for a cache implementation to access arbitrary configuration set by a user.
+     * This method provides a way for a cache implementation to access arbitrary configuration set
+     * by a user.
      *
      * <p>
-     * Returns all Accumulo properties that have a prefix of {@code tserver.cache.config.<prefix>.<type>.} or {@code tserver.cache.config.<prefix>.default.}
-     * with values for specific cache types overriding defaults.
+     * Returns all Accumulo properties that have a prefix of
+     * {@code tserver.cache.config.<prefix>.<type>.} or
+     * {@code tserver.cache.config.<prefix>.default.} with values for specific cache types
+     * overriding defaults.
      *
      * <p>
      * For example assume the following data is in Accumulo's system config.
@@ -68,8 +74,9 @@ public abstract class BlockCacheManager {
      * </pre>
      *
      * <p>
-     * If this method is called with {@code prefix=lru} and {@code type=INDEX} then it would return a map with the following key values. The load factor setting
-     * for index overrides the default value.
+     * If this method is called with {@code prefix=lru} and {@code type=INDEX} then it would return
+     * a map with the following key values. The load factor setting for index overrides the default
+     * value.
      *
      * <pre>
      * evictAfter=3600
@@ -77,7 +84,8 @@ public abstract class BlockCacheManager {
      * </pre>
      *
      * @param prefix
-     *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
+     *          A unique identifier that corresponds to a particular BlockCacheManager
+     *          implementation.
      */
     Map<String,String> getProperties(String prefix, CacheType type);
   }
@@ -123,7 +131,8 @@ public abstract class BlockCacheManager {
   protected abstract BlockCache createCache(Configuration conf, CacheType type);
 
   /**
-   * A convenience method that returns a string of the from {@code tserver.cache.config.<prefix>.default.} this method is useful for configuring a cache
+   * A convenience method that returns a string of the from
+   * {@code tserver.cache.config.<prefix>.default.} this method is useful for configuring a cache
    * manager.
    *
    * @param prefix
@@ -135,7 +144,9 @@ public abstract class BlockCacheManager {
   }
 
   /**
-   * A convenience method that returns a string of the from {@code tserver.cache.config.<prefix>.<type>.} this method is useful for configuring a cache manager.
+   * A convenience method that returns a string of the from
+   * {@code tserver.cache.config.<prefix>.<type>.} this method is useful for configuring a cache
+   * manager.
    *
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.

@@ -31,7 +31,8 @@ import org.apache.hadoop.fs.Path;
 
 public class VolumeConfiguration {
 
-  public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+  public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf)
+      throws IOException {
     requireNonNull(path);
 
     if (path.contains(":")) {
@@ -43,7 +44,8 @@ public class VolumeConfiguration {
     }
   }
 
-  public static Volume getDefaultVolume(Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+  public static Volume getDefaultVolume(Configuration conf, AccumuloConfiguration acuconf)
+      throws IOException {
     @SuppressWarnings("deprecation")
     String uri = acuconf.get(Property.INSTANCE_DFS_URI);
 
@@ -63,7 +65,8 @@ public class VolumeConfiguration {
    * @see org.apache.accumulo.core.volume.VolumeConfiguration#getVolumeUris(AccumuloConfiguration,Configuration)
    */
   @Deprecated
-  public static String getConfiguredBaseDir(AccumuloConfiguration conf, Configuration hadoopConfig) {
+  public static String getConfiguredBaseDir(AccumuloConfiguration conf,
+      Configuration hadoopConfig) {
     String singleNamespace = conf.get(Property.INSTANCE_DFS_DIR);
     String dfsUri = conf.get(Property.INSTANCE_DFS_URI);
     String baseDir;
@@ -76,7 +79,8 @@ public class VolumeConfiguration {
       }
     } else {
       if (!dfsUri.contains(":"))
-        throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_DFS_URI.getKey() + " got " + dfsUri);
+        throw new IllegalArgumentException("Expected fully qualified URI for "
+            + Property.INSTANCE_DFS_URI.getKey() + " got " + dfsUri);
       baseDir = dfsUri + singleNamespace;
     }
     return baseDir;
@@ -104,14 +108,16 @@ public class VolumeConfiguration {
       int i = 0;
       for (String namespace : namespaces) {
         if (!namespace.contains(":")) {
-          throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + namespace);
+          throw new IllegalArgumentException("Expected fully qualified URI for "
+              + Property.INSTANCE_VOLUMES.getKey() + " got " + namespace);
         }
 
         try {
           // pass through URI to unescape hex encoded chars (e.g. convert %2C to "," char)
           configuredBaseDirs[i++] = new Path(new URI(namespace)).toString();
         } catch (URISyntaxException e) {
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES.getKey() + " contains " + namespace + " which has a syntax error", e);
+          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES.getKey() + " contains "
+              + namespace + " which has a syntax error", e);
         }
       }
     }
@@ -143,7 +149,8 @@ public class VolumeConfiguration {
   @SuppressWarnings("deprecation")
   public static <T extends FileSystem> Volume create(T fs, AccumuloConfiguration acuconf) {
     String dfsDir = acuconf.get(Property.INSTANCE_DFS_DIR);
-    return new VolumeImpl(fs, null == dfsDir ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
+    return new VolumeImpl(fs,
+        null == dfsDir ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
   }
 
   public static <T extends FileSystem> Volume create(T fs, String basePath) {

@@ -70,7 +70,8 @@ public class BlockCacheConfiguration implements Configuration {
 
   @Override
   public String toString() {
-    return "indexMaxSize: " + indexMaxSize + "dataMaxSize: " + dataMaxSize + "summaryMaxSize: " + summaryMaxSize + ", blockSize: " + getBlockSize();
+    return "indexMaxSize: " + indexMaxSize + "dataMaxSize: " + dataMaxSize + "summaryMaxSize: "
+        + summaryMaxSize + ", blockSize: " + getBlockSize();
   }
 
   @Override

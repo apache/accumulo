@@ -26,23 +26,29 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.log4j.Logger;
 
 /**
- * A hybrid compaction strategy that supports two types of compression. If total size of files being compacted is larger than
- * <tt>table.majc.compaction.strategy.opts.file.large.compress.threshold</tt> than the larger compression type will be used. The larger compression type is
- * specified in <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt>. Otherwise, the configured table compression will be used.
+ * A hybrid compaction strategy that supports two types of compression. If total size of files being
+ * compacted is larger than
+ * <tt>table.majc.compaction.strategy.opts.file.large.compress.threshold</tt> than the larger
+ * compression type will be used. The larger compression type is specified in
+ * <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt>. Otherwise, the configured
+ * table compression will be used.
  *
- * NOTE: To use this strategy with Minor Compactions set <tt>table.file.compress.type=snappy</tt> and set a different compress type in
+ * NOTE: To use this strategy with Minor Compactions set <tt>table.file.compress.type=snappy</tt>
+ * and set a different compress type in
  * <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt> for larger files.
  */
 public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
   private final Logger log = Logger.getLogger(TwoTierCompactionStrategy.class);
   /**
-   * Threshold memory in bytes. Files larger than this threshold will use <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt> for compression
+   * Threshold memory in bytes. Files larger than this threshold will use
+   * <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt> for compression
    */
   public static final String LARGE_FILE_COMPRESSION_THRESHOLD = "file.large.compress.threshold";
   private Long largeFileCompressionThreshold;
 
   /**
-   * Type of compression to use if large threshold is surpassed. One of "gz","lzo","snappy", or "none"
+   * Type of compression to use if large threshold is surpassed. One of "gz","lzo","snappy", or
+   * "none"
    */
   public static final String LARGE_FILE_COMPRESSION_TYPE = "file.large.compress.type";
   private String largeFileCompressionType;
@@ -59,8 +65,9 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
   public void verifyRequiredProperties(Object... objectsToVerify) throws IllegalArgumentException {
     for (Object obj : objectsToVerify) {
       if (obj == null) {
-        throw new IllegalArgumentException("Missing required " + Property.TABLE_COMPACTION_STRATEGY_PREFIX + " (" + LARGE_FILE_COMPRESSION_TYPE + " and/or "
-            + LARGE_FILE_COMPRESSION_THRESHOLD + ") for " + this.getClass().getName());
+        throw new IllegalArgumentException("Missing required "
+            + Property.TABLE_COMPACTION_STRATEGY_PREFIX + " (" + LARGE_FILE_COMPRESSION_TYPE
+            + " and/or " + LARGE_FILE_COMPRESSION_THRESHOLD + ") for " + this.getClass().getName());
       }
     }
   }
@@ -103,8 +110,8 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
 
     if (totalSize > largeFileCompressionThreshold) {
       if (log.isDebugEnabled()) {
-        log.debug("Changed compressType to " + largeFileCompressionType + ": totalSize(" + totalSize + ") was greater than threshold "
-            + largeFileCompressionThreshold);
+        log.debug("Changed compressType to " + largeFileCompressionType + ": totalSize(" + totalSize
+            + ") was greater than threshold " + largeFileCompressionThreshold);
       }
       plan.writeParameters.setCompressType(largeFileCompressionType);
     }

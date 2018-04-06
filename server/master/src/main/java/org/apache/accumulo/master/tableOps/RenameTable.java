@@ -47,10 +47,12 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME) + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME)
+        + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
   }
 
-  public RenameTable(Namespace.ID namespaceId, Table.ID tableId, String oldTableName, String newTableName) throws NamespaceNotFoundException {
+  public RenameTable(Namespace.ID namespaceId, Table.ID tableId, String oldTableName,
+      String newTableName) throws NamespaceNotFoundException {
     this.namespaceId = namespaceId;
     this.tableId = tableId;
     this.oldTableName = oldTableName;
@@ -64,8 +66,10 @@ public class RenameTable extends MasterRepo {
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
     // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".") && !namespaceId.equals(Namespaces.getNamespaceId(instance, qualifiedNewTableName.getFirst())))
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName, TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
+    if (newTableName.contains(".") && !namespaceId
+        .equals(Namespaces.getNamespaceId(instance, qualifiedNewTableName.getFirst())))
+      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName,
+          TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -77,7 +81,8 @@ public class RenameTable extends MasterRepo {
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
+      final String tap = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId
+          + Constants.ZTABLE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
         @Override
@@ -86,7 +91,8 @@ public class RenameTable extends MasterRepo {
           if (currentName.equals(newName))
             return null; // assume in this case the operation is running again, so we are done
           if (!currentName.equals(oldName)) {
-            throw new AcceptableThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
+            throw new AcceptableThriftTableOperationException(null, oldTableName,
+                TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
                 "Name changed while processing");
           }
           return newName.getBytes(UTF_8);
@@ -99,7 +105,8 @@ public class RenameTable extends MasterRepo {
       Utils.unreserveNamespace(namespaceId, tid, false);
     }
 
-    LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId, oldTableName, newTableName);
+    LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
+        oldTableName, newTableName);
 
     return null;
   }

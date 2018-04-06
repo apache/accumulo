@@ -132,7 +132,8 @@ public class TabletData {
   }
 
   // Read basic root table metadata from zookeeper
-  public TabletData(VolumeManager fs, ZooReader rdr, AccumuloConfiguration conf) throws IOException {
+  public TabletData(VolumeManager fs, ZooReader rdr, AccumuloConfiguration conf)
+      throws IOException {
     directory = VolumeUtil.switchRootTableVolume(MetadataTableUtil.getRootTabletDir());
 
     Path location = new Path(directory);
@@ -150,8 +151,9 @@ public class TabletData {
 
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       long maxTime = -1;
-      try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(conf)
-          .seekToBeginning().build()) {
+      try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
+          .forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(conf).seekToBeginning()
+          .build()) {
         while (reader.hasTop()) {
           maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
           reader.next();
@@ -171,8 +173,9 @@ public class TabletData {
   }
 
   // Data pulled from an existing tablet to make a split
-  public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes, String time, long lastFlushID, long lastCompactID,
-      TServerInstance lastLocation, Map<Long,List<FileRef>> bulkIngestedFiles) {
+  public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes,
+      String time, long lastFlushID, long lastCompactID, TServerInstance lastLocation,
+      Map<Long,List<FileRef>> bulkIngestedFiles) {
     this.directory = tabletDirectory;
     this.dataFiles = highDatafileSizes;
     this.time = time;

@@ -137,7 +137,8 @@ public class TableDiskUsage {
       externalUsage.put(externalKey, entry.getValue());
     }
 
-    // mapping of all enumerations of files being referenced by tables and total size of files who share the same reference
+    // mapping of all enumerations of files being referenced by tables and total size of files who
+    // share the same reference
     return externalUsage;
   }
 
@@ -145,12 +146,13 @@ public class TableDiskUsage {
     void print(String line);
   }
 
-  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs, Connector conn, boolean humanReadable) throws TableNotFoundException,
-      IOException {
+  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs, Connector conn,
+      boolean humanReadable) throws TableNotFoundException, IOException {
     printDiskUsage(tableNames, fs, conn, line -> System.out.println(line), humanReadable);
   }
 
-  public static Map<TreeSet<String>,Long> getDiskUsage(Set<Table.ID> tableIds, VolumeManager fs, Connector conn) throws IOException {
+  public static Map<TreeSet<String>,Long> getDiskUsage(Set<Table.ID> tableIds, VolumeManager fs,
+      Connector conn) throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
 
     // Add each tableID
@@ -263,8 +265,8 @@ public class TableDiskUsage {
     return usage;
   }
 
-  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs, Connector conn, Printer printer, boolean humanReadable)
-      throws TableNotFoundException, IOException {
+  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs, Connector conn,
+      Printer printer, boolean humanReadable) throws TableNotFoundException, IOException {
 
     HashSet<Table.ID> tableIds = new HashSet<>();
 

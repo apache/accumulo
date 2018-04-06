@@ -35,7 +35,8 @@ import org.slf4j.LoggerFactory;
  * Base class for extracting configuration values from Java Properties
  */
 public abstract class AccumuloClusterPropertyConfiguration implements AccumuloClusterConfiguration {
-  private static final Logger log = LoggerFactory.getLogger(AccumuloClusterPropertyConfiguration.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(AccumuloClusterPropertyConfiguration.class);
 
   public static final String ACCUMULO_IT_PROPERTIES_FILE = "accumulo.it.properties";
   public static final String ACCUMULO_CLUSTER_TYPE_KEY = "accumulo.it.cluster.type";
@@ -105,19 +106,23 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     switch (type) {
       case MINI:
-        // we'll let no client conf pass through and expect that the caller will set it after MAC is started
+        // we'll let no client conf pass through and expect that the caller will set it after MAC is
+        // started
         return new AccumuloMiniClusterConfiguration();
       case STANDALONE:
         if (null == clientConf) {
-          throw new RuntimeException("Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
+          throw new RuntimeException(
+              "Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
         File clientConfFile = new File(clientConf);
         if (!clientConfFile.exists() || !clientConfFile.isFile()) {
-          throw new RuntimeException("Client configuration should be a normal file: " + clientConfFile);
+          throw new RuntimeException(
+              "Client configuration should be a normal file: " + clientConfFile);
         }
         return new StandaloneAccumuloClusterConfiguration(clientConfFile);
       default:
-        throw new RuntimeException("Clusters other than MiniAccumuloCluster are not yet implemented");
+        throw new RuntimeException(
+            "Clusters other than MiniAccumuloCluster are not yet implemented");
     }
   }
 
@@ -177,7 +182,8 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     return configuration;
   }
 
-  protected void loadFromProperties(String desiredPrefix, Properties properties, Map<String,String> configuration) {
+  protected void loadFromProperties(String desiredPrefix, Properties properties,
+      Map<String,String> configuration) {
     for (Entry<Object,Object> entry : properties.entrySet()) {
       if (!(entry.getKey() instanceof String)) {
         continue;

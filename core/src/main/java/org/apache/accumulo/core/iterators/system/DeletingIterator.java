@@ -44,7 +44,8 @@ public class DeletingIterator extends ServerWrappingIterator {
     propogateDeletes = other.propogateDeletes;
   }
 
-  public DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes) throws IOException {
+  public DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes)
+      throws IOException {
     super(iterator);
     this.propogateDeletes = propogateDeletes;
   }
@@ -59,7 +60,8 @@ public class DeletingIterator extends ServerWrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     // do not want to seek to the middle of a row
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
 
@@ -67,7 +69,8 @@ public class DeletingIterator extends ServerWrappingIterator {
     findTop();
 
     if (range.getStartKey() != null) {
-      while (source.hasTop() && source.getTopKey().compareTo(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
+      while (source.hasTop() && source.getTopKey().compareTo(range.getStartKey(),
+          PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
         next();
       }
 
@@ -91,13 +94,15 @@ public class DeletingIterator extends ServerWrappingIterator {
     Key keyToSkip = workKey;
     source.next();
 
-    while (source.hasTop() && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
+    while (source.hasTop()
+        && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       source.next();
     }
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
 }

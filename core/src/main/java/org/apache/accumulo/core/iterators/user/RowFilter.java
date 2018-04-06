@@ -32,19 +32,23 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * This iterator makes it easy to select rows that meet a given criteria. Its an alternative to the {@link WholeRowIterator}. There are a few things to consider
- * when deciding which one to use.
+ * This iterator makes it easy to select rows that meet a given criteria. Its an alternative to the
+ * {@link WholeRowIterator}. There are a few things to consider when deciding which one to use.
  *
- * First the WholeRowIterator requires that the row fit in memory and that the entire row is read before a decision is made. This iterator has neither
- * requirement, it allows seeking within a row to avoid reading the entire row to make a decision. So even if your rows fit into memory, this extending this
- * iterator may be better choice because you can seek.
+ * First the WholeRowIterator requires that the row fit in memory and that the entire row is read
+ * before a decision is made. This iterator has neither requirement, it allows seeking within a row
+ * to avoid reading the entire row to make a decision. So even if your rows fit into memory, this
+ * extending this iterator may be better choice because you can seek.
  *
- * Second the WholeRowIterator is currently the only way to achieve row isolation with the {@link BatchScanner}. With the normal {@link Scanner} row isolation
- * can be enabled and this Iterator may be used.
+ * Second the WholeRowIterator is currently the only way to achieve row isolation with the
+ * {@link BatchScanner}. With the normal {@link Scanner} row isolation can be enabled and this
+ * Iterator may be used.
  *
- * Third the row acceptance test will be executed every time this Iterator is seeked. If the row is large, then the row will fetched in batches of key/values.
- * As each batch is fetched the test may be re-executed because the iterator stack is reseeked for each batch. The batch size may be increased to reduce the
- * number of times the test is executed. With the normal Scanner, if isolation is enabled then it will read an entire row w/o seeking this iterator.
+ * Third the row acceptance test will be executed every time this Iterator is seeked. If the row is
+ * large, then the row will fetched in batches of key/values. As each batch is fetched the test may
+ * be re-executed because the iterator stack is reseeked for each batch. The batch size may be
+ * increased to reduce the number of times the test is executed. With the normal Scanner, if
+ * isolation is enabled then it will read an entire row w/o seeking this iterator.
  *
  */
 public abstract class RowFilter extends WrappingIterator {
@@ -74,7 +78,8 @@ public abstract class RowFilter extends WrappingIterator {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
 
       range = rowRange.clip(range, true);
       if (range == null) {
@@ -126,15 +131,19 @@ public abstract class RowFilter extends WrappingIterator {
    *
    *
    * @param rowIterator
-   *          - An iterator over the row. This iterator is confined to the row. Seeking past the end of the row will return no data. Seeking before the row will
-   *          always set top to the first column in the current row. By default this iterator will only see the columns the parent was seeked with. To see more
-   *          columns reseek this iterator with those columns.
+   *          - An iterator over the row. This iterator is confined to the row. Seeking past the end
+   *          of the row will return no data. Seeking before the row will always set top to the
+   *          first column in the current row. By default this iterator will only see the columns
+   *          the parent was seeked with. To see more columns reseek this iterator with those
+   *          columns.
    * @return false if a row should be suppressed, otherwise true.
    */
-  public abstract boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException;
+  public abstract boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator)
+      throws IOException;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.decisionIterator = new RowIterator(source.deepCopy(env));
   }
@@ -164,7 +173,8 @@ public abstract class RowFilter extends WrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     super.seek(range, columnFamilies, inclusive);
     this.columnFamilies = columnFamilies;
     this.inclusive = inclusive;

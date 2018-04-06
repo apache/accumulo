@@ -38,7 +38,8 @@ public class DeleteTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
+    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
+        + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override

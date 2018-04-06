@@ -63,7 +63,8 @@ public class ReplicationUtilTest {
     ReplicaSystem system = EasyMock.createMock(ReplicaSystem.class);
 
     // Return out our map of data
-    EasyMock.expect(conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS)).andReturn(confEntries);
+    EasyMock.expect(conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS))
+        .andReturn(confEntries);
 
     // Switch to replay
     EasyMock.replay(context, conf, system);
@@ -93,7 +94,8 @@ public class ReplicationUtilTest {
     ReplicaSystem system = EasyMock.createMock(ReplicaSystem.class);
 
     // Return out our map of data
-    EasyMock.expect(conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS)).andReturn(confEntries);
+    EasyMock.expect(conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS))
+        .andReturn(confEntries);
 
     // Switch to replay
     EasyMock.replay(context, conf, system);

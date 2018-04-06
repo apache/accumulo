@@ -41,7 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
+ * Contains a list of property keys recognized by the Accumulo client and convenience methods for
+ * setting them.
  *
  * @since 1.6.0
  * @deprecated since 2.0.0, replaced {@link Connector#builder()}
@@ -73,8 +74,10 @@ public class ClientConfiguration {
     INSTANCE_ZK_TIMEOUT(Property.INSTANCE_ZK_TIMEOUT),
 
     // Instance information
-    INSTANCE_NAME("instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
-    INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
+    INSTANCE_NAME("instance.name", null, PropertyType.STRING,
+        "Name of Accumulo instance to connect to"),
+    INSTANCE_ID("instance.id", null, PropertyType.STRING,
+        "UUID of Accumulo instance to connect to"),
 
     // Tracing
     TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),
@@ -143,8 +146,9 @@ public class ClientConfiguration {
   }
 
   /**
-   * Attempts to load a configuration file from the system using the default search paths. Uses the <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable,
-   * split on <em>File.pathSeparator</em>, for a list of target files.
+   * Attempts to load a configuration file from the system using the default search paths. Uses the
+   * <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable, split on <em>File.pathSeparator</em>,
+   * for a list of target files.
    * <p>
    * If <em>ACCUMULO_CLIENT_CONF_PATH</em> is not set, uses the following in this order:
    * <ul>
@@ -154,8 +158,9 @@ public class ClientConfiguration {
    * <li>/etc/accumulo/conf/client.conf
    * </ul>
    * <p>
-   * A client configuration will then be read from each location using <em>PropertiesConfiguration</em> to construct a configuration. That means the latest item
-   * will be the one in the configuration.
+   * A client configuration will then be read from each location using
+   * <em>PropertiesConfiguration</em> to construct a configuration. That means the latest item will
+   * be the one in the configuration.
    *
    * @see PropertiesConfiguration
    * @see File#pathSeparator
@@ -165,7 +170,8 @@ public class ClientConfiguration {
   }
 
   /**
-   * Initializes an empty configuration object to be further configured with other methods on the class.
+   * Initializes an empty configuration object to be further configured with other methods on the
+   * class.
    *
    * @since 1.9.0
    */
@@ -174,8 +180,9 @@ public class ClientConfiguration {
   }
 
   /**
-   * Initializes a configuration object from the contents of a configuration file. Currently supports Java "properties" files. The returned object can be
-   * further configured with subsequent calls to other methods on this class.
+   * Initializes a configuration object from the contents of a configuration file. Currently
+   * supports Java "properties" files. The returned object can be further configured with subsequent
+   * calls to other methods on this class.
    *
    * @param file
    *          the path to the configuration file
@@ -193,8 +200,8 @@ public class ClientConfiguration {
   }
 
   /**
-   * Initializes a configuration object from the contents of a map. The returned object can be further configured with subsequent calls to other methods on this
-   * class.
+   * Initializes a configuration object from the contents of a map. The returned object can be
+   * further configured with subsequent calls to other methods on this class.
    *
    * @param properties
    *          a map containing the configuration properties to use
@@ -224,7 +231,8 @@ public class ClientConfiguration {
     }
     // We couldn't find the client configuration anywhere
     if (configs.isEmpty()) {
-      log.debug("Found no client.conf in default paths. Using default client configuration values.");
+      log.debug(
+          "Found no client.conf in default paths. Using default client configuration values.");
     }
     return new ClientConfiguration(configs);
   }
@@ -235,14 +243,16 @@ public class ClientConfiguration {
     try {
       propConfig.load(new StringReader(serializedConfig));
     } catch (ConfigurationException e) {
-      throw new IllegalArgumentException("Error deserializing client configuration: " + serializedConfig, e);
+      throw new IllegalArgumentException(
+          "Error deserializing client configuration: " + serializedConfig, e);
     }
     return new ClientConfiguration(Collections.singletonList(propConfig));
   }
 
   /**
-   * Muck the value of {@code clientConfPath} if it points to a directory by appending {@code client.conf} to the end of the file path. This is a no-op if the
-   * value is not a directory on the filesystem.
+   * Muck the value of {@code clientConfPath} if it points to a directory by appending
+   * {@code client.conf} to the end of the file path. This is a no-op if the value is not a
+   * directory on the filesystem.
    *
    * @param clientConfPath
    *          The value of ACCUMULO_CLIENT_CONF_PATH.
@@ -271,9 +281,11 @@ public class ClientConfiguration {
       // /etc/accumulo/client.conf
       // /etc/accumulo/conf/client.conf
       clientConfPaths = new LinkedList<>();
-      clientConfPaths.add(System.getProperty("user.home") + File.separator + USER_ACCUMULO_DIR_NAME + File.separator + USER_CONF_FILENAME);
+      clientConfPaths.add(System.getProperty("user.home") + File.separator + USER_ACCUMULO_DIR_NAME
+          + File.separator + USER_CONF_FILENAME);
       if (System.getenv("ACCUMULO_CONF_DIR") != null) {
-        clientConfPaths.add(System.getenv("ACCUMULO_CONF_DIR") + File.separator + GLOBAL_CONF_FILENAME);
+        clientConfPaths
+            .add(System.getenv("ACCUMULO_CONF_DIR") + File.separator + GLOBAL_CONF_FILENAME);
       }
       clientConfPaths.add("/etc/accumulo/" + GLOBAL_CONF_FILENAME);
       clientConfPaths.add("/etc/accumulo/conf/" + GLOBAL_CONF_FILENAME);
@@ -307,7 +319,8 @@ public class ClientConfiguration {
 
   private void checkType(ClientProperty property, PropertyType type) {
     if (!property.getType().equals(type)) {
-      String msg = "Configuration method intended for type " + type + " called with a " + property.getType() + " argument (" + property.getKey() + ")";
+      String msg = "Configuration method intended for type " + type + " called with a "
+          + property.getType() + " argument (" + property.getKey() + ")";
       throw new IllegalArgumentException(msg);
     }
   }
@@ -346,7 +359,8 @@ public class ClientConfiguration {
   }
 
   /**
-   * Same as {@link #setProperty(ClientProperty, String)} but returns the ClientConfiguration for chaining purposes
+   * Same as {@link #setProperty(ClientProperty, String)} but returns the ClientConfiguration for
+   * chaining purposes
    */
   public ClientConfiguration with(ClientProperty prop, String value) {
     return with(prop.getKey(), value);
@@ -362,7 +376,8 @@ public class ClientConfiguration {
   }
 
   /**
-   * Same as {@link #setProperty(String, String)} but returns the ClientConfiguration for chaining purposes
+   * Same as {@link #setProperty(String, String)} but returns the ClientConfiguration for chaining
+   * purposes
    *
    * @since 1.9.0
    */
@@ -415,11 +430,13 @@ public class ClientConfiguration {
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_ENABLED and ClientProperty.RPC_USE_JSSE
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_ENABLED and
+   * ClientProperty.RPC_USE_JSSE
    *
    */
   public ClientConfiguration withSsl(boolean sslEnabled, boolean useJsseConfig) {
-    return with(ClientProperty.INSTANCE_RPC_SSL_ENABLED, String.valueOf(sslEnabled)).with(ClientProperty.RPC_USE_JSSE, String.valueOf(useJsseConfig));
+    return with(ClientProperty.INSTANCE_RPC_SSL_ENABLED, String.valueOf(sslEnabled))
+        .with(ClientProperty.RPC_USE_JSSE, String.valueOf(useJsseConfig));
   }
 
   /**
@@ -431,8 +448,8 @@ public class ClientConfiguration {
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.RPC_SSL_TRUSTORE_PATH, ClientProperty.RPC_SSL_TRUSTORE_PASSWORD, and
-   * ClientProperty.RPC_SSL_TRUSTORE_TYPE
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.RPC_SSL_TRUSTORE_PATH,
+   * ClientProperty.RPC_SSL_TRUSTORE_PASSWORD, and ClientProperty.RPC_SSL_TRUSTORE_TYPE
    *
    */
   public ClientConfiguration withTruststore(String path, String password, String type) {
@@ -454,8 +471,9 @@ public class ClientConfiguration {
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, ClientProperty.RPC_SSL_KEYSTORE_PATH,
-   * ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, and ClientProperty.RPC_SSL_KEYSTORE_TYPE
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH,
+   * ClientProperty.RPC_SSL_KEYSTORE_PATH, ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, and
+   * ClientProperty.RPC_SSL_KEYSTORE_TYPE
    *
    */
   public ClientConfiguration withKeystore(String path, String password, String type) {
@@ -489,16 +507,19 @@ public class ClientConfiguration {
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and
+   * ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
    *
    * @param saslEnabled
    *          Should SASL(kerberos) be enabled
    * @param kerberosServerPrimary
-   *          The 'primary' component of the Kerberos principal Accumulo servers use to login (e.g. 'accumulo' in 'accumulo/_HOST@REALM')
+   *          The 'primary' component of the Kerberos principal Accumulo servers use to login (e.g.
+   *          'accumulo' in 'accumulo/_HOST@REALM')
    * @since 1.7.0
    */
   public ClientConfiguration withSasl(boolean saslEnabled, String kerberosServerPrimary) {
-    return withSasl(saslEnabled).with(ClientProperty.KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
+    return withSasl(saslEnabled).with(ClientProperty.KERBEROS_SERVER_PRIMARY,
+        kerberosServerPrimary);
   }
 
   public boolean containsKey(String key) {

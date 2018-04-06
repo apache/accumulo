@@ -55,7 +55,8 @@ public class ColumnQualifierFilter extends ServerFilter {
     }
   }
 
-  private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, HashSet<ByteSequence> columnFamilies,
+  private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator,
+      HashSet<ByteSequence> columnFamilies,
       HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers) {
     super(iterator);
     this.columnFamilies = columnFamilies;
@@ -79,7 +80,8 @@ public class ColumnQualifierFilter extends ServerFilter {
     return new ColumnQualifierFilter(source.deepCopy(env), columnFamilies, columnsQualifiers);
   }
 
-  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source, Set<Column> cols) {
+  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source,
+      Set<Column> cols) {
     boolean sawNonNullQual = false;
     for (Column col : cols) {
       if (col.getColumnQualifier() != null) {

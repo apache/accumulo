@@ -63,7 +63,8 @@ public class TestProxyReadWrite {
     prop.setProperty("useMockInstance", "true");
     prop.put("tokenClass", PasswordToken.class.getName());
 
-    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port), new TCompactProtocol.Factory(), prop).server;
+    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
+        new TCompactProtocol.Factory(), prop).server;
     tpc = new TestProxyClient("localhost", port);
     userpass = tpc.proxy().login("root", Collections.singletonMap("password", ""));
   }
@@ -83,22 +84,26 @@ public class TestProxyReadWrite {
     tpc.proxy().deleteTable(userpass, testtable);
   }
 
-  private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row, String cf, String cq, String value) {
-    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
+  private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row,
+      String cf, String cq, String value) {
+    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()),
+        ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
 
-  private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row, String cf, String cq, String vis, String value) {
-    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
+  private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row,
+      String cf, String cq, String vis, String value) {
+    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()),
+        ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     update.setColVisibility(vis.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
 
   /**
-   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a range so only the entries between -Inf...5 come back (there should be
-   * 50,000)
+   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a range so only
+   * the entries between -Inf...5 come back (there should be 50,000)
    */
   @Test
   public void readWriteBatchOneShotWithRange() throws Exception {
@@ -133,8 +138,8 @@ public class TestProxyReadWrite {
   }
 
   /**
-   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily so only the entries with specified column family come back
-   * (there should be 50,000)
+   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily so
+   * only the entries with specified column family come back (there should be 50,000)
    */
   @Test
   public void readWriteBatchOneShotWithColumnFamilyOnly() throws Exception {
@@ -143,7 +148,8 @@ public class TestProxyReadWrite {
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
 
-      addMutation(mutations, String.format(format, i), "cf" + (i % 2), "cq" + (i % 2), Util.randString(10));
+      addMutation(mutations, String.format(format, i), "cf" + (i % 2), "cq" + (i % 2),
+          Util.randString(10));
 
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().updateAndFlush(userpass, testtable, mutations);
@@ -172,8 +178,8 @@ public class TestProxyReadWrite {
   }
 
   /**
-   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily + columnQualififer so only the entries with specified column
-   * come back (there should be 50,000)
+   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily +
+   * columnQualififer so only the entries with specified column come back (there should be 50,000)
    */
   @Test
   public void readWriteBatchOneShotWithFullColumn() throws Exception {
@@ -182,7 +188,8 @@ public class TestProxyReadWrite {
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
 
-      addMutation(mutations, String.format(format, i), "cf" + (i % 2), "cq" + (i % 2), Util.randString(10));
+      addMutation(mutations, String.format(format, i), "cf" + (i % 2), "cq" + (i % 2),
+          Util.randString(10));
 
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().updateAndFlush(userpass, testtable, mutations);
@@ -212,7 +219,8 @@ public class TestProxyReadWrite {
   }
 
   /**
-   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so only the even numbers come back.
+   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so
+   * only the even numbers come back.
    */
   @Test
   public void readWriteBatchOneShotWithFilterIterator() throws Exception {
@@ -231,7 +239,8 @@ public class TestProxyReadWrite {
 
     String regex = ".*[02468]";
 
-    org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
+    org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(
+        50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
 
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
@@ -287,7 +296,8 @@ public class TestProxyReadWrite {
   }
 
   /**
-   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so only the even numbers come back.
+   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so
+   * only the even numbers come back.
    */
   @Test
   public void readWriteOneShotWithFilterIterator() throws Exception {
@@ -308,7 +318,8 @@ public class TestProxyReadWrite {
 
     String regex = ".*[02468]";
 
-    org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
+    org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(
+        50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
 
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
@@ -392,7 +403,8 @@ public class TestProxyReadWrite {
 
     String regex = ".*[02468]";
 
-    org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
+    org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(
+        50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
 
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
@@ -430,9 +442,11 @@ public class TestProxyReadWrite {
     String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       if (i % 2 == 0)
-        addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "even", Util.randString(10));
+        addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "even",
+            Util.randString(10));
       else
-        addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "odd", Util.randString(10));
+        addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "odd",
+            Util.randString(10));
 
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().update(writer, mutations);

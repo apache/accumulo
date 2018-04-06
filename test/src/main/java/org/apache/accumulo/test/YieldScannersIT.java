@@ -86,11 +86,13 @@ public class YieldScannersIT extends AccumuloClusterHarness {
       int yieldSeekCount = 0;
       while (it.hasNext()) {
         Map.Entry<Key,Value> next = it.next();
-        log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value " + next.getValue());
+        log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value "
+            + next.getValue());
 
         // verify we got the expected key
         char expected = (char) (START_ROW + keyCount);
-        Assert.assertEquals("Unexpected row", Character.toString(expected), next.getKey().getRow().toString());
+        Assert.assertEquals("Unexpected row", Character.toString(expected),
+            next.getKey().getRow().toString());
 
         // determine whether we yielded on a next and seek
         if ((keyCount & 1) != 0) {
@@ -98,9 +100,12 @@ public class YieldScannersIT extends AccumuloClusterHarness {
           yieldSeekCount++;
         }
         String[] value = StringUtils.split(next.getValue().toString(), ',');
-        Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
-        Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
-        Assert.assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
+        Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount),
+            value[0]);
+        Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount),
+            value[1]);
+        Assert.assertEquals("Unexpected rebuild count",
+            Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
 
         keyCount++;
       }
@@ -138,11 +143,13 @@ public class YieldScannersIT extends AccumuloClusterHarness {
       int yieldSeekCount = 0;
       while (it.hasNext()) {
         Map.Entry<Key,Value> next = it.next();
-        log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value " + next.getValue());
+        log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value "
+            + next.getValue());
 
         // verify we got the expected key
         char expected = (char) (START_ROW + keyCount);
-        Assert.assertEquals("Unexpected row", Character.toString(expected), next.getKey().getRow().toString());
+        Assert.assertEquals("Unexpected row", Character.toString(expected),
+            next.getKey().getRow().toString());
 
         // determine whether we yielded on a next and seek
         if ((keyCount & 1) != 0) {
@@ -150,9 +157,12 @@ public class YieldScannersIT extends AccumuloClusterHarness {
           yieldSeekCount++;
         }
         String[] value = StringUtils.split(next.getValue().toString(), ',');
-        Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
-        Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
-        Assert.assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
+        Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount),
+            value[0]);
+        Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount),
+            value[1]);
+        Assert.assertEquals("Unexpected rebuild count",
+            Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
 
         keyCount++;
       }

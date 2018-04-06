@@ -128,10 +128,12 @@ public class KerberosReplicationIT extends AccumuloITBase {
     MiniClusterHarness harness = new MiniClusterHarness();
 
     // Create a primary and a peer instance, both with the same "root" user
-    primary = harness.create(getClass().getName(), testName.getMethodName(), new PasswordToken("unused"), getConfigCallback(PRIMARY_NAME), kdc);
+    primary = harness.create(getClass().getName(), testName.getMethodName(),
+        new PasswordToken("unused"), getConfigCallback(PRIMARY_NAME), kdc);
     primary.start();
 
-    peer = harness.create(getClass().getName(), testName.getMethodName() + "_peer", new PasswordToken("unused"), getConfigCallback(PEER_NAME), kdc);
+    peer = harness.create(getClass().getName(), testName.getMethodName() + "_peer",
+        new PasswordToken("unused"), getConfigCallback(PEER_NAME), kdc);
     peer.start();
 
     // Enable kerberos auth
@@ -154,7 +156,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
   @Test
   public void dataReplicatedToCorrectTable() throws Exception {
     // Login as the root user
-    final UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().toURI().toString());
+    final UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(
+        rootUser.getPrincipal(), rootUser.getKeytab().toURI().toString());
     ugi.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
@@ -168,14 +171,18 @@ public class KerberosReplicationIT extends AccumuloITBase {
         // Create user for replication to the peer
         peerConn.securityOperations().createLocalUser(replicationUser.getPrincipal(), null);
 
-        primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + PEER_NAME, replicationUser.getPrincipal());
-        primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEER_KEYTAB.getKey() + PEER_NAME, replicationUser.getKeytab().getAbsolutePath());
+        primaryConn.instanceOperations().setProperty(
+            Property.REPLICATION_PEER_USER.getKey() + PEER_NAME, replicationUser.getPrincipal());
+        primaryConn.instanceOperations().setProperty(
+            Property.REPLICATION_PEER_KEYTAB.getKey() + PEER_NAME,
+            replicationUser.getKeytab().getAbsolutePath());
 
         // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
         primaryConn.instanceOperations().setProperty(
             Property.REPLICATION_PEERS.getKey() + PEER_NAME,
             ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-                AccumuloReplicaSystem.buildConfiguration(peerConn.getInstance().getInstanceName(), peerConn.getInstance().getZooKeepers())));
+                AccumuloReplicaSystem.buildConfiguration(peerConn.getInstance().getInstanceName(),
+                    peerConn.getInstance().getZooKeepers())));
 
         String primaryTable1 = "primary", peerTable1 = "peer";
 
@@ -189,11 +196,14 @@ public class KerberosReplicationIT extends AccumuloITBase {
         Assert.assertNotNull(peerTableId1);
 
         // Grant write permission
-        peerConn.securityOperations().grantTablePermission(replicationUser.getPrincipal(), peerTable1, TablePermission.WRITE);
+        peerConn.securityOperations().grantTablePermission(replicationUser.getPrincipal(),
+            peerTable1, TablePermission.WRITE);
 
         // Replicate this table to the peerClusterName in a table with the peerTableId table id
-        primaryConn.tableOperations().setProperty(primaryTable1, Property.TABLE_REPLICATION.getKey(), "true");
-        primaryConn.tableOperations().setProperty(primaryTable1, Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
+        primaryConn.tableOperations().setProperty(primaryTable1,
+            Property.TABLE_REPLICATION.getKey(), "true");
+        primaryConn.tableOperations().setProperty(primaryTable1,
+            Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
 
         // Write some data to table1
         BatchWriter bw = primaryConn.createBatchWriter(primaryTable1, new BatchWriterConfig());
@@ -232,8 +242,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
         long countTable = 0l;
         for (Entry<Key,Value> entry : peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
-          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-              .startsWith(primaryTable1));
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+              + entry.getValue(), entry.getKey().getRow().toString().startsWith(primaryTable1));
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);

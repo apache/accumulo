@@ -37,7 +37,8 @@ public class ConfigSanityCheckTest {
   @Test
   public void testPass() {
     m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
-    m.put(Property.MASTER_TABLET_BALANCER.getKey(), "org.apache.accumulo.server.master.balancer.TableLoadBalancer");
+    m.put(Property.MASTER_TABLET_BALANCER.getKey(),
+        "org.apache.accumulo.server.master.balancer.TableLoadBalancer");
     m.put(Property.MASTER_RECOVERY_MAXAGE.getKey(), "60m");
     m.put(Property.MASTER_BULK_RETRIES.getKey(), "3");
     ConfigSanityCheck.validate(m.entrySet());
@@ -100,21 +101,24 @@ public class ConfigSanityCheckTest {
   public void testFail_cryptoModuleInvalidClass() {
     // a random hex dump is unlikely to be a real class name
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "e0218734bcd1e4d239203f970806786b");
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test(expected = SanityCheckException.class)
   public void testFail_cryptoModuleValidClassNotValidInterface() {
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "java.lang.String");
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test
   public void testPass_cryptoModuleAndSecretKeyEncryptionStrategyValidClasses() {
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), DEFAULT_CRYPTO_MODULE);
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
     ConfigSanityCheck.validate(m.entrySet());
   }
 
@@ -127,7 +131,8 @@ public class ConfigSanityCheckTest {
   @Test(expected = SanityCheckException.class)
   public void testFail_secretKeyEncryptionStrategyInvalidClass() {
     // a random hex dump is unlikely to be a real class name
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "e0218734bcd1e4d239203f970806786b");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        "e0218734bcd1e4d239203f970806786b");
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), DEFAULT_CRYPTO_MODULE);
     ConfigSanityCheck.validate(m.entrySet());
   }
@@ -141,35 +146,40 @@ public class ConfigSanityCheckTest {
 
   @Test
   public void testPass_secretKeyEncryptionStrategyValidNullStrategy() {
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        "NullSecretKeyEncryptionStrategy");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test(expected = SanityCheckException.class)
   public void testFail_cryptoModuleSetSecretKeyEncryptionStrategyNotSet() {
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), DEFAULT_CRYPTO_MODULE);
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        "NullSecretKeyEncryptionStrategy");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test(expected = SanityCheckException.class)
   public void testFail_cryptoModuleNotSetSecretKeyEncryptionStrategySet() {
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "NullCryptoModule");
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test
   public void testPass_cryptoModuleAndSecretKeyEncryptionStrategyBothNull() {
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "NullCryptoModule");
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        "NullSecretKeyEncryptionStrategy");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test
   public void testPass_cryptoModuleAndSecretKeyEncryptionStrategyBothSet() {
     m.put(Property.CRYPTO_MODULE_CLASS.getKey(), DEFAULT_CRYPTO_MODULE);
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(),
+        DEFAULT_SECRET_KEY_ENCRYPTION_STRATEGY);
     ConfigSanityCheck.validate(m.entrySet());
   }
 }

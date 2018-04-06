@@ -29,7 +29,8 @@ public class MapReduceClientOnRequiredTable extends MapReduceClientOpts {
   @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
   private String tableName;
 
-  @Parameter(names = {"-tf", "--tokenFile"}, description = "File in hdfs containing the user's authentication token create with \"bin/accumulo create-token\"")
+  @Parameter(names = {"-tf", "--tokenFile"},
+      description = "File in hdfs containing the user's authentication token create with \"bin/accumulo create-token\"")
   private String tokenFile = "";
 
   @Override

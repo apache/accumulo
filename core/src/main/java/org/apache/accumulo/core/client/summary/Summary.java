@@ -22,8 +22,8 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * This class encapsulates summary statistics, information about how those statistics were generated, and information about files the statistics were obtained
- * from.
+ * This class encapsulates summary statistics, information about how those statistics were
+ * generated, and information about files the statistics were obtained from.
  *
  * @see Summarizer
  * @since 2.0.0
@@ -56,26 +56,32 @@ public class Summary {
     }
 
     /**
-     * @return The number of files that did not contain the requested summary information. When this is non-zero, it means that summary counts may be
-     *         incomplete. In the Accumulo shell, the compact command has a -{@code -sf-no-summary} option to compact files missing summary information. The
-     *         compaction will create the summary information. This could be done over a range of the table to avoid doing the entire table at once.
+     * @return The number of files that did not contain the requested summary information. When this
+     *         is non-zero, it means that summary counts may be incomplete. In the Accumulo shell,
+     *         the compact command has a -{@code -sf-no-summary} option to compact files missing
+     *         summary information. The compaction will create the summary information. This could
+     *         be done over a range of the table to avoid doing the entire table at once.
      */
     public long getMissing() {
       return missing;
     }
 
     /**
-     * @return The number of files that had summary information outside of a tablet or query range boundaries. When this is non-zero, it means that summary
-     *         counts may be artificially inflated or contain extraneous information. In the Accumulo shell, the compact command has a -{@code -sf-extra-summary}
-     *         option to compact files with extra summary information.
+     * @return The number of files that had summary information outside of a tablet or query range
+     *         boundaries. When this is non-zero, it means that summary counts may be artificially
+     *         inflated or contain extraneous information. In the Accumulo shell, the compact
+     *         command has a -{@code -sf-extra-summary} option to compact files with extra summary
+     *         information.
      */
     public long getExtra() {
       return extra;
     }
 
     /**
-     * @return The number of files that an attempt was made to generate summaries, but the summarizer generated a summary that was larger than the configured
-     *         maximum. For these files no summary statistics are stored. Only the fact that summarization was attempted and failed is stored.
+     * @return The number of files that an attempt was made to generate summaries, but the
+     *         summarizer generated a summary that was larger than the configured maximum. For these
+     *         files no summary statistics are stored. Only the fact that summarization was
+     *         attempted and failed is stored.
      * @see Summarizer.Collector#summarize(org.apache.accumulo.core.client.summary.Summarizer.StatisticConsumer)
      */
     public long getLarge() {
@@ -83,18 +89,22 @@ public class Summary {
     }
 
     /**
-     * @return The number of files that were deleted after the summary retrieval operations started. This is a rare race condition where a compaction causes a
-     *         file to be deleted while retrieving summaries. When this happens, the file that replaced the deleted file can not be used because it may contain
-     *         duplication summary information for other files. Avoiding this race condition would be expensive, so reporting it was chosen. If this condition
-     *         must be avoided, then compactions must be stopped. Compactions could be stopped on a cloned table to avoid this.
+     * @return The number of files that were deleted after the summary retrieval operations started.
+     *         This is a rare race condition where a compaction causes a file to be deleted while
+     *         retrieving summaries. When this happens, the file that replaced the deleted file can
+     *         not be used because it may contain duplication summary information for other files.
+     *         Avoiding this race condition would be expensive, so reporting it was chosen. If this
+     *         condition must be avoided, then compactions must be stopped. Compactions could be
+     *         stopped on a cloned table to avoid this.
      */
     public long getDeleted() {
       return deleted;
     }
 
     /**
-     * @return The total number of files that had some kind of issue which would cause summary statistics to be inaccurate. This is the sum of
-     *         {@link #getMissing()}, {@link #getExtra()}, {{@link #getLarge()}, and {@link #getDeleted()}.
+     * @return The total number of files that had some kind of issue which would cause summary
+     *         statistics to be inaccurate. This is the sum of {@link #getMissing()},
+     *         {@link #getExtra()}, {{@link #getLarge()}, and {@link #getDeleted()}.
      */
     public long getInaccurate() {
       return getMissing() + getExtra() + getLarge() + getDeleted();
@@ -102,7 +112,8 @@ public class Summary {
 
     @Override
     public String toString() {
-      return String.format("[total:%,d, missing:%,d, extra:%,d, large:%,d, deleted:%,d]", total, missing, extra, large, deleted);
+      return String.format("[total:%,d, missing:%,d, extra:%,d, large:%,d, deleted:%,d]", total,
+          missing, extra, large, deleted);
     }
   }
 
@@ -110,11 +121,12 @@ public class Summary {
   private final SummarizerConfiguration config;
   private final FileStatistics fileStats;
 
-  public Summary(Map<String,Long> summary, SummarizerConfiguration config, long totalFiles, long filesMissingSummary, long filesWithExtra, long filesWithLarge,
-      long deletedFiles) {
+  public Summary(Map<String,Long> summary, SummarizerConfiguration config, long totalFiles,
+      long filesMissingSummary, long filesWithExtra, long filesWithLarge, long deletedFiles) {
     this.statistics = ImmutableMap.copyOf(summary);
     this.config = config;
-    this.fileStats = new FileStatistics(totalFiles, filesMissingSummary, filesWithExtra, filesWithLarge, deletedFiles);
+    this.fileStats = new FileStatistics(totalFiles, filesMissingSummary, filesWithExtra,
+        filesWithLarge, deletedFiles);
   }
 
   /**
@@ -132,7 +144,8 @@ public class Summary {
   }
 
   /**
-   * @return An immutable map of the statistics that were generated and merged by the specified {@link Summarizer}.
+   * @return An immutable map of the statistics that were generated and merged by the specified
+   *         {@link Summarizer}.
    */
   public Map<String,Long> getStatistics() {
     return statistics;

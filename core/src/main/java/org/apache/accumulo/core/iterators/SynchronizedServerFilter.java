@@ -26,8 +26,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * A SortedKeyValueIterator similar to {@link org.apache.accumulo.core.iterators.ServerFilter} but with the implemented methods marked as synchronized. The
- * {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method is also not supported since the source can only be assigned in the constructor.
+ * A SortedKeyValueIterator similar to {@link org.apache.accumulo.core.iterators.ServerFilter} but
+ * with the implemented methods marked as synchronized. The
+ * {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method is also not supported
+ * since the source can only be assigned in the constructor.
  *
  * @since 2.0
  */
@@ -49,7 +51,8 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
   }
 
   @Override
-  public synchronized void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public synchronized void seek(Range range, Collection<ByteSequence> columnFamilies,
+      boolean inclusive) throws IOException {
     source.seek(range, columnFamilies, inclusive);
     findTop();
   }
@@ -88,7 +91,8 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
   protected abstract boolean accept(Key k, Value v);
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
 }

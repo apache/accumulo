@@ -24,8 +24,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * Does not show contents from scan, only displays statistics. Beware that this work is being done client side and this was developed as a utility for
- * debugging. If used on large result sets it will likely fail.
+ * Does not show contents from scan, only displays statistics. Beware that this work is being done
+ * client side and this was developed as a utility for debugging. If used on large result sets it
+ * will likely fail.
  */
 public class StatisticsDisplayFormatter extends AggregatingFormatter {
   private Map<String,Long> classifications = new HashMap<>();

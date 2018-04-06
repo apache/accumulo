@@ -40,7 +40,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * A functional test that exercises hitting the max open file limit on a tablet server. This test assumes there are one or two tablet servers.
+ * A functional test that exercises hitting the max open file limit on a tablet server. This test
+ * assumes there are one or two tablet servers.
  */
 
 public class MaxOpenIT extends AccumuloClusterHarness {
@@ -93,7 +94,8 @@ public class MaxOpenIT extends AccumuloClusterHarness {
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
-    c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
+    c.tableOperations().addSplits(tableName,
+        TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
 
     // the following loop should create three tablets in each map file
     for (int i = 0; i < 3; i++) {
@@ -131,7 +133,8 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   }
 
-  private long batchScan(Connector c, String tableName, List<Range> ranges, int threads) throws Exception {
+  private long batchScan(Connector c, String tableName, List<Range> ranges, int threads)
+      throws Exception {
     try (BatchScanner bs = c.createBatchScanner(tableName, TestIngest.AUTHS, threads)) {
 
       bs.setRanges(ranges);

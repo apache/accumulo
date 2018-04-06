@@ -44,7 +44,8 @@ public class GetMasterStats {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
     Instance instance = HdfsZooInstance.getInstance();
-    AccumuloServerContext context = new AccumuloServerContext(instance, new ServerConfigurationFactory(instance));
+    AccumuloServerContext context = new AccumuloServerContext(instance,
+        new ServerConfigurationFactory(instance));
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

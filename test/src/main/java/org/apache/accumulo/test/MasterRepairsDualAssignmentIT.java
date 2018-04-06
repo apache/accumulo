@@ -96,7 +96,8 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
     }
     assertEquals(2, states.size());
     // Kill a tablet server... we don't care which one... wait for everything to be reassigned
-    cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+    cluster.killProcess(ServerType.TABLET_SERVER,
+        cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
     Set<TServerInstance> replStates = new HashSet<>();
     // Find out which tablet server remains
     while (true) {
@@ -107,7 +108,8 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       for (TabletLocationState tls : store) {
         if (tls != null && tls.current != null) {
           states.add(tls.current);
-        } else if (tls != null && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
+        } else if (tls != null
+            && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
           replStates.add(tls.current);
         } else {
           allAssigned = false;

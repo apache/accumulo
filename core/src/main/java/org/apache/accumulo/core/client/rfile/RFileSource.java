@@ -20,8 +20,8 @@ package org.apache.accumulo.core.client.rfile;
 import java.io.InputStream;
 
 /**
- * RFile metadata is stored at the end of the file. Inorder to read an RFile, its length must be known. This provides a way to pass an InputStream and length
- * for reading an RFile.
+ * RFile metadata is stored at the end of the file. Inorder to read an RFile, its length must be
+ * known. This provides a way to pass an InputStream and length for reading an RFile.
  *
  * @since 1.8.0
  */

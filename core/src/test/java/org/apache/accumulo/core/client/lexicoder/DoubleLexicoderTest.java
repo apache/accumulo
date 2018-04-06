@@ -25,10 +25,12 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
  */
 public class DoubleLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
-    assertSortOrder(new DoubleLexicoder(), Arrays.asList(Double.MIN_VALUE, Double.MAX_VALUE, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 0.0, 0.01,
-        0.001, 1.0, -1.0, -1.1, -1.01, Math.nextUp(Double.NEGATIVE_INFINITY), Math.nextAfter(0.0, Double.NEGATIVE_INFINITY),
-        Math.nextAfter(Double.MAX_VALUE, Double.NEGATIVE_INFINITY), Math.pow(10.0, 30.0) * -1.0, Math.pow(10.0, 30.0), Math.pow(10.0, -30.0) * -1.0,
-        Math.pow(10.0, -30.0)));
+    assertSortOrder(new DoubleLexicoder(),
+        Arrays.asList(Double.MIN_VALUE, Double.MAX_VALUE, Double.NEGATIVE_INFINITY,
+            Double.POSITIVE_INFINITY, 0.0, 0.01, 0.001, 1.0, -1.0, -1.1, -1.01,
+            Math.nextUp(Double.NEGATIVE_INFINITY), Math.nextAfter(0.0, Double.NEGATIVE_INFINITY),
+            Math.nextAfter(Double.MAX_VALUE, Double.NEGATIVE_INFINITY), Math.pow(10.0, 30.0) * -1.0,
+            Math.pow(10.0, 30.0), Math.pow(10.0, -30.0) * -1.0, Math.pow(10.0, -30.0)));
 
   }
 

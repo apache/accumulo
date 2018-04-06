@@ -64,7 +64,8 @@ public class SummarizerConfigurationUtil {
     return props;
   }
 
-  public static List<SummarizerConfiguration> getSummarizerConfigs(Iterable<Entry<String,String>> props) {
+  public static List<SummarizerConfiguration> getSummarizerConfigs(
+      Iterable<Entry<String,String>> props) {
     TreeMap<String,String> filteredMap = new TreeMap<>();
     for (Entry<String,String> entry : props) {
       if (entry.getKey().startsWith(Property.TABLE_SUMMARIZER_PREFIX.getKey())) {
@@ -80,7 +81,8 @@ public class SummarizerConfigurationUtil {
     return getSummarizerConfigsFiltered(new TreeMap<>(sprops));
   }
 
-  private static List<SummarizerConfiguration> getSummarizerConfigsFiltered(SortedMap<String,String> sprops) {
+  private static List<SummarizerConfiguration> getSummarizerConfigsFiltered(
+      SortedMap<String,String> sprops) {
     if (sprops.size() == 0) {
       return Collections.emptyList();
     }

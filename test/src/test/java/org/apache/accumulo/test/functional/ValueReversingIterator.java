@@ -54,7 +54,8 @@ public class ValueReversingIterator implements SortedKeyValueIterator<Key,Value>
     return source.hasTop();
   }
 
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     this.source = source;
   }
 
@@ -62,7 +63,8 @@ public class ValueReversingIterator implements SortedKeyValueIterator<Key,Value>
     source.next();
   }
 
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     source.seek(range, columnFamilies, inclusive);
   }
 }

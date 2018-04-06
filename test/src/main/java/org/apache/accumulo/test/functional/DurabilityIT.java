@@ -97,7 +97,8 @@ public class DurabilityIT extends ConfigurableMacBase {
   public void testWriteSpeed() throws Exception {
     TableOperations tableOps = getConnector().tableOperations();
     String tableNames[] = init();
-    // write some gunk, delete the table to keep that table from messing with the performance numbers of successive calls
+    // write some gunk, delete the table to keep that table from messing with the performance
+    // numbers of successive calls
     // sync
     long t0 = writeSome(tableNames[0], N);
     tableOps.delete(tableNames[0]);

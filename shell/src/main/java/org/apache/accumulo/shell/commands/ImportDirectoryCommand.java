@@ -33,15 +33,16 @@ public class ImportDirectoryCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.checkTableState();
 
     String dir = cl.getArgs()[0];
     String failureDir = cl.getArgs()[1];
     final boolean setTime = Boolean.parseBoolean(cl.getArgs()[2]);
 
-    shellState.getConnector().tableOperations().importDirectory(shellState.getTableName(), dir, failureDir, setTime);
+    shellState.getConnector().tableOperations().importDirectory(shellState.getTableName(), dir,
+        failureDir, setTime);
     return 0;
   }
 

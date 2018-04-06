@@ -33,13 +33,15 @@ public abstract class OptUtil {
   public static final String START_ROW_OPT = "b";
   public static final String END_ROW_OPT = "e";
 
-  public static String getTableOpt(final CommandLine cl, final Shell shellState) throws TableNotFoundException {
+  public static String getTableOpt(final CommandLine cl, final Shell shellState)
+      throws TableNotFoundException {
     String tableName;
 
     if (cl.hasOption(ShellOptions.tableOption)) {
       tableName = cl.getOptionValue(ShellOptions.tableOption);
       if (!shellState.getConnector().tableOperations().exists(tableName)) {
-        throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
+        throw new TableNotFoundException(tableName, tableName,
+            "specified table that doesn't exist");
       }
     } else {
       shellState.checkTableState();
@@ -49,13 +51,14 @@ public abstract class OptUtil {
     return tableName;
   }
 
-  public static String getNamespaceOpt(final CommandLine cl, final Shell shellState) throws NamespaceNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+  public static String getNamespaceOpt(final CommandLine cl, final Shell shellState)
+      throws NamespaceNotFoundException, AccumuloException, AccumuloSecurityException {
     String namespace = null;
     if (cl.hasOption(ShellOptions.namespaceOption)) {
       namespace = cl.getOptionValue(ShellOptions.namespaceOption);
       if (!shellState.getConnector().namespaceOperations().exists(namespace)) {
-        throw new NamespaceNotFoundException(namespace, namespace, "specified namespace that doesn't exist");
+        throw new NamespaceNotFoundException(namespace, namespace,
+            "specified namespace that doesn't exist");
       }
     } else {
       throw new NamespaceNotFoundException(null, null, "no namespace specified");
@@ -79,7 +82,8 @@ public abstract class OptUtil {
   }
 
   public static Option namespaceOpt(final String description) {
-    final Option namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true, description);
+    final Option namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
+        description);
     namespaceOpt.setArgName("namespace");
     namespaceOpt.setRequired(false);
     return namespaceOpt;

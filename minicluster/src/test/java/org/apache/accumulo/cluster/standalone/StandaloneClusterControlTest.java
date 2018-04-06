@@ -33,9 +33,11 @@ public class StandaloneClusterControlTest {
 
   @Test
   public void testPaths() {
-    String accumuloHome = "/usr/lib/accumulo", accumuloConfDir = "/etc/accumulo/conf", accumuloServerConfDir = "/etc/accumulo/conf/server";
+    String accumuloHome = "/usr/lib/accumulo", accumuloConfDir = "/etc/accumulo/conf",
+        accumuloServerConfDir = "/etc/accumulo/conf/server";
 
-    StandaloneClusterControl control = new StandaloneClusterControl(accumuloHome, accumuloConfDir, accumuloServerConfDir, "", "");
+    StandaloneClusterControl control = new StandaloneClusterControl(accumuloHome, accumuloConfDir,
+        accumuloServerConfDir, "", "");
 
     assertEquals(accumuloHome, control.accumuloHome);
     assertEquals(accumuloConfDir, control.clientAccumuloConfDir);
@@ -51,8 +53,10 @@ public class StandaloneClusterControlTest {
     final String jar = "/home/user/my_project.jar";
     final Class<?> clz = Object.class;
     final String myClass = clz.getName();
-    StandaloneClusterControl control = EasyMock.createMockBuilder(StandaloneClusterControl.class).addMockedMethod("exec", String.class, String[].class)
-        .addMockedMethod("getAccumuloUtilPath").addMockedMethod("getJarFromClass", Class.class).createMock();
+    StandaloneClusterControl control = EasyMock.createMockBuilder(StandaloneClusterControl.class)
+        .addMockedMethod("exec", String.class, String[].class)
+        .addMockedMethod("getAccumuloUtilPath").addMockedMethod("getJarFromClass", Class.class)
+        .createMock();
 
     final String[] toolArgs = new String[] {"-u", "user", "-p", "password"};
     final String[] expectedCommands = new String[4 + toolArgs.length];
@@ -68,7 +72,8 @@ public class StandaloneClusterControlTest {
 
     expect(control.getAccumuloUtilPath()).andReturn(accumuloUtilPath);
     expect(control.getJarFromClass(anyObject(Class.class))).andReturn(jar);
-    expect(control.exec(eq("localhost"), aryEq(expectedCommands))).andReturn(Maps.immutableEntry(0, ""));
+    expect(control.exec(eq("localhost"), aryEq(expectedCommands)))
+        .andReturn(Maps.immutableEntry(0, ""));
 
     replay(control);
 

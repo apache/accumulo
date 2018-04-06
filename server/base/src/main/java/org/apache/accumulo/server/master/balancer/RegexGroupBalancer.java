@@ -29,25 +29,30 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 /**
- * A {@link GroupBalancer} that groups tablets using a configurable regex. To use this balancer configure the following settings for your table then configure
- * this balancer for your table.
+ * A {@link GroupBalancer} that groups tablets using a configurable regex. To use this balancer
+ * configure the following settings for your table then configure this balancer for your table.
  *
  * <ul>
- * <li>Set {@code table.custom.balancer.group.regex.pattern} to a regular expression. This regular expression must have one group. The regex is applied to the
- * tablet end row and whatever the regex group matches is used as the group. For example with a regex of {@code (\d\d).*} and an end row of {@code 12abc}, the
- * group for the tablet would be {@code 12}.
- * <li>Set {@code table.custom.balancer.group.regex.default} to a default group. This group is returned for the last tablet in the table and tablets for which
- * the regex does not match.
- * <li>Optionally set {@code table.custom.balancer.group.regex.wait.time} to time (can use time suffixes). This determines how long to wait between balancing.
- * Since this balancer scans the metadata table, may want to set this higher for large tables.
+ * <li>Set {@code table.custom.balancer.group.regex.pattern} to a regular expression. This regular
+ * expression must have one group. The regex is applied to the tablet end row and whatever the regex
+ * group matches is used as the group. For example with a regex of {@code (\d\d).*} and an end row
+ * of {@code 12abc}, the group for the tablet would be {@code 12}.
+ * <li>Set {@code table.custom.balancer.group.regex.default} to a default group. This group is
+ * returned for the last tablet in the table and tablets for which the regex does not match.
+ * <li>Optionally set {@code table.custom.balancer.group.regex.wait.time} to time (can use time
+ * suffixes). This determines how long to wait between balancing. Since this balancer scans the
+ * metadata table, may want to set this higher for large tables.
  * </ul>
  */
 
 public class RegexGroupBalancer extends GroupBalancer {
 
-  public static final String REGEX_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.pattern";
-  public static final String DEFAUT_GROUP_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.default";
-  public static final String WAIT_TIME_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.wait.time";
+  public static final String REGEX_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
+      + "balancer.group.regex.pattern";
+  public static final String DEFAUT_GROUP_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
+      + "balancer.group.regex.default";
+  public static final String WAIT_TIME_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
+      + "balancer.group.regex.wait.time";
 
   private final Table.ID tableId;
 
@@ -58,7 +63,8 @@ public class RegexGroupBalancer extends GroupBalancer {
 
   @Override
   protected long getWaitTime() {
-    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(tableId)
+    Map<String,String> customProps = context.getServerConfigurationFactory()
+        .getTableConfiguration(tableId)
         .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     if (customProps.containsKey(WAIT_TIME_PROPERTY)) {
       return ConfigurationTypeHelper.getTimeInMillis(customProps.get(WAIT_TIME_PROPERTY));
@@ -70,7 +76,8 @@ public class RegexGroupBalancer extends GroupBalancer {
   @Override
   protected Function<KeyExtent,String> getPartitioner() {
 
-    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(tableId)
+    Map<String,String> customProps = context.getServerConfigurationFactory()
+        .getTableConfiguration(tableId)
         .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     String regex = customProps.get(REGEX_PROPERTY);
     final String defaultGroup = customProps.get(DEFAUT_GROUP_PROPERTY);

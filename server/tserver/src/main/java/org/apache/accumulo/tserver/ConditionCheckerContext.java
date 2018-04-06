@@ -81,7 +81,8 @@ public class ConditionCheckerContext {
     tie = new TabletIteratorEnvironment(IteratorScope.scan, tableConf);
   }
 
-  SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter, TCondition tc) throws IOException {
+  SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter,
+      TCondition tc) throws IOException {
 
     ArrayByteSequence key = new ArrayByteSequence(tc.iterators);
     MergedIterConfig mic = mergedIterCache.get(key);
@@ -89,28 +90,34 @@ public class ConditionCheckerContext {
       IterConfig ic = compressedIters.decompress(tc.iterators);
 
       List<IterInfo> mergedIters = new ArrayList<>(tableIters.size() + ic.ssiList.size());
-      Map<String,Map<String,String>> mergedItersOpts = new HashMap<>(tableIterOpts.size() + ic.ssio.size());
+      Map<String,Map<String,String>> mergedItersOpts = new HashMap<>(
+          tableIterOpts.size() + ic.ssio.size());
 
-      IteratorUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts, ic.ssiList, ic.ssio);
+      IteratorUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts,
+          ic.ssiList, ic.ssio);
 
       mic = new MergedIterConfig(mergedIters, mergedItersOpts);
 
       mergedIterCache.put(key, mic);
     }
 
-    return IteratorUtil.loadIterators(systemIter, mic.mergedIters, mic.mergedItersOpts, tie, true, context, classCache);
+    return IteratorUtil.loadIterators(systemIter, mic.mergedIters, mic.mergedItersOpts, tie, true,
+        context, classCache);
   }
 
-  boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter, ServerConditionalMutation scm) throws IOException {
+  boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,
+      ServerConditionalMutation scm) throws IOException {
     boolean add = true;
 
     for (TCondition tc : scm.getConditions()) {
 
       Range range;
       if (tc.hasTimestamp)
-        range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()), tc.getTs());
+        range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()),
+            new Text(tc.getCv()), tc.getTs());
       else
-        range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()));
+        range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()),
+            new Text(tc.getCv()));
 
       SortedKeyValueIterator<Key,Value> iter = buildIterator(systemIter, tc);
 
@@ -121,7 +128,8 @@ public class ConditionCheckerContext {
         val = iter.getTopValue();
       }
 
-      if ((val == null ^ tc.getVal() == null) || (val != null && !Arrays.equals(tc.getVal(), val.get()))) {
+      if ((val == null ^ tc.getVal() == null)
+          || (val != null && !Arrays.equals(tc.getVal(), val.get()))) {
         add = false;
         break;
       }
@@ -136,7 +144,8 @@ public class ConditionCheckerContext {
     private List<TCMResult> results;
     private boolean checked = false;
 
-    public ConditionChecker(List<ServerConditionalMutation> conditionsToCheck, List<ServerConditionalMutation> okMutations, List<TCMResult> results) {
+    public ConditionChecker(List<ServerConditionalMutation> conditionsToCheck,
+        List<ServerConditionalMutation> okMutations, List<TCMResult> results) {
       this.conditionsToCheck = conditionsToCheck;
       this.okMutations = okMutations;
       this.results = results;
@@ -156,7 +165,8 @@ public class ConditionCheckerContext {
     }
   }
 
-  public ConditionChecker newChecker(List<ServerConditionalMutation> conditionsToCheck, List<ServerConditionalMutation> okMutations, List<TCMResult> results) {
+  public ConditionChecker newChecker(List<ServerConditionalMutation> conditionsToCheck,
+      List<ServerConditionalMutation> okMutations, List<TCMResult> results) {
     return new ConditionChecker(conditionsToCheck, okMutations, results);
   }
 }

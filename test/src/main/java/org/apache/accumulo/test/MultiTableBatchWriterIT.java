@@ -108,7 +108,8 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       try (Scanner s = connector.createScanner(table1, new Authorizations())) {
         s.setRange(new Range());
         for (Entry<Key,Value> entry : s) {
-          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
+              entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
         Assert.assertEquals("Differing results for " + table1, table1Expectations, actual);
       }
@@ -117,7 +118,8 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         s.setRange(new Range());
         actual = new HashMap<>();
         for (Entry<Key,Value> entry : s) {
-          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
+              entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
         Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
       }
@@ -173,7 +175,8 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
           s.setRange(new Range());
           Map<Entry<String,String>,String> actual = new HashMap<>();
           for (Entry<Key,Value> entry : s) {
-            actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+            actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
+                entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
           }
           Assert.assertEquals("Differing results for " + table, expectations, actual);
         }
@@ -249,7 +252,8 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
           s.setRange(new Range());
           Map<Entry<String,String>,String> actual = new HashMap<>();
           for (Entry<Key,Value> entry : s) {
-            actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+            actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
+                entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
           }
           Assert.assertEquals("Differing results for " + table, expectations, actual);
         }

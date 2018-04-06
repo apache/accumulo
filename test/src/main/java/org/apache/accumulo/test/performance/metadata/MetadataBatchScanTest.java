@@ -53,8 +53,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 
 /**
- * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata lookups using the
- * batch scanner.
+ * This little program can be used to write a lot of metadata entries and measure the performance of
+ * varying numbers of threads doing metadata lookups using the batch scanner.
  *
  *
  */
@@ -98,7 +98,8 @@ public class MetadataBatchScanTest {
 
       for (KeyExtent extent : extents) {
         Mutation mut = extent.getPrevRowUpdateMutation();
-        new TServerInstance(HostAndPort.fromParts("192.168.1.100", 4567), "DEADBEEF").putLocation(mut);
+        new TServerInstance(HostAndPort.fromParts("192.168.1.100", 4567), "DEADBEEF")
+            .putLocation(mut);
         bw.addMutation(mut);
       }
 
@@ -115,7 +116,8 @@ public class MetadataBatchScanTest {
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(UTF_8)));
 
         for (int i = 0; i < 5; i++) {
-          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new DataFileValue(10000, 1000000).encodeAsValue());
+          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"),
+              new DataFileValue(10000, 1000000).encodeAsValue());
         }
 
         bw.addMutation(mut);
@@ -174,10 +176,12 @@ public class MetadataBatchScanTest {
 
   }
 
-  private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges) throws Exception {
+  private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges)
+      throws Exception {
     ScanStats stats = new ScanStats();
 
-    try (BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
+        1)) {
       bs.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(bs);
 
@@ -235,7 +239,8 @@ public class MetadataBatchScanTest {
     count = 0;
     t1 = System.currentTimeMillis();
     /*
-     * for (Range range : ranges) { scanner.setRange(range); for (Entry<Key, Value> entry : scanner) { count++; } }
+     * for (Range range : ranges) { scanner.setRange(range); for (Entry<Key, Value> entry : scanner)
+     * { count++; } }
      */
 
     t2 = System.currentTimeMillis();

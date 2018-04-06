@@ -45,8 +45,8 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.io.Text;
 
 /**
- * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to include default iterators, and user-specified initial
- * properties
+ * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to
+ * include default iterators, and user-specified initial properties
  *
  * @since 1.7.0
  */
@@ -63,8 +63,10 @@ public class NewTableConfiguration {
   private Map<String,String> localityProps = Collections.emptyMap();
   private Map<String,String> iteratorProps = new HashMap<>();
 
-  private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
-    checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
+  private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
+      String kind) {
+    checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()),
+        "Properties and derived %s properties are not disjoint", kind);
   }
 
   /**
@@ -90,8 +92,9 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Currently the only default iterator is the {@link VersioningIterator}. This method will cause the table to be created without that iterator, or any others
-   * which may become defaults in the future.
+   * Currently the only default iterator is the {@link VersioningIterator}. This method will cause
+   * the table to be created without that iterator, or any others which may become defaults in the
+   * future.
    *
    * @return this
    */
@@ -101,8 +104,8 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Sets additional properties to be applied to tables created with this configuration. Additional calls to this method replace properties set by previous
-   * calls.
+   * Sets additional properties to be applied to tables created with this configuration. Additional
+   * calls to this method replace properties set by previous calls.
    *
    * @param props
    *          additional properties to add to the table when it is created
@@ -120,7 +123,8 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Retrieves the complete set of currently configured table properties to be applied to a table when this configuration object is used.
+   * Retrieves the complete set of currently configured table properties to be applied to a table
+   * when this configuration object is used.
    *
    * @return the current properties configured
    */
@@ -145,7 +149,8 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration enableSampling(SamplerConfiguration samplerConfiguration) {
     requireNonNull(samplerConfiguration);
-    Map<String,String> tmp = new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
+    Map<String,String> tmp = new SamplerConfigurationImpl(samplerConfiguration)
+        .toTablePropertiesMap();
     checkDisjoint(properties, tmp, "sampler");
     this.samplerProps = tmp;
     return this;
@@ -158,7 +163,8 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration enableSummarization(SummarizerConfiguration... configs) {
     requireNonNull(configs);
-    Map<String,String> tmp = SummarizerConfigurationUtil.toTablePropertiesMap(Arrays.asList(configs));
+    Map<String,String> tmp = SummarizerConfigurationUtil
+        .toTablePropertiesMap(Arrays.asList(configs));
     checkDisjoint(properties, tmp, "summarizer");
     summarizerProps = tmp;
     return this;
@@ -167,8 +173,8 @@ public class NewTableConfiguration {
   /**
    * Configures a table's locality groups prior to initial table creation.
    *
-   * Allows locality groups to be set prior to table creation. Additional calls to this method prior to table creation will overwrite previous locality group
-   * mappings.
+   * Allows locality groups to be set prior to table creation. Additional calls to this method prior
+   * to table creation will overwrite previous locality group mappings.
    *
    * @param groups
    *          mapping of locality group names to column families in the locality group
@@ -186,7 +192,8 @@ public class NewTableConfiguration {
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
       tmp.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
-    tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
+    tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
+        groups.keySet().stream().collect(Collectors.joining(",")));
     checkDisjoint(properties, tmp, "locality groups");
     localityProps = tmp;
     return this;
@@ -195,7 +202,8 @@ public class NewTableConfiguration {
   /**
    * Configure iterator settings for a table prior to its creation.
    *
-   * Additional calls to this method before table creation will overwrite previous iterator settings.
+   * Additional calls to this method before table creation will overwrite previous iterator
+   * settings.
    *
    * @param setting
    *          object specifying the properties of the iterator
@@ -220,16 +228,20 @@ public class NewTableConfiguration {
    *
    * @see TableOperations#attachIterator(String, IteratorSetting, EnumSet)
    */
-  public NewTableConfiguration attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) {
+  public NewTableConfiguration attachIterator(IteratorSetting setting,
+      EnumSet<IteratorScope> scopes) {
     Objects.requireNonNull(setting, "setting cannot be null!");
     Objects.requireNonNull(scopes, "scopes cannot be null!");
     try {
       TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
     } catch (AccumuloException e) {
-      throw new IllegalArgumentException("The specified IteratorSetting conflicts with an iterator already defined on this NewTableConfiguration", e);
+      throw new IllegalArgumentException(
+          "The specified IteratorSetting conflicts with an iterator already defined on this NewTableConfiguration",
+          e);
     }
     for (IteratorScope scope : scopes) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
+          scope.name().toLowerCase(), setting.getName());
       for (Entry<String,String> prop : setting.getOptions().entrySet()) {
         iteratorProps.put(root + ".opt." + prop.getKey(), prop.getValue());
       }

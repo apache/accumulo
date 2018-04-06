@@ -65,7 +65,8 @@ public class MiniAccumuloClusterImplTest {
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(testDir, "superSecret")
+        .setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
     config.setNumTservers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
@@ -86,7 +87,8 @@ public class MiniAccumuloClusterImplTest {
 
     Assert.assertTrue(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
 
-    for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.ZOOKEEPER}) {
+    for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER,
+        ServerType.ZOOKEEPER}) {
       Assert.assertTrue(procs.containsKey(t));
       Collection<ProcessReference> procRefs = procs.get(t);
       Assert.assertTrue(1 <= procRefs.size());
@@ -113,11 +115,15 @@ public class MiniAccumuloClusterImplTest {
     List<MasterState> validStates = Arrays.asList(MasterState.values());
     List<MasterGoalState> validGoals = Arrays.asList(MasterGoalState.values());
     Assert.assertTrue("master state should be valid.", validStates.contains(stats.state));
-    Assert.assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState, validGoals.contains(stats.goalState));
+    Assert.assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState,
+        validGoals.contains(stats.goalState));
     Assert.assertNotNull("should have a table map.", stats.tableMap);
-    Assert.assertTrue("root table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(RootTable.ID.canonicalID()));
-    Assert.assertTrue("meta table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(MetadataTable.ID.canonicalID()));
-    Assert.assertTrue("our test table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(testTableID));
+    Assert.assertTrue("root table should exist in " + stats.tableMap.keySet(),
+        stats.tableMap.keySet().contains(RootTable.ID.canonicalID()));
+    Assert.assertTrue("meta table should exist in " + stats.tableMap.keySet(),
+        stats.tableMap.keySet().contains(MetadataTable.ID.canonicalID()));
+    Assert.assertTrue("our test table should exist in " + stats.tableMap.keySet(),
+        stats.tableMap.keySet().contains(testTableID));
     Assert.assertNotNull("there should be tservers.", stats.tServerInfo);
     Assert.assertEquals(NUM_TSERVERS, stats.tServerInfo.size());
   }

@@ -55,7 +55,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
         @Override
         public void run() {
           try {
-            CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(), getConnector().getInstance().getZooKeepers()});
+            CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(),
+                getConnector().getInstance().getZooKeepers()});
           } catch (Exception ex) {
             ref.set(ex);
           }
@@ -64,7 +65,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
       reader.start();
       threads.add(reader);
     }
-    assertEquals(0, exec(CacheTestWriter.class, pathName, testDir.getAbsolutePath(), "3", "50").waitFor());
+    assertEquals(0,
+        exec(CacheTestWriter.class, pathName, testDir.getAbsolutePath(), "3", "50").waitFor());
     for (Thread t : threads) {
       t.join();
       if (ref.get() != null)

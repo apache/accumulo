@@ -27,9 +27,11 @@ public class WorkMakerTest {
   public void closedStatusRecordsStillMakeWork() throws Exception {
     WorkMaker workMaker = new WorkMaker(null, null);
 
-    Assert.assertFalse(workMaker.shouldCreateWork(StatusUtil.fileCreated(System.currentTimeMillis())));
+    Assert.assertFalse(
+        workMaker.shouldCreateWork(StatusUtil.fileCreated(System.currentTimeMillis())));
     Assert.assertTrue(workMaker.shouldCreateWork(StatusUtil.ingestedUntil(1000)));
     // We don't need to re-create work for something that's already replicated.
-    Assert.assertFalse(workMaker.shouldCreateWork(Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true).setClosed(true).build()));
+    Assert.assertFalse(workMaker.shouldCreateWork(Status.newBuilder().setBegin(Long.MAX_VALUE)
+        .setEnd(0).setInfiniteEnd(true).setClosed(true).build()));
   }
 }

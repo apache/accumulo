@@ -28,8 +28,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
- * The BulkImportResource is responsible for obtaining the information of the bulk import, and tablet server bulk import from the Monitor and creating the JSON
- * objects with each
+ * The BulkImportResource is responsible for obtaining the information of the bulk import, and
+ * tablet server bulk import from the Monitor and creating the JSON objects with each
  *
  * @since 2.0.0
  *
@@ -50,7 +50,8 @@ public class BulkImportResource {
 
     // Generating Bulk Import and adding it to the return object
     for (BulkImportStatus bulk : Monitor.getMmi().bulkImports) {
-      bulkImport.addBulkImport(new BulkImportInformation(bulk.filename, bulk.startTime, bulk.state));
+      bulkImport
+          .addBulkImport(new BulkImportInformation(bulk.filename, bulk.startTime, bulk.state));
     }
 
     // Generating TServer Bulk Import and adding it to the return object
@@ -69,7 +70,8 @@ public class BulkImportResource {
           oldest = 0L;
         }
       }
-      bulkImport.addTabletServerBulkImport(new TabletServerBulkImportInformation(tserverInfo, size, oldest));
+      bulkImport.addTabletServerBulkImport(
+          new TabletServerBulkImportInformation(tserverInfo, size, oldest));
     }
     return bulkImport;
   }

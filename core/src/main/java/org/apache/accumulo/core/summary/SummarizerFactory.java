@@ -41,12 +41,14 @@ public class SummarizerFactory {
     this.context = tableConfig.get(Property.TABLE_CLASSPATH);
   }
 
-  private Summarizer newSummarizer(String classname) throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
+  private Summarizer newSummarizer(String classname)
+      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
     if (classloader != null) {
       return classloader.loadClass(classname).asSubclass(Summarizer.class).newInstance();
     } else {
       if (context != null && !context.equals(""))
-        return AccumuloVFSClassLoader.getContextManager().loadClass(context, classname, Summarizer.class).newInstance();
+        return AccumuloVFSClassLoader.getContextManager()
+            .loadClass(context, classname, Summarizer.class).newInstance();
       else
         return AccumuloVFSClassLoader.loadClass(classname, Summarizer.class).newInstance();
     }
@@ -56,7 +58,8 @@ public class SummarizerFactory {
     try {
       Summarizer summarizer = newSummarizer(conf.getClassName());
       return summarizer;
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException e) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IOException e) {
       throw new RuntimeException(e);
     }
   }

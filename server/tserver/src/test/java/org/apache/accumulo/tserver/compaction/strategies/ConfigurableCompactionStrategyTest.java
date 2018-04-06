@@ -38,10 +38,12 @@ public class ConfigurableCompactionStrategyTest {
 
   @Test
   public void testOutputOptions() throws Exception {
-    MajorCompactionRequest mcr = new MajorCompactionRequest(new KeyExtent(Table.ID.of("1"), null, null), MajorCompactionReason.USER, null);
+    MajorCompactionRequest mcr = new MajorCompactionRequest(
+        new KeyExtent(Table.ID.of("1"), null, null), MajorCompactionReason.USER, null);
 
     Map<FileRef,DataFileValue> files = new HashMap<>();
-    files.put(new FileRef("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"), new DataFileValue(50000, 400));
+    files.put(new FileRef("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"),
+        new DataFileValue(50000, 400));
     mcr.setFiles(files);
 
     // test setting no output options
@@ -71,9 +73,12 @@ public class ConfigurableCompactionStrategyTest {
 
     plan = ccs.getCompactionPlan(mcr);
 
-    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("64K"), plan.writeParameters.getBlockSize());
-    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("256M"), plan.writeParameters.getHdfsBlockSize());
-    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("32K"), plan.writeParameters.getIndexBlockSize());
+    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("64K"),
+        plan.writeParameters.getBlockSize());
+    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("256M"),
+        plan.writeParameters.getHdfsBlockSize());
+    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("32K"),
+        plan.writeParameters.getIndexBlockSize());
     Assert.assertEquals(5, plan.writeParameters.getReplication());
     Assert.assertEquals("snappy", plan.writeParameters.getCompressType());
 

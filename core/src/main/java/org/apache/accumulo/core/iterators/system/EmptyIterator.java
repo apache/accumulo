@@ -34,7 +34,8 @@ public class EmptyIterator implements InterruptibleIterator {
   public static final EmptyIterator EMPTY_ITERATOR = new EmptyIterator();
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {}
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {}
 
   @Override
   public boolean hasTop() {
@@ -48,7 +49,8 @@ public class EmptyIterator implements InterruptibleIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {}
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {}
 
   @Override
   public Key getTopKey() {

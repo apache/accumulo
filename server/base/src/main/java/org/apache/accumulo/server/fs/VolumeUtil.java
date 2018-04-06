@@ -97,7 +97,8 @@ public class VolumeUtil {
 
     Path p = new Path(path);
 
-    // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to false
+    // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to
+    // false
     Path volume = removeTrailingSlash(ft.getVolume(p));
 
     for (Pair<Path,Path> pair : replacements) {
@@ -154,7 +155,8 @@ public class VolumeUtil {
       datafiles = new TreeMap<>();
     }
 
-    public TabletFiles(String dir, List<LogEntry> logEntries, SortedMap<FileRef,DataFileValue> datafiles) {
+    public TabletFiles(String dir, List<LogEntry> logEntries,
+        SortedMap<FileRef,DataFileValue> datafiles) {
       this.dir = dir;
       this.logEntries = logEntries;
       this.datafiles = datafiles;
@@ -162,7 +164,8 @@ public class VolumeUtil {
   }
 
   public static String switchRootTableVolume(String location) throws IOException {
-    String newLocation = switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
+    String newLocation = switchVolume(location, FileType.TABLE,
+        ServerConstants.getVolumeReplacements());
     if (newLocation != null) {
       MetadataTableUtil.setRootTabletDir(newLocation);
       log.info("Volume replaced: {} -> {}", location, newLocation);
@@ -172,11 +175,13 @@ public class VolumeUtil {
   }
 
   /**
-   * This method does two things. First, it switches any volumes a tablet is using that are configured in instance.volumes.replacements. Second, if a tablet dir
-   * is no longer configured for use it chooses a new tablet directory.
+   * This method does two things. First, it switches any volumes a tablet is using that are
+   * configured in instance.volumes.replacements. Second, if a tablet dir is no longer configured
+   * for use it chooses a new tablet directory.
    */
-  public static TabletFiles updateTabletVolumes(AccumuloServerContext context, ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles,
-      boolean replicate) throws IOException {
+  public static TabletFiles updateTabletVolumes(AccumuloServerContext context, ZooLock zooLock,
+      VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
+      throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
     log.trace("Using volume replacements: {}", replacements);
 
@@ -194,7 +199,8 @@ public class VolumeUtil {
         logsToRemove.add(logEntry);
         logsToAdd.add(switchedLogEntry);
         ret.logEntries.add(switchedLogEntry);
-        log.debug("Replacing volume {} : {} -> {}", extent, logEntry.filename, switchedLogEntry.filename);
+        log.debug("Replacing volume {} : {} -> {}", extent, logEntry.filename,
+            switchedLogEntry.filename);
       } else {
         ret.logEntries.add(logEntry);
       }
@@ -227,10 +233,12 @@ public class VolumeUtil {
     }
 
     if (logsToRemove.size() + filesToRemove.size() > 0 || switchedDir != null) {
-      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, context);
+      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove,
+          filesToAdd, switchedDir, zooLock, context);
       if (replicate) {
         Status status = StatusUtil.fileClosed();
-        log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove, ProtobufUtil.toString(status));
+        log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove,
+            ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication
         for (LogEntry logEntry : logsToRemove) {
           ReplicationTableUtil.updateFiles(context, extent, logEntry.filename, status);
@@ -243,7 +251,9 @@ public class VolumeUtil {
       SortedMap<FileRef,DataFileValue> copy = ret.datafiles;
       ret.datafiles = new TreeMap<>();
       for (Entry<FileRef,DataFileValue> entry : copy.entrySet()) {
-        ret.datafiles.put(new FileRef(new Path(ret.dir, entry.getKey().path().getName()).toString()), entry.getValue());
+        ret.datafiles.put(
+            new FileRef(new Path(ret.dir, entry.getKey().path().getName()).toString()),
+            entry.getValue());
       }
     }
 
@@ -251,8 +261,8 @@ public class VolumeUtil {
     return ret;
   }
 
-  private static String decommisionedTabletDir(AccumuloServerContext context, ZooLock zooLock, VolumeManager vm, KeyExtent extent, String metaDir)
-      throws IOException {
+  private static String decommisionedTabletDir(AccumuloServerContext context, ZooLock zooLock,
+      VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
     Path dir = new Path(metaDir);
     if (isActiveVolume(dir))
       return metaDir;
@@ -262,8 +272,9 @@ public class VolumeUtil {
     }
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId());
-    Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
-        + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
+    Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR
+        + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName() + Path.SEPARATOR
+        + dir.getName());
 
     log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
     if (extent.isRootTablet()) {
@@ -295,7 +306,8 @@ public class VolumeUtil {
         log.info("setting root tablet location to {}", newDir);
         MetadataTableUtil.setRootTabletDir(newDir.toString());
 
-        // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we fail here and this does not happen because the location in
+        // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we
+        // fail here and this does not happen because the location in
         // zookeeper is the authority
         Path dirBackup = getBackupName(fs1, dir);
         log.info("renaming {} to {}", dir, dirBackup);
@@ -313,9 +325,12 @@ public class VolumeUtil {
     }
   }
 
-  static boolean same(FileSystem fs1, Path dir, FileSystem fs2, Path newDir) throws FileNotFoundException, IOException {
-    // its possible that a user changes config in such a way that two uris point to the same thing. Like hdfs://foo/a/b and hdfs://1.2.3.4/a/b both reference
-    // the same thing because DNS resolves foo to 1.2.3.4. This method does not analyze uris to determine if equivalent, instead it inspects the contents of
+  static boolean same(FileSystem fs1, Path dir, FileSystem fs2, Path newDir)
+      throws FileNotFoundException, IOException {
+    // its possible that a user changes config in such a way that two uris point to the same thing.
+    // Like hdfs://foo/a/b and hdfs://1.2.3.4/a/b both reference
+    // the same thing because DNS resolves foo to 1.2.3.4. This method does not analyze uris to
+    // determine if equivalent, instead it inspects the contents of
     // what the uris point to.
 
     // this code is called infrequently and does not need to be optimized.
@@ -360,7 +375,8 @@ public class VolumeUtil {
   }
 
   private static Path getBackupName(FileSystem fs, Path path) {
-    return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_" + (rand.nextInt(Integer.MAX_VALUE) + 1) + ".bak");
+    return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_"
+        + (rand.nextInt(Integer.MAX_VALUE) + 1) + ".bak");
   }
 
 }

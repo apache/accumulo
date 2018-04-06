@@ -67,7 +67,8 @@ public class MasterClient {
 
     try {
       // Master requests can take a long time: don't ever time out
-      MasterClientService.Client client = ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
+      MasterClientService.Client client = ThriftUtil
+          .getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
       return client;
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
@@ -82,15 +83,17 @@ public class MasterClient {
 
   public static void close(MasterClientService.Iface iface) {
     TServiceClient client = (TServiceClient) iface;
-    if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
+    if (client != null && client.getInputProtocol() != null
+        && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
     } else {
       log.debug("Attempt to close null connection to the master", new Exception());
     }
   }
 
-  public static <T> T execute(ClientContext context, ClientExecReturn<T,MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public static <T> T execute(ClientContext context,
+      ClientExecReturn<T,MasterClientService.Client> exec)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     MasterClientService.Client client = null;
     while (true) {
       try {
@@ -125,8 +128,9 @@ public class MasterClient {
     }
   }
 
-  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public static void executeGeneric(ClientContext context,
+      ClientExec<MasterClientService.Client> exec)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     MasterClientService.Client client = null;
     while (true) {
       try {
@@ -151,7 +155,8 @@ public class MasterClient {
         }
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, re-creating the connection to the active Master");
+        log.debug(
+            "Contacted a Master which is no longer active, re-creating the connection to the active Master");
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
@@ -161,13 +166,15 @@ public class MasterClient {
     }
   }
 
-  public static void executeTable(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public static void executeTable(ClientContext context,
+      ClientExec<MasterClientService.Client> exec)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     executeGeneric(context, exec);
   }
 
-  public static void executeNamespace(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException {
+  public static void executeNamespace(ClientContext context,
+      ClientExec<MasterClientService.Client> exec)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     try {
       executeGeneric(context, exec);
     } catch (TableNotFoundException e) {
@@ -176,7 +183,8 @@ public class MasterClient {
     }
   }
 
-  public static void executeVoid(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static void executeVoid(ClientContext context, ClientExec<MasterClientService.Client> exec)
+      throws AccumuloException, AccumuloSecurityException {
     try {
       executeGeneric(context, exec);
     } catch (TableNotFoundException e) {

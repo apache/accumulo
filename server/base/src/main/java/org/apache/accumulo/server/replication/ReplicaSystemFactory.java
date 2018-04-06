@@ -49,7 +49,8 @@ public class ReplicaSystemFactory {
         return rs;
       }
 
-      throw new IllegalArgumentException("Class is not assignable to ReplicaSystem: " + entry.getKey());
+      throw new IllegalArgumentException(
+          "Class is not assignable to ReplicaSystem: " + entry.getKey());
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
       log.error("Error creating ReplicaSystem object", e);
       throw new IllegalArgumentException(e);
@@ -57,18 +58,21 @@ public class ReplicaSystemFactory {
   }
 
   /**
-   * Parse the configuration value for a peer into its components: {@link ReplicaSystem} class name and configuration string.
+   * Parse the configuration value for a peer into its components: {@link ReplicaSystem} class name
+   * and configuration string.
    *
    * @param value
    *          The configuration value for a replication peer.
-   * @return An entry where the set is the replica system name and the value is the configuration string.
+   * @return An entry where the set is the replica system name and the value is the configuration
+   *         string.
    */
   public Entry<String,String> parseReplicaSystemConfiguration(String value) {
     requireNonNull(value);
 
     int index = value.indexOf(',');
     if (-1 == index) {
-      throw new IllegalArgumentException("Expected comma separator between replication system name and configuration");
+      throw new IllegalArgumentException(
+          "Expected comma separator between replication system name and configuration");
     }
 
     String name = value.substring(0, index);
@@ -85,7 +89,8 @@ public class ReplicaSystemFactory {
    *          Configuration string for the desired ReplicaSystem
    * @return Value to set for peer configuration in the instance
    */
-  public static String getPeerConfigurationValue(Class<? extends ReplicaSystem> system, String configuration) {
+  public static String getPeerConfigurationValue(Class<? extends ReplicaSystem> system,
+      String configuration) {
     String systemName = system.getName() + ",";
     if (null == configuration) {
       return systemName;

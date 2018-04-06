@@ -46,7 +46,9 @@ public class TimeSettingIteratorTest {
 
     TimeSettingIterator tsi = new TimeSettingIterator(new SortedMapIterator(tm1), 50);
 
-    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), true, new Key("r1", "cf1", "cq1", 50l), true), new HashSet<>(), false);
+    tsi.seek(
+        new Range(new Key("r1", "cf1", "cq1", 50l), true, new Key("r1", "cf1", "cq1", 50l), true),
+        new HashSet<>(), false);
 
     assertTrue(tsi.hasTop());
     assertEquals(new Key("r1", "cf1", "cq1", 50l), tsi.getTopKey());
@@ -65,7 +67,8 @@ public class TimeSettingIteratorTest {
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), false, null, true), new HashSet<>(), false);
+    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), false, null, true), new HashSet<>(),
+        false);
 
     assertTrue(tsi.hasTop());
     assertEquals(new Key("r2", "cf1", "cq1", 50l), tsi.getTopKey());
@@ -74,7 +77,8 @@ public class TimeSettingIteratorTest {
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(null, true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<>(), false);
+    tsi.seek(new Range(null, true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<>(),
+        false);
 
     assertTrue(tsi.hasTop());
     assertEquals(new Key("r0", "cf1", "cq1", 50l), tsi.getTopKey());
@@ -83,7 +87,9 @@ public class TimeSettingIteratorTest {
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 51l), true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<>(), false);
+    tsi.seek(
+        new Range(new Key("r1", "cf1", "cq1", 51l), true, new Key("r1", "cf1", "cq1", 50l), false),
+        new HashSet<>(), false);
     assertFalse(tsi.hasTop());
   }
 
@@ -117,8 +123,11 @@ public class TimeSettingIteratorTest {
 
     for (boolean inclusiveEndRange : new boolean[] {true, false}) {
       TreeMap<Key,Value> sources = new TreeMap<>();
-      sources.put(new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(), Long.MIN_VALUE, true), new Value("00".getBytes()));
-      sources.put(new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(), Long.MIN_VALUE), new Value("11".getBytes()));
+      sources.put(new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(),
+          Long.MIN_VALUE, true), new Value("00".getBytes()));
+      sources.put(
+          new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(), Long.MIN_VALUE),
+          new Value("11".getBytes()));
 
       TimeSettingIterator it = new TimeSettingIterator(new SortedMapIterator(sources), 111L);
       IteratorSetting is = new IteratorSetting(1, TimeSettingIterator.class);

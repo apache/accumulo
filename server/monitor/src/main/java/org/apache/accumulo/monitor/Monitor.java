@@ -139,17 +139,28 @@ public class Monitor implements HighlyAvailableService {
   }
 
   private static final int MAX_TIME_PERIOD = 60 * 60 * 1000;
-  private static final List<Pair<Long,Double>> loadOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> ingestRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> ingestByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> minorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> majorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> lookupsOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> queryRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Integer>> scanRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> queryByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> indexCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static final List<Pair<Long,Double>> dataCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> loadOverTime = Collections
+      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> ingestRateOverTime = Collections
+      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> ingestByteRateOverTime = Collections
+      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> minorCompactionsOverTime = Collections
+      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> majorCompactionsOverTime = Collections
+      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> lookupsOverTime = Collections
+      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> queryRateOverTime = Collections
+      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> scanRateOverTime = Collections
+      .synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> queryByteRateOverTime = Collections
+      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> indexCacheHitRateOverTime = Collections
+      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> dataCacheHitRateOverTime = Collections
+      .synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static EventCounter lookupRateTracker = new EventCounter();
   private static EventCounter indexCacheHitTracker = new EventCounter();
   private static EventCounter indexCacheRequestTracker = new EventCounter();
@@ -172,7 +183,8 @@ public class Monitor implements HighlyAvailableService {
   private ZooLock monitorLock;
 
   private static final String DEFAULT_INSTANCE_NAME = "(Unavailable)";
-  public static final AtomicReference<String> cachedInstanceName = new AtomicReference<>(DEFAULT_INSTANCE_NAME);
+  public static final AtomicReference<String> cachedInstanceName = new AtomicReference<>(
+      DEFAULT_INSTANCE_NAME);
 
   private static class EventCounter {
 
@@ -210,7 +222,8 @@ public class Monitor implements HighlyAvailableService {
         Pair<Long,Long> prevSample = entry.getValue();
         Pair<Long,Long> sample = samples.get(entry.getKey());
 
-        totalRate += (sample.getSecond() - prevSample.getSecond()) / ((sample.getFirst() - prevSample.getFirst()) / (double) 1000);
+        totalRate += (sample.getSecond() - prevSample.getSecond())
+            / ((sample.getFirst() - prevSample.getFirst()) / (double) 1000);
       }
 
       return totalRate;
@@ -318,10 +331,14 @@ public class Monitor implements HighlyAvailableService {
           majorCompactions += summary.majors.running;
           minorCompactions += summary.minors.running;
           lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
-          indexCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheHits);
-          indexCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheRequest);
-          dataCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheHits);
-          dataCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheRequest);
+          indexCacheHitTracker.updateTabletServer(server.name, server.lastContact,
+              server.indexCacheHits);
+          indexCacheRequestTracker.updateTabletServer(server.name, server.lastContact,
+              server.indexCacheRequest);
+          dataCacheHitTracker.updateTabletServer(server.name, server.lastContact,
+              server.dataCacheHits);
+          dataCacheRequestTracker.updateTabletServer(server.name, server.lastContact,
+              server.dataCacheRequest);
         }
 
         lookupRateTracker.finishedUpdating();
@@ -366,8 +383,10 @@ public class Monitor implements HighlyAvailableService {
 
         scanRateOverTime.add(new Pair<>(currentTime, (int) totalScanRate));
 
-        calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker, indexCacheRequestTracker);
-        calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
+        calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
+            indexCacheRequestTracker);
+        calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker,
+            dataCacheRequestTracker);
       }
       try {
         Monitor.problemSummary = ProblemReports.getInstance(getContext()).summarize();
@@ -386,10 +405,12 @@ public class Monitor implements HighlyAvailableService {
     }
   }
 
-  private static void calcCacheHitRate(List<Pair<Long,Double>> hitRate, long currentTime, EventCounter cacheHits, EventCounter cacheReq) {
+  private static void calcCacheHitRate(List<Pair<Long,Double>> hitRate, long currentTime,
+      EventCounter cacheHits, EventCounter cacheReq) {
     long req = cacheReq.calculateCount();
     if (req > 0)
-      hitRate.add(new Pair<>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
+      hitRate.add(
+          new Pair<>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
     else
       hitRate.add(new Pair<>(currentTime, null));
   }
@@ -404,8 +425,10 @@ public class Monitor implements HighlyAvailableService {
       List<String> locks = zk.getChildren(path, null);
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
-        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8)).getAddress(Service.GC_CLIENT);
-        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, new AccumuloServerContext(instance, config));
+        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8))
+            .getAddress(Service.GC_CLIENT);
+        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(),
+            address, new AccumuloServerContext(instance, config));
         try {
           result = client.getStatus(Tracer.traceInfo(), getContext().rpcCreds());
         } finally {
@@ -434,7 +457,8 @@ public class Monitor implements HighlyAvailableService {
     MetricsSystemHelper.configure(Monitor.class.getSimpleName());
     Accumulo.init(fs, instance, config, app);
     Monitor monitor = new Monitor();
-    // Servlets need access to limit requests when the monitor is not active, but Servlets are instantiated
+    // Servlets need access to limit requests when the monitor is not active, but Servlets are
+    // instantiated
     // via reflection. Expose the service this way instead.
     Monitor.HA_SERVICE_INSTANCE = monitor;
     DistributedTrace.enable(hostname, app, config.getSystemConfiguration());
@@ -464,7 +488,8 @@ public class Monitor implements HighlyAvailableService {
       }
     }
     if (!server.isRunning()) {
-      throw new RuntimeException("Unable to start embedded web server on ports: " + Arrays.toString(ports));
+      throw new RuntimeException(
+          "Unable to start embedded web server on ports: " + Arrays.toString(ports));
     }
 
     try {
@@ -486,7 +511,8 @@ public class Monitor implements HighlyAvailableService {
 
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
+      ZooReaderWriter.getInstance().putPersistentData(
+          ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
@@ -494,7 +520,8 @@ public class Monitor implements HighlyAvailableService {
     }
 
     if (null != advertiseHost) {
-      LogService.startLogListener(Monitor.getContext().getConfiguration(), instance.getInstanceID(), advertiseHost);
+      LogService.startLogListener(Monitor.getContext().getConfiguration(), instance.getInstanceID(),
+          advertiseHost);
     } else {
       log.warn("Not starting log4j listener as we could not determine address to use");
     }
@@ -549,15 +576,19 @@ public class Monitor implements HighlyAvailableService {
 
   private ServletHolder getViewServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.view")
-        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(FreemarkerMvcFeature.class)
-        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates").property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
+        .register(
+            new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName())))
+        .register(FreemarkerMvcFeature.class)
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates")
+        .property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
     return new ServletHolder(new ServletContainer(rc));
   }
 
   private ServletHolder getRestServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
-        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class)
-        .property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
+        .register(
+            new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName())))
+        .register(JacksonFeature.class).property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
     return new ServletHolder(new ServletContainer(rc));
   }
 
@@ -666,7 +697,9 @@ public class Monitor implements HighlyAvailableService {
 
       monitorLock.tryToCancelAsyncLockOrUnlock();
 
-      sleepUninterruptibly(getContext().getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL), TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(
+          getContext().getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL),
+          TimeUnit.MILLISECONDS);
     }
 
     log.info("Got Monitor lock.");
@@ -711,7 +744,8 @@ public class Monitor implements HighlyAvailableService {
       log.warn("Failed to get monitor lock " + e);
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);
+        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock,
+            -1);
       }
 
       failedToAcquireLock = true;

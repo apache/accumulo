@@ -102,18 +102,21 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
       log.info("File was removed");
 
-      String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+      String filePath = p.toUri().getPath()
+          .substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
       log.info("File relative to accumulo dir: {}", filePath);
 
-      Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
+      Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
+          ServerConstants.FILE_ARCHIVE_DIR);
 
       Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
       // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
       Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
-      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
+      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile,
+          fs.exists(archivedFile));
     }
   }
 
@@ -160,18 +163,21 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
       log.info("File was removed");
 
-      String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+      String filePath = p.toUri().getPath()
+          .substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
       log.info("File relative to accumulo dir: {}", filePath);
 
-      Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
+      Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
+          ServerConstants.FILE_ARCHIVE_DIR);
 
       Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
       // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
       Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
-      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
+      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile,
+          fs.exists(archivedFile));
     }
   }
 
@@ -222,18 +228,21 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
       log.info("File was removed");
 
-      String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+      String filePath = p.toUri().getPath()
+          .substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
       log.info("File relative to accumulo dir: {}", filePath);
 
-      fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
+      fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
+          ServerConstants.FILE_ARCHIVE_DIR);
 
       Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
       // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
       Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
-      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
+      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile,
+          fs.exists(archivedFile));
 
       // Offline the table so we can be sure there is a single file
       conn.tableOperations().offline(tableName, true);
@@ -263,7 +272,8 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
       log.info("File was removed");
 
-      String finalFilePath = finalPath.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+      String finalFilePath = finalPath.toUri().getPath()
+          .substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
       log.info("File relative to accumulo dir: {}", finalFilePath);
 
@@ -272,7 +282,8 @@ public class FileArchiveIT extends ConfigurableMacBase {
       // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
       Path finalArchivedFile = new Path(fileArchiveDir, finalFilePath.substring(1));
 
-      Assert.assertTrue("File doesn't exists in archive directory: " + finalArchivedFile, fs.exists(finalArchivedFile));
+      Assert.assertTrue("File doesn't exists in archive directory: " + finalArchivedFile,
+          fs.exists(finalArchivedFile));
     }
   }
 }

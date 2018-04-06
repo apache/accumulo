@@ -31,7 +31,8 @@ public class CliConfiguration {
   private static volatile Map<String,String> config = new HashMap<>();
 
   /**
-   * Sets CliConfiguration with map of configuration. Additional calls will overwrite existing properties and values.
+   * Sets CliConfiguration with map of configuration. Additional calls will overwrite existing
+   * properties and values.
    *
    * @param conf
    *          Map of configuration

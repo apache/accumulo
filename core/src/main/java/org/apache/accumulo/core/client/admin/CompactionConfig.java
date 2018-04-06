@@ -43,7 +43,8 @@ public class CompactionConfig {
 
   /**
    * @param start
-   *          First tablet to be compacted contains the row after this row, null means the first tablet in table. The default is null.
+   *          First tablet to be compacted contains the row after this row, null means the first
+   *          tablet in table. The default is null.
    * @return this
    */
 
@@ -62,7 +63,8 @@ public class CompactionConfig {
   /**
    *
    * @param end
-   *          Last tablet to be compacted contains this row, null means the last tablet in table. The default is null.
+   *          Last tablet to be compacted contains this row, null means the last tablet in table.
+   *          The default is null.
    * @return this
    */
   public CompactionConfig setEndRow(Text end) {
@@ -79,7 +81,8 @@ public class CompactionConfig {
 
   /**
    * @param flush
-   *          If set to true, will flush in memory data of all tablets in range before compacting. If not set, the default is true.
+   *          If set to true, will flush in memory data of all tablets in range before compacting.
+   *          If not set, the default is true.
    * @return this
    */
   public CompactionConfig setFlush(boolean flush) {
@@ -96,7 +99,8 @@ public class CompactionConfig {
 
   /**
    * @param wait
-   *          If set to true, will cause compact operation to wait for all tablets in range to compact. If not set, the default is true.
+   *          If set to true, will cause compact operation to wait for all tablets in range to
+   *          compact. If not set, the default is true.
    * @return this
    */
 
@@ -115,7 +119,8 @@ public class CompactionConfig {
 
   /**
    * @param iterators
-   *          configures the iterators that will be used when compacting tablets. These iterators are merged with current iterators configured for the table.
+   *          configures the iterators that will be used when compacting tablets. These iterators
+   *          are merged with current iterators configured for the table.
    * @return this
    */
   public CompactionConfig setIterators(List<IteratorSetting> iterators) {
@@ -124,7 +129,8 @@ public class CompactionConfig {
   }
 
   /**
-   * @return The previously set iterators. Returns an empty list if not set. The returned list is unmodifiable.
+   * @return The previously set iterators. Returns an empty list if not set. The returned list is
+   *         unmodifiable.
    */
   public List<IteratorSetting> getIterators() {
     return Collections.unmodifiableList(iterators);
@@ -132,7 +138,8 @@ public class CompactionConfig {
 
   /**
    * @param csConfig
-   *          configures the strategy that will be used by each tablet to select files. If no strategy is set, then all files will be compacted.
+   *          configures the strategy that will be used by each tablet to select files. If no
+   *          strategy is set, then all files will be compacted.
    * @return this
    */
   public CompactionConfig setCompactionStrategy(CompactionStrategyConfig csConfig) {
@@ -142,8 +149,9 @@ public class CompactionConfig {
   }
 
   /**
-   * @return The previously set compaction strategy. Defaults to a configuration of org.apache.accumulo.tserver.compaction.EverythingCompactionStrategy which
-   *         always compacts all files.
+   * @return The previously set compaction strategy. Defaults to a configuration of
+   *         org.apache.accumulo.tserver.compaction.EverythingCompactionStrategy which always
+   *         compacts all files.
    */
   public CompactionStrategyConfig getCompactionStrategy() {
     return compactionStrategy;

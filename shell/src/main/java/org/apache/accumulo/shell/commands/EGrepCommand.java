@@ -30,12 +30,14 @@ public class EGrepCommand extends GrepCommand {
   private Option matchSubstringOption;
 
   @Override
-  protected void setUpIterator(final int prio, final String name, final String term, final BatchScanner scanner, CommandLine cl) throws IOException {
+  protected void setUpIterator(final int prio, final String name, final String term,
+      final BatchScanner scanner, CommandLine cl) throws IOException {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
     final IteratorSetting si = new IteratorSetting(prio, name, RegExFilter.class);
-    RegExFilter.setRegexs(si, term, term, term, term, true, cl.hasOption(matchSubstringOption.getOpt()));
+    RegExFilter.setRegexs(si, term, term, term, term, true,
+        cl.hasOption(matchSubstringOption.getOpt()));
     scanner.addScanIterator(si);
   }
 
@@ -53,7 +55,8 @@ public class EGrepCommand extends GrepCommand {
   @Override
   public Options getOptions() {
     final Options opts = super.getOptions();
-    matchSubstringOption = new Option("g", "global", false, "forces the use of the find() expression matcher, causing substring matches to return true");
+    matchSubstringOption = new Option("g", "global", false,
+        "forces the use of the find() expression matcher, causing substring matches to return true");
     opts.addOption(matchSubstringOption);
     return opts;
   }

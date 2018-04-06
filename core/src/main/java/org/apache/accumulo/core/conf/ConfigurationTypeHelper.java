@@ -31,7 +31,8 @@ public class ConfigurationTypeHelper {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationTypeHelper.class);
 
   /**
-   * Interprets a string specifying bytes. A bytes type is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), or G (GB).
+   * Interprets a string specifying bytes. A bytes type is specified as a long integer followed by
+   * an optional B (bytes), K (KB), M (MB), or G (GB).
    *
    * @param str
    *          String value
@@ -41,7 +42,9 @@ public class ConfigurationTypeHelper {
     char lastChar = str.charAt(str.length() - 1);
 
     if (lastChar == 'b') {
-      log.warn("The 'b' in {} is being considered as bytes. Setting memory by bits is not supported", str);
+      log.warn(
+          "The 'b' in {} is being considered as bytes. Setting memory by bits is not supported",
+          str);
     }
     try {
       int multiplier;
@@ -63,14 +66,15 @@ public class ConfigurationTypeHelper {
       }
       return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
     } catch (Exception ex) {
-      throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting. A valid value would a number "
-          + "possibly followed by an optional 'G', 'M', 'K', or 'B'.");
+      throw new IllegalArgumentException(
+          "The value '" + str + "' is not a valid memory setting. A valid value would a number "
+              + "possibly followed by an optional 'G', 'M', 'K', or 'B'.");
     }
   }
 
   /**
-   * Interprets a string specifying a Memory type which is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), G (GB) or %
-   * (percentage).
+   * Interprets a string specifying a Memory type which is specified as a long integer followed by
+   * an optional B (bytes), K (KB), M (MB), G (GB) or % (percentage).
    *
    * @param str
    *          String value
@@ -82,19 +86,22 @@ public class ConfigurationTypeHelper {
       try {
         int percent = Integer.parseInt(str.substring(0, str.length() - 1));
         if (percent <= 0 || percent >= 100) {
-          throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting.");
+          throw new IllegalArgumentException(
+              "The value '" + str + "' is not a valid memory setting.");
         }
         return Runtime.getRuntime().maxMemory() * percent / 100;
       } catch (Exception ex) {
-        throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting.");
+        throw new IllegalArgumentException(
+            "The value '" + str + "' is not a valid memory setting.");
       }
     }
     return getFixedMemoryAsBytes(str);
   }
 
   /**
-   * Interprets a string specifying a time duration. A time duration is specified as a long integer followed by an optional d (days), h (hours), m (minutes), s
-   * (seconds), or ms (milliseconds). A value without a unit is interpreted as seconds.
+   * Interprets a string specifying a time duration. A time duration is specified as a long integer
+   * followed by an optional d (days), h (hours), m (minutes), s (seconds), or ms (milliseconds). A
+   * value without a unit is interpreted as seconds.
    *
    * @param str
    *          string value
@@ -129,7 +136,8 @@ public class ConfigurationTypeHelper {
   }
 
   /**
-   * Interprets a string specifying a fraction. A fraction is specified as a double. An optional % at the end signifies a percentage.
+   * Interprets a string specifying a fraction. A fraction is specified as a double. An optional %
+   * at the end signifies a percentage.
    *
    * @param str
    *          string value
@@ -142,10 +150,12 @@ public class ConfigurationTypeHelper {
   }
 
   // This is not a cache for loaded classes, just a way to avoid spamming the debug log
-  private static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<String,Class<?>>());
+  private static Map<String,Class<?>> loaded = Collections
+      .synchronizedMap(new HashMap<String,Class<?>>());
 
   /**
-   * Loads a class in the given classloader context, suppressing any exceptions, and optionally providing a default instance to use.
+   * Loads a class in the given classloader context, suppressing any exceptions, and optionally
+   * providing a default instance to use.
    *
    * @param context
    *          the per-table context, can be null
@@ -157,12 +167,14 @@ public class ConfigurationTypeHelper {
    *          a default instance if the class cannot be loaded
    * @return a new instance of the class, or the defaultInstance
    */
-  public static <T> T getClassInstance(String context, String clazzName, Class<T> base, T defaultInstance) {
+  public static <T> T getClassInstance(String context, String clazzName, Class<T> base,
+      T defaultInstance) {
     T instance = null;
 
     try {
       instance = getClassInstance(context, clazzName, base);
-    } catch (RuntimeException | ClassNotFoundException | IOException | InstantiationException | IllegalAccessException e) {
+    } catch (RuntimeException | ClassNotFoundException | IOException | InstantiationException
+        | IllegalAccessException e) {
       log.warn("Failed to load class {}", clazzName, e);
     }
 
@@ -184,8 +196,8 @@ public class ConfigurationTypeHelper {
    *          the type of the class
    * @return a new instance of the class
    */
-  public static <T> T getClassInstance(String context, String clazzName, Class<T> base) throws ClassNotFoundException, IOException, InstantiationException,
-      IllegalAccessException {
+  public static <T> T getClassInstance(String context, String clazzName, Class<T> base)
+      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
     T instance;
 
     Class<? extends T> clazz;

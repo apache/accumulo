@@ -122,7 +122,8 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
             getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
             getCluster().start();
             // read the metadata table to know everything is back up
-            Iterators.size(getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+            Iterators.size(
+                getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
             i++;
           }
           System.out.println("Restarted " + i + " times");

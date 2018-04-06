@@ -58,7 +58,8 @@ import com.google.common.collect.Iterables;
  *
  */
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(MissingWalHeaderCompletesRecoveryIT.class);
 
   private boolean rootHasWritePermission;
 
@@ -79,9 +80,11 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   @Before
   public void setupMetadataPermission() throws Exception {
     Connector conn = getConnector();
-    rootHasWritePermission = conn.securityOperations().hasTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+    rootHasWritePermission = conn.securityOperations().hasTablePermission("root",
+        MetadataTable.NAME, TablePermission.WRITE);
     if (!rootHasWritePermission) {
-      conn.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+      conn.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+          TablePermission.WRITE);
       // Make sure it propagates through ZK
       Thread.sleep(5000);
     }
@@ -91,13 +94,16 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   public void resetMetadataPermission() throws Exception {
     Connector conn = getConnector();
     // Final state doesn't match the original
-    if (rootHasWritePermission != conn.securityOperations().hasTablePermission("root", MetadataTable.NAME, TablePermission.WRITE)) {
+    if (rootHasWritePermission != conn.securityOperations().hasTablePermission("root",
+        MetadataTable.NAME, TablePermission.WRITE)) {
       if (rootHasWritePermission) {
         // root had write permission when starting, ensure root still does
-        conn.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+        conn.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+            TablePermission.WRITE);
       } else {
         // root did not have write permission when starting, ensure that it does not
-        conn.securityOperations().revokeTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+        conn.securityOperations().revokeTablePermission("root", MetadataTable.NAME,
+            TablePermission.WRITE);
       }
     }
   }
@@ -120,7 +126,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     fs.create(new Path(emptyWalog.toURI())).close();
 
     Assert.assertTrue("root user did not have write permission to metadata table",
-        conn.securityOperations().hasTablePermission("root", MetadataTable.NAME, TablePermission.WRITE));
+        conn.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+            TablePermission.WRITE));
 
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
@@ -128,7 +135,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
-    LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345", emptyWalog.toURI().toString());
+    LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
+        emptyWalog.toURI().toString());
 
     log.info("Taking {} offline", tableName);
     conn.tableOperations().offline(tableName, true);
@@ -172,11 +180,13 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
     // Write half of the header
     FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
-    wal.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8), 0, DfsLogger.LOG_FILE_HEADER_V3.length() / 2);
+    wal.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8), 0,
+        DfsLogger.LOG_FILE_HEADER_V3.length() / 2);
     wal.close();
 
     Assert.assertTrue("root user did not have write permission to metadata table",
-        conn.securityOperations().hasTablePermission("root", MetadataTable.NAME, TablePermission.WRITE));
+        conn.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+            TablePermission.WRITE));
 
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
@@ -184,7 +194,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
-    LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345", partialHeaderWalog.toURI().toString());
+    LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345",
+        partialHeaderWalog.toURI().toString());
 
     log.info("Taking {} offline", tableName);
     conn.tableOperations().offline(tableName, true);

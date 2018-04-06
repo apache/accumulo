@@ -44,6 +44,7 @@ public class VisibilityParseException extends ParseException {
 
   @Override
   public String getMessage() {
-    return super.getMessage() + " in string '" + visibility + "' at position " + super.getErrorOffset();
+    return super.getMessage() + " in string '" + visibility + "' at position "
+        + super.getErrorOffset();
   }
 }

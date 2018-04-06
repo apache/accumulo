@@ -99,8 +99,8 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
           fs.mkdirs(files);
           for (int i = 0; i < 10; i++) {
             FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-                .forFile(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf()).withTableConfiguration(DefaultConfiguration.getInstance())
-                .build();
+                .forFile(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf())
+                .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
               writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
@@ -130,7 +130,8 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       }));
     }
     es.shutdown();
-    while (!es.isTerminated() && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
+    while (!es.isTerminated()
+        && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
       es.awaitTermination(10, TimeUnit.MILLISECONDS);
       stats = getCluster().getMasterMonitorInfo();
     }
@@ -142,6 +143,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
     }
     es.awaitTermination(2, TimeUnit.MINUTES);
     assertTrue(es.isTerminated());
-    log.info(String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
+    log.info(
+        String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
   }
 }

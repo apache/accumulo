@@ -22,4 +22,3 @@
  */
 @Deprecated
 package org.apache.accumulo.core.client.mock;
-

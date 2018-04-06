@@ -51,7 +51,8 @@ public class SpanTree {
     return visited;
   }
 
-  private void recurse(int level, RemoteSpan parent, RemoteSpan node, SpanTreeVisitor visitor, Set<Long> visited) {
+  private void recurse(int level, RemoteSpan parent, RemoteSpan node, SpanTreeVisitor visitor,
+      Set<Long> visited) {
     // improbable case: duplicate spanId in a trace tree: prevent
     // infinite recursion
     if (visited.contains(node.spanId))

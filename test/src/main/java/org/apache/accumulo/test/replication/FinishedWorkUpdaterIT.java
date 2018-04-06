@@ -60,12 +60,15 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void recordsWithProgressUpdateBothTables() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true).setInfiniteEnd(false).build();
+    Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true)
+        .setInfiniteEnd(false).build();
     ReplicationTarget target = new ReplicationTarget("peer", "table1", Table.ID.of("1"));
 
     // Create a single work record for a file to some peer
@@ -83,7 +86,8 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
       Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId().canonicalID());
+      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(),
+          target.getSourceTableId().canonicalID());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());
@@ -93,8 +97,10 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void chooseMinimumBeginOffset() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
@@ -124,7 +130,8 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
       Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId().canonicalID());
+      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(),
+          target1.getSourceTableId().canonicalID());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());
@@ -134,8 +141,10 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void chooseMinimumBeginOffsetInfiniteEnd() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
@@ -165,7 +174,8 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
       Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId().canonicalID());
+      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(),
+          target1.getSourceTableId().canonicalID());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());

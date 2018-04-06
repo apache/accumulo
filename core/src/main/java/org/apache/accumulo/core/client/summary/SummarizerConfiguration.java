@@ -31,8 +31,8 @@ import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
 /**
- * This class encapsulates the configuration needed to instantiate a {@link Summarizer}. It also provides methods and documentation for setting the table
- * properties that configure a Summarizer.
+ * This class encapsulates the configuration needed to instantiate a {@link Summarizer}. It also
+ * provides methods and documentation for setting the table properties that configure a Summarizer.
  *
  * @since 2.0.0
  */
@@ -78,7 +78,8 @@ public class SummarizerConfiguration {
   }
 
   /**
-   * The propertyId is used to when creating table properties for a summarizer. Its not used for equality or hashCode for this class.
+   * The propertyId is used to when creating table properties for a summarizer. Its not used for
+   * equality or hashCode for this class.
    */
   public String getPropertyId() {
     return configId;
@@ -114,8 +115,10 @@ public class SummarizerConfiguration {
   }
 
   /**
-   * Converts this configuration to Accumulo per table properties. The returned map has the following key values. The {@code <configId>} below is from
-   * {@link #getPropertyId()}. The {@code <optionKey>} and {@code <optionValue>} below are derived from the key values of {@link #getOptions()}.
+   * Converts this configuration to Accumulo per table properties. The returned map has the
+   * following key values. The {@code <configId>} below is from {@link #getPropertyId()}. The
+   * {@code <optionKey>} and {@code <optionValue>} below are derived from the key values of
+   * {@link #getOptions()}.
    *
    * <pre>
    * {@code
@@ -149,12 +152,14 @@ public class SummarizerConfiguration {
    * @throws IllegalArgumentException
    *           when there are duplicate values for {@link #getPropertyId()}
    */
-  public static Map<String,String> toTableProperties(Collection<SummarizerConfiguration> configurations) {
+  public static Map<String,String> toTableProperties(
+      Collection<SummarizerConfiguration> configurations) {
     return SummarizerConfigurationUtil.toTablePropertiesMap(new ArrayList<>(configurations));
   }
 
   /**
-   * Decodes table properties with the prefix {@code table.summarizer} into {@link SummarizerConfiguration} objects. Table properties with prefixes other than
+   * Decodes table properties with the prefix {@code table.summarizer} into
+   * {@link SummarizerConfiguration} objects. Table properties with prefixes other than
    * {@code table.summarizer} are ignored.
    */
   public static Collection<SummarizerConfiguration> fromTableProperties(Map<String,String> props) {
@@ -164,7 +169,8 @@ public class SummarizerConfiguration {
   /**
    * @see #fromTableProperties(Map)
    */
-  public static Collection<SummarizerConfiguration> fromTableProperties(Iterable<Entry<String,String>> props) {
+  public static Collection<SummarizerConfiguration> fromTableProperties(
+      Iterable<Entry<String,String>> props) {
     return SummarizerConfigurationUtil.getSummarizerConfigs(props);
   }
 
@@ -179,11 +185,12 @@ public class SummarizerConfiguration {
     }
 
     /**
-     * Sets the id used when generating table properties. Setting this is optional. If not set, an id is generated using hashing that will likely be unique.
+     * Sets the id used when generating table properties. Setting this is optional. If not set, an
+     * id is generated using hashing that will likely be unique.
      *
      * @param propId
-     *          This id is used when converting a {@link SummarizerConfiguration} to table properties. Since tables can have multiple summarizers, make sure its
-     *          unique.
+     *          This id is used when converting a {@link SummarizerConfiguration} to table
+     *          properties. Since tables can have multiple summarizers, make sure its unique.
      *
      * @see SummarizerConfiguration#toTableProperties()
      */
@@ -241,8 +248,8 @@ public class SummarizerConfiguration {
      * @see SummarizerConfiguration#getOptions()
      */
     public Builder addOptions(String... keyValuePairs) {
-      Preconditions.checkArgument(keyValuePairs.length % 2 == 0 && keyValuePairs.length > 0, "Require an even, positive number of arguments, got %s",
-          keyValuePairs.length);
+      Preconditions.checkArgument(keyValuePairs.length % 2 == 0 && keyValuePairs.length > 0,
+          "Require an even, positive number of arguments, got %s", keyValuePairs.length);
       for (int i = 0; i < keyValuePairs.length; i += 2) {
         addOption(keyValuePairs[i], keyValuePairs[i + 1]);
       }
@@ -267,7 +274,8 @@ public class SummarizerConfiguration {
   }
 
   /**
-   * Call this method to initiate a chain of fluent method calls to a create an immutable {@link SummarizerConfiguration}
+   * Call this method to initiate a chain of fluent method calls to a create an immutable
+   * {@link SummarizerConfiguration}
    *
    * @param className
    *          The fully qualified name of a class that implements {@link Summarizer}.

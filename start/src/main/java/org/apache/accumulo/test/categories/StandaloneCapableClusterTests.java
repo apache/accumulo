@@ -17,7 +17,7 @@
 package org.apache.accumulo.test.categories;
 
 /**
- * Interface to be used with JUnit Category annotation to denote that the IntegrationTest can be used with any kind of cluster (a MiniAccumuloCluster or a
- * StandaloneAccumuloCluster).
+ * Interface to be used with JUnit Category annotation to denote that the IntegrationTest can be
+ * used with any kind of cluster (a MiniAccumuloCluster or a StandaloneAccumuloCluster).
  */
 public interface StandaloneCapableClusterTests {}

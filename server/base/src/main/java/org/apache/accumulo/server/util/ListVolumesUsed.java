@@ -94,12 +94,15 @@ public class ListVolumesUsed {
     TreeSet<String> volumes = new TreeSet<>();
 
     for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+      if (entry.getKey().getColumnFamily()
+          .equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
         volumes.add(getTableURI(entry.getKey().getColumnQualifier().toString()));
-      } else if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.LogColumnFamily.NAME)) {
+      } else if (entry.getKey().getColumnFamily()
+          .equals(MetadataSchema.TabletsSection.LogColumnFamily.NAME)) {
         LogEntry le = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
         getLogURIs(volumes, le);
-      } else if (MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
+      } else if (MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
+          .hasColumns(entry.getKey())) {
         volumes.add(getTableURI(entry.getValue().toString()));
       }
     }
@@ -113,11 +116,13 @@ public class ListVolumesUsed {
     scanner.setRange(MetadataSchema.DeletesSection.getRange());
 
     for (Entry<Key,Value> entry : scanner) {
-      String delPath = entry.getKey().getRow().toString().substring(MetadataSchema.DeletesSection.getRowPrefix().length());
+      String delPath = entry.getKey().getRow().toString()
+          .substring(MetadataSchema.DeletesSection.getRowPrefix().length());
       volumes.add(getTableURI(delPath));
     }
 
-    System.out.println("Listing volumes referenced in " + name + " deletes section (volume replacement occurrs at deletion time)");
+    System.out.println("Listing volumes referenced in " + name
+        + " deletes section (volume replacement occurrs at deletion time)");
 
     for (String volume : volumes)
       System.out.println("\tVolume : " + volume);

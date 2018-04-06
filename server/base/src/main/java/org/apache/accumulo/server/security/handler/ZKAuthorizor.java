@@ -83,10 +83,12 @@ public class ZKAuthorizor implements Authorizor {
   }
 
   @Override
-  public void initializeSecurity(TCredentials itw, String rootuser) throws AccumuloSecurityException {
+  public void initializeSecurity(TCredentials itw, String rootuser)
+      throws AccumuloSecurityException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
-    // create the root user with all system privileges, no table privileges, and no record-level authorizations
+    // create the root user with all system privileges, no table privileges, and no record-level
+    // authorizations
     Set<SystemPermission> rootPerms = new TreeSet<>();
     for (SystemPermission p : SystemPermission.values())
       rootPerms.add(p);
@@ -101,7 +103,8 @@ public class ZKAuthorizor implements Authorizor {
         zoo.putPersistentData(ZKUserPath, rootuser.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
       initUser(rootuser);
-      zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
+      zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths,
+          ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
@@ -143,12 +146,13 @@ public class ZKAuthorizor implements Authorizor {
   }
 
   @Override
-  public void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException {
+  public void changeAuthorizations(String user, Authorizations authorizations)
+      throws AccumuloSecurityException {
     try {
       synchronized (zooCache) {
         zooCache.clear();
-        ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserAuths, ZKSecurityTool.convertAuthorizations(authorizations),
-            NodeExistsPolicy.OVERWRITE);
+        ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserAuths,
+            ZKSecurityTool.convertAuthorizations(authorizations), NodeExistsPolicy.OVERWRITE);
       }
     } catch (KeeperException e) {
       log.error("{}", e.getMessage(), e);
@@ -160,7 +164,8 @@ public class ZKAuthorizor implements Authorizor {
   }
 
   @Override
-  public boolean isValidAuthorizations(String user, List<ByteBuffer> auths) throws AccumuloSecurityException {
+  public boolean isValidAuthorizations(String user, List<ByteBuffer> auths)
+      throws AccumuloSecurityException {
     if (auths.isEmpty()) {
       // avoid deserializing auths from ZK cache
       return true;

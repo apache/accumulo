@@ -39,10 +39,12 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * This iterator suppresses rows that exceed a specified number of columns. Once a row exceeds the threshold, a marker is emitted and the row is always
- * suppressed by this iterator after that point in time.
+ * This iterator suppresses rows that exceed a specified number of columns. Once a row exceeds the
+ * threshold, a marker is emitted and the row is always suppressed by this iterator after that point
+ * in time.
  *
- * This iterator works in a similar way to the RowDeletingIterator. See its javadoc about locality groups.
+ * This iterator works in a similar way to the RowDeletingIterator. See its javadoc about locality
+ * groups.
  */
 public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
@@ -71,8 +73,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   private boolean dropEmptyColFams;
 
   private boolean isSuppressionMarker(Key key, Value val) {
-    return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0 && key.getColumnVisibilityData().length() == 0
-        && val.equals(SUPPRESS_ROW_VALUE);
+    return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0
+        && key.getColumnVisibilityData().length() == 0 && val.equals(SUPPRESS_ROW_VALUE);
   }
 
   private void reseek(Key key) throws IOException {
@@ -152,12 +154,14 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
     bufferNextRow();
 
-    while (!propogateSuppression && currentPosition < keys.size() && isSuppressionMarker(keys.get(0), values.get(0))) {
+    while (!propogateSuppression && currentPosition < keys.size()
+        && isSuppressionMarker(keys.get(0), values.get(0))) {
       bufferNextRow();
     }
   }
 
-  private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propogateSuppression, int maxColumns) {
+  private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propogateSuppression,
+      int maxColumns) {
     this.source = source;
     this.propogateSuppression = propogateSuppression;
     this.maxColumns = maxColumns;
@@ -166,7 +170,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   public LargeRowFilter() {}
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     this.source = source;
     this.maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
     this.propogateSuppression = env.getIteratorScope() != IteratorScope.scan;
@@ -192,7 +197,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
 
     if (inclusive && !columnFamilies.contains(EMPTY)) {
       columnFamilies = new HashSet<>(columnFamilies);
@@ -212,7 +218,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
     if (range.getStartKey() != null) {
       // seek to beginning of row to see if there is a suppression marker
-      Range newRange = new Range(new Key(range.getStartKey().getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
+      Range newRange = new Range(new Key(range.getStartKey().getRow()), true, range.getEndKey(),
+          range.isEndKeyInclusive());
       source.seek(newRange, columnFamilies, inclusive);
 
       readNextRow();
@@ -250,24 +257,29 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   @Override
   public IteratorOptions describeOptions() {
     String description = "This iterator suppresses rows that exceed a specified number of columns. Once\n"
-        + "a row exceeds the threshold, a marker is emitted and the row is always\n" + "suppressed by this iterator after that point in time.\n"
-        + " This iterator works in a similar way to the RowDeletingIterator. See its\n" + " javadoc about locality groups.\n";
-    return new IteratorOptions(this.getClass().getSimpleName(), description, Collections.singletonMap(MAX_COLUMNS, "Number Of Columns To Begin Suppression"),
-        null);
+        + "a row exceeds the threshold, a marker is emitted and the row is always\n"
+        + "suppressed by this iterator after that point in time.\n"
+        + " This iterator works in a similar way to the RowDeletingIterator. See its\n"
+        + " javadoc about locality groups.\n";
+    return new IteratorOptions(this.getClass().getSimpleName(), description,
+        Collections.singletonMap(MAX_COLUMNS, "Number Of Columns To Begin Suppression"), null);
   }
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (options == null || options.size() < 1) {
-      throw new IllegalArgumentException("Bad # of options, must supply: " + MAX_COLUMNS + " as value");
+      throw new IllegalArgumentException(
+          "Bad # of options, must supply: " + MAX_COLUMNS + " as value");
     }
 
     if (!options.containsKey(MAX_COLUMNS))
-      throw new IllegalArgumentException("Bad # of options, must supply: " + MAX_COLUMNS + " as value");
+      throw new IllegalArgumentException(
+          "Bad # of options, must supply: " + MAX_COLUMNS + " as value");
     try {
       maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
     } catch (Exception e) {
-      throw new IllegalArgumentException("bad integer " + MAX_COLUMNS + ":" + options.get(MAX_COLUMNS));
+      throw new IllegalArgumentException(
+          "bad integer " + MAX_COLUMNS + ":" + options.get(MAX_COLUMNS));
     }
 
     return true;

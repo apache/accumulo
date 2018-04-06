@@ -74,7 +74,8 @@ public class ScriptCommand extends Command {
 
       if (cl.hasOption(object.getOpt()) || cl.hasOption(function.getOpt())) {
         if (!(engine instanceof Invocable)) {
-          shellState.printException(new Exception(engineName + " does not support invoking functions or methods"));
+          shellState.printException(
+              new Exception(engineName + " does not support invoking functions or methods"));
           return 1;
         }
         invoke = true;
@@ -267,7 +268,8 @@ public class ScriptCommand extends Command {
 
   }
 
-  private void invokeFunctionOrMethod(Shell shellState, ScriptEngine engine, CommandLine cl, Object[] args) {
+  private void invokeFunctionOrMethod(Shell shellState, ScriptEngine engine, CommandLine cl,
+      Object[] args) {
     try {
       Invocable inv = (Invocable) engine;
       if (cl.hasOption(function.getOpt())) {

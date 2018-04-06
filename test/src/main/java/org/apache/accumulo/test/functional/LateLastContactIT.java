@@ -26,7 +26,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 /**
- * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail. Start a ZombieTServer, and see that master stops it.
+ * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail.
+ * Start a ZombieTServer, and see that master stops it.
  */
 public class LateLastContactIT extends ConfigurableMacBase {
 

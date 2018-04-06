@@ -86,12 +86,14 @@ public class MockAccumulo {
     return new MockBatchScanner(tables.get(tableName), authorizations);
   }
 
-  public void createTable(String username, String tableName, boolean useVersions, TimeType timeType) {
+  public void createTable(String username, String tableName, boolean useVersions,
+      TimeType timeType) {
     Map<String,String> opts = Collections.emptyMap();
     createTable(username, tableName, useVersions, timeType, opts);
   }
 
-  public void createTable(String username, String tableName, boolean useVersions, TimeType timeType, Map<String,String> properties) {
+  public void createTable(String username, String tableName, boolean useVersions, TimeType timeType,
+      Map<String,String> properties) {
     String namespace = Tables.qualify(tableName).getFirst();
 
     if (!namespaceExists(namespace)) {
@@ -99,14 +101,16 @@ public class MockAccumulo {
     }
 
     MockNamespace n = namespaces.get(namespace);
-    MockTable t = new MockTable(n, useVersions, timeType, Integer.toString(tableIdCounter.incrementAndGet()), properties);
+    MockTable t = new MockTable(n, useVersions, timeType,
+        Integer.toString(tableIdCounter.incrementAndGet()), properties);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     t.setNamespaceName(namespace);
     t.setNamespace(n);
     tables.put(tableName, t);
   }
 
-  public void createTable(String username, String tableName, TimeType timeType, Map<String,String> properties) {
+  public void createTable(String username, String tableName, TimeType timeType,
+      Map<String,String> properties) {
     String namespace = Tables.qualify(tableName).getFirst();
     HashMap<String,String> props = new HashMap<>(properties);
 
@@ -115,7 +119,8 @@ public class MockAccumulo {
     }
 
     MockNamespace n = namespaces.get(namespace);
-    MockTable t = new MockTable(n, timeType, Integer.toString(tableIdCounter.incrementAndGet()), props);
+    MockTable t = new MockTable(n, timeType, Integer.toString(tableIdCounter.incrementAndGet()),
+        props);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     t.setNamespaceName(namespace);
     t.setNamespace(n);

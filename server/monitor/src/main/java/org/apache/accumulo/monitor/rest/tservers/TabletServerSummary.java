@@ -47,7 +47,8 @@ public class TabletServerSummary {
    * @param currentOperations
    *          TServer current operations
    */
-  public TabletServerSummary(TabletServerDetailInformation details, List<AllTimeTabletResults> allTimeResults, CurrentTabletResults currentResults,
+  public TabletServerSummary(TabletServerDetailInformation details,
+      List<AllTimeTabletResults> allTimeResults, CurrentTabletResults currentResults,
       List<CurrentOperations> currentOperations) {
     this.details = details;
     this.allTimeTabletResults = allTimeResults;

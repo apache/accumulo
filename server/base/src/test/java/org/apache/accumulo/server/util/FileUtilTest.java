@@ -48,7 +48,8 @@ public class FileUtilTest {
   private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tmpDir = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Rule
   public TestName testName = new TestName();
@@ -137,8 +138,10 @@ public class FileUtilTest {
     assertTrue(v2.mkdirs() || v2.isDirectory());
 
     // And a "unique" tmp directory for each volume
-    // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique dirs)
-    File tmp1 = new File(new File(v1, "tmp"), "tmp_1"), tmp2 = new File(new File(v2, "tmp"), "tmp_1");
+    // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique
+    // dirs)
+    File tmp1 = new File(new File(v1, "tmp"), "tmp_1"),
+        tmp2 = new File(new File(v2, "tmp"), "tmp_1");
     assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
     assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
@@ -192,8 +195,10 @@ public class FileUtilTest {
     assertTrue(v2.mkdirs() || v2.isDirectory());
 
     // And a "unique" tmp directory for each volume
-    // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique dirs)
-    File tmp1 = new File(new File(v1, "tmp"), "tmp_1"), tmp2 = new File(new File(v2, "tmp"), "tmp_1");
+    // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique
+    // dirs)
+    File tmp1 = new File(new File(v1, "tmp"), "tmp_1"),
+        tmp2 = new File(new File(v2, "tmp"), "tmp_1");
     assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
     assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());

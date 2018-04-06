@@ -46,12 +46,15 @@ public class TableLoadBalancer extends TabletBalancer {
 
   Map<Table.ID,TabletBalancer> perTableBalancers = new HashMap<>();
 
-  private TabletBalancer constructNewBalancerForTable(String clazzName, Table.ID tableId) throws Exception {
+  private TabletBalancer constructNewBalancerForTable(String clazzName, Table.ID tableId)
+      throws Exception {
     String context = null;
-    context = this.context.getServerConfigurationFactory().getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+    context = this.context.getServerConfigurationFactory().getTableConfiguration(tableId)
+        .get(Property.TABLE_CLASSPATH);
     Class<? extends TabletBalancer> clazz;
     if (context != null && !context.equals(""))
-      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, TabletBalancer.class);
+      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName,
+          TabletBalancer.class);
     else
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(Table.ID.class);
@@ -63,7 +66,8 @@ public class TableLoadBalancer extends TabletBalancer {
     if (tableState == null)
       return null;
     if (tableState.equals(TableState.ONLINE))
-      return this.context.getServerConfigurationFactory().getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+      return this.context.getServerConfigurationFactory().getTableConfiguration(table)
+          .get(Property.TABLE_LOAD_BALANCER);
     return null;
   }
 
@@ -111,12 +115,13 @@ public class TableLoadBalancer extends TabletBalancer {
   }
 
   @Override
-  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
-      Map<KeyExtent,TServerInstance> assignments) {
+  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
+      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
     // separate the unassigned into tables
     Map<Table.ID,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId());
+      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned
+          .get(e.getKey().getTableId());
       if (tableUnassigned == null) {
         tableUnassigned = new HashMap<>();
         groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
@@ -143,7 +148,8 @@ public class TableLoadBalancer extends TabletBalancer {
   }
 
   @Override
-  public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
+  public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
+      Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     long minBalanceTime = 5 * 1000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
@@ -151,7 +157,8 @@ public class TableLoadBalancer extends TabletBalancer {
       return minBalanceTime;
     for (String s : t.tableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime = getBalancerForTable(Table.ID.of(s)).balance(current, migrations, newMigrations);
+      long tableBalanceTime = getBalancerForTable(Table.ID.of(s)).balance(current, migrations,
+          newMigrations);
       if (tableBalanceTime < minBalanceTime)
         minBalanceTime = tableBalanceTime;
       migrationsOut.addAll(newMigrations);

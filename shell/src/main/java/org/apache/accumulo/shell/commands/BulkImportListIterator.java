@@ -49,7 +49,8 @@ public class BulkImportListIterator implements Iterator<String> {
 
   private String format(BulkImportStatus status) {
     long diff = System.currentTimeMillis() - status.startTime;
-    return String.format("%25s | %4s | %s", status.filename, Duration.format(diff, " ", "-"), status.state);
+    return String.format("%25s | %4s | %s", status.filename, Duration.format(diff, " ", "-"),
+        status.state);
   }
 
   @Override

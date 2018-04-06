@@ -84,13 +84,15 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 2) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table1> <table2>");
+        throw new IllegalArgumentException(
+            "Usage : " + MRTester.class.getName() + " <table1> <table2>");
       }
 
       String table1 = args[0];
       String table2 = args[1];
 
-      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(),
+          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloMultiTableInputFormat.class);
@@ -121,13 +123,15 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
 
   /**
-   * Generate incrementing counts and attach table name to the key/value so that order and multi-table data can be verified.
+   * Generate incrementing counts and attach table name to the key/value so that order and
+   * multi-table data can be verified.
    */
   @Test
   public void testMap() throws Exception {

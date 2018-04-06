@@ -77,7 +77,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     private boolean useSample;
     private SamplerConfiguration sampleConf;
 
-    public OfflineIteratorEnvironment(Authorizations auths, AccumuloConfiguration acuTableConf, boolean useSample, SamplerConfiguration samplerConf) {
+    public OfflineIteratorEnvironment(Authorizations auths, AccumuloConfiguration acuTableConf,
+        boolean useSample, SamplerConfiguration samplerConf) {
       this.authorizations = auths;
       this.conf = acuTableConf;
       this.useSample = useSample;
@@ -85,7 +86,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+        throws IOException {
       throw new NotImplementedException();
     }
 
@@ -153,13 +155,15 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
   private AccumuloConfiguration config;
 
-  public OfflineIterator(ScannerOptions options, Instance instance, Credentials credentials, Authorizations authorizations, Text table, Range range) {
+  public OfflineIterator(ScannerOptions options, Instance instance, Credentials credentials,
+      Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;
     this.range = range;
 
     if (this.options.fetchedColumns.size() > 0) {
-      this.range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
+      this.range = range.bound(this.options.fetchedColumns.first(),
+          this.options.fetchedColumns.last());
     }
 
     this.tableId = Table.ID.of(table.toString());
@@ -216,7 +220,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
+      nextRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null,
+          false);
     } else {
 
       if (currentExtent.getEndRow() == null) {
@@ -240,7 +245,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
         Tables.clearCache(instance);
         if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
-          throw new AccumuloException("Table is online " + tableId + " cannot scan tablet in offline mode " + eloc.getFirst());
+          throw new AccumuloException("Table is online " + tableId
+              + " cannot scan tablet in offline mode " + eloc.getFirst());
         }
       }
 
@@ -259,7 +265,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
 
     // Old property is only used to resolve relative paths into absolute paths. For systems upgraded
-    // with relative paths, it's assumed that correct instance.dfs.{uri,dir} is still correct in the configuration
+    // with relative paths, it's assumed that correct instance.dfs.{uri,dir} is still correct in the
+    // configuration
     @SuppressWarnings("deprecation")
     String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + Constants.HDFS_TABLES_DIR;
 
@@ -278,12 +285,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     iter = createIterator(extent, absFiles);
-    iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns), options.fetchedColumns.size() == 0 ? false : true);
+    iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns),
+        options.fetchedColumns.size() == 0 ? false : true);
     currentExtent = extent;
 
   }
 
-  private Pair<KeyExtent,String> getTabletFiles(Range nextRange, List<String> relFiles) throws TableNotFoundException {
+  private Pair<KeyExtent,String> getTabletFiles(Range nextRange, List<String> relFiles)
+      throws TableNotFoundException {
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setBatchSize(100);
     scanner.setRange(nextRange);
@@ -315,14 +324,15 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     return new Pair<>(extent, location);
   }
 
-  private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles) throws TableNotFoundException, AccumuloException,
-      IOException {
+  private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles)
+      throws TableNotFoundException, AccumuloException, IOException {
 
     // TODO share code w/ tablet - ACCUMULO-1303
 
     // possible race condition here, if table is renamed
     String tableName = Tables.getTableName(conn.getInstance(), tableId);
-    AccumuloConfiguration acuTableConf = new ConfigurationCopy(conn.tableOperations().getProperties(tableName));
+    AccumuloConfiguration acuTableConf = new ConfigurationCopy(
+        conn.tableOperations().getProperties(tableName));
 
     Configuration conf = CachedConfiguration.getInstance();
 
@@ -333,17 +343,22 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     readers.clear();
 
     SamplerConfiguration scannerSamplerConfig = options.getSamplerConfiguration();
-    SamplerConfigurationImpl scannerSamplerConfigImpl = scannerSamplerConfig == null ? null : new SamplerConfigurationImpl(scannerSamplerConfig);
-    SamplerConfigurationImpl samplerConfImpl = SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
+    SamplerConfigurationImpl scannerSamplerConfigImpl = scannerSamplerConfig == null ? null
+        : new SamplerConfigurationImpl(scannerSamplerConfig);
+    SamplerConfigurationImpl samplerConfImpl = SamplerConfigurationImpl
+        .newSamplerConfig(acuTableConf);
 
-    if (scannerSamplerConfigImpl != null && ((samplerConfImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) || samplerConfImpl == null)) {
+    if (scannerSamplerConfigImpl != null
+        && ((samplerConfImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl))
+            || samplerConfImpl == null)) {
       throw new SampleNotPresentException();
     }
 
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
       FileSystem fs = VolumeConfiguration.getVolume(file, conf, config).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(file, fs, conf).withTableConfiguration(acuTableConf).build();
+      FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
+          .forFile(file, fs, conf).withTableConfiguration(acuTableConf).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);
         if (reader == null)
@@ -354,18 +369,21 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations, acuTableConf, false, samplerConfImpl == null ? null
-        : samplerConfImpl.toSamplerConfiguration());
+    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations,
+        acuTableConf, false,
+        samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
 
     byte[] defaultSecurityLabel;
-    ColumnVisibility cv = new ColumnVisibility(acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
+    ColumnVisibility cv = new ColumnVisibility(
+        acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
     defaultSecurityLabel = cv.getExpression();
 
-    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter, new HashSet<>(options.fetchedColumns), authorizations,
-        defaultSecurityLabel);
+    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter,
+        new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel);
 
-    return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf, options.serverSideIteratorList,
-        options.serverSideIteratorOptions, iterEnv, false));
+    return iterEnv.getTopLevelIterator(
+        IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf,
+            options.serverSideIteratorList, options.serverSideIteratorOptions, iterEnv, false));
   }
 
   @Override

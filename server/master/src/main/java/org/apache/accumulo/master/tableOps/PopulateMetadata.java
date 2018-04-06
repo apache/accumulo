@@ -39,7 +39,8 @@ class PopulateMetadata extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     KeyExtent extent = new KeyExtent(tableInfo.tableId, null, null);
-    MetadataTableUtil.addTablet(extent, tableInfo.dir, environment, tableInfo.timeType, environment.getMasterLock());
+    MetadataTableUtil.addTablet(extent, tableInfo.dir, environment, tableInfo.timeType,
+        environment.getMasterLock());
 
     return new FinishCreateTable(tableInfo);
 
@@ -47,7 +48,8 @@ class PopulateMetadata extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment, environment.getMasterLock());
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment,
+        environment.getMasterLock());
   }
 
 }

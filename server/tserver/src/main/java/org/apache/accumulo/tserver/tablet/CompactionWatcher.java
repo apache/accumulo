@@ -60,7 +60,8 @@ public class CompactionWatcher implements Runnable {
     long time = System.currentTimeMillis();
 
     for (CompactionInfo ci : runningCompactions) {
-      List<Long> compactionKey = Arrays.asList(ci.getID(), ci.getEntriesRead(), ci.getEntriesWritten());
+      List<Long> compactionKey = Arrays.asList(ci.getID(), ci.getEntriesRead(),
+          ci.getEntriesWritten());
       newKeys.add(compactionKey);
 
       if (!observedCompactions.containsKey(compactionKey)) {
@@ -74,7 +75,8 @@ public class CompactionWatcher implements Runnable {
 
     for (ObservedCompactionInfo oci : copy.values()) {
       if (oci.loggedWarning) {
-        LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of {} is no longer stuck", oci.compactionInfo.getExtent());
+        LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of {} is no longer stuck",
+            oci.compactionInfo.getExtent());
       }
     }
 
@@ -89,10 +91,12 @@ public class CompactionWatcher implements Runnable {
         Thread compactionThread = oci.compactionInfo.getThread();
         if (compactionThread != null) {
           StackTraceElement[] trace = compactionThread.getStackTrace();
-          Exception e = new Exception("Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
+          Exception e = new Exception(
+              "Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
           e.setStackTrace(trace);
-          LoggerFactory.getLogger(CompactionWatcher.class).warn(
-              "Compaction of " + oci.compactionInfo.getExtent() + " to " + oci.compactionInfo.getOutputFile() + " has not made progress for at least "
+          LoggerFactory.getLogger(CompactionWatcher.class)
+              .warn("Compaction of " + oci.compactionInfo.getExtent() + " to "
+                  + oci.compactionInfo.getOutputFile() + " has not made progress for at least "
                   + (time - oci.firstSeen) + "ms", e);
           oci.loggedWarning = true;
         }

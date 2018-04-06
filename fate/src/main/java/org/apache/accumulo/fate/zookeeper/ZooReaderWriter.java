@@ -53,48 +53,56 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   }
 
   @Override
-  public void recursiveDelete(String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
+  public void recursiveDelete(String zPath, NodeMissingPolicy policy)
+      throws KeeperException, InterruptedException {
     ZooUtil.recursiveDelete(info, zPath, policy);
   }
 
   @Override
-  public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
+  public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException {
     return ZooUtil.putPersistentData(info, zPath, data, policy);
   }
 
   @Override
-  public boolean putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy, List<ACL> acls) throws KeeperException,
-      InterruptedException {
+  public boolean putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy,
+      List<ACL> acls) throws KeeperException, InterruptedException {
     return ZooUtil.putPersistentData(info, zPath, data, version, policy, acls);
   }
 
   @Override
-  public boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
+  public boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException {
     return ZooUtil.putPrivatePersistentData(info, zPath, data, policy);
   }
 
   @Override
-  public void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
+  public void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException {
     ZooUtil.putPersistentData(info, zPath, data, version, policy);
   }
 
   @Override
-  public String putPersistentSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
+  public String putPersistentSequential(String zPath, byte[] data)
+      throws KeeperException, InterruptedException {
     return ZooUtil.putPersistentSequential(info, zPath, data);
   }
 
   @Override
-  public String putEphemeralData(String zPath, byte[] data) throws KeeperException, InterruptedException {
+  public String putEphemeralData(String zPath, byte[] data)
+      throws KeeperException, InterruptedException {
     return ZooUtil.putEphemeralData(info, zPath, data);
   }
 
   @Override
-  public String putEphemeralSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
+  public String putEphemeralSequential(String zPath, byte[] data)
+      throws KeeperException, InterruptedException {
     return ZooUtil.putEphemeralSequential(info, zPath, data);
   }
 
   @Override
-  public void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
+  public void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy)
+      throws KeeperException, InterruptedException {
     ZooUtil.recursiveCopyPersistent(info, source, destination, policy);
   }
 
@@ -115,7 +123,8 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
           }
 
           throw e;
-        } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+        } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+            || code == Code.SESSIONEXPIRED) {
           // retry if we have more attempts to do so
           retryOrThrow(retry, e);
         } else {
@@ -128,7 +137,8 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   }
 
   @Override
-  public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator) throws Exception {
+  public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator)
+      throws Exception {
     if (createValue != null) {
       while (true) {
         final Retry retry = getRetryFactory().createRetry();
@@ -140,7 +150,8 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
           if (code == Code.NODEEXISTS) {
             // expected
             break;
-          } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS || code == Code.SESSIONEXPIRED) {
+          } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS
+              || code == Code.SESSIONEXPIRED) {
             retryOrThrow(retry, ex);
           } else {
             throw ex;
@@ -165,7 +176,8 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
         if (code == Code.BADVERSION) {
           // Retry, but don't increment. This makes it backwards compatible with the infinite
           // loop that previously happened. I'm not sure if that's really desirable though.
-        } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS || code == Code.SESSIONEXPIRED) {
+        } else if (code == Code.OPERATIONTIMEOUT || code == Code.CONNECTIONLOSS
+            || code == Code.SESSIONEXPIRED) {
           retryOrThrow(retry, ex);
           retry.waitForNextAttempt();
         } else {
@@ -175,7 +187,8 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     } while (true);
   }
 
-  public static synchronized ZooReaderWriter getInstance(String zookeepers, int timeInMillis, String scheme, byte[] auth) {
+  public static synchronized ZooReaderWriter getInstance(String zookeepers, int timeInMillis,
+      String scheme, byte[] auth) {
     if (instance == null)
       instance = new ZooReaderWriter(zookeepers, timeInMillis, scheme, auth);
     return instance;

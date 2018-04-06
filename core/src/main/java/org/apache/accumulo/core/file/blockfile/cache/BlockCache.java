@@ -47,8 +47,8 @@ public interface BlockCache {
 
   public static interface Loader {
     /**
-     * The cache blocks that this loader depends on. If a loader has no dependencies, then it should return an empty map. All dependencies must be loaded before
-     * calling {@link #load(int, Map)}.
+     * The cache blocks that this loader depends on. If a loader has no dependencies, then it should
+     * return an empty map. All dependencies must be loaded before calling {@link #load(int, Map)}.
      */
     Map<String,Loader> getDependencies();
 
@@ -63,8 +63,10 @@ public interface BlockCache {
   }
 
   /**
-   * This method allows a cache to prevent concurrent loads of the same block. However a cache implementation is not required to prevent concurrent loads.
-   * {@link SynchronousLoadingBlockCache} is an abstract class that a cache can extent which does prevent concurrent loading of the same block.
+   * This method allows a cache to prevent concurrent loads of the same block. However a cache
+   * implementation is not required to prevent concurrent loads.
+   * {@link SynchronousLoadingBlockCache} is an abstract class that a cache can extent which does
+   * prevent concurrent loading of the same block.
    *
    *
    * @param blockName
@@ -105,7 +107,8 @@ public interface BlockCache {
     long hitCount();
 
     /**
-     * Returns the number of times the lookup methods have returned either a cached or uncached value.
+     * Returns the number of times the lookup methods have returned either a cached or uncached
+     * value.
      *
      * @return the number of lookups
      */

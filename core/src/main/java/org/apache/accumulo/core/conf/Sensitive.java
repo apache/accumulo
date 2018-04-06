@@ -21,7 +21,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * An annotation to denote {@link AccumuloConfiguration} {@link Property} keys which are sensitive, and should be masked or hidden when printed.
+ * An annotation to denote {@link AccumuloConfiguration} {@link Property} keys which are sensitive,
+ * and should be masked or hidden when printed.
  */
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)

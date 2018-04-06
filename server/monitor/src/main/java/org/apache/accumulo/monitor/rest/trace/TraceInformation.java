@@ -53,7 +53,8 @@ public class TraceInformation {
    * @param addlData
    *          Additional data for the trace
    */
-  public TraceInformation(int level, long time, long start, long spanID, String location, String name, AddlInformation addlData) {
+  public TraceInformation(int level, long time, long start, long spanID, String location,
+      String name, AddlInformation addlData) {
     this.level = level;
     this.time = time;
     this.start = start;

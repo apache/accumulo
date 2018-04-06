@@ -40,12 +40,15 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 
 /**
- * This abstract {@link InputFormat} class allows MapReduce jobs to use Accumulo as the source of K,V pairs.
+ * This abstract {@link InputFormat} class allows MapReduce jobs to use Accumulo as the source of
+ * K,V pairs.
  * <p>
- * Subclasses must implement a {@link #getRecordReader(InputSplit, JobConf, Reporter)} to provide a {@link RecordReader} for K,V.
+ * Subclasses must implement a {@link #getRecordReader(InputSplit, JobConf, Reporter)} to provide a
+ * {@link RecordReader} for K,V.
  * <p>
- * A static base class, RecordReaderBase, is provided to retrieve Accumulo {@link Key}/{@link Value} pairs, but one must implement its
- * {@link RecordReaderBase#next(Object, Object)} to transform them to the desired generic types K,V.
+ * A static base class, RecordReaderBase, is provided to retrieve Accumulo {@link Key}/{@link Value}
+ * pairs, but one must implement its {@link RecordReaderBase#next(Object, Object)} to transform them
+ * to the desired generic types K,V.
  * <p>
  * See {@link AccumuloInputFormat} for an example implementation.
  */
@@ -111,11 +114,13 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @param job
    *          the Hadoop job instance to be configured
    * @param columnFamilyColumnQualifierPairs
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If the column qualifier is null, the entire column family is
-   *          selected. An empty set is the default and is equivalent to scanning the all columns.
+   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
+   *          the column qualifier is null, the entire column family is selected. An empty set is
+   *          the default and is equivalent to scanning the all columns.
    * @since 1.5.0
    */
-  public static void fetchColumns(JobConf job, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+  public static void fetchColumns(JobConf job,
+      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     InputConfigurator.fetchColumns(CLASS, job, columnFamilyColumnQualifierPairs);
   }
 
@@ -146,7 +151,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
+   * Gets a list of the iterator settings (for iterators to apply to a scanner) from this
+   * configuration.
    *
    * @param job
    *          the Hadoop context for the configured job
@@ -159,8 +165,9 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
-   * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
+   * Controls the automatic adjustment of ranges for this job. This feature merges overlapping
+   * ranges, then splits them to align with tablet boundaries. Disabling this feature will cause
+   * exactly one Map task to be created for each specified range. The default setting is enabled. *
    *
    * <p>
    * By default, this feature is <b>enabled</b>.
@@ -177,7 +184,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Determines whether a configuration has auto-adjust ranges enabled. Must be enabled when {@link #setBatchScan(JobConf, boolean)} is true.
+   * Determines whether a configuration has auto-adjust ranges enabled. Must be enabled when
+   * {@link #setBatchScan(JobConf, boolean)} is true.
    *
    * @param job
    *          the Hadoop context for the configured job
@@ -219,8 +227,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack to be constructed within the Map
-   * task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be available on the classpath for the task.
+   * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature
+   * will cause the iterator stack to be constructed within the Map task, rather than within the
+   * Accumulo TServer. To use this feature, all classes needed for those iterators must be available
+   * on the classpath for the task.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -249,25 +259,30 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
-   * table's files. If the table is not offline, then the job will fail. If the table comes online during the map reduce job, it is likely that the job will
-   * fail.
+   * Enable reading offline tables. By default, this feature is disabled and only online tables are
+   * scanned. This will make the map reduce job directly read the table's files. If the table is not
+   * offline, then the job will fail. If the table comes online during the map reduce job, it is
+   * likely that the job will fail.
    *
    * <p>
-   * To use this option, the map reduce user will need access to read the Accumulo directory in HDFS.
+   * To use this option, the map reduce user will need access to read the Accumulo directory in
+   * HDFS.
    *
    * <p>
-   * Reading the offline table will create the scan time iterator stack in the map process. So any iterators that are configured for the table will need to be
-   * on the mapper's classpath.
+   * Reading the offline table will create the scan time iterator stack in the map process. So any
+   * iterators that are configured for the table will need to be on the mapper's classpath.
    *
    * <p>
-   * One way to use this feature is to clone a table, take the clone offline, and use the clone as the input table for a map reduce job. If you plan to map
-   * reduce over the data many times, it may be better to the compact the table, clone it, take it offline, and use the clone for all map reduce jobs. The
-   * reason to do this is that compaction will reduce each tablet in the table to one file, and it is faster to read from one file.
+   * One way to use this feature is to clone a table, take the clone offline, and use the clone as
+   * the input table for a map reduce job. If you plan to map reduce over the data many times, it
+   * may be better to the compact the table, clone it, take it offline, and use the clone for all
+   * map reduce jobs. The reason to do this is that compaction will reduce each tablet in the table
+   * to one file, and it is faster to read from one file.
    *
    * <p>
-   * There are two possible advantages to reading a tables file directly out of HDFS. First, you may see better read performance. Second, it will support
-   * speculative execution better. When reading an online table speculative execution can put more load on an already slow tablet server.
+   * There are two possible advantages to reading a tables file directly out of HDFS. First, you may
+   * see better read performance. Second, it will support speculative execution better. When reading
+   * an online table speculative execution can put more load on an already slow tablet server.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -296,14 +311,16 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job. Using this feature will group Ranges by their source tablet,
-   * producing an InputSplit per tablet rather than per Range. This batching helps to reduce overhead when querying a large number of small ranges. (ex: when
-   * doing quad-tree decomposition for spatial queries)
+   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job. Using
+   * this feature will group Ranges by their source tablet, producing an InputSplit per tablet
+   * rather than per Range. This batching helps to reduce overhead when querying a large number of
+   * small ranges. (ex: when doing quad-tree decomposition for spatial queries)
    * <p>
-   * In order to achieve good locality of InputSplits this option always clips the input Ranges to tablet boundaries. This may result in one input Range
-   * contributing to several InputSplits.
+   * In order to achieve good locality of InputSplits this option always clips the input Ranges to
+   * tablet boundaries. This may result in one input Range contributing to several InputSplits.
    * <p>
-   * Note: that the value of {@link #setAutoAdjustRanges(JobConf, boolean)} is ignored and is assumed to be true when BatchScan option is enabled.
+   * Note: that the value of {@link #setAutoAdjustRanges(JobConf, boolean)} is ignored and is
+   * assumed to be true when BatchScan option is enabled.
    * <p>
    * This configuration is incompatible with:
    * <ul>
@@ -325,7 +342,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner} feature enabled.
+   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner}
+   * feature enabled.
    *
    * @param job
    *          the Hadoop context for the configured job
@@ -337,14 +355,16 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Causes input format to read sample data. If sample data was created using a different configuration or a tables sampler configuration changes while reading
-   * data, then the input format will throw an error.
+   * Causes input format to read sample data. If sample data was created using a different
+   * configuration or a tables sampler configuration changes while reading data, then the input
+   * format will throw an error.
    *
    *
    * @param job
    *          the Hadoop job instance to be configured
    * @param samplerConfig
-   *          The sampler configuration that sample must have been created with inorder for reading sample data to succeed.
+   *          The sampler configuration that sample must have been created with inorder for reading
+   *          sample data to succeed.
    *
    * @since 1.8.0
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
@@ -391,11 +411,13 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapred.RangeInputSplit} instead.
+   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapred.RangeInputSplit}
+   *             instead.
    * @see org.apache.accumulo.core.client.mapred.RangeInputSplit
    */
   @Deprecated
-  public static class RangeInputSplit extends org.apache.accumulo.core.client.mapred.RangeInputSplit {
+  public static class RangeInputSplit
+      extends org.apache.accumulo.core.client.mapred.RangeInputSplit {
     public RangeInputSplit() {
       super();
     }

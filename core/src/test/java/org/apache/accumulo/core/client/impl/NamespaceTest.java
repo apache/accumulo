@@ -77,7 +77,8 @@ public class NamespaceTest {
       postGCSize = Namespace.ID.cache.asMap().entrySet().stream().count();
     } while (postGCSize > initialSize);
 
-    assertTrue("Cache did not decrease with GC.", Namespace.ID.cache.asMap().entrySet().stream().count() < initialSize);
+    assertTrue("Cache did not decrease with GC.",
+        Namespace.ID.cache.asMap().entrySet().stream().count() < initialSize);
   }
 
   private void generateJunkCacheEntries() {

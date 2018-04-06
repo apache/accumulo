@@ -19,7 +19,8 @@ package org.apache.accumulo.iteratortest.testcases;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 
 /**
- * Base {@link IteratorTestCase} implementation that performs verifiation on the expected and actual outcome.
+ * Base {@link IteratorTestCase} implementation that performs verifiation on the expected and actual
+ * outcome.
  */
 public abstract class OutputVerifyingTestCase implements IteratorTestCase {
 

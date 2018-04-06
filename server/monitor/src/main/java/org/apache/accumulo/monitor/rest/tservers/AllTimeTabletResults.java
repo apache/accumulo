@@ -57,8 +57,8 @@ public class AllTimeTabletResults {
    * @param timeSpent
    *          Time spent in operation
    */
-  public AllTimeTabletResults(String operation, int success, int failure, Double avgQueueTime, Double queueStdDev, Double avgTime, double stdDev,
-      double timeSpent) {
+  public AllTimeTabletResults(String operation, int success, int failure, Double avgQueueTime,
+      Double queueStdDev, Double avgTime, double stdDev, double timeSpent) {
     this.operation = operation;
     this.success = success;
     this.failure = failure;

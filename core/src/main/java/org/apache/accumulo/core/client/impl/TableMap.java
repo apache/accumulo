@@ -75,7 +75,8 @@ public class TableMap {
               namespaceIdToNameMap.put(namespaceId, namespaceName);
             }
           } catch (NamespaceNotFoundException e) {
-            log.error("Table (" + tableIdStr + ") contains reference to namespace (" + namespaceId + ") that doesn't exist", e);
+            log.error("Table (" + tableIdStr + ") contains reference to namespace (" + namespaceId
+                + ") that doesn't exist", e);
             continue;
           }
         }

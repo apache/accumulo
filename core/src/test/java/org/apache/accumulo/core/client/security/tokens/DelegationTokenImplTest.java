@@ -33,9 +33,11 @@ public class DelegationTokenImplTest {
 
   @Test
   public void testSerialization() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000l, 2000l, "instanceid");
+    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000l,
+        2000l, "instanceid");
     // We don't need a real serialized Token for the password
-    DelegationTokenImpl token = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'}, identifier);
+    DelegationTokenImpl token = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'},
+        identifier);
     assertEquals(token, token);
     assertEquals(token.hashCode(), token.hashCode());
 
@@ -51,19 +53,24 @@ public class DelegationTokenImplTest {
 
   @Test
   public void testEquality() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000l, 2000l, "instanceid");
+    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000l,
+        2000l, "instanceid");
     // We don't need a real serialized Token for the password
-    DelegationTokenImpl token = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'}, identifier);
+    DelegationTokenImpl token = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'},
+        identifier);
 
-    AuthenticationTokenIdentifier identifier2 = new AuthenticationTokenIdentifier("user1", 1, 1000l, 2000l, "instanceid");
+    AuthenticationTokenIdentifier identifier2 = new AuthenticationTokenIdentifier("user1", 1, 1000l,
+        2000l, "instanceid");
     // We don't need a real serialized Token for the password
-    DelegationTokenImpl token2 = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'}, identifier2);
+    DelegationTokenImpl token2 = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'},
+        identifier2);
 
     assertNotEquals(token, token2);
     assertNotEquals(token.hashCode(), token2.hashCode());
 
     // We don't need a real serialized Token for the password
-    DelegationTokenImpl token3 = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e', '0'}, identifier);
+    DelegationTokenImpl token3 = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e', '0'},
+        identifier);
 
     assertNotEquals(token, token3);
     assertNotEquals(token.hashCode(), token3.hashCode());

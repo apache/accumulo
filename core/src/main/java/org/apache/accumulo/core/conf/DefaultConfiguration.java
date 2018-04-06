@@ -22,11 +22,13 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * An {@link AccumuloConfiguration} that contains only default values for properties. This class is a singleton.
+ * An {@link AccumuloConfiguration} that contains only default values for properties. This class is
+ * a singleton.
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
 
-  private static final Map<String,String> resolvedProps = Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
+  private static final Map<String,String> resolvedProps = Arrays.stream(Property.values())
+      .filter(p -> p.getType() != PropertyType.PREFIX)
       .collect(Collectors.toMap(p -> p.getKey(), p -> p.getDefaultValue()));
 
   private DefaultConfiguration() {}
@@ -47,6 +49,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    resolvedProps.entrySet().stream().filter(p -> filter.test(p.getKey())).forEach(e -> props.put(e.getKey(), e.getValue()));
+    resolvedProps.entrySet().stream().filter(p -> filter.test(p.getKey()))
+        .forEach(e -> props.put(e.getKey(), e.getValue()));
   }
 }

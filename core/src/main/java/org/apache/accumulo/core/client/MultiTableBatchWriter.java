@@ -17,8 +17,9 @@
 package org.apache.accumulo.core.client;
 
 /**
- * This class enables efficient batch writing to multiple tables. When creating a batch writer for each table, each has its own memory and network resources.
- * Using this class these resources may be shared among multiple tables.
+ * This class enables efficient batch writing to multiple tables. When creating a batch writer for
+ * each table, each has its own memory and network resources. Using this class these resources may
+ * be shared among multiple tables.
  *
  */
 public interface MultiTableBatchWriter {
@@ -36,7 +37,8 @@ public interface MultiTableBatchWriter {
    * @throws TableNotFoundException
    *           when the table does not exist
    */
-  BatchWriter getBatchWriter(String table) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  BatchWriter getBatchWriter(String table)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Send mutations for all tables to accumulo.

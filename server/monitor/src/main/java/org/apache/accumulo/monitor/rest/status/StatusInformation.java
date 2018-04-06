@@ -52,7 +52,8 @@ public class StatusInformation {
    * @param problemNumber
    *          Number of problems per table
    */
-  public StatusInformation(String masterStatus, String gcStatus, String tServerStatus, Integer logNumber, boolean logsHaveError, Integer problemNumber) {
+  public StatusInformation(String masterStatus, String gcStatus, String tServerStatus,
+      Integer logNumber, boolean logsHaveError, Integer problemNumber) {
     this.masterStatus = masterStatus;
     this.gcStatus = gcStatus;
     this.tServerStatus = tServerStatus;

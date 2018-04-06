@@ -54,7 +54,8 @@ public class MergeTest {
     protected void message(String format, Object... args) {}
 
     @Override
-    protected Iterator<Size> getSizeIterator(Connector conn, String tablename, final Text start, final Text end) throws MergeException {
+    protected Iterator<Size> getSizeIterator(Connector conn, String tablename, final Text start,
+        final Text end) throws MergeException {
       final Iterator<Size> impl = tablets.iterator();
       return new Iterator<Size>() {
         Size next = skip();
@@ -68,11 +69,13 @@ public class MergeTest {
           while (impl.hasNext()) {
             Size candidate = impl.next();
             if (start != null) {
-              if (candidate.extent.getEndRow() != null && candidate.extent.getEndRow().compareTo(start) < 0)
+              if (candidate.extent.getEndRow() != null
+                  && candidate.extent.getEndRow().compareTo(start) < 0)
                 continue;
             }
             if (end != null) {
-              if (candidate.extent.getPrevEndRow() != null && candidate.extent.getPrevEndRow().compareTo(end) >= 0)
+              if (candidate.extent.getPrevEndRow() != null
+                  && candidate.extent.getPrevEndRow().compareTo(end) >= 0)
                 continue;
             }
             return candidate;
@@ -95,7 +98,8 @@ public class MergeTest {
     }
 
     @Override
-    protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge) throws MergeException {
+    protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge)
+        throws MergeException {
       List<Size> merge = new ArrayList<>();
       for (int i = 0; i < numToMerge; i++) {
         merge.add(sizes.get(i));

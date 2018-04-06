@@ -29,13 +29,15 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
  * Represents an entry in the configurable block cache.
  *
  * <p>
- * Makes the block memory-aware with {@link HeapSize} and Comparable to sort by access time for the LRU. It also takes care of priority by either instantiating
- * as in-memory or handling the transition from single to multiple access.
+ * Makes the block memory-aware with {@link HeapSize} and Comparable to sort by access time for the
+ * LRU. It also takes care of priority by either instantiating as in-memory or handling the
+ * transition from single to multiple access.
  */
 public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
 
-  public final static long PER_BLOCK_OVERHEAD = ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
-      + ClassSize.STRING + ClassSize.BYTE_BUFFER + ClassSize.REFERENCE);
+  public final static long PER_BLOCK_OVERHEAD = ClassSize
+      .align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
+          + ClassSize.STRING + ClassSize.BYTE_BUFFER + ClassSize.REFERENCE);
 
   public static enum BlockPriority {
     /**
@@ -95,7 +97,8 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
 
   @Override
   public boolean equals(Object obj) {
-    return this == obj || (obj != null && obj instanceof CachedBlock && 0 == compareTo((CachedBlock) obj));
+    return this == obj
+        || (obj != null && obj instanceof CachedBlock && 0 == compareTo((CachedBlock) obj));
   }
 
   @Override
@@ -129,7 +132,8 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
   public synchronized long recordSize(AtomicLong totalSize) {
     if (recordedSize >= 0) {
       long indexSize = (index == null) ? 0 : index.weight();
-      long newSize = ClassSize.align(blockName.length()) + ClassSize.align(buffer.length) + PER_BLOCK_OVERHEAD + indexSize;
+      long newSize = ClassSize.align(blockName.length()) + ClassSize.align(buffer.length)
+          + PER_BLOCK_OVERHEAD + indexSize;
       long delta = newSize - recordedSize;
       recordedSize = newSize;
       return totalSize.addAndGet(delta);

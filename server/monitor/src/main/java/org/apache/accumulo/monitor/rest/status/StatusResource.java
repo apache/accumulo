@@ -82,8 +82,9 @@ public class StatusResource {
       int tServerBad = Monitor.getMmi().getBadTServersSize();
 
       /*
-       * If there are no dead or bad servers and there are tservers up, status is OK, if there are dead or bad servers and there is at least a tserver up,
-       * status is WARN, otherwise, the status is an error.
+       * If there are no dead or bad servers and there are tservers up, status is OK, if there are
+       * dead or bad servers and there is at least a tserver up, status is WARN, otherwise, the
+       * status is an error.
        */
       if ((tServerDown > 0 || tServerBad > 0) && tServerUp > 0) {
         tServerStatus = Status.WARN;
@@ -113,7 +114,8 @@ public class StatusResource {
 
     int numProblems = Monitor.getProblemSummary().entrySet().size();
 
-    status = new StatusInformation(masterStatus.toString(), gcStatus.toString(), tServerStatus.toString(), logs.size(), logsHaveError, numProblems);
+    status = new StatusInformation(masterStatus.toString(), gcStatus.toString(),
+        tServerStatus.toString(), logs.size(), logsHaveError, numProblems);
 
     return status;
   }

@@ -33,7 +33,8 @@ import org.junit.rules.TemporaryFolder;
 public class CleanShutdownMacTest {
 
   @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tmpDir = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @SuppressWarnings("unchecked")
   @Test
@@ -47,7 +48,8 @@ public class CleanShutdownMacTest {
     cluster.setShutdownExecutor(mockService);
 
     EasyMock.expect(future.get()).andReturn(0).anyTimes();
-    EasyMock.expect(mockService.<Integer> submit(EasyMock.anyObject(Callable.class))).andReturn(future).anyTimes();
+    EasyMock.expect(mockService.<Integer> submit(EasyMock.anyObject(Callable.class)))
+        .andReturn(future).anyTimes();
     EasyMock.expect(mockService.shutdownNow()).andReturn(Collections.emptyList()).once();
 
     EasyMock.replay(mockService, future);

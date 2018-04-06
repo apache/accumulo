@@ -57,10 +57,12 @@ public class ReplicaSystemHelper {
    * @param target
    *          Peer that was replicated to
    */
-  public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
-    try (BatchWriter bw = context.getConnector().createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig())) {
-      log.debug("Recording new status for {}, {}", filePath.toString(), ProtobufUtil.toString(status));
+  public void recordNewStatus(Path filePath, Status status, ReplicationTarget target)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    try (BatchWriter bw = context.getConnector().createBatchWriter(ReplicationTable.NAME,
+        new BatchWriterConfig())) {
+      log.debug("Recording new status for {}, {}", filePath.toString(),
+          ProtobufUtil.toString(status));
       Mutation m = new Mutation(filePath.toString());
       WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));
       bw.addMutation(m);

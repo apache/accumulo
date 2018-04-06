@@ -117,8 +117,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 /**
- * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain features for internal testing which have not yet been
- * promoted to the public API. It's best to use {@link MiniAccumuloCluster} whenever possible. Use of this class risks API breakage between versions.
+ * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain
+ * features for internal testing which have not yet been promoted to the public API. It's best to
+ * use {@link MiniAccumuloCluster} whenever possible. Use of this class risks API breakage between
+ * versions.
  *
  * @since 1.6.0
  */
@@ -247,7 +249,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       classpathBuilder.append(config.getConfDir().getAbsolutePath());
 
       if (config.getHadoopConfDir() != null)
-        classpathBuilder.append(File.pathSeparator).append(config.getHadoopConfDir().getAbsolutePath());
+        classpathBuilder.append(File.pathSeparator)
+            .append(config.getHadoopConfDir().getAbsolutePath());
 
       if (config.getClasspathItems() == null) {
 
@@ -268,7 +271,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               append(classpathBuilder, f.getURL());
             }
           } else {
-            throw new IllegalArgumentException("Unknown classloader type : " + classLoader.getClass().getName());
+            throw new IllegalArgumentException(
+                "Unknown classloader type : " + classLoader.getClass().getName());
           }
         }
       } else {
@@ -283,7 +287,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  private Process _exec(Class<?> clazz, List<String> extraJvmOpts, String... args) throws IOException {
+  private Process _exec(Class<?> clazz, List<String> extraJvmOpts, String... args)
+      throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
     String classpath = getClasspath();
@@ -312,7 +317,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
-    builder.environment().put("ACCUMULO_CLIENT_CONF_PATH", config.getClientConfFile().getAbsolutePath());
+    builder.environment().put("ACCUMULO_CLIENT_CONF_PATH",
+        config.getClientConfFile().getAbsolutePath());
     String ldLibraryPath = Joiner.on(File.pathSeparator).join(config.getNativeLibPaths());
     builder.environment().put("LD_LIBRARY_PATH", ldLibraryPath);
     builder.environment().put("DYLD_LIBRARY_PATH", ldLibraryPath);
@@ -330,15 +336,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.getHadoopConfDir() != null)
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
 
-    log.info("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName() + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath
-        + "\n, args: " + argList + "\n, environment: " + builder.environment().toString());
+    log.info("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
+        + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
+        + "\n, environment: " + builder.environment().toString());
     Process process = builder.start();
 
     LogWriter lw;
-    lw = new LogWriter(process.getErrorStream(), new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
+    lw = new LogWriter(process.getErrorStream(),
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
     logWriters.add(lw);
     lw.start();
-    lw = new LogWriter(process.getInputStream(), new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
+    lw = new LogWriter(process.getInputStream(),
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
     logWriters.add(lw);
     lw.start();
 
@@ -347,11 +356,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return process;
   }
 
-  public Process _exec(Class<?> clazz, ServerType serverType, Map<String,String> configOverrides, String... args) throws IOException {
+  public Process _exec(Class<?> clazz, ServerType serverType, Map<String,String> configOverrides,
+      String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
-      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo-site", ".xml").toFile();
+      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo-site", ".xml")
+          .toFile();
       Map<String,String> confMap = new HashMap<>();
       confMap.putAll(config.getSiteConfig());
       confMap.putAll(configOverrides);
@@ -370,8 +381,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   /**
    *
    * @param dir
-   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava,
-   *          and Junit provide methods for creating temporary directories.
+   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in.
+   *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
+   *          for creating temporary directories.
    * @param rootPassword
    *          Initial root password for instance.
    */
@@ -440,10 +452,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File clientConfFile = config.getClientConfFile();
     // Write only the properties that correspond to ClientConfiguration properties
-    writeConfigProperties(clientConfFile,
-        Maps.filterEntries(config.getSiteConfig(), v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
+    writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(),
+        v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
 
-    Map<String, String> clientProps = new HashMap<>();
+    Map<String,String> clientProps = new HashMap<>();
     clientProps.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), config.getZooKeepers());
     clientProps.put(ClientProperty.INSTANCE_NAME.getKey(), config.getInstanceName());
     clientProps.put(ClientProperty.AUTH_METHOD.getKey(), "password");
@@ -460,7 +472,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
       FileWriter fileWriter = new FileWriter(zooCfgFile);
 
-      // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
+      // zookeeper uses Properties to read its config, so use that to write in order to properly
+      // escape things like Windows paths
       Properties zooCfg = new Properties();
       zooCfg.setProperty("tickTime", "2000");
       zooCfg.setProperty("initLimit", "10");
@@ -482,13 +495,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings) throws IOException {
+  private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings)
+      throws IOException {
     FileWriter fileWriter = new FileWriter(file);
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
-      String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-      fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
+      String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">",
+          "&gt;");
+      fileWriter.append(
+          "<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
     }
     fileWriter.append("</configuration>\n");
     fileWriter.close();
@@ -527,8 +543,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
 
       String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
-      IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
-          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
+      IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
+          cc.get(Property.INSTANCE_ZK_HOST), (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+          cc.get(Property.INSTANCE_SECRET));
 
       String rootPath = ZooUtil.getRoot(instanceIdFromFile);
 
@@ -550,7 +567,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       config.setInstanceName(instanceName);
       if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath))
-        throw new RuntimeException("The Accumulo instance being used is already running. Aborting.");
+        throw new RuntimeException(
+            "The Accumulo instance being used is already running. Aborting.");
     } else {
       if (!initialized) {
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -587,7 +605,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
                 break;
             } catch (Exception e) {
               if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
-                throw new ZooKeeperBindException("Zookeeper did not start within " + (config.getZooKeeperStartupTime() / 1000) + " seconds. Check the logs in "
+                throw new ZooKeeperBindException("Zookeeper did not start within "
+                    + (config.getZooKeeperStartupTime() / 1000) + " seconds. Check the logs in "
                     + config.getLogDir() + " for errors.  Last exception: " + e);
               }
               // Don't spin absurdly fast
@@ -607,7 +626,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         args.add("--clear-instance-name");
 
         // If we aren't using SASL, add in the root password
-        final String saslEnabled = config.getSiteConfig().get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
+        final String saslEnabled = config.getSiteConfig()
+            .get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
         if (null == saslEnabled || !Boolean.parseBoolean(saslEnabled)) {
           args.add("--password");
           args.add(config.getRootPassword());
@@ -616,25 +636,29 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         Process initProcess = exec(Initialize.class, args.toArray(new String[0]));
         int ret = initProcess.waitFor();
         if (ret != 0) {
-          throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
+          throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in "
+              + config.getLogDir() + " for errors.");
         }
         initialized = true;
       }
     }
 
-    log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(), config.getZooKeepers());
+    log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(),
+        config.getZooKeepers());
 
     control.start(ServerType.TABLET_SERVER);
 
     int ret = 0;
     for (int i = 0; i < 5; i++) {
-      ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString()).waitFor();
+      ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString())
+          .waitFor();
       if (ret == 0)
         break;
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
-      throw new RuntimeException("Could not set master goal state, process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
+      throw new RuntimeException("Could not set master goal state, process returned " + ret
+          + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
     control.start(ServerType.MASTER);
@@ -646,7 +670,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   private List<String> buildRemoteDebugParams(int port) {
-    return Arrays.asList(new String[] {"-Xdebug", String.format("-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=%d", port)});
+    return Arrays.asList(new String[] {"-Xdebug",
+        String.format("-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=%d", port)});
   }
 
   /**
@@ -669,7 +694,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
     result.put(ServerType.MASTER, references(control.masterProcess));
-    result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.toArray(new Process[0])));
+    result.put(ServerType.TABLET_SERVER,
+        references(control.tabletServerProcesses.toArray(new Process[0])));
     if (null != control.zooKeeperProcess) {
       result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
     }
@@ -679,7 +705,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return result;
   }
 
-  public void killProcess(ServerType type, ProcessReference proc) throws ProcessNotFoundException, InterruptedException {
+  public void killProcess(ServerType type, ProcessReference proc)
+      throws ProcessNotFoundException, InterruptedException {
     getClusterControl().killProcess(type, proc);
   }
 
@@ -694,8 +721,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   /**
-   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However it's probably best to
-   * call stop in a finally block as soon as possible.
+   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is
+   * setup to kill the processes. However it's probably best to call stop in a finally block as soon
+   * as possible.
    */
   @Override
   public synchronized void stop() throws IOException, InterruptedException {
@@ -721,7 +749,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       // the single thread executor shouldn't have any pending tasks, but check anyways
       if (!tasksRemaining.isEmpty()) {
-        log.warn("Unexpectedly had {} task(s) remaining in threadpool for execution when being stopped", tasksRemaining.size());
+        log.warn(
+            "Unexpectedly had {} task(s) remaining in threadpool for execution when being stopped",
+            tasksRemaining.size());
       }
 
       executor = null;
@@ -744,19 +774,22 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String user, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
     Instance instance = new ZooKeeperInstance(getClientConfig());
     return instance.getConnector(user, token);
   }
 
   @Override
   public ClientConfiguration getClientConfig() {
-    return ClientConfiguration.fromMap(config.getSiteConfig()).withInstance(this.getInstanceName()).withZkHosts(this.getZooKeepers());
+    return ClientConfiguration.fromMap(config.getSiteConfig()).withInstance(this.getInstanceName())
+        .withZkHosts(this.getZooKeepers());
   }
 
   @Override
   public ConnectionInfo getConnectionInfo() {
-    return Connector.builder().forInstance(getInstanceName(), getZooKeepers()).usingPassword(config.getRootUserName(), config.getRootPassword()).info();
+    return Connector.builder().forInstance(getInstanceName(), getZooKeepers())
+        .usingPassword(config.getRootUserName(), config.getRootPassword()).info();
   }
 
   @Override
@@ -778,7 +811,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return executor;
   }
 
-  int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+  int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
+      throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<>(new Callable<Integer>() {
       @Override
       public Integer call() throws InterruptedException {
@@ -793,17 +827,20 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   /**
-   * Get programmatic interface to information available in a normal monitor. XXX the returned structure won't contain information about the metadata table
-   * until there is data in it. e.g. if you want to see the metadata table you should create a table.
+   * Get programmatic interface to information available in a normal monitor. XXX the returned
+   * structure won't contain information about the metadata table until there is data in it. e.g. if
+   * you want to see the metadata table you should create a table.
    *
    * @since 1.6.1
    */
-  public MasterMonitorInfo getMasterMonitorInfo() throws AccumuloException, AccumuloSecurityException {
+  public MasterMonitorInfo getMasterMonitorInfo()
+      throws AccumuloException, AccumuloSecurityException {
     MasterClientService.Iface client = null;
     while (true) {
       try {
         Instance instance = new ZooKeeperInstance(getClientConfig());
-        ClientContext context = new ClientContext(instance, new Credentials("root", new PasswordToken("unchecked")), getClientConfig());
+        ClientContext context = new ClientContext(instance,
+            new Credentials("root", new PasswordToken("unchecked")), getClientConfig());
         client = MasterClient.getConnectionWithRetry(context);
         return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (ThriftSecurityException exception) {
@@ -844,6 +881,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public AccumuloConfiguration getSiteConfiguration() {
-    return new ConfigurationCopy(Iterables.concat(DefaultConfiguration.getInstance(), config.getSiteConfig().entrySet()));
+    return new ConfigurationCopy(
+        Iterables.concat(DefaultConfiguration.getInstance(), config.getSiteConfig().entrySet()));
   }
 }

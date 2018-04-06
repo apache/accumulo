@@ -101,7 +101,8 @@ public class MasterResource {
       }
       List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
-      String master = masters.size() == 0 ? "Down" : AddressUtil.parseAddress(masters.get(0), false).getHost();
+      String master = masters.size() == 0 ? "Down"
+          : AddressUtil.parseAddress(masters.get(0), false).getHost();
       Integer onlineTabletServers = mmi.tServerInfo.size();
       Integer totalTabletServers = tservers.size();
       Integer tablets = Monitor.getTotalTabletCount();
@@ -118,9 +119,11 @@ public class MasterResource {
       long lookups = Monitor.getTotalLookups();
       long uptime = System.currentTimeMillis() - Monitor.getStartTime();
 
-      masterInformation = new MasterInformation(master, onlineTabletServers, totalTabletServers, gcStatus, tablets, unassignedTablets, entries, ingest,
-          entriesRead, entriesReturned, holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label, getGoalState(), getState(), getNumBadTservers(),
-          getServersShuttingDown(), getDeadTservers(), getDeadLoggers());
+      masterInformation = new MasterInformation(master, onlineTabletServers, totalTabletServers,
+          gcStatus, tablets, unassignedTablets, entries, ingest, entriesRead, entriesReturned,
+          holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label, getGoalState(),
+          getState(), getNumBadTservers(), getServersShuttingDown(), getDeadTservers(),
+          getDeadLoggers());
     } else {
       masterInformation = new MasterInformation();
     }
@@ -167,7 +170,8 @@ public class MasterResource {
     DeadServerList deadServers = new DeadServerList();
     // Add new dead servers to the list
     for (DeadServer dead : mmi.deadTabletServers) {
-      deadServers.addDeadServer(new DeadServerInformation(dead.server, dead.lastStatus, dead.status));
+      deadServers
+          .addDeadServer(new DeadServerInformation(dead.server, dead.lastStatus, dead.status));
     }
     return deadServers;
   }
@@ -186,7 +190,8 @@ public class MasterResource {
     DeadLoggerList deadLoggers = new DeadLoggerList();
     // Add new dead loggers to the list
     for (DeadServer dead : mmi.deadTabletServers) {
-      deadLoggers.addDeadLogger(new DeadLoggerInformation(dead.server, dead.lastStatus, dead.status));
+      deadLoggers
+          .addDeadLogger(new DeadLoggerInformation(dead.server, dead.lastStatus, dead.status));
     }
     return deadLoggers;
   }
@@ -213,9 +218,11 @@ public class MasterResource {
     for (Entry<String,Byte> badServer : badServers.entrySet()) {
       try {
         TabletServerState state = TabletServerState.getStateById(badServer.getValue());
-        readableBadServers.addBadServer(new BadTabletServerInformation(badServer.getKey(), state.name()));
+        readableBadServers
+            .addBadServer(new BadTabletServerInformation(badServer.getKey(), state.name()));
       } catch (IndexOutOfBoundsException e) {
-        readableBadServers.addBadServer(new BadTabletServerInformation(badServer.getKey(), "Unknown state"));
+        readableBadServers
+            .addBadServer(new BadTabletServerInformation(badServer.getKey(), "Unknown state"));
       }
     }
     return readableBadServers;

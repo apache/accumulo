@@ -47,8 +47,9 @@ public class ScanSession extends Session {
   public final long batchTimeOut;
   public final String context;
 
-  public ScanSession(TCredentials credentials, KeyExtent extent, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      Authorizations authorizations, long readaheadThreshold, long batchTimeOut, String context) {
+  public ScanSession(TCredentials credentials, KeyExtent extent, Set<Column> columnSet,
+      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, Authorizations authorizations,
+      long readaheadThreshold, long batchTimeOut, String context) {
     super(credentials);
     this.extent = extent;
     this.columnSet = columnSet;

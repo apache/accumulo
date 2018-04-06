@@ -79,7 +79,8 @@ public class CredentialsIT extends AccumuloClusterHarness {
   public void deleteLocalUser() throws Exception {
     if (saslEnabled) {
       ClusterUser root = getAdminUser();
-      UserGroupInformation.loginUserFromKeytab(root.getPrincipal(), root.getKeytab().getAbsolutePath());
+      UserGroupInformation.loginUserFromKeytab(root.getPrincipal(),
+          root.getKeytab().getAbsolutePath());
     }
     getConnector().securityOperations().dropLocalUser(username);
   }
@@ -114,7 +115,8 @@ public class CredentialsIT extends AccumuloClusterHarness {
       } catch (Exception e) {
         assertTrue(e instanceof RuntimeException);
         assertTrue(e.getCause() instanceof AccumuloSecurityException);
-        assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
+        assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode()
+            .equals(SecurityErrorCode.TOKEN_EXPIRED));
       }
     }
   }

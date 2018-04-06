@@ -71,7 +71,8 @@ class CleanUp extends MasterRepo {
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
-    // handle the case where we start executing on a new machine where the current time is in the past relative to the previous machine
+    // handle the case where we start executing on a new machine where the current time is in the
+    // past relative to the previous machine
     // if the new machine has time in the future, that will work ok w/ hasCycled
     if (System.currentTimeMillis() < creationTime) {
       creationTime = System.currentTimeMillis();
@@ -98,10 +99,12 @@ class CleanUp extends MasterRepo {
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {
-      TabletLocationState locationState = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
+      TabletLocationState locationState = MetaDataTableScanner
+          .createTabletLocationState(entry.getKey(), entry.getValue());
       TabletState state = locationState.getState(master.onlineTabletServers());
       if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
-        log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
+        log.debug("Still waiting for table to be deleted: " + tableId + " locationState: "
+            + locationState);
         done = false;
         break;
       }
@@ -126,7 +129,8 @@ class CleanUp extends MasterRepo {
       try (BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
         Range allTables = MetadataSchema.TabletsSection.getRange();
         Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);
-        Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
+        Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(),
+            false);
         Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
         bs.setRanges(Arrays.asList(beforeTable, afterTable));
         bs.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -143,13 +147,16 @@ class CleanUp extends MasterRepo {
 
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + MetadataTable.NAME + " looking for references to deleted table " + tableId, e);
+      log.error("Failed to scan " + MetadataTable.NAME + " looking for references to deleted table "
+          + tableId, e);
     }
 
     // remove metadata table entries
     try {
-      // Intentionally do not pass master lock. If master loses lock, this operation may complete before master can kill itself.
-      // If the master lock passed to deleteTable, it is possible that the delete mutations will be dropped. If the delete operations
+      // Intentionally do not pass master lock. If master loses lock, this operation may complete
+      // before master can kill itself.
+      // If the master lock passed to deleteTable, it is possible that the delete mutations will be
+      // dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
       MetadataTableUtil.deleteTable(tableId, refCount != 0, master, null);
     } catch (Exception e) {
@@ -199,7 +206,8 @@ class CleanUp extends MasterRepo {
 
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance(master).deleteTable(master.rpcCreds(), tableId, namespaceId);
+      AuditedSecurityOperation.getInstance(master).deleteTable(master.rpcCreds(), tableId,
+          namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
@@ -223,7 +231,8 @@ class CleanUp extends MasterRepo {
     // Just the suffix of the path (after the Volume's base path)
     String tableDirSuffix = tableDirPath.substring(basePath.length());
 
-    // Remove a leading path separator char because Path will treat the "child" as an absolute path with it
+    // Remove a leading path separator char because Path will treat the "child" as an absolute path
+    // with it
     if (Path.SEPARATOR_CHAR == tableDirSuffix.charAt(0)) {
       if (tableDirSuffix.length() > 1) {
         tableDirSuffix = tableDirSuffix.substring(1);

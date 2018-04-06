@@ -59,7 +59,8 @@ public class DeleteAuthsCommandTest {
 
     EasyMock.expect(conn.securityOperations()).andReturn(secOps);
     EasyMock.expect(conn.securityOperations()).andReturn(secOps);
-    EasyMock.expect(secOps.getUserAuthorizations("foo")).andReturn(new Authorizations("abc", "123"));
+    EasyMock.expect(secOps.getUserAuthorizations("foo"))
+        .andReturn(new Authorizations("abc", "123"));
     secOps.changeUserAuthorizations("foo", new Authorizations("123"));
     EasyMock.expectLastCall();
 
@@ -87,7 +88,8 @@ public class DeleteAuthsCommandTest {
 
     EasyMock.expect(conn.securityOperations()).andReturn(secOps);
     EasyMock.expect(conn.securityOperations()).andReturn(secOps);
-    EasyMock.expect(secOps.getUserAuthorizations("foo")).andReturn(new Authorizations("abc", "123"));
+    EasyMock.expect(secOps.getUserAuthorizations("foo"))
+        .andReturn(new Authorizations("abc", "123"));
     secOps.changeUserAuthorizations("foo", new Authorizations("abc", "123"));
     EasyMock.expectLastCall();
 
@@ -115,7 +117,8 @@ public class DeleteAuthsCommandTest {
 
     EasyMock.expect(conn.securityOperations()).andReturn(secOps);
     EasyMock.expect(conn.securityOperations()).andReturn(secOps);
-    EasyMock.expect(secOps.getUserAuthorizations("foo")).andReturn(new Authorizations("abc", "123"));
+    EasyMock.expect(secOps.getUserAuthorizations("foo"))
+        .andReturn(new Authorizations("abc", "123"));
     secOps.changeUserAuthorizations("foo", new Authorizations());
     EasyMock.expectLastCall();
 

@@ -22,9 +22,10 @@ import java.io.Serializable;
 import com.google.common.base.Strings;
 
 /**
- * This class was copied from Guava release 23.0 to replace the older Guava 14 version that had been used in Accumulo. It was annotated as Beta by Google,
- * therefore unstable to use in a core Accumulo library. We learned this the hard way when Guava version 20 deprecated the getHostText method and then removed
- * the method all together in version 22. See ACCUMULO-4702
+ * This class was copied from Guava release 23.0 to replace the older Guava 14 version that had been
+ * used in Accumulo. It was annotated as Beta by Google, therefore unstable to use in a core
+ * Accumulo library. We learned this the hard way when Guava version 20 deprecated the getHostText
+ * method and then removed the method all together in version 22. See ACCUMULO-4702
  *
  * Unused methods and annotations were removed to reduce maintenance costs.
  *
@@ -34,7 +35,8 @@ import com.google.common.base.Strings;
  * Example usage:
  *
  * <pre>
- * HostAndPort hp = HostAndPort.fromString(&quot;[2001:db8::1]&quot;).withDefaultPort(80).requireBracketsForIPv6();
+ * HostAndPort hp = HostAndPort.fromString(&quot;[2001:db8::1]&quot;).withDefaultPort(80)
+ *     .requireBracketsForIPv6();
  * hp.getHost(); // returns &quot;2001:db8::1&quot;
  * hp.getPort(); // returns 80
  * hp.toString(); // returns &quot;[2001:db8::1]:80&quot;
@@ -53,8 +55,9 @@ import com.google.common.base.Strings;
  * </ul>
  *
  * <p>
- * Note that this is not an exhaustive list, because these methods are only concerned with brackets, colons, and port numbers. Full validation of the host field
- * (if desired) is the caller's responsibility.
+ * Note that this is not an exhaustive list, because these methods are only concerned with brackets,
+ * colons, and port numbers. Full validation of the host field (if desired) is the caller's
+ * responsibility.
  *
  */
 
@@ -78,10 +81,12 @@ public final class HostAndPort implements Serializable {
   }
 
   /**
-   * Returns the portion of this {@code HostAndPort} instance that should represent the hostname or IPv4/IPv6 literal.
+   * Returns the portion of this {@code HostAndPort} instance that should represent the hostname or
+   * IPv4/IPv6 literal.
    *
    * <p>
-   * A successful parse does not imply any degree of sanity in this field. For additional validation, see the HostSpecifier class.
+   * A successful parse does not imply any degree of sanity in this field. For additional
+   * validation, see the HostSpecifier class.
    *
    * @since 20.0 (since 10.0 as {@code getHostText})
    */
@@ -99,7 +104,8 @@ public final class HostAndPort implements Serializable {
    *
    * @return a validated port number, in the range [0..65535]
    * @throws IllegalStateException
-   *           if no port is defined. You can use {@link #withDefaultPort(int)} to prevent this from occurring.
+   *           if no port is defined. You can use {@link #withDefaultPort(int)} to prevent this from
+   *           occurring.
    */
   public int getPort() {
     checkState(hasPort());
@@ -130,7 +136,8 @@ public final class HostAndPort implements Serializable {
   /**
    * Split a freeform string into a host and port, without strict validation.
    *
-   * Note that the host-only formats will leave the port field undefined. You can use {@link #withDefaultPort(int)} to patch in a default value.
+   * Note that the host-only formats will leave the port field undefined. You can use
+   * {@link #withDefaultPort(int)} to patch in a default value.
    *
    * @param hostPortString
    *          the input string to parse.
@@ -189,18 +196,22 @@ public final class HostAndPort implements Serializable {
   private static String[] getHostAndPortFromBracketedHost(String hostPortString) {
     int colonIndex = 0;
     int closeBracketIndex = 0;
-    checkArgument(hostPortString.charAt(0) == '[', "Bracketed host-port string must start with a bracket: %s", hostPortString);
+    checkArgument(hostPortString.charAt(0) == '[',
+        "Bracketed host-port string must start with a bracket: %s", hostPortString);
     colonIndex = hostPortString.indexOf(':');
     closeBracketIndex = hostPortString.lastIndexOf(']');
-    checkArgument(colonIndex > -1 && closeBracketIndex > colonIndex, "Invalid bracketed host/port: %s", hostPortString);
+    checkArgument(colonIndex > -1 && closeBracketIndex > colonIndex,
+        "Invalid bracketed host/port: %s", hostPortString);
 
     String host = hostPortString.substring(1, closeBracketIndex);
     if (closeBracketIndex + 1 == hostPortString.length()) {
       return new String[] {host, ""};
     } else {
-      checkArgument(hostPortString.charAt(closeBracketIndex + 1) == ':', "Only a colon may follow a close bracket: %s", hostPortString);
+      checkArgument(hostPortString.charAt(closeBracketIndex + 1) == ':',
+          "Only a colon may follow a close bracket: %s", hostPortString);
       for (int i = closeBracketIndex + 2; i < hostPortString.length(); ++i) {
-        checkArgument(Character.isDigit(hostPortString.charAt(i)), "Port must be numeric: %s", hostPortString);
+        checkArgument(Character.isDigit(hostPortString.charAt(i)), "Port must be numeric: %s",
+            hostPortString);
       }
       return new String[] {host, hostPortString.substring(closeBracketIndex + 2)};
     }
@@ -209,8 +220,8 @@ public final class HostAndPort implements Serializable {
   /**
    * Provide a default port if the parsed string contained only a host.
    *
-   * You can chain this after {@link #fromString(String)} to include a port in case the port was omitted from the input string. If a port was already provided,
-   * then this method is a no-op.
+   * You can chain this after {@link #fromString(String)} to include a port in case the port was
+   * omitted from the input string. If a port was already provided, then this method is a no-op.
    *
    * @param defaultPort
    *          a port number, from [0..65535]
@@ -231,7 +242,8 @@ public final class HostAndPort implements Serializable {
     }
     if (other instanceof HostAndPort) {
       HostAndPort that = (HostAndPort) other;
-      return java.util.Objects.equals(this.host, that.host) && this.port == that.port && this.hasBracketlessColons == that.hasBracketlessColons;
+      return java.util.Objects.equals(this.host, that.host) && this.port == that.port
+          && this.hasBracketlessColons == that.hasBracketlessColons;
     }
     return false;
   }

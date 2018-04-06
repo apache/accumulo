@@ -50,10 +50,11 @@ public class SummariesCommand extends TableOperation {
   }
 
   @Override
-  protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException {
+  protected void doTableOp(final Shell shellState, final String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
     Connector conn = shellState.getConnector();
-    SummaryRetriever retriever = conn.tableOperations().summaries(tableName).withMatchingConfiguration(selectionRegex);
+    SummaryRetriever retriever = conn.tableOperations().summaries(tableName)
+        .withMatchingConfiguration(selectionRegex);
     if (startRow != null) {
       retriever.startRow(startRow);
     }
@@ -88,7 +89,8 @@ public class SummariesCommand extends TableOperation {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     startRow = OptUtil.getStartRow(cl);
     endRow = OptUtil.getEndRow(cl);
     paginate = !cl.hasOption(disablePaginationOpt.getOpt());

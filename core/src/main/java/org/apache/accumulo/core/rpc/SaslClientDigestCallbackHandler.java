@@ -33,8 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Client-side callbackhandler for sasl authentication which is the client-side sibling to the server-side {@link SaslDigestCallbackHandler}. Encoding of name,
- * password and realm information must be consistent across the pair.
+ * Client-side callbackhandler for sasl authentication which is the client-side sibling to the
+ * server-side {@link SaslDigestCallbackHandler}. Encoding of name, password and realm information
+ * must be consistent across the pair.
  */
 public class SaslClientDigestCallbackHandler extends SaslDigestCallbackHandler {
   private static final Logger log = LoggerFactory.getLogger(SaslClientDigestCallbackHandler.class);

@@ -81,7 +81,8 @@ public class ShellSetInstanceTest {
     String javaVer = System.getProperty("java.version", "");
     if (javaVer.matches("^1[.]7[.]0_(\\d+)$")) {
       int v = Integer.parseInt(javaVer.substring(6));
-      Assume.assumeTrue("Skipping test due to incompatible Java version; See ACCUMULO-3031", v <= 60 || v >= 72);
+      Assume.assumeTrue("Skipping test due to incompatible Java version; See ACCUMULO-3031",
+          v <= 60 || v >= 72);
     }
   }
 
@@ -122,7 +123,8 @@ public class ShellSetInstanceTest {
     replay(opts);
 
     shell.setInstance(opts);
-    Assert.assertTrue(shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
+    Assert.assertTrue(
+        shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
   }
 
   @Test
@@ -140,10 +142,12 @@ public class ShellSetInstanceTest {
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
     expect(opts.getClientProperties()).andReturn(new Properties());
-    expect(props.getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey())).andReturn(null);
+    expect(props.getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey()))
+        .andReturn(null);
     if (dashZ) {
       expect(props.getProperty(ClientProperty.INSTANCE_NAME.getKey())).andReturn("foo");
-      expect(props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())).andReturn("host1,host2");
+      expect(props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()))
+          .andReturn("host1,host2");
       List<String> zl = new java.util.ArrayList<>();
       zl.add("bar");
       zl.add("host3,host4");
@@ -151,7 +155,8 @@ public class ShellSetInstanceTest {
       expectLastCall().anyTimes();
     } else {
       expect(props.getProperty(ClientProperty.INSTANCE_NAME.getKey())).andReturn("bar");
-      expect(props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())).andReturn("host3,host4");
+      expect(props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()))
+          .andReturn("host3,host4");
       expect(opts.getZooKeeperInstance()).andReturn(Collections.emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
@@ -160,7 +165,8 @@ public class ShellSetInstanceTest {
     replay(opts);
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
-    expectNew(ZooKeeperInstance.class, new Class<?>[] {String.class, String.class}, "bar", "host3,host4").andReturn(theInstance);
+    expectNew(ZooKeeperInstance.class, new Class<?>[] {String.class, String.class}, "bar",
+        "host3,host4").andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
     shell.setInstance(opts);

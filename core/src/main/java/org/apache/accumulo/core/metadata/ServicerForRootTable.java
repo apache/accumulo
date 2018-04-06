@@ -44,7 +44,8 @@ class ServicerForRootTable extends MetadataServicer {
   }
 
   @Override
-  public void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void getTabletLocations(SortedMap<KeyExtent,String> tablets)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     tablets.put(RootTable.EXTENT, instance.getRootTabletLocation());
   }
 }

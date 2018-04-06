@@ -88,7 +88,9 @@ public class TracesResource {
    */
   @Path("summary/{minutes}")
   @GET
-  public RecentTracesList getTraces(@DefaultValue("10") @PathParam("minutes") @NotNull @Min(0) @Max(2592000) int minutes) throws Exception {
+  public RecentTracesList getTraces(
+      @DefaultValue("10") @PathParam("minutes") @NotNull @Min(0) @Max(2592000) int minutes)
+      throws Exception {
 
     RecentTracesList recentTraces = new RecentTracesList();
 
@@ -133,7 +135,8 @@ public class TracesResource {
    */
   @Path("listType/{type}/{minutes}")
   @GET
-  public TraceType getTracesType(@PathParam("type") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) final String type,
+  public TraceType getTracesType(
+      @PathParam("type") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) final String type,
       @PathParam("minutes") @Min(0) @Max(2592000) int minutes) throws Exception {
 
     TraceType typeTraces = new TraceType(type);
@@ -182,7 +185,8 @@ public class TracesResource {
    */
   @Path("show/{id}")
   @GET
-  public TraceList getTracesType(@PathParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) throws Exception {
+  public TraceList getTracesType(
+      @PathParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) throws Exception {
 
     TraceList traces = new TraceList(id);
 
@@ -213,7 +217,8 @@ public class TracesResource {
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
       @Override
-      public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
+      public void visit(int level, RemoteSpan parent, RemoteSpan node,
+          Collection<RemoteSpan> children) {
         traces.addTrace(addTraceInformation(level, node, finalStart));
       }
     });
@@ -243,13 +248,15 @@ public class TracesResource {
       }
       if (hasAnnotations) {
         for (Annotation entry : node.annotations) {
-          AnnotationInformation annotations = new AnnotationInformation(entry.getMsg(), entry.getTime() - finalStart);
+          AnnotationInformation annotations = new AnnotationInformation(entry.getMsg(),
+              entry.getTime() - finalStart);
           addlData.addAnnotations(annotations);
         }
       }
     }
 
-    return new TraceInformation(level, node.stop - node.start, node.start - finalStart, node.spanId, node.svc + "@" + node.sender, node.description, addlData);
+    return new TraceInformation(level, node.stop - node.start, node.start - finalStart, node.spanId,
+        node.svc + "@" + node.sender, node.description, addlData);
   }
 
   protected Range getRangeForTrace(long minutesSince) {
@@ -280,13 +287,15 @@ public class TracesResource {
     }
   }
 
-  protected Pair<Scanner,UserGroupInformation> getScanner() throws AccumuloException, AccumuloSecurityException {
+  protected Pair<Scanner,UserGroupInformation> getScanner()
+      throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     final boolean saslEnabled = conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
     UserGroupInformation traceUgi = null;
     final String principal;
     final AuthenticationToken at;
-    Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+    Map<String,String> loginMap = conf
+        .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
     if (keytab == null || keytab.length() == 0) {
@@ -315,7 +324,8 @@ public class TracesResource {
           props.put(entry.getKey().substring(prefixLength), entry.getValue());
         }
 
-        AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
+        AuthenticationToken token = Property.createInstanceFromPropertyName(conf,
+            Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
         token.init(props);
         at = token;
       }
@@ -353,7 +363,8 @@ public class TracesResource {
     return new Pair<>(scanner, traceUgi);
   }
 
-  private Scanner getScanner(String table, String principal, AuthenticationToken at) throws AccumuloException, AccumuloSecurityException {
+  private Scanner getScanner(String table, String principal, AuthenticationToken at)
+      throws AccumuloException, AccumuloSecurityException {
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {

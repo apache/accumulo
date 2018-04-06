@@ -20,11 +20,13 @@ import org.apache.accumulo.core.util.HostAndPort;
 
 public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 
-  static public HostAndPort parseAddress(String address, boolean ignoreMissingPort) throws NumberFormatException {
+  static public HostAndPort parseAddress(String address, boolean ignoreMissingPort)
+      throws NumberFormatException {
     address = address.replace('+', ':');
     HostAndPort hap = HostAndPort.fromString(address);
     if (!ignoreMissingPort && !hap.hasPort())
-      throw new IllegalArgumentException("Address was expected to contain port. address=" + address);
+      throw new IllegalArgumentException(
+          "Address was expected to contain port. address=" + address);
 
     return hap;
   }

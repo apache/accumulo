@@ -73,7 +73,8 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
       assertEquals("Did not see expected # entries " + count, 1, count);
 
       // remove the bad iterator
-      c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));
+      c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(),
+          EnumSet.of(IteratorScope.minc));
 
       sleepUninterruptibly(5, TimeUnit.SECONDS);
 

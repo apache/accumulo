@@ -26,7 +26,8 @@ public class ComparableBytes extends BinaryComparable {
   public byte[] data;
 
   /**
-   * Creates a new byte wrapper. The given byte array is used directly as a backing array, so later changes made to the array reflect into the new object.
+   * Creates a new byte wrapper. The given byte array is used directly as a backing array, so later
+   * changes made to the array reflect into the new object.
    *
    * @param b
    *          bytes to wrap

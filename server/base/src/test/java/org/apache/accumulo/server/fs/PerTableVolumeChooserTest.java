@@ -96,7 +96,8 @@ public class PerTableVolumeChooserTest {
 
   @Test
   public void testTableScopeUsingTableProperty() throws Exception {
-    expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(MockChooser1.class.getName());
+    expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER))
+        .andReturn(MockChooser1.class.getName());
     replay(confFactory, tableConf, systemConf);
 
     VolumeChooser delegate = getTableDelegate();
@@ -106,7 +107,8 @@ public class PerTableVolumeChooserTest {
   @Test
   public void testTableScopeUsingDefaultScopeProperty() throws Exception {
     expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(null).once();
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(MockChooser2.class.getName()).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn(MockChooser2.class.getName()).once();
     replay(confFactory, tableConf, systemConf);
 
     VolumeChooser delegate = getTableDelegate();
@@ -116,7 +118,8 @@ public class PerTableVolumeChooserTest {
   @Test
   public void testTableScopeWithNoConfig() throws Exception {
     expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(null).once();
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn(null).once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
@@ -127,7 +130,8 @@ public class PerTableVolumeChooserTest {
   @Test
   public void testTableScopeWithBadDelegate() throws Exception {
     expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(null).once();
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("not a valid class name").once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn("not a valid class name").once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
@@ -137,7 +141,8 @@ public class PerTableVolumeChooserTest {
 
   @Test
   public void testLoggerScopeUsingLoggerProperty() throws Exception {
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(MockChooser1.class.getName()).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(MockChooser1.class.getName()).once();
     replay(confFactory, tableConf, systemConf);
 
     VolumeChooser delegate = getDelegate(ChooserScope.LOGGER);
@@ -146,8 +151,10 @@ public class PerTableVolumeChooserTest {
 
   @Test
   public void testLoggerScopeUsingDefaultProperty() throws Exception {
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(MockChooser2.class.getName()).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn(MockChooser2.class.getName()).once();
     replay(confFactory, tableConf, systemConf);
 
     VolumeChooser delegate = getDelegate(ChooserScope.LOGGER);
@@ -156,8 +163,10 @@ public class PerTableVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithNoConfig() throws Exception {
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn(null).once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
@@ -167,8 +176,10 @@ public class PerTableVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithBadDelegate() throws Exception {
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
-    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("not a valid class name").once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
+        .andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
+        .andReturn("not a valid class name").once();
     replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);

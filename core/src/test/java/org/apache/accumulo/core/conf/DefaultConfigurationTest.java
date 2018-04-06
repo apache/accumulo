@@ -42,7 +42,8 @@ public class DefaultConfigurationTest {
   public void testGetProperties() {
     Map<String,String> p = new java.util.HashMap<>();
     c.getProperties(p, x -> true);
-    assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), p.get(Property.MASTER_CLIENTPORT.getKey()));
+    assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(),
+        p.get(Property.MASTER_CLIENTPORT.getKey()));
     assertFalse(p.containsKey(Property.MASTER_PREFIX.getKey()));
     assertTrue(p.containsKey(Property.TSERV_DEFAULT_BLOCKSIZE.getKey()));
   }

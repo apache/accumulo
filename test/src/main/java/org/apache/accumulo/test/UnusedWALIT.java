@@ -108,9 +108,11 @@ public class UnusedWALIT extends ConfigurableMacBase {
     scanSomeData(c, lilTable, 1, 10, 0, 10);
   }
 
-  private void scanSomeData(Connector c, String table, int startRow, int rowCount, int startCol, int colCount) throws Exception {
+  private void scanSomeData(Connector c, String table, int startRow, int rowCount, int startCol,
+      int colCount) throws Exception {
     try (Scanner s = c.createScanner(table, Authorizations.EMPTY)) {
-      s.setRange(new Range(Integer.toHexString(startRow), Integer.toHexString(startRow + rowCount)));
+      s.setRange(
+          new Range(Integer.toHexString(startRow), Integer.toHexString(startRow + rowCount)));
       int row = startRow;
       int col = startCol;
       for (Entry<Key,Value> entry : s) {
@@ -137,7 +139,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
     return result;
   }
 
-  private void writeSomeData(Connector conn, String table, int startRow, int rowCount, int startCol, int colCount) throws Exception {
+  private void writeSomeData(Connector conn, String table, int startRow, int rowCount, int startCol,
+      int colCount) throws Exception {
     BatchWriterConfig config = new BatchWriterConfig();
     config.setMaxMemory(10 * 1024 * 1024);
     BatchWriter bw = conn.createBatchWriter(table, config);

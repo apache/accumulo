@@ -34,7 +34,8 @@ public abstract class ActiveCompaction {
      */
     MINOR,
     /**
-     * compaction to flush a tablets memory and merge it with the tablets smallest file. This type compaction is done when a tablet has too many files
+     * compaction to flush a tablets memory and merge it with the tablets smallest file. This type
+     * compaction is done when a tablet has too many files
      */
     MERGE,
     /**

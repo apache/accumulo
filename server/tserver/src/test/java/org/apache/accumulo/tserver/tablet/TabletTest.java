@@ -52,7 +52,8 @@ public class TabletTest {
     KeyExtent extent = EasyMock.createMock(KeyExtent.class);
     ConfigurationObserver obs = EasyMock.createMock(ConfigurationObserver.class);
 
-    Tablet tablet = new Tablet(time, "", 0, new Path("/foo"), dfm, tserver, tserverResourceManager, tabletMemory, tableConf, extent, obs);
+    Tablet tablet = new Tablet(time, "", 0, new Path("/foo"), dfm, tserver, tserverResourceManager,
+        tabletMemory, tableConf, extent, obs);
 
     long hdfsBlockSize = 10000l, blockSize = 5000l, indexBlockSize = 500l;
     int replication = 5;
@@ -72,8 +73,10 @@ public class TabletTest {
     EasyMock.verify(tableConf, plan, writeParams);
 
     Assert.assertEquals(hdfsBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_BLOCK_SIZE)));
-    Assert.assertEquals(blockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)));
-    Assert.assertEquals(indexBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX)));
+    Assert.assertEquals(blockSize,
+        Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)));
+    Assert.assertEquals(indexBlockSize,
+        Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX)));
     Assert.assertEquals(compressType, aConf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
     Assert.assertEquals(replication, Integer.parseInt(aConf.get(Property.TABLE_FILE_REPLICATION)));
   }

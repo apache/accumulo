@@ -32,11 +32,13 @@ public enum Durability {
    */
   NONE,
   /**
-   * Write mutations the the write-ahead log. Data may be sitting the the servers output buffers, and not replicated anywhere.
+   * Write mutations the the write-ahead log. Data may be sitting the the servers output buffers,
+   * and not replicated anywhere.
    */
   LOG,
   /**
-   * Write mutations to the write-ahead log, and ensure the data is stored on remote servers, but perhaps not on persistent storage.
+   * Write mutations to the write-ahead log, and ensure the data is stored on remote servers, but
+   * perhaps not on persistent storage.
    */
   FLUSH,
   /**

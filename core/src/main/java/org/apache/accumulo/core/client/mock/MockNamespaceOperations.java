@@ -61,7 +61,8 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void create(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
+  public void create(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
     if (!namespace.matches(Namespaces.VALID_NAME_REGEX))
       throw new IllegalArgumentException();
 
@@ -72,7 +73,8 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException {
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
+      NamespaceNotFoundException, NamespaceNotEmptyException {
     if (acu.namespaces.get(namespace).getTables(acu).size() > 0) {
       throw new NamespaceNotEmptyException(null, namespace, null);
     }
@@ -80,7 +82,8 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
+  public void rename(String oldNamespaceName, String newNamespaceName)
+      throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
     if (!exists(oldNamespaceName))
       throw new NamespaceNotFoundException(oldNamespaceName, oldNamespaceName, "");
@@ -96,17 +99,20 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void setProperty(String namespace, String property, String value) throws AccumuloException, AccumuloSecurityException {
+  public void setProperty(String namespace, String property, String value)
+      throws AccumuloException, AccumuloSecurityException {
     acu.namespaces.get(namespace).settings.put(property, value);
   }
 
   @Override
-  public void removeProperty(String namespace, String property) throws AccumuloException, AccumuloSecurityException {
+  public void removeProperty(String namespace, String property)
+      throws AccumuloException, AccumuloSecurityException {
     acu.namespaces.get(namespace).settings.remove(property);
   }
 
   @Override
-  public Iterable<Entry<String,String>> getProperties(String namespace) throws NamespaceNotFoundException {
+  public Iterable<Entry<String,String>> getProperties(String namespace)
+      throws NamespaceNotFoundException {
     if (!exists(namespace)) {
       throw new NamespaceNotFoundException(namespace, namespace, "");
     }
@@ -124,13 +130,14 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
   }
 
   @Override
-  public boolean testClassLoad(String namespace, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException {
+  public boolean testClassLoad(String namespace, String className, String asTypeName)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
 
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
-      log.warn("Could not load class '" + className + "' with type name '" + asTypeName + "' in testClassLoad()", e);
+      log.warn("Could not load class '" + className + "' with type name '" + asTypeName
+          + "' in testClassLoad()", e);
       return false;
     }
     return true;

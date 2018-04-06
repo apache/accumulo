@@ -170,9 +170,10 @@ public interface Summarizer {
   }
 
   /**
-   * When Accumulo calls methods in this interface, it will call {@link #accept(Key, Value)} zero or more times and then call
-   * {@link Collector#summarize(Summarizer.StatisticConsumer)} once. After calling {@link Collector#summarize(Summarizer.StatisticConsumer)}, it will not use
-   * the collector again.
+   * When Accumulo calls methods in this interface, it will call {@link #accept(Key, Value)} zero or
+   * more times and then call {@link Collector#summarize(Summarizer.StatisticConsumer)} once. After
+   * calling {@link Collector#summarize(Summarizer.StatisticConsumer)}, it will not use the
+   * collector again.
    *
    * @since 2.0.0
    */
@@ -183,15 +184,17 @@ public interface Summarizer {
     void accept(Key k, Value v);
 
     /**
-     * After Accumulo has written some Key Values, it will call this method to generate some statistics about what was previously passed to
-     * {@link #accept(Key, Value)}.
+     * After Accumulo has written some Key Values, it will call this method to generate some
+     * statistics about what was previously passed to {@link #accept(Key, Value)}.
      *
      * <p>
-     * In order for summary data to be useful for decision making about data, it needs to be quickly accessible. In order to be quickly accessible, it needs to
-     * fit in the tablet server cache as described in {@link TableOperations#summaries(String)} and the compaction strategy documentation. Therefore its
-     * advisable to generate small summaries. If the summary data generated is too large it will not be stored. The maximum summary size is set using the per
-     * table property {@code table.file.summary.maxSize}. The number of files that exceeded the summary size is reported by
-     * {@link Summary.FileStatistics#getLarge()}.
+     * In order for summary data to be useful for decision making about data, it needs to be quickly
+     * accessible. In order to be quickly accessible, it needs to fit in the tablet server cache as
+     * described in {@link TableOperations#summaries(String)} and the compaction strategy
+     * documentation. Therefore its advisable to generate small summaries. If the summary data
+     * generated is too large it will not be stored. The maximum summary size is set using the per
+     * table property {@code table.file.summary.maxSize}. The number of files that exceeded the
+     * summary size is reported by {@link Summary.FileStatistics#getLarge()}.
      *
      * @param sc
      *          Emit statistics to this Object.
@@ -200,30 +203,34 @@ public interface Summarizer {
   }
 
   /**
-   * A Combiner is used to merge statistics emitted from {@link Collector#summarize(Summarizer.StatisticConsumer)} and from previous invocations of itself.
+   * A Combiner is used to merge statistics emitted from
+   * {@link Collector#summarize(Summarizer.StatisticConsumer)} and from previous invocations of
+   * itself.
    *
    * @since 2.0.0
    */
   public static interface Combiner {
     /**
-     * This method should merge the statistics in the second map into the first map. Both maps may have statistics produced by a {@link Collector} or previous
-     * calls to this method.
+     * This method should merge the statistics in the second map into the first map. Both maps may
+     * have statistics produced by a {@link Collector} or previous calls to this method.
      *
      * <p>
-     * If first map is too large after this call, then it may not be stored. See the comment on {@link Collector#summarize(Summarizer.StatisticConsumer)}
+     * If first map is too large after this call, then it may not be stored. See the comment on
+     * {@link Collector#summarize(Summarizer.StatisticConsumer)}
      */
     public void merge(Map<String,Long> statistics1, Map<String,Long> statistics2);
   }
 
   /**
-   * Factory method that creates a {@link Collector} based on configuration. Each {@link Collector} created by this method should be independent and have its
-   * own internal state. Accumulo uses a Collector to generate summary statistics about a sequence of key values written to a file.
+   * Factory method that creates a {@link Collector} based on configuration. Each {@link Collector}
+   * created by this method should be independent and have its own internal state. Accumulo uses a
+   * Collector to generate summary statistics about a sequence of key values written to a file.
    */
   public Collector collector(SummarizerConfiguration sc);
 
   /**
-   * Factory method that creates a {@link Combiner}. Accumulo will only use the created Combiner to merge data from {@link Collector}s created using the same
-   * {@link SummarizerConfiguration}.
+   * Factory method that creates a {@link Combiner}. Accumulo will only use the created Combiner to
+   * merge data from {@link Collector}s created using the same {@link SummarizerConfiguration}.
    */
   public Combiner combiner(SummarizerConfiguration sc);
 }

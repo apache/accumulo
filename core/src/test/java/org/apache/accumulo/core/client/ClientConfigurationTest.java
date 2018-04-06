@@ -48,11 +48,13 @@ public class ClientConfigurationTest {
     assertEquals("firstZkHosts", clientConfig.get(ClientProperty.INSTANCE_ZK_HOST));
     assertEquals("secondInstanceName", clientConfig.get(ClientProperty.INSTANCE_NAME));
     assertEquals("123s", clientConfig.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
-    assertEquals(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue(), clientConfig.get(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE));
+    assertEquals(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue(),
+        clientConfig.get(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE));
   }
 
   private ClientConfiguration createConfig() {
-    return ClientConfiguration.create().with(ClientProperty.INSTANCE_ZK_HOST, "firstZkHosts").with(ClientProperty.INSTANCE_NAME, "secondInstanceName")
+    return ClientConfiguration.create().with(ClientProperty.INSTANCE_ZK_HOST, "firstZkHosts")
+        .with(ClientProperty.INSTANCE_NAME, "secondInstanceName")
         .with(ClientProperty.INSTANCE_ZK_TIMEOUT, "123s");
   }
 
@@ -73,7 +75,8 @@ public class ClientConfigurationTest {
     // A directory should return the path with client.conf appended.
     assertEquals(clientConf.toString(), ClientConfiguration.getClientConfPath(testDir.toString()));
     // A normal file should return itself
-    assertEquals(clientConf.toString(), ClientConfiguration.getClientConfPath(clientConf.toString()));
+    assertEquals(clientConf.toString(),
+        ClientConfiguration.getClientConfPath(clientConf.toString()));
 
     // Something that doesn't exist should return itself (specifially, it shouldn't error)
     final File missing = new File("foobarbaz12332112");

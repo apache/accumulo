@@ -47,7 +47,8 @@ public class TTimeoutTransportTest {
   public void testFailedSocketOpenIsClosed() throws IOException {
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
-    TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class).addMockedMethod("openSocketChannel").createMock();
+    TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
+        .addMockedMethod("openSocketChannel").createMock();
 
     // Return out mocked socket
     expect(timeoutTransport.openSocketChannel()).andReturn(s).once();
@@ -79,8 +80,8 @@ public class TTimeoutTransportTest {
     long timeout = 2 * 60 * 1000; // 2 mins
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
-    TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class).addMockedMethod("openSocketChannel").addMockedMethod("wrapInputStream")
-        .createMock();
+    TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
+        .addMockedMethod("openSocketChannel").addMockedMethod("wrapInputStream").createMock();
 
     // Return out mocked socket
     expect(timeoutTransport.openSocketChannel()).andReturn(s).once();
@@ -115,7 +116,8 @@ public class TTimeoutTransportTest {
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     InputStream is = createMock(InputStream.class);
-    TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class).addMockedMethod("openSocketChannel").addMockedMethod("wrapInputStream")
+    TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
+        .addMockedMethod("openSocketChannel").addMockedMethod("wrapInputStream")
         .addMockedMethod("wrapOutputStream").createMock();
 
     // Return out mocked socket

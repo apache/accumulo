@@ -92,7 +92,8 @@ public class ZooTabletStateStore extends TabletStateStore {
               log.debug("root tablet log {}", logEntry.filename);
             }
           }
-          TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession, currentSession, lastSession, null, logs, false);
+          TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession,
+              currentSession, lastSession, null, logs, false);
           log.debug("Returning root tablet state: {}", result);
           return result;
         } catch (Exception ex) {
@@ -123,7 +124,8 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException {
+  public void setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException {
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
@@ -133,7 +135,8 @@ public class ZooTabletStateStore extends TabletStateStore {
     Iterator<TabletLocationState> currentIter = iterator();
     TabletLocationState current = currentIter.next();
     if (current.current != null) {
-      throw new DistributedStoreException("Trying to set the root tablet location: it is already set to " + current.current);
+      throw new DistributedStoreException(
+          "Trying to set the root tablet location: it is already set to " + current.current);
     }
     store.put(RootTable.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes(UTF_8));
   }
@@ -149,7 +152,8 @@ public class ZooTabletStateStore extends TabletStateStore {
     Iterator<TabletLocationState> currentIter = iterator();
     TabletLocationState current = currentIter.next();
     if (current.current != null) {
-      throw new DistributedStoreException("Trying to set the root tablet location: it is already set to " + current.current);
+      throw new DistributedStoreException(
+          "Trying to set the root tablet location: it is already set to " + current.current);
     }
     if (!current.future.equals(assignment.server)) {
       throw new DistributedStoreException("Root tablet is already assigned to " + current.future);
@@ -162,7 +166,8 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+  public void unassign(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     if (tablets.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
@@ -172,7 +177,8 @@ public class ZooTabletStateStore extends TabletStateStore {
       List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
       if (logs != null) {
         for (Path entry : logs) {
-          LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(), tls.futureOrCurrent().getLocation().toString(), entry.toString());
+          LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(),
+              tls.futureOrCurrent().getLocation().toString(), entry.toString());
           byte[] value;
           try {
             value = logEntry.toBytes();
@@ -189,7 +195,8 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
 
   @Override
-  public void suspend(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+  public void suspend(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     // No support for suspending root tablet.
     unassign(tablets, logsForDeadServers);

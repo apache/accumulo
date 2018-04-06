@@ -52,7 +52,8 @@ import com.google.common.collect.Iterators;
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
 
-    Connector conn = Connector.builder().forInstance("test16", "localhost").usingPassword("root", "secret").build();
+    Connector conn = Connector.builder().forInstance("test16", "localhost")
+        .usingPassword("root", "secret").build();
 
     int numlg = Integer.parseInt(args[0]);
 
@@ -75,7 +76,8 @@ public class IMMLGBenchmark {
 
   }
 
-  private static void runTest(Connector conn, int numlg, ArrayList<byte[]> cfset, Map<String,Stat> stats) throws Exception {
+  private static void runTest(Connector conn, int numlg, ArrayList<byte[]> cfset,
+      Map<String,Stat> stats) throws Exception {
     String table = "immlgb";
 
     try {
@@ -83,7 +85,8 @@ public class IMMLGBenchmark {
     } catch (TableNotFoundException tnfe) {}
 
     conn.tableOperations().create(table);
-    conn.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "snappy");
+    conn.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
+        "snappy");
 
     setupLocalityGroups(conn, numlg, cfset, table);
 
@@ -113,7 +116,8 @@ public class IMMLGBenchmark {
     stat.addStat(wt);
   }
 
-  private static long scan(Connector conn, ArrayList<byte[]> cfset, String table, boolean cq) throws TableNotFoundException {
+  private static long scan(Connector conn, ArrayList<byte[]> cfset, String table, boolean cq)
+      throws TableNotFoundException {
     try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
 
       if (!cq)
@@ -131,7 +135,8 @@ public class IMMLGBenchmark {
     }
   }
 
-  private static long write(Connector conn, ArrayList<byte[]> cfset, String table) throws TableNotFoundException, MutationsRejectedException {
+  private static long write(Connector conn, ArrayList<byte[]> cfset, String table)
+      throws TableNotFoundException, MutationsRejectedException {
     Random rand = new Random();
 
     byte val[] = new byte[50];
@@ -160,8 +165,8 @@ public class IMMLGBenchmark {
     return t2 - t1;
   }
 
-  private static void setupLocalityGroups(Connector conn, int numlg, ArrayList<byte[]> cfset, String table) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  private static void setupLocalityGroups(Connector conn, int numlg, ArrayList<byte[]> cfset,
+      String table) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (numlg > 1) {
       int numCF = cfset.size() / numlg;
       int gNum = 0;

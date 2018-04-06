@@ -81,7 +81,8 @@ public class UserImpersonationTest {
   }
 
   void setValidHostsNewConfig(String user, String... hosts) {
-    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(), Joiner.on(';').join(hosts));
+    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(),
+        Joiner.on(';').join(hosts));
   }
 
   void setValidUsersNewConfig(Map<String,String> remoteToAllowedUsers) {
@@ -323,7 +324,8 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleExplicitUsersHosts() {
-    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
+    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3",
+        client1 = "client1", client2 = "client2", client3 = "client3";
     setValidHosts(server, Joiner.on(',').join(host1, host2, host3));
     setValidUsers(server, Joiner.on(',').join(client1, client2, client3));
     UserImpersonation impersonation = new UserImpersonation(conf);
@@ -350,7 +352,8 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleExplicitUsersHostsNewConfig() {
-    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
+    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3",
+        client1 = "client1", client2 = "client2", client3 = "client3";
     setValidHostsNewConfig(server, Joiner.on(',').join(host1, host2, host3));
     setValidUsersNewConfig(ImmutableMap.of(server, Joiner.on(',').join(client1, client2, client3)));
     UserImpersonation impersonation = new UserImpersonation(conf);
@@ -377,7 +380,8 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleAllowedImpersonators() {
-    String server1 = "server1", server2 = "server2", host1 = "host1", host2 = "host2", host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
+    String server1 = "server1", server2 = "server2", host1 = "host1", host2 = "host2",
+        host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
     // server1 can impersonate client1 and client2 from host1 or host2
     setValidHosts(server1, Joiner.on(',').join(host1, host2));
     setValidUsers(server1, Joiner.on(',').join(client1, client2));
@@ -430,11 +434,13 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleAllowedImpersonatorsNewConfig() {
-    String server1 = "server1", server2 = "server2", host1 = "host1", host2 = "host2", host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
+    String server1 = "server1", server2 = "server2", host1 = "host1", host2 = "host2",
+        host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
     // server1 can impersonate client1 and client2 from host1 or host2
     // server2 can impersonate only client3 from host3
     setValidHostsNewConfig(server1, Joiner.on(',').join(host1, host2), host3);
-    setValidUsersNewConfig(ImmutableMap.of(server1, Joiner.on(',').join(client1, client2), server2, client3));
+    setValidUsersNewConfig(
+        ImmutableMap.of(server1, Joiner.on(',').join(client1, client2), server2, client3));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server1);

@@ -32,7 +32,9 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Keep a persistent roughly monotone view of how long a master has been overseeing this cluster. */
+/**
+ * Keep a persistent roughly monotone view of how long a master has been overseeing this cluster.
+ */
 public class MasterTime extends TimerTask {
   private static final Logger log = LoggerFactory.getLogger(MasterTime.class);
 
@@ -41,7 +43,10 @@ public class MasterTime extends TimerTask {
   private final Master master;
   private final Timer timer;
 
-  /** Difference between time stored in ZooKeeper and System.nanoTime() when we last read from ZooKeeper. */
+  /**
+   * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
+   * ZooKeeper.
+   */
   private long skewAmount;
 
   public MasterTime(Master master) throws IOException {
@@ -51,7 +56,8 @@ public class MasterTime extends TimerTask {
 
     try {
       zk.putPersistentData(zPath, "0".getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.SKIP);
-      skewAmount = Long.parseLong(new String(zk.getData(zPath, null), StandardCharsets.UTF_8)) - System.nanoTime();
+      skewAmount = Long.parseLong(new String(zk.getData(zPath, null), StandardCharsets.UTF_8))
+          - System.nanoTime();
     } catch (Exception ex) {
       throw new IOException("Error updating master time", ex);
     }
@@ -77,8 +83,9 @@ public class MasterTime extends TimerTask {
   @Override
   public void run() {
     switch (master.getMasterState()) {
-    // If we don't have the lock, periodically re-read the value in ZooKeeper, in case there's another master we're
-    // shadowing for.
+      // If we don't have the lock, periodically re-read the value in ZooKeeper, in case there's
+      // another master we're
+      // shadowing for.
       case INITIAL:
       case STOP:
         try {
@@ -99,7 +106,9 @@ public class MasterTime extends TimerTask {
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         try {
-          zk.putPersistentData(zPath, Long.toString(System.nanoTime() + skewAmount).getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+          zk.putPersistentData(zPath,
+              Long.toString(System.nanoTime() + skewAmount).getBytes(StandardCharsets.UTF_8),
+              NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
             log.debug("Failed to update master tick time", ex);

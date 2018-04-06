@@ -22,8 +22,9 @@ import java.lang.reflect.Proxy;
 import org.apache.accumulo.server.HighlyAvailableService;
 
 /**
- * A class to wrap invocations to the Thrift handler to prevent these invocations from succeeding when the Accumulo service that this Thrift service is for has
- * not yet obtained its ZooKeeper lock.
+ * A class to wrap invocations to the Thrift handler to prevent these invocations from succeeding
+ * when the Accumulo service that this Thrift service is for has not yet obtained its ZooKeeper
+ * lock.
  *
  * @since 2.0
  */
@@ -38,11 +39,13 @@ public class HighlyAvailableServiceWrapper {
     InvocationHandler handler = INSTANCE.getInvocationHandler(instance, service);
 
     @SuppressWarnings("unchecked")
-    I proxiedInstance = (I) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
+    I proxiedInstance = (I) Proxy.newProxyInstance(instance.getClass().getClassLoader(),
+        instance.getClass().getInterfaces(), handler);
     return proxiedInstance;
   }
 
-  protected <T> HighlyAvailableServiceInvocationHandler<T> getInvocationHandler(final T instance, final HighlyAvailableService service) {
+  protected <T> HighlyAvailableServiceInvocationHandler<T> getInvocationHandler(final T instance,
+      final HighlyAvailableService service) {
     return new HighlyAvailableServiceInvocationHandler<>(instance, service);
   }
 }

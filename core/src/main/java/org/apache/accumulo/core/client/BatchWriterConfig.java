@@ -53,8 +53,10 @@ public class BatchWriterConfig implements Writable {
   private boolean isDurabilitySet = false;
 
   /**
-   * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br>
-   * If set to a value smaller than a single mutation, then it will {@link BatchWriter#flush()} after each added mutation. Must be non-negative.
+   * Sets the maximum memory to batch before writing. The smaller this value, the more frequently
+   * the {@link BatchWriter} will write.<br>
+   * If set to a value smaller than a single mutation, then it will {@link BatchWriter#flush()}
+   * after each added mutation. Must be non-negative.
    *
    * <p>
    * <b>Default:</b> 50M
@@ -77,9 +79,10 @@ public class BatchWriterConfig implements Writable {
    * For no maximum, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
    *
    * <p>
-   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br>
-   * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
-   * be used.
+   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest
+   * {@link TimeUnit#MILLISECONDS}.<br>
+   * If this truncation would result in making the value zero when it was specified as non-zero,
+   * then a minimum value of one {@link TimeUnit#MILLISECONDS} will be used.
    *
    * <p>
    * <b>Default:</b> 120 seconds
@@ -99,19 +102,22 @@ public class BatchWriterConfig implements Writable {
     if (maxLatency == 0)
       this.maxLatency = Long.MAX_VALUE;
     else
-      // make small, positive values that truncate to 0 when converted use the minimum millis instead
+      // make small, positive values that truncate to 0 when converted use the minimum millis
+      // instead
       this.maxLatency = Math.max(1, timeUnit.toMillis(maxLatency));
     return this;
   }
 
   /**
-   * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link BatchWriter} should throw an exception.<br>
+   * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is
+   * exceeded, the {@link BatchWriter} should throw an exception.<br>
    * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
    *
    * <p>
-   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br>
-   * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
-   * be used.
+   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest
+   * {@link TimeUnit#MILLISECONDS}.<br>
+   * If this truncation would result in making the value zero when it was specified as non-zero,
+   * then a minimum value of one {@link TimeUnit#MILLISECONDS} will be used.
    *
    * <p>
    * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
@@ -131,7 +137,8 @@ public class BatchWriterConfig implements Writable {
     if (timeout == 0)
       this.timeout = Long.MAX_VALUE;
     else
-      // make small, positive values that truncate to 0 when converted use the minimum millis instead
+      // make small, positive values that truncate to 0 when converted use the minimum millis
+      // instead
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
     return this;
   }
@@ -161,7 +168,8 @@ public class BatchWriterConfig implements Writable {
   }
 
   public long getMaxLatency(TimeUnit timeUnit) {
-    return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY, TimeUnit.MILLISECONDS);
+    return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY,
+        TimeUnit.MILLISECONDS);
   }
 
   public long getTimeout(TimeUnit timeUnit) {
@@ -181,8 +189,9 @@ public class BatchWriterConfig implements Writable {
   }
 
   /**
-   * Change the durability for the BatchWriter session. The default durability is "default" which is the table's durability setting. If the durability is set to
-   * something other than the default, it will override the durability setting of the table.
+   * Change the durability for the BatchWriter session. The default durability is "default" which is
+   * the table's durability setting. If the durability is set to something other than the default,
+   * it will override the durability setting of the table.
    *
    * @param durability
    *          the Durability to be used by the BatchWriter
@@ -232,7 +241,8 @@ public class BatchWriterConfig implements Writable {
     String strLen = new String(len, UTF_8);
     if (!strLen.endsWith("#"))
       throw new IllegalStateException("length was not encoded correctly");
-    byte[] bytes = new byte[Integer.parseInt(strLen.substring(strLen.lastIndexOf(' ') + 1, strLen.length() - 1), 36)];
+    byte[] bytes = new byte[Integer
+        .parseInt(strLen.substring(strLen.lastIndexOf(' ') + 1, strLen.length() - 1), 36)];
     in.readFully(bytes);
 
     String strFields = new String(bytes, UTF_8);
@@ -318,7 +328,8 @@ public class BatchWriterConfig implements Writable {
   }
 
   /**
-   * Merge this BatchWriterConfig with another. If config is set in both, preference will be given to this config.
+   * Merge this BatchWriterConfig with another. If config is set in both, preference will be given
+   * to this config.
    *
    * @param other
    *          Another BatchWriterConfig
@@ -342,15 +353,18 @@ public class BatchWriterConfig implements Writable {
   @Override
   public int hashCode() {
     HashCodeBuilder hcb = new HashCodeBuilder();
-    hcb.append(maxMemory).append(maxLatency).append(maxWriteThreads).append(timeout).append(durability);
+    hcb.append(maxMemory).append(maxLatency).append(maxWriteThreads).append(timeout)
+        .append(durability);
     return hcb.toHashCode();
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(32);
-    sb.append("[maxMemory=").append(getMaxMemory()).append(", maxLatency=").append(getMaxLatency(TimeUnit.MILLISECONDS)).append(", maxWriteThreads=")
-        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS)).append(", durability=").append(durability).append("]");
+    sb.append("[maxMemory=").append(getMaxMemory()).append(", maxLatency=")
+        .append(getMaxLatency(TimeUnit.MILLISECONDS)).append(", maxWriteThreads=")
+        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS))
+        .append(", durability=").append(durability).append("]");
     return sb.toString();
   }
 }

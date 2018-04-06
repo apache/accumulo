@@ -73,14 +73,16 @@ public class AgeOffStoreTest {
 
     aoStore.ageOff();
 
-    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid2, txid3, txid4)), new HashSet<>(aoStore.list()));
+    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid2, txid3, txid4)),
+        new HashSet<>(aoStore.list()));
     Assert.assertEquals(4, new HashSet<>(aoStore.list()).size());
 
     tts.time = 15;
 
     aoStore.ageOff();
 
-    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid3, txid4)), new HashSet<>(aoStore.list()));
+    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid3, txid4)),
+        new HashSet<>(aoStore.list()));
     Assert.assertEquals(3, new HashSet<>(aoStore.list()).size());
 
     tts.time = 30;
@@ -118,12 +120,14 @@ public class AgeOffStoreTest {
 
     AgeOffStore<String> aoStore = new AgeOffStore<>(sstore, 10, tts);
 
-    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid2, txid3, txid4)), new HashSet<>(aoStore.list()));
+    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid2, txid3, txid4)),
+        new HashSet<>(aoStore.list()));
     Assert.assertEquals(4, new HashSet<>(aoStore.list()).size());
 
     aoStore.ageOff();
 
-    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid2, txid3, txid4)), new HashSet<>(aoStore.list()));
+    Assert.assertEquals(new HashSet<>(Arrays.asList(txid1, txid2, txid3, txid4)),
+        new HashSet<>(aoStore.list()));
     Assert.assertEquals(4, new HashSet<>(aoStore.list()).size());
 
     tts.time = 15;

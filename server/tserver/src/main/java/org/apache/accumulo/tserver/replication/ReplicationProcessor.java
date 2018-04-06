@@ -76,7 +76,8 @@ public class ReplicationProcessor implements Processor {
 
   @Override
   public void process(String workID, byte[] data) {
-    ReplicationTarget target = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(workID).getValue();
+    ReplicationTarget target = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(workID)
+        .getValue();
     String file = new String(data, UTF_8);
 
     log.debug("Received replication work for {} to {}", file, target);
@@ -85,7 +86,8 @@ public class ReplicationProcessor implements Processor {
     try {
       replica = getReplicaSystem(target);
     } catch (Exception e) {
-      log.error("Could not instantiate ReplicaSystem for {}, waiting before returning the work", target, e);
+      log.error("Could not instantiate ReplicaSystem for {}, waiting before returning the work",
+          target, e);
       try {
         // TODO configurable
         Thread.sleep(5000);
@@ -110,11 +112,13 @@ public class ReplicationProcessor implements Processor {
       return;
     }
 
-    log.debug("Current status for {} replicating to {}: {}", file, target, ProtobufUtil.toString(status));
+    log.debug("Current status for {} replicating to {}: {}", file, target,
+        ProtobufUtil.toString(status));
 
     // We don't need to do anything (shouldn't have gotten this work record in the first place)
     if (!StatusUtil.isWorkRequired(status)) {
-      log.info("Received work request for {} and {}, but it does not need replication. Ignoring...", file, target);
+      log.info("Received work request for {} and {}, but it does not need replication. Ignoring...",
+          file, target);
       return;
     }
 
@@ -133,7 +137,8 @@ public class ReplicationProcessor implements Processor {
 
     Status newStatus = replica.replicate(filePath, status, target, getHelper());
 
-    log.debug("Finished replicating {}. Original status: {}, New status: {}", filePath, status, newStatus);
+    log.debug("Finished replicating {}. Original status: {}, New status: {}", filePath, status,
+        newStatus);
   }
 
   protected ReplicaSystemHelper getHelper() {
@@ -151,7 +156,8 @@ public class ReplicationProcessor implements Processor {
 
   protected String getPeerType(String peerName) {
     // Find the configured replication peer so we know how to replicate to it
-    Map<String,String> configuredPeers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
+    Map<String,String> configuredPeers = conf
+        .getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
     String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
     if (null == peerType) {
       String msg = "Cannot process replication for unknown peer: " + peerName;
@@ -171,7 +177,8 @@ public class ReplicationProcessor implements Processor {
     return true;
   }
 
-  protected Status getStatus(String file, ReplicationTarget target) throws ReplicationTableOfflineException, AccumuloException, AccumuloSecurityException,
+  protected Status getStatus(String file, ReplicationTarget target)
+      throws ReplicationTableOfflineException, AccumuloException, AccumuloSecurityException,
       InvalidProtocolBufferException {
     Scanner s = ReplicationTable.getScanner(context.getConnector());
     s.setRange(Range.exact(file));

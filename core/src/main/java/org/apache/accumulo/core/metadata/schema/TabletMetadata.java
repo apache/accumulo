@@ -99,7 +99,8 @@ public class TabletMetadata {
   }
 
   public Text getPrevEndRow() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.PREV_ROW), "Requested prev row when it was not fetched");
+    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.PREV_ROW),
+        "Requested prev row when it was not fetched");
     return prevEndRow;
   }
 
@@ -108,21 +109,25 @@ public class TabletMetadata {
   }
 
   public Location getLocation() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LOCATION), "Requested location when it was not fetched");
+    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LOCATION),
+        "Requested location when it was not fetched");
     return location;
   }
 
   public Location getLast() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LAST), "Requested last when it was not fetched");
+    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LAST),
+        "Requested last when it was not fetched");
     return last;
   }
 
   public List<String> getFiles() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.FILES), "Requested files when it was not fetched");
+    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.FILES),
+        "Requested files when it was not fetched");
     return files;
   }
 
-  public static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter, EnumSet<FetchedColumns> fetchedColumns) {
+  public static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
+      EnumSet<FetchedColumns> fetchedColumns) {
     Objects.requireNonNull(rowIter);
 
     TabletMetadata te = new TabletMetadata();
@@ -142,7 +147,8 @@ public class TabletMetadata {
         te.endRow = ke.getEndRow();
         te.tableId = ke.getTableId();
       } else if (!row.equals(k.getRowData())) {
-        throw new IllegalArgumentException("Input contains more than one row : " + row + " " + k.getRowData());
+        throw new IllegalArgumentException(
+            "Input contains more than one row : " + row + " " + k.getRowData());
       }
 
       if (PREV_ROW_COLUMN.hasColumns(k)) {
@@ -153,16 +159,21 @@ public class TabletMetadata {
         filesBuilder.add(k.getColumnQualifier().toString());
       } else if (fam.equals(CurrentLocationColumnFamily.NAME)) {
         if (te.location != null) {
-          throw new IllegalArgumentException("Input contains more than one location " + te.location + " " + v);
+          throw new IllegalArgumentException(
+              "Input contains more than one location " + te.location + " " + v);
         }
-        te.location = new Location(v.toString(), k.getColumnQualifierData().toString(), LocationType.CURRENT);
+        te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
+            LocationType.CURRENT);
       } else if (fam.equals(FutureLocationColumnFamily.NAME)) {
         if (te.location != null) {
-          throw new IllegalArgumentException("Input contains more than one location " + te.location + " " + v);
+          throw new IllegalArgumentException(
+              "Input contains more than one location " + te.location + " " + v);
         }
-        te.location = new Location(v.toString(), k.getColumnQualifierData().toString(), LocationType.FUTURE);
+        te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
+            LocationType.FUTURE);
       } else if (fam.equals(LastLocationColumnFamily.NAME)) {
-        te.last = new Location(v.toString(), k.getColumnQualifierData().toString(), LocationType.LAST);
+        te.last = new Location(v.toString(), k.getColumnQualifierData().toString(),
+            LocationType.LAST);
       }
     }
 
@@ -171,7 +182,8 @@ public class TabletMetadata {
     return te;
   }
 
-  public static Iterable<TabletMetadata> convert(Scanner input, EnumSet<FetchedColumns> fetchedColumns) {
+  public static Iterable<TabletMetadata> convert(Scanner input,
+      EnumSet<FetchedColumns> fetchedColumns) {
     return new Iterable<TabletMetadata>() {
       @Override
       public Iterator<TabletMetadata> iterator() {

@@ -92,7 +92,8 @@ public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
     Iterable<Entry<Key,Value>> filtered = Iterables.filter(INPUT_DATA.entrySet(), entry -> {
       String cf = entry.getKey().getColumnFamily().toString();
       String cq = entry.getKey().getColumnQualifier().toString();
-      return MIN_CF.compareTo(cf) <= 0 && MAX_CF.compareTo(cf) >= 0 && MIN_CQ.compareTo(cq) <= 0 && MAX_CQ.compareTo(cq) >= 0;
+      return MIN_CF.compareTo(cf) <= 0 && MAX_CF.compareTo(cf) >= 0 && MIN_CQ.compareTo(cq) <= 0
+          && MAX_CQ.compareTo(cq) >= 0;
     });
 
     for (Entry<Key,Value> entry : filtered) {
@@ -116,7 +117,8 @@ public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
     return new IteratorTestOutput(OUTPUT_DATA);
   }
 
-  public CfCqSliceFilterTest(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestCase testCase) {
+  public CfCqSliceFilterTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
     super(input, expectedOutput, testCase);
   }
 

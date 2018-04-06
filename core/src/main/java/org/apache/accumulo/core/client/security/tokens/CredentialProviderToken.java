@@ -31,7 +31,8 @@ import org.apache.hadoop.conf.Configuration;
  * An {@link AuthenticationToken} backed by a Hadoop CredentialProvider.
  */
 public class CredentialProviderToken extends PasswordToken {
-  public static final String NAME_PROPERTY = "name", CREDENTIAL_PROVIDERS_PROPERTY = "credentialProviders";
+  public static final String NAME_PROPERTY = "name",
+      CREDENTIAL_PROVIDERS_PROPERTY = "credentialProviders";
 
   private String name;
   private String credentialProviders;
@@ -46,7 +47,8 @@ public class CredentialProviderToken extends PasswordToken {
     setWithCredentialProviders(name, credentialProviders);
   }
 
-  protected void setWithCredentialProviders(String name, String credentialProviders) throws IOException {
+  protected void setWithCredentialProviders(String name, String credentialProviders)
+      throws IOException {
     this.name = name;
     this.credentialProviders = credentialProviders;
     final Configuration conf = new Configuration(CachedConfiguration.getInstance());
@@ -55,7 +57,8 @@ public class CredentialProviderToken extends PasswordToken {
     char[] password = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, name);
 
     if (null == password) {
-      throw new IOException("No password could be extracted from CredentialProvider(s) with " + name);
+      throw new IOException(
+          "No password could be extracted from CredentialProvider(s) with " + name);
     }
 
     setPassword(CharBuffer.wrap(password));
@@ -77,10 +80,12 @@ public class CredentialProviderToken extends PasswordToken {
 
   @Override
   public void init(Properties properties) {
-    char[] nameCharArray = properties.get(NAME_PROPERTY), credentialProvidersCharArray = properties.get(CREDENTIAL_PROVIDERS_PROPERTY);
+    char[] nameCharArray = properties.get(NAME_PROPERTY),
+        credentialProvidersCharArray = properties.get(CREDENTIAL_PROVIDERS_PROPERTY);
     if (null != nameCharArray && null != credentialProvidersCharArray) {
       try {
-        this.setWithCredentialProviders(new String(nameCharArray), new String(credentialProvidersCharArray));
+        this.setWithCredentialProviders(new String(nameCharArray),
+            new String(credentialProvidersCharArray));
       } catch (IOException e) {
         throw new IllegalArgumentException("Could not extract password from CredentialProvider", e);
       }
@@ -88,15 +93,18 @@ public class CredentialProviderToken extends PasswordToken {
       return;
     }
 
-    throw new IllegalArgumentException("Expected " + NAME_PROPERTY + " and " + CREDENTIAL_PROVIDERS_PROPERTY + " properties.");
+    throw new IllegalArgumentException(
+        "Expected " + NAME_PROPERTY + " and " + CREDENTIAL_PROVIDERS_PROPERTY + " properties.");
   }
 
   @Override
   public Set<TokenProperty> getProperties() {
     LinkedHashSet<TokenProperty> properties = new LinkedHashSet<>();
     // Neither name or CPs are sensitive
-    properties.add(new TokenProperty(NAME_PROPERTY, "Alias to extract from CredentialProvider", false));
-    properties.add(new TokenProperty(CREDENTIAL_PROVIDERS_PROPERTY, "Comma separated list of URLs defining CredentialProvider(s)", false));
+    properties
+        .add(new TokenProperty(NAME_PROPERTY, "Alias to extract from CredentialProvider", false));
+    properties.add(new TokenProperty(CREDENTIAL_PROVIDERS_PROPERTY,
+        "Comma separated list of URLs defining CredentialProvider(s)", false));
     return properties;
   }
 

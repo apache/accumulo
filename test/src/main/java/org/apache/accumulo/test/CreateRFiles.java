@@ -35,7 +35,8 @@ public class CreateRFiles {
     @Parameter(names = "--output", description = "the destiation directory")
     String outputDirectory;
 
-    @Parameter(names = "--numThreads", description = "number of threads to use when generating files")
+    @Parameter(names = "--numThreads",
+        description = "number of threads to use when generating files")
     int numThreads = 4;
 
     @Parameter(names = "--start", description = "the start number for test data")
@@ -62,8 +63,9 @@ public class CreateRFiles {
     int count = 0;
     while (currEnd <= opts.end && currStart < currEnd) {
 
-      final String tia = String.format("--rfile %s/mf%05d --timestamp 1 --size 50 --random 56 --rows %d --start %d --user root", opts.outputDirectory, count,
-          currEnd - currStart, currStart);
+      final String tia = String.format(
+          "--rfile %s/mf%05d --timestamp 1 --size 50 --random 56 --rows %d --start %d --user root",
+          opts.outputDirectory, count, currEnd - currStart, currStart);
 
       Runnable r = new Runnable() {
 
@@ -72,7 +74,8 @@ public class CreateRFiles {
           try {
             TestIngest.main(tia.split(" "));
           } catch (Exception e) {
-            log.error("Could not run " + TestIngest.class.getName() + ".main using the input '" + tia + "'", e);
+            log.error("Could not run " + TestIngest.class.getName() + ".main using the input '"
+                + tia + "'", e);
           }
         }
 

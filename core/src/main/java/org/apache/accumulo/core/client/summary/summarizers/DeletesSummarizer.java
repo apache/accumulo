@@ -27,11 +27,13 @@ import org.apache.accumulo.core.data.Value;
  * This summarizer tracks the total number of delete Keys seen and the total number of keys seen.
  *
  * <p>
- * This summarizer is used by org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy to make compaction decisions based on the
- * number of deletes.
+ * This summarizer is used by
+ * org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy to make
+ * compaction decisions based on the number of deletes.
  *
  * @since 2.0.0
- * @see TableOperations#addSummarizers(String, org.apache.accumulo.core.client.summary.SummarizerConfiguration...)
+ * @see TableOperations#addSummarizers(String,
+ *      org.apache.accumulo.core.client.summary.SummarizerConfiguration...)
  */
 public class DeletesSummarizer implements Summarizer {
 

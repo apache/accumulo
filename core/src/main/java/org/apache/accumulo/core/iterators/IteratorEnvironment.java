@@ -41,11 +41,13 @@ public interface IteratorEnvironment {
   Authorizations getAuthorizations();
 
   /**
-   * Returns a new iterator environment object that can be used to create deep copies over sample data. The new object created will use the current sampling
-   * configuration for the table. The existing iterator environment object will not be modified.
+   * Returns a new iterator environment object that can be used to create deep copies over sample
+   * data. The new object created will use the current sampling configuration for the table. The
+   * existing iterator environment object will not be modified.
    *
    * <p>
-   * Since sample data could be created in many different ways, a good practice for an iterator is to verify the sampling configuration is as expected.
+   * Since sample data could be created in many different ways, a good practice for an iterator is
+   * to verify the sampling configuration is as expected.
    *
    * <pre>
    * <code>
@@ -71,8 +73,10 @@ public interface IteratorEnvironment {
   IteratorEnvironment cloneWithSamplingEnabled();
 
   /**
-   * There are at least two conditions under which sampling will be enabled for an environment. One condition is when sampling is enabled for the scan that
-   * starts everything. Another possibility is for a deep copy created with an environment created by calling {@link #cloneWithSamplingEnabled()}
+   * There are at least two conditions under which sampling will be enabled for an environment. One
+   * condition is when sampling is enabled for the scan that starts everything. Another possibility
+   * is for a deep copy created with an environment created by calling
+   * {@link #cloneWithSamplingEnabled()}
    *
    * @return true if sampling is enabled for this environment.
    * @since 1.8.0

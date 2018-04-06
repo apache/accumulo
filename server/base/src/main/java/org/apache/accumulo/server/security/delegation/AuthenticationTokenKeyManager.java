@@ -41,7 +41,8 @@ public class AuthenticationTokenKeyManager extends Daemon {
   private volatile boolean keepRunning = true, initialized = false;
 
   /**
-   * Construct the key manager which will generate new AuthenticationKeys to generate and verify delegation tokens
+   * Construct the key manager which will generate new AuthenticationKeys to generate and verify
+   * delegation tokens
    *
    * @param mgr
    *          The SecretManager in use
@@ -50,9 +51,11 @@ public class AuthenticationTokenKeyManager extends Daemon {
    * @param keyUpdateInterval
    *          The frequency, in milliseconds, that new AuthenticationKeys are created
    * @param tokenMaxLifetime
-   *          The lifetime, in milliseconds, of generated AuthenticationKeys (and subsequently delegation tokens).
+   *          The lifetime, in milliseconds, of generated AuthenticationKeys (and subsequently
+   *          delegation tokens).
    */
-  public AuthenticationTokenKeyManager(AuthenticationTokenSecretManager mgr, ZooAuthenticationKeyDistributor dist, long keyUpdateInterval, long tokenMaxLifetime) {
+  public AuthenticationTokenKeyManager(AuthenticationTokenSecretManager mgr,
+      ZooAuthenticationKeyDistributor dist, long keyUpdateInterval, long tokenMaxLifetime) {
     super("Delegation Token Key Manager");
     this.secretManager = mgr;
     this.keyDistributor = dist;
@@ -105,13 +108,16 @@ public class AuthenticationTokenKeyManager extends Daemon {
           }
           secretManager.addKey(key);
         }
-        log.info("Added {} existing AuthenticationKeys into the local cache from ZooKeeper", currentKeys.size());
+        log.info("Added {} existing AuthenticationKeys into the local cache from ZooKeeper",
+            currentKeys.size());
 
-        // Try to use the last key instead of creating a new one right away. This will present more expected
+        // Try to use the last key instead of creating a new one right away. This will present more
+        // expected
         // functionality if the active master happens to die for some reasonn
         AuthenticationKey currentKey = secretManager.getCurrentKey();
         if (null != currentKey) {
-          log.info("Updating last key update to {} from current secret manager key", currentKey.getCreationDate());
+          log.info("Updating last key update to {} from current secret manager key",
+              currentKey.getCreationDate());
           lastKeyUpdate = currentKey.getCreationDate();
         }
       }
@@ -147,7 +153,8 @@ public class AuthenticationTokenKeyManager extends Daemon {
       log.debug("Key update interval passed, creating new authentication key");
 
       // Increment the idSeq and use the new value as the unique ID
-      AuthenticationKey newKey = new AuthenticationKey(++idSeq, now, now + tokenMaxLifetime, secretManager.generateSecret());
+      AuthenticationKey newKey = new AuthenticationKey(++idSeq, now, now + tokenMaxLifetime,
+          secretManager.generateSecret());
 
       log.debug("Created new {}", newKey.toString());
 

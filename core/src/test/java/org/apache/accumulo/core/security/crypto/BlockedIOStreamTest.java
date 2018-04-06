@@ -147,7 +147,8 @@ public class BlockedIOStreamTest {
 
     assertEquals(blocks * 16, byteStream.length);
 
-    DataInputStream blockIn = new DataInputStream(new BlockedInputStream(new ByteArrayInputStream(byteStream), blockSize, blockSize));
+    DataInputStream blockIn = new DataInputStream(
+        new BlockedInputStream(new ByteArrayInputStream(byteStream), blockSize, blockSize));
     Arrays.fill(giant, (byte) 0);
     blockIn.readFully(giant, 0, size);
     blockIn.close();

@@ -38,8 +38,10 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
     return "specifies a formatter to use for displaying table entries";
   }
 
-  public static Class<? extends Formatter> getCurrentFormatter(final String tableName, final Shell shellState) {
-    return ShellPluginConfigurationCommand.getPluginClass(tableName, shellState, Formatter.class, Property.TABLE_FORMATTER_CLASS);
+  public static Class<? extends Formatter> getCurrentFormatter(final String tableName,
+      final Shell shellState) {
+    return ShellPluginConfigurationCommand.getPluginClass(tableName, shellState, Formatter.class,
+        Property.TABLE_FORMATTER_CLASS);
   }
 
   @Override
@@ -54,19 +56,22 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
   }
 
   @Override
-  protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName, final String className) throws AccumuloException,
-      AccumuloSecurityException {
+  protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName,
+      final String className) throws AccumuloException, AccumuloSecurityException {
     super.setPlugin(cl, shellState, tableName, className);
     if (cl.hasOption(interpeterOption.getOpt())) {
-      shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_INTERPRETER_CLASS.toString(), className);
+      shellState.getConnector().tableOperations().setProperty(tableName,
+          Property.TABLE_INTERPRETER_CLASS.toString(), className);
     }
   }
 
   @Override
-  protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
+  protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName)
+      throws AccumuloException, AccumuloSecurityException {
     super.removePlugin(cl, shellState, tableName);
     if (cl.hasOption(interpeterOption.getOpt())) {
-      shellState.getConnector().tableOperations().removeProperty(tableName, Property.TABLE_INTERPRETER_CLASS.toString());
+      shellState.getConnector().tableOperations().removeProperty(tableName,
+          Property.TABLE_INTERPRETER_CLASS.toString());
     }
   }
 }

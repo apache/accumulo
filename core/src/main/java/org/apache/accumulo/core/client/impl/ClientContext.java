@@ -47,10 +47,13 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Suppliers;
 
 /**
- * This class represents any essential configuration and credentials needed to initiate RPC operations throughout the code. It is intended to represent a shared
- * object that contains these things from when the client was first constructed. It is not public API, and is only an internal representation of the context in
- * which a client is executing RPCs. If additional parameters are added to the public API that need to be used in the internals of Accumulo, they should be
- * added to this object for later retrieval, rather than as a separate parameter. Any state in this object should be available at the time of its construction.
+ * This class represents any essential configuration and credentials needed to initiate RPC
+ * operations throughout the code. It is intended to represent a shared object that contains these
+ * things from when the client was first constructed. It is not public API, and is only an internal
+ * representation of the context in which a client is executing RPCs. If additional parameters are
+ * added to the public API that need to be used in the internals of Accumulo, they should be added
+ * to this object for later retrieval, rather than as a separate parameter. Any state in this object
+ * should be available at the time of its construction.
  */
 public class ClientContext {
 
@@ -63,20 +66,23 @@ public class ClientContext {
   private final AccumuloConfiguration rpcConf;
   protected Connector conn;
 
-  // These fields are very frequently accessed (each time a connection is created) and expensive to compute, so cache them.
+  // These fields are very frequently accessed (each time a connection is created) and expensive to
+  // compute, so cache them.
   private Supplier<Long> timeoutSupplier;
   private Supplier<SaslConnectionParams> saslSupplier;
   private Supplier<SslConnectionParams> sslSupplier;
   private TCredentials rpcCreds;
 
   private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
-    //This insanity exists to make modernizer plugin happy.  We are living in the future now.
+    // This insanity exists to make modernizer plugin happy. We are living in the future now.
     return () -> Suppliers.memoizeWithExpiration(() -> s.get(), 100, TimeUnit.MILLISECONDS).get();
   }
 
   public ClientContext(ConnectionInfo connectionInfo) {
-    this(ConnectionInfoFactory.getInstance(connectionInfo), ConnectionInfoFactory.getCredentials(connectionInfo), ConnectionInfoFactory
-        .getClientConfiguration(connectionInfo), ConnectionInfoFactory.getBatchWriterConfig(connectionInfo));
+    this(ConnectionInfoFactory.getInstance(connectionInfo),
+        ConnectionInfoFactory.getCredentials(connectionInfo),
+        ConnectionInfoFactory.getClientConfiguration(connectionInfo),
+        ConnectionInfoFactory.getBatchWriterConfig(connectionInfo));
   }
 
   /**
@@ -86,16 +92,20 @@ public class ClientContext {
     this(instance, credentials, clientConf, new BatchWriterConfig());
   }
 
-  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf, BatchWriterConfig batchWriterConfig) {
-    this(instance, credentials, convertClientConfig(requireNonNull(clientConf, "clientConf is null")));
+  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf,
+      BatchWriterConfig batchWriterConfig) {
+    this(instance, credentials,
+        convertClientConfig(requireNonNull(clientConf, "clientConf is null")));
     this.clientConf = clientConf;
     this.batchWriterConfig = batchWriterConfig;
   }
 
   /**
-   * Instantiate a client context from an existing {@link AccumuloConfiguration}. This is primarily intended for subclasses and testing.
+   * Instantiate a client context from an existing {@link AccumuloConfiguration}. This is primarily
+   * intended for subclasses and testing.
    */
-  public ClientContext(Instance instance, Credentials credentials, AccumuloConfiguration serverConf) {
+  public ClientContext(Instance instance, Credentials credentials,
+      AccumuloConfiguration serverConf) {
     inst = requireNonNull(instance, "instance is null");
     creds = requireNonNull(credentials, "credentials is null");
     rpcConf = requireNonNull(serverConf, "serverConf is null");
@@ -119,7 +129,8 @@ public class ClientContext {
       }
     };
 
-    timeoutSupplier = memoizeWithExpiration(() -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    timeoutSupplier = memoizeWithExpiration(
+        () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(saslSupplier);
 
@@ -140,7 +151,8 @@ public class ClientContext {
   }
 
   /**
-   * Update the credentials in the current context after changing the current user's password or other auth token
+   * Update the credentials in the current context after changing the current user's password or
+   * other auth token
    */
   public synchronized void setCredentials(Credentials newCredentials) {
     checkArgument(newCredentials != null, "newCredentials is null");
@@ -213,7 +225,8 @@ public class ClientContext {
   }
 
   /**
-   * A utility method for converting client configuration to a standard configuration object for use internally.
+   * A utility method for converting client configuration to a standard configuration object for use
+   * internally.
    *
    * @param config
    *          the original {@link ClientConfiguration}
@@ -234,15 +247,20 @@ public class ClientContext {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
           if (null != hadoopConf) {
             try {
-              char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+              char[] value = CredentialProviderFactoryShim
+                  .getValueFromCredentialProvider(hadoopConf, key);
               if (null != value) {
                 log.trace("Loaded sensitive value for {} from CredentialProvider", key);
                 return new String(value);
               } else {
-                log.trace("Tried to load sensitive value for {} from CredentialProvider, but none was found", key);
+                log.trace(
+                    "Tried to load sensitive value for {} from CredentialProvider, but none was found",
+                    key);
               }
             } catch (IOException e) {
-              log.warn("Failed to extract sensitive property ({}) from Hadoop CredentialProvider, falling back to base AccumuloConfiguration", key, e);
+              log.warn(
+                  "Failed to extract sensitive property ({}) from Hadoop CredentialProvider, falling back to base AccumuloConfiguration",
+                  key, e);
             }
           }
         }
@@ -252,9 +270,12 @@ public class ClientContext {
         else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
-            if (config.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+            if (config
+                .containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config.getString(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+              return config
+                  .getString(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())
+                  + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
             }
           }
           return defaults.get(property);
@@ -272,13 +293,17 @@ public class ClientContext {
             props.put(key, config.getString(key));
         }
 
-        // Two client props that don't exist on the server config. Client doesn't need to know about the Kerberos instance from the principle, but servers do
+        // Two client props that don't exist on the server config. Client doesn't need to know about
+        // the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary = props.remove(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+        if (props
+            .containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props
+              .remove(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
-            props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(), serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());
+            props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
+                serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());
           }
         }
 
@@ -292,20 +317,24 @@ public class ClientContext {
               }
 
               if (filter.test(key)) {
-                char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+                char[] value = CredentialProviderFactoryShim
+                    .getValueFromCredentialProvider(hadoopConf, key);
                 if (null != value) {
                   props.put(key, new String(value));
                 }
               }
             }
           } catch (IOException e) {
-            log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+            log.warn(
+                "Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml",
+                e);
           }
         }
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = config.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths = config
+            .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (null != credProviderPaths && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
           hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);

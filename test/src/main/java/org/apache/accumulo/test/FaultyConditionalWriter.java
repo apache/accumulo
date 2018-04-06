@@ -25,7 +25,8 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.data.ConditionalMutation;
 
 /**
- * A writer that will sometimes return unknown. When it returns unknown the condition may or may not have been written.
+ * A writer that will sometimes return unknown. When it returns unknown the condition may or may not
+ * have been written.
  */
 public class FaultyConditionalWriter implements ConditionalWriter {
 
@@ -34,7 +35,8 @@ public class FaultyConditionalWriter implements ConditionalWriter {
   private Random rand;
   private double wp;
 
-  public FaultyConditionalWriter(ConditionalWriter cw, double unknownProbability, double writeProbability) {
+  public FaultyConditionalWriter(ConditionalWriter cw, double unknownProbability,
+      double writeProbability) {
     this.cw = cw;
     this.up = unknownProbability;
     this.wp = writeProbability;

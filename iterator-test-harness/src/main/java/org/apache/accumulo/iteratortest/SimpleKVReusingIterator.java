@@ -28,7 +28,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * Internally, Accumulo reuses the same instance of Key and Value to reduce the number of objects to be garbage collected. This iterator simulates that.
+ * Internally, Accumulo reuses the same instance of Key and Value to reduce the number of objects to
+ * be garbage collected. This iterator simulates that.
  */
 public class SimpleKVReusingIterator implements SortedKeyValueIterator<Key,Value> {
 
@@ -41,7 +42,8 @@ public class SimpleKVReusingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     this.source.init(source, options, env);
   }
 
@@ -57,7 +59,8 @@ public class SimpleKVReusingIterator implements SortedKeyValueIterator<Key,Value
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     source.seek(range, columnFamilies, inclusive);
     load();
   }

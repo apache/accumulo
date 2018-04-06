@@ -54,7 +54,8 @@ import com.beust.jcommander.Parameter;
 public class SendLogToChainsaw extends XMLLayout {
 
   private static Pattern logPattern = Pattern.compile(
-      "^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s(TRACE|DEBUG|INFO|WARN|FATAL|ERROR)\\s*?:(.*)$", Pattern.UNIX_LINES);
+      "^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s(TRACE|DEBUG|INFO|WARN|FATAL|ERROR)\\s*?:(.*)$",
+      Pattern.UNIX_LINES);
 
   private File[] logFiles = null;
 
@@ -70,7 +71,8 @@ public class SendLogToChainsaw extends XMLLayout {
 
   private LevelRangeFilter levelFilter = null;
 
-  public SendLogToChainsaw(String directory, String fileNameFilter, String host, int port, Date start, Date end, String regex, String level) throws Exception {
+  public SendLogToChainsaw(String directory, String fileNameFilter, String host, int port,
+      Date start, Date end, String regex, String level) throws Exception {
 
     // Set up the file name filter
     if (null != fileNameFilter) {
@@ -196,7 +198,8 @@ public class SendLogToChainsaw extends XMLLayout {
         return null;
       Category c = Logger.getLogger(clazz);
       Level l = Level.toLevel(level);
-      LoggingEvent event = new LoggingEvent(clazz, c, ts, l, message, threadName, null, null, null, null);
+      LoggingEvent event = new LoggingEvent(clazz, c, ts, l, message, threadName, null, null, null,
+          null);
       // Check the log level filter
       if (null != levelFilter && (levelFilter.decide(event) == Filter.DENY)) {
         return null;
@@ -221,22 +224,27 @@ public class SendLogToChainsaw extends XMLLayout {
 
   private static class Opts extends Help {
 
-    @Parameter(names = {"-d", "--logDirectory"}, description = "ACCUMULO log directory path", required = true)
+    @Parameter(names = {"-d", "--logDirectory"}, description = "ACCUMULO log directory path",
+        required = true)
     String dir;
 
     @Parameter(names = {"-f", "--fileFilter"}, description = "filter to apply to names of logs")
     String filter;
 
-    @Parameter(names = {"-h", "--host"}, description = "host where chainsaw is running", required = true)
+    @Parameter(names = {"-h", "--host"}, description = "host where chainsaw is running",
+        required = true)
     String hostname;
 
-    @Parameter(names = {"-p", "--port"}, description = "port where XMLSocketReceiver is listening", required = true)
+    @Parameter(names = {"-p", "--port"}, description = "port where XMLSocketReceiver is listening",
+        required = true)
     int portnum;
 
-    @Parameter(names = {"-s", "--start"}, description = "start date filter (yyyyMMddHHmmss)", required = true, converter = DateConverter.class)
+    @Parameter(names = {"-s", "--start"}, description = "start date filter (yyyyMMddHHmmss)",
+        required = true, converter = DateConverter.class)
     Date startDate;
 
-    @Parameter(names = {"-e", "--end"}, description = "end date filter (yyyyMMddHHmmss)", required = true, converter = DateConverter.class)
+    @Parameter(names = {"-e", "--end"}, description = "end date filter (yyyyMMddHHmmss)",
+        required = true, converter = DateConverter.class)
     Date endDate;
 
     @Parameter(names = {"-l", "--level"}, description = "filter log level")
@@ -251,7 +259,8 @@ public class SendLogToChainsaw extends XMLLayout {
    * @param args
    *          <ol>
    *          <li>path to log directory</li>
-   *          <li>filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive)</li>
+   *          <li>filter to apply for logs to include (uses wildcards (i.e. logger* and IS case
+   *          sensitive)</li>
    *          <li>chainsaw host</li>
    *          <li>chainsaw port</li>
    *          <li>start date filter</li>
@@ -264,7 +273,8 @@ public class SendLogToChainsaw extends XMLLayout {
     Opts opts = new Opts();
     opts.parseArgs(SendLogToChainsaw.class.getName(), args);
 
-    SendLogToChainsaw c = new SendLogToChainsaw(opts.dir, opts.filter, opts.hostname, opts.portnum, opts.startDate, opts.endDate, opts.regex, opts.level);
+    SendLogToChainsaw c = new SendLogToChainsaw(opts.dir, opts.filter, opts.hostname, opts.portnum,
+        opts.startDate, opts.endDate, opts.regex, opts.level);
     c.processLogFiles();
   }
 

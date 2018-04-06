@@ -22,15 +22,17 @@ import static java.util.Objects.requireNonNull;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
- * AbstractEncoder is an {@link org.apache.accumulo.core.client.lexicoder.Encoder} that implements all of Encoder's methods validating the input, but has those
- * methods defer logic to to a new method, {@link #decodeUnchecked(byte[], int, int)}.
+ * AbstractEncoder is an {@link org.apache.accumulo.core.client.lexicoder.Encoder} that implements
+ * all of Encoder's methods validating the input, but has those methods defer logic to to a new
+ * method, {@link #decodeUnchecked(byte[], int, int)}.
  *
  * @since 1.7.0
  */
 public abstract class AbstractEncoder<T> implements Encoder<T> {
 
   /**
-   * Decodes a byte array without checking if the offset and len exceed the bounds of the actual array.
+   * Decodes a byte array without checking if the offset and len exceed the bounds of the actual
+   * array.
    */
   protected abstract T decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException;
 
@@ -41,7 +43,8 @@ public abstract class AbstractEncoder<T> implements Encoder<T> {
   }
 
   /**
-   * Checks if the byte array is null, or if parameters exceed the bounds of the byte array, then calls {@link #decodeUnchecked(byte[], int, int)}.
+   * Checks if the byte array is null, or if parameters exceed the bounds of the byte array, then
+   * calls {@link #decodeUnchecked(byte[], int, int)}.
    *
    * @throws java.lang.NullPointerException
    *           if {@code b} is null
@@ -52,7 +55,8 @@ public abstract class AbstractEncoder<T> implements Encoder<T> {
     requireNonNull(b, "cannot decode null byte array");
     checkArgument(offset >= 0, "offset %s cannot be negative", offset);
     checkArgument(len >= 0, "length %s cannot be negative", len);
-    checkArgument(offset + len <= b.length, "offset + length %s exceeds byte array length %s", (offset + len), b.length);
+    checkArgument(offset + len <= b.length, "offset + length %s exceeds byte array length %s",
+        (offset + len), b.length);
 
     return decodeUnchecked(b, offset, len);
   }

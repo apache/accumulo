@@ -60,7 +60,8 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
+      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter)
+          throws IOException {
         try {
           String tableName = ((RangeInputSplit) reporter.getInputSplit()).getTableName();
           if (key != null)
@@ -92,7 +93,8 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 2) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table1> <table2>");
+        throw new IllegalArgumentException(
+            "Usage : " + MRTester.class.getName() + " <table1> <table2>");
       }
 
       String user = getAdminPrincipal();
@@ -130,7 +132,8 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

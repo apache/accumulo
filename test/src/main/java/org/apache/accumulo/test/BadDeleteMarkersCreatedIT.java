@@ -94,7 +94,8 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
     Instance instance = getConnector().getInstance();
-    ZooCache zcache = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache zcache = new ZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
     zcache.clear();
     String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
     byte[] gcLockData;
@@ -171,7 +172,8 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
           log.info("Ignoring delete entry for a table other than the one we deleted");
           continue;
         }
-        Assert.fail("Delete entry should have been deleted by the garbage collector: " + entry.getKey().getRow().toString());
+        Assert.fail("Delete entry should have been deleted by the garbage collector: "
+            + entry.getKey().getRow().toString());
       }
     }
   }

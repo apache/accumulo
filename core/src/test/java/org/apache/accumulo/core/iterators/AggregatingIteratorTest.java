@@ -45,7 +45,8 @@ public class AggregatingIteratorTest {
    * @deprecated since 1.4; visible only for testing
    */
   @Deprecated
-  public static class SummationAggregator implements org.apache.accumulo.core.iterators.aggregation.Aggregator {
+  public static class SummationAggregator
+      implements org.apache.accumulo.core.iterators.aggregation.Aggregator {
 
     int sum;
 
@@ -76,7 +77,8 @@ public class AggregatingIteratorTest {
   }
 
   static Key newKey(int row, int colf, int colq, long ts) {
-    return new Key(newRow(row), new Text(String.format("cf%03d", colf)), new Text(String.format("cq%03d", colq)), ts);
+    return new Key(newRow(row), new Text(String.format("cf%03d", colf)),
+        new Text(String.format("cq%03d", colq)), ts);
   }
 
   static Range newRow(int row, int colf, int colq, long ts, boolean inclusive) {
@@ -87,7 +89,8 @@ public class AggregatingIteratorTest {
     return newRow(row, colf, colq, ts, true);
   }
 
-  static void newKeyValue(TreeMap<Key,Value> tm, int row, int colf, int colq, long ts, boolean deleted, String val) {
+  static void newKeyValue(TreeMap<Key,Value> tm, int row, int colf, int colq, long ts,
+      boolean deleted, String val) {
     Key k = newKey(row, colf, colq, ts);
     k.setDeleted(deleted);
     tm.put(k, new Value(val.getBytes()));

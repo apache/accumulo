@@ -76,7 +76,8 @@ public class IteratorUtilTest {
     }
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       this.source = source;
     }
 
@@ -86,7 +87,8 @@ public class IteratorUtilTest {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
       source.seek(range, columnFamilies, inclusive);
     }
   }
@@ -105,7 +107,8 @@ public class IteratorUtilTest {
     }
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
 
       String amount = options.get("amount");
@@ -132,8 +135,10 @@ public class IteratorUtilTest {
     ConfigurationCopy conf = new ConfigurationCopy();
 
     // create an iterator that adds 1 and then squares
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter", "1," + AddingIter.class.getName());
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter", "2," + SquaringIter.class.getName());
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter",
+        "1," + AddingIter.class.getName());
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter",
+        "2," + SquaringIter.class.getName());
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
@@ -142,8 +147,8 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(Table.ID.of("tab"), null, null), conf,
-        new DefaultIteratorEnvironment(conf));
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
+        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -174,8 +179,8 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.majc, source, new KeyExtent(Table.ID.of("tab"), null, null), conf,
-        new DefaultIteratorEnvironment(conf));
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.majc, source,
+        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -207,11 +212,13 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter", "2," + AddingIter.class.getName());
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter", "1," + SquaringIter.class.getName());
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter",
+        "2," + AddingIter.class.getName());
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter",
+        "1," + SquaringIter.class.getName());
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(Table.ID.of("tab"), null, null), conf,
-        new DefaultIteratorEnvironment(conf));
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
+        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -235,9 +242,12 @@ public class IteratorUtilTest {
     ConfigurationCopy conf = new ConfigurationCopy();
 
     // create an iterator that adds 1 and then squares
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter", "1," + AddingIter.class.getName());
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter.opt.amount", "7");
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter", "2," + SquaringIter.class.getName());
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter",
+        "1," + AddingIter.class.getName());
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter.opt.amount",
+        "7");
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter",
+        "2," + SquaringIter.class.getName());
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
@@ -246,8 +256,8 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(Table.ID.of("tab"), null, null), conf,
-        new DefaultIteratorEnvironment(conf));
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
+        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -271,9 +281,11 @@ public class IteratorUtilTest {
     ConfigurationCopy conf = new ConfigurationCopy();
 
     // create an iterator that ages off
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".filter", "1," + AgeOffFilter.class.getName());
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".filter",
+        "1," + AgeOffFilter.class.getName());
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".filter.opt.ttl", "100");
-    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".filter.opt.currentTime", "1000");
+    conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".filter.opt.currentTime",
+        "1000");
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
@@ -282,8 +294,8 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(Table.ID.of("tab"), null, null), conf,
-        new DefaultIteratorEnvironment(conf));
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
+        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -301,7 +313,8 @@ public class IteratorUtilTest {
     // Make some configuration items, one with a bogus scope
     data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo", "50," + SummingCombiner.class.getName());
     data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.opt." + SummingCombiner.ALL_OPTION, "true");
-    data.put(Property.TABLE_ITERATOR_PREFIX + ".fakescope.bar", "50," + SummingCombiner.class.getName());
+    data.put(Property.TABLE_ITERATOR_PREFIX + ".fakescope.bar",
+        "50," + SummingCombiner.class.getName());
     data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.opt.fakeopt", "fakevalue");
 
     AccumuloConfiguration conf = new ConfigurationCopy(data);
@@ -317,7 +330,8 @@ public class IteratorUtilTest {
   }
 
   /**
-   * Iterators should not contain dots in the name. Also, if the split size on "." is greater than one, it should be 3, i.e., itername.opt.optname
+   * Iterators should not contain dots in the name. Also, if the split size on "." is greater than
+   * one, it should be 3, i.e., itername.opt.optname
    */
   @Test
   public void testInvalidIteratorFormats() {
@@ -329,7 +343,8 @@ public class IteratorUtilTest {
 
     // create iterator with 'dot' in name
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar", "50," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar",
+          "50," + SummingCombiner.class.getName());
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
     } catch (IllegalArgumentException ex) {
@@ -342,7 +357,8 @@ public class IteratorUtilTest {
     // create iterator with 'dot' in name and with split size of 3. If split size of three, then
     // second part must be 'opt'.
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar.baz", "49," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar.baz",
+          "49," + SummingCombiner.class.getName());
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
     } catch (IllegalArgumentException ex) {
@@ -354,7 +370,8 @@ public class IteratorUtilTest {
 
     // create iterator with invalid option format
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar", "48," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar",
+          "48," + SummingCombiner.class.getName());
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
@@ -370,7 +387,8 @@ public class IteratorUtilTest {
 
     // create iterator with 'opt' in incorrect position
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz", "47," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz",
+          "47," + SummingCombiner.class.getName());
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz.fake.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);

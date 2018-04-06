@@ -80,23 +80,27 @@ public class ThriftTransportKeyTest {
     clientConf.withSasl(true, primary);
 
     // A first instance of the SASL cnxn params
-    SaslConnectionParams saslParams1 = user1.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-      @Override
-      public SaslConnectionParams run() throws Exception {
-        return new SaslConnectionParams(clientConf, token);
-      }
-    });
+    SaslConnectionParams saslParams1 = user1
+        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+          @Override
+          public SaslConnectionParams run() throws Exception {
+            return new SaslConnectionParams(clientConf, token);
+          }
+        });
 
     // A second instance of what should be the same SaslConnectionParams
-    SaslConnectionParams saslParams2 = user1.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-      @Override
-      public SaslConnectionParams run() throws Exception {
-        return new SaslConnectionParams(clientConf, token);
-      }
-    });
+    SaslConnectionParams saslParams2 = user1
+        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+          @Override
+          public SaslConnectionParams run() throws Exception {
+            return new SaslConnectionParams(clientConf, token);
+          }
+        });
 
-    ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams1), ttk2 = new ThriftTransportKey(
-        HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams2);
+    ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l,
+        null, saslParams1),
+        ttk2 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l, null,
+            saslParams2);
 
     // Should equals() and hashCode() to make sure we don't throw away thrift cnxns
     assertEquals(ttk1, ttk2);
@@ -107,39 +111,43 @@ public class ThriftTransportKeyTest {
   public void testSaslPrincipalIsSignificant() throws IOException, InterruptedException {
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", new String[0]);
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
-    SaslConnectionParams saslParams1 = user1.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-      @Override
-      public SaslConnectionParams run() throws Exception {
-        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    SaslConnectionParams saslParams1 = user1
+        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+          @Override
+          public SaslConnectionParams run() throws Exception {
+            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
 
-        // The primary is the first component of the principal
-        final String primary = "accumulo";
-        clientConf.withSasl(true, primary);
+            // The primary is the first component of the principal
+            final String primary = "accumulo";
+            clientConf.withSasl(true, primary);
 
-        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
 
-        return new SaslConnectionParams(clientConf, token);
-      }
-    });
+            return new SaslConnectionParams(clientConf, token);
+          }
+        });
 
     UserGroupInformation user2 = UserGroupInformation.createUserForTesting("user2", new String[0]);
-    SaslConnectionParams saslParams2 = user2.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-      @Override
-      public SaslConnectionParams run() throws Exception {
-        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    SaslConnectionParams saslParams2 = user2
+        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+          @Override
+          public SaslConnectionParams run() throws Exception {
+            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
 
-        // The primary is the first component of the principal
-        final String primary = "accumulo";
-        clientConf.withSasl(true, primary);
+            // The primary is the first component of the principal
+            final String primary = "accumulo";
+            clientConf.withSasl(true, primary);
 
-        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
 
-        return new SaslConnectionParams(clientConf, token);
-      }
-    });
+            return new SaslConnectionParams(clientConf, token);
+          }
+        });
 
-    ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams1), ttk2 = new ThriftTransportKey(
-        HostAndPort.fromParts("localhost", 9997), 1l, null, saslParams2);
+    ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l,
+        null, saslParams1),
+        ttk2 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1l, null,
+            saslParams2);
 
     assertNotEquals(ttk1, ttk2);
     assertNotEquals(ttk1.hashCode(), ttk2.hashCode());
@@ -154,7 +162,8 @@ public class ThriftTransportKeyTest {
 
     replay(clientCtx);
 
-    ThriftTransportKey ttk = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000, clientCtx);
+    ThriftTransportKey ttk = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999),
+        120 * 1000, clientCtx);
 
     assertTrue("Normal ThriftTransportKey doesn't equal itself", ttk.equals(ttk));
   }

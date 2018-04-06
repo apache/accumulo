@@ -56,7 +56,8 @@ public class ProblemSummaryInformation {
    * @param tableLoad
    *          Number of table loads
    */
-  public ProblemSummaryInformation(String tableName, Table.ID tableId, Integer fileRead, Integer fileWrite, Integer tableLoad) {
+  public ProblemSummaryInformation(String tableName, Table.ID tableId, Integer fileRead,
+      Integer fileWrite, Integer tableLoad) {
     this.tableName = tableName;
     this.tableID = tableId;
     this.fileRead = fileRead;

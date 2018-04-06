@@ -134,7 +134,10 @@ abstract class TabletGroupWatcher extends Daemon {
     return stats.getLast(tableId);
   }
 
-  /** True if the collection of live tservers specified in 'candidates' hasn't changed since the last time an assignment scan was started. */
+  /**
+   * True if the collection of live tservers specified in 'candidates' hasn't changed since the last
+   * time an assignment scan was started.
+   */
   public synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
     return candidates.equals(lastScanServers);
   }
@@ -209,8 +212,10 @@ abstract class TabletGroupWatcher extends Daemon {
             Master.log.trace("{} walogs {}", tls, tls.walogs.size());
 
           // Don't overwhelm the tablet servers with work
-          if (unassigned.size() + unloaded > Master.MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
-            flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, suspendedToGoneServers, unassigned);
+          if (unassigned.size() + unloaded > Master.MAX_TSERVER_WORK_CHUNK
+              * currentTServers.size()) {
+            flushChanges(destinations, assignments, assigned, assignedToDeadServers,
+                logsForDeadServers, suspendedToGoneServers, unassigned);
             assignments.clear();
             assigned.clear();
             assignedToDeadServers.clear();
@@ -220,7 +225,8 @@ abstract class TabletGroupWatcher extends Daemon {
             eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           }
           Table.ID tableId = tls.extent.getTableId();
-          TableConfiguration tableConf = this.master.getConfigurationFactory().getTableConfiguration(tableId);
+          TableConfiguration tableConf = this.master.getConfigurationFactory()
+              .getTableConfiguration(tableId);
 
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {
@@ -275,10 +281,12 @@ abstract class TabletGroupWatcher extends Daemon {
                 }
                 break;
               case SUSPENDED:
-                if (master.getSteadyTime() - tls.suspend.suspensionTime < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
+                if (master.getSteadyTime() - tls.suspend.suspensionTime < tableConf
+                    .getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
                   // Tablet is suspended. See if its tablet server is back.
                   TServerInstance returnInstance = null;
-                  Iterator<TServerInstance> find = destinations.tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
+                  Iterator<TServerInstance> find = destinations
+                      .tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
                   if (find.hasNext()) {
                     TServerInstance found = find.next();
                     if (found.getLocation().equals(tls.suspend.server)) {
@@ -331,13 +339,15 @@ abstract class TabletGroupWatcher extends Daemon {
               case ASSIGNED_TO_DEAD_SERVER:
                 assignedToDeadServers.add(tls);
                 if (!logsForDeadServers.containsKey(tls.futureOrCurrent())) {
-                  logsForDeadServers.put(tls.futureOrCurrent(), wals.getWalsInUse(tls.futureOrCurrent()));
+                  logsForDeadServers.put(tls.futureOrCurrent(),
+                      wals.getWalsInUse(tls.futureOrCurrent()));
                 }
                 break;
               case HOSTED:
                 TServerConnection conn = this.master.tserverSet.getConnection(server);
                 if (conn != null) {
-                  conn.unloadTablet(this.master.masterLock, tls.extent, goal.howUnload(), master.getSteadyTime());
+                  conn.unloadTablet(this.master.masterLock, tls.extent, goal.howUnload(),
+                      master.getSteadyTime());
                   unloaded++;
                   totalUnloaded++;
                 } else {
@@ -351,7 +361,8 @@ abstract class TabletGroupWatcher extends Daemon {
           counts[state.ordinal()]++;
         }
 
-        flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, suspendedToGoneServers, unassigned);
+        flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers,
+            suspendedToGoneServers, unassigned);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(masterState);
@@ -360,10 +371,12 @@ abstract class TabletGroupWatcher extends Daemon {
         for (TabletState state : TabletState.values()) {
           int i = state.ordinal();
           if (counts[i] > 0 && counts[i] != oldCounts[i]) {
-            this.master.nextEvent.event("[%s]: %d tablets are %s", store.name(), counts[i], state.name());
+            this.master.nextEvent.event("[%s]: %d tablets are %s", store.name(), counts[i],
+                state.name());
           }
         }
-        Master.log.debug(String.format("[%s]: scan time %.2f seconds", store.name(), stats.getScanTime() / 1000.));
+        Master.log.debug(String.format("[%s]: scan time %.2f seconds", store.name(),
+            stats.getScanTime() / 1000.));
         oldCounts = counts;
         if (totalUnloaded > 0) {
           this.master.nextEvent.event("[%s]: %d tablets unloaded", store.name(), totalUnloaded);
@@ -375,7 +388,8 @@ abstract class TabletGroupWatcher extends Daemon {
           lastScanServers = ImmutableSortedSet.copyOf(currentTServers.keySet());
         }
         if (this.master.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
-          Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
+          Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(),
+              Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
           eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
         } else {
           Master.log.info("Detected change in current tserver set, re-running state machine.");
@@ -409,7 +423,8 @@ abstract class TabletGroupWatcher extends Daemon {
 
   private void repairMetadata(Text row) {
     Master.log.debug("Attempting repair on {}", row);
-    // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it may cause duplicate assignment.
+    // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it
+    // may cause duplicate assignment.
     // Attempt to find the dead server entry and remove it.
     try {
       Map<Key,Value> future = new HashMap<>();
@@ -436,16 +451,19 @@ abstract class TabletGroupWatcher extends Daemon {
       } else if (future.size() == 0 && assigned.size() > 1) {
         Master.log.warn("Found a tablet hosted on multiple servers, attempting to repair");
       } else {
-        Master.log.info("Attempted a repair, but nothing seems to be obviously wrong. {} {}", assigned, future);
+        Master.log.info("Attempted a repair, but nothing seems to be obviously wrong. {} {}",
+            assigned, future);
         return;
       }
-      Iterator<Entry<Key,Value>> iter = Iterators.concat(future.entrySet().iterator(), assigned.entrySet().iterator());
+      Iterator<Entry<Key,Value>> iter = Iterators.concat(future.entrySet().iterator(),
+          assigned.entrySet().iterator());
       while (iter.hasNext()) {
         Entry<Key,Value> entry = iter.next();
         TServerInstance alive = master.tserverSet.find(entry.getValue().toString());
         if (alive == null) {
           Master.log.info("Removing entry  {}", entry);
-          BatchWriter bw = this.master.getConnector().createBatchWriter(table, new BatchWriterConfig());
+          BatchWriter bw = this.master.getConnector().createBatchWriter(table,
+              new BatchWriterConfig());
           Mutation m = new Mutation(entry.getKey().getRow());
           m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
           bw.addMutation(m);
@@ -453,7 +471,9 @@ abstract class TabletGroupWatcher extends Daemon {
           return;
         }
       }
-      Master.log.error("Metadata table is inconsistent at {} and all assigned/future tservers are still online.", row);
+      Master.log.error(
+          "Metadata table is inconsistent at {} and all assigned/future tservers are still online.",
+          row);
     } catch (Throwable e) {
       Master.log.error("Error attempting repair of metadata " + row + ": " + e, e);
     }
@@ -561,7 +581,8 @@ abstract class TabletGroupWatcher extends Daemon {
           }
         }
       } catch (Exception ex) {
-        Master.log.error("Unable to update merge state for merge " + stats.getMergeInfo().getExtent(), ex);
+        Master.log.error(
+            "Unable to update merge state for merge " + stats.getMergeInfo().getExtent(), ex);
       }
     }
   }
@@ -574,7 +595,8 @@ abstract class TabletGroupWatcher extends Daemon {
     KeyExtent followingTablet = null;
     if (extent.getEndRow() != null) {
       Key nextExtent = new Key(extent.getEndRow()).followingKey(PartialKey.ROW);
-      followingTablet = getHighTablet(new KeyExtent(extent.getTableId(), nextExtent.getRow(), extent.getEndRow()));
+      followingTablet = getHighTablet(
+          new KeyExtent(extent.getTableId(), nextExtent.getRow(), extent.getEndRow()));
       Master.log.debug("Found following tablet {}", followingTablet);
     }
     try {
@@ -584,8 +606,8 @@ abstract class TabletGroupWatcher extends Daemon {
         start = new Text();
       }
       Master.log.debug("Making file deletion entries for {}", extent);
-      Range deleteRange = new Range(KeyExtent.getMetadataEntry(extent.getTableId(), start), false, KeyExtent.getMetadataEntry(extent.getTableId(),
-          extent.getEndRow()), true);
+      Range deleteRange = new Range(KeyExtent.getMetadataEntry(extent.getTableId(), start), false,
+          KeyExtent.getMetadataEntry(extent.getTableId(), extent.getEndRow()), true);
       Scanner scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(deleteRange);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
@@ -604,15 +626,19 @@ abstract class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           timeType = entry.getValue().toString().charAt(0);
         } else if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
-          throw new IllegalStateException("Tablet " + key.getRow() + " is assigned during a merge!");
+          throw new IllegalStateException(
+              "Tablet " + key.getRow() + " is assigned during a merge!");
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          // ACCUMULO-2974 Need to include the TableID when converting a relative path to an absolute path.
-          // The value has the leading path separator already included so it doesn't need it included.
+          // ACCUMULO-2974 Need to include the TableID when converting a relative path to an
+          // absolute path.
+          // The value has the leading path separator already included so it doesn't need it
+          // included.
           String path = entry.getValue().toString();
           if (path.contains(":")) {
             datafiles.add(new FileRef(path));
           } else {
-            datafiles.add(new FileRef(path, this.master.fs.getFullPath(FileType.TABLE, Path.SEPARATOR + extent.getTableId() + path)));
+            datafiles.add(new FileRef(path, this.master.fs.getFullPath(FileType.TABLE,
+                Path.SEPARATOR + extent.getTableId() + path)));
           }
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, master);
@@ -633,7 +659,8 @@ abstract class TabletGroupWatcher extends Daemon {
         bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
         try {
           Mutation m = new Mutation(followingTablet.getMetadataEntry());
-          TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
+          TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m,
+              KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
           ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
           bw.addMutation(m);
           bw.flush();
@@ -644,11 +671,15 @@ abstract class TabletGroupWatcher extends Daemon {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to {}", extent.getPrevEndRow());
         VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId());
-        String tdir = master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
-        MetadataTableUtil.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master, timeType, this.master.masterLock);
+        String tdir = master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris())
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.getTableId()
+            + Constants.DEFAULT_TABLET_LOCATION;
+        MetadataTableUtil.addTablet(
+            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master,
+            timeType, this.master.masterLock);
       }
-    } catch (RuntimeException | IOException | TableNotFoundException | AccumuloSecurityException ex) {
+    } catch (RuntimeException | IOException | TableNotFoundException
+        | AccumuloSecurityException ex) {
       throw new AccumuloException(ex);
     }
   }
@@ -664,7 +695,8 @@ abstract class TabletGroupWatcher extends Daemon {
     if (start == null) {
       start = new Text();
     }
-    Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, stopRow, false);
+    Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false,
+        stopRow, false);
     String targetSystemTable = MetadataTable.NAME;
     if (range.isMeta()) {
       targetSystemTable = RootTable.NAME;
@@ -690,13 +722,15 @@ abstract class TabletGroupWatcher extends Daemon {
         if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
           fileCount++;
-        } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
+        } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)
+            && firstPrevRowValue == null) {
           Master.log.debug("prevRow entry for lowest tablet is {}", value);
           firstPrevRowValue = new Value(value);
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          bw.addMutation(MetadataTableUtil.createDeleteMutation(range.getTableId(), entry.getValue().toString()));
+          bw.addMutation(MetadataTableUtil.createDeleteMutation(range.getTableId(),
+              entry.getValue().toString()));
         }
       }
 
@@ -753,14 +787,16 @@ abstract class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, Connector conn) throws TableNotFoundException, MutationsRejectedException {
+  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, Connector conn)
+      throws TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     Mutation m;
     // Delete everything in the other tablets
     // group all deletes into tablet into one mutation, this makes tablets
     // either disappear entirely or not all.. this is important for the case
     // where the process terminates in the loop below...
-    scanner = conn.createScanner(info.getExtent().isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
+    scanner = conn.createScanner(info.getExtent().isMeta() ? RootTable.NAME : MetadataTable.NAME,
+        Authorizations.EMPTY);
     Master.log.debug("Deleting range {}", scanRange);
     scanner.setRange(scanRange);
     RowIterator rowIter = new RowIterator(scanner);
@@ -786,7 +822,8 @@ abstract class TabletGroupWatcher extends Daemon {
   private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
     try {
       Connector conn = this.master.getConnector();
-      Scanner scanner = conn.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner scanner = conn.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
+          Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
       scanner.setRange(new Range(start.getMetadataEntry(), null));
@@ -795,23 +832,29 @@ abstract class TabletGroupWatcher extends Daemon {
         throw new AccumuloException("No last tablet for a merge " + range);
       }
       Entry<Key,Value> entry = iterator.next();
-      KeyExtent highTablet = new KeyExtent(entry.getKey().getRow(), KeyExtent.decodePrevEndRow(entry.getValue()));
+      KeyExtent highTablet = new KeyExtent(entry.getKey().getRow(),
+          KeyExtent.decodePrevEndRow(entry.getValue()));
       if (!highTablet.getTableId().equals(range.getTableId())) {
         throw new AccumuloException("No last tablet for merge " + range + " " + highTablet);
       }
       return highTablet;
     } catch (Exception ex) {
-      throw new AccumuloException("Unexpected failure finding the last tablet for a merge " + range, ex);
+      throw new AccumuloException("Unexpected failure finding the last tablet for a merge " + range,
+          ex);
     }
   }
 
-  private void flushChanges(SortedMap<TServerInstance,TabletServerStatus> currentTServers, List<Assignment> assignments, List<Assignment> assigned,
-      List<TabletLocationState> assignedToDeadServers, Map<TServerInstance,List<Path>> logsForDeadServers, List<TabletLocationState> suspendedToGoneServers,
-      Map<KeyExtent,TServerInstance> unassigned) throws DistributedStoreException, TException, WalMarkerException {
+  private void flushChanges(SortedMap<TServerInstance,TabletServerStatus> currentTServers,
+      List<Assignment> assignments, List<Assignment> assigned,
+      List<TabletLocationState> assignedToDeadServers,
+      Map<TServerInstance,List<Path>> logsForDeadServers,
+      List<TabletLocationState> suspendedToGoneServers, Map<KeyExtent,TServerInstance> unassigned)
+      throws DistributedStoreException, TException, WalMarkerException {
     boolean tabletsSuspendable = canSuspendTablets();
     if (!assignedToDeadServers.isEmpty()) {
       int maxServersToShow = min(assignedToDeadServers.size(), 100);
-      Master.log.debug("{} assigned to dead servers: {}...", assignedToDeadServers.size(), assignedToDeadServers.subList(0, maxServersToShow));
+      Master.log.debug("{} assigned to dead servers: {}...", assignedToDeadServers.size(),
+          assignedToDeadServers.subList(0, maxServersToShow));
       Master.log.debug("logs for dead servers: {}", logsForDeadServers);
       if (tabletsSuspendable) {
         store.suspend(assignedToDeadServers, logsForDeadServers, master.getSteadyTime());
@@ -819,23 +862,29 @@ abstract class TabletGroupWatcher extends Daemon {
         store.unassign(assignedToDeadServers, logsForDeadServers);
       }
       this.master.markDeadServerLogsAsClosed(logsForDeadServers);
-      this.master.nextEvent.event("Marked %d tablets as suspended because they don't have current servers", assignedToDeadServers.size());
+      this.master.nextEvent.event(
+          "Marked %d tablets as suspended because they don't have current servers",
+          assignedToDeadServers.size());
     }
     if (!suspendedToGoneServers.isEmpty()) {
       int maxServersToShow = min(assignedToDeadServers.size(), 100);
-      Master.log.debug(assignedToDeadServers.size() + " suspended to gone servers: " + assignedToDeadServers.subList(0, maxServersToShow) + "...");
+      Master.log.debug(assignedToDeadServers.size() + " suspended to gone servers: "
+          + assignedToDeadServers.subList(0, maxServersToShow) + "...");
       store.unsuspend(suspendedToGoneServers);
     }
 
     if (!currentTServers.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
       final StringBuilder builder = new StringBuilder(64);
-      this.master.tabletBalancer.getAssignments(Collections.unmodifiableSortedMap(currentTServers), Collections.unmodifiableMap(unassigned), assignedOut);
+      this.master.tabletBalancer.getAssignments(Collections.unmodifiableSortedMap(currentTServers),
+          Collections.unmodifiableMap(unassigned), assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {
             if (!currentTServers.containsKey(assignment.getValue())) {
-              Master.log.warn("balancer assigned {} to a tablet server that is not current {} ignoring", assignment.getKey(), assignment.getValue());
+              Master.log.warn(
+                  "balancer assigned {} to a tablet server that is not current {} ignoring",
+                  assignment.getKey(), assignment.getValue());
               continue;
             }
 
@@ -855,7 +904,9 @@ abstract class TabletGroupWatcher extends Daemon {
             assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
           }
         } else {
-          Master.log.warn("{} load balancer assigning tablet that was not nominated for assignment {}", store.name(), assignment.getKey());
+          Master.log.warn(
+              "{} load balancer assigning tablet that was not nominated for assignment {}",
+              store.name(), assignment.getKey());
         }
       }
 

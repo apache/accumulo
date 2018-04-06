@@ -74,7 +74,8 @@ public class ReplicationResource {
    * @return Replication list
    */
   @GET
-  public List<ReplicationInformation> getReplicationInformation() throws AccumuloException, AccumuloSecurityException {
+  public List<ReplicationInformation> getReplicationInformation()
+      throws AccumuloException, AccumuloSecurityException {
     final Connector conn = Monitor.getContext().getConnector();
 
     final TableOperations tops = conn.tableOperations();
@@ -88,14 +89,16 @@ public class ReplicationResource {
     for (Entry<String,String> property : properties.entrySet()) {
       String key = property.getKey();
       // Filter out cruft that we don't want
-      if (key.startsWith(definedPeersPrefix) && !key.startsWith(Property.REPLICATION_PEER_USER.getKey())
+      if (key.startsWith(definedPeersPrefix)
+          && !key.startsWith(Property.REPLICATION_PEER_USER.getKey())
           && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
         String peerName = property.getKey().substring(definedPeersPrefix.length());
         ReplicaSystem replica;
         try {
           replica = replicaSystemFactory.get(property.getValue());
         } catch (Exception e) {
-          log.warn("Could not instantiate ReplicaSystem for {} with configuration {}", property.getKey(), property.getValue(), e);
+          log.warn("Could not instantiate ReplicaSystem for {} with configuration {}",
+              property.getKey(), property.getValue(), e);
           continue;
         }
 
@@ -161,7 +164,8 @@ public class ReplicationResource {
         k.getColumnQualifier(buffer);
         ReplicationTarget target = ReplicationTarget.from(buffer);
 
-        // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates instead of just file-based
+        // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates
+        // instead of just file-based
         Long count = targetCounts.get(target);
         if (null == count) {
           targetCounts.put(target, 1l);
@@ -183,13 +187,15 @@ public class ReplicationResource {
 
       String replicaSystemClass = peers.get(configuredTarget.getPeerName());
       if (null == replicaSystemClass) {
-        log.trace("Could not determine configured ReplicaSystem for {}", configuredTarget.getPeerName());
+        log.trace("Could not determine configured ReplicaSystem for {}",
+            configuredTarget.getPeerName());
         continue;
       }
 
       Long numFiles = targetCounts.get(configuredTarget);
 
-      replicationInformation.add(new ReplicationInformation(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(),
+      replicationInformation.add(new ReplicationInformation(tableName,
+          configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(),
           replicaSystemClass, (null == numFiles) ? 0 : numFiles));
     }
 

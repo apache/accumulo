@@ -38,13 +38,15 @@ public class FlushCommand extends TableOperation {
   }
 
   @Override
-  protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  protected void doTableOp(final Shell shellState, final String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
     Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     wait = cl.hasOption(waitOpt.getLongOpt());
     startRow = OptUtil.getStartRow(cl);
     endRow = OptUtil.getEndRow(cl);

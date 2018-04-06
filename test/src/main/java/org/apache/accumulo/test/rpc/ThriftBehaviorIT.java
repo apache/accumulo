@@ -67,13 +67,14 @@ public class ThriftBehaviorIT {
 
   @Before
   public void createClientAndServer() {
-    Arrays.stream(new Class<?>[] {TSimpleServer.class, ProcessFunction.class}).forEach(spammyClass -> {
-      Logger spammyLogger = Logger.getLogger(spammyClass);
-      oldLogLevels.put(spammyLogger, spammyLogger.getLevel());
-      if (SUPPRESS_SPAMMY_LOGGERS) {
-        spammyLogger.setLevel(Level.OFF);
-      }
-    });
+    Arrays.stream(new Class<?>[] {TSimpleServer.class, ProcessFunction.class})
+        .forEach(spammyClass -> {
+          Logger spammyLogger = Logger.getLogger(spammyClass);
+          oldLogLevels.put(spammyLogger, spammyLogger.getLevel());
+          if (SUPPRESS_SPAMMY_LOGGERS) {
+            spammyLogger.setLevel(Level.OFF);
+          }
+        });
 
     String threadName = ThriftBehaviorIT.class.getSimpleName() + "." + testName.getMethodName();
     serviceRunner = new SimpleThriftServiceRunner(threadName, USE_RPC_WRAPPER);

@@ -70,7 +70,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
   private void scanTable(Connector c, String table) throws Exception {
     scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(1, 0, 0, 0));
 
-    scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
+    scanRange(c, table, new IntKey(0, 0, 0, 0),
+        new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
 
     scanRange(c, table, null, null);
 
@@ -80,7 +81,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
           scanRange(c, table, null, new IntKey(i, j, k, 0));
           scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(i, j, k, 0));
 
-          scanRange(c, table, new IntKey(i, j, k, 0), new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
+          scanRange(c, table, new IntKey(i, j, k, 0),
+              new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
 
           scanRange(c, table, new IntKey(i, j, k, 0), null);
 
@@ -92,7 +94,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
       scanRange(c, table, new IntKey(i, 0, 0, 0), new IntKey(i, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
 
       if (i > 0 && i < ROW_LIMIT - 1) {
-        scanRange(c, table, new IntKey(i - 1, 0, 0, 0), new IntKey(i + 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
+        scanRange(c, table, new IntKey(i - 1, 0, 0, 0),
+            new IntKey(i + 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
       }
     }
 
@@ -156,7 +159,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
     scanRange(c, table, ik1, true, ik2, true);
   }
 
-  private void scanRange(Connector c, String table, IntKey ik1, boolean inclusive1, IntKey ik2, boolean inclusive2) throws Exception {
+  private void scanRange(Connector c, String table, IntKey ik1, boolean inclusive1, IntKey ik2,
+      boolean inclusive2) throws Exception {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
 
       Key key1 = null;
@@ -202,7 +206,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
       }
 
       if (!expectedIntKey.createKey().equals(expectedEndIntKey.createKey())) {
-        throw new Exception(" " + expectedIntKey.createKey() + " != " + expectedEndIntKey.createKey());
+        throw new Exception(
+            " " + expectedIntKey.createKey() + " != " + expectedEndIntKey.createKey());
       }
     }
   }
@@ -232,7 +237,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
       for (int j = 0; j < CF_LIMIT; j++) {
         for (int k = 0; k < CQ_LIMIT; k++) {
           for (int t = 0; t < TS_LIMIT; t++) {
-            m.put(createCF(j), createCQ(k), t, new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes(UTF_8)));
+            m.put(createCF(j), createCQ(k), t,
+                new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes(UTF_8)));
           }
         }
       }

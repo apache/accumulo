@@ -52,7 +52,8 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "10K");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "0");
-    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 3, MemoryUnit.BYTE);
+    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 3,
+        MemoryUnit.BYTE);
   }
 
   @Override
@@ -98,7 +99,8 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       }
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
-        log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment", unassignedTablets);
+        log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
+            unassignedTablets);
         Thread.sleep(3000);
       }
     }
@@ -117,8 +119,8 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
     assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
     for (int i = 1; i < counts.size(); i++) {
       int diff = Math.abs(counts.get(0) - counts.get(i));
-      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size() + " but was " + diff + ". Counts " + counts,
-          diff <= tservers.size());
+      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
+          + " but was " + diff + ". Counts " + counts, diff <= tservers.size());
     }
   }
 

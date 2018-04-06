@@ -112,7 +112,8 @@ public class ReplicationTableUtil {
       // Set our combiner and combine all columns
       // Need to set the combiner beneath versioning since we don't want to turn it off
       IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, StatusCombiner.class);
-      Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
+      Combiner.setColumns(setting,
+          Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
       try {
         tops.attachIterator(tableName, setting);
       } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
@@ -131,22 +132,26 @@ public class ReplicationTableUtil {
     for (Entry<String,String> property : properties) {
       if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
         if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
-          log.info("Setting formatter for {} from {} to {}", tableName, property.getValue(), STATUS_FORMATTER_CLASS_NAME);
+          log.info("Setting formatter for {} from {} to {}", tableName, property.getValue(),
+              STATUS_FORMATTER_CLASS_NAME);
           try {
-            tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(), STATUS_FORMATTER_CLASS_NAME);
+            tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
+                STATUS_FORMATTER_CLASS_NAME);
           } catch (AccumuloException | AccumuloSecurityException e) {
             throw new RuntimeException(e);
           }
         }
 
-        // Don't need to keep iterating over the properties after we found the one we were looking for
+        // Don't need to keep iterating over the properties after we found the one we were looking
+        // for
         return;
       }
     }
 
     // Set the formatter on the table because it wasn't already there
     try {
-      tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(), STATUS_FORMATTER_CLASS_NAME);
+      tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
+          STATUS_FORMATTER_CLASS_NAME);
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException(e);
     }
@@ -161,7 +166,8 @@ public class ReplicationTableUtil {
       try {
         t.update(m);
         return;
-      } catch (AccumuloException | TableNotFoundException | ConstraintViolationException | AccumuloSecurityException e) {
+      } catch (AccumuloException | TableNotFoundException | ConstraintViolationException
+          | AccumuloSecurityException e) {
         log.error(e.toString(), e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
@@ -171,11 +177,14 @@ public class ReplicationTableUtil {
   /**
    * Write replication ingest entries for each provided file with the given {@link Status}.
    */
-  public static void updateFiles(ClientContext context, KeyExtent extent, String file, Status stat) {
+  public static void updateFiles(ClientContext context, KeyExtent extent, String file,
+      Status stat) {
     if (log.isDebugEnabled()) {
-      log.debug("Updating replication status for {} with {} using {}", extent, file, ProtobufUtil.toString(stat));
+      log.debug("Updating replication status for {} with {} using {}", extent, file,
+          ProtobufUtil.toString(stat));
     }
-    // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
+    // TODO could use batch writer, would need to handle failure and retry like update does -
+    // ACCUMULO-1294
 
     Value v = ProtobufUtil.toValue(stat);
     update(context, createUpdateMutation(new Path(file), v, extent), extent);
@@ -183,7 +192,8 @@ public class ReplicationTableUtil {
 
   static Mutation createUpdateMutation(Path file, Value v, KeyExtent extent) {
     // Need to normalize the file path so we can assuredly find it again later
-    return createUpdateMutation(new Text(ReplicationSection.getRowPrefix() + file.toString()), v, extent);
+    return createUpdateMutation(new Text(ReplicationSection.getRowPrefix() + file.toString()), v,
+        extent);
   }
 
   private static Mutation createUpdateMutation(Text row, Value v, KeyExtent extent) {

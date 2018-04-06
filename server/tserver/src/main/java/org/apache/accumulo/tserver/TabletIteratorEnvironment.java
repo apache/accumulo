@@ -62,8 +62,10 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.topLevelIterators = new ArrayList<>();
   }
 
-  private TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
-      Authorizations authorizations, SamplerConfigurationImpl samplerConfig, ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
+  private TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
+      ScanFileManager trm, Map<FileRef,DataFileValue> files, Authorizations authorizations,
+      SamplerConfigurationImpl samplerConfig,
+      ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
@@ -83,14 +85,17 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.topLevelIterators = topLevelIterators;
   }
 
-  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
-      Authorizations authorizations, SamplerConfigurationImpl samplerConfig) {
+  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
+      ScanFileManager trm, Map<FileRef,DataFileValue> files, Authorizations authorizations,
+      SamplerConfigurationImpl samplerConfig) {
     this(scope, config, trm, files, authorizations, samplerConfig, new ArrayList<>());
   }
 
-  public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC, AccumuloConfiguration config) {
+  public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC,
+      AccumuloConfiguration config) {
     if (scope != IteratorScope.majc)
-      throw new IllegalArgumentException("Tried to set maj compaction type when scope was " + scope);
+      throw new IllegalArgumentException(
+          "Tried to set maj compaction type when scope was " + scope);
 
     this.scope = scope;
     this.trm = null;
@@ -118,7 +123,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+      throws IOException {
     FileRef ref = new FileRef(mapFileName, new Path(mapFileName));
     return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
   }
@@ -131,11 +137,13 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   @Override
   public Authorizations getAuthorizations() {
     if (scope != IteratorScope.scan)
-      throw new UnsupportedOperationException("Authorizations may only be supplied when scope is scan but scope is " + scope);
+      throw new UnsupportedOperationException(
+          "Authorizations may only be supplied when scope is scan but scope is " + scope);
     return authorizations;
   }
 
-  public SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
+  public SortedKeyValueIterator<Key,Value> getTopLevelIterator(
+      SortedKeyValueIterator<Key,Value> iter) {
     if (topLevelIterators.isEmpty())
       return iter;
     ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
@@ -172,7 +180,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
       throw new SampleNotPresentException();
     }
 
-    TabletIteratorEnvironment te = new TabletIteratorEnvironment(scope, config, trm, files, authorizations, sci, topLevelIterators);
+    TabletIteratorEnvironment te = new TabletIteratorEnvironment(scope, config, trm, files,
+        authorizations, sci, topLevelIterators);
     return te;
   }
 }

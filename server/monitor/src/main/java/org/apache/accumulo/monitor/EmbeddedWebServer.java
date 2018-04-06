@@ -42,14 +42,16 @@ public class EmbeddedWebServer {
     connector.setHost(host);
     connector.setPort(port);
 
-    handler = new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
+    handler = new ServletContextHandler(
+        ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
     handler.getSessionHandler().getSessionManager().getSessionCookieConfig().setHttpOnly(true);
     handler.setContextPath("/");
   }
 
   private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf) {
     HttpConnectionFactory httpFactory = new HttpConnectionFactory();
-    EnumSet<Property> requireForSecure = EnumSet.of(Property.MONITOR_SSL_KEYSTORE, Property.MONITOR_SSL_KEYSTOREPASS, Property.MONITOR_SSL_TRUSTSTORE,
+    EnumSet<Property> requireForSecure = EnumSet.of(Property.MONITOR_SSL_KEYSTORE,
+        Property.MONITOR_SSL_KEYSTOREPASS, Property.MONITOR_SSL_TRUSTSTORE,
         Property.MONITOR_SSL_TRUSTSTOREPASS);
     if (requireForSecure.stream().map(p -> conf.get(p)).anyMatch(s -> s == null || s.isEmpty())) {
       return new AbstractConnectionFactory[] {httpFactory};
@@ -77,7 +79,8 @@ public class EmbeddedWebServer {
         sslContextFactory.setIncludeProtocols(StringUtils.split(includeProtocols, ','));
       }
 
-      SslConnectionFactory sslFactory = new SslConnectionFactory(sslContextFactory, httpFactory.getProtocol());
+      SslConnectionFactory sslFactory = new SslConnectionFactory(sslContextFactory,
+          httpFactory.getProtocol());
       return new AbstractConnectionFactory[] {sslFactory, httpFactory};
     }
   }

@@ -58,7 +58,8 @@ public class TimeSettingIterator implements InterruptibleIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
 
   }
 
@@ -73,7 +74,8 @@ public class TimeSettingIterator implements InterruptibleIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
     seekRange = IteratorUtil.minimizeEndKeyTimeStamp(seekRange);
     source.seek(seekRange, columnFamilies, inclusive);

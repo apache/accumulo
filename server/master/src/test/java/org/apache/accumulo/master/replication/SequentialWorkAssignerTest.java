@@ -59,9 +59,12 @@ public class SequentialWorkAssignerTest {
     Map<String,Map<Table.ID,String>> queuedWork = new TreeMap<>();
     Map<Table.ID,String> cluster1Work = new TreeMap<>();
 
-    // Two files for cluster1, one for table '1' and another for table '2' we havce assigned work for
-    cluster1Work.put(Table.ID.of("1"), DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1", new ReplicationTarget("cluster1", "1", Table.ID.of("1"))));
-    cluster1Work.put(Table.ID.of("2"), DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2", new ReplicationTarget("cluster1", "2", Table.ID.of("2"))));
+    // Two files for cluster1, one for table '1' and another for table '2' we havce assigned work
+    // for
+    cluster1Work.put(Table.ID.of("1"), DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
+        new ReplicationTarget("cluster1", "1", Table.ID.of("1"))));
+    cluster1Work.put(Table.ID.of("2"), DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
+        new ReplicationTarget("cluster1", "2", Table.ID.of("2"))));
 
     queuedWork.put("cluster1", cluster1Work);
 
@@ -74,13 +77,16 @@ public class SequentialWorkAssignerTest {
     expect(inst.getInstanceID()).andReturn("instance");
 
     // file1 replicated
-    expect(
-        zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
-            + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1", new ReplicationTarget("cluster1", "1", Table.ID.of("1"))))).andReturn(null);
+    expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
+        + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
+            new ReplicationTarget("cluster1", "1", Table.ID.of("1"))))).andReturn(null);
     // file2 still needs to replicate
     expect(
-        zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
-            + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2", new ReplicationTarget("cluster1", "2", Table.ID.of("2"))))).andReturn(new byte[0]);
+        zooCache
+            .get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
+                + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
+                    new ReplicationTarget("cluster1", "2", Table.ID.of("2")))))
+                        .andReturn(new byte[0]);
 
     replay(workQueue, zooCache, conn, inst);
 
@@ -89,7 +95,9 @@ public class SequentialWorkAssignerTest {
     verify(workQueue, zooCache, conn, inst);
 
     Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2", new ReplicationTarget("cluster1", "2", Table.ID.of("2"))),
+    Assert.assertEquals(
+        DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
+            new ReplicationTarget("cluster1", "2", Table.ID.of("2"))),
         cluster1Work.get(Table.ID.of("2")));
   }
 }

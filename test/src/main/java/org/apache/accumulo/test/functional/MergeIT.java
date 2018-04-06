@@ -87,7 +87,8 @@ public class MergeIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
+    c.tableOperations().addSplits(tableName,
+        splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
     BatchWriter bw = c.createBatchWriter(tableName, null);
     for (String row : "c e f y".split(" ")) {
       Mutation m = new Mutation(row);
@@ -98,7 +99,8 @@ public class MergeIT extends AccumuloClusterHarness {
     c.tableOperations().flush(tableName, null, null, true);
     Merge merge = new Merge();
     merge.mergomatic(c, tableName, null, null, 100, false);
-    assertArrayEquals("b c d e f x y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
+    assertArrayEquals("b c d e f x y".split(" "),
+        toStrings(c.tableOperations().listSplits(tableName)));
     merge.mergomatic(c, tableName, null, null, 100, true);
     assertArrayEquals("c e f y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
   }
@@ -123,25 +125,38 @@ public class MergeIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
 
-    runMergeTest(c, tableName + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
-    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"), ns(null, "z"));
-    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"), ns("l", "m"));
+    runMergeTest(c, tableName + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"),
+        ns(null, "n"));
+    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"),
+        ns(null, "z"));
+    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"),
+        ns("l", "m"));
 
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns(), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns(null, "s"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("c", "m"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("n", "r"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns(null, "s"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns(null, "s"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("q", "r"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("aa", "b"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("r", "s"), ns(null, "z"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("l", "m"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns("q", "r"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns(),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns(null, "s"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("m", "r"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("c", "m"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("r"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("n", "r"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns(null, "s"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns(null, "s"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "r"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("q", "r"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("aa", "b"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("r", "s"), ns(null, "z"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("l", "m"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns("q", "r"));
 
   }
 
-  private void runMergeTest(Connector c, String table, String[] splits, String[] expectedSplits, String[] inserts, String[] start, String[] end)
-      throws Exception {
+  private void runMergeTest(Connector c, String table, String[] splits, String[] expectedSplits,
+      String[] inserts, String[] start, String[] end) throws Exception {
     int count = 0;
 
     for (String s : start) {
@@ -151,9 +166,10 @@ public class MergeIT extends AccumuloClusterHarness {
     }
   }
 
-  private void runMergeTest(Connector conn, String table, String[] splits, String[] expectedSplits, String[] inserts, String start, String end)
-      throws Exception {
-    System.out.println("Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
+  private void runMergeTest(Connector conn, String table, String[] splits, String[] expectedSplits,
+      String[] inserts, String start, String end) throws Exception {
+    System.out.println(
+        "Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 
     conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
     TreeSet<Text> splitSet = new TreeSet<>();
@@ -173,7 +189,8 @@ public class MergeIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    conn.tableOperations().merge(table, start == null ? null : new Text(start), end == null ? null : new Text(end));
+    conn.tableOperations().merge(table, start == null ? null : new Text(start),
+        end == null ? null : new Text(end));
 
     try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
 
@@ -210,7 +227,8 @@ public class MergeIT extends AccumuloClusterHarness {
     private final String metadataTableName;
 
     public TestTabletIterator(Connector conn, String metadataTableName) throws Exception {
-      super(conn.createScanner(metadataTableName, Authorizations.EMPTY), MetadataSchema.TabletsSection.getRange(), true, true);
+      super(conn.createScanner(metadataTableName, Authorizations.EMPTY),
+          MetadataSchema.TabletsSection.getRange(), true, true);
       this.conn = conn;
       this.metadataTableName = metadataTableName;
     }

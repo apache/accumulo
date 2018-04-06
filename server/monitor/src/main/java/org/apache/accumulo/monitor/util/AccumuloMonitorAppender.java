@@ -47,13 +47,15 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
   private MonitorTracker tracker = null;
 
   /**
-   * A Log4j Appender which follows the registered location of the active Accumulo monitor service, and forwards log messages to it
+   * A Log4j Appender which follows the registered location of the active Accumulo monitor service,
+   * and forwards log messages to it
    */
   public AccumuloMonitorAppender() {
     // create the background thread to watch for updates to monitor location
     trackerScheduled = new AtomicBoolean(false);
     executorService = Executors.newSingleThreadScheduledExecutor(runnable -> {
-      Thread t = new Thread(runnable, AccumuloMonitorAppender.class.getSimpleName() + " Location Tracker");
+      Thread t = new Thread(runnable,
+          AccumuloMonitorAppender.class.getSimpleName() + " Location Tracker");
       t.setDaemon(true);
       return t;
     });
@@ -76,14 +78,16 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
 
   @Override
   public void activateOptions() {
-    // only schedule it once (in case options get activated more than once); not sure if this is possible
+    // only schedule it once (in case options get activated more than once); not sure if this is
+    // possible
     if (trackerScheduled.compareAndSet(false, true)) {
       if (frequency <= 0) {
         // use default rate of 5 seconds between each check
         frequency = 5000;
       }
       if (tracker == null) {
-        tracker = new MonitorTracker(this, new ZooCacheLocationSupplier(), new SocketAppenderFactory());
+        tracker = new MonitorTracker(this, new ZooCacheLocationSupplier(),
+            new SocketAppenderFactory());
       }
       executorService.scheduleWithFixedDelay(tracker, frequency, frequency, TimeUnit.MILLISECONDS);
     }
@@ -144,13 +148,15 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
       if (this.zooCache == null) {
         Instance instance = HdfsZooInstance.getInstance();
         this.path = ZooUtil.getRoot(instance) + Constants.ZMONITOR_LOG4J_ADDR;
-        this.zooCache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+        this.zooCache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+            instance.getZooKeepersSessionTimeOut());
       }
 
       // get the current location from the cache and update if necessary
       ZcStat stat = new ZcStat();
       byte[] loc = zooCache.get(path, stat);
-      // mzxid is 0 if location does not exist and the non-zero transaction id of the last modification otherwise
+      // mzxid is 0 if location does not exist and the non-zero transaction id of the last
+      // modification otherwise
       return new MonitorLocation(stat.getMzxid(), loc);
     }
   }
@@ -179,7 +185,8 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
     private MonitorLocation lastLocation;
     private AppenderSkeleton lastSocketAppender;
 
-    public MonitorTracker(AccumuloMonitorAppender appender, Supplier<MonitorLocation> currentLocationSupplier,
+    public MonitorTracker(AccumuloMonitorAppender appender,
+        Supplier<MonitorLocation> currentLocationSupplier,
         Function<MonitorLocation,AppenderSkeleton> appenderFactory) {
       this.parentAsyncAppender = Objects.requireNonNull(appender);
       this.appenderFactory = Objects.requireNonNull(appenderFactory);

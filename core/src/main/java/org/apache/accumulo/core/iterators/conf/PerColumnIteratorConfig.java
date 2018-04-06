@@ -22,7 +22,8 @@ import org.apache.hadoop.io.Text;
  * @deprecated since 1.4
  *
  * @see org.apache.accumulo.core.client.IteratorSetting.Column
- * @see org.apache.accumulo.core.iterators.Combiner#setColumns(org.apache.accumulo.core.client.IteratorSetting, java.util.List)
+ * @see org.apache.accumulo.core.iterators.Combiner#setColumns(org.apache.accumulo.core.client.IteratorSetting,
+ *      java.util.List)
  */
 @Deprecated
 public class PerColumnIteratorConfig {
@@ -73,7 +74,8 @@ public class PerColumnIteratorConfig {
     if (cols.length == 1) {
       return new PerColumnIteratorConfig(ColumnSet.decode(cols[0]), className);
     } else if (cols.length == 2) {
-      return new PerColumnIteratorConfig(ColumnSet.decode(cols[0]), ColumnSet.decode(cols[1]), className);
+      return new PerColumnIteratorConfig(ColumnSet.decode(cols[0]), ColumnSet.decode(cols[1]),
+          className);
     } else {
       throw new IllegalArgumentException(columns);
     }

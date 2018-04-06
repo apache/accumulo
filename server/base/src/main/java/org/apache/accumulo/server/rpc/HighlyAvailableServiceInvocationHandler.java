@@ -27,11 +27,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An {@link InvocationHandler} which checks to see if a {@link HighlyAvailableService} is the current active instance of that service, throwing
- * {@link ThriftNotActiveServiceException} when it is not the current active instance.
+ * An {@link InvocationHandler} which checks to see if a {@link HighlyAvailableService} is the
+ * current active instance of that service, throwing {@link ThriftNotActiveServiceException} when it
+ * is not the current active instance.
  */
 public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHandler {
-  private static final Logger LOG = LoggerFactory.getLogger(HighlyAvailableServiceInvocationHandler.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(HighlyAvailableServiceInvocationHandler.class);
 
   private final I instance;
   private final HighlyAvailableService service;

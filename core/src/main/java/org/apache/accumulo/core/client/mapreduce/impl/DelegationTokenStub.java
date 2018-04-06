@@ -28,7 +28,8 @@ import javax.security.auth.DestroyFailedException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 /**
- * An internal stub class for passing DelegationToken information out of the Configuration back up to the appropriate implementation for mapreduce or mapred.
+ * An internal stub class for passing DelegationToken information out of the Configuration back up
+ * to the appropriate implementation for mapreduce or mapred.
  */
 public class DelegationTokenStub implements AuthenticationToken {
 

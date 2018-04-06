@@ -64,8 +64,9 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat} accepts keys and values of type {@link Text} (for a table
- * name) and {@link Mutation} from the Map and Reduce functions.
+ * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat}
+ * accepts keys and values of type {@link Text} (for a table name) and {@link Mutation} from the Map
+ * and Reduce functions.
  *
  * The user must specify the following via static configurator methods:
  *
@@ -89,7 +90,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          Accumulo connection information
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo info) throws AccumuloSecurityException {
+  public static void setConnectionInfo(JobConf job, ConnectionInfo info)
+      throws AccumuloSecurityException {
     setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
     setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
   }
@@ -98,22 +100,27 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the configuration as a means to pass the token to MapReduce tasks. This
-   * information is BASE64 encoded to provide a charset safe conversion to a string, but this conversion is not intended to be secure. {@link PasswordToken} is
-   * one example that is insecure in this way; however {@link DelegationToken}s, acquired using
-   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this concern.
+   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the
+   * configuration as a means to pass the token to MapReduce tasks. This information is BASE64
+   * encoded to provide a charset safe conversion to a string, but this conversion is not intended
+   * to be secure. {@link PasswordToken} is one example that is insecure in this way; however
+   * {@link DelegationToken}s, acquired using
+   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this
+   * concern.
    *
    * @param job
    *          the Hadoop job instance to be configured
    * @param principal
-   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
+   *          a valid Accumulo user name (user must have Table.CREATE permission if
+   *          {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @param token
    *          the user's password
    * @since 1.5.0
    * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead.
    */
   @Deprecated
-  public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
@@ -121,17 +128,20 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
         Connector conn = instance.getConnector(principal, token);
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
-        log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely fail to communicate with Accumulo", e);
+        log.warn(
+            "Failed to automatically obtain DelegationToken, Mappers/Reducers will likely fail to communicate with Accumulo",
+            e);
       }
     }
-    // DelegationTokens can be passed securely from user to task without serializing insecurely in the configuration
+    // DelegationTokens can be passed securely from user to task without serializing insecurely in
+    // the configuration
     if (token instanceof DelegationTokenImpl) {
       DelegationTokenImpl delegationToken = (DelegationTokenImpl) token;
 
       // Convert it into a Hadoop Token
       AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
-      Token<AuthenticationTokenIdentifier> hadoopToken = new Token<>(identifier.getBytes(), delegationToken.getPassword(), identifier.getKind(),
-          delegationToken.getServiceName());
+      Token<AuthenticationTokenIdentifier> hadoopToken = new Token<>(identifier.getBytes(),
+          delegationToken.getPassword(), identifier.getKind(), delegationToken.getServiceName());
 
       // Add the Hadoop Token to the Job so it gets serialized and passed along.
       job.getCredentials().addToken(hadoopToken.getService(), hadoopToken);
@@ -144,19 +154,22 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
+   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt
+   * to be more secure than storing it in the Configuration.
    *
    * @param job
    *          the Hadoop job instance to be configured
    * @param principal
-   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
+   *          a valid Accumulo user name (user must have Table.CREATE permission if
+   *          {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @param tokenFile
    *          the path to the password file
    * @since 1.6.0
    * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead
    */
   @Deprecated
-  public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {
+  public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
+      throws AccumuloSecurityException {
     OutputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
   }
 
@@ -209,7 +222,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
+   * Gets the authenticated token from either the specified token file or directly from the
+   * configuration, whichever was used when the job was configured.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -237,7 +251,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job, ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
+    setZooKeeperInstance(job,
+        ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -311,8 +326,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Sets the default table name to use if one emits a null in place of a table name for a given mutation. Table names can only be alpha-numeric and
-   * underscores.
+   * Sets the default table name to use if one emits a null in place of a table name for a given
+   * mutation. Table names can only be alpha-numeric and underscores.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -338,8 +353,9 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
-   * used. Setting the configuration multiple times overwrites any previous configuration.
+   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new
+   * {@link BatchWriterConfig}, with sensible built-in defaults is used. Setting the configuration
+   * multiple times overwrites any previous configuration.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -365,7 +381,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric and underscores.
+   * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric
+   * and underscores.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -394,7 +411,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
+   * Sets the directive to use simulation mode for this job. In simulation mode, no output is
+   * produced. This is useful for testing.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -438,7 +456,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
     private Connector conn;
 
-    protected AccumuloRecordWriter(JobConf job) throws AccumuloException, AccumuloSecurityException, IOException {
+    protected AccumuloRecordWriter(JobConf job)
+        throws AccumuloException, AccumuloSecurityException, IOException {
       Level l = getLogLevel(job);
       if (l != null)
         log.setLevel(getLogLevel(job));
@@ -460,8 +479,9 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     }
 
     /**
-     * Push a mutation into a table. If table is null, the defaultTable will be used. If {@link AccumuloOutputFormat#canCreateTables(JobConf)} is set, the table
-     * will be created if it does not exist. The table name must only contain alphanumerics and underscore.
+     * Push a mutation into a table. If table is null, the defaultTable will be used. If
+     * {@link AccumuloOutputFormat#canCreateTables(JobConf)} is set, the table will be created if it
+     * does not exist. The table name must only contain alphanumerics and underscore.
      */
     @Override
     public void write(Text table, Mutation mutation) throws IOException {
@@ -531,8 +551,10 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       if (log.isTraceEnabled()) {
         log.trace(String.format("Table %s row key: %s", table, hexDump(m.getRow())));
         for (ColumnUpdate cu : m.getUpdates()) {
-          log.trace(String.format("Table %s column: %s:%s", table, hexDump(cu.getColumnFamily()), hexDump(cu.getColumnQualifier())));
-          log.trace(String.format("Table %s security: %s", table, new ColumnVisibility(cu.getColumnVisibility()).toString()));
+          log.trace(String.format("Table %s column: %s:%s", table, hexDump(cu.getColumnFamily()),
+              hexDump(cu.getColumnQualifier())));
+          log.trace(String.format("Table %s security: %s", table,
+              new ColumnVisibility(cu.getColumnVisibility()).toString()));
           log.trace(String.format("Table %s value: %s", table, hexDump(cu.getValue())));
         }
       }
@@ -599,7 +621,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   @Override
-  public RecordWriter<Text,Mutation> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
+  public RecordWriter<Text,Mutation> getRecordWriter(FileSystem ignored, JobConf job, String name,
+      Progressable progress) throws IOException {
     try {
       return new AccumuloRecordWriter(job);
     } catch (Exception e) {

@@ -201,7 +201,8 @@ public class VersioningIteratorTest {
 
         TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
 
-        assertTrue("size after keeping " + i + " versions was " + tmOut.size(), tmOut.size() == Math.min(40, 2 * i));
+        assertTrue("size after keeping " + i + " versions was " + tmOut.size(),
+            tmOut.size() == Math.min(40, 2 * i));
       } catch (IOException e) {
         assertFalse(true);
       } catch (Exception e) {

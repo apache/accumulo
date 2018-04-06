@@ -49,7 +49,8 @@ public class ZooReaderWriterTest {
   @Before
   public void setup() {
     zk = EasyMock.createMock(ZooKeeper.class);
-    zrw = EasyMock.createMockBuilder(ZooReaderWriter.class).addMockedMethods("getRetryFactory", "getZooKeeper").createMock();
+    zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
+        .addMockedMethods("getRetryFactory", "getZooKeeper").createMock();
     retryFactory = EasyMock.createMock(RetryFactory.class);
     retry = EasyMock.createMock(Retry.class);
 
@@ -130,8 +131,11 @@ public class ZooReaderWriterTest {
       }
     };
 
-    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
-    zrw = EasyMock.createMockBuilder(ZooReaderWriter.class).addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod).createMock();
+    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
+        Stat.class);
+    zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
+        .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
+        .createMock();
     EasyMock.expect(zrw.getRetryFactory()).andReturn(retryFactory).anyTimes();
     EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
 
@@ -165,8 +169,11 @@ public class ZooReaderWriterTest {
       }
     };
 
-    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
-    zrw = EasyMock.createMockBuilder(ZooReaderWriter.class).addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod).createMock();
+    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
+        Stat.class);
+    zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
+        .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
+        .createMock();
     EasyMock.expect(zrw.getRetryFactory()).andReturn(retryFactory).anyTimes();
     EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
 

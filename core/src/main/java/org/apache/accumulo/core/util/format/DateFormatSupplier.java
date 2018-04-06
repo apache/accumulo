@@ -22,16 +22,20 @@ import java.util.TimeZone;
 import java.util.function.Supplier;
 
 /**
- * DateFormatSupplier is a {@code ThreadLocal<DateFormat>} that will set the correct TimeZone when the object is retrieved by {@link #get()}.
+ * DateFormatSupplier is a {@code ThreadLocal<DateFormat>} that will set the correct TimeZone when
+ * the object is retrieved by {@link #get()}.
  *
- * This exists as a way to get around thread safety issues in {@link DateFormat}. This class also contains helper methods that create some useful
- * DateFormatSuppliers.
+ * This exists as a way to get around thread safety issues in {@link DateFormat}. This class also
+ * contains helper methods that create some useful DateFormatSuppliers.
  *
- * Instances of DateFormatSuppliers can be shared, but note that a DateFormat generated from it will be shared by all classes within a Thread.
+ * Instances of DateFormatSuppliers can be shared, but note that a DateFormat generated from it will
+ * be shared by all classes within a Thread.
  *
- * In general, the state of a retrieved DateFormat should not be changed, unless it makes sense to only perform a state change within that Thread.
+ * In general, the state of a retrieved DateFormat should not be changed, unless it makes sense to
+ * only perform a state change within that Thread.
  */
-public abstract class DateFormatSupplier extends ThreadLocal<DateFormat> implements Supplier<DateFormat> {
+public abstract class DateFormatSupplier extends ThreadLocal<DateFormat>
+    implements Supplier<DateFormat> {
   private TimeZone timeZone;
 
   public DateFormatSupplier() {
@@ -83,7 +87,8 @@ public abstract class DateFormatSupplier extends ThreadLocal<DateFormat> impleme
   }
 
   /** Create a generator for SimpleDateFormats accepting a dateFormat */
-  public static DateFormatSupplier createSimpleFormatSupplier(final String dateFormat, final TimeZone timeZone) {
+  public static DateFormatSupplier createSimpleFormatSupplier(final String dateFormat,
+      final TimeZone timeZone) {
     return new DateFormatSupplier(timeZone) {
       @Override
       protected SimpleDateFormat initialValue() {

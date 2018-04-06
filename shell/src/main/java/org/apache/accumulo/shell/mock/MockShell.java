@@ -34,7 +34,8 @@ import org.apache.commons.vfs2.FileSystemException;
 import jline.console.ConsoleReader;
 
 /**
- * An Accumulo Shell implementation that allows a developer to attach an InputStream and Writer to the Shell for testing purposes.
+ * An Accumulo Shell implementation that allows a developer to attach an InputStream and Writer to
+ * the Shell for testing purposes.
  *
  * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
  */
@@ -132,8 +133,9 @@ public class MockShell extends Shell {
   }
 
   @Override
-  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      IOException, FileSystemException {
+  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException,
+      FileSystemException {
     return MockShell.class.getClassLoader();
   }
 

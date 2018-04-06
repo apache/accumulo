@@ -28,9 +28,10 @@ import org.apache.accumulo.core.replication.thrift.WalEdits;
  */
 public interface AccumuloReplicationReplayer {
 
-  public long replicateLog(ClientContext context, String tableName, WalEdits data) throws RemoteReplicationException, AccumuloException,
-      AccumuloSecurityException;
+  public long replicateLog(ClientContext context, String tableName, WalEdits data)
+      throws RemoteReplicationException, AccumuloException, AccumuloSecurityException;
 
-  public long replicateKeyValues(ClientContext context, String tableName, KeyValues kvs) throws RemoteReplicationException;
+  public long replicateKeyValues(ClientContext context, String tableName, KeyValues kvs)
+      throws RemoteReplicationException;
 
 }

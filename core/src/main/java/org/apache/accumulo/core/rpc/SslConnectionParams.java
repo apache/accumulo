@@ -89,25 +89,29 @@ public class SslConnectionParams {
     return result;
   }
 
-  private static String passwordFromConf(AccumuloConfiguration conf, String defaultPassword, Property passwordOverrideProperty) {
+  private static String passwordFromConf(AccumuloConfiguration conf, String defaultPassword,
+      Property passwordOverrideProperty) {
     String keystorePassword = conf.get(passwordOverrideProperty);
     if (!keystorePassword.isEmpty()) {
       if (log.isTraceEnabled())
-        log.trace("Using explicit SSL private key password from {}", passwordOverrideProperty.getKey());
+        log.trace("Using explicit SSL private key password from {}",
+            passwordOverrideProperty.getKey());
     } else {
       keystorePassword = defaultPassword;
     }
     return keystorePassword;
   }
 
-  private static String storePathFromConf(AccumuloConfiguration conf, Property pathProperty) throws FileNotFoundException {
+  private static String storePathFromConf(AccumuloConfiguration conf, Property pathProperty)
+      throws FileNotFoundException {
     return findKeystore(conf.getPath(pathProperty));
   }
 
   public void setKeyStoreFromConf(AccumuloConfiguration conf) throws FileNotFoundException {
     keyStoreSet = true;
     keyStorePath = storePathFromConf(conf, Property.RPC_SSL_KEYSTORE_PATH);
-    keyStorePass = passwordFromConf(conf, conf.get(Property.INSTANCE_SECRET), Property.RPC_SSL_KEYSTORE_PASSWORD);
+    keyStorePass = passwordFromConf(conf, conf.get(Property.INSTANCE_SECRET),
+        Property.RPC_SSL_KEYSTORE_PASSWORD);
     keyStoreType = conf.get(Property.RPC_SSL_KEYSTORE_TYPE);
   }
 
@@ -271,13 +275,16 @@ public class SslConnectionParams {
     if (keyStoreSet) {
       if (!other.keyStoreSet)
         return false;
-      if (!keyStorePath.equals(other.keyStorePath) || !keyStorePass.equals(other.keyStorePass) || !keyStoreType.equals(other.keyStoreType))
+      if (!keyStorePath.equals(other.keyStorePath) || !keyStorePass.equals(other.keyStorePass)
+          || !keyStoreType.equals(other.keyStoreType))
         return false;
     }
     if (trustStoreSet) {
       if (!other.trustStoreSet)
         return false;
-      if (!trustStorePath.equals(other.trustStorePath) || !trustStorePass.equals(other.trustStorePass) || !trustStoreType.equals(other.trustStoreType))
+      if (!trustStorePath.equals(other.trustStorePath)
+          || !trustStorePass.equals(other.trustStorePass)
+          || !trustStoreType.equals(other.trustStoreType))
         return false;
     }
     if (!Arrays.equals(serverProtocols, other.serverProtocols)) {

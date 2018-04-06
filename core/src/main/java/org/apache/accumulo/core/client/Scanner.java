@@ -21,14 +21,16 @@ import org.apache.accumulo.core.data.Range;
 /**
  * Scans a table over a given range.
  *
- * "Clients can iterate over multiple column families, and there are several mechanisms for limiting the rows, columns, and timestamps traversed by a scan. For
- * example, we could restrict [a] scan ... to only produce anchors whose columns match [a] regular expression ..., or to only produce anchors whose timestamps
- * fall within ten days of the current time."
+ * "Clients can iterate over multiple column families, and there are several mechanisms for limiting
+ * the rows, columns, and timestamps traversed by a scan. For example, we could restrict [a] scan
+ * ... to only produce anchors whose columns match [a] regular expression ..., or to only produce
+ * anchors whose timestamps fall within ten days of the current time."
  */
 public interface Scanner extends ScannerBase {
 
   /**
-   * This setting determines how long a scanner will automatically retry when a failure occurs. By default a scanner will retry forever.
+   * This setting determines how long a scanner will automatically retry when a failure occurs. By
+   * default a scanner will retry forever.
    *
    * @param timeOut
    *          in seconds
@@ -70,24 +72,28 @@ public interface Scanner extends ScannerBase {
   void setBatchSize(int size);
 
   /**
-   * Returns the batch size (number of Key/Value pairs) that will be fetched at a time from a tablet server.
+   * Returns the batch size (number of Key/Value pairs) that will be fetched at a time from a tablet
+   * server.
    *
    * @return the batch size configured for this scanner
    */
   int getBatchSize();
 
   /**
-   * Enables row isolation. Writes that occur to a row after a scan of that row has begun will not be seen if this option is enabled.
+   * Enables row isolation. Writes that occur to a row after a scan of that row has begun will not
+   * be seen if this option is enabled.
    */
   void enableIsolation();
 
   /**
-   * Disables row isolation. Writes that occur to a row after a scan of that row has begun may be seen if this option is enabled.
+   * Disables row isolation. Writes that occur to a row after a scan of that row has begun may be
+   * seen if this option is enabled.
    */
   void disableIsolation();
 
   /**
-   * The number of batches of Key/Value pairs returned before the {@link Scanner} will begin to prefetch the next batch
+   * The number of batches of Key/Value pairs returned before the {@link Scanner} will begin to
+   * prefetch the next batch
    *
    * @return Number of batches before read-ahead begins
    * @since 1.6.0
@@ -95,7 +101,8 @@ public interface Scanner extends ScannerBase {
   long getReadaheadThreshold();
 
   /**
-   * Sets the number of batches of Key/Value pairs returned before the {@link Scanner} will begin to prefetch the next batch
+   * Sets the number of batches of Key/Value pairs returned before the {@link Scanner} will begin to
+   * prefetch the next batch
    *
    * @param batches
    *          Non-negative number of batches

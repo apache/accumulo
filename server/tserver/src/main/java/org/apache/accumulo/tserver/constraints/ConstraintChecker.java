@@ -63,7 +63,8 @@ public class ConstraintChecker {
       for (Entry<String,String> entry : conf) {
         if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
           String className = entry.getValue();
-          Class<? extends Constraint> clazz = loader.loadClass(className).asSubclass(Constraint.class);
+          Class<? extends Constraint> clazz = loader.loadClass(className)
+              .asSubclass(Constraint.class);
           log.debug("Loaded constraint {} for {}", clazz.getName(), conf.getTableId());
           constrains.add(clazz.newInstance());
         }
@@ -74,7 +75,8 @@ public class ConstraintChecker {
     } catch (Throwable e) {
       constrains.clear();
       loader = null;
-      constrains.add(new UnsatisfiableConstraint((short) -1, "Failed to load constraints, not accepting mutations."));
+      constrains.add(new UnsatisfiableConstraint((short) -1,
+          "Failed to load constraints, not accepting mutations."));
       log.error("Failed to load constraints " + conf.getTableId() + " " + e.toString(), e);
     }
   }
@@ -119,7 +121,8 @@ public class ConstraintChecker {
     if (!env.getExtent().contains(new ComparableBytes(m.getRow()))) {
       Violations violations = new Violations();
 
-      ConstraintViolationSummary cvs = new ConstraintViolationSummary(SystemConstraint.class.getName(), (short) -1, "Mutation outside of tablet extent", 1);
+      ConstraintViolationSummary cvs = new ConstraintViolationSummary(
+          SystemConstraint.class.getName(), (short) -1, "Mutation outside of tablet extent", 1);
       violations.add(cvs);
 
       // do not bother with further checks since this mutation does not go with this tablet
@@ -134,7 +137,8 @@ public class ConstraintChecker {
         if (violationCodes != null) {
           String className = constraint.getClass().getName();
           for (Short vcode : violationCodes) {
-            violations = addViolation(violations, new ConstraintViolationSummary(className, vcode, constraint.getViolationDescription(vcode), 1));
+            violations = addViolation(violations, new ConstraintViolationSummary(className, vcode,
+                constraint.getViolationDescription(vcode), 1));
           }
         }
       } catch (Throwable throwable) {
@@ -161,7 +165,8 @@ public class ConstraintChecker {
           msg = "threw some Exception";
         }
 
-        violations = addViolation(violations, new ConstraintViolationSummary(constraint.getClass().getName(), vcode, "CONSTRAINT FAILED : " + msg, 1));
+        violations = addViolation(violations, new ConstraintViolationSummary(
+            constraint.getClass().getName(), vcode, "CONSTRAINT FAILED : " + msg, 1));
       }
     }
 

@@ -60,8 +60,8 @@ public class LogResource {
       for (int i = 0; i < msg.length(); i++) {
         char c = msg.charAt(i);
         int type = Character.getType(c);
-        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR || type == Character.NON_SPACING_MARK
-            || type == Character.PRIVATE_USE;
+        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR
+            || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
         text.append(notPrintable ? '?' : c);
       }
       StringBuilder builder = new StringBuilder(text.toString());
@@ -71,7 +71,8 @@ public class LogResource {
       msg = sanitize(builder.toString().trim());
 
       // Add a new log event to the list
-      logEvents.add(new LogEvent(ev.getTimeStamp(), application, dev.getCount(), ev.getLevel().toString(), msg.toString().trim()));
+      logEvents.add(new LogEvent(ev.getTimeStamp(), application, dev.getCount(),
+          ev.getLevel().toString(), msg.toString().trim()));
     }
     return logEvents;
   }

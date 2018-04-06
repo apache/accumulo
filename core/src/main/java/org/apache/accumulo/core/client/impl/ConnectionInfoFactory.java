@@ -42,7 +42,8 @@ public class ConnectionInfoFactory {
     return property.getLong(info.getProperties());
   }
 
-  public static Connector getConnector(ConnectionInfo info) throws AccumuloSecurityException, AccumuloException {
+  public static Connector getConnector(ConnectionInfo info)
+      throws AccumuloSecurityException, AccumuloException {
     return new ConnectorImpl(getClientContext(info));
   }
 

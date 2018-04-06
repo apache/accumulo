@@ -100,7 +100,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       // we don't want the exception to come from write
     }
 
-    connector.securityOperations().revokeTablePermission("root", testName.getMethodName(), TablePermission.WRITE);
+    connector.securityOperations().revokeTablePermission("root", testName.getMethodName(),
+        TablePermission.WRITE);
 
     try {
       writer.close(null);
@@ -150,7 +151,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     public int run(String[] args) throws Exception {
 
       if (args.length != 6) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <inputtable> <outputtable> <instanceName> <zooKeepers>");
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName()
+            + " <user> <pass> <inputtable> <outputtable> <instanceName> <zooKeepers>");
       }
 
       String user = args[0];
@@ -165,7 +167,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ConnectionInfo info = Connector.builder().forInstance(instanceName, zooKeepers).usingPassword(user, pass).info();
+      ConnectionInfo info = Connector.builder().forInstance(instanceName, zooKeepers)
+          .usingPassword(user, pass).info();
 
       AccumuloInputFormat.setConnectionInfo(job, info);
       AccumuloInputFormat.setInputTableName(job, table1);
@@ -189,7 +192,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
@@ -210,7 +214,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     }
     bw.close();
 
-    MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName, getCluster().getZooKeepers()});
+    MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName,
+        getCluster().getZooKeepers()});
     assertNull(e1);
 
     try (Scanner scanner = c.createScanner(table2, new Authorizations())) {

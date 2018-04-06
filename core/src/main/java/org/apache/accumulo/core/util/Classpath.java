@@ -52,6 +52,7 @@ public class Classpath implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs("accumulo classpath", args);
 
-    Main.getVFSClassLoader().getMethod("printClassPath", boolean.class).invoke(Main.getVFSClassLoader(), opts.debug);
+    Main.getVFSClassLoader().getMethod("printClassPath", boolean.class)
+        .invoke(Main.getVFSClassLoader(), opts.debug);
   }
 }

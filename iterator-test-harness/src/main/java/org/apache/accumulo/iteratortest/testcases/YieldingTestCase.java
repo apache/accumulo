@@ -30,10 +30,11 @@ import org.apache.accumulo.iteratortest.IteratorTestUtil;
 import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
- * Test case that verifies that an iterator works correctly with the yielding api. Note that most iterators do nothing in terms of yielding in which case this
- * merely tests that the iterator produces the correct output. If however the iterator does override the yielding api, then this ensures that it works correctly
- * iff the iterator actually decides to yield. Nothing can force an iterator to yield without knowing something about the internals of the iterator being
- * tested.
+ * Test case that verifies that an iterator works correctly with the yielding api. Note that most
+ * iterators do nothing in terms of yielding in which case this merely tests that the iterator
+ * produces the correct output. If however the iterator does override the yielding api, then this
+ * ensures that it works correctly iff the iterator actually decides to yield. Nothing can force an
+ * iterator to yield without knowing something about the internals of the iterator being tested.
  */
 public class YieldingTestCase extends OutputVerifyingTestCase {
 
@@ -55,7 +56,8 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
     }
   }
 
-  TreeMap<Key,Value> consume(IteratorTestInput testInput, SortedKeyValueIterator<Key,Value> skvi, YieldCallback<Key> yield) throws IOException {
+  TreeMap<Key,Value> consume(IteratorTestInput testInput, SortedKeyValueIterator<Key,Value> skvi,
+      YieldCallback<Key> yield) throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
     Key lastKey = null;
     while (yield.hasYielded() || skvi.hasTop()) {
@@ -63,15 +65,19 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
         Range r = testInput.getRange();
         Key yieldPosition = yield.getPositionAndReset();
         if (!r.contains(yieldPosition)) {
-          throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + r);
+          throw new IOException("Underlying iterator yielded to a position outside of its range: "
+              + yieldPosition + " not in " + r);
         }
         if (skvi.hasTop()) {
-          throw new IOException("Underlying iterator reports having a top, but has yielded: " + yieldPosition);
+          throw new IOException(
+              "Underlying iterator reports having a top, but has yielded: " + yieldPosition);
         }
         if (lastKey != null && yieldPosition.compareTo(lastKey) <= 0) {
-          throw new IOException("Underlying iterator yielded at a position that is not past the last key returned");
+          throw new IOException(
+              "Underlying iterator yielded at a position that is not past the last key returned");
         }
-        skvi.seek(new Range(yieldPosition, false, r.getEndKey(), r.isEndKeyInclusive()), testInput.getFamilies(), testInput.isInclusive());
+        skvi.seek(new Range(yieldPosition, false, r.getEndKey(), r.isEndKeyInclusive()),
+            testInput.getFamilies(), testInput.isInclusive());
       } else {
         // Make sure to copy the K-V
         data.put(new Key(skvi.getTopKey()), new Value(skvi.getTopValue()));

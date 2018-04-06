@@ -30,8 +30,10 @@ import org.apache.hadoop.metrics2.lib.MutableStat;
 /**
  *
  */
-public class Metrics2TabletServerScanMetrics implements Metrics, MetricsSource, TabletServerScanMetricsKeys {
-  public static final String NAME = TSERVER_NAME + ",sub=Scans", DESCRIPTION = "TabletServer Scan Metrics", CONTEXT = "tserver", RECORD = "Scans";
+public class Metrics2TabletServerScanMetrics
+    implements Metrics, MetricsSource, TabletServerScanMetricsKeys {
+  public static final String NAME = TSERVER_NAME + ",sub=Scans",
+      DESCRIPTION = "TabletServer Scan Metrics", CONTEXT = "tserver", RECORD = "Scans";
 
   private final MetricsSystem system;
   private final MetricsRegistry registry;

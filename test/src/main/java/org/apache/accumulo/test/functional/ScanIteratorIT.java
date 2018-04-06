@@ -97,7 +97,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     if (null != user) {
       if (saslEnabled) {
         ClusterUser rootUser = getAdminUser();
-        UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+        UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
+            rootUser.getKeytab().getAbsolutePath());
       }
       connector.securityOperations().dropLocalUser(user);
     }
@@ -112,15 +113,18 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < 1000; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
-      m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"),
+          new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
+      m.put(new Text("cf1"), new Text("cq2"),
+          new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
 
       bw.addMutation(m);
     }
 
     bw.close();
 
-    try (Scanner scanner = c.createScanner(tableName, new Authorizations()); BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations());
+        BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
 
       setupIter(scanner);
       verify(scanner, 1, 999);
@@ -132,12 +136,16 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
       ArrayList<Range> ranges = new ArrayList<>();
       ranges.add(new Range(new Text(String.format("%06d", 1))));
-      ranges.add(new Range(new Text(String.format("%06d", 6)), new Text(String.format("%06d", 16))));
+      ranges
+          .add(new Range(new Text(String.format("%06d", 6)), new Text(String.format("%06d", 16))));
       ranges.add(new Range(new Text(String.format("%06d", 20))));
       ranges.add(new Range(new Text(String.format("%06d", 23))));
-      ranges.add(new Range(new Text(String.format("%06d", 56)), new Text(String.format("%06d", 61))));
-      ranges.add(new Range(new Text(String.format("%06d", 501)), new Text(String.format("%06d", 504))));
-      ranges.add(new Range(new Text(String.format("%06d", 998)), new Text(String.format("%06d", 1000))));
+      ranges
+          .add(new Range(new Text(String.format("%06d", 56)), new Text(String.format("%06d", 61))));
+      ranges.add(
+          new Range(new Text(String.format("%06d", 501)), new Text(String.format("%06d", 504))));
+      ranges.add(
+          new Range(new Text(String.format("%06d", 998)), new Text(String.format("%06d", 1000))));
 
       HashSet<Integer> got = new HashSet<>();
       HashSet<Integer> expected = new HashSet<>();
@@ -178,7 +186,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   }
 
   private void setupIter(ScannerBase scanner) throws Exception {
-    IteratorSetting dropMod = new IteratorSetting(50, "dropMod", "org.apache.accumulo.test.functional.DropModIter");
+    IteratorSetting dropMod = new IteratorSetting(50, "dropMod",
+        "org.apache.accumulo.test.functional.DropModIter");
     dropMod.addOption("mod", "2");
     dropMod.addOption("drop", "0");
     scanner.addScanIterator(dropMod);
@@ -199,11 +208,12 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     runTest(Authorizations.EMPTY, true);
   }
 
-  private void runTest(ScannerBase scanner, Authorizations auths, boolean shouldFail) throws AccumuloSecurityException, AccumuloException,
-      TableNotFoundException {
+  private void runTest(ScannerBase scanner, Authorizations auths, boolean shouldFail)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     int count = 0;
     for (Map.Entry<Key,Value> entry : scanner) {
-      assertEquals(shouldFail ? AuthsIterator.FAIL : AuthsIterator.SUCCESS, entry.getKey().getRow().toString());
+      assertEquals(shouldFail ? AuthsIterator.FAIL : AuthsIterator.SUCCESS,
+          entry.getKey().getRow().toString());
       count++;
     }
 
@@ -217,7 +227,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
     IteratorSetting setting = new IteratorSetting(10, AuthsIterator.class);
 
-    try (Scanner scanner = userC.createScanner(tableName, auths); BatchScanner batchScanner = userC.createBatchScanner(tableName, auths, 1)) {
+    try (Scanner scanner = userC.createScanner(tableName, auths);
+        BatchScanner batchScanner = userC.createBatchScanner(tableName, auths, 1)) {
       scanner.addScanIterator(setting);
 
       batchScanner.setRanges(Collections.singleton(new Range("1")));
@@ -228,7 +239,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     }
   }
 
-  private void writeTestMutation(Connector userC) throws TableNotFoundException, MutationsRejectedException {
+  private void writeTestMutation(Connector userC)
+      throws TableNotFoundException, MutationsRejectedException {
     BatchWriter batchWriter = userC.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("1");
     m.put(new Text("2"), new Text("3"), new Value("".getBytes()));

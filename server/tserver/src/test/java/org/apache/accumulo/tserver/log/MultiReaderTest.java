@@ -50,16 +50,16 @@ public class MultiReaderTest {
     fs.create(new Path(root, "finished")).close();
     FileSystem ns = fs.getVolumeByPath(root).getFileSystem();
 
-    Writer oddWriter = new Writer(ns.getConf(), ns.makeQualified(new Path(root, "odd")), Writer.keyClass(IntWritable.class),
-        Writer.valueClass(BytesWritable.class));
+    Writer oddWriter = new Writer(ns.getConf(), ns.makeQualified(new Path(root, "odd")),
+        Writer.keyClass(IntWritable.class), Writer.valueClass(BytesWritable.class));
     BytesWritable value = new BytesWritable("someValue".getBytes());
     for (int i = 1; i < 1000; i += 2) {
       oddWriter.append(new IntWritable(i), value);
     }
     oddWriter.close();
 
-    Writer evenWriter = new Writer(ns.getConf(), ns.makeQualified(new Path(root, "even")), Writer.keyClass(IntWritable.class),
-        Writer.valueClass(BytesWritable.class));
+    Writer evenWriter = new Writer(ns.getConf(), ns.makeQualified(new Path(root, "even")),
+        Writer.keyClass(IntWritable.class), Writer.valueClass(BytesWritable.class));
     for (int i = 0; i < 1000; i += 2) {
       if (i == 10)
         continue;

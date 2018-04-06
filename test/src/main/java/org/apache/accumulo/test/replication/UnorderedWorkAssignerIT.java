@@ -113,21 +113,26 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     conn = getConnector();
     assigner = new MockUnorderedWorkAssigner(conn);
     ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
   }
 
   @Test
   public void createWorkForFilesNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1")), target2 = new ReplicationTarget("cluster1", "table2",
-        Table.ID.of("2"));
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1")),
+        target2 = new ReplicationTarget("cluster1", "table2", Table.ID.of("2"));
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
-    String keyTarget1 = target1.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target1.getRemoteIdentifier()
-        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target1.getSourceTableId(), keyTarget2 = target2.getPeerName()
-        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target2.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target2.getSourceTableId();
+    String keyTarget1 = target1.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target1.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target1.getSourceTableId(),
+        keyTarget2 = target2.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+            + target2.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+            + target2.getSourceTableId();
 
-    Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).setCreatedTime(5l);
+    Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
+        .setClosed(false).setCreatedTime(5l);
     Status status1 = builder.build();
     builder.setCreatedTime(10l);
     Status status2 = builder.build();
@@ -135,7 +140,8 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     // Create two mutations, both of which need replication work done
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
-    String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
+    String file1 = "/accumulo/wal/tserver+port/" + filename1,
+        file2 = "/accumulo/wal/tserver+port/" + filename2;
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget1, ProtobufUtil.toValue(status1));
     bw.addMutation(m);
@@ -176,14 +182,15 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void doNotCreateWorkForFilesNotNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1")), target2 = new ReplicationTarget("cluster1", "table2",
-        Table.ID.of("2"));
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1")),
+        target2 = new ReplicationTarget("cluster1", "table2", Table.ID.of("2"));
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
-    String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
+    String file1 = "/accumulo/wal/tserver+port/" + filename1,
+        file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget1, StatusUtil.fileCreatedValue(5));
@@ -214,7 +221,8 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     assigner.setQueuedWork(queuedWork);
 
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
-    String serializedTarget = target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
+    String serializedTarget = target.getPeerName()
+        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
 
     queuedWork.add("wal1|" + serializedTarget.toString());

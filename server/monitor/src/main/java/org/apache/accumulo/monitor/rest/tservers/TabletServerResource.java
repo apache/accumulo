@@ -105,8 +105,10 @@ public class TabletServerResource {
    */
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
-  public void clearDeadServer(@QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
-    DeadServerList obit = new DeadServerList(ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
+  public void clearDeadServer(
+      @QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
+    DeadServerList obit = new DeadServerList(
+        ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }
 
@@ -150,7 +152,9 @@ public class TabletServerResource {
    */
   @Path("{address}")
   @GET
-  public TabletServerSummary getTserverDetails(@PathParam("address") @NotNull @Pattern(regexp = SERVER_REGEX) String tserverAddress) throws Exception {
+  public TabletServerSummary getTserverDetails(
+      @PathParam("address") @NotNull @Pattern(regexp = SERVER_REGEX) String tserverAddress)
+      throws Exception {
 
     boolean tserverExists = false;
     for (TabletServerStatus ts : Monitor.getMmi().getTServerInfo()) {
@@ -174,14 +178,17 @@ public class TabletServerResource {
     double currentMajorAvg = 0;
     double currentMinorStdDev = 0;
     double currentMajorStdDev = 0;
-    total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
+    total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0,
+        0);
     HostAndPort address = HostAndPort.fromString(tserverAddress);
-    historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
+    historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0,
+        0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<>();
 
     try {
       ClientContext context = Monitor.getContext();
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId));
@@ -202,7 +209,8 @@ public class TabletServerResource {
       currentMinorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
     if (total.majors.num != 0)
       currentMajorAvg = total.majors.elapsed / total.majors.num;
-    if (total.majors.elapsed != 0 && total.majors.num != 0 && total.majors.elapsed > total.majors.num)
+    if (total.majors.elapsed != 0 && total.majors.num != 0
+        && total.majors.elapsed > total.majors.num)
       currentMajorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
 
     ActionStatsUpdator.update(total.minors, historical.minors);
@@ -213,20 +221,25 @@ public class TabletServerResource {
     minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
     majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
-    splitStdDev = stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
+    splitStdDev = stddev(historical.splits.num, historical.splits.elapsed,
+        historical.splits.sumDev);
 
     TabletServerDetailInformation details = doDetails(address, tsStats.size());
 
-    List<AllTimeTabletResults> allTime = doAllTimeResults(majorQueueStdDev, minorQueueStdDev, totalElapsedForAll, splitStdDev, majorStdDev, minorStdDev);
+    List<AllTimeTabletResults> allTime = doAllTimeResults(majorQueueStdDev, minorQueueStdDev,
+        totalElapsedForAll, splitStdDev, majorStdDev, minorStdDev);
 
-    CurrentTabletResults currentRes = doCurrentTabletResults(currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev);
+    CurrentTabletResults currentRes = doCurrentTabletResults(currentMinorAvg, currentMinorStdDev,
+        currentMajorAvg, currentMajorStdDev);
 
-    TabletServerSummary tserverDetails = new TabletServerSummary(details, allTime, currentRes, currentOps);
+    TabletServerSummary tserverDetails = new TabletServerSummary(details, allTime, currentRes,
+        currentOps);
 
     return tserverDetails;
   }
 
-  private static final int concurrentScans = Monitor.getContext().getConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+  private static final int concurrentScans = Monitor.getContext().getConfiguration()
+      .getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
 
   /**
    * Generates the server stats
@@ -239,7 +252,9 @@ public class TabletServerResource {
 
     ServerStats stats = new ServerStats();
 
-    stats.addStats(new ServerStat(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load", "osload"));
+    stats.addStats(
+        new ServerStat(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true,
+            100, "OS Load", "osload"));
     stats.addStats(new ServerStat(1000, true, 1, "Ingest Entries", "ingest"));
     stats.addStats(new ServerStat(10000, true, 1, "Scan Entries", "query"));
     stats.addStats(new ServerStat(10, true, 10, "Ingest MB", "ingestMB"));
@@ -255,33 +270,43 @@ public class TabletServerResource {
 
   private TabletServerDetailInformation doDetails(HostAndPort address, int numTablets) {
 
-    return new TabletServerDetailInformation(numTablets, total.numEntries, total.minors.status, total.majors.status, historical.splits.status);
+    return new TabletServerDetailInformation(numTablets, total.numEntries, total.minors.status,
+        total.majors.status, historical.splits.status);
   }
 
-  private List<AllTimeTabletResults> doAllTimeResults(double majorQueueStdDev, double minorQueueStdDev, double totalElapsedForAll, double splitStdDev,
-      double majorStdDev, double minorStdDev) {
+  private List<AllTimeTabletResults> doAllTimeResults(double majorQueueStdDev,
+      double minorQueueStdDev, double totalElapsedForAll, double splitStdDev, double majorStdDev,
+      double minorStdDev) {
 
     List<AllTimeTabletResults> allTime = new ArrayList<>();
 
     // Minor Compaction Operation
-    allTime.add(new AllTimeTabletResults("Minor&nbsp;Compaction", total.minors.num, total.minors.fail,
-        total.minors.num != 0 ? (total.minors.queueTime / total.minors.num) : null, minorQueueStdDev,
-        total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null, minorStdDev, total.minors.elapsed));
+    allTime.add(new AllTimeTabletResults("Minor&nbsp;Compaction", total.minors.num,
+        total.minors.fail,
+        total.minors.num != 0 ? (total.minors.queueTime / total.minors.num) : null,
+        minorQueueStdDev, total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null,
+        minorStdDev, total.minors.elapsed));
 
     // Major Compaction Operation
-    allTime.add(new AllTimeTabletResults("Major&nbsp;Compaction", total.majors.num, total.majors.fail,
-        total.majors.num != 0 ? (total.majors.queueTime / total.majors.num) : null, majorQueueStdDev,
-        total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null, majorStdDev, total.majors.elapsed));
+    allTime.add(new AllTimeTabletResults("Major&nbsp;Compaction", total.majors.num,
+        total.majors.fail,
+        total.majors.num != 0 ? (total.majors.queueTime / total.majors.num) : null,
+        majorQueueStdDev, total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null,
+        majorStdDev, total.majors.elapsed));
     // Split Operation
-    allTime.add(new AllTimeTabletResults("Split", historical.splits.num, historical.splits.fail, null, null,
-        historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null, splitStdDev, historical.splits.elapsed));
+    allTime.add(
+        new AllTimeTabletResults("Split", historical.splits.num, historical.splits.fail, null, null,
+            historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null,
+            splitStdDev, historical.splits.elapsed));
 
     return allTime;
   }
 
-  private CurrentTabletResults doCurrentTabletResults(double currentMinorAvg, double currentMinorStdDev, double currentMajorAvg, double currentMajorStdDev) {
+  private CurrentTabletResults doCurrentTabletResults(double currentMinorAvg,
+      double currentMinorStdDev, double currentMajorAvg, double currentMajorStdDev) {
 
-    return new CurrentTabletResults(currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev);
+    return new CurrentTabletResults(currentMinorAvg, currentMinorStdDev, currentMajorAvg,
+        currentMajorStdDev);
   }
 
   private List<CurrentOperations> doCurrentOperations(List<TabletStats> tsStats) throws Exception {
@@ -308,10 +333,14 @@ public class TabletServerResource {
 
       String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(), tableId);
 
-      currentOperations.add(new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate, info.queryRate,
-          info.minors.num != 0 ? info.minors.elapsed / info.minors.num : null, stddev(info.minors.elapsed, info.minors.num, info.minors.sumDev),
-          info.minors.elapsed != 0 ? info.minors.count / info.minors.elapsed : null, info.majors.num != 0 ? info.majors.elapsed / info.majors.num : null,
-          stddev(info.majors.elapsed, info.majors.num, info.majors.sumDev), info.majors.elapsed != 0 ? info.majors.count / info.majors.elapsed : null));
+      currentOperations.add(
+          new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate,
+              info.queryRate, info.minors.num != 0 ? info.minors.elapsed / info.minors.num : null,
+              stddev(info.minors.elapsed, info.minors.num, info.minors.sumDev),
+              info.minors.elapsed != 0 ? info.minors.count / info.minors.elapsed : null,
+              info.majors.num != 0 ? info.majors.elapsed / info.majors.num : null,
+              stddev(info.majors.elapsed, info.majors.num, info.majors.sumDev),
+              info.majors.elapsed != 0 ? info.majors.count / info.majors.elapsed : null));
     }
 
     return currentOperations;

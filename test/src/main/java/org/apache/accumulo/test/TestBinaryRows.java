@@ -42,7 +42,8 @@ public class TestBinaryRows {
   private static final long byteOnes;
 
   static {
-    // safely build Byte.SIZE number of 1s as a long; not that I think Byte.SIZE will ever be anything but 8, but just for fun
+    // safely build Byte.SIZE number of 1s as a long; not that I think Byte.SIZE will ever be
+    // anything but 8, but just for fun
     long b = 1;
     for (int i = 0; i < Byte.SIZE; ++i)
       b |= (1L << i);
@@ -62,7 +63,8 @@ public class TestBinaryRows {
   static long decodeLong(byte ba[]) {
     // validate byte array
     if (ba.length > Long.SIZE / Byte.SIZE)
-      throw new IllegalArgumentException("Byte array of size " + ba.length + " is too big to hold a long");
+      throw new IllegalArgumentException(
+          "Byte array of size " + ba.length + " is too big to hold a long");
 
     // build the long from the bytes
     long l = 0;
@@ -73,7 +75,9 @@ public class TestBinaryRows {
   }
 
   public static class Opts extends ClientOnRequiredTable {
-    @Parameter(names = "--mode", description = "either 'ingest', 'delete', 'randomLookups', 'split', 'verify', 'verifyDeleted'", required = true)
+    @Parameter(names = "--mode",
+        description = "either 'ingest', 'delete', 'randomLookups', 'split', 'verify', 'verifyDeleted'",
+        required = true)
     public String mode;
     @Parameter(names = "--start", description = "the lowest numbered row")
     public long start = 0;
@@ -81,12 +85,14 @@ public class TestBinaryRows {
     public long num = 0;
   }
 
-  public static void runTest(Connector connector, Opts opts, BatchWriterOpts bwOpts, ScannerOpts scanOpts) throws Exception {
+  public static void runTest(Connector connector, Opts opts, BatchWriterOpts bwOpts,
+      ScannerOpts scanOpts) throws Exception {
 
     final Text CF = new Text("cf"), CQ = new Text("cq");
     final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
-      BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+      BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
+          bwOpts.getBatchWriterConfig());
       boolean delete = opts.mode.equals("delete");
 
       for (long i = 0; i < opts.num; i++) {
@@ -106,21 +112,26 @@ public class TestBinaryRows {
     } else if (opts.mode.equals("verifyDeleted")) {
       try (Scanner s = connector.createScanner(opts.getTableName(), opts.auths)) {
         s.setBatchSize(scanOpts.scanBatchSize);
-        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
-        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
+        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
+            Long.MAX_VALUE);
+        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
+            new byte[0], 0);
         s.setBatchSize(50000);
         s.setRange(new Range(startKey, stopKey));
 
         for (Entry<Key,Value> entry : s) {
-          throw new Exception("ERROR : saw entries in range that should be deleted ( first value : " + entry.getValue().toString() + ")");
+          throw new Exception("ERROR : saw entries in range that should be deleted ( first value : "
+              + entry.getValue().toString() + ")");
         }
       }
     } else if (opts.mode.equals("verify")) {
       long t1 = System.currentTimeMillis();
 
       try (Scanner s = connector.createScanner(opts.getTableName(), opts.auths)) {
-        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
-        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
+        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
+            Long.MAX_VALUE);
+        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
+            new byte[0], 0);
         s.setBatchSize(scanOpts.scanBatchSize);
         s.setRange(new Range(startKey, stopKey));
 
@@ -136,7 +147,8 @@ public class TestBinaryRows {
         }
 
         if (i != opts.start + opts.num) {
-          throw new Exception("ERROR : did not see expected number of rows, saw " + (i - opts.start) + " expected " + opts.num);
+          throw new Exception("ERROR : did not see expected number of rows, saw " + (i - opts.start)
+              + " expected " + opts.num);
         }
 
         long t2 = System.currentTimeMillis();
@@ -207,7 +219,8 @@ public class TestBinaryRows {
 
   private static void checkKeyValue(long expected, Key k, Value v) throws Exception {
     if (expected != decodeLong(TextUtil.getBytes(k.getRow()))) {
-      throw new Exception("ERROR : expected row " + expected + " saw " + decodeLong(TextUtil.getBytes(k.getRow())));
+      throw new Exception(
+          "ERROR : expected row " + expected + " saw " + decodeLong(TextUtil.getBytes(k.getRow())));
     }
 
     if (!v.toString().equals("" + expected)) {

@@ -61,11 +61,13 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     cfg.setNumTservers(2);
     namespace1 = "ns_" + getUniqueNames(1)[0];
 
-    // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be specified
+    // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be
+    // specified
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
     // if a table doesn't have a volume chooser, use the preferred volume chooser
-    siteConfig.put(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+    siteConfig.put(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
+        PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
     File baseDir = cfg.getDir();
@@ -81,12 +83,15 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
 
     cfg.setSiteConfig(siteConfig);
 
-    siteConfig.put(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
+    siteConfig.put(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER),
+        PreferredVolumeChooser.class.getName());
     // do not set preferred volumes
     cfg.setSiteConfig(siteConfig);
 
-    // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in the options list when they are choosing
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString() + "," + v4.toString());
+    // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
+    // the options list when they are choosing
+    cfg.setProperty(Property.INSTANCE_VOLUMES,
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
     // no not set preferred volumes
 
     // use raw local file system so walogs sync and flush will work
@@ -96,7 +101,8 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
 
   }
 
-  public static void addSplits(Connector connector, String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public static void addSplits(Connector connector, String tableName)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Add 10 splits to the table
     SortedSet<Text> partitions = new TreeSet<>();
     for (String s : rows)
@@ -104,7 +110,8 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     connector.tableOperations().addSplits(tableName, partitions);
   }
 
-  // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but no preferred volume is specified.
+  // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but no
+  // preferred volume is specified.
   // This means that the volume chooser will fail and no instance volumes will be assigned.
   @Test
   public void missingVolumePreferredVolumeChooser() throws Exception {
@@ -115,7 +122,8 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     connector.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
-    connector.namespaceOperations().setProperty(namespace1, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+    connector.namespaceOperations().setProperty(namespace1,
+        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
     // deliberately do not set preferred volumes
 
     // Create table1 on namespace1 (will fail)
@@ -124,7 +132,8 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     connector.tableOperations().create(tableName);
   }
 
-  // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but preferred volume is not an instance volume.
+  // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but
+  // preferred volume is not an instance volume.
   // This should fail.
   @Test
   public void notInstancePreferredVolumeChooser() throws Exception {

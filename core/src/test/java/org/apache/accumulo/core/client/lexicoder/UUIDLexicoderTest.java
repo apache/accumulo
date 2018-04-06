@@ -25,8 +25,8 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 public class UUIDLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
 
-    assertSortOrder(new UUIDLexicoder(),
-        Arrays.asList(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
+    assertSortOrder(new UUIDLexicoder(), Arrays.asList(UUID.randomUUID(), UUID.randomUUID(),
+        UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
 
     ArrayList<UUID> uuids = new ArrayList<>();
 

@@ -91,14 +91,15 @@ public class CountingSummarizerTest {
 
   @Test
   public void testSummarizing() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(FamilySummarizer.class).addOptions(MAX_COUNTERS_OPT, "5", MAX_COUNTER_LEN_OPT, "10").build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(FamilySummarizer.class)
+        .addOptions(MAX_COUNTERS_OPT, "5", MAX_COUNTER_LEN_OPT, "10").build();
     FamilySummarizer countSum = new FamilySummarizer();
 
     Value val = new Value("abc");
 
     Summarizer.Collector collector = countSum.collector(sc);
-    for (String fam : Arrays.asList("f1", "f1", "f1", "f2", "f1", "f70000000000000000000", "f70000000000000000001", "f2", "f3", "f4", "f5", "f6", "f7", "f3",
-        "f7")) {
+    for (String fam : Arrays.asList("f1", "f1", "f1", "f2", "f1", "f70000000000000000000",
+        "f70000000000000000001", "f2", "f3", "f4", "f5", "f6", "f7", "f3", "f7")) {
       collector.accept(new Key("r", fam), val);
     }
 
@@ -145,7 +146,8 @@ public class CountingSummarizerTest {
 
   @Test
   public void testMerge() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(VisibilitySummarizer.class).addOption(MAX_COUNTERS_OPT, "5").build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(VisibilitySummarizer.class)
+        .addOption(MAX_COUNTERS_OPT, "5").build();
     VisibilitySummarizer countSum = new VisibilitySummarizer();
 
     String p = COUNTER_STAT_PREFIX;
@@ -215,7 +217,8 @@ public class CountingSummarizerTest {
 
   @Test
   public void testCountDeletes() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(FamilySummarizer.class).addOptions(INGNORE_DELETES_OPT, "false").build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(FamilySummarizer.class)
+        .addOptions(INGNORE_DELETES_OPT, "false").build();
     FamilySummarizer countSum = new FamilySummarizer();
 
     Key k1 = new Key("r1", "f1");

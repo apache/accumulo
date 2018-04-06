@@ -34,8 +34,10 @@ import org.junit.rules.TemporaryFolder;
 
 public class ContextManagerTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-  private TemporaryFolder folder2 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder1 = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder2 = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
   private FileSystemManager vfs;
   private String uri1;
   private String uri2;
@@ -56,8 +58,10 @@ public class ContextManagerTest {
     folder1.create();
     folder2.create();
 
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder2.newFile("HelloWorld.jar"));
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
+        folder1.newFile("HelloWorld.jar"));
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
+        folder2.newFile("HelloWorld.jar"));
 
     uri1 = new File(folder1.getRoot(), "HelloWorld.jar").toURI().toString();
     uri2 = folder2.getRoot().toURI().toString() + ".*";

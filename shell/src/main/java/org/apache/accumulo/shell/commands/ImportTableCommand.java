@@ -27,8 +27,9 @@ import org.apache.commons.cli.CommandLine;
 public class ImportTableCommand extends Command {
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, TableExistsException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException {
 
     shellState.getConnector().tableOperations().importTable(cl.getArgs()[0], cl.getArgs()[1]);
     return 0;

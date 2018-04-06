@@ -24,7 +24,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Class for determining the "size" of a class, an attempt to calculate the actual bytes that an object of this class will occupy in memory
+ * Class for determining the "size" of a class, an attempt to calculate the actual bytes that an
+ * object of this class will occupy in memory
  *
  * The core of this class is taken from the Derby project
  */
@@ -94,7 +95,8 @@ public class ClassSize {
   private static final String THIRTY_TWO = "32";
 
   /**
-   * Method for reading the arc settings and setting overheads according to 32-bit or 64-bit architecture.
+   * Method for reading the arc settings and setting overheads according to 32-bit or 64-bit
+   * architecture.
    */
   static {
     // Figure out whether this is a 32 or 64 bit machine.
@@ -110,8 +112,8 @@ public class ClassSize {
 
     ARRAYLIST = align(OBJECT + align(REFERENCE) + align(ARRAY) + (2 * SizeConstants.SIZEOF_INT));
 
-    BYTE_BUFFER = align(OBJECT + align(REFERENCE) + align(ARRAY) + (5 * SizeConstants.SIZEOF_INT) + (3 * SizeConstants.SIZEOF_BOOLEAN)
-        + SizeConstants.SIZEOF_LONG);
+    BYTE_BUFFER = align(OBJECT + align(REFERENCE) + align(ARRAY) + (5 * SizeConstants.SIZEOF_INT)
+        + (3 * SizeConstants.SIZEOF_BOOLEAN) + SizeConstants.SIZEOF_LONG);
 
     INTEGER = align(OBJECT + SizeConstants.SIZEOF_INT);
 
@@ -123,14 +125,16 @@ public class ClassSize {
 
     CONCURRENT_HASHMAP = align((2 * SizeConstants.SIZEOF_INT) + ARRAY + (6 * REFERENCE) + OBJECT);
 
-    CONCURRENT_HASHMAP_ENTRY = align(REFERENCE + OBJECT + (3 * REFERENCE) + (2 * SizeConstants.SIZEOF_INT));
+    CONCURRENT_HASHMAP_ENTRY = align(
+        REFERENCE + OBJECT + (3 * REFERENCE) + (2 * SizeConstants.SIZEOF_INT));
 
-    CONCURRENT_HASHMAP_SEGMENT = align(REFERENCE + OBJECT + (3 * SizeConstants.SIZEOF_INT) + SizeConstants.SIZEOF_FLOAT + ARRAY);
+    CONCURRENT_HASHMAP_SEGMENT = align(
+        REFERENCE + OBJECT + (3 * SizeConstants.SIZEOF_INT) + SizeConstants.SIZEOF_FLOAT + ARRAY);
 
     CONCURRENT_SKIPLISTMAP = align(SizeConstants.SIZEOF_INT + OBJECT + (8 * REFERENCE));
 
     CONCURRENT_SKIPLISTMAP_ENTRY = align(align(OBJECT + (3 * REFERENCE)) + /* one node per entry */
-    align((OBJECT + (3 * REFERENCE)) / 2)); /* one index per two entries */
+        align((OBJECT + (3 * REFERENCE)) / 2)); /* one index per two entries */
 
     REENTRANT_LOCK = align(OBJECT + (3 * REFERENCE));
 

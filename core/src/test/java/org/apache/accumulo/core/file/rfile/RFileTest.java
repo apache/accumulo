@@ -117,9 +117,11 @@ public class RFileTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
-  static class SeekableByteArrayInputStream extends ByteArrayInputStream implements Seekable, PositionedReadable {
+  static class SeekableByteArrayInputStream extends ByteArrayInputStream
+      implements Seekable, PositionedReadable {
 
     public SeekableByteArrayInputStream(byte[] buf) {
       super(buf);
@@ -181,13 +183,15 @@ public class RFileTest {
       Key lastKey = new Key(indexIter.getTopKey());
 
       if (reader.getFirstKey().compareTo(lastKey) > 0)
-        throw new RuntimeException("First key out of order " + reader.getFirstKey() + " " + lastKey);
+        throw new RuntimeException(
+            "First key out of order " + reader.getFirstKey() + " " + lastKey);
 
       indexIter.next();
 
       while (indexIter.hasTop()) {
         if (lastKey.compareTo(indexIter.getTopKey()) > 0)
-          throw new RuntimeException("Indext out of order " + lastKey + " " + indexIter.getTopKey());
+          throw new RuntimeException(
+              "Indext out of order " + lastKey + " " + indexIter.getTopKey());
 
         lastKey = new Key(indexIter.getTopKey());
         indexIter.next();
@@ -226,9 +230,11 @@ public class RFileTest {
     public void openWriter(boolean startDLG, int blockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos), "gz", conf, accumuloConfiguration);
+      CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos),
+          "gz", conf, accumuloConfiguration);
 
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
+          .newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
 
       if (samplerConfig != null) {
@@ -286,7 +292,8 @@ public class RFileTest {
       LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
-      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf, dataCache, indexCache, DefaultConfiguration.getInstance());
+      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
+          dataCache, indexCache, DefaultConfiguration.getInstance());
       reader = new RFile.Reader(_cbr);
       if (cfsi)
         iter = new ColumnFamilySkippingIterator(reader);
@@ -401,7 +408,8 @@ public class RFileTest {
             String cvS = "" + (char) cv;
             for (int ts = 4; ts > 0; ts--) {
               Key k = newKey(rowS, cfS, cqS, cvS, ts);
-              // check below ensures when all key sizes are same more than one index block is created
+              // check below ensures when all key sizes are same more than one index block is
+              // created
               Assert.assertEquals(27, k.getSize());
               k.setDeleted(true);
               Value v = newValue("" + val);
@@ -434,22 +442,26 @@ public class RFileTest {
     // seek to the middle
     int index = expectedKeys.size() / 2;
     trf.seek(expectedKeys.get(index));
-    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(), expectedValues.subList(index, expectedKeys.size()).iterator());
+    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(),
+        expectedValues.subList(index, expectedKeys.size()).iterator());
 
     // seek the first key
     index = 0;
     trf.seek(expectedKeys.get(index));
-    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(), expectedValues.subList(index, expectedKeys.size()).iterator());
+    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(),
+        expectedValues.subList(index, expectedKeys.size()).iterator());
 
     // seek to the last key
     index = expectedKeys.size() - 1;
     trf.seek(expectedKeys.get(index));
-    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(), expectedValues.subList(index, expectedKeys.size()).iterator());
+    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(),
+        expectedValues.subList(index, expectedKeys.size()).iterator());
 
     // seek after everything
     index = expectedKeys.size();
     trf.seek(new Key(new Text("z")));
-    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(), expectedValues.subList(index, expectedKeys.size()).iterator());
+    verify(trf, expectedKeys.subList(index, expectedKeys.size()).iterator(),
+        expectedValues.subList(index, expectedKeys.size()).iterator());
 
     // test seeking to the current location
     index = expectedKeys.size() / 2;
@@ -668,8 +680,8 @@ public class RFileTest {
     trf.openReader();
 
     // test that has top returns false when end of range reached
-    trf.iter.seek(new Range(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4), "cf1", "cq1", "L1", 55), false),
-        EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55), true,
+        newKey(formatString("r_", 4), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
     assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55)));
     assertEquals(newValue("foo" + 3), trf.iter.getTopValue());
@@ -677,23 +689,31 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // test seeking to a range that is between two keys, should not return anything
-    trf.iter.seek(new Range(newKey(formatString("r_", 4) + "a", "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4) + "b", "cf1", "cq1", "L1", 55),
-        true), EMPTY_COL_FAMS, false);
-    assertFalse(trf.iter.hasTop());
-
-    // test seeking to another range after the previously seeked range, that is between the same two keys in the file
-    // as the previously seeked range.... this test an optimization on RFile
-    trf.iter.seek(new Range(newKey(formatString("r_", 4) + "c", "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4) + "d", "cf1", "cq1", "L1", 55),
-        true), EMPTY_COL_FAMS, false);
-    assertFalse(trf.iter.hasTop());
-
-    trf.iter.seek(new Range(newKey(formatString("r_", 4) + "e", "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4) + "f", "cf1", "cq1", "L1", 55),
-        true), EMPTY_COL_FAMS, false);
-    assertFalse(trf.iter.hasTop());
-
-    // now ensure we can seek somewhere, that triggering the optimization does not cause any problems
-    trf.iter.seek(new Range(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 6), "cf1", "cq1", "L1", 55), false),
+    trf.iter.seek(
+        new Range(newKey(formatString("r_", 4) + "a", "cf1", "cq1", "L1", 55), true,
+            newKey(formatString("r_", 4) + "b", "cf1", "cq1", "L1", 55), true),
         EMPTY_COL_FAMS, false);
+    assertFalse(trf.iter.hasTop());
+
+    // test seeking to another range after the previously seeked range, that is between the same two
+    // keys in the file
+    // as the previously seeked range.... this test an optimization on RFile
+    trf.iter.seek(
+        new Range(newKey(formatString("r_", 4) + "c", "cf1", "cq1", "L1", 55), true,
+            newKey(formatString("r_", 4) + "d", "cf1", "cq1", "L1", 55), true),
+        EMPTY_COL_FAMS, false);
+    assertFalse(trf.iter.hasTop());
+
+    trf.iter.seek(
+        new Range(newKey(formatString("r_", 4) + "e", "cf1", "cq1", "L1", 55), true,
+            newKey(formatString("r_", 4) + "f", "cf1", "cq1", "L1", 55), true),
+        EMPTY_COL_FAMS, false);
+    assertFalse(trf.iter.hasTop());
+
+    // now ensure we can seek somewhere, that triggering the optimization does not cause any
+    // problems
+    trf.iter.seek(new Range(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55), true,
+        newKey(formatString("r_", 6), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
     assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55)));
     assertEquals(newValue("foo" + 5), trf.iter.getTopValue());
@@ -701,8 +721,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // test seeking to range that is before the beginning of the file
-    trf.iter.seek(new Range(newKey(formatString("r_", 0), "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 2), "cf1", "cq1", "L1", 55), false),
-        EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 0), "cf1", "cq1", "L1", 55), true,
+        newKey(formatString("r_", 2), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
     assertEquals(newKey(formatString("r_", 49), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
@@ -752,7 +772,8 @@ public class RFileTest {
     trf.openWriter();
 
     for (int i = 0; i < 2500; i++) {
-      trf.writer.append(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42), newValue("foo" + i));
+      trf.writer.append(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42),
+          newValue("foo" + i));
     }
 
     trf.closeWriter();
@@ -760,23 +781,29 @@ public class RFileTest {
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i++) {
-      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42)
+          .followingKey(PartialKey.ROW_COLFAM));
       assertTrue(trf.iter.hasTop());
-      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42),
+          trf.iter.getTopKey());
     }
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i += 2) {
-      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42)
+          .followingKey(PartialKey.ROW_COLFAM));
       assertTrue(trf.iter.hasTop());
-      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42),
+          trf.iter.getTopKey());
     }
 
     // test seeking backwards between each key
     for (int i = 2498; i >= 0; i--) {
-      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42)
+          .followingKey(PartialKey.ROW_COLFAM));
       assertTrue(trf.iter.hasTop());
-      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42),
+          trf.iter.getTopKey());
     }
 
     trf.closeReader();
@@ -787,7 +814,9 @@ public class RFileTest {
     trf.openWriter();
 
     for (int i = 0; i < 2500; i++) {
-      trf.writer.append(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42), newValue("foo" + i));
+      trf.writer.append(
+          newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42),
+          newValue("foo" + i));
     }
 
     trf.closeWriter();
@@ -795,23 +824,32 @@ public class RFileTest {
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i++) {
-      trf.seek(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
+      trf.seek(
+          newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42)
+              .followingKey(PartialKey.ROW_COLFAM_COLQUAL));
       assertTrue(trf.iter.hasTop());
-      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1),
+          "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i += 2) {
-      trf.seek(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
+      trf.seek(
+          newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42)
+              .followingKey(PartialKey.ROW_COLFAM_COLQUAL));
       assertTrue(trf.iter.hasTop());
-      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1),
+          "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking backwards between each key
     for (int i = 2498; i >= 0; i--) {
-      trf.seek(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
+      trf.seek(
+          newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42)
+              .followingKey(PartialKey.ROW_COLFAM_COLQUAL));
       assertTrue(trf.iter.hasTop());
-      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1),
+          "L1", 42), trf.iter.getTopKey());
     }
 
     trf.closeReader();
@@ -848,7 +886,8 @@ public class RFileTest {
     trf.openReader();
 
     // scan first loc group
-    Range r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    Range r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("cf1", "cf2"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -863,7 +902,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // scan second loc group
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("cf3", "cf4"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -878,7 +918,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // scan all loc groups
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, EMPTY_COL_FAMS, false);
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -901,13 +942,15 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // scan no loc groups
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("saint", "dogooder"), true);
     assertEquals(0, trf.reader.getNumLocalityGroupsSeeked());
     assertFalse(trf.iter.hasTop());
 
     // scan a subset of second locality group
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("cf4"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -918,7 +961,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // scan a subset of second locality group
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("cf3"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -929,7 +973,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // scan subset of first loc group
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("cf1"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -940,7 +985,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // scan subset of first loc group
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("cf2"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -951,7 +997,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     // scan subset of all loc groups
-    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true,
+        newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, newColFamByteSequence("cf1", "cf4"), true);
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
@@ -1126,7 +1173,8 @@ public class RFileTest {
       if (m10 == 3 || m10 == 5 || m10 == 7)
         continue;
 
-      trf.writer.append(newKey(formatString("i", i), m10 + "mod10", "", "", i + 2), newValue("" + i));
+      trf.writer.append(newKey(formatString("i", i), m10 + "mod10", "", "", i + 2),
+          newValue("" + i));
 
     }
     trf.writer.close();
@@ -1137,7 +1185,8 @@ public class RFileTest {
     assertEquals(3, trf.reader.getNumLocalityGroupsSeeked());
     for (int i = 0; i < 1024; i++) {
       assertTrue(trf.iter.hasTop());
-      assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2),
+          trf.iter.getTopKey());
       assertEquals(newValue("" + i), trf.iter.getTopValue());
       trf.iter.next();
     }
@@ -1145,18 +1194,21 @@ public class RFileTest {
 
     // try reading each of the 10 column families separately
     for (int m = 0; m < 10; m++) {
-      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"), true);
+      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"),
+          true);
       assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
       for (int i = m; i < 1024; i += 10) {
         assertTrue(trf.iter.hasTop());
-        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2),
+            trf.iter.getTopKey());
         assertEquals(newValue("" + i), trf.iter.getTopValue());
         trf.iter.next();
       }
       assertFalse(trf.iter.hasTop());
 
       // test excluding an individual column family
-      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"), false);
+      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"),
+          false);
       if (m == 3)
         assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
       else
@@ -1167,7 +1219,8 @@ public class RFileTest {
           continue;
 
         assertTrue(trf.iter.hasTop());
-        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2),
+            trf.iter.getTopKey());
         assertEquals(newValue("" + i), trf.iter.getTopValue());
         trf.iter.next();
       }
@@ -1179,19 +1232,23 @@ public class RFileTest {
 
     // try reading from cloned reader at the same time as parent reader
     for (int m = 0; m < 9; m++) {
-      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"), true);
+      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"),
+          true);
       assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
-      reader2.seek(new Range(new Key(), true, null, true), newColFamByteSequence((m + 1) + "mod10"), true);
+      reader2.seek(new Range(new Key(), true, null, true), newColFamByteSequence((m + 1) + "mod10"),
+          true);
       // assertEquals(1, reader2.getNumLocalityGroupsSeeked());
       for (int i = m; i < 1024; i += 10) {
         // System.out.println(m+","+i);
         assertTrue(trf.iter.hasTop());
-        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2),
+            trf.iter.getTopKey());
         assertEquals(newValue("" + i), trf.iter.getTopValue());
         trf.iter.next();
         if (i + 1 < 1024) {
           assertTrue(reader2.hasTop());
-          assertEquals(newKey(formatString("i", (i + 1)), ((i + 1) % 10) + "mod10", "", "", i + 3), reader2.getTopKey());
+          assertEquals(newKey(formatString("i", (i + 1)), ((i + 1) % 10) + "mod10", "", "", i + 3),
+              reader2.getTopKey());
           assertEquals(newValue("" + (i + 1)), reader2.getTopValue());
           reader2.next();
         }
@@ -1353,7 +1410,8 @@ public class RFileTest {
 
     assertTrue(count > 4);
 
-    trf.iter.seek(new Range(newKey("r0000", "cf1", "cq1", "", 1), true, newKey("r0001", "cf1", "cq1", "", 1), false), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0000", "cf1", "cq1", "", 1), true,
+        newKey("r0001", "cf1", "cq1", "", 1), false), EMPTY_COL_FAMS, false);
 
     for (int i = 0; i < 2048; i++) {
       assertTrue(trf.iter.hasTop());
@@ -1364,7 +1422,8 @@ public class RFileTest {
 
     assertFalse(trf.iter.hasTop());
 
-    trf.iter.seek(new Range(newKey("r0000", "cf1", "cq1", "", 1), false, newKey("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0000", "cf1", "cq1", "", 1), false,
+        newKey("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
 
     for (int i = 2048; i < 4096; i++) {
       assertTrue(trf.iter.hasTop());
@@ -1375,7 +1434,8 @@ public class RFileTest {
 
     assertFalse(trf.iter.hasTop());
 
-    trf.iter.seek(new Range(newKey("r0001", "cf1", "cq1", "", 1), true, newKey("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0001", "cf1", "cq1", "", 1), true,
+        newKey("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
 
     for (int i = 2048; i < 4096; i++) {
       assertTrue(trf.iter.hasTop());
@@ -1386,7 +1446,8 @@ public class RFileTest {
 
     assertFalse(trf.iter.hasTop());
 
-    trf.iter.seek(new Range(newKey("r0002", "cf1", "cq1", "", 1), true, newKey("r0002", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0002", "cf1", "cq1", "", 1), true,
+        newKey("r0002", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
@@ -1429,8 +1490,8 @@ public class RFileTest {
     allCf.add(new ArrayByteSequence(cf));
   }
 
-  private void t18Verify(Set<ByteSequence> cfs, SortedKeyValueIterator<Key,Value> iter, Reader reader, HashSet<ByteSequence> allCf, int eialg, int eealg)
-      throws IOException {
+  private void t18Verify(Set<ByteSequence> cfs, SortedKeyValueIterator<Key,Value> iter,
+      Reader reader, HashSet<ByteSequence> allCf, int eialg, int eealg) throws IOException {
 
     HashSet<ByteSequence> colFamsSeen = new HashSet<>();
 
@@ -1585,7 +1646,8 @@ public class RFileTest {
     for (int count = 0; count < 100; count++) {
 
       int start = rand.nextInt(2300);
-      Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42), newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
+      Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
+          newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
@@ -1593,19 +1655,23 @@ public class RFileTest {
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
-        assertEquals(newKey(formatString("r_", start + j), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+        assertEquals(newKey(formatString("r_", start + j), "cf1", "cq1", "L1", 42),
+            trf.reader.getTopKey());
         trf.reader.next();
       }
 
       assertTrue(trf.reader.hasTop());
-      assertEquals(newKey(formatString("r_", start + numToScan), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+      assertEquals(newKey(formatString("r_", start + numToScan), "cf1", "cq1", "L1", 42),
+          trf.reader.getTopKey());
 
-      // seek a little forward from the last range and read a few keys within the unconsumed portion of the last range
+      // seek a little forward from the last range and read a few keys within the unconsumed portion
+      // of the last range
 
       int start2 = start + numToScan + rand.nextInt(3);
       int end2 = start2 + rand.nextInt(3);
 
-      range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42), newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
+      range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
+          newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
       trf.reader.seek(range, cfs, false);
 
       for (int j = start2; j <= end2; j++) {
@@ -1635,7 +1701,8 @@ public class RFileTest {
   }
 
   private void runVersionTest(int version) throws IOException {
-    InputStream in = this.getClass().getClassLoader().getResourceAsStream("org/apache/accumulo/core/file/rfile/ver_" + version + ".rf");
+    InputStream in = this.getClass().getClassLoader()
+        .getResourceAsStream("org/apache/accumulo/core/file/rfile/ver_" + version + ".rf");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     byte buf[] = new byte[1024];
     int read;
@@ -1646,7 +1713,8 @@ public class RFileTest {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length, CachedConfiguration.getInstance(), aconf);
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length,
+        CachedConfiguration.getInstance(), aconf);
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);
 
@@ -1657,11 +1725,13 @@ public class RFileTest {
         if (start == 0)
           iter.seek(new Range(), newColFamByteSequence(formatString("cf_", cf)), true);
         else
-          iter.seek(new Range(formatString("r_", start), null), newColFamByteSequence(formatString("cf_", cf)), true);
+          iter.seek(new Range(formatString("r_", start), null),
+              newColFamByteSequence(formatString("cf_", cf)), true);
 
         for (int i = start; i < 1000; i++) {
           assertTrue(iter.hasTop());
-          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf), formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
+          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf),
+              formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
           assertEquals(newValue(i + ""), iter.getTopValue());
           iter.next();
         }
@@ -1677,7 +1747,8 @@ public class RFileTest {
       for (int i = start; i < 1000; i++) {
         for (int cf = 1; cf <= 4; cf++) {
           assertTrue(iter.hasTop());
-          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf), formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
+          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf),
+              formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
           assertEquals(newValue(i + ""), iter.getTopValue());
           iter.next();
         }
@@ -1869,7 +1940,8 @@ public class RFileTest {
     hasher.putBytes(val.get());
   }
 
-  private static void add(TestRFile trf, Key key, Value val, Hasher dataHasher, List<Entry<Key,Value>> sample, Sampler sampler) throws IOException {
+  private static void add(TestRFile trf, Key key, Value val, Hasher dataHasher,
+      List<Entry<Key,Value>> sample, Sampler sampler) throws IOException {
     if (sampler.accept(key)) {
       sample.add(new AbstractMap.SimpleImmutableEntry<>(key, val));
     }
@@ -1879,23 +1951,27 @@ public class RFileTest {
     trf.writer.append(key, val);
   }
 
-  private List<Entry<Key,Value>> toList(SortedKeyValueIterator<Key,Value> sample) throws IOException {
+  private List<Entry<Key,Value>> toList(SortedKeyValueIterator<Key,Value> sample)
+      throws IOException {
     ArrayList<Entry<Key,Value>> ret = new ArrayList<>();
 
     while (sample.hasTop()) {
-      ret.add(new AbstractMap.SimpleImmutableEntry<>(new Key(sample.getTopKey()), new Value(sample.getTopValue())));
+      ret.add(new AbstractMap.SimpleImmutableEntry<>(new Key(sample.getTopKey()),
+          new Value(sample.getTopValue())));
       sample.next();
     }
 
     return ret;
   }
 
-  private void checkSample(SortedKeyValueIterator<Key,Value> sample, List<Entry<Key,Value>> sampleData) throws IOException {
+  private void checkSample(SortedKeyValueIterator<Key,Value> sample,
+      List<Entry<Key,Value>> sampleData) throws IOException {
     checkSample(sample, sampleData, EMPTY_COL_FAMS, false);
   }
 
-  private void checkSample(SortedKeyValueIterator<Key,Value> sample, List<Entry<Key,Value>> sampleData, Collection<ByteSequence> columnFamilies,
-      boolean inclusive) throws IOException {
+  private void checkSample(SortedKeyValueIterator<Key,Value> sample,
+      List<Entry<Key,Value>> sampleData, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
 
     sample.seek(new Range(), columnFamilies, inclusive);
     Assert.assertEquals(sampleData, toList(sample));
@@ -1934,8 +2010,10 @@ public class RFileTest {
         endInclusive = rand.nextBoolean();
       }
 
-      sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies, inclusive);
-      Assert.assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex), toList(sample));
+      sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,
+          inclusive);
+      Assert.assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex),
+          toList(sample));
     }
   }
 
@@ -1952,12 +2030,14 @@ public class RFileTest {
         Hasher dataHasher = Hashing.md5().newHasher();
         List<Entry<Key,Value>> sampleData = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
+        ConfigurationCopy sampleConf = new ConfigurationCopy(
+            conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
 
-        Sampler sampler = SamplerFactory.newSampler(SamplerConfigurationImpl.newSamplerConfig(sampleConf), sampleConf);
+        Sampler sampler = SamplerFactory
+            .newSampler(SamplerConfigurationImpl.newSamplerConfig(sampleConf), sampleConf);
 
         TestRFile trf = new TestRFile(sampleConf);
 
@@ -1974,13 +2054,15 @@ public class RFileTest {
 
         trf.openReader();
 
-        FileSKVIterator sample = trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample = trf.reader
+            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleData);
 
         Assert.assertEquals(expectedDataHash, hash(trf.reader));
 
-        SampleIE ie = new SampleIE(SamplerConfigurationImpl.newSamplerConfig(sampleConf).toSamplerConfiguration());
+        SampleIE ie = new SampleIE(
+            SamplerConfigurationImpl.newSamplerConfig(sampleConf).toSamplerConfiguration());
 
         for (int i = 0; i < 3; i++) {
           // test opening and closing deep copies a few times.
@@ -2033,12 +2115,14 @@ public class RFileTest {
         List<Entry<Key,Value>> sampleDataLG1 = new ArrayList<>();
         List<Entry<Key,Value>> sampleDataLG2 = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
+        ConfigurationCopy sampleConf = new ConfigurationCopy(
+            conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
 
-        Sampler sampler = SamplerFactory.newSampler(SamplerConfigurationImpl.newSamplerConfig(sampleConf), sampleConf);
+        Sampler sampler = SamplerFactory
+            .newSampler(SamplerConfigurationImpl.newSamplerConfig(sampleConf), sampleConf);
 
         TestRFile trf = new TestRFile(sampleConf);
 
@@ -2087,7 +2171,8 @@ public class RFileTest {
         Assert.assertTrue(sampleDataLG2.size() > 0);
 
         trf.openReader(false);
-        FileSKVIterator sample = trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample = trf.reader
+            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA", "metaB"), true);
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA"), true);
@@ -2206,7 +2291,8 @@ public class RFileTest {
     // metadata tablets
     // String initRootTabFile = ServerConstants.getMetadataTableDir() + "/root_tablet/00000_00000."
     // + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-    // FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
+    // FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf,
+    // AccumuloConfiguration.getDefaultConfiguration());
 
     TestRFile testRfile = new TestRFile(conf);
     testRfile.openWriter();
@@ -2217,20 +2303,24 @@ public class RFileTest {
 
     // mfw.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+    Text tableExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID,
+        MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
-    Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+    Key tableDirKey = new Key(tableExtent,
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info".getBytes()));
 
     // table tablet time
-    Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+    Key tableTimeKey = new Key(tableExtent,
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
     // table tablet's prevrow
-    Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+    Key tablePrevRowKey = new Key(tableExtent,
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
 
@@ -2238,24 +2328,29 @@ public class RFileTest {
     Text defaultExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
 
     // default's directory
-    Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+    Key defaultDirKey = new Key(defaultExtent,
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
 
     // default's time
-    Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+    Key defaultTimeKey = new Key(defaultExtent,
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
     // default's prevrow
-    Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+    Key defaultPrevRowKey = new Key(defaultExtent,
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+    mfw.append(defaultPrevRowKey,
+        KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     testRfile.closeWriter();
 
     if (true) {
-      FileOutputStream fileOutputStream = new FileOutputStream(tempFolder.newFile("testEncryptedRootFile.rf"));
+      FileOutputStream fileOutputStream = new FileOutputStream(
+          tempFolder.newFile("testEncryptedRootFile.rf"));
       fileOutputStream.write(testRfile.baos.toByteArray());
       fileOutputStream.flush();
       fileOutputStream.close();

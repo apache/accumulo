@@ -35,7 +35,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
 /**
- * Create an empty RFile for use in recovering from data loss where Accumulo still refers internally to a path.
+ * Create an empty RFile for use in recovering from data loss where Accumulo still refers internally
+ * to a path.
  */
 public class CreateEmpty {
   private static final Logger log = LoggerFactory.getLogger(CreateEmpty.class);
@@ -54,13 +55,15 @@ public class CreateEmpty {
     public void validate(String name, String value) throws ParameterException {
       String[] algorithms = Compression.getSupportedAlgorithms();
       if (!((Arrays.asList(algorithms)).contains(value))) {
-        throw new ParameterException("Compression codec must be one of " + Arrays.toString(algorithms));
+        throw new ParameterException(
+            "Compression codec must be one of " + Arrays.toString(algorithms));
       }
     }
   }
 
   static class Opts extends Help {
-    @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.", validateWith = IsSupportedCompressionAlgorithm.class)
+    @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.",
+        validateWith = IsSupportedCompressionAlgorithm.class)
     String codec = Compression.COMPRESSION_NONE;
     @Parameter(description = " <path> { <path> ... } Each path given is a URL. "
         + "Relative paths are resolved according to the default filesystem defined in your Hadoop configuration, which is usually an HDFS instance.",
@@ -77,8 +80,10 @@ public class CreateEmpty {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       log.info("Writing to file '{}'", path);
-      FileSKVWriter writer = (new RFileOperations()).newWriterBuilder().forFile(arg, path.getFileSystem(conf), conf)
-          .withTableConfiguration(DefaultConfiguration.getInstance()).withCompression(opts.codec).build();
+      FileSKVWriter writer = (new RFileOperations()).newWriterBuilder()
+          .forFile(arg, path.getFileSystem(conf), conf)
+          .withTableConfiguration(DefaultConfiguration.getInstance()).withCompression(opts.codec)
+          .build();
       writer.close();
     }
   }

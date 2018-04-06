@@ -43,14 +43,16 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 
 /**
- * This class iterates over the metadata table returning all key values for a tablet in one chunk. As it scans the metadata table it checks the correctness of
- * the metadata table, and rescans if needed. So the tablet key/values returned by this iterator should satisfy the sorted linked list property of the metadata
- * table.
+ * This class iterates over the metadata table returning all key values for a tablet in one chunk.
+ * As it scans the metadata table it checks the correctness of the metadata table, and rescans if
+ * needed. So the tablet key/values returned by this iterator should satisfy the sorted linked list
+ * property of the metadata table.
  *
- * The purpose of this is to hide inconsistencies caused by splits and detect anomalies in the metadata table.
+ * The purpose of this is to hide inconsistencies caused by splits and detect anomalies in the
+ * metadata table.
  *
- * If a tablet that was returned by this iterator is subsequently deleted from the metadata table, then this iterator will throw a TabletDeletedException. This
- * could occur when a table is merged.
+ * If a tablet that was returned by this iterator is subsequently deleted from the metadata table,
+ * then this iterator will throw a TabletDeletedException. This could occur when a table is merged.
  */
 public class TabletIterator implements Iterator<Map<Key,Value>> {
 
@@ -124,7 +126,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         Table.ID currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text) null).getTableId();
 
         if (!lastTable.equals(currentTable) && (per != null || lastEndRow != null)) {
-          log.info("Metadata inconsistency on table transition : {} {} {} {}", lastTable, currentTable, per, lastEndRow);
+          log.info("Metadata inconsistency on table transition : {} {} {} {}", lastTable,
+              currentTable, per, lastEndRow);
 
           currentTabletKeys = null;
           resetScanner();
@@ -135,11 +138,13 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         }
       }
 
-      boolean perEqual = (per == null && lastEndRow == null) || (per != null && lastEndRow != null && per.equals(lastEndRow));
+      boolean perEqual = (per == null && lastEndRow == null)
+          || (per != null && lastEndRow != null && per.equals(lastEndRow));
 
       if (!perEqual) {
 
-        log.info("Metadata inconsistency : {} != {} metadataKey = {}", per, lastEndRow, prevEndRowKey);
+        log.info("Metadata inconsistency : {} != {} metadataKey = {}", per, lastEndRow,
+            prevEndRowKey);
 
         currentTabletKeys = null;
         resetScanner();
@@ -170,11 +175,13 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
 
     while (esIter.hasNext()) {
       Map.Entry<Key,Value> entry = esIter.next();
-      if (!returnPrevEndRow && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+      if (!returnPrevEndRow
+          && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
         esIter.remove();
       }
 
-      if (!returnDir && TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
+      if (!returnDir
+          && TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
         esIter.remove();
       }
     }
@@ -246,7 +253,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         throw new TabletDeletedException("Tablet " + lastTablet + " was deleted while iterating");
 
       // start right after the last good tablet
-      range = new Range(new Key(lastTablet).followingKey(PartialKey.ROW), true, this.range.getEndKey(), this.range.isEndKeyInclusive());
+      range = new Range(new Key(lastTablet).followingKey(PartialKey.ROW), true,
+          this.range.getEndKey(), this.range.isEndKeyInclusive());
     }
 
     log.info("Resetting {} scanner to {}", MetadataTable.NAME, range);

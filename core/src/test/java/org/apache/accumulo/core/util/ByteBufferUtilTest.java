@@ -75,7 +75,8 @@ public class ByteBufferUtilTest {
     // create a ByteBuffer with a non-zero array offset
     ByteBuffer bb2 = bb1.slice();
 
-    // The purpose of this test is to ensure ByteBufferUtil code works when arrayOffset is non-zero. The following asserts are not to test ByteBuffer, but
+    // The purpose of this test is to ensure ByteBufferUtil code works when arrayOffset is non-zero.
+    // The following asserts are not to test ByteBuffer, but
     // ensure the behavior of slice() is as expected.
 
     Assert.assertEquals(3, bb2.arrayOffset());
@@ -85,7 +86,8 @@ public class ByteBufferUtilTest {
     // start test with non zero arrayOffset
     assertEquals("3456", bb2);
 
-    // read one byte from byte buffer... this should cause position to be non-zero in addition to array offset
+    // read one byte from byte buffer... this should cause position to be non-zero in addition to
+    // array offset
     bb2.get();
     assertEquals("456", bb2);
 

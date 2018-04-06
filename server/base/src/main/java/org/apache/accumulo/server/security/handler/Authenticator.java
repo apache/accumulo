@@ -24,8 +24,9 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
 /**
- * This interface is used for the system which will be used for authenticating a user. If the implementation does not support configuration through Accumulo, it
- * should throw an AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
+ * This interface is used for the system which will be used for authenticating a user. If the
+ * implementation does not support configuration through Accumulo, it should throw an
+ * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  */
 
 public interface Authenticator {
@@ -34,9 +35,11 @@ public interface Authenticator {
 
   boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
 
-  void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
+  void initializeSecurity(TCredentials credentials, String principal, byte[] token)
+      throws AccumuloSecurityException, ThriftSecurityException;
 
-  boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
+  boolean authenticateUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException;
 
   Set<String> listUsers() throws AccumuloSecurityException;
 

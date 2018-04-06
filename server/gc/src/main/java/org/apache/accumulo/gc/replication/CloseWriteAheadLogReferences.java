@@ -62,11 +62,12 @@ import com.google.common.base.Stopwatch;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * It's impossible to know when all references to a WAL have been removed from the metadata table as the references are potentially spread across the entire
- * tablets row-space.
+ * It's impossible to know when all references to a WAL have been removed from the metadata table as
+ * the references are potentially spread across the entire tablets row-space.
  * <p>
- * This tool scans the metadata table to collect a set of WALs that are still referenced. Then, each {@link Status} record from the metadata and replication
- * tables that point to that WAL can be "closed", by writing a new Status to the same key with the closed member true.
+ * This tool scans the metadata table to collect a set of WALs that are still referenced. Then, each
+ * {@link Status} record from the metadata and replication tables that point to that WAL can be
+ * "closed", by writing a new Status to the same key with the closed member true.
  */
 public class CloseWriteAheadLogReferences implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(CloseWriteAheadLogReferences.class);
@@ -81,7 +82,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   @Override
   public void run() {
-    // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible with
+    // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible
+    // with
     // what the version they bundle uses.
     Stopwatch sw = new Stopwatch();
 
@@ -121,7 +123,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
       updateReplicationSpan.stop();
     }
 
-    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw.toString());
+    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed,
+        sw.toString());
   }
 
   /**
@@ -150,7 +153,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
   }
 
   /**
-   * Given the set of WALs which have references in the metadata table, close any status messages with reference that WAL.
+   * Given the set of WALs which have references in the metadata table, close any status messages
+   * with reference that WAL.
    *
    * @param conn
    *          Connector
@@ -214,7 +218,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
   }
 
   /**
-   * Write a closed {@link Status} mutation for the given {@link Key} using the provided {@link BatchWriter}
+   * Write a closed {@link Status} mutation for the given {@link Key} using the provided
+   * {@link BatchWriter}
    *
    * @param bw
    *          BatchWriter
@@ -267,8 +272,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
     try {
       client = getMasterConnection();
 
-      // Could do this through InstanceOperations, but that would set a bunch of new Watchers via ZK on every tserver
-      // node. The master is already tracking all of this info, so hopefully this is less overall work.
+      // Could do this through InstanceOperations, but that would set a bunch of new Watchers via ZK
+      // on every tserver
+      // node. The master is already tracking all of this info, so hopefully this is less overall
+      // work.
       if (null != client) {
         tservers = client.getActiveTservers(tinfo, context.rpcCreds());
       }
@@ -286,7 +293,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
   protected List<String> getActiveWalsForServer(TInfo tinfo, HostAndPort server) {
     TabletClientService.Client tserverClient = null;
     try {
-      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, context);
+      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server,
+          context);
       return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
     } catch (TException e) {
       log.warn("Failed to fetch active write-ahead logs from " + server, e);

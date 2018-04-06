@@ -91,12 +91,15 @@ public class TraceDump {
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
-    Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
+    Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
+        new Text("start:" + Long.toHexString(endTime)));
     scanner.setRange(range);
     out.println("Trace            Day/Time                 (ms)  Start");
     for (Entry<Key,Value> entry : scanner) {
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
-      out.println(String.format("%016x %s %5d %s", span.traceId, TraceFormatter.formatDate(new Date(span.getStart())), span.stop - span.start, span.description));
+      out.println(String.format("%016x %s %5d %s", span.traceId,
+          TraceFormatter.formatDate(new Date(span.getStart())), span.stop - span.start,
+          span.description));
     }
     return 0;
   }
@@ -146,17 +149,21 @@ public class TraceDump {
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
       @Override
-      public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
+      public void visit(int level, RemoteSpan parent, RemoteSpan node,
+          Collection<RemoteSpan> children) {
         String fmt = "%5d+%-5d %" + (level * 2 + 1) + "s%s@%s %s";
-        out.print(String.format(fmt, node.stop - node.start, node.start - finalStart, "", node.svc, node.sender, node.description));
+        out.print(String.format(fmt, node.stop - node.start, node.start - finalStart, "", node.svc,
+            node.sender, node.description));
       }
     });
     tree.nodes.keySet().removeAll(visited);
     if (!tree.nodes.isEmpty()) {
-      out.print("The following spans are not rooted (probably due to a parent span of length 0ms):");
+      out.print(
+          "The following spans are not rooted (probably due to a parent span of length 0ms):");
       for (RemoteSpan span : sortByStart(tree.nodes.values())) {
         String fmt = "%5d+%-5d %" + 1 + "s%s@%s %s";
-        out.print(String.format(fmt, span.stop - span.start, span.start - finalStart, "", span.svc, span.sender, span.description));
+        out.print(String.format(fmt, span.stop - span.start, span.start - finalStart, "", span.svc,
+            span.sender, span.description));
       }
       return -1;
     }

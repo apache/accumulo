@@ -36,7 +36,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class AccumuloReloadingVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder1 = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
   String folderPath;
   private FileSystemManager vfs;
 
@@ -49,7 +50,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     folder1.create();
     folderPath = folder1.getRoot().toURI().toString() + ".*";
 
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
+        folder1.newFile("HelloWorld.jar"));
   }
 
   FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
@@ -69,12 +71,13 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
-      @Override
-      public ClassLoader getClassLoader() {
-        return ClassLoader.getSystemClassLoader();
-      }
-    }, true);
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
+        new ReloadingClassLoader() {
+          @Override
+          public ClassLoader getClassLoader() {
+            return ClassLoader.getSystemClassLoader();
+          }
+        }, true);
 
     VFSClassLoader cl = (VFSClassLoader) arvcl.getClassLoader();
 
@@ -89,12 +92,13 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
-      @Override
-      public ClassLoader getClassLoader() {
-        return ClassLoader.getSystemClassLoader();
-      }
-    }, 1000, true);
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
+        new ReloadingClassLoader() {
+          @Override
+          public ClassLoader getClassLoader() {
+            return ClassLoader.getSystemClassLoader();
+          }
+        }, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
@@ -113,7 +117,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Thread.sleep(7000);
 
     // Update the class
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld2.jar"));
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
+        folder1.newFile("HelloWorld2.jar"));
 
     // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure
@@ -130,9 +135,11 @@ public class AccumuloReloadingVFSClassLoaderTest {
     arvcl.close();
   }
 
-  // This test fails because of an error with the underlying monitor (ACCUMULO-1507/VFS-487). Uncomment when this has been addressed.
+  // This test fails because of an error with the underlying monitor (ACCUMULO-1507/VFS-487).
+  // Uncomment when this has been addressed.
   //
-  // This is caused by the filed being deleted and then readded in the same monitor tick. This causes the file to ultimately register the deletion over any
+  // This is caused by the filed being deleted and then readded in the same monitor tick. This
+  // causes the file to ultimately register the deletion over any
   // other events.
   @Test
   @Ignore
@@ -140,13 +147,14 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
+        new ReloadingClassLoader() {
 
-      @Override
-      public ClassLoader getClassLoader() {
-        return ClassLoader.getSystemClassLoader();
-      }
-    }, 1000, true);
+          @Override
+          public ClassLoader getClassLoader() {
+            return ClassLoader.getSystemClassLoader();
+          }
+        }, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
@@ -162,7 +170,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
     // Update the class
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
+        folder1.newFile("HelloWorld.jar"));
 
     // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure
@@ -186,12 +195,13 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
-      @Override
-      public ClassLoader getClassLoader() {
-        return ClassLoader.getSystemClassLoader();
-      }
-    }, 1000, true);
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
+        new ReloadingClassLoader() {
+          @Override
+          public ClassLoader getClassLoader() {
+            return ClassLoader.getSystemClassLoader();
+          }
+        }, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
@@ -205,14 +215,16 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Assert.assertEquals(clazz1, clazz1_5);
 
-    // java does aggressive caching of jar files. When using java code to read jar files that are created in the same second, it will only see the first jar
+    // java does aggressive caching of jar files. When using java code to read jar files that are
+    // created in the same second, it will only see the first jar
     // file
     Thread.sleep(1000);
 
     assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
     // Update the class
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld2.jar"), folder1.newFile("HelloWorld.jar"));
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld2.jar"),
+        folder1.newFile("HelloWorld.jar"));
 
     // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure

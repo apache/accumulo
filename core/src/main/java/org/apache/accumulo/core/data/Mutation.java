@@ -41,31 +41,34 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
- * Mutation represents an action that manipulates a row in a table. A mutation holds a list of column/value pairs that represent an atomic set of modifications
- * to make to a row.
+ * Mutation represents an action that manipulates a row in a table. A mutation holds a list of
+ * column/value pairs that represent an atomic set of modifications to make to a row.
  *
  * <p>
- * Convenience methods which takes columns and value as CharSequence (String implements CharSequence) are provided. CharSequence is converted to UTF-8 by
- * constructing a new Text object.
+ * Convenience methods which takes columns and value as CharSequence (String implements
+ * CharSequence) are provided. CharSequence is converted to UTF-8 by constructing a new Text object.
  *
  * <p>
- * When always passing in the same data as a CharSequence/String, it's probably more efficient to call the Text put methods. This way the data is only encoded
- * once and only one Text object is created.
+ * When always passing in the same data as a CharSequence/String, it's probably more efficient to
+ * call the Text put methods. This way the data is only encoded once and only one Text object is
+ * created.
  *
  * <p>
- * All of the put methods append data to the mutation; they do not overwrite anything that was previously put. The mutation holds a list of all columns/values
- * that were put into it.
+ * All of the put methods append data to the mutation; they do not overwrite anything that was
+ * previously put. The mutation holds a list of all columns/values that were put into it.
  *
  * <p>
- * The putDelete() methods do not remove something that was previously added to the mutation; rather, they indicate that Accumulo should insert a delete marker
- * for that row column. A delete marker effectively hides entries for that row column with a timestamp earlier than the marker's. (The hidden data is eventually
- * removed during Accumulo garbage collection.)
+ * The putDelete() methods do not remove something that was previously added to the mutation;
+ * rather, they indicate that Accumulo should insert a delete marker for that row column. A delete
+ * marker effectively hides entries for that row column with a timestamp earlier than the marker's.
+ * (The hidden data is eventually removed during Accumulo garbage collection.)
  */
 public class Mutation implements Writable {
 
   /**
-   * Internally, this class keeps most mutation data in a byte buffer. If a cell value put into a mutation exceeds this size, then it is stored in a separate
-   * buffer, and a reference to it is inserted into the main buffer.
+   * Internally, this class keeps most mutation data in a byte buffer. If a cell value put into a
+   * mutation exceeds this size, then it is stored in a separate buffer, and a reference to it is
+   * inserted into the main buffer.
    */
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
 
@@ -77,7 +80,8 @@ public class Mutation implements Writable {
   static final long SERIALIZATION_OVERHEAD = 5;
 
   /**
-   * Formats available for serializing Mutations. The formats are described in a <a href="doc-files/mutation-serialization.html">separate document</a>.
+   * Formats available for serializing Mutations. The formats are described in a
+   * <a href="doc-files/mutation-serialization.html">separate document</a>.
    */
   public static enum SERIALIZED_FORMAT {
     VERSION1, VERSION2
@@ -112,8 +116,8 @@ public class Mutation implements Writable {
   /**
    * This is so hashCode and equals can be called without changing this object.
    *
-   * It will return a copy of the current data buffer if serialized has not been called previously. Otherwise, this.data will be returned since the buffer is
-   * null and will not change.
+   * It will return a copy of the current data buffer if serialized has not been called previously.
+   * Otherwise, this.data will be returned since the buffer is null and will not change.
    */
   private ByteBuffer serializedSnapshot() {
     if (buffer != null) {
@@ -306,24 +310,31 @@ public class Mutation implements Writable {
     buffer.writeVLong(l);
   }
 
-  private void put(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+  private void put(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted,
+      byte[] val) {
     put(cf, cf.length, cq, cq.length, cv, hasts, ts, deleted, val, val.length);
   }
 
   /*
-   * When dealing with Text object the length must be gotten from the object, not from the byte array.
+   * When dealing with Text object the length must be gotten from the object, not from the byte
+   * array.
    */
-  private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
-    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val, val.length);
+  private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted,
+      byte[] val) {
+    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val,
+        val.length);
   }
 
-  private void put(byte[] cf, int cfLength, byte[] cq, int cqLength, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, int valLength) {
+  private void put(byte[] cf, int cfLength, byte[] cq, int cqLength, byte[] cv, boolean hasts,
+      long ts, boolean deleted, byte[] val, int valLength) {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
-    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength + cv.length + (hasts ? 8 : 0) + valLength + 2 + 4
-        * SERIALIZATION_OVERHEAD;
-    Preconditions.checkArgument(estimatedSizeAfterPut < MAX_MUTATION_SIZE && estimatedSizeAfterPut >= 0, "Maximum mutation size must be less than 2GB ");
+    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength
+        + cv.length + (hasts ? 8 : 0) + valLength + 2 + 4 * SERIALIZATION_OVERHEAD;
+    Preconditions.checkArgument(
+        estimatedSizeAfterPut < MAX_MUTATION_SIZE && estimatedSizeAfterPut >= 0,
+        "Maximum mutation size must be less than 2GB ");
     put(cf, cfLength);
     put(cq, cqLength);
     put(cv);
@@ -349,20 +360,25 @@ public class Mutation implements Writable {
     entries++;
   }
 
-  private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+  private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts,
+      boolean deleted, byte[] val) {
     put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted, val);
   }
 
   private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, Text val) {
-    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val.getBytes(), val.getLength());
+    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted,
+        val.getBytes(), val.getLength());
   }
 
-  private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts, boolean deleted, CharSequence val) {
-    put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted, new Text(val.toString()));
+  private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts,
+      boolean deleted, CharSequence val) {
+    put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted,
+        new Text(val.toString()));
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
+   * parameters are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -376,7 +392,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
+   * copied.
    *
    * @param columnFamily
    *          column family
@@ -387,12 +404,15 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value.get());
+  public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
+      Value value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+        value.get());
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
+   * are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -421,12 +441,15 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility, long timestamp, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value.get());
+  public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
+      long timestamp, Value value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false,
+        value.get());
   }
 
   /**
-   * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All parameters are defensively copied.
+   * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
+   * parameters are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -447,12 +470,15 @@ public class Mutation implements Writable {
    * @param columnVisibility
    *          column visibility
    */
-  public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
+  public void putDelete(Text columnFamily, Text columnQualifier,
+      ColumnVisibility columnVisibility) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+        EMPTY_BYTES);
   }
 
   /**
-   * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters are defensively copied.
+   * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters
+   * are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -477,12 +503,15 @@ public class Mutation implements Writable {
    * @param timestamp
    *          timestamp
    */
-  public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
+  public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
+      long timestamp) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true,
+        EMPTY_BYTES);
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
+   * parameters are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -494,7 +523,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
+   * copied.
    *
    * @param columnFamily
    *          column family
@@ -505,12 +535,15 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value.get());
+  public void put(CharSequence columnFamily, CharSequence columnQualifier,
+      ColumnVisibility columnVisibility, Value value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+        value.get());
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
+   * are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -521,7 +554,8 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp, Value value) {
+  public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
+      Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value.get());
   }
 
@@ -539,12 +573,15 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value.get());
+  public void put(CharSequence columnFamily, CharSequence columnQualifier,
+      ColumnVisibility columnVisibility, long timestamp, Value value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false,
+        value.get());
   }
 
   /**
-   * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All parameters are defensively copied.
+   * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
+   * parameters are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -556,7 +593,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Puts a deletion in this mutation. Timestamp is not set. All appropriate parameters are defensively copied.
+   * Puts a deletion in this mutation. Timestamp is not set. All appropriate parameters are
+   * defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -565,12 +603,15 @@ public class Mutation implements Writable {
    * @param columnVisibility
    *          column visibility
    */
-  public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
+  public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
+      ColumnVisibility columnVisibility) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+        EMPTY_BYTES);
   }
 
   /**
-   * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters are defensively copied.
+   * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters
+   * are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -595,12 +636,15 @@ public class Mutation implements Writable {
    * @param timestamp
    *          timestamp
    */
-  public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
+  public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
+      ColumnVisibility columnVisibility, long timestamp) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true,
+        EMPTY_BYTES);
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
+   * parameters are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -614,7 +658,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
+   * copied.
    *
    * @param columnFamily
    *          column family
@@ -625,12 +670,14 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, CharSequence value) {
+  public void put(CharSequence columnFamily, CharSequence columnQualifier,
+      ColumnVisibility columnVisibility, CharSequence value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
+   * are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -641,7 +688,8 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp, CharSequence value) {
+  public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
+      CharSequence value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
   }
 
@@ -659,12 +707,15 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    */
-  public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp, CharSequence value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
+  public void put(CharSequence columnFamily, CharSequence columnQualifier,
+      ColumnVisibility columnVisibility, long timestamp, CharSequence value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false,
+        value);
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
+   * parameters are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -679,7 +730,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively copied.
+   * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
+   * copied.
    *
    * @param columnFamily
    *          column family
@@ -691,12 +743,14 @@ public class Mutation implements Writable {
    *          cell value
    * @since 1.5.0
    */
-  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, byte[] value) {
+  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility,
+      byte[] value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
   }
 
   /**
-   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters are defensively copied.
+   * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
+   * are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -727,12 +781,15 @@ public class Mutation implements Writable {
    *          cell value
    * @since 1.5.0
    */
-  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp, byte[] value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
+  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility,
+      long timestamp, byte[] value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false,
+        value);
   }
 
   /**
-   * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All parameters are defensively copied.
+   * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
+   * parameters are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -755,12 +812,15 @@ public class Mutation implements Writable {
    *          column visibility
    * @since 1.5.0
    */
-  public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier,
+      ColumnVisibility columnVisibility) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+        EMPTY_BYTES);
   }
 
   /**
-   * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters are defensively copied.
+   * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters
+   * are defensively copied.
    *
    * @param columnFamily
    *          column family
@@ -787,8 +847,10 @@ public class Mutation implements Writable {
    *          timestamp
    * @since 1.5.0
    */
-  public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier,
+      ColumnVisibility columnVisibility, long timestamp) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true,
+        EMPTY_BYTES);
   }
 
   private byte[] oldReadBytes(UnsynchronizedBuffer.Reader in) {
@@ -812,8 +874,9 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Gets the modifications and deletions in this mutation. After calling this method, further modifications to this mutation are ignored. Changes made to the
-   * returned updates do not affect this mutation.
+   * Gets the modifications and deletions in this mutation. After calling this method, further
+   * modifications to this mutation are ignored. Changes made to the returned updates do not affect
+   * this mutation.
    *
    * @return list of modifications and deletions
    */
@@ -838,7 +901,8 @@ public class Mutation implements Writable {
     return updates;
   }
 
-  protected ColumnUpdate newColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+  protected ColumnUpdate newColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts,
+      boolean deleted, byte[] val) {
     return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
 
@@ -902,7 +966,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Gets an estimate of the amount of memory used by this mutation. The estimate includes data sizes and object overhead.
+   * Gets an estimate of the amount of memory used by this mutation. The estimate includes data
+   * sizes and object overhead.
    *
    * @return memory usage estimate
    */
@@ -1119,8 +1184,9 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Checks if this mutation equals another. Two mutations are equal if they target the same row and have the same modifications and deletions, in order. This
-   * method may be removed in a future API revision in favor of {@link #equals(Object)}. See ACCUMULO-1627 for more information.
+   * Checks if this mutation equals another. Two mutations are equal if they target the same row and
+   * have the same modifications and deletions, in order. This method may be removed in a future API
+   * revision in favor of {@link #equals(Object)}. See ACCUMULO-1627 for more information.
    *
    * @param m
    *          mutation to compare
@@ -1156,9 +1222,11 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object containing this Mutation's data.
+   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object containing this
+   * Mutation's data.
    *
-   * Note that this method will move the Mutation into a "serialized" state that will prevent users from adding more data via Mutation#put().
+   * Note that this method will move the Mutation into a "serialized" state that will prevent users
+   * from adding more data via Mutation#put().
    *
    * @return a thrift form of this Mutation
    */
@@ -1171,7 +1239,8 @@ public class Mutation implements Writable {
       this.serialize();
     }
     ByteBuffer data = serializedSnapshot();
-    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
+    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data,
+        ByteBufferUtil.toByteBuffers(values), entries);
     if (!this.replicationSources.isEmpty()) {
       tmutation.setSources(new ArrayList<>(replicationSources));
     }

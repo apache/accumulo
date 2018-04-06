@@ -112,7 +112,8 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
             log.info("Looking in trace output for '{}'", part);
             int pos = traceOutput.indexOf(part);
             assertTrue("Did not find '" + part + "' in output", pos > 0);
-            assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
+            assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly",
+                pos > lastPos);
             lastPos = pos;
           }
           break;

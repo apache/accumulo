@@ -30,7 +30,8 @@ import org.junit.Test;
 public class DateFormatSupplierTest {
 
   /** Asserts two supplier instance create independent objects */
-  private void assertSuppliersIndependent(ThreadLocal<DateFormat> supplierA, ThreadLocal<DateFormat> supplierB) {
+  private void assertSuppliersIndependent(ThreadLocal<DateFormat> supplierA,
+      ThreadLocal<DateFormat> supplierB) {
     DateFormat getA1 = supplierA.get();
     DateFormat getA2 = supplierA.get();
     assertSame(getA1, getA2);
@@ -56,7 +57,8 @@ public class DateFormatSupplierTest {
     DateFormatSupplier supplierB = DateFormatSupplier.createSimpleFormatSupplier(format);
     assertSuppliersIndependent(supplierA, supplierB);
 
-    // since dfA and dfB come from different suppliers, altering the TimeZone on one does not affect the other
+    // since dfA and dfB come from different suppliers, altering the TimeZone on one does not affect
+    // the other
     supplierA.setTimeZone(TimeZone.getTimeZone("UTC"));
     final DateFormat dfA = supplierA.get();
 

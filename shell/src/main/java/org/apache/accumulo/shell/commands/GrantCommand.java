@@ -42,32 +42,39 @@ public class GrantCommand extends TableOperation {
   private String[] permission;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt()) : shellState.getConnector().whoami();
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
+    user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt())
+        : shellState.getConnector().whoami();
 
     permission = cl.getArgs()[0].split("\\.", 2);
     if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
       try {
-        shellState.getConnector().securityOperations().grantSystemPermission(user, SystemPermission.valueOf(permission[1]));
+        shellState.getConnector().securityOperations().grantSystemPermission(user,
+            SystemPermission.valueOf(permission[1]));
         Shell.log.debug("Granted " + user + " the " + permission[1] + " permission");
       } catch (IllegalArgumentException e) {
-        throw new BadArgumentException("No such system permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+        throw new BadArgumentException("No such system permission", fullCommand,
+            fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (permission[0].equalsIgnoreCase("Table")) {
       super.execute(fullCommand, cl, shellState);
     } else if (permission[0].equalsIgnoreCase("Namespace")) {
       if (cl.hasOption(optNamespace.getOpt())) {
         try {
-          shellState.getConnector().securityOperations()
-              .grantNamespacePermission(user, cl.getOptionValue(optNamespace.getOpt()), NamespacePermission.valueOf(permission[1]));
+          shellState.getConnector().securityOperations().grantNamespacePermission(user,
+              cl.getOptionValue(optNamespace.getOpt()), NamespacePermission.valueOf(permission[1]));
         } catch (IllegalArgumentException e) {
-          throw new BadArgumentException("No such namespace permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+          throw new BadArgumentException("No such namespace permission", fullCommand,
+              fullCommand.indexOf(cl.getArgs()[0]));
         }
       } else {
-        throw new BadArgumentException("No namespace specified to apply permission to", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+        throw new BadArgumentException("No namespace specified to apply permission to", fullCommand,
+            fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else {
-      throw new BadArgumentException("Unrecognized permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+      throw new BadArgumentException("Unrecognized permission", fullCommand,
+          fullCommand.indexOf(cl.getArgs()[0]));
     }
     return 0;
   }
@@ -75,8 +82,10 @@ public class GrantCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     try {
-      shellState.getConnector().securityOperations().grantTablePermission(user, tableName, TablePermission.valueOf(permission[1]));
-      Shell.log.debug("Granted " + user + " the " + permission[1] + " permission on table " + tableName);
+      shellState.getConnector().securityOperations().grantTablePermission(user, tableName,
+          TablePermission.valueOf(permission[1]));
+      Shell.log
+          .debug("Granted " + user + " the " + permission[1] + " permission on table " + tableName);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("No such table permission", e);
     }
@@ -93,7 +102,8 @@ public class GrantCommand extends TableOperation {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     final Token cmd = new Token(getName());
     cmd.addSubcommand(new Token(TablePermission.printableValues()));
     cmd.addSubcommand(new Token(SystemPermission.printableValues()));
@@ -110,7 +120,8 @@ public class GrantCommand extends TableOperation {
 
     systemOpt = new Option("s", "system", false, "grant a system permission");
 
-    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace to operate on");
+    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,
+        "name of a namespace to operate on");
     optNamespace.setArgName("namespace");
 
     group.addOption(systemOpt);

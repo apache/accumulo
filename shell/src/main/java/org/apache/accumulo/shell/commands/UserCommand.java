@@ -32,7 +32,8 @@ import org.apache.commons.cli.CommandLine;
 
 public class UserCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, IOException {
     // save old credentials and connection in case of failure
     String user = cl.getArgs()[0];
     byte[] pass;
@@ -56,7 +57,8 @@ public class UserCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForUsers(root, special);
   }
 

@@ -25,6 +25,7 @@ import org.apache.htrace.HTraceConfiguration;
  */
 public class ProbabilitySampler extends org.apache.htrace.impl.ProbabilitySampler {
   public ProbabilitySampler(double d) {
-    super(HTraceConfiguration.fromMap(Collections.singletonMap(ProbabilitySampler.SAMPLER_FRACTION_CONF_KEY, Double.toString(d))));
+    super(HTraceConfiguration.fromMap(Collections
+        .singletonMap(ProbabilitySampler.SAMPLER_FRACTION_CONF_KEY, Double.toString(d))));
   }
 }

@@ -43,9 +43,12 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   public final static SortedMap<Key,Value> allEntriesToInject;
   static {
     SortedMap<Key,Value> t = new TreeMap<>();
-    t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()), new Value("1".getBytes()));
-    t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()), new Value("1".getBytes()));
-    t.put(new Key(new Text("m1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()), new Value("1".getBytes()));
+    t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+        new Value("1".getBytes()));
+    t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+        new Value("1".getBytes()));
+    t.put(new Key(new Text("m1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+        new Value("1".getBytes()));
     allEntriesToInject = Collections.unmodifiableSortedMap(t); // for safety
   }
 
@@ -53,12 +56,15 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   private Range seekRng;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     if (source != null)
       log.info("HardListIterator ignores/replaces parent source passed in init(): " + source);
 
     IteratorUtil.IteratorScope scope = env.getIteratorScope();
-    log.debug(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
+    log.debug(this.getClass() + ": init on scope " + scope
+        + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction()
+            : ""));
 
     // define behavior before seek as seek to start at negative infinity
     inner = new PeekingIterator<>(allEntriesToInject.entrySet().iterator());
@@ -72,7 +78,8 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    newInstance.inner = new PeekingIterator<>(allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator());
+    newInstance.inner = new PeekingIterator<>(
+        allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator());
 
     return newInstance;
   }
@@ -91,16 +98,19 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     seekRng = range;
     // seek to first entry inside range
     if (range.isInfiniteStartKey())
       inner = new PeekingIterator<>(allEntriesToInject.entrySet().iterator());
     else if (range.isStartKeyInclusive())
-      inner = new PeekingIterator<>(allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
+      inner = new PeekingIterator<>(
+          allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
     else
-      inner = new PeekingIterator<>(allEntriesToInject.tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)).entrySet()
-          .iterator());
+      inner = new PeekingIterator<>(allEntriesToInject
+          .tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME))
+          .entrySet().iterator());
   }
 
   @Override

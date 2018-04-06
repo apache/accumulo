@@ -110,7 +110,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     // roll log, get a new next
     writeSomeData(c, tableName, 1001, 50);
     Map<String,Boolean> walsAfterRoll = getWALsAndAssertCount(c, 3);
-    assertTrue("new WALs should be a superset of the old WALs", walsAfterRoll.keySet().containsAll(wals.keySet()));
+    assertTrue("new WALs should be a superset of the old WALs",
+        walsAfterRoll.keySet().containsAll(wals.keySet()));
     assertEquals("all WALs should be in use", 3, countTrue(walsAfterRoll.values()));
 
     // flush the tables
@@ -141,7 +142,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
     // log.debug("markers " + markers);
     assertEquals("one tablet should have markers", 1, markers.keySet().size());
-    assertEquals("tableId of the keyExtent should be 1", "1", markers.keySet().iterator().next().getTableId().canonicalID());
+    assertEquals("tableId of the keyExtent should be 1", "1",
+        markers.keySet().iterator().next().getTableId().canonicalID());
 
     // put some data in the WAL
     assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").waitFor());
@@ -189,7 +191,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private Map<KeyExtent,List<String>> getRecoveryMarkers(Connector c) throws Exception {
     Map<KeyExtent,List<String>> result = new HashMap<>();
-    try (Scanner root = c.createScanner(RootTable.NAME, EMPTY); Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {
+    try (Scanner root = c.createScanner(RootTable.NAME, EMPTY);
+        Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {
       root.setRange(TabletsSection.getRange());
       root.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(root);
@@ -219,9 +222,12 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   private final int TIMES_TO_COUNT = 20;
   private final int PAUSE_BETWEEN_COUNTS = 100;
 
-  private Map<String,Boolean> getWALsAndAssertCount(Connector c, int expectedCount) throws Exception {
-    // see https://issues.apache.org/jira/browse/ACCUMULO-4110. Sometimes this test counts the logs before
-    // the new standby log is actually ready. So let's try a few times before failing, returning the last
+  private Map<String,Boolean> getWALsAndAssertCount(Connector c, int expectedCount)
+      throws Exception {
+    // see https://issues.apache.org/jira/browse/ACCUMULO-4110. Sometimes this test counts the logs
+    // before
+    // the new standby log is actually ready. So let's try a few times before failing, returning the
+    // last
     // wals variable with the the correct count.
     Map<String,Boolean> wals = _getWals(c);
     if (wals.size() == expectedCount) {
@@ -237,7 +243,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       }
     }
 
-    fail("Unable to get the correct number of WALs, expected " + expectedCount + " but got " + wals.toString());
+    fail("Unable to get the correct number of WALs, expected " + expectedCount + " but got "
+        + wals.toString());
     return new HashMap<>();
   }
 
@@ -256,7 +263,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   private Map<String,Boolean> _getWals(Connector c) throws Exception {
     Map<String,Boolean> result = new HashMap<>();
     Instance i = c.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
+        "");
     WalStateManager wals = new WalStateManager(c.getInstance(), zk);
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       // WALs are in use if they are not unreferenced

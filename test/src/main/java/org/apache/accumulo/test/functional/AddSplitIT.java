@@ -126,7 +126,8 @@ public class AddSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  private void insertData(String tableName, long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
+  private void insertData(String tableName, long ts) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = getConnector().createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {

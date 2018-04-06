@@ -40,7 +40,8 @@ public class MockMultiTableBatchWriter implements MultiTableBatchWriter {
   }
 
   @Override
-  public BatchWriter getBatchWriter(String table) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public BatchWriter getBatchWriter(String table)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!bws.containsKey(table)) {
       bws.put(table, new MockBatchWriter(acu, table));
     }

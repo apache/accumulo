@@ -57,7 +57,8 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   private static class MockCurrentState implements CurrentState {
 
-    TServerInstance someTServer = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), 0x123456);
+    TServerInstance someTServer = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234),
+        0x123456);
     MergeInfo mergeInfo;
 
     MockCurrentState(MergeInfo info) {
@@ -95,7 +96,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
   }
 
-  private static void update(Connector c, Mutation m) throws TableNotFoundException, MutationsRejectedException {
+  private static void update(Connector c, Mutation m)
+      throws TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     bw.addMutation(m);
     bw.close();
@@ -107,7 +109,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     Connector connector = getConnector();
     EasyMock.expect(context.getConnector()).andReturn(connector).anyTimes();
     EasyMock.replay(context);
-    connector.securityOperations().grantTablePermission(connector.whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    connector.securityOperations().grantTablePermission(connector.whoami(), MetadataTable.NAME,
+        TablePermission.WRITE);
     BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     // Create a fake METADATA table with these splits
@@ -118,19 +121,22 @@ public class MergeStateIT extends ConfigurableMacBase {
     for (String s : splits) {
       Text split = new Text(s);
       Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
-      prevRow.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
+      prevRow.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
+          new Value("127.0.0.1:1234".getBytes()));
       ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk".getBytes()));
       bw.addMutation(prevRow);
       pr = split;
     }
     // Add the default tablet
     Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
-    defaultTablet.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
+    defaultTablet.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
+        new Value("127.0.0.1:1234".getBytes()));
     bw.addMutation(defaultTablet);
     bw.close();
 
     // Read out the TabletLocationStates
-    MockCurrentState state = new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
+    MockCurrentState state = new MockCurrentState(new MergeInfo(
+        new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
 
     // Verify the tablet state: hosted, and count
     MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);
@@ -145,7 +151,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     // Split the tablet at one end of the range
     Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
     TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(new Text("o")));
+    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
+        KeyExtent.encodePrevEndRow(new Text("o")));
     update(connector, m);
 
     // do the state check
@@ -154,7 +161,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
 
     // unassign the tablets
-    BatchDeleter deleter = connector.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1000, new BatchWriterConfig());
+    BatchDeleter deleter = connector.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY,
+        1000, new BatchWriterConfig());
     deleter.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     deleter.setRanges(Collections.singletonList(new Range()));
     deleter.delete();
@@ -168,7 +176,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     m = tablet.getPrevRowUpdateMutation();
     TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
     update(connector, m);
-    metaDataStateStore.setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
+    metaDataStateStore
+        .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
 
     // onos... there's a new tablet online
     stats = scan(state, metaDataStateStore);
@@ -185,7 +194,10 @@ public class MergeStateIT extends ConfigurableMacBase {
     // take it offline
     m = tablet.getPrevRowUpdateMutation();
     Collection<Collection<String>> walogs = Collections.emptyList();
-    metaDataStateStore.unassign(Collections.singletonList(new TabletLocationState(tablet, null, state.someTServer, null, null, walogs, false)), null);
+    metaDataStateStore.unassign(
+        Collections.singletonList(
+            new TabletLocationState(tablet, null, state.someTServer, null, null, walogs, false)),
+        null);
 
     // now we can split
     stats = scan(state, metaDataStateStore);

@@ -41,7 +41,8 @@ public class DefaultIteratorEnvironment extends BaseIteratorEnvironment {
   }
 
   @Override
-  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+      throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
     return new MapFileIterator(this.conf, fs, mapFileName, conf);

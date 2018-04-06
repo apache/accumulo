@@ -56,7 +56,8 @@ public class Writer {
     this.tableId = tableId;
   }
 
-  private static void updateServer(ClientContext context, Mutation m, KeyExtent extent, HostAndPort server) throws TException, NotServingTabletException,
+  private static void updateServer(ClientContext context, Mutation m, KeyExtent extent,
+      HostAndPort server) throws TException, NotServingTabletException,
       ConstraintViolationException, AccumuloSecurityException {
     checkArgument(m != null, "m is null");
     checkArgument(extent != null, "extent is null");
@@ -66,7 +67,8 @@ public class Writer {
     TabletClientService.Iface client = null;
     try {
       client = ThriftUtil.getTServerClient(server, context);
-      client.update(Tracer.traceInfo(), context.rpcCreds(), extent.toThrift(), m.toThrift(), TDurability.DEFAULT);
+      client.update(Tracer.traceInfo(), context.rpcCreds(), extent.toThrift(), m.toThrift(),
+          TDurability.DEFAULT);
       return;
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code);
@@ -75,14 +77,16 @@ public class Writer {
     }
   }
 
-  public void update(Mutation m) throws AccumuloException, AccumuloSecurityException, ConstraintViolationException, TableNotFoundException {
+  public void update(Mutation m) throws AccumuloException, AccumuloSecurityException,
+      ConstraintViolationException, TableNotFoundException {
     checkArgument(m != null, "m is null");
 
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");
 
     while (true) {
-      TabletLocation tabLoc = TabletLocator.getLocator(context, tableId).locateTablet(context, new Text(m.getRow()), false, true);
+      TabletLocation tabLoc = TabletLocator.getLocator(context, tableId).locateTablet(context,
+          new Text(m.getRow()), false, true);
 
       if (tabLoc == null) {
         log.trace("No tablet location found for row {}", new String(m.getRow(), UTF_8));

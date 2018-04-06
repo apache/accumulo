@@ -19,7 +19,8 @@ package org.apache.accumulo.core.util;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Provides a stop watch for timing a single type of event. This code is based on the org.apache.hadoop.util.StopWatch available in hadoop 2.7.0
+ * Provides a stop watch for timing a single type of event. This code is based on the
+ * org.apache.hadoop.util.StopWatch available in hadoop 2.7.0
  */
 public class OpTimer {
 
@@ -86,7 +87,8 @@ public class OpTimer {
   }
 
   /**
-   * Converts current timer value to specific unit. The conversion to courser granularities truncate with loss of precision.
+   * Converts current timer value to specific unit. The conversion to courser granularities truncate
+   * with loss of precision.
    *
    * @param timeUnit
    *          the time unit that will converted to.
@@ -97,12 +99,12 @@ public class OpTimer {
   }
 
   /**
-   * Returns the current elapsed time scaled to the provided time unit. This method does not truncate like {@link #now(TimeUnit)} but returns the value as a
-   * double.
+   * Returns the current elapsed time scaled to the provided time unit. This method does not
+   * truncate like {@link #now(TimeUnit)} but returns the value as a double.
    *
    * <p>
-   * Note: this method is not included in the hadoop 2.7 org.apache.hadoop.util.StopWatch class. If that class is adopted, then provisions will be required to
-   * replace this method.
+   * Note: this method is not included in the hadoop 2.7 org.apache.hadoop.util.StopWatch class. If
+   * that class is adopted, then provisions will be required to replace this method.
    *
    * @param timeUnit
    *          the time unit to scale the elapsed time to.

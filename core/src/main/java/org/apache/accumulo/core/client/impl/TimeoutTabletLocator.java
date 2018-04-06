@@ -29,7 +29,8 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 /**
- * Throws a {@link TimedOutException} if the specified timeout duration elapses between two failed TabletLocator calls.
+ * Throws a {@link TimedOutException} if the specified timeout duration elapses between two failed
+ * TabletLocator calls.
  * <p>
  * This class is safe to cache locally.
  */
@@ -56,8 +57,8 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
       TabletLocation ret = super.locateTablet(context, row, skipRow, retry);
 
@@ -74,7 +75,8 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
   }
 
   @Override
-  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
       super.binMutations(context, mutations, binnedMutations, failures);
@@ -91,8 +93,9 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
       List<Range> ret = super.binRanges(context, ranges, binnedRanges);
 

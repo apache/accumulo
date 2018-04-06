@@ -34,11 +34,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using the -o option) and then from an XML file, usually
- * accumulo-site.xml. This implementation supports defaulting undefined property values to a parent configuration's definitions.
+ * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using
+ * the -o option) and then from an XML file, usually accumulo-site.xml. This implementation supports
+ * defaulting undefined property values to a parent configuration's definitions.
  * <p>
- * The system property "accumulo.configuration" can be used to specify the location of the XML configuration file on the classpath or filesystem if the path is
- * prefixed with 'file://'. If the system property is not defined, it defaults to "accumulo-site.xml" and will look on classpath for file.
+ * The system property "accumulo.configuration" can be used to specify the location of the XML
+ * configuration file on the classpath or filesystem if the path is prefixed with 'file://'. If the
+ * system property is not defined, it defaults to "accumulo-site.xml" and will look on classpath for
+ * file.
  * <p>
  * This class is a singleton.
  * <p>
@@ -55,7 +58,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private SiteConfiguration() {
     /*
-     * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop Configuration object
+     * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop
+     * Configuration object
      */
     final Configuration conf = getXmlConfig();
     Map<String,String> temp = new HashMap<>((int) (Math.ceil(conf.size() / 0.75f)), 0.75f);
@@ -63,8 +67,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       temp.put(entry.getKey(), entry.getValue());
     }
     /*
-     * If any of the configs used in hot codepaths are unset here, set a null so that we'll default to the parent config without contending for the Hadoop
-     * Configuration object
+     * If any of the configs used in hot codepaths are unset here, set a null so that we'll default
+     * to the parent config without contending for the Hadoop Configuration object
      */
     for (Property hotConfig : Property.HOT_PATH_PROPERTIES) {
       if (!(temp.containsKey(hotConfig.getKey()))) {
@@ -107,7 +111,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       } else {
         URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
         if (accumuloConfigUrl == null) {
-          log.warn("Accumulo configuration '" + configFile + "' is not on classpath", new Throwable());
+          log.warn("Accumulo configuration '" + configFile + "' is not on classpath",
+              new Throwable());
         } else {
           xmlConfig.addResource(accumuloConfigUrl);
           log.info("Loaded configuration from classpath at {}", accumuloConfigUrl.getFile());
@@ -130,22 +135,29 @@ public class SiteConfiguration extends AccumuloConfiguration {
       if (null != hadoopConf) {
         // Try to find the sensitive value from the CredentialProvider
         try {
-          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
+              key);
           if (null != value) {
             return new String(value);
           }
         } catch (IOException e) {
-          log.warn("Failed to extract sensitive property (" + key + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+          log.warn("Failed to extract sensitive property (" + key
+              + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
         }
       }
     }
 
-    /* Check the available-on-load configs and fall-back to the possibly-update Configuration object. */
-    String value = staticConfigs.containsKey(key) ? staticConfigs.get(key) : getXmlConfig().get(key);
+    /*
+     * Check the available-on-load configs and fall-back to the possibly-update Configuration
+     * object.
+     */
+    String value = staticConfigs.containsKey(key) ? staticConfigs.get(key)
+        : getXmlConfig().get(key);
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
-        log.error("Using default value for {} due to improperly formatted {}: {}", key, property.getType(), value);
+        log.error("Using default value for {} due to improperly formatted {}: {}", key,
+            property.getType(), value);
       value = parent.get(property);
     }
 
@@ -157,7 +169,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
     getProperties(props, filter, true);
   }
 
-  public void getProperties(Map<String,String> props, Predicate<String> filter, boolean useDefaults) {
+  public void getProperties(Map<String,String> props, Predicate<String> filter,
+      boolean useDefaults) {
     if (useDefaults) {
       parent.getProperties(props, filter);
     }
@@ -176,14 +189,17 @@ public class SiteConfiguration extends AccumuloConfiguration {
           }
 
           if (filter.test(key)) {
-            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
+                key);
             if (null != value) {
               props.put(key, new String(value));
             }
           }
         }
       } catch (IOException e) {
-        log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+        log.warn(
+            "Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml",
+            e);
       }
     }
     CliConfiguration.getProperties(props, filter);
@@ -205,7 +221,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * Clears the configuration properties in this configuration (but not the parent). This method supports testing and should not be called.
+   * Clears the configuration properties in this configuration (but not the parent). This method
+   * supports testing and should not be called.
    */
   synchronized public static void clearInstance() {
     instance = null;

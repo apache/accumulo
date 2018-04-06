@@ -124,7 +124,8 @@ public class TableInformation {
    * @param tableState
    *          State of the table
    */
-  public TableInformation(String tableName, Table.ID tableId, TableInfo info, Double holdTime, String tableState) {
+  public TableInformation(String tableName, Table.ID tableId, TableInfo info, Double holdTime,
+      String tableState) {
     this.tablename = tableName;
     this.tableId = tableId;
 

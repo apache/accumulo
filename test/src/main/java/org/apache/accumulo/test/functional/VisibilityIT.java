@@ -82,7 +82,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
     c.tableOperations().create(table);
     String table2 = tableNames[1];
     c.tableOperations().create(table2);
-    c.tableOperations().setProperty(table2, Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "DEFLABEL");
+    c.tableOperations().setProperty(table2, Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(),
+        "DEFLABEL");
 
     insertData(c, table);
     queryData(c, table);
@@ -165,7 +166,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
     expected.put(nss("FOO"), nss("v11"));
     expected.put(nss("A", "FOO"), nss("v9"));
 
-    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"),
+        nss("A", "B", "FOO", "L", "M", "Z"), expected);
   }
 
   private void insertDefaultData(Connector c, String tableName) throws Exception {
@@ -216,16 +218,20 @@ public class VisibilityIT extends AccumuloClusterHarness {
     expected.put(nss("B", "FOO", "L"), nss("v12"));
     expected.put(nss("B", "FOO", "M"), nss("v12"));
 
-    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
-    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "L", "M", "Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"),
+        nss("A", "B", "FOO", "L", "M", "Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "L", "M", "Z"),
+        expected);
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "Z"), expected);
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("Z"), expected);
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
   }
 
-  private void queryData(Connector c, String tableName, Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
+  private void queryData(Connector c, String tableName, Set<String> allAuths, Set<String> userAuths,
+      Map<Set<String>,Set<String>> expected) throws Exception {
 
-    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations(nbas(userAuths)));
+    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
+        new Authorizations(nbas(userAuths)));
 
     ArrayList<Set<String>> combos = new ArrayList<>();
     uniqueCombos(combos, nss(), allAuths);
@@ -250,7 +256,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   private void queryDefaultData(Connector c, String tableName) throws Exception {
     // should return no records
-    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("BASE", "DEFLABEL"));
+    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
+        new Authorizations("BASE", "DEFLABEL"));
     try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations())) {
       verifyDefault(scanner, 0);
     }
@@ -261,7 +268,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
     }
 
     // should return all three records
-    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"))) {
+    try (Scanner scanner = getConnector().createScanner(tableName,
+        new Authorizations("BASE", "DEFLABEL"))) {
       verifyDefault(scanner, 3);
     }
   }
@@ -272,7 +280,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
       throw new Exception("actual count " + actual + " != expected count " + expectedCount);
   }
 
-  private void verify(Connector c, String tableName, Set<String> auths, Set<String> expectedValues) throws Exception {
+  private void verify(Connector c, String tableName, Set<String> auths, Set<String> expectedValues)
+      throws Exception {
     ByteArraySet bas = nbas(auths);
 
     try {
@@ -290,9 +299,11 @@ public class VisibilityIT extends AccumuloClusterHarness {
     return bas;
   }
 
-  private void verify(Connector c, String tableName, ByteArraySet nss, String... expected) throws Exception {
+  private void verify(Connector c, String tableName, ByteArraySet nss, String... expected)
+      throws Exception {
     try (Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
-        BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss), 3)) {
+        BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss),
+            3)) {
 
       verify(scanner.iterator(), expected);
 

@@ -79,9 +79,11 @@ public class BulkImporter {
 
   private static final Logger log = LoggerFactory.getLogger(BulkImporter.class);
 
-  public static List<String> bulkLoad(ClientContext context, long tid, String tableId, List<String> files, String errorDir, boolean setTime)
-      throws IOException, AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
-    AssignmentStats stats = new BulkImporter(context, tid, tableId, setTime).importFiles(files, new Path(errorDir));
+  public static List<String> bulkLoad(ClientContext context, long tid, String tableId,
+      List<String> files, String errorDir, boolean setTime) throws IOException, AccumuloException,
+      AccumuloSecurityException, ThriftTableOperationException {
+    AssignmentStats stats = new BulkImporter(context, tid, tableId, setTime).importFiles(files,
+        new Path(errorDir));
     List<String> result = new ArrayList<>();
     for (Path p : stats.completeFailures.keySet()) {
       result.add(p.toString());
@@ -107,11 +109,12 @@ public class BulkImporter {
     this.setTime = setTime;
   }
 
-  public AssignmentStats importFiles(List<String> files, Path failureDir) throws IOException, AccumuloException, AccumuloSecurityException,
-      ThriftTableOperationException {
+  public AssignmentStats importFiles(List<String> files, Path failureDir) throws IOException,
+      AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
 
     int numThreads = context.getConfiguration().getCount(Property.TSERV_BULK_PROCESS_THREADS);
-    int numAssignThreads = context.getConfiguration().getCount(Property.TSERV_BULK_ASSIGNMENT_THREADS);
+    int numAssignThreads = context.getConfiguration()
+        .getCount(Property.TSERV_BULK_ASSIGNMENT_THREADS);
 
     timer = new StopWatch<>(Timers.class);
     timer.start(Timers.TOTAL);
@@ -126,16 +129,19 @@ public class BulkImporter {
     }
     AssignmentStats assignmentStats = new AssignmentStats(paths.size());
 
-    final Map<Path,List<KeyExtent>> completeFailures = Collections.synchronizedSortedMap(new TreeMap<Path,List<KeyExtent>>());
+    final Map<Path,List<KeyExtent>> completeFailures = Collections
+        .synchronizedSortedMap(new TreeMap<Path,List<KeyExtent>>());
 
     ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getLocator(context, Table.ID.of(tableId));
 
     try {
-      final Map<Path,List<TabletLocation>> assignments = Collections.synchronizedSortedMap(new TreeMap<Path,List<TabletLocation>>());
+      final Map<Path,List<TabletLocation>> assignments = Collections
+          .synchronizedSortedMap(new TreeMap<Path,List<TabletLocation>>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
-      ExecutorService threadPool = Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("findOverlapping"));
+      ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
+          new NamingThreadFactory("findOverlapping"));
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -148,7 +154,8 @@ public class BulkImporter {
             } catch (Exception ex) {
               log.warn("Unable to find tablets that overlap file " + mapFile.toString(), ex);
             }
-            log.debug("Map file {} found to overlap {} tablets", mapFile, tabletsToAssignMapFileTo.size());
+            log.debug("Map file {} found to overlap {} tablets", mapFile,
+                tabletsToAssignMapFileTo.size());
             if (tabletsToAssignMapFileTo.size() == 0) {
               List<KeyExtent> empty = Collections.emptyList();
               completeFailures.put(mapFile, empty);
@@ -169,7 +176,8 @@ public class BulkImporter {
       timer.stop(Timers.EXAMINE_MAP_FILES);
 
       assignmentStats.attemptingAssignments(assignments);
-      Map<Path,List<KeyExtent>> assignmentFailures = assignMapFiles(context, conf, fs, tableId, assignments, paths, numAssignThreads, numThreads);
+      Map<Path,List<KeyExtent>> assignmentFailures = assignMapFiles(context, conf, fs, tableId,
+          assignments, paths, numAssignThreads, numThreads);
       assignmentStats.assignmentsFailed(assignmentFailures);
 
       Map<Path,Integer> failureCount = new TreeMap<>();
@@ -191,7 +199,8 @@ public class BulkImporter {
         sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
         timer.stop(Timers.SLEEP);
 
-        log.debug("Trying to assign {} map files that previously failed on some key extents", assignmentFailures.size());
+        log.debug("Trying to assign {} map files that previously failed on some key extents",
+            assignmentFailures.size());
         assignments.clear();
 
         // for failed key extents, try to find children key extents to
@@ -206,7 +215,8 @@ public class BulkImporter {
 
             timer.start(Timers.QUERY_METADATA);
             try {
-              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
+              tabletsToAssignMapFileTo
+                  .addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
@@ -219,7 +229,8 @@ public class BulkImporter {
         }
 
         assignmentStats.attemptingAssignments(assignments);
-        Map<Path,List<KeyExtent>> assignmentFailures2 = assignMapFiles(context, conf, fs, tableId, assignments, paths, numAssignThreads, numThreads);
+        Map<Path,List<KeyExtent>> assignmentFailures2 = assignMapFiles(context, conf, fs, tableId,
+            assignments, paths, numAssignThreads, numThreads);
         assignmentStats.assignmentsFailed(assignmentFailures2);
 
         // merge assignmentFailures2 into assignmentFailures
@@ -281,16 +292,21 @@ public class BulkImporter {
 
     log.debug("BULK IMPORT TIMING STATISTICS");
     log.debug("Files: {}", files);
-    log.debug(String.format("Examine map files    : %,10.2f secs %6.2f%s", timer.getSecs(Timers.EXAMINE_MAP_FILES), 100.0 * timer.get(Timers.EXAMINE_MAP_FILES)
-        / timer.get(Timers.TOTAL), "%"));
-    log.debug(String.format("Query %-14s : %,10.2f secs %6.2f%s", MetadataTable.NAME, timer.getSecs(Timers.QUERY_METADATA),
+    log.debug(String.format("Examine map files    : %,10.2f secs %6.2f%s",
+        timer.getSecs(Timers.EXAMINE_MAP_FILES),
+        100.0 * timer.get(Timers.EXAMINE_MAP_FILES) / timer.get(Timers.TOTAL), "%"));
+    log.debug(String.format("Query %-14s : %,10.2f secs %6.2f%s", MetadataTable.NAME,
+        timer.getSecs(Timers.QUERY_METADATA),
         100.0 * timer.get(Timers.QUERY_METADATA) / timer.get(Timers.TOTAL), "%"));
-    log.debug(String.format("Import Map Files     : %,10.2f secs %6.2f%s", timer.getSecs(Timers.IMPORT_MAP_FILES), 100.0 * timer.get(Timers.IMPORT_MAP_FILES)
-        / timer.get(Timers.TOTAL), "%"));
-    log.debug(String.format("Sleep                : %,10.2f secs %6.2f%s", timer.getSecs(Timers.SLEEP),
-        100.0 * timer.get(Timers.SLEEP) / timer.get(Timers.TOTAL), "%"));
-    log.debug(String.format("Misc                 : %,10.2f secs %6.2f%s", (timer.get(Timers.TOTAL) - totalTime) / 1000.0, 100.0
-        * (timer.get(Timers.TOTAL) - totalTime) / timer.get(Timers.TOTAL), "%"));
+    log.debug(String.format("Import Map Files     : %,10.2f secs %6.2f%s",
+        timer.getSecs(Timers.IMPORT_MAP_FILES),
+        100.0 * timer.get(Timers.IMPORT_MAP_FILES) / timer.get(Timers.TOTAL), "%"));
+    log.debug(
+        String.format("Sleep                : %,10.2f secs %6.2f%s", timer.getSecs(Timers.SLEEP),
+            100.0 * timer.get(Timers.SLEEP) / timer.get(Timers.TOTAL), "%"));
+    log.debug(String.format("Misc                 : %,10.2f secs %6.2f%s",
+        (timer.get(Timers.TOTAL) - totalTime) / 1000.0,
+        100.0 * (timer.get(Timers.TOTAL) - totalTime) / timer.get(Timers.TOTAL), "%"));
     log.debug(String.format("Total                : %,10.2f secs", timer.getSecs(Timers.TOTAL)));
   }
 
@@ -332,8 +348,9 @@ public class BulkImporter {
     return result;
   }
 
-  private Map<Path,List<AssignmentInfo>> estimateSizes(final AccumuloConfiguration acuConf, final Configuration conf, final VolumeManager vm,
-      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads) {
+  private Map<Path,List<AssignmentInfo>> estimateSizes(final AccumuloConfiguration acuConf,
+      final Configuration conf, final VolumeManager vm, Map<Path,List<TabletLocation>> assignments,
+      Collection<Path> paths, int numThreads) {
 
     long t1 = System.currentTimeMillis();
     final Map<Path,Long> mapFileSizes = new TreeMap<>();
@@ -348,9 +365,11 @@ public class BulkImporter {
       throw new RuntimeException(e);
     }
 
-    final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<Path,List<AssignmentInfo>>());
+    final Map<Path,List<AssignmentInfo>> ais = Collections
+        .synchronizedMap(new TreeMap<Path,List<AssignmentInfo>>());
 
-    ExecutorService threadPool = Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("estimateSizes"));
+    ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
+        new NamingThreadFactory("estimateSizes"));
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
@@ -359,7 +378,8 @@ public class BulkImporter {
         // if the tablet completely contains the map file, there is no
         // need to estimate its
         // size
-        ais.put(entry.getKey(), Collections.singletonList(new AssignmentInfo(tabletLocation.tablet_extent, mapFileSizes.get(entry.getKey()))));
+        ais.put(entry.getKey(), Collections.singletonList(
+            new AssignmentInfo(tabletLocation.tablet_extent, mapFileSizes.get(entry.getKey()))));
         continue;
       }
 
@@ -369,7 +389,8 @@ public class BulkImporter {
           Map<KeyExtent,Long> estimatedSizes = null;
 
           try {
-            estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(), mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, vm);
+            estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(),
+                mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, vm);
           } catch (IOException e) {
             log.warn("Failed to estimate map file sizes {}", e.getMessage());
           }
@@ -377,7 +398,8 @@ public class BulkImporter {
           if (estimatedSizes == null) {
             // estimation failed, do a simple estimation
             estimatedSizes = new TreeMap<>();
-            long estSize = (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
+            long estSize = (long) (mapFileSizes.get(entry.getKey())
+                / (double) entry.getValue().size());
             for (TabletLocation tl : entry.getValue())
               estimatedSizes.put(tl.tablet_extent, estSize);
           }
@@ -400,7 +422,8 @@ public class BulkImporter {
       try {
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
-        log.error("Encountered InterruptedException while waiting for the threadPool to terminate.", e);
+        log.error("Encountered InterruptedException while waiting for the threadPool to terminate.",
+            e);
         throw new RuntimeException(e);
       }
     }
@@ -422,10 +445,12 @@ public class BulkImporter {
     return result;
   }
 
-  private Map<Path,List<KeyExtent>> assignMapFiles(ClientContext context, Configuration conf, VolumeManager fs, String tableId,
-      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads, int numMapThreads) {
+  private Map<Path,List<KeyExtent>> assignMapFiles(ClientContext context, Configuration conf,
+      VolumeManager fs, String tableId, Map<Path,List<TabletLocation>> assignments,
+      Collection<Path> paths, int numThreads, int numMapThreads) {
     timer.start(Timers.EXAMINE_MAP_FILES);
-    Map<Path,List<AssignmentInfo>> assignInfo = estimateSizes(context.getConfiguration(), conf, fs, assignments, paths, numMapThreads);
+    Map<Path,List<AssignmentInfo>> assignInfo = estimateSizes(context.getConfiguration(), conf, fs,
+        assignments, paths, numMapThreads);
     timer.stop(Timers.EXAMINE_MAP_FILES);
 
     Map<Path,List<KeyExtent>> ret;
@@ -442,7 +467,8 @@ public class BulkImporter {
     HostAndPort location;
     private Map<KeyExtent,List<PathSize>> assignmentsPerTablet;
 
-    public AssignmentTask(Map<Path,List<KeyExtent>> assignmentFailures, String tableName, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet) {
+    public AssignmentTask(Map<Path,List<KeyExtent>> assignmentFailures, String tableName,
+        String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet) {
       this.assignmentFailures = assignmentFailures;
       this.location = HostAndPort.fromString(location);
       this.assignmentsPerTablet = assignmentsPerTablet;
@@ -463,7 +489,8 @@ public class BulkImporter {
           }
         }
 
-        log.info("Could not assign {} map files to tablet {} because : {}.  Will retry ...", mapFiles.size(), ke, message);
+        log.info("Could not assign {} map files to tablet {} because : {}.  Will retry ...",
+            mapFiles.size(), ke, message);
       }
     }
 
@@ -474,7 +501,8 @@ public class BulkImporter {
         for (PathSize ps : mapFiles)
           uniqMapFiles.add(ps.path);
 
-      log.debug("Assigning {} map files to {} tablets at {}", uniqMapFiles.size(), assignmentsPerTablet.size(), location);
+      log.debug("Assigning {} map files to {} tablets at {}", uniqMapFiles.size(),
+          assignmentsPerTablet.size(), location);
 
       try {
         List<KeyExtent> failures = assignMapFiles(context, location, assignmentsPerTablet);
@@ -501,7 +529,8 @@ public class BulkImporter {
     }
   }
 
-  private Map<Path,List<KeyExtent>> assignMapFiles(String tableName, Map<Path,List<AssignmentInfo>> assignments, Map<KeyExtent,String> locations, int numThreads) {
+  private Map<Path,List<KeyExtent>> assignMapFiles(String tableName,
+      Map<Path,List<AssignmentInfo>> assignments, Map<KeyExtent,String> locations, int numThreads) {
 
     // group assignments by tablet
     Map<KeyExtent,List<PathSize>> assignmentsPerTablet = new TreeMap<>();
@@ -522,7 +551,8 @@ public class BulkImporter {
 
     // group assignments by tabletserver
 
-    Map<Path,List<KeyExtent>> assignmentFailures = Collections.synchronizedMap(new TreeMap<Path,List<KeyExtent>>());
+    Map<Path,List<KeyExtent>> assignmentFailures = Collections
+        .synchronizedMap(new TreeMap<Path,List<KeyExtent>>());
 
     TreeMap<String,Map<KeyExtent,List<PathSize>>> assignmentsPerTabletServer = new TreeMap<>();
 
@@ -543,7 +573,9 @@ public class BulkImporter {
           }
         }
 
-        log.warn("Could not assign {} map files to tablet {} because it had no location, will retry ...", entry.getValue().size(), ke);
+        log.warn(
+            "Could not assign {} map files to tablet {} because it had no location, will retry ...",
+            entry.getValue().size(), ke);
 
         continue;
       }
@@ -557,11 +589,14 @@ public class BulkImporter {
       apt.put(entry.getKey(), entry.getValue());
     }
 
-    ExecutorService threadPool = Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("submit"));
+    ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
+        new NamingThreadFactory("submit"));
 
-    for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer.entrySet()) {
+    for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
+        .entrySet()) {
       String location = entry.getKey();
-      threadPool.submit(new AssignmentTask(assignmentFailures, tableName, location, entry.getValue()));
+      threadPool
+          .submit(new AssignmentTask(assignmentFailures, tableName, location, entry.getValue()));
     }
 
     threadPool.shutdown();
@@ -570,7 +605,8 @@ public class BulkImporter {
       try {
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
-        log.error("Encountered InterruptedException while waiting for the thread pool to terminate.", e);
+        log.error(
+            "Encountered InterruptedException while waiting for the thread pool to terminate.", e);
         throw new RuntimeException(e);
       }
     }
@@ -578,11 +614,13 @@ public class BulkImporter {
     return assignmentFailures;
   }
 
-  private List<KeyExtent> assignMapFiles(ClientContext context, HostAndPort location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet)
+  private List<KeyExtent> assignMapFiles(ClientContext context, HostAndPort location,
+      Map<KeyExtent,List<PathSize>> assignmentsPerTablet)
       throws AccumuloException, AccumuloSecurityException {
     try {
       long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context, timeInMillis);
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context,
+          timeInMillis);
       try {
         HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files = new HashMap<>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {
@@ -590,13 +628,15 @@ public class BulkImporter {
           files.put(entry.getKey(), tabletFiles);
 
           for (PathSize pathSize : entry.getValue()) {
-            org.apache.accumulo.core.data.thrift.MapFileInfo mfi = new org.apache.accumulo.core.data.thrift.MapFileInfo(pathSize.estSize);
+            org.apache.accumulo.core.data.thrift.MapFileInfo mfi = new org.apache.accumulo.core.data.thrift.MapFileInfo(
+                pathSize.estSize);
             tabletFiles.put(pathSize.path.toString(), mfi);
           }
         }
 
         log.debug("Asking {} to bulk load {}", location, files);
-        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), context.rpcCreds(), tid, Translator.translate(files, Translators.KET), setTime);
+        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), context.rpcCreds(), tid,
+            Translator.translate(files, Translators.KET), setTime);
 
         return Translator.translate(failures, Translators.TKET);
       } finally {
@@ -610,12 +650,13 @@ public class BulkImporter {
     }
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager fs, TabletLocator locator, Path file) throws Exception {
+  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager fs,
+      TabletLocator locator, Path file) throws Exception {
     return findOverlappingTablets(context, fs, locator, file, null, null);
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager fs, TabletLocator locator, Path file, KeyExtent failed)
-      throws Exception {
+  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager fs,
+      TabletLocator locator, Path file, KeyExtent failed) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
     return findOverlappingTablets(context, fs, locator, file, start, failed.getEndRow());
@@ -625,7 +666,8 @@ public class BulkImporter {
     Text start = extent.getPrevEndRow();
     if (start != null) {
       start = new Text(start);
-      // ACCUMULO-3967 We want the first possible key in this tablet, not the following row from the previous tablet
+      // ACCUMULO-3967 We want the first possible key in this tablet, not the following row from the
+      // previous tablet
       start.append(byte0, 0, 1);
     }
     return start;
@@ -633,15 +675,16 @@ public class BulkImporter {
 
   final static byte[] byte0 = {0};
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager vm, TabletLocator locator, Path file, Text startRow,
-      Text endRow) throws Exception {
+  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager vm,
+      TabletLocator locator, Path file, Text startRow, Text endRow) throws Exception {
     List<TabletLocation> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
     FileSystem fs = vm.getVolumeByPath(file).getFileSystem();
-    try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(filename, fs, fs.getConf())
-        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
+    try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
+        .forFile(filename, fs, fs.getConf()).withTableConfiguration(context.getConfiguration())
+        .seekToBeginning().build()) {
       Text row = startRow;
       if (row == null)
         row = new Text();
@@ -752,14 +795,19 @@ public class BulkImporter {
 
       sb.append("BULK IMPORT ASSIGNMENT STATISTICS\n");
       sb.append(String.format("# of map files            : %,10d%n", numUniqueMapFiles));
-      sb.append(String.format("# map files with failures : %,10d %6.2f%s%n", completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
-      sb.append(String.format("# failed failed map files : %,10d %s%n", failedFailures.size(), failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
+      sb.append(String.format("# map files with failures : %,10d %6.2f%s%n",
+          completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
+      sb.append(String.format("# failed failed map files : %,10d %s%n", failedFailures.size(),
+          failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
       sb.append(String.format("# of tablets              : %,10d%n", counts.size()));
-      sb.append(String.format("# tablets imported to     : %,10d %6.2f%s%n", tabletsImportedTo, tabletsImportedTo * 100.0 / counts.size(), "%"));
-      sb.append(String.format("# tablets with failures   : %,10d %6.2f%s%n", failedTablets.size(), failedTablets.size() * 100.0 / counts.size(), "%"));
+      sb.append(String.format("# tablets imported to     : %,10d %6.2f%s%n", tabletsImportedTo,
+          tabletsImportedTo * 100.0 / counts.size(), "%"));
+      sb.append(String.format("# tablets with failures   : %,10d %6.2f%s%n", failedTablets.size(),
+          failedTablets.size() * 100.0 / counts.size(), "%"));
       sb.append(String.format("min map files per tablet  : %,10d%n", min));
       sb.append(String.format("max map files per tablet  : %,10d%n", max));
-      sb.append(String.format("avg map files per tablet  : %,10.2f (std dev = %.2f)%n", totalAssignments / (double) counts.size(), stddev));
+      sb.append(String.format("avg map files per tablet  : %,10.2f (std dev = %.2f)%n",
+          totalAssignments / (double) counts.size(), stddev));
       return sb.toString();
     }
   }

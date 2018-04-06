@@ -75,8 +75,9 @@ public class AccumuloClassLoader {
   }
 
   /**
-   * Parses an XML Document for a property node for a &lt;name&gt; with the value propertyName if it finds one the function return that property's value for its
-   * &lt;value&gt; node. If not found the function will return null.
+   * Parses an XML Document for a property node for a &lt;name&gt; with the value propertyName if it
+   * finds one the function return that property's value for its &lt;value&gt; node. If not found
+   * the function will return null.
    *
    * @param d
    *          XMLDocument to search through
@@ -97,8 +98,9 @@ public class AccumuloClassLoader {
   }
 
   /**
-   * Looks for the site configuration file for Accumulo and if it has a property for propertyName return it otherwise returns defaultValue Should throw an
-   * exception if the default configuration can not be read;
+   * Looks for the site configuration file for Accumulo and if it has a property for propertyName
+   * return it otherwise returns defaultValue Should throw an exception if the default configuration
+   * can not be read;
    *
    * @param propertyName
    *          Name of the property to pull
@@ -108,7 +110,9 @@ public class AccumuloClassLoader {
    */
   public static String getAccumuloProperty(String propertyName, String defaultValue) {
     if (accumuloConfigUrl == null) {
-      log.warn("Using default value '{}' for '{}' as there is no Accumulo configuration on classpath", defaultValue, propertyName);
+      log.warn(
+          "Using default value '{}' for '{}' as there is no Accumulo configuration on classpath",
+          defaultValue, propertyName);
       return defaultValue;
     }
     try {
@@ -120,7 +124,8 @@ public class AccumuloClassLoader {
         return value;
       return defaultValue;
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to look up property " + propertyName + " in " + accumuloConfigUrl.getFile(), e);
+      throw new IllegalStateException(
+          "Failed to look up property " + propertyName + " in " + accumuloConfigUrl.getFile(), e);
     }
   }
 
@@ -137,7 +142,8 @@ public class AccumuloClassLoader {
       if (varValue == null) {
         varValue = "";
       }
-      classpath = (classpath.substring(0, envMatcher.start()) + varValue + classpath.substring(envMatcher.end()));
+      classpath = (classpath.substring(0, envMatcher.start()) + varValue
+          + classpath.substring(envMatcher.end()));
       envMatcher.reset(classpath);
     }
     return classpath;
@@ -161,9 +167,11 @@ public class AccumuloClassLoader {
       // Not a valid URI
     }
 
-    if (null == uri || !uri.isAbsolute() || (null != uri.getScheme() && uri.getScheme().equals("file://"))) {
+    if (null == uri || !uri.isAbsolute()
+        || (null != uri.getScheme() && uri.getScheme().equals("file://"))) {
       // Then treat this URI as a File.
-      // This checks to see if the url string is a dir if it expand and get all jars in that directory
+      // This checks to see if the url string is a dir if it expand and get all jars in that
+      // directory
       final File extDir = new File(classpath);
       if (extDir.isDirectory())
         urls.add(extDir.toURI().toURL());
@@ -209,7 +217,8 @@ public class AccumuloClassLoader {
   }
 
   private static Set<String> getMavenClasspaths() {
-    String baseDirname = AccumuloClassLoader.getAccumuloProperty(MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE);
+    String baseDirname = AccumuloClassLoader.getAccumuloProperty(
+        MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE);
     if (baseDirname == null || baseDirname.trim().isEmpty())
       return Collections.emptySet();
     Set<String> paths = new TreeSet<>();
@@ -228,7 +237,8 @@ public class AccumuloClassLoader {
         }
       }
     } else if ("pom.xml".equals(file.getName())) {
-      paths.add(file.getParentFile().getAbsolutePath() + File.separator + "target" + File.separator + "classes");
+      paths.add(file.getParentFile().getAbsolutePath() + File.separator + "target" + File.separator
+          + "classes");
     }
   }
 
@@ -239,9 +249,11 @@ public class AccumuloClassLoader {
       ClassLoader parentClassLoader = AccumuloClassLoader.class.getClassLoader();
 
       log.debug("Create 2nd tier ClassLoader using URLs: {}", urls.toString());
-      URLClassLoader aClassLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
+      URLClassLoader aClassLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]),
+          parentClassLoader) {
         @Override
-        protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        protected synchronized Class<?> loadClass(String name, boolean resolve)
+            throws ClassNotFoundException {
 
           if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
             Class<?> c = findLoadedClass(name);

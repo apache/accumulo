@@ -24,12 +24,14 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 
 /**
- * Counts column column families. Leverages super class to defend against too many. This class is useful for discovering what column families are present when
- * the expected number of families is small.
+ * Counts column column families. Leverages super class to defend against too many. This class is
+ * useful for discovering what column families are present when the expected number of families is
+ * small.
  *
  * @since 2.0.0
  *
- * @see TableOperations#addSummarizers(String, org.apache.accumulo.core.client.summary.SummarizerConfiguration...)
+ * @see TableOperations#addSummarizers(String,
+ *      org.apache.accumulo.core.client.summary.SummarizerConfiguration...)
  * @see TableOperations#summaries(String)
  */
 public class FamilySummarizer extends CountingSummarizer<ByteSequence> {

@@ -177,7 +177,8 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetByPrefix() {
-    // This test checks that when anything changes that all prefix maps are regenerated. However when there are not changes the test expects all the exact same
+    // This test checks that when anything changes that all prefix maps are regenerated. However
+    // when there are not changes the test expects all the exact same
     // map to always be returned.
 
     TestConfiguration tc = new TestConfiguration();
@@ -245,7 +246,8 @@ public class AccumuloConfigurationTest {
     Map<String,String> pmF = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
     assertSame(pmE, pmF);
     assertNotSame(pm5, pmE);
-    assertEquals(ImmutableMap.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1"), pmE);
+    assertEquals(ImmutableMap.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123",
+        "hdfs://ib/p1"), pmE);
 
     Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     Map<String,String> pmH = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);

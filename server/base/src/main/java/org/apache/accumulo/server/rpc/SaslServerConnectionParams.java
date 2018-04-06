@@ -35,7 +35,8 @@ public class SaslServerConnectionParams extends SaslConnectionParams {
     this(conf, token, null);
   }
 
-  public SaslServerConnectionParams(AccumuloConfiguration conf, AuthenticationToken token, AuthenticationTokenSecretManager secretManager) {
+  public SaslServerConnectionParams(AccumuloConfiguration conf, AuthenticationToken token,
+      AuthenticationTokenSecretManager secretManager) {
     super(conf, token);
     setSecretManager(secretManager);
   }
@@ -44,7 +45,8 @@ public class SaslServerConnectionParams extends SaslConnectionParams {
     this(conf, token, null);
   }
 
-  public SaslServerConnectionParams(ClientConfiguration conf, AuthenticationToken token, AuthenticationTokenSecretManager secretManager) {
+  public SaslServerConnectionParams(ClientConfiguration conf, AuthenticationToken token,
+      AuthenticationTokenSecretManager secretManager) {
     super(conf, token);
     setSecretManager(secretManager);
   }
@@ -55,7 +57,8 @@ public class SaslServerConnectionParams extends SaslConnectionParams {
     if (token instanceof KerberosToken || token instanceof SystemToken) {
       mechanism = SaslMechanism.GSSAPI;
     } else {
-      throw new IllegalArgumentException("Cannot determine SASL mechanism for token class: " + token.getClass());
+      throw new IllegalArgumentException(
+          "Cannot determine SASL mechanism for token class: " + token.getClass());
     }
   }
 

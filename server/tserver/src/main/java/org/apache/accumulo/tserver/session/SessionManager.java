@@ -117,7 +117,8 @@ public class SessionManager {
     if (session != null) {
       synchronized (session) {
         if (session.state == State.RESERVED)
-          throw new IllegalStateException("Attempted to reserved session that is already reserved " + sessionId);
+          throw new IllegalStateException(
+              "Attempted to reserved session that is already reserved " + sessionId);
         if (session.state == State.REMOVED)
           return null;
         session.state = State.RESERVED;
@@ -145,7 +146,8 @@ public class SessionManager {
         }
 
         if (session.state == State.RESERVED)
-          throw new IllegalStateException("Attempted to reserved session that is already reserved " + sessionId);
+          throw new IllegalStateException(
+              "Attempted to reserved session that is already reserved " + sessionId);
         if (session.state == State.REMOVED)
           return null;
         session.state = State.RESERVED;
@@ -230,7 +232,8 @@ public class SessionManager {
           }
           long idleTime = System.currentTimeMillis() - session.lastAccessTime;
           if (idleTime > configuredIdle) {
-            log.info("Closing idle session from user={}, client={}, idle={}ms", session.getUser(), session.client, idleTime);
+            log.info("Closing idle session from user={}, client={}, idle={}ms", session.getUser(),
+                session.client, idleTime);
             iter.remove();
             sessionsToCleanup.add(session);
             session.state = State.REMOVED;
@@ -239,7 +242,8 @@ public class SessionManager {
       }
     }
 
-    // do clean up outside of lock for TabletServer in a synchronized block for simplicity vice a synchronized list
+    // do clean up outside of lock for TabletServer in a synchronized block for simplicity vice a
+    // synchronized list
 
     synchronized (idleSessions) {
       sessionsToCleanup.addAll(idleSessions);
@@ -277,7 +281,8 @@ public class SessionManager {
             }
 
             if (shouldRemove) {
-              log.info("Closing not accessed session from user=" + session2.getUser() + ", client=" + session2.client + ", duration=" + delay + "ms");
+              log.info("Closing not accessed session from user=" + session2.getUser() + ", client="
+                  + session2.client + ", duration=" + delay + "ms");
               sessions.remove(sessionId);
               session2.cleanup();
             }
@@ -380,11 +385,14 @@ public class SessionManager {
           }
         }
 
-        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId().canonicalID(), ct - ss.startTime, ct - ss.lastAccessTime,
-            ScanType.SINGLE, state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio,
+        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(),
+            ss.extent.getTableId().canonicalID(), ct - ss.startTime, ct - ss.lastAccessTime,
+            ScanType.SINGLE, state, ss.extent.toThrift(),
+            Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio,
             ss.auths.getAuthorizationsBB(), ss.context);
 
-        // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in ActiveScan constructor
+        // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
+        // ActiveScan constructor
         activeScan.setScanId(entry.getKey());
         activeScans.add(activeScan);
 
@@ -411,9 +419,11 @@ public class SessionManager {
           }
         }
 
-        activeScans.add(new ActiveScan(mss.client, mss.getUser(), mss.threadPoolExtent.getTableId().canonicalID(), ct - mss.startTime, ct - mss.lastAccessTime,
-            ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translators.CT), mss.ssiList, mss.ssio, mss.auths
-                .getAuthorizationsBB(), mss.context));
+        activeScans.add(new ActiveScan(mss.client, mss.getUser(),
+            mss.threadPoolExtent.getTableId().canonicalID(), ct - mss.startTime,
+            ct - mss.lastAccessTime, ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
+            Translator.translate(mss.columnSet, Translators.CT), mss.ssiList, mss.ssio,
+            mss.auths.getAuthorizationsBB(), mss.context));
       }
     }
 

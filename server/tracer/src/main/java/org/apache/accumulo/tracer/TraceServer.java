@@ -142,14 +142,16 @@ public class TraceServer implements Watcher {
       Mutation spanMutation = new Mutation(new Text(idString));
       Mutation indexMutation = new Mutation(new Text("idx:" + s.svc + ":" + startString));
       long diff = s.stop - s.start;
-      indexMutation.put(new Text(s.description), new Text(s.sender), new Value((idString + ":" + Long.toHexString(diff)).getBytes(UTF_8)));
+      indexMutation.put(new Text(s.description), new Text(s.sender),
+          new Value((idString + ":" + Long.toHexString(diff)).getBytes(UTF_8)));
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
       String parentString = Long.toHexString(s.parentId);
       if (s.parentId == Span.ROOT_SPAN_ID)
         parentString = "";
-      put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(), transport.len());
+      put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(),
+          transport.len());
       // Map the root span to time so we can look up traces by time
       Mutation timeMutation = null;
       if (s.parentId == Span.ROOT_SPAN_ID) {
@@ -159,7 +161,8 @@ public class TraceServer implements Watcher {
       try {
         final BatchWriter writer = TraceServer.this.writer.get();
         /*
-         * Check for null, because we expect spans to come in much faster than flush calls. In the case of failure, we'd rather avoid logging tons of NPEs.
+         * Check for null, because we expect spans to come in much faster than flush calls. In the
+         * case of failure, we'd rather avoid logging tons of NPEs.
          */
         if (null == writer) {
           log.warn("writer is not ready; discarding span.");
@@ -170,20 +173,28 @@ public class TraceServer implements Watcher {
         if (timeMutation != null)
           writer.addMutation(timeMutation);
       } catch (MutationsRejectedException exception) {
-        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for span information and stacktrace. cause: " + exception);
+        log.warn(
+            "Unable to write mutation to table; discarding span. set log level to DEBUG for span information and stacktrace. cause: "
+                + exception);
         if (log.isDebugEnabled()) {
           log.debug("discarded span due to rejection of mutation: " + spanMutation, exception);
         }
-        /* XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this mutation to a writer that has been closed since we retrieved it */
+        /*
+         * XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this
+         * mutation to a writer that has been closed since we retrieved it
+         */
       } catch (RuntimeException exception) {
-        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for stacktrace. cause: " + exception);
+        log.warn(
+            "Unable to write mutation to table; discarding span. set log level to DEBUG for stacktrace. cause: "
+                + exception);
         log.debug("unable to write mutation to table due to exception.", exception);
       }
     }
 
   }
 
-  public TraceServer(Instance instance, ServerConfigurationFactory serverConfiguration, String hostname) throws Exception {
+  public TraceServer(Instance instance, ServerConfigurationFactory serverConfiguration,
+      String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
     this.instance = instance;
     log.info("Version {}", Constants.VERSION);
@@ -206,19 +217,22 @@ public class TraceServer implements Watcher {
       }
     }
     if (null == sock) {
-      throw new RuntimeException("Unable to start trace server on configured ports: " + Arrays.toString(ports));
+      throw new RuntimeException(
+          "Unable to start trace server on configured ports: " + Arrays.toString(ports));
     }
     final TServerTransport transport = new TServerSocket(sock);
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
-    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
+    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(),
+        conf.get(Property.TRACE_ZK_PATH));
     writer = new AtomicReference<>(this.connector.createBatchWriter(tableName,
         new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
   }
 
   /**
-   * Exceptions thrown out of here should be things that cause service failure (e.g. misconfigurations that aren't likely to change on retry).
+   * Exceptions thrown out of here should be things that cause service failure (e.g.
+   * misconfigurations that aren't likely to change on retry).
    *
    * @return a working Connection that can be reused
    * @throws ClassNotFoundException
@@ -230,27 +244,31 @@ public class TraceServer implements Watcher {
    * @throws AccumuloSecurityException
    *           if the trace user has the wrong permissions
    */
-  private Connector ensureTraceTableExists(final AccumuloConfiguration conf) throws AccumuloSecurityException, ClassNotFoundException, InstantiationException,
+  private Connector ensureTraceTableExists(final AccumuloConfiguration conf)
+      throws AccumuloSecurityException, ClassNotFoundException, InstantiationException,
       IllegalAccessException {
     Connector connector = null;
     while (true) {
       try {
-        final boolean isDefaultTokenType = conf.get(Property.TRACE_TOKEN_TYPE).equals(Property.TRACE_TOKEN_TYPE.getDefaultValue());
+        final boolean isDefaultTokenType = conf.get(Property.TRACE_TOKEN_TYPE)
+            .equals(Property.TRACE_TOKEN_TYPE.getDefaultValue());
         String principal = conf.get(Property.TRACE_USER);
         if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
           // Make sure that we replace _HOST if it exists in the principal
           principal = SecurityUtil.getServerPrincipal(principal);
         }
         AuthenticationToken at;
-        Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        Map<String,String> loginMap = conf
+            .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         if (loginMap.isEmpty() && isDefaultTokenType) {
           // Assume the old type of user/password specification
           Property p = Property.TRACE_PASSWORD;
           at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {
           Properties props = new Properties();
-          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE))
-              .asSubclass(AuthenticationToken.class).newInstance();
+          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader()
+              .loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class)
+              .newInstance();
 
           int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
           for (Entry<String,String> entry : loginMap.entrySet()) {
@@ -269,9 +287,11 @@ public class TraceServer implements Watcher {
           AgeOffFilter.setTTL(setting, 7 * 24 * 60 * 60 * 1000l);
           connector.tableOperations().attachIterator(tableName, setting);
         }
-        connector.tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
+        connector.tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
+            TraceFormatter.class.getName());
         break;
-      } catch (AccumuloException | TableExistsException | TableNotFoundException | IOException | RuntimeException ex) {
+      } catch (AccumuloException | TableExistsException | TableNotFoundException | IOException
+          | RuntimeException ex) {
         log.info("Waiting to checking/create the trace table.", ex);
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
@@ -301,7 +321,9 @@ public class TraceServer implements Watcher {
         }
       }
     } catch (MutationsRejectedException | RuntimeException exception) {
-      log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: " + exception);
+      log.warn(
+          "Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: "
+              + exception);
       log.debug("flushing traces failed due to exception", exception);
       resetWriter();
       /* XXX e.g. if the writer was closed between when we grabbed it and when we called flush. */
@@ -311,9 +333,12 @@ public class TraceServer implements Watcher {
   private void resetWriter() {
     BatchWriter writer = null;
     try {
-      writer = connector.createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS));
+      writer = connector.createBatchWriter(tableName,
+          new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS));
     } catch (Exception ex) {
-      log.warn("Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause: " + ex);
+      log.warn(
+          "Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause: "
+              + ex);
       log.debug("batch writer creation failed with exception.", ex);
     } finally {
       /* Trade in the new writer (even if null) for the one we need to close. */
@@ -323,7 +348,8 @@ public class TraceServer implements Watcher {
           writer.close();
         }
       } catch (Exception ex) {
-        log.warn("Problem closing batch writer. Set log level to DEBUG to see stacktrace. cause: " + ex);
+        log.warn(
+            "Problem closing batch writer. Set log level to DEBUG to see stacktrace. cause: " + ex);
         log.debug("batch writer close failed with exception", ex);
       }
     }
@@ -339,20 +365,23 @@ public class TraceServer implements Watcher {
 
   private static void loginTracer(AccumuloConfiguration acuConf) {
     try {
-      Class<? extends AuthenticationToken> traceTokenType = AccumuloVFSClassLoader.getClassLoader().loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE))
-          .asSubclass(AuthenticationToken.class);
+      Class<? extends AuthenticationToken> traceTokenType = AccumuloVFSClassLoader.getClassLoader()
+          .loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class);
 
       if (!(KerberosToken.class.isAssignableFrom(traceTokenType))) {
-        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to HDFS/ZK for
+        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to
+        // HDFS/ZK for
         // instance information.
         log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
         SecurityUtil.serverLogin(acuConf);
       } else {
         // We're using Kerberos to talk to Accumulo, so check for trace user specific auth details.
-        // We presume this same user will have the needed access for the service to interact with HDFS/ZK for
+        // We presume this same user will have the needed access for the service to interact with
+        // HDFS/ZK for
         // instance information.
         log.info("Handling login under the assumption that Accumulo users are using Kerberos.");
-        Map<String,String> loginMap = acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        Map<String,String> loginMap = acuConf
+            .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
         if (keyTab == null || keyTab.length() == 0) {
           keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
@@ -368,7 +397,9 @@ public class TraceServer implements Watcher {
         SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
       }
     } catch (IOException | ClassNotFoundException exception) {
-      final String msg = String.format("Failed to retrieve trace user token information based on property %1s.", Property.TRACE_TOKEN_TYPE);
+      final String msg = String.format(
+          "Failed to retrieve trace user token information based on property %1s.",
+          Property.TRACE_TOKEN_TYPE);
       log.error(msg, exception);
       throw new RuntimeException(msg, exception);
     }

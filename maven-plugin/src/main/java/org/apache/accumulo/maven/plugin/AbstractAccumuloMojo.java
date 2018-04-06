@@ -42,7 +42,8 @@ public abstract class AbstractAccumuloMojo extends AbstractMojo {
     return skip;
   }
 
-  void configureMiniClasspath(MiniAccumuloConfigImpl macConfig, String miniClasspath) throws MalformedURLException {
+  void configureMiniClasspath(MiniAccumuloConfigImpl macConfig, String miniClasspath)
+      throws MalformedURLException {
     ArrayList<String> classpathItems = new ArrayList<>();
     if (miniClasspath == null && project != null) {
       classpathItems.add(project.getBuild().getOutputDirectory());
@@ -54,7 +55,8 @@ public abstract class AbstractAccumuloMojo extends AbstractMojo {
       classpathItems.addAll(Arrays.asList(miniClasspath.split(File.pathSeparator)));
     }
 
-    // Hack to prevent sisu-guava, a maven 3.0.4 dependency, from effecting normal accumulo behavior.
+    // Hack to prevent sisu-guava, a maven 3.0.4 dependency, from effecting normal accumulo
+    // behavior.
     String sisuGuava = null;
     for (String items : classpathItems)
       if (items.contains("sisu-guava"))

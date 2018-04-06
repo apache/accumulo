@@ -29,7 +29,8 @@ import org.apache.hadoop.io.Text;
  * Interface used to gather metrics from RFiles.
  *
  * @param <T>
- *          Type used to return metrics in getMetrics(). This does not impact collection of metrics at all, is only used in that method.
+ *          Type used to return metrics in getMetrics(). This does not impact collection of metrics
+ *          at all, is only used in that method.
  */
 public interface MetricsGatherer<T> {
 
@@ -62,13 +63,14 @@ public interface MetricsGatherer<T> {
   void addMetric(Key key, Value val);
 
   /**
-   * Start a new block within a LocalityGroup. This method is used when the RFile moves on the the next block in the LocalityGroup.
+   * Start a new block within a LocalityGroup. This method is used when the RFile moves on the the
+   * next block in the LocalityGroup.
    */
   void startBlock();
 
   /**
-   * Print the results of the metrics gathering by locality group in the format: Metric name Number of keys Percentage of keys Number of blocks Percentage of
-   * blocks
+   * Print the results of the metrics gathering by locality group in the format: Metric name Number
+   * of keys Percentage of keys Number of blocks Percentage of blocks
    *
    * @param hash
    *          Boolean to determine whether the values being printed should be hashed

@@ -47,8 +47,10 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    AccumuloConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getSystemConfiguration();
-    Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
+    AccumuloConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance())
+        .getSystemConfiguration();
+    Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader()
+        .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
         .asSubclass(Authenticator.class).newInstance();
 
     List<Set<TokenProperty>> tokenProps = new ArrayList<>();
@@ -57,9 +59,11 @@ public class LoginProperties implements KeywordExecutable {
       tokenProps.add(tokenType.newInstance().getProperties());
     }
 
-    System.out.println("Supported token types for " + authenticator.getClass().getName() + " are : ");
+    System.out
+        .println("Supported token types for " + authenticator.getClass().getName() + " are : ");
     for (Class<? extends AuthenticationToken> tokenType : authenticator.getSupportedTokenTypes()) {
-      System.out.println("\t" + tokenType.getName() + ", which accepts the following properties : ");
+      System.out
+          .println("\t" + tokenType.getName() + ", which accepts the following properties : ");
 
       for (TokenProperty tokenProperty : tokenType.newInstance().getProperties()) {
         System.out.println("\t\t" + tokenProperty);

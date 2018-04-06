@@ -68,8 +68,10 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
 
-  private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
-    checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
+  private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
+      String kind) {
+    checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()),
+        "Properties and derived %s properties are not disjoint", kind);
   }
 
   @Override
@@ -102,11 +104,16 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       } else {
         fsdo = new FSDataOutputStream(out.getOutputStream(), new FileSystem.Statistics("foo"));
       }
-      return new RFileWriter(fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf()).withTableConfiguration(acuconf)
-          .setAccumuloStartEnabled(false).build(), visCacheSize);
+      return new RFileWriter(
+          fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf())
+              .withTableConfiguration(acuconf).setAccumuloStartEnabled(false).build(),
+          visCacheSize);
     } else {
-      return new RFileWriter(fileops.newWriterBuilder().forFile(out.path.toString(), out.getFileSystem(), out.getConf()).withTableConfiguration(acuconf)
-          .setAccumuloStartEnabled(false).build(), visCacheSize);
+      return new RFileWriter(
+          fileops.newWriterBuilder()
+              .forFile(out.path.toString(), out.getFileSystem(), out.getConf())
+              .withTableConfiguration(acuconf).setAccumuloStartEnabled(false).build(),
+          visCacheSize);
     }
   }
 

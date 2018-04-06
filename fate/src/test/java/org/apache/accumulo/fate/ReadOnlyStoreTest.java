@@ -44,7 +44,8 @@ public class ReadOnlyStoreTest {
     EasyMock.expect(mock.getStatus(0xdeadbeefl)).andReturn(TStatus.UNKNOWN);
     mock.unreserve(0xdeadbeefl, 30);
 
-    EasyMock.expect(mock.waitForStatusChange(0xdeadbeefl, EnumSet.allOf(TStatus.class))).andReturn(TStatus.UNKNOWN);
+    EasyMock.expect(mock.waitForStatusChange(0xdeadbeefl, EnumSet.allOf(TStatus.class)))
+        .andReturn(TStatus.UNKNOWN);
     EasyMock.expect(mock.getProperty(0xdeadbeefl, "com.example.anyproperty")).andReturn("property");
     EasyMock.expect(mock.list()).andReturn(Collections.emptyList());
 
@@ -61,7 +62,8 @@ public class ReadOnlyStoreTest {
     Assert.assertEquals(TStatus.UNKNOWN, store.getStatus(0xdeadbeefl));
     store.unreserve(0xdeadbeefl, 30);
 
-    Assert.assertEquals(TStatus.UNKNOWN, store.waitForStatusChange(0xdeadbeefl, EnumSet.allOf(TStatus.class)));
+    Assert.assertEquals(TStatus.UNKNOWN,
+        store.waitForStatusChange(0xdeadbeefl, EnumSet.allOf(TStatus.class)));
     Assert.assertEquals("property", store.getProperty(0xdeadbeefl, "com.example.anyproperty"));
     Assert.assertEquals(Collections.<Long> emptyList(), store.list());
 

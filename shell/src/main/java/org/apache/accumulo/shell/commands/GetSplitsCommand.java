@@ -52,8 +52,8 @@ public class GetSplitsCommand extends Command {
   private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
@@ -62,17 +62,22 @@ public class GetSplitsCommand extends Command {
     final boolean encode = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
 
-    try (PrintLine p = outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile)) {
+    try (PrintLine p = outputFile == null ? new PrintShell(shellState.getReader())
+        : new PrintFile(outputFile)) {
       if (!verbose) {
-        for (Text row : maxSplits > 0 ? shellState.getConnector().tableOperations().listSplits(tableName, maxSplits) : shellState.getConnector()
-            .tableOperations().listSplits(tableName)) {
+        for (Text row : maxSplits > 0
+            ? shellState.getConnector().tableOperations().listSplits(tableName, maxSplits)
+            : shellState.getConnector().tableOperations().listSplits(tableName)) {
           p.print(encode(encode, row));
         }
       } else {
-        String systemTableToCheck = MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
-        final Scanner scanner = shellState.getConnector().createScanner(systemTableToCheck, Authorizations.EMPTY);
+        String systemTableToCheck = MetadataTable.NAME.equals(tableName) ? RootTable.NAME
+            : MetadataTable.NAME;
+        final Scanner scanner = shellState.getConnector().createScanner(systemTableToCheck,
+            Authorizations.EMPTY);
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-        final Text start = new Text(shellState.getConnector().tableOperations().tableIdMap().get(tableName));
+        final Text start = new Text(
+            shellState.getConnector().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));
@@ -82,7 +87,8 @@ public class GetSplitsCommand extends Command {
             KeyExtent extent = new KeyExtent(next.getKey().getRow(), next.getValue());
             final String pr = encode(encode, extent.getPrevEndRow());
             final String er = encode(encode, extent.getEndRow());
-            final String line = String.format("%-26s (%s, %s%s", obscuredTabletName(extent), pr == null ? "-inf" : pr, er == null ? "+inf" : er,
+            final String line = String.format("%-26s (%s, %s%s", obscuredTabletName(extent),
+                pr == null ? "-inf" : pr, er == null ? "+inf" : er,
                 er == null ? ") Default Tablet " : "]");
             p.print(line);
           }
@@ -99,7 +105,8 @@ public class GetSplitsCommand extends Command {
       return null;
     }
     final int length = text.getLength();
-    return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
+    return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text))
+        : DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
   }
 
   private static String obscuredTabletName(final KeyExtent extent) {
@@ -132,12 +139,14 @@ public class GetSplitsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
 
-    maxSplitsOpt = new Option("m", "max", true, "maximum number of splits to return (evenly spaced)");
+    maxSplitsOpt = new Option("m", "max", true,
+        "maximum number of splits to return (evenly spaced)");
     maxSplitsOpt.setArgName("num");
 
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
 
-    verboseOpt = new Option("v", "verbose", false, "print out the tablet information with start/end rows");
+    verboseOpt = new Option("v", "verbose", false,
+        "print out the tablet information with start/end rows");
 
     opts.addOption(outputFileOpt);
     opts.addOption(maxSplitsOpt);

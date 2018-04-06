@@ -33,11 +33,12 @@ import org.apache.hadoop.conf.Configuration;
 public class MiniAccumuloInstance extends ZooKeeperInstance {
 
   /**
-   * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster} directory
+   * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster}
+   * directory
    */
   public MiniAccumuloInstance(String instanceName, File directory) throws FileNotFoundException {
-    super(ClientConfiguration.fromFile(new File(new File(directory, "conf"), "client.conf")).withInstance(instanceName)
-        .withZkHosts(getZooKeepersFromDir(directory)));
+    super(ClientConfiguration.fromFile(new File(new File(directory, "conf"), "client.conf"))
+        .withInstance(instanceName).withZkHosts(getZooKeepersFromDir(directory)));
   }
 
   // Keep this private to avoid bringing it into the public API

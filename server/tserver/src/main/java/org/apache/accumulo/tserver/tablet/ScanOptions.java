@@ -41,8 +41,10 @@ final class ScanOptions {
   private final long batchTimeOut;
   private String classLoaderContext;
 
-  ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      AtomicBoolean interruptFlag, boolean isolated, SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
+  ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet,
+      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag,
+      boolean isolated, SamplerConfiguration samplerConfig, long batchTimeOut,
+      String classLoaderContext) {
     this.num = num;
     this.authorizations = authorizations;
     this.defaultLabels = defaultLabels;

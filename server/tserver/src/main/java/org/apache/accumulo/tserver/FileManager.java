@@ -164,7 +164,8 @@ public class FileManager {
    * @param indexCache
    *          : underlying file can and should be able to handle a null cache
    */
-  public FileManager(AccumuloServerContext context, VolumeManager fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
+  public FileManager(AccumuloServerContext context, VolumeManager fs, int maxOpen,
+      BlockCache dataCache, BlockCache indexCache) {
 
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
@@ -180,7 +181,8 @@ public class FileManager {
     this.reservedReaders = new HashMap<>();
 
     this.maxIdleTime = context.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
-    SimpleTimer.getInstance(context.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2);
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime,
+        maxIdleTime / 2);
 
   }
 
@@ -244,7 +246,8 @@ public class FileManager {
     }
   }
 
-  private List<String> takeOpenFiles(Collection<String> files, Map<FileSKVIterator,String> readersReserved) {
+  private List<String> takeOpenFiles(Collection<String> files,
+      Map<FileSKVIterator,String> readersReserved) {
     List<String> filesToOpen = Collections.emptyList();
     for (String file : files) {
       List<OpenReader> ofl = openFiles.get(file);
@@ -264,7 +267,8 @@ public class FileManager {
     return filesToOpen;
   }
 
-  private Map<FileSKVIterator,String> reserveReaders(KeyExtent tablet, Collection<String> files, boolean continueOnFailure) throws IOException {
+  private Map<FileSKVIterator,String> reserveReaders(KeyExtent tablet, Collection<String> files,
+      boolean continueOnFailure) throws IOException {
 
     if (!tablet.isMeta() && files.size() >= maxOpen) {
       throw new IllegalArgumentException("requested files exceeds max open");
@@ -296,7 +300,8 @@ public class FileManager {
         int numOpen = countReaders(openFiles);
 
         if (filesToOpen.size() + numOpen + reservedReaders.size() > maxOpen) {
-          filesToClose = takeLRUOpenFiles((filesToOpen.size() + numOpen + reservedReaders.size()) - maxOpen);
+          filesToClose = takeLRUOpenFiles(
+              (filesToOpen.size() + numOpen + reservedReaders.size()) - maxOpen);
         }
       }
     }
@@ -313,13 +318,16 @@ public class FileManager {
         Path path = new Path(file);
         FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
         // log.debug("Opening "+file + " path " + path);
-        FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(path.toString(), ns, ns.getConf())
-            .withTableConfiguration(context.getServerConfigurationFactory().getTableConfiguration(tablet.getTableId())).withBlockCache(dataCache, indexCache)
-            .build();
+        FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
+            .forFile(path.toString(), ns, ns.getConf())
+            .withTableConfiguration(
+                context.getServerConfigurationFactory().getTableConfiguration(tablet.getTableId()))
+            .withBlockCache(dataCache, indexCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 
-        ProblemReports.getInstance(context).report(new ProblemReport(tablet.getTableId(), ProblemType.FILE_READ, file, e));
+        ProblemReports.getInstance(context)
+            .report(new ProblemReport(tablet.getTableId(), ProblemType.FILE_READ, file, e));
 
         if (continueOnFailure) {
           // release the permit for the file that failed to open
@@ -349,7 +357,8 @@ public class FileManager {
     return readersReserved;
   }
 
-  private void releaseReaders(KeyExtent tablet, List<FileSKVIterator> readers, boolean sawIOException) {
+  private void releaseReaders(KeyExtent tablet, List<FileSKVIterator> readers,
+      boolean sawIOException) {
     // put files in openFiles
 
     synchronized (this) {
@@ -401,7 +410,8 @@ public class FileManager {
       this.deepCopies = new ArrayList<>();
     }
 
-    public FileDataSource(IteratorEnvironment env, SortedKeyValueIterator<Key,Value> deepCopy, ArrayList<FileDataSource> deepCopies) {
+    public FileDataSource(IteratorEnvironment env, SortedKeyValueIterator<Key,Value> deepCopy,
+        ArrayList<FileDataSource> deepCopies) {
       this.iter = deepCopy;
       this.env = env;
       this.deepCopies = deepCopies;
@@ -471,37 +481,43 @@ public class FileManager {
       dataSources = new ArrayList<>();
       this.tablet = tablet;
 
-      continueOnFailure = context.getServerConfigurationFactory().getTableConfiguration(tablet.getTableId()).getBoolean(Property.TABLE_FAILURES_IGNORE);
+      continueOnFailure = context.getServerConfigurationFactory()
+          .getTableConfiguration(tablet.getTableId()).getBoolean(Property.TABLE_FAILURES_IGNORE);
 
       if (tablet.isMeta()) {
         continueOnFailure = false;
       }
     }
 
-    private Map<FileSKVIterator,String> openFileRefs(Collection<FileRef> files) throws TooManyFilesException, IOException {
+    private Map<FileSKVIterator,String> openFileRefs(Collection<FileRef> files)
+        throws TooManyFilesException, IOException {
       List<String> strings = new ArrayList<>(files.size());
       for (FileRef ref : files)
         strings.add(ref.path().toString());
       return openFiles(strings);
     }
 
-    private Map<FileSKVIterator,String> openFiles(Collection<String> files) throws TooManyFilesException, IOException {
+    private Map<FileSKVIterator,String> openFiles(Collection<String> files)
+        throws TooManyFilesException, IOException {
       // one tablet can not open more than maxOpen files, otherwise it could get stuck
       // forever waiting on itself to release files
 
       if (tabletReservedReaders.size() + files.size() >= maxOpen) {
-        throw new TooManyFilesException("Request to open files would exceed max open files reservedReaders.size()=" + tabletReservedReaders.size()
-            + " files.size()=" + files.size() + " maxOpen=" + maxOpen + " tablet = " + tablet);
+        throw new TooManyFilesException(
+            "Request to open files would exceed max open files reservedReaders.size()="
+                + tabletReservedReaders.size() + " files.size()=" + files.size() + " maxOpen="
+                + maxOpen + " tablet = " + tablet);
       }
 
-      Map<FileSKVIterator,String> newlyReservedReaders = reserveReaders(tablet, files, continueOnFailure);
+      Map<FileSKVIterator,String> newlyReservedReaders = reserveReaders(tablet, files,
+          continueOnFailure);
 
       tabletReservedReaders.addAll(newlyReservedReaders.keySet());
       return newlyReservedReaders;
     }
 
-    public synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files, boolean detachable, SamplerConfigurationImpl samplerConfig)
-        throws IOException {
+    public synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files,
+        boolean detachable, SamplerConfigurationImpl samplerConfig) throws IOException {
 
       Map<FileSKVIterator,String> newlyReservedReaders = openFileRefs(files.keySet());
 
@@ -532,9 +548,11 @@ public class FileManager {
           FileDataSource fds = new FileDataSource(filename, source);
           dataSources.add(fds);
           SourceSwitchingIterator ssi = new SourceSwitchingIterator(fds);
-          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename, continueOnFailure, ssi);
+          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename,
+              continueOnFailure, ssi);
         } else {
-          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename, continueOnFailure, source);
+          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename,
+              continueOnFailure, source);
         }
 
         if (sawTimeSet) {

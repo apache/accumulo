@@ -106,8 +106,10 @@ public class RowEncodingIteratorTest {
     }
   }
 
-  private void pkv(SortedMap<Key,Value> map, String row, String cf, String cq, String cv, long ts, byte[] val) {
-    map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts), new Value(val, true));
+  private void pkv(SortedMap<Key,Value> map, String row, String cf, String cq, String cv, long ts,
+      byte[] val) {
+    map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts),
+        new Value(val, true));
   }
 
   @Test
@@ -171,6 +173,7 @@ public class RowEncodingIteratorTest {
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
     iter.init(src, bigBufferOpts, new DummyIteratorEnv());
     iter.seek(range, new ArrayList<>(), false);
-    // BufferOverflowException should be thrown as RowEncodingIterator can't fit the whole row into its buffer.
+    // BufferOverflowException should be thrown as RowEncodingIterator can't fit the whole row into
+    // its buffer.
   }
 }

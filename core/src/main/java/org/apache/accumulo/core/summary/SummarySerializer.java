@@ -44,13 +44,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * This class supports serializing summaries and periodically storing summaries. The implementations attempts to generate around 10 summaries that are evenly
- * spaced. This allows asking for summaries for sub-ranges of data in a rfile.
+ * This class supports serializing summaries and periodically storing summaries. The implementations
+ * attempts to generate around 10 summaries that are evenly spaced. This allows asking for summaries
+ * for sub-ranges of data in a rfile.
  *
  * <p>
- * At first summaries are created for every 1000 keys values. After 10 summaries are added, the 10 summaries are merged to 5 and summaries are then created for
- * every 2000 key values. The code keeps merging summaries and doubling the amount of key values per summary. This results in each summary covering about the
- * same number of key values.
+ * At first summaries are created for every 1000 keys values. After 10 summaries are added, the 10
+ * summaries are merged to 5 and summaries are then created for every 2000 key values. The code
+ * keeps merging summaries and doubling the amount of key values per summary. This results in each
+ * summary covering about the same number of key values.
  *
  */
 
@@ -114,7 +116,8 @@ class SummarySerializer {
     return allSummaries == null;
   }
 
-  private static class SummaryStoreImpl implements org.apache.accumulo.core.client.summary.Summarizer.StatisticConsumer {
+  private static class SummaryStoreImpl
+      implements org.apache.accumulo.core.client.summary.Summarizer.StatisticConsumer {
 
     HashMap<String,Long> summaries;
 
@@ -187,7 +190,8 @@ class SummarySerializer {
       for (int i = 0; i < end; i += 2) {
         int mergedCount = summaries.get(i).count + summaries.get(i + 1).count;
         summarizer.combiner(conf).merge(summaries.get(i).summary, summaries.get(i + 1).summary);
-        mergedSummaries.add(new SummaryInfo(summaries.get(i + 1).getLastRow(), summaries.get(i).summary, mergedCount));
+        mergedSummaries.add(new SummaryInfo(summaries.get(i + 1).getLastRow(),
+            summaries.get(i).summary, mergedCount));
       }
       return mergedSummaries;
     }
@@ -257,7 +261,8 @@ class SummarySerializer {
       }
     }
 
-    private void saveSummary(DataOutputStream dos, HashMap<String,Integer> symbolTable, Map<String,Long> summary) throws IOException {
+    private void saveSummary(DataOutputStream dos, HashMap<String,Integer> symbolTable,
+        Map<String,Long> summary) throws IOException {
       WritableUtils.writeVInt(dos, summary.size());
       for (Entry<String,Long> e : summary.entrySet()) {
         WritableUtils.writeVInt(dos, symbolTable.get(e.getKey()));
@@ -325,7 +330,8 @@ class SummarySerializer {
 
     private byte[] _save() throws IOException {
 
-      try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos)) {
+      try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          DataOutputStream dos = new DataOutputStream(baos)) {
         // create a symbol table
         HashMap<String,Integer> symbolTable = new HashMap<>();
         ArrayList<String> symbols = new ArrayList<>();
@@ -375,7 +381,8 @@ class SummarySerializer {
     }
   }
 
-  public static Builder builder(SummarizerConfiguration conf, SummarizerFactory factory, long maxSize) {
+  public static Builder builder(SummarizerConfiguration conf, SummarizerFactory factory,
+      long maxSize) {
     return new Builder(conf, factory.getSummarizer(conf), maxSize);
   }
 
@@ -390,7 +397,8 @@ class SummarySerializer {
     }
   }
 
-  static SummarySerializer load(SummarizerConfiguration sconf, DataInputStream in) throws IOException {
+  static SummarySerializer load(SummarizerConfiguration sconf, DataInputStream in)
+      throws IOException {
     boolean exceededMaxSize = in.readBoolean();
     if (!exceededMaxSize) {
       WritableUtils.readVInt(in);
@@ -428,7 +436,8 @@ class SummarySerializer {
     boolean exceedsRange(Text startRow, Text endRow) {
 
       Text lastRow = summaries[summaries.length - 1].lastRow;
-      if (startRow != null && firstRow.compareTo(startRow) <= 0 && startRow.compareTo(lastRow) < 0) {
+      if (startRow != null && firstRow.compareTo(startRow) <= 0
+          && startRow.compareTo(lastRow) < 0) {
         return true;
       }
 
@@ -444,7 +453,8 @@ class SummarySerializer {
       out.printf("%sLocality group : %s\n", p, lgroupName);
       p += indent;
       for (SummaryInfo si : summaries) {
-        out.printf("%sSummary of %d key values (row of last key '%s') : \n", p, si.count, si.lastRow);
+        out.printf("%sSummary of %d key values (row of last key '%s') : \n", p, si.count,
+            si.lastRow);
         Set<Entry<String,Long>> es = si.summary.entrySet();
         String p2 = p + indent;
         for (Entry<String,Long> entry : es) {
@@ -528,7 +538,8 @@ class SummarySerializer {
     return new LgSummaries(firstRow, summaries, lgroupName);
   }
 
-  private static Map<String,Long> readSummary(DataInputStream in, String[] symbols) throws IOException {
+  private static Map<String,Long> readSummary(DataInputStream in, String[] symbols)
+      throws IOException {
     com.google.common.collect.ImmutableMap.Builder<String,Long> imb = ImmutableMap.builder();
     int numEntries = WritableUtils.readVInt(in);
 

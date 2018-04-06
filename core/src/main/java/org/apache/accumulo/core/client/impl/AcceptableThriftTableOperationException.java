@@ -24,11 +24,13 @@ import org.apache.accumulo.fate.AcceptableException;
 /**
  * Concrete implementation of {@link AcceptableException} for table operations.
  */
-public class AcceptableThriftTableOperationException extends ThriftTableOperationException implements AcceptableException {
+public class AcceptableThriftTableOperationException extends ThriftTableOperationException
+    implements AcceptableException {
 
   private static final long serialVersionUID = 1L;
 
-  public AcceptableThriftTableOperationException(String tableId, String tableName, TableOperation op, TableOperationExceptionType type, String description) {
+  public AcceptableThriftTableOperationException(String tableId, String tableName,
+      TableOperation op, TableOperationExceptionType type, String description) {
     super(tableId, tableName, op, type, description);
   }
 }

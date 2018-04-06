@@ -71,7 +71,8 @@ public class ReplicationUtil {
     this(context, new ZooCache(), new ReplicaSystemFactory());
   }
 
-  public ReplicationUtil(AccumuloServerContext context, ZooCache cache, ReplicaSystemFactory factory) {
+  public ReplicationUtil(AccumuloServerContext context, ZooCache cache,
+      ReplicaSystemFactory factory) {
     this.zooCache = cache;
     this.context = context;
     this.factory = factory;
@@ -81,7 +82,8 @@ public class ReplicationUtil {
     int activeTservers = mmi.getTServerInfoSize();
 
     // The number of threads each tserver will use at most to replicate data
-    int replicationThreadsPerServer = Integer.parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
+    int replicationThreadsPerServer = Integer
+        .parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
 
     // The total number of "slots" we have to replicate data
     return activeTservers * replicationThreadsPerServer;
@@ -96,17 +98,20 @@ public class ReplicationUtil {
     Map<String,String> peers = new HashMap<>();
 
     // Get the defined peers and what ReplicaSystem impl they're using
-    for (Entry<String,String> property : context.getConfiguration().getAllPropertiesWithPrefix(Property.REPLICATION_PEERS).entrySet()) {
+    for (Entry<String,String> property : context.getConfiguration()
+        .getAllPropertiesWithPrefix(Property.REPLICATION_PEERS).entrySet()) {
       String key = property.getKey();
       // Filter out cruft that we don't want
-      if (!key.startsWith(Property.REPLICATION_PEER_USER.getKey()) && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())
+      if (!key.startsWith(Property.REPLICATION_PEER_USER.getKey())
+          && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())
           && !key.startsWith(Property.REPLICATION_PEER_KEYTAB.getKey())) {
         String peerName = property.getKey().substring(Property.REPLICATION_PEERS.getKey().length());
         Entry<String,String> entry;
         try {
           entry = factory.parseReplicaSystemConfiguration(property.getValue());
         } catch (Exception e) {
-          log.warn("Could not instantiate ReplicaSystem for {} with configuration {}", property.getKey(), property.getValue(), e);
+          log.warn("Could not instantiate ReplicaSystem for {} with configuration {}",
+              property.getKey(), property.getValue(), e);
           continue;
         }
 
@@ -133,14 +138,17 @@ public class ReplicationUtil {
         continue;
       }
 
-      TableConfiguration tableConf = context.getServerConfigurationFactory().getTableConfiguration(localId);
+      TableConfiguration tableConf = context.getServerConfigurationFactory()
+          .getTableConfiguration(localId);
       if (null == tableConf) {
         log.trace("Could not get configuration for table {} (it no longer exists)", table);
         continue;
       }
 
-      for (Entry<String,String> prop : tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET).entrySet()) {
-        String peerName = prop.getKey().substring(Property.TABLE_REPLICATION_TARGET.getKey().length());
+      for (Entry<String,String> prop : tableConf
+          .getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET).entrySet()) {
+        String peerName = prop.getKey()
+            .substring(Property.TABLE_REPLICATION_TARGET.getKey().length());
         String remoteIdentifier = prop.getValue();
         ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
 
@@ -157,7 +165,8 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY,
+          4);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.debug("No replication table exists", e);
       return counts;
@@ -172,7 +181,8 @@ public class ReplicationUtil {
         k.getColumnQualifier(buffer);
         ReplicationTarget target = ReplicationTarget.from(buffer);
 
-        // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates instead of just file-based
+        // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates
+        // instead of just file-based
         Long count = counts.get(target);
         if (null == count) {
           counts.put(target, 1l);
@@ -193,7 +203,8 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY,
+          4);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.debug("No replication table exists", e);
       return paths;

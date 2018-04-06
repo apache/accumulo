@@ -87,7 +87,8 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
   }
 
   /**
-   * Compute a timestamp (milliseconds) based on {@link #NOW} plus the <code>seconds</code> argument.
+   * Compute a timestamp (milliseconds) based on {@link #NOW} plus the <code>seconds</code>
+   * argument.
    *
    * @param seconds
    *          The number of seconds to add to <code>NOW</code> .
@@ -100,7 +101,8 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
   private static TreeMap<Key,Value> createOutputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
 
-    Iterable<Entry<Key,Value>> filtered = Iterables.filter(data.entrySet(), input -> NOW - input.getKey().getTimestamp() > TTL);
+    Iterable<Entry<Key,Value>> filtered = Iterables.filter(data.entrySet(),
+        input -> NOW - input.getKey().getTimestamp() > TTL);
 
     for (Entry<Key,Value> entry : filtered) {
       data.put(entry.getKey(), entry.getValue());
@@ -120,7 +122,8 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
     return new IteratorTestOutput(OUTPUT_DATA);
   }
 
-  public AgeOffFilterTest(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestCase testCase) {
+  public AgeOffFilterTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
     super(input, expectedOutput, testCase);
   }
 

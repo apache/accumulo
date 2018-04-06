@@ -60,16 +60,18 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
     Connector c = getConnector();
     int numEntriesToWritePerEntry = 50;
-    IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000, numEntriesToWritePerEntry, t2, c, getAdminToken(), false, false);
+    IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
+        numEntriesToWritePerEntry, t2, c, getAdminToken(), false, false);
     test(t1, t2, c, itset, numEntriesToWritePerEntry);
   }
 
   /**
    * Fixed by ACCUMULO-4229.
    * <p>
-   * This tests a situation that a client which shares a LocatorCache with the tablet server may fall into. Before the problem was fixed, adding a split after
-   * the Locator cache falls out of sync caused the BatchWriter to continuously attempt to write to an old, closed tablet. It would do so for 15 seconds until a
-   * timeout on the BatchWriter.
+   * This tests a situation that a client which shares a LocatorCache with the tablet server may
+   * fall into. Before the problem was fixed, adding a split after the Locator cache falls out of
+   * sync caused the BatchWriter to continuously attempt to write to an old, closed tablet. It would
+   * do so for 15 seconds until a timeout on the BatchWriter.
    */
   @Test
   public void testClearLocatorAndSplitWrite() throws Exception {
@@ -77,11 +79,13 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
     Connector c = getConnector();
     int numEntriesToWritePerEntry = 50;
-    IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000, numEntriesToWritePerEntry, t2, c, getAdminToken(), true, true);
+    IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
+        numEntriesToWritePerEntry, t2, c, getAdminToken(), true, true);
     test(t1, t2, c, itset, numEntriesToWritePerEntry);
   }
 
-  private void test(String t1, String t2, Connector c, IteratorSetting itset, int numEntriesToWritePerEntry) throws Exception {
+  private void test(String t1, String t2, Connector c, IteratorSetting itset,
+      int numEntriesToWritePerEntry) throws Exception {
     // Write an entry to t1
     c.tableOperations().create(t1);
     Key k = new Key(new Text("row"), new Text("cf"), new Text("cq"));
@@ -117,7 +121,8 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
       actual = Iterators.getOnlyElement(scanner.iterator());
       log.debug("t2 entry is " + actual.getKey().toStringNoTime() + " -> " + actual.getValue());
       Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
-      Assert.assertEquals(numEntriesToWritePerEntry, Integer.parseInt(actual.getValue().toString()));
+      Assert.assertEquals(numEntriesToWritePerEntry,
+          Integer.parseInt(actual.getValue().toString()));
     }
 
     c.tableOperations().delete(t1);

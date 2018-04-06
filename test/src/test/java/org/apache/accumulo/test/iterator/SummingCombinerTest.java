@@ -118,14 +118,16 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
     IteratorSetting setting = new IteratorSetting(50, SummingCombiner.class);
     LongCombiner.setEncodingType(setting, LongCombiner.Type.STRING);
     Combiner.setCombineAllColumns(setting, true);
-    return new IteratorTestInput(SummingCombiner.class, setting.getOptions(), new Range(), INPUT_DATA);
+    return new IteratorTestInput(SummingCombiner.class, setting.getOptions(), new Range(),
+        INPUT_DATA);
   }
 
   private static IteratorTestOutput getIteratorOutput() {
     return new IteratorTestOutput(OUTPUT_DATA);
   }
 
-  public SummingCombinerTest(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestCase testCase) {
+  public SummingCombinerTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
     super(input, expectedOutput, testCase);
   }
 

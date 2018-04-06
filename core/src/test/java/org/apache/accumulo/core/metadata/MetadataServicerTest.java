@@ -69,7 +69,8 @@ public class MetadataServicerTest {
   }
 
   @Test
-  public void testGetCorrectServicer() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+  public void testGetCorrectServicer() throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException {
     MetadataServicer ms = MetadataServicer.forTableId(context, RootTable.ID);
     assertTrue(ms instanceof ServicerForRootTable);
     assertFalse(ms instanceof TableMetadataServicer);

@@ -35,7 +35,8 @@ public class ListShellIterCommand extends Command {
   private Option nameOpt, profileOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     if (shellState.iteratorProfiles.size() == 0)
       return 0;
 
@@ -61,10 +62,13 @@ public class ListShellIterCommand extends Command {
           continue;
 
         sb.append("-    Iterator ").append(setting.getName()).append(", ").append(" options:\n");
-        sb.append("-        ").append("iteratorPriority").append(" = ").append(setting.getPriority()).append("\n");
-        sb.append("-        ").append("iteratorClassName").append(" = ").append(setting.getIteratorClass()).append("\n");
+        sb.append("-        ").append("iteratorPriority").append(" = ")
+            .append(setting.getPriority()).append("\n");
+        sb.append("-        ").append("iteratorClassName").append(" = ")
+            .append(setting.getIteratorClass()).append("\n");
         for (Entry<String,String> optEntry : setting.getOptions().entrySet()) {
-          sb.append("-        ").append(optEntry.getKey()).append(" = ").append(optEntry.getValue()).append("\n");
+          sb.append("-        ").append(optEntry.getKey()).append(" = ").append(optEntry.getValue())
+              .append("\n");
         }
       }
     }

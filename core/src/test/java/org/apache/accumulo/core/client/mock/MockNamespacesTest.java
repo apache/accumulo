@@ -66,7 +66,8 @@ public class MockNamespacesTest {
   }
 
   /**
-   * This test creates a table without specifying a namespace. In this case, it puts the table into the default namespace.
+   * This test creates a table without specifying a namespace. In this case, it puts the table into
+   * the default namespace.
    */
   @Test
   public void testDefaultNamespace() throws Exception {
@@ -78,9 +79,10 @@ public class MockNamespacesTest {
   }
 
   /**
-   * This test creates a new namespace "testing" and a table "testing.table1" which puts "table1" into the "testing" namespace. Then we create "testing.table2"
-   * which creates "table2" and puts it into "testing" as well. Then we make sure that you can't delete a namespace with tables in it, and then we delete the
-   * tables and delete the namespace.
+   * This test creates a new namespace "testing" and a table "testing.table1" which puts "table1"
+   * into the "testing" namespace. Then we create "testing.table2" which creates "table2" and puts
+   * it into "testing" as well. Then we make sure that you can't delete a namespace with tables in
+   * it, and then we delete the tables and delete the namespace.
    */
   @Test
   public void testCreateAndDeleteNamespace() throws Exception {
@@ -120,8 +122,9 @@ public class MockNamespacesTest {
   }
 
   /**
-   * This test creates a namespace, modifies it's properties, and checks to make sure that those properties are applied to its tables. To do something on a
-   * namespace-wide level, use {@link NamespaceOperations}.
+   * This test creates a namespace, modifies it's properties, and checks to make sure that those
+   * properties are applied to its tables. To do something on a namespace-wide level, use
+   * {@link NamespaceOperations}.
    *
    * Checks to make sure namespace-level properties are overridden by table-level properties.
    *
@@ -212,7 +215,8 @@ public class MockNamespacesTest {
 
     // TODO implement clone in mock
     // c.tableOperations().clone(tableName1, tableName2, false, null, null);
-    // assertTrue(c.tableOperations().exists(tableName1)); assertTrue(c.tableOperations().exists(tableName2));
+    // assertTrue(c.tableOperations().exists(tableName1));
+    // assertTrue(c.tableOperations().exists(tableName2));
   }
 
   /**
@@ -267,7 +271,8 @@ public class MockNamespacesTest {
     conn.namespaceOperations().removeIterator(namespace, iter, EnumSet.copyOf(scope));
   }
 
-  private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {
+  private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal)
+      throws AccumuloException, TableNotFoundException {
     for (Entry<String,String> e : c.tableOperations().getProperties(t)) {
       if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
         return true;
@@ -276,8 +281,8 @@ public class MockNamespacesTest {
     return false;
   }
 
-  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, NamespaceNotFoundException,
-      AccumuloSecurityException {
+  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal)
+      throws AccumuloException, NamespaceNotFoundException, AccumuloSecurityException {
     for (Entry<String,String> e : c.namespaceOperations().getProperties(n)) {
       if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
         return true;

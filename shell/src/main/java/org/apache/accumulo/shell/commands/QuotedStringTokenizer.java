@@ -26,9 +26,11 @@ import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.shell.Shell;
 
 /**
- * A basic tokenizer for generating tokens from a string. It understands quoted strings and escaped quote characters.
+ * A basic tokenizer for generating tokens from a string. It understands quoted strings and escaped
+ * quote characters.
  *
- * You can use the escape sequence '\' to escape single quotes, double quotes, and spaces only, in addition to the escape character itself.
+ * You can use the escape sequence '\' to escape single quotes, double quotes, and spaces only, in
+ * addition to the escape character itself.
  *
  * The behavior is the same for single and double quoted strings. (i.e. '\'' is the same as "\'")
  */
@@ -63,7 +65,8 @@ public class QuotedStringTokenizer implements Iterable<String> {
     for (int i = 0; i < input.length(); ++i) {
       final char ch = input.charAt(i);
 
-      // if I ended up in an escape sequence, check for valid escapable character, and add it as a literal
+      // if I ended up in an escape sequence, check for valid escapable character, and add it as a
+      // literal
       if (inEscapeSequence) {
         inEscapeSequence = false;
         if (ch == 'x') {
@@ -71,7 +74,9 @@ public class QuotedStringTokenizer implements Iterable<String> {
         } else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') {
           token[tokenLength++] = inputBytes[i];
         } else {
-          throw new BadArgumentException("can only escape single quotes, double quotes, the space character, the backslash, and hex input", input, i);
+          throw new BadArgumentException(
+              "can only escape single quotes, double quotes, the space character, the backslash, and hex input",
+              input, i);
         }
       } else if (hexChars != null) {
         // in a hex escape sequence

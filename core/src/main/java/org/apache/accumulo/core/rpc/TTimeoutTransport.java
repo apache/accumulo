@@ -35,7 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A utility class for setting up a {@link TTransport} with various necessary configurations for ideal performance in Accumulo. These configurations include:
+ * A utility class for setting up a {@link TTransport} with various necessary configurations for
+ * ideal performance in Accumulo. These configurations include:
  * <ul>
  * <li>Setting SO_LINGER=false on the socket.</li>
  * <li>Setting TCP_NO_DELAY=true on the socket.</li>
@@ -56,7 +57,8 @@ public class TTimeoutTransport {
       synchronized (this) {
         if (null == GET_INPUT_STREAM_METHOD) {
           try {
-            GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class, Long.TYPE);
+            GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class,
+                Long.TYPE);
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -68,7 +70,8 @@ public class TTimeoutTransport {
   }
 
   /**
-   * Invokes the <code>NetUtils.getInputStream(Socket, long)</code> using reflection to handle compatibility with both Hadoop 1 and 2.
+   * Invokes the <code>NetUtils.getInputStream(Socket, long)</code> using reflection to handle
+   * compatibility with both Hadoop 1 and 2.
    *
    * @param socket
    *          The socket to create the input stream on
@@ -96,7 +99,8 @@ public class TTimeoutTransport {
   }
 
   /**
-   * Creates a Thrift TTransport to the given address with the given timeout. All created resources are closed if an exception is thrown.
+   * Creates a Thrift TTransport to the given address with the given timeout. All created resources
+   * are closed if an exception is thrown.
    *
    * @param addr
    *          The address to connect the client to
@@ -107,11 +111,13 @@ public class TTimeoutTransport {
    *           If the transport fails to be created/connected
    */
   public static TTransport create(HostAndPort addr, long timeoutMillis) throws IOException {
-    return INSTANCE.createInternal(new InetSocketAddress(addr.getHost(), addr.getPort()), timeoutMillis);
+    return INSTANCE.createInternal(new InetSocketAddress(addr.getHost(), addr.getPort()),
+        timeoutMillis);
   }
 
   /**
-   * Creates a Thrift TTransport to the given address with the given timeout. All created resources are closed if an exception is thrown.
+   * Creates a Thrift TTransport to the given address with the given timeout. All created resources
+   * are closed if an exception is thrown.
    *
    * @param addr
    *          The address to connect the client to
@@ -126,7 +132,8 @@ public class TTimeoutTransport {
   }
 
   /**
-   * Opens a socket to the given <code>addr</code>, configures the socket, and then creates a Thrift transport using the socket.
+   * Opens a socket to the given <code>addr</code>, configures the socket, and then creates a Thrift
+   * transport using the socket.
    *
    * @param addr
    *          The address the socket should connect

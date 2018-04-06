@@ -77,7 +77,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Test that setting properties more than once overwrites the previous property settings.
    */
   @Test
-  public void testSetPropertiesOverwriteOlderProperties() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+  public void testSetPropertiesOverwriteOlderProperties() throws AccumuloSecurityException,
+      AccumuloException, TableExistsException, TableNotFoundException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -93,8 +94,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     conn.tableOperations().create(tableName, ntc);
     // verify
     Map<String,String> props = ntc.getProperties();
-    assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop1"), "newerval1");
-    assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop2"), "newerval2");
+    assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop1"),
+        "newerval1");
+    assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop2"),
+        "newerval2");
     assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
     assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
   }
@@ -102,10 +105,12 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   /**
    * Verify that you cannot have overlapping locality groups.
    *
-   * Attempt to set a locality group with overlapping groups. This test should throw an IllegalArgumentException indicating that groups overlap.
+   * Attempt to set a locality group with overlapping groups. This test should throw an
+   * IllegalArgumentException indicating that groups overlap.
    */
   @Test(expected = IllegalArgumentException.class)
-  public void testOverlappingGroupsFail() throws AccumuloSecurityException, AccumuloException, TableExistsException {
+  public void testOverlappingGroupsFail()
+      throws AccumuloSecurityException, AccumuloException, TableExistsException {
     NewTableConfiguration ntc = new NewTableConfiguration();
     Map<String,Set<Text>> lgroups = new HashMap<>();
     lgroups.put("lg1", ImmutableSet.of(new Text("colFamA"), new Text("colFamB")));
@@ -117,7 +122,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Test simplest case of setting locality groups at table creation.
    */
   @Test
-  public void testSimpleLocalityGroupCreation() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+  public void testSimpleLocalityGroupCreation() throws AccumuloSecurityException, AccumuloException,
+      TableExistsException, TableNotFoundException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -129,17 +135,21 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.setLocalityGroups(lgroups);
     conn.tableOperations().create(tableName, ntc);
     // verify
-    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
+    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations()
+        .getLocalityGroups(tableName);
     assertEquals(2, createdLocalityGroups.size());
-    assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("dog"), new Text("cat")));
-    assertEquals(createdLocalityGroups.get("lg2"), ImmutableSet.of(new Text("lion"), new Text("tiger")));
+    assertEquals(createdLocalityGroups.get("lg1"),
+        ImmutableSet.of(new Text("dog"), new Text("cat")));
+    assertEquals(createdLocalityGroups.get("lg2"),
+        ImmutableSet.of(new Text("lion"), new Text("tiger")));
   }
 
   /**
    * Verify that setting locality groups more than once overwrite initial locality settings.
    */
   @Test
-  public void testMulitpleCallsToSetLocalityGroups() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+  public void testMulitpleCallsToSetLocalityGroups() throws AccumuloSecurityException,
+      AccumuloException, TableExistsException, TableNotFoundException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -153,16 +163,19 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.setLocalityGroups(secondGroup);
     conn.tableOperations().create(tableName, ntc);
     // verify
-    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
+    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations()
+        .getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
-    assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("red"), new Text("blue")));
+    assertEquals(createdLocalityGroups.get("lg1"),
+        ImmutableSet.of(new Text("red"), new Text("blue")));
   }
 
   /**
    * Verify that setting locality groups along with other properties works.
    */
   @Test
-  public void testSetPropertiesAndGroups() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+  public void testSetPropertiesAndGroups() throws AccumuloSecurityException, AccumuloException,
+      TableExistsException, TableNotFoundException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -197,7 +210,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       }
     }
     assertEquals(4, count);
-    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
+    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations()
+        .getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("dog")));
   }
@@ -206,7 +220,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Verify that properties set using NewTableConfiguration must be table properties.
    */
   @Test(expected = IllegalArgumentException.class)
-  public void testInvalidTablePropertiesSet() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+  public void testInvalidTablePropertiesSet() throws AccumuloSecurityException, AccumuloException,
+      TableExistsException, TableNotFoundException {
     NewTableConfiguration ntc = new NewTableConfiguration();
     Map<String,String> props = new HashMap<>();
 
@@ -225,7 +240,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Create table with initial locality groups but no default iterators
    */
   @Test
-  public void testSetGroupsWithoutDefaultIterators() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+  public void testSetGroupsWithoutDefaultIterators() throws AccumuloSecurityException,
+      AccumuloException, TableExistsException, TableNotFoundException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
@@ -235,7 +251,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.setLocalityGroups(lgroups);
     conn.tableOperations().create(tableName, ntc);
     // verify groups and verify no iterators
-    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
+    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations()
+        .getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("colF")));
     Map<String,EnumSet<IteratorScope>> iterators = conn.tableOperations().listIterators(tableName);
@@ -243,21 +260,26 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Test pre-configuring iterator along with default iterator. Configure IteratorSetting values within method call.
+   * Test pre-configuring iterator along with default iterator. Configure IteratorSetting values
+   * within method call.
    */
   @Test
-  public void testPreconfigureIteratorWithDefaultIterator1() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testPreconfigureIteratorWithDefaultIterator1() throws AccumuloException,
+      TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.attachIterator(new IteratorSetting(10, "anIterator", "it.class", Collections.emptyMap()), EnumSet.of(IteratorScope.scan));
+    ntc.attachIterator(new IteratorSetting(10, "anIterator", "it.class", Collections.emptyMap()),
+        EnumSet.of(IteratorScope.scan));
     conn.tableOperations().create(tableName, ntc);
 
-    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
+    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations()
+        .listIterators(tableName);
     // should count the created iterator plus the default iterator
     assertEquals(2, iteratorList.size());
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"},
+        true);
     conn.tableOperations().removeIterator(tableName, "anIterator", EnumSet.of(IteratorScope.scan));
     verifyIterators(conn, tableName, new String[] {}, true);
     iteratorList = conn.tableOperations().listIterators(tableName);
@@ -265,10 +287,12 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Test pre-configuring iterator with default iterator. Configure IteratorSetting values into method call.
+   * Test pre-configuring iterator with default iterator. Configure IteratorSetting values into
+   * method call.
    */
   @Test
-  public void testPreconfiguredIteratorWithDefaultIterator2() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testPreconfiguredIteratorWithDefaultIterator2() throws AccumuloException,
+      TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -277,21 +301,27 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting);
     conn.tableOperations().create(tableName, ntc);
 
-    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
+    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations()
+        .listIterators(tableName);
     // should count the created iterator plus the default iterator
     assertEquals(2, iteratorList.size());
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
-    conn.tableOperations().removeIterator(tableName, "someName", EnumSet.allOf((IteratorScope.class)));
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
+        true);
+    conn.tableOperations().removeIterator(tableName, "someName",
+        EnumSet.allOf((IteratorScope.class)));
     verifyIterators(conn, tableName, new String[] {}, true);
-    Map<String,EnumSet<IteratorScope>> iteratorList2 = conn.tableOperations().listIterators(tableName);
+    Map<String,EnumSet<IteratorScope>> iteratorList2 = conn.tableOperations()
+        .listIterators(tableName);
     assertEquals(1, iteratorList2.size());
   }
 
   /**
-   * Test pre-configuring iterator with default iterator. Pass in IteratorScope value in method arguments.
+   * Test pre-configuring iterator with default iterator. Pass in IteratorScope value in method
+   * arguments.
    */
   @Test
-  public void testPreconfiguredIteratorWithDefaultIterator3() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testPreconfiguredIteratorWithDefaultIterator3() throws AccumuloException,
+      TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -300,8 +330,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
     conn.tableOperations().create(tableName, ntc);
 
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
-    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
+        true);
+    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations()
+        .listIterators(tableName);
     assertEquals(2, iteratorList.size());
     assertEquals(iteratorList.get("someName"), EnumSet.of(IteratorScope.scan));
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
@@ -314,8 +346,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Test pre-configuring iterator with additional options.
    */
   @Test
-  public void testSettingInitialIteratorWithAdditionalIteratorOptions() throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      TableExistsException {
+  public void testSettingInitialIteratorWithAdditionalIteratorOptions() throws AccumuloException,
+      TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -325,7 +357,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting);
 
     conn.tableOperations().create(tableName, ntc);
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar", "table.iterator.scan.someName.opt.key=value"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar",
+        "table.iterator.scan.someName.opt.key=value"}, true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
     verifyIterators(conn, tableName, new String[] {}, true);
   }
@@ -334,7 +367,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Set up a pre-configured iterator while disabling the default iterators
    */
   @Test
-  public void testSetIteratorWithoutDefaultIterators() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testSetIteratorWithoutDefaultIterators() throws AccumuloException,
+      TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -343,12 +377,16 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting);
     conn.tableOperations().create(tableName, ntc);
 
-    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
+    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations()
+        .listIterators(tableName);
     assertEquals(1, iteratorList.size());
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.myIterator=10,my.class"}, false);
-    conn.tableOperations().removeIterator(tableName, "myIterator", EnumSet.allOf(IteratorScope.class));
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.myIterator=10,my.class"},
+        false);
+    conn.tableOperations().removeIterator(tableName, "myIterator",
+        EnumSet.allOf(IteratorScope.class));
     verifyIterators(conn, tableName, new String[] {}, false);
-    Map<String,EnumSet<IteratorScope>> iteratorList2 = conn.tableOperations().listIterators(tableName);
+    Map<String,EnumSet<IteratorScope>> iteratorList2 = conn.tableOperations()
+        .listIterators(tableName);
     assertEquals(0, iteratorList2.size());
   }
 
@@ -356,7 +394,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Create iterator and setProperties method together.
    */
   @Test
-  public void testSettingIteratorAndProperties() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testSettingIteratorAndProperties() throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -383,7 +422,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       }
     }
     assertEquals(2, count);
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
+        true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
     verifyIterators(conn, tableName, new String[] {}, true);
   }
@@ -392,7 +432,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Verify iterator conflicts are discovered
    */
   @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound1() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testIteratorConflictFound1() throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -405,7 +446,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound2() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testIteratorConflictFound2() throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -418,7 +460,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound3() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testIteratorConflictFound3() throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -431,10 +474,12 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Verify that multiple calls to attachIterator keep adding to iterators, i.e., do not overwrite existing iterators.
+   * Verify that multiple calls to attachIterator keep adding to iterators, i.e., do not overwrite
+   * existing iterators.
    */
   @Test
-  public void testMultipleIteratorValid() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testMultipleIteratorValid() throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -445,11 +490,16 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
 
     conn.tableOperations().create(tableName, ntc);
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.firstIterator=10,first.class", "table.iterator.scan.secondIterator=11,second.class"},
+    verifyIterators(conn, tableName,
+        new String[] {"table.iterator.scan.firstIterator=10,first.class",
+            "table.iterator.scan.secondIterator=11,second.class"},
         true);
-    conn.tableOperations().removeIterator(tableName, "firstIterator", EnumSet.of(IteratorScope.scan));
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.secondIterator=11,second.class"}, true);
-    conn.tableOperations().removeIterator(tableName, "secondIterator", EnumSet.of(IteratorScope.scan));
+    conn.tableOperations().removeIterator(tableName, "firstIterator",
+        EnumSet.of(IteratorScope.scan));
+    verifyIterators(conn, tableName,
+        new String[] {"table.iterator.scan.secondIterator=11,second.class"}, true);
+    conn.tableOperations().removeIterator(tableName, "secondIterator",
+        EnumSet.of(IteratorScope.scan));
     verifyIterators(conn, tableName, new String[] {}, true);
   }
 
@@ -457,7 +507,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Verify use of all three ntc methods - setProperties, setLocalityGroups and attachIterator
    */
   @Test
-  public void testGroupsIteratorAndPropsTogether() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testGroupsIteratorAndPropsTogether() throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -481,11 +532,13 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     }
     assertEquals(1, count);
     // verify locality groups
-    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
+    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations()
+        .getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("colF")));
     // verify iterators
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
+        true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
     verifyIterators(conn, tableName, new String[] {}, true);
   }
@@ -494,22 +547,26 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Test NewTableConfiguration chaining.
    */
   @Test
-  public void testNtcChaining() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+  public void testNtcChaining() throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
-    IteratorSetting setting = new IteratorSetting(10, "anIterator", "it.class", Collections.emptyMap());
+    IteratorSetting setting = new IteratorSetting(10, "anIterator", "it.class",
+        Collections.emptyMap());
     Map<String,Set<Text>> lgroups = new HashMap<>();
     lgroups.put("lgp", ImmutableSet.of(new Text("col")));
 
-    NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators().attachIterator(setting, EnumSet.of(IteratorScope.scan))
-        .setLocalityGroups(lgroups);
+    NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators()
+        .attachIterator(setting, EnumSet.of(IteratorScope.scan)).setLocalityGroups(lgroups);
 
     conn.tableOperations().create(tableName, ntc);
 
-    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
+    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations()
+        .listIterators(tableName);
     assertEquals(1, iteratorList.size());
-    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"}, false);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"},
+        false);
     conn.tableOperations().removeIterator(tableName, "anIterator", EnumSet.of(IteratorScope.scan));
     verifyIterators(conn, tableName, new String[] {}, false);
     iteratorList = conn.tableOperations().listIterators(tableName);
@@ -527,7 +584,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       }
     }
     assertEquals(2, count);
-    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
+    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations()
+        .getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lgp"), ImmutableSet.of(new Text("col")));
   }
@@ -583,10 +641,12 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   /**
    * Verify the expected iterator properties exist.
    */
-  private void verifyIterators(Connector conn, String tablename, String[] values, boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
+  private void verifyIterators(Connector conn, String tablename, String[] values,
+      boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
     Map<String,String> expected = new TreeMap<>();
     if (withDefaultIts) {
-      expected.put("table.iterator.scan.vers", "20,org.apache.accumulo.core.iterators.user.VersioningIterator");
+      expected.put("table.iterator.scan.vers",
+          "20,org.apache.accumulo.core.iterators.user.VersioningIterator");
       expected.put("table.iterator.scan.vers.opt.maxVersions", "1");
     }
     for (String value : values) {
@@ -603,8 +663,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     Assert.assertEquals(expected, actual);
   }
 
-  private Map<String,String> getProperties(Connector connector, String tableName) throws AccumuloException, TableNotFoundException {
-    Iterable<Entry<String,String>> properties = connector.tableOperations().getProperties(tableName);
+  private Map<String,String> getProperties(Connector connector, String tableName)
+      throws AccumuloException, TableNotFoundException {
+    Iterable<Entry<String,String>> properties = connector.tableOperations()
+        .getProperties(tableName);
     Map<String,String> propertyMap = new HashMap<>();
     for (Entry<String,String> entry : properties) {
       propertyMap.put(entry.getKey(), entry.getValue());
@@ -612,12 +674,13 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     return propertyMap;
   }
 
-  public int numProperties(Connector connector, String tableName) throws AccumuloException, TableNotFoundException {
+  public int numProperties(Connector connector, String tableName)
+      throws AccumuloException, TableNotFoundException {
     return Iterators.size(connector.tableOperations().getProperties(tableName).iterator());
   }
 
-  public int compareProperties(Connector connector, String tableNameOrig, String tableName, String changedProp) throws AccumuloException,
-      TableNotFoundException {
+  public int compareProperties(Connector connector, String tableNameOrig, String tableName,
+      String changedProp) throws AccumuloException, TableNotFoundException {
     boolean inNew = false;
     int countOrig = 0;
     for (Entry<String,String> orig : connector.tableOperations().getProperties(tableNameOrig)) {
@@ -635,13 +698,15 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     return countOrig;
   }
 
-  public boolean checkTimeType(Connector connector, String tableName, TimeType expectedTimeType) throws TableNotFoundException {
+  public boolean checkTimeType(Connector connector, String tableName, TimeType expectedTimeType)
+      throws TableNotFoundException {
     final Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     String tableID = connector.tableOperations().tableIdMap().get(tableName) + "<";
     for (Entry<Key,Value> entry : scanner) {
       Key k = entry.getKey();
 
-      if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString().equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
+      if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString()
+          .equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
         if (expectedTimeType == TimeType.MILLIS && entry.getValue().toString().charAt(0) == 'M')
           return true;
         if (expectedTimeType == TimeType.LOGICAL && entry.getValue().toString().charAt(0) == 'L')
@@ -680,7 +745,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     Connector connector = getConnector();
     String tableName = getUniqueNames(2)[0];
     boolean limitVersion = false;
-    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+    connector.tableOperations().create(tableName,
+        new NewTableConfiguration().withoutDefaultIterators());
 
     String tableNameOrig = "originalWithLimitVersion";
     connector.tableOperations().create(tableNameOrig, limitVersion);
@@ -702,7 +768,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     String tableName = getUniqueNames(2)[0];
     boolean limitVersion = false;
     TimeType tt = TimeType.LOGICAL;
-    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators().setTimeType(tt));
+    connector.tableOperations().create(tableName,
+        new NewTableConfiguration().withoutDefaultIterators().setTimeType(tt));
 
     String tableNameOrig = "originalWithLimitVersionAndTimeType";
     connector.tableOperations().create(tableNameOrig, limitVersion, tt);
@@ -732,7 +799,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     // Create a table with the initial properties
     Connector connector = getConnector();
     String tableName = getUniqueNames(2)[0];
-    connector.tableOperations().create(tableName, new NewTableConfiguration().setProperties(properties));
+    connector.tableOperations().create(tableName,
+        new NewTableConfiguration().setProperties(properties));
 
     String tableNameOrig = "originalWithTableName";
     connector.tableOperations().create(tableNameOrig, true);
@@ -744,7 +812,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
         Assert.assertTrue("TABLE_SPLIT_THRESHOLD has been changed", entry.getValue().equals("10K"));
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertTrue("table.custom.testProp has been changed", entry.getValue().equals("Test property"));
+        Assert.assertTrue("table.custom.testProp has been changed",
+            entry.getValue().equals("Test property"));
     }
 
     Assert.assertEquals("Extra properties using the new create method", countOrig + 1, countNew);

@@ -48,7 +48,8 @@ public class TabletServerDetailInformation {
    * @param splits
    *          Number of splits
    */
-  public TabletServerDetailInformation(int hostedTablets, long entries, int minors, int majors, int splits) {
+  public TabletServerDetailInformation(int hostedTablets, long entries, int minors, int majors,
+      int splits) {
     this.hostedTablets = hostedTablets;
     this.entries = entries;
     this.minors = minors;

@@ -71,7 +71,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     // do not want to seek to the middle of a row
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
     this.range = seekRange;
@@ -98,7 +99,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
 
     int count = 0;
     SortedKeyValueIterator<Key,Value> source = getSource();
-    while (source.hasTop() && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
+    while (source.hasTop()
+        && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       if (count < maxCount) {
         // it is quicker to call next if we are close, but we never know if we are close
         // so give next a try a few times
@@ -124,7 +126,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.numVersions = 0;
 
@@ -140,8 +143,11 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
 
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions("vers", "The VersioningIterator keeps a fixed number of versions for each key", Collections.singletonMap("maxVersions",
-        "number of versions to keep for a particular key (with differing timestamps)"), null);
+    return new IteratorOptions("vers",
+        "The VersioningIterator keeps a fixed number of versions for each key",
+        Collections.singletonMap("maxVersions",
+            "number of versions to keep for a particular key (with differing timestamps)"),
+        null);
   }
 
   private static final String MAXVERSIONS_OPT = "maxVersions";
@@ -152,7 +158,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     try {
       i = Integer.parseInt(options.get(MAXVERSIONS_OPT));
     } catch (Exception e) {
-      throw new IllegalArgumentException("bad integer " + MAXVERSIONS_OPT + ":" + options.get(MAXVERSIONS_OPT));
+      throw new IllegalArgumentException(
+          "bad integer " + MAXVERSIONS_OPT + ":" + options.get(MAXVERSIONS_OPT));
     }
     if (i < 1)
       throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");

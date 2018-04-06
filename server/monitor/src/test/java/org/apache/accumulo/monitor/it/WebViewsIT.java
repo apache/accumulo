@@ -76,8 +76,9 @@ public class WebViewsIT extends JerseyTest {
   }
 
   /**
-   * Expect to fail the constraint validation on the REST endpoint. The constraint is the pre-defined word character class Pattern so passing a table name with
-   * punctuation will cause a 400 response code.
+   * Expect to fail the constraint validation on the REST endpoint. The constraint is the
+   * pre-defined word character class Pattern so passing a table name with punctuation will cause a
+   * 400 response code.
    */
   @Test
   public void testGetTablesConstraintViolations() {
@@ -86,10 +87,12 @@ public class WebViewsIT extends JerseyTest {
   }
 
   /**
-   * Test path tables/{tableID} which passes constraints. On passing constraints underlying logic will be executed so we need to mock a certain amount of it.
-   * Note: If you get test failures here due to 500 server response, it's likely an underlying class or method call was added/modified and needs mocking. Note:
-   * To get the proper response code back, you need to make sure jersey has a registered MessageBodyWriter capable of serializing/writing the object returned
-   * from your endpoint. We're using a simple stubbed out inner class HashMapWriter for this.
+   * Test path tables/{tableID} which passes constraints. On passing constraints underlying logic
+   * will be executed so we need to mock a certain amount of it. Note: If you get test failures here
+   * due to 500 server response, it's likely an underlying class or method call was added/modified
+   * and needs mocking. Note: To get the proper response code back, you need to make sure jersey has
+   * a registered MessageBodyWriter capable of serializing/writing the object returned from your
+   * endpoint. We're using a simple stubbed out inner class HashMapWriter for this.
    *
    * @throws Exception
    *           not expected
@@ -111,7 +114,8 @@ public class WebViewsIT extends JerseyTest {
     org.easymock.EasyMock.replay(instanceMock, contextMock);
 
     // Using the mocks we can verify that the getModel method gets called via debugger
-    // however it's difficult to continue to mock through the jersey MVC code for the properly built response.
+    // however it's difficult to continue to mock through the jersey MVC code for the properly built
+    // response.
     // Our silly HashMapWriter registered in the configure method gets wired in and used here.
     Response output = target("tables/foo").request().get();
     Assert.assertEquals("should return status 200", 200, output.getStatus());
@@ -134,22 +138,26 @@ public class WebViewsIT extends JerseyTest {
   }
 
   /**
-   * Silly stub to handle MessageBodyWriter for Hashmap. Registered in configure method and auto-wired by Jersey.
+   * Silly stub to handle MessageBodyWriter for Hashmap. Registered in configure method and
+   * auto-wired by Jersey.
    */
   public static class HashMapWriter implements MessageBodyWriter<HashMap<?,?>> {
     @Override
-    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
+    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations,
+        MediaType mediaType) {
       return true;
     }
 
     @Override
-    public long getSize(HashMap<?,?> hashMap, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
+    public long getSize(HashMap<?,?> hashMap, Class<?> type, Type genericType,
+        Annotation[] annotations, MediaType mediaType) {
       return 0;
     }
 
     @Override
-    public void writeTo(HashMap<?,?> hashMap, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType,
-        MultivaluedMap<String,Object> httpHeaders, OutputStream entityStream) throws IOException, WebApplicationException {
+    public void writeTo(HashMap<?,?> hashMap, Class<?> type, Type genericType,
+        Annotation[] annotations, MediaType mediaType, MultivaluedMap<String,Object> httpHeaders,
+        OutputStream entityStream) throws IOException, WebApplicationException {
       String s = hashMap.toString();
       entityStream.write(s.getBytes());
     }

@@ -61,7 +61,8 @@ public class LogSorter {
   VolumeManager fs;
   AccumuloConfiguration conf;
 
-  private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<String,LogProcessor>());
+  private final Map<String,LogProcessor> currentWork = Collections
+      .synchronizedMap(new HashMap<String,LogProcessor>());
 
   class LogProcessor implements Processor {
 
@@ -151,7 +152,8 @@ public class LogSorter {
             }
           }
           fs.create(new Path(destPath, "finished")).close();
-          log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part, getSortTime());
+          log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part,
+              getSortTime());
         }
       } catch (Throwable t) {
         try {
@@ -175,11 +177,13 @@ public class LogSorter {
       }
     }
 
-    private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
+    private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part)
+        throws IOException {
       Path path = new Path(destPath, String.format("part-r-%05d", part));
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
 
-      try (MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path), MapFile.Writer.keyClass(LogFileKey.class),
+      try (MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path),
+          MapFile.Writer.keyClass(LogFileKey.class),
           MapFile.Writer.valueClass(LogFileValue.class))) {
         Collections.sort(buffer, new Comparator<Pair<LogFileKey,LogFileValue>>() {
           @Override
@@ -231,9 +235,11 @@ public class LogSorter {
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
   }
 
-  public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool) throws KeeperException, InterruptedException {
+  public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
+      throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
-    new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, conf).startProcessing(new LogProcessor(), this.threadPool);
+    new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, conf)
+        .startProcessing(new LogProcessor(), this.threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {

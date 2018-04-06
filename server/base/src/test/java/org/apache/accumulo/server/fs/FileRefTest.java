@@ -38,10 +38,14 @@ public class FileRefTest {
 
   @Test
   public void testSuffixes() {
-    Assert.assertEquals(new Path("2a/t-0003/C0004.rf"), FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")));
-    Assert.assertEquals(new Path("2a/t-0003/C0004.rf"), FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003//C0004.rf")));
-    Assert.assertEquals(new Path("2a/t-0003"), FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003")));
-    Assert.assertEquals(new Path("2a/t-0003"), FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003/")));
+    Assert.assertEquals(new Path("2a/t-0003/C0004.rf"),
+        FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")));
+    Assert.assertEquals(new Path("2a/t-0003/C0004.rf"),
+        FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003//C0004.rf")));
+    Assert.assertEquals(new Path("2a/t-0003"),
+        FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003")));
+    Assert.assertEquals(new Path("2a/t-0003"),
+        FileRef.extractSuffix(new Path("hdfs://nn1/accumulo/tables/2a/t-0003/")));
 
     testBadTableSuffix("t-0003/C0004.rf");
     testBadTableSuffix("../t-0003/C0004.rf");
@@ -55,10 +59,14 @@ public class FileRefTest {
 
   @Test
   public void testEqualsAndHash() {
-    Assert.assertEquals(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"), new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
-    Assert.assertEquals(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"), new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
-    Assert.assertNotEquals(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf"), new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
-    Assert.assertNotEquals(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf"), new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
+    Assert.assertEquals(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"),
+        new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
+    Assert.assertEquals(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"),
+        new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
+    Assert.assertNotEquals(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf"),
+        new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
+    Assert.assertNotEquals(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf"),
+        new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
 
     HashMap<FileRef,String> refMap = new HashMap<>();
     refMap.put(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"), "7");
@@ -66,37 +74,45 @@ public class FileRefTest {
 
     Assert.assertNull(refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf")));
 
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")), "7");
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")), "7");
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://1.2.3.4//accumulo/tables/2a//t-0003//C0004.rf")), "7");
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables/2a//t-0003//C0004.rf")), "7");
+    Assert.assertEquals(
+        refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")), "7");
+    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")),
+        "7");
+    Assert.assertEquals(
+        refMap.get(new FileRef("hdfs://1.2.3.4//accumulo/tables/2a//t-0003//C0004.rf")), "7");
+    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables/2a//t-0003//C0004.rf")),
+        "7");
 
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf")), "8");
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf")), "8");
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a//t-0003/C0005.rf")), "8");
-    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables//2a/t-0003/C0005.rf")), "8");
+    Assert.assertEquals(
+        refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf")), "8");
+    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf")),
+        "8");
+    Assert.assertEquals(
+        refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a//t-0003/C0005.rf")), "8");
+    Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables//2a/t-0003/C0005.rf")),
+        "8");
   }
 
   @Test
   public void testCompareTo() {
-    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf").compareTo(new FileRef(
-        "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")) == 0);
-    Assert
-        .assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf").compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")) == 0);
+    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
+        .compareTo(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")) == 0);
+    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
+        .compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")) == 0);
     Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
         .compareTo(new FileRef("hdfs://nn1/accumulo/tables//2a/t-0003//C0004.rf")) == 0);
 
-    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf").compareTo(new FileRef(
-        "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf")) < 0);
-    Assert
-        .assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf").compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf")) < 0);
+    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
+        .compareTo(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf")) < 0);
+    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
+        .compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf")) < 0);
     Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
         .compareTo(new FileRef("hdfs://nn1/accumulo/tables//2a/t-0003//C0005.rf")) < 0);
 
-    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf").compareTo(new FileRef(
-        "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf")) > 0);
-    Assert
-        .assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf").compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf")) > 0);
+    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf")
+        .compareTo(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf")) > 0);
+    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf")
+        .compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf")) > 0);
     Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf")
         .compareTo(new FileRef("hdfs://nn1/accumulo/tables//2a/t-0003//C0005.rf")) > 0);
 

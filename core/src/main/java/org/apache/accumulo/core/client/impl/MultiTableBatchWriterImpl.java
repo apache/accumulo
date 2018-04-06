@@ -61,12 +61,14 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
     @Override
     public void close() {
-      throw new UnsupportedOperationException("Must close all tables, can not close an individual table");
+      throw new UnsupportedOperationException(
+          "Must close all tables, can not close an individual table");
     }
 
     @Override
     public void flush() {
-      throw new UnsupportedOperationException("Must flush all tables, can not flush an individual table");
+      throw new UnsupportedOperationException(
+          "Must flush all tables, can not flush an individual table");
     }
 
   }
@@ -95,16 +97,19 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
     bw.close();
   }
 
-  // WARNING: do not rely upon finalize to close this class. Finalize is not guaranteed to be called.
+  // WARNING: do not rely upon finalize to close this class. Finalize is not guaranteed to be
+  // called.
   @Override
   protected void finalize() {
     if (!closed.get()) {
-      log.warn("{} not shutdown; did you forget to call close()?", MultiTableBatchWriterImpl.class.getSimpleName());
+      log.warn("{} not shutdown; did you forget to call close()?",
+          MultiTableBatchWriterImpl.class.getSimpleName());
       try {
         close();
       } catch (MutationsRejectedException mre) {
         log.error(MultiTableBatchWriterImpl.class.getSimpleName() + " internal error.", mre);
-        throw new RuntimeException("Exception when closing " + MultiTableBatchWriterImpl.class.getSimpleName(), mre);
+        throw new RuntimeException(
+            "Exception when closing " + MultiTableBatchWriterImpl.class.getSimpleName(), mre);
       }
     }
   }
@@ -137,7 +142,8 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   }
 
   @Override
-  public BatchWriter getBatchWriter(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public BatchWriter getBatchWriter(String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
 
     Table.ID tableId = getId(tableName);

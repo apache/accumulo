@@ -34,7 +34,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testEmpty() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector = entrySum.collector(sc);
@@ -74,7 +75,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicRow() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1");
@@ -139,7 +141,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicFamily() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1");
@@ -204,7 +207,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicQualifier() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1", "q1");
@@ -269,7 +273,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicVisibility() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1", "q1", "v1");
@@ -334,7 +339,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicValue() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1", "q1", "v1");
@@ -401,7 +407,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexRow() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1");
@@ -470,7 +477,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexFamily() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1");
@@ -540,7 +548,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexQualifier() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1", "columnQualifier1");
@@ -612,7 +621,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexVisibility() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1", "columnQualifier1", "v1");
@@ -685,7 +695,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexValue() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1", "columnQualifier1", "v1");
@@ -761,12 +772,13 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testAll() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
-    Key k1 = new Key("maximumnoqualifier","f1", "q", "vis1");
-    Key k2 = new Key("minKey","fam2", "q2", "visibility2");
-    Key k3 = new Key("row3","f3", "qualifier3", "v3");
+    Key k1 = new Key("maximumnoqualifier", "f1", "q", "vis1");
+    Key k2 = new Key("minKey", "fam2", "q2", "visibility2");
+    Key k3 = new Key("row3", "f3", "qualifier3", "v3");
     Key k4 = new Key("r4", "family4", "qual4", "vis4");
     Key k5 = new Key("fifthrow", "thirdfamily", "q5", "v5");
     Key k6 = new Key("r6", "sixthfamily", "qual6", "visibi6");
@@ -846,7 +858,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testLog2Histogram() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("row1");
@@ -914,23 +927,24 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testCombine() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector1 = entrySum.collector(sc);
-    collector1.accept(new Key("1","f1","q1"), new Value("v1"));
-    collector1.accept(new Key("1234","f1","q1"), new Value("v111"));
-    collector1.accept(new Key("12345678","f1","q1"), new Value("v111111"));
+    collector1.accept(new Key("1", "f1", "q1"), new Value("v1"));
+    collector1.accept(new Key("1234", "f1", "q1"), new Value("v111"));
+    collector1.accept(new Key("12345678", "f1", "q1"), new Value("v111111"));
 
-    HashMap<String, Long> stats1 = new HashMap<>();
+    HashMap<String,Long> stats1 = new HashMap<>();
     collector1.summarize(stats1::put);
 
     Collector collector2 = entrySum.collector(sc);
-    collector2.accept(new Key("5432","f11","q12"), new Value("2"));
-    collector2.accept(new Key("12","f11","q1234"), new Value("12"));
-    collector2.accept(new Key("12","f11","q11234567"), new Value("4444"));
+    collector2.accept(new Key("5432", "f11", "q12"), new Value("2"));
+    collector2.accept(new Key("12", "f11", "q1234"), new Value("12"));
+    collector2.accept(new Key("12", "f11", "q11234567"), new Value("4444"));
 
-    HashMap<String, Long> stats2 = new HashMap<>();
+    HashMap<String,Long> stats2 = new HashMap<>();
     collector2.summarize(stats2::put);
 
     Combiner combiner = entrySum.combiner(sc);
@@ -997,21 +1011,23 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testCombine2() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector1 = entrySum.collector(sc);
-    collector1.accept(new Key("12345678901234567890","f12345","q123456"), new Value("value1234567890"));
+    collector1.accept(new Key("12345678901234567890", "f12345", "q123456"),
+        new Value("value1234567890"));
 
-    HashMap<String, Long> stats1 = new HashMap<>();
+    HashMap<String,Long> stats1 = new HashMap<>();
     collector1.summarize(stats1::put);
 
     Collector collector2 = entrySum.collector(sc);
-    collector2.accept(new Key("5432","f11","q12"), new Value("2"));
-    collector2.accept(new Key("12","f11","q1234"), new Value("12"));
-    collector2.accept(new Key("12","f11","q11234567"), new Value("4444"));
+    collector2.accept(new Key("5432", "f11", "q12"), new Value("2"));
+    collector2.accept(new Key("12", "f11", "q1234"), new Value("12"));
+    collector2.accept(new Key("12", "f11", "q11234567"), new Value("4444"));
 
-    HashMap<String, Long> stats2 = new HashMap<>();
+    HashMap<String,Long> stats2 = new HashMap<>();
     collector2.summarize(stats2::put);
 
     Combiner combiner = entrySum.combiner(sc);
@@ -1076,19 +1092,20 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testCombine3() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
+        .build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector1 = entrySum.collector(sc);
-    collector1.accept(new Key("r1","f1"), new Value("v1"));
+    collector1.accept(new Key("r1", "f1"), new Value("v1"));
 
-    HashMap<String, Long> stats1 = new HashMap<>();
+    HashMap<String,Long> stats1 = new HashMap<>();
     collector1.summarize(stats1::put);
 
     Collector collector2 = entrySum.collector(sc);
-    collector2.accept(new Key("row1","family1","q1"), new Value(""));
+    collector2.accept(new Key("row1", "family1", "q1"), new Value(""));
 
-    HashMap<String, Long> stats2 = new HashMap<>();
+    HashMap<String,Long> stats2 = new HashMap<>();
     collector2.summarize(stats2::put);
 
     Combiner combiner = entrySum.combiner(sc);

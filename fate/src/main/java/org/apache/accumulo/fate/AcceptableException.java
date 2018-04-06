@@ -17,12 +17,14 @@
 package org.apache.accumulo.fate;
 
 /**
- * An exception for FATE operations to use to denote when an Exception is acceptable and should not trigger warning messages. This exception is intended to wrap
- * an existing exception from a FATE op implementation so that the FATE runner can know that the exception doesn't need to warn.
+ * An exception for FATE operations to use to denote when an Exception is acceptable and should not
+ * trigger warning messages. This exception is intended to wrap an existing exception from a FATE op
+ * implementation so that the FATE runner can know that the exception doesn't need to warn.
  * <p>
- * Often times, problems that map well into the FATE execution model have states in which it is impossible to know ahead of time if an exception will be thrown.
- * For example, with concurrent create table operations, one of the operations will fail because the table already exists, but this is not an error condition
- * for the system. It is normal and expected.
+ * Often times, problems that map well into the FATE execution model have states in which it is
+ * impossible to know ahead of time if an exception will be thrown. For example, with concurrent
+ * create table operations, one of the operations will fail because the table already exists, but
+ * this is not an error condition for the system. It is normal and expected.
  */
 public interface AcceptableException {
 

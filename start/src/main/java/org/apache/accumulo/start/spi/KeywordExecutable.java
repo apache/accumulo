@@ -19,18 +19,24 @@ package org.apache.accumulo.start.spi;
 import java.util.ServiceLoader;
 
 /**
- * An interface used with the Java {@link ServiceLoader} to auto-discover classes executable with a convenient keyword on the command-line.
+ * An interface used with the Java {@link ServiceLoader} to auto-discover classes executable with a
+ * convenient keyword on the command-line.
  *
  * <p>
- * All implementing classes who have an entry in META-INF/services/{@link org.apache.accumulo.start.spi.KeywordExecutable} on the classpath will be constructed
- * by the {@link ServiceLoader}, so they should be lightweight and quickly constructible with a mandatory no-argument constructor. Because of this, implementing
- * classes could simply be factories which execute a different class, if that class is expensive to construct or cannot have a no-argument constructor.
+ * All implementing classes who have an entry in
+ * META-INF/services/{@link org.apache.accumulo.start.spi.KeywordExecutable} on the classpath will
+ * be constructed by the {@link ServiceLoader}, so they should be lightweight and quickly
+ * constructible with a mandatory no-argument constructor. Because of this, implementing classes
+ * could simply be factories which execute a different class, if that class is expensive to
+ * construct or cannot have a no-argument constructor.
  *
  * <p>
- * One way to easily create META-INF/services files is to use the <a href="https://github.com/google/auto/tree/master/service">AutoService</a> annotation.
+ * One way to easily create META-INF/services files is to use the
+ * <a href="https://github.com/google/auto/tree/master/service">AutoService</a> annotation.
  *
  * <p>
- * If the implementing class also wishes to have a redundant main method, it may be useful to simply implement main as:<br>
+ * If the implementing class also wishes to have a redundant main method, it may be useful to simply
+ * implement main as:<br>
  * {@code new MyImplementingClass().execute(args);}
  *
  */

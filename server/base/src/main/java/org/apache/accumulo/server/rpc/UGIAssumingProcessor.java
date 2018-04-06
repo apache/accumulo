@@ -31,7 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Processor that pulls the SaslServer object out of the transport, and assumes the remote user's UGI before calling through to the original processor.
+ * Processor that pulls the SaslServer object out of the transport, and assumes the remote user's
+ * UGI before calling through to the original processor.
  *
  * This is used on the server side to set the UGI for each specific call.
  *
@@ -106,7 +107,8 @@ public class UGIAssumingProcessor implements TProcessor {
           rpcPrincipal.set(null);
         }
       case DIGEST_MD5:
-        // The CallbackHandler, after deserializing the TokenIdentifier in the name, has already updated
+        // The CallbackHandler, after deserializing the TokenIdentifier in the name, has already
+        // updated
         // the rpcPrincipal for us. We don't need to do it again here.
         try {
           rpcMechanism.set(mechanism);

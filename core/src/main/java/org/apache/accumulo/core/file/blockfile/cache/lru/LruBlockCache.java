@@ -37,34 +37,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A block cache implementation that is memory-aware using {@link HeapSize}, memory-bound using an LRU eviction algorithm, and concurrent: backed by a
- * {@link ConcurrentHashMap} and with a non-blocking eviction thread giving constant-time {@link #cacheBlock} and {@link #getBlock} operations.
+ * A block cache implementation that is memory-aware using {@link HeapSize}, memory-bound using an
+ * LRU eviction algorithm, and concurrent: backed by a {@link ConcurrentHashMap} and with a
+ * non-blocking eviction thread giving constant-time {@link #cacheBlock} and {@link #getBlock}
+ * operations.
  *
  * <p>
- * Contains three levels of block priority to allow for scan-resistance and in-memory families. A block is added with an inMemory flag if necessary, otherwise a
- * block becomes a single access priority. Once a blocked is accessed again, it changes to multiple access. This is used to prevent scans from thrashing the
- * cache, adding a least-frequently-used element to the eviction algorithm.
+ * Contains three levels of block priority to allow for scan-resistance and in-memory families. A
+ * block is added with an inMemory flag if necessary, otherwise a block becomes a single access
+ * priority. Once a blocked is accessed again, it changes to multiple access. This is used to
+ * prevent scans from thrashing the cache, adding a least-frequently-used element to the eviction
+ * algorithm.
  *
  * <p>
- * Each priority is given its own chunk of the total cache to ensure fairness during eviction. Each priority will retain close to its maximum size, however, if
- * any priority is not using its entire chunk the others are able to grow beyond their chunk size.
+ * Each priority is given its own chunk of the total cache to ensure fairness during eviction. Each
+ * priority will retain close to its maximum size, however, if any priority is not using its entire
+ * chunk the others are able to grow beyond their chunk size.
  *
  * <p>
- * Instantiated at a minimum with the total size and average block size. All sizes are in bytes. The block size is not especially important as this cache is
- * fully dynamic in its sizing of blocks. It is only used for pre-allocating data structures and in initial heap estimation of the map.
+ * Instantiated at a minimum with the total size and average block size. All sizes are in bytes. The
+ * block size is not especially important as this cache is fully dynamic in its sizing of blocks. It
+ * is only used for pre-allocating data structures and in initial heap estimation of the map.
  *
  * <p>
- * The detailed constructor defines the sizes for the three priorities (they should total to the maximum size defined). It also sets the levels that trigger and
- * control the eviction thread.
+ * The detailed constructor defines the sizes for the three priorities (they should total to the
+ * maximum size defined). It also sets the levels that trigger and control the eviction thread.
  *
  * <p>
- * The acceptable size is the cache size level which triggers the eviction process to start. It evicts enough blocks to get the size below the minimum size
- * specified.
+ * The acceptable size is the cache size level which triggers the eviction process to start. It
+ * evicts enough blocks to get the size below the minimum size specified.
  *
  * <p>
- * Eviction happens in a separate thread and involves a single full-scan of the map. It determines how many bytes must be freed to reach the minimum size, and
- * then while scanning determines the fewest least-recently-used blocks necessary from each of the three priorities (would be 3 times bytes to free). It then
- * uses the priority chunk sizes to evict fairly according to the relative sizes and usage.
+ * Eviction happens in a separate thread and involves a single full-scan of the map. It determines
+ * how many bytes must be freed to reach the minimum size, and then while scanning determines the
+ * fewest least-recently-used blocks necessary from each of the three priorities (would be 3 times
+ * bytes to free). It then uses the priority chunk sizes to evict fairly according to the relative
+ * sizes and usage.
  */
 public class LruBlockCache extends SynchronousLoadingBlockCache implements BlockCache, HeapSize {
 
@@ -86,7 +94,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool = Executors.newScheduledThreadPool(1, new NamingThreadFactory("LRUBlockCacheStats"));
+  private final ScheduledExecutorService scheduleThreadPool = Executors.newScheduledThreadPool(1,
+      new NamingThreadFactory("LRUBlockCacheStats"));
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -106,7 +115,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final LruBlockCacheConfiguration conf;
 
   /**
-   * Default constructor. Specify maximum size and expected average block size (approximation is fine).
+   * Default constructor. Specify maximum size and expected average block size (approximation is
+   * fine).
    *
    * <p>
    * All other factors will be calculated based on defaults specified in this class.
@@ -120,11 +130,13 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     int mapInitialSize = (int) Math.ceil(1.2 * conf.getMaxSize() / conf.getBlockSize());
 
-    map = new ConcurrentHashMap<>(mapInitialSize, conf.getMapLoadFactor(), conf.getMapConcurrencyLevel());
+    map = new ConcurrentHashMap<>(mapInitialSize, conf.getMapLoadFactor(),
+        conf.getMapConcurrencyLevel());
     this.stats = new CacheStats();
     this.count = new AtomicLong(0);
     this.elements = new AtomicLong(0);
-    this.overhead = calculateOverhead(conf.getMaxSize(), conf.getBlockSize(), conf.getMapConcurrencyLevel());
+    this.overhead = calculateOverhead(conf.getMaxSize(), conf.getBlockSize(),
+        conf.getMapConcurrencyLevel());
     this.size = new AtomicLong(this.overhead);
 
     if (conf.isUseEvictionThread()) {
@@ -140,7 +152,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     } else {
       this.evictionThread = null;
     }
-    this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod, statThreadPeriod, TimeUnit.SECONDS);
+    this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod,
+        statThreadPeriod, TimeUnit.SECONDS);
   }
 
   public long getOverhead() {
@@ -189,8 +202,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   /**
    * Cache the block with the specified name and buffer.
    * <p>
-   * It is assumed this will NEVER be called on an already cached block. If that is done, it is assumed that you are reinserting the same exact block due to a
-   * race condition and will update the buffer but not modify the size of the cache.
+   * It is assumed this will NEVER be called on an already cached block. If that is done, it is
+   * assumed that you are reinserting the same exact block due to a race condition and will update
+   * the buffer but not modify the size of the cache.
    *
    * @param blockName
    *          block name
@@ -227,8 +241,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   /**
    * Cache the block with the specified name and buffer.
    * <p>
-   * It is assumed this will NEVER be called on an already cached block. If that is done, it is assumed that you are reinserting the same exact block due to a
-   * race condition and will update the buffer but not modify the size of the cache.
+   * It is assumed this will NEVER be called on an already cached block. If that is done, it is
+   * assumed that you are reinserting the same exact block due to a race condition and will update
+   * the buffer but not modify the size of the cache.
    *
    * @param blockName
    *          block name
@@ -343,7 +358,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       while ((bucket = bucketQueue.poll()) != null) {
         long overflow = bucket.overflow();
         if (overflow > 0) {
-          long bucketBytesToFree = Math.min(overflow, (long) Math.ceil((bytesToFree - bytesFreed) / (double) remainingBuckets));
+          long bucketBytesToFree = Math.min(overflow,
+              (long) Math.ceil((bytesToFree - bytesFreed) / (double) remainingBuckets));
           bytesFreed += bucket.free(bucketBytesToFree);
         }
         remainingBuckets--;
@@ -353,8 +369,10 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       float multiMB = ((float) bucketMulti.totalSize()) / ((float) (1024 * 1024));
       float memoryMB = ((float) bucketMemory.totalSize()) / ((float) (1024 * 1024));
 
-      log.trace("Block cache LRU eviction completed. Freed {} bytes. Priority Sizes: Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})", bytesFreed,
-          singleMB, bucketSingle.totalSize(), multiMB, bucketMulti.totalSize(), memoryMB, bucketMemory.totalSize());
+      log.trace(
+          "Block cache LRU eviction completed. Freed {} bytes. Priority Sizes: Single={}MB ({}), Multi={}MB ({}), Memory={}MB ({})",
+          bytesFreed, singleMB, bucketSingle.totalSize(), multiMB, bucketMulti.totalSize(),
+          memoryMB, bucketMemory.totalSize());
 
     } finally {
       stats.evict();
@@ -364,8 +382,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   }
 
   /**
-   * Used to group blocks into priority buckets. There will be a BlockBucket for each priority (single, multi, memory). Once bucketed, the eviction algorithm
-   * takes the appropriate number of elements out of each according to configuration parameters and their relatives sizes.
+   * Used to group blocks into priority buckets. There will be a BlockBucket for each priority
+   * (single, multi, memory). Once bucketed, the eviction algorithm takes the appropriate number of
+   * elements out of each according to configuration parameters and their relatives sizes.
    */
   private class BlockBucket implements Comparable<BlockBucket> {
 
@@ -481,7 +500,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   }
 
   /**
-   * Eviction thread. Sits in waiting state until an eviction is triggered when the cache size grows above the acceptable level.
+   * Eviction thread. Sits in waiting state until an eviction is triggered when the cache size grows
+   * above the acceptable level.
    *
    * <p>
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
@@ -548,10 +568,13 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     float sizeMB = ((float) totalSize) / ((float) (1024 * 1024));
     float freeMB = ((float) freeSize) / ((float) (1024 * 1024));
     float maxMB = ((float) this.conf.getMaxSize()) / ((float) (1024 * 1024));
-    log.debug("Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB ({}), Counts: Blocks={}, Access={}, Hit={}, Miss={}, Evictions={}, Evicted={},"
-        + "Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={}, Duplicate Reads={}", sizeMB, totalSize, freeMB, freeSize, maxMB, this.conf.getMaxSize(),
-        size(), stats.requestCount(), stats.hitCount(), stats.getMissCount(), stats.getEvictionCount(), stats.getEvictedCount(), stats.getHitRatio() * 100,
-        stats.getMissRatio() * 100, stats.evictedPerEviction(), stats.getDuplicateReads());
+    log.debug(
+        "Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB ({}), Counts: Blocks={}, Access={}, Hit={}, Miss={}, Evictions={}, Evicted={},"
+            + "Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={}, Duplicate Reads={}",
+        sizeMB, totalSize, freeMB, freeSize, maxMB, this.conf.getMaxSize(), size(),
+        stats.requestCount(), stats.hitCount(), stats.getMissCount(), stats.getEvictionCount(),
+        stats.getEvictedCount(), stats.getHitRatio() * 100, stats.getMissRatio() * 100,
+        stats.evictedPerEviction(), stats.getDuplicateReads());
   }
 
   /**
@@ -634,8 +657,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     }
   }
 
-  public final static long CACHE_FIXED_OVERHEAD = ClassSize.align((3 * SizeConstants.SIZEOF_LONG) + (8 * ClassSize.REFERENCE)
-      + (5 * SizeConstants.SIZEOF_FLOAT) + SizeConstants.SIZEOF_BOOLEAN + ClassSize.OBJECT);
+  public final static long CACHE_FIXED_OVERHEAD = ClassSize
+      .align((3 * SizeConstants.SIZEOF_LONG) + (8 * ClassSize.REFERENCE)
+          + (5 * SizeConstants.SIZEOF_FLOAT) + SizeConstants.SIZEOF_BOOLEAN + ClassSize.OBJECT);
 
   // HeapSize implementation
   @Override
@@ -644,7 +668,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   }
 
   public static long calculateOverhead(long maxSize, long blockSize, int concurrency) {
-    return CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP + ((int) Math.ceil(maxSize * 1.2 / blockSize) * ClassSize.CONCURRENT_HASHMAP_ENTRY)
+    return CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
+        + ((int) Math.ceil(maxSize * 1.2 / blockSize) * ClassSize.CONCURRENT_HASHMAP_ENTRY)
         + (concurrency * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
   }
 
@@ -659,15 +684,18 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   }
 
   private long singleSize() {
-    return (long) Math.floor(this.conf.getMaxSize() * this.conf.getSingleFactor() * this.conf.getMinFactor());
+    return (long) Math
+        .floor(this.conf.getMaxSize() * this.conf.getSingleFactor() * this.conf.getMinFactor());
   }
 
   private long multiSize() {
-    return (long) Math.floor(this.conf.getMaxSize() * this.conf.getMultiFactor() * this.conf.getMinFactor());
+    return (long) Math
+        .floor(this.conf.getMaxSize() * this.conf.getMultiFactor() * this.conf.getMinFactor());
   }
 
   private long memorySize() {
-    return (long) Math.floor(this.conf.getMaxSize() * this.conf.getMemoryFactor() * this.conf.getMinFactor());
+    return (long) Math
+        .floor(this.conf.getMaxSize() * this.conf.getMemoryFactor() * this.conf.getMinFactor());
   }
 
   public void shutdown() {

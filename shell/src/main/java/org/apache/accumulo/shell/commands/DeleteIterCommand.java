@@ -30,20 +30,24 @@ public class DeleteIterCommand extends Command {
   private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
+        || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     final String name = cl.getOptionValue(nameOpt.getOpt());
 
     if (namespaces) {
-      if (!shellState.getConnector().namespaceOperations().listIterators(OptUtil.getNamespaceOpt(cl, shellState)).containsKey(name)) {
+      if (!shellState.getConnector().namespaceOperations()
+          .listIterators(OptUtil.getNamespaceOpt(cl, shellState)).containsKey(name)) {
         Shell.log.warn("no iterators found that match your criteria");
         return 0;
       }
     } else if (tables) {
-      if (!shellState.getConnector().tableOperations().listIterators(OptUtil.getTableOpt(cl, shellState)).containsKey(name)) {
+      if (!shellState.getConnector().tableOperations()
+          .listIterators(OptUtil.getTableOpt(cl, shellState)).containsKey(name)) {
         Shell.log.warn("no iterators found that match your criteria");
         return 0;
       }
@@ -66,9 +70,11 @@ public class DeleteIterCommand extends Command {
     }
 
     if (namespaces) {
-      shellState.getConnector().namespaceOperations().removeIterator(OptUtil.getNamespaceOpt(cl, shellState), name, scopes);
+      shellState.getConnector().namespaceOperations()
+          .removeIterator(OptUtil.getNamespaceOpt(cl, shellState), name, scopes);
     } else if (tables) {
-      shellState.getConnector().tableOperations().removeIterator(OptUtil.getTableOpt(cl, shellState), name, scopes);
+      shellState.getConnector().tableOperations()
+          .removeIterator(OptUtil.getTableOpt(cl, shellState), name, scopes);
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }
@@ -89,9 +95,12 @@ public class DeleteIterCommand extends Command {
     nameOpt.setRequired(true);
 
     allScopeOpt = new Option("all", "all-scopes", false, "remove from all scopes");
-    mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "remove from minor compaction scope");
-    majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "remove from major compaction scope");
-    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "remove from scan scope");
+    mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false,
+        "remove from minor compaction scope");
+    majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false,
+        "remove from major compaction scope");
+    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false,
+        "remove from scan scope");
 
     OptionGroup grp = new OptionGroup();
     grp.addOption(OptUtil.tableOpt("table to delete the iterator from"));

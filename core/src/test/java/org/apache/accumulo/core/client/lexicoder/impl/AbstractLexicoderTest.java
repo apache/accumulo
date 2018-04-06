@@ -20,8 +20,9 @@ import org.apache.accumulo.core.client.lexicoder.LexicoderTest;
 import org.apache.commons.lang.ArrayUtils;
 
 /**
- * Assists in Testing classes that extend {@link org.apache.accumulo.core.client.lexicoder.AbstractEncoder}. It references methods not formally defined in the
- * {@link org.apache.accumulo.core.client.lexicoder.Lexicoder} interface.
+ * Assists in Testing classes that extend
+ * {@link org.apache.accumulo.core.client.lexicoder.AbstractEncoder}. It references methods not
+ * formally defined in the {@link org.apache.accumulo.core.client.lexicoder.Lexicoder} interface.
  *
  * @since 1.7.0
  */

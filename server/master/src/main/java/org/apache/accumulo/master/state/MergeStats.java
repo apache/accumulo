@@ -112,7 +112,8 @@ public class MergeStats {
       log.trace("failed to see any tablets for this range, ignoring {}", info.getExtent());
       return state;
     }
-    log.info("Computing next merge state for {} which is presently {} isDelete : {}", info.getExtent(), state, info.isDelete());
+    log.info("Computing next merge state for {} which is presently {} isDelete : {}",
+        info.getExtent(), state, info.isDelete());
     if (state == MergeState.STARTED) {
       state = MergeState.SPLITTING;
     }
@@ -141,35 +142,41 @@ public class MergeStats {
       if (chopped == needsToBeChopped) {
         state = MergeState.WAITING_FOR_OFFLINE;
       } else {
-        log.info("Waiting for {} chopped tablets to be {} {}", chopped, needsToBeChopped, info.getExtent());
+        log.info("Waiting for {} chopped tablets to be {} {}", chopped, needsToBeChopped,
+            info.getExtent());
       }
     }
     if (state == MergeState.WAITING_FOR_OFFLINE) {
       if (chopped != needsToBeChopped) {
-        log.warn("Unexpected state: chopped tablets should be {} was {} merge {}", needsToBeChopped, chopped, info.getExtent());
+        log.warn("Unexpected state: chopped tablets should be {} was {} merge {}", needsToBeChopped,
+            chopped, info.getExtent());
         // Perhaps a split occurred after we chopped, but before we went offline: start over
         state = MergeState.WAITING_FOR_CHOPPED;
       } else {
-        log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned, info.getExtent());
+        log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
+            info.getExtent());
         if (unassigned == total && chopped == needsToBeChopped) {
           if (verifyMergeConsistency(connector, master))
             state = MergeState.MERGING;
           else
             log.info("Merge consistency check failed {}", info.getExtent());
         } else {
-          log.info("Waiting for {} unassigned tablets to be {} {}", unassigned, total, info.getExtent());
+          log.info("Waiting for {} unassigned tablets to be {} {}", unassigned, total,
+              info.getExtent());
         }
       }
     }
     if (state == MergeState.MERGING) {
       if (hosted != 0) {
         // Shouldn't happen
-        log.error("Unexpected state: hosted tablets should be zero {} merge {}", hosted, info.getExtent());
+        log.error("Unexpected state: hosted tablets should be zero {} merge {}", hosted,
+            info.getExtent());
         state = MergeState.WAITING_FOR_OFFLINE;
       }
       if (unassigned != total) {
         // Shouldn't happen
-        log.error("Unexpected state: unassigned tablets should be {} was {} merge {}", total, unassigned, info.getExtent());
+        log.error("Unexpected state: unassigned tablets should be {} was {} merge {}", total,
+            unassigned, info.getExtent());
         state = MergeState.WAITING_FOR_CHOPPED;
       }
       log.info("{} tablets are unassigned {}", unassigned, info.getExtent());
@@ -177,10 +184,12 @@ public class MergeStats {
     return state;
   }
 
-  private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
+  private boolean verifyMergeConsistency(Connector connector, CurrentState master)
+      throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
     KeyExtent extent = info.getExtent();
-    Scanner scanner = connector.createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner = connector.createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME,
+        Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     Text start = extent.getPrevEndRow();
     if (start == null) {
@@ -212,13 +221,15 @@ public class MergeStats {
       }
 
       if (prevExtent == null) {
-        // this is the first tablet observed, it must be offline and its prev row must be less than the start of the merge range
+        // this is the first tablet observed, it must be offline and its prev row must be less than
+        // the start of the merge range
         if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
           log.debug("failing consistency: prev row is too high {}", start);
           return false;
         }
 
-        if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED && tls.getState(master.onlineTabletServers()) != TabletState.SUSPENDED) {
+        if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED
+            && tls.getState(master.onlineTabletServers()) != TabletState.SUSPENDED) {
           log.debug("failing consistency: assigned or hosted {}", tls);
           return false;
         }
@@ -230,15 +241,19 @@ public class MergeStats {
 
       prevExtent = tls.extent;
 
-      verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped, !tls.walogs.isEmpty());
+      verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped,
+          !tls.walogs.isEmpty());
       // stop when we've seen the tablet just beyond our range
-      if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
+      if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null
+          && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
         break;
       }
     }
-    log.debug("chopped {} v.chopped {} unassigned {} v.unassigned {} verify.total {}", chopped, verify.chopped, unassigned, verify.unassigned, verify.total);
+    log.debug("chopped {} v.chopped {} unassigned {} v.unassigned {} verify.total {}", chopped,
+        verify.chopped, unassigned, verify.unassigned, verify.total);
 
-    return chopped == verify.chopped && unassigned == verify.unassigned && unassigned == verify.total;
+    return chopped == verify.chopped && unassigned == verify.unassigned
+        && unassigned == verify.total;
   }
 
   public static void main(String[] args) throws Exception {
@@ -249,7 +264,8 @@ public class MergeStats {
     Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
     for (Entry<String,String> entry : tableIdMap.entrySet()) {
       final String table = entry.getKey(), tableId = entry.getValue();
-      String path = ZooUtil.getRoot(conn.getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId + "/merge";
+      String path = ZooUtil.getRoot(conn.getInstance().getInstanceID()) + Constants.ZTABLES + "/"
+          + tableId + "/merge";
       MergeInfo info = new MergeInfo();
       if (ZooReaderWriter.getInstance().exists(path)) {
         byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());
@@ -257,7 +273,8 @@ public class MergeStats {
         in.reset(data, data.length);
         info.readFields(in);
       }
-      System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(), info.getOperation(), info.getExtent()));
+      System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(),
+          info.getOperation(), info.getExtent()));
     }
   }
 }

@@ -49,7 +49,8 @@ public class ReplicationInformation {
    * @param filesNeedingReplication
    *          Number of files needing replication
    */
-  public ReplicationInformation(String tableName, String peerName, String remoteIdentifier, String replicaSystemType, long filesNeedingReplication) {
+  public ReplicationInformation(String tableName, String peerName, String remoteIdentifier,
+      String replicaSystemType, long filesNeedingReplication) {
     this.tableName = tableName;
     this.peerName = peerName;
     this.remoteIdentifier = remoteIdentifier;

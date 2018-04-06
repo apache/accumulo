@@ -43,7 +43,8 @@ public class DatafileManagerTest {
   private SortedMap<FileRef,DataFileValue> createFileMap(String... sa) {
     SortedMap<FileRef,DataFileValue> ret = new TreeMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
+      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
+          new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
     }
     return ret;
   }
@@ -60,16 +61,19 @@ public class DatafileManagerTest {
   }
 
   /*
-   * Test max file size (table.compaction.minor.merge.file.size.max) exceeded when calling reserveMergingMinorCompactionFile
+   * Test max file size (table.compaction.minor.merge.file.size.max) exceeded when calling
+   * reserveMergingMinorCompactionFile
    */
   @Test
   public void testReserveMergingMinorCompactionFile_MaxExceeded() throws IOException {
     String maxMergeFileSize = "1000B";
     EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
-    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE)).andReturn(maxMergeFileSize);
+    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE))
+        .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2", "100M",
+        "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
@@ -86,7 +90,8 @@ public class DatafileManagerTest {
   public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() throws IOException {
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M");
+    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M",
+        "file3", "100M", "file4", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
@@ -103,10 +108,12 @@ public class DatafileManagerTest {
   public void testReserveMergingMinorCompactionFile() throws IOException {
     String maxMergeFileSize = "1000B";
     EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
-    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE)).andReturn(maxMergeFileSize);
+    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE))
+        .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M",
+        "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
@@ -123,10 +130,12 @@ public class DatafileManagerTest {
   public void testReserveMergingMinorCompactionFileDisabled() throws IOException {
     String maxMergeFileSize = "0";
     EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
-    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE)).andReturn(maxMergeFileSize);
+    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE))
+        .andReturn(maxMergeFileSize);
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallishfile", "10M", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
+    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallishfile", "10M", "file2",
+        "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();

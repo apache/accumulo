@@ -31,7 +31,8 @@ public class CreateTable extends MasterRepo {
 
   private TableInfo tableInfo;
 
-  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props, Namespace.ID namespaceId) {
+  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
+      Namespace.ID namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
     tableInfo.timeType = TabletTime.getTimeID(timeType);

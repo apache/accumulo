@@ -74,7 +74,8 @@ public class ZooQueueLock implements QueueLock {
       try {
         children = zoo.getChildren(path);
       } catch (KeeperException.NoNodeException ex) {
-        // the path does not exist (it was deleted or not created yet), that is ok there are no earlier entries then
+        // the path does not exist (it was deleted or not created yet), that is ok there are no
+        // earlier entries then
       }
 
       for (String name : children) {

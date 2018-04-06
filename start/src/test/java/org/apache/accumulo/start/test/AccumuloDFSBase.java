@@ -50,7 +50,8 @@ public class AccumuloDFSBase {
   @BeforeClass
   public static void miniDfsClusterSetup() {
     System.setProperty("java.io.tmpdir", System.getProperty("user.dir") + "/target");
-    // System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
+    // System.setProperty("org.apache.commons.logging.Log",
+    // "org.apache.commons.logging.impl.NoOpLog");
     // Logger.getRootLogger().setLevel(Level.ERROR);
 
     // Put the MiniDFSCluster directory in the target directory
@@ -81,7 +82,8 @@ public class AccumuloDFSBase {
       vfs.addProvider("zip", new org.apache.commons.vfs2.provider.zip.ZipFileProvider());
       vfs.addProvider("gz", new org.apache.commons.vfs2.provider.gzip.GzipFileProvider());
       vfs.addProvider("ram", new org.apache.commons.vfs2.provider.ram.RamFileProvider());
-      vfs.addProvider("file", new org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider());
+      vfs.addProvider("file",
+          new org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider());
       vfs.addProvider("jar", new org.apache.commons.vfs2.provider.jar.JarFileProvider());
       vfs.addProvider("http", new org.apache.commons.vfs2.provider.http.HttpFileProvider());
       vfs.addProvider("https", new org.apache.commons.vfs2.provider.https.HttpsFileProvider());
@@ -110,8 +112,8 @@ public class AccumuloDFSBase {
       vfs.addMimeTypeMap("application/zip", "zip");
       vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
       vfs.setFilesCache(new SoftRefFilesCache());
-      vfs.setReplicator(new DefaultFileReplicator(new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-"
-          + System.getProperty("user.name", "nouser"))));
+      vfs.setReplicator(new DefaultFileReplicator(new File(System.getProperty("java.io.tmpdir"),
+          "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser"))));
       vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
       vfs.init();
     } catch (FileSystemException e) {

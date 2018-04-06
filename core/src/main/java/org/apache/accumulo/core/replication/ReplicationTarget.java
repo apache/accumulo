@@ -110,7 +110,8 @@ public class ReplicationTarget implements Writable {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(64);
-    sb.append("Remote Name: ").append(peerName).append(" Remote identifier: ").append(remoteIdentifier).append(" Source Table ID: ").append(sourceTableId);
+    sb.append("Remote Name: ").append(peerName).append(" Remote identifier: ")
+        .append(remoteIdentifier).append(" Source Table ID: ").append(sourceTableId);
     return sb.toString();
   }
 
@@ -124,7 +125,8 @@ public class ReplicationTarget implements Writable {
     if (o instanceof ReplicationTarget) {
       ReplicationTarget other = (ReplicationTarget) o;
 
-      return peerName.equals(other.peerName) && remoteIdentifier.equals(other.remoteIdentifier) && sourceTableId.equals(other.sourceTableId);
+      return peerName.equals(other.peerName) && remoteIdentifier.equals(other.remoteIdentifier)
+          && sourceTableId.equals(other.sourceTableId);
     }
 
     return false;
@@ -173,8 +175,8 @@ public class ReplicationTarget implements Writable {
   }
 
   /**
-   * Convenience method to serialize a ReplicationTarget to {@link Text} using the {@link Writable} methods without caring about performance penalties due to
-   * excessive object creation
+   * Convenience method to serialize a ReplicationTarget to {@link Text} using the {@link Writable}
+   * methods without caring about performance penalties due to excessive object creation
    *
    * @return The serialized representation of the object
    */

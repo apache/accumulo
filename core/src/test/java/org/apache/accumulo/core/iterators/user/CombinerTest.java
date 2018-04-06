@@ -82,7 +82,8 @@ public class CombinerTest {
     }
   }
 
-  static final IteratorEnvironment SCAN_IE = new CombinerIteratorEnvironment(IteratorScope.scan, false);
+  static final IteratorEnvironment SCAN_IE = new CombinerIteratorEnvironment(IteratorScope.scan,
+      false);
 
   static Key newKey(int row, int colf, int colq, long ts, boolean deleted) {
     Key k = newKey(row, colf, colq, ts);
@@ -91,7 +92,8 @@ public class CombinerTest {
   }
 
   static Key newKey(int row, int colf, int colq, long ts) {
-    return new Key(newRow(row), new Text(String.format("cf%03d", colf)), new Text(String.format("cq%03d", colq)), ts);
+    return new Key(newRow(row), new Text(String.format("cf%03d", colf)),
+        new Text(String.format("cq%03d", colq)), ts);
   }
 
   static Range newRow(int row, int colf, int colq, long ts, boolean inclusive) {
@@ -102,7 +104,8 @@ public class CombinerTest {
     return newRow(row, colf, colq, ts, true);
   }
 
-  static <V> void newKeyValue(TreeMap<Key,Value> tm, int row, int colf, int colq, long ts, boolean deleted, V val, Encoder<V> encoder) {
+  static <V> void newKeyValue(TreeMap<Key,Value> tm, int row, int colf, int colq, long ts,
+      boolean deleted, V val, Encoder<V> encoder) {
     Key k = newKey(row, colf, colq, ts);
     k.setDeleted(deleted);
     tm.put(k, new Value(encoder.encode(val)));
@@ -616,7 +619,8 @@ public class CombinerTest {
     iter.init(smi, s.getOptions(), SCAN_IE);
     Combiner iter2 = new SummingCombiner();
     IteratorSetting s2 = new IteratorSetting(10, "s2", SummingCombiner.class);
-    SummingCombiner.setColumns(s2, Collections.singletonList(new IteratorSetting.Column("count", "a")));
+    SummingCombiner.setColumns(s2,
+        Collections.singletonList(new IteratorSetting.Column("count", "a")));
     SummingCombiner.setEncodingType(s2, LongCombiner.StringEncoder.class);
     iter2.init(iter, s.getOptions(), SCAN_IE);
     iter2.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -689,8 +693,9 @@ public class CombinerTest {
       assertEquals(a[i], b[i]);
   }
 
-  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, SummingArrayCombiner.Type type) throws IOException, InstantiationException,
-      IllegalAccessException {
+  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass,
+      SummingArrayCombiner.Type type)
+      throws IOException, InstantiationException, IllegalAccessException {
     Encoder<List<Long>> encoder = encoderClass.newInstance();
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -808,9 +813,12 @@ public class CombinerTest {
     TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, -42l);
     TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 0l);
 
-    TypedValueCombiner.testEncoder(SummingArrayCombiner.FIXED_LONG_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
-    TypedValueCombiner.testEncoder(SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
-    TypedValueCombiner.testEncoder(SummingArrayCombiner.STRING_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+    TypedValueCombiner.testEncoder(SummingArrayCombiner.FIXED_LONG_ARRAY_ENCODER,
+        Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+    TypedValueCombiner.testEncoder(SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER,
+        Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+    TypedValueCombiner.testEncoder(SummingArrayCombiner.STRING_ARRAY_ENCODER,
+        Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
   }
 
   @Test
@@ -834,12 +842,13 @@ public class CombinerTest {
     return ret;
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env) throws Exception {
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected,
+      Boolean rofco, IteratorEnvironment env) throws Exception {
     runDeleteHandlingTest(input, expected, rofco, env, null, true);
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env, String expectedLog)
-      throws Exception {
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected,
+      Boolean rofco, IteratorEnvironment env, String expectedLog) throws Exception {
     runDeleteHandlingTest(input, expected, rofco, env, expectedLog, true);
     if (expectedLog != null) {
       // run test again... should not see log message again because cache is not cleared
@@ -847,8 +856,9 @@ public class CombinerTest {
     }
   }
 
-  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected, Boolean rofco, IteratorEnvironment env, String expectedLog,
-      boolean clearLogMsgCache) throws Exception {
+  private void runDeleteHandlingTest(TreeMap<Key,Value> input, TreeMap<Key,Value> expected,
+      Boolean rofco, IteratorEnvironment env, String expectedLog, boolean clearLogMsgCache)
+      throws Exception {
     boolean deepCopy = expected == null;
 
     if (clearLogMsgCache) {
@@ -885,10 +895,12 @@ public class CombinerTest {
 
     String logMsgs = writer.toString();
     if (expectedLog == null) {
-      Assert.assertTrue("Expected 0 length log message, but got : " + logMsgs, logMsgs.length() == 0);
+      Assert.assertTrue("Expected 0 length log message, but got : " + logMsgs,
+          logMsgs.length() == 0);
     } else {
       logMsgs = logMsgs.replace('\n', ' ');
-      Assert.assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]", logMsgs.matches(expectedLog));
+      Assert.assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]",
+          logMsgs.matches(expectedLog));
     }
   }
 
@@ -919,13 +931,17 @@ public class CombinerTest {
     runDeleteHandlingTest(input, expected, false, fullMajcIe, ".*ERROR.*ACCUMULO-2232.*");
     runDeleteHandlingTest(input, expected, false, SCAN_IE);
 
-    runDeleteHandlingTest(input, expected, false, paritalMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
-    runDeleteHandlingTest(input, expected, null, paritalMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
-    runDeleteHandlingTest(input, expected, null, fullMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, false, paritalMajcIe,
+        ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, null, paritalMajcIe,
+        ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
+    runDeleteHandlingTest(input, expected, null, fullMajcIe,
+        ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
   }
 
   /**
-   * Tests the Lossy option will ignore errors in TypedValueCombiner. Uses SummingArrayCombiner to generate error.
+   * Tests the Lossy option will ignore errors in TypedValueCombiner. Uses SummingArrayCombiner to
+   * generate error.
    */
   @Test
   public void testLossyOption() throws IOException, IllegalAccessException, InstantiationException {
@@ -941,7 +957,8 @@ public class CombinerTest {
     SummingArrayCombiner summingArrayCombiner = new SummingArrayCombiner();
     IteratorSetting iteratorSetting = new IteratorSetting(1, SummingArrayCombiner.class);
     SummingArrayCombiner.setEncodingType(iteratorSetting, SummingArrayCombiner.Type.VARLEN);
-    Combiner.setColumns(iteratorSetting, Collections.singletonList(new IteratorSetting.Column("cf001")));
+    Combiner.setColumns(iteratorSetting,
+        Collections.singletonList(new IteratorSetting.Column("cf001")));
 
     // lossy = true so ignore bad value
     TypedValueCombiner.setLossyness(iteratorSetting, true);

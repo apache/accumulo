@@ -46,7 +46,8 @@ public class MetadataSplitIT extends ConfigurableMacBase {
   public void test() throws Exception {
     Connector c = getConnector();
     assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());
-    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500");
+    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+        "500");
     for (int i = 0; i < 10; i++) {
       c.tableOperations().create("table" + i);
       c.tableOperations().flush(MetadataTable.NAME, null, null, true);

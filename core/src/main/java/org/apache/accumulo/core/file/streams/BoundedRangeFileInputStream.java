@@ -22,8 +22,9 @@ import java.io.InputStream;
 import org.apache.hadoop.fs.Seekable;
 
 /**
- * BoundedRangeFIleInputStream abstracts a contiguous region of a Hadoop FSDataInputStream as a regular input stream. One can create multiple
- * BoundedRangeFileInputStream on top of the same FSDataInputStream and they would not interfere with each other.
+ * BoundedRangeFIleInputStream abstracts a contiguous region of a Hadoop FSDataInputStream as a
+ * regular input stream. One can create multiple BoundedRangeFileInputStream on top of the same
+ * FSDataInputStream and they would not interfere with each other.
  */
 public class BoundedRangeFileInputStream extends InputStream {
 
@@ -44,9 +45,11 @@ public class BoundedRangeFileInputStream extends InputStream {
    * @param length
    *          Length of the region.
    *
-   *          The actual length of the region may be smaller if (off_begin + length) goes beyond the end of FS input stream.
+   *          The actual length of the region may be smaller if (off_begin + length) goes beyond the
+   *          end of FS input stream.
    */
-  public <StreamType extends InputStream & Seekable> BoundedRangeFileInputStream(StreamType in, long offset, long length) {
+  public <StreamType extends InputStream & Seekable> BoundedRangeFileInputStream(StreamType in,
+      long offset, long length) {
     if (offset < 0 || length < 0) {
       throw new IndexOutOfBoundsException("Invalid offset/length: " + offset + "/" + length);
     }

@@ -80,7 +80,8 @@ public class TableTest {
       postGCSize = Table.ID.cache.asMap().entrySet().stream().count();
     } while (postGCSize > initialSize);
 
-    assertTrue("Cache did not decrease with GC.", Table.ID.cache.asMap().entrySet().stream().count() < initialSize);
+    assertTrue("Cache did not decrease with GC.",
+        Table.ID.cache.asMap().entrySet().stream().count() < initialSize);
   }
 
   private void generateJunkCacheEntries() {

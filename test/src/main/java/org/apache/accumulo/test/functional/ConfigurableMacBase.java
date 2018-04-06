@@ -51,8 +51,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for testing. Tests using these typically do very disruptive things
- * to the instance, and require specific configuration. Most tests don't need this level of control and should extend {@link AccumuloClusterHarness} instead.
+ * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for
+ * testing. Tests using these typically do very disruptive things to the instance, and require
+ * specific configuration. Most tests don't need this level of control and should extend
+ * {@link AccumuloClusterHarness} instead.
  */
 @Category(MiniClusterOnlyTests.class)
 public class ConfigurableMacBase extends AccumuloITBase {
@@ -66,11 +68,13 @@ public class ConfigurableMacBase extends AccumuloITBase {
 
   protected static final String ROOT_PASSWORD = "testRootPassword1";
 
-  public static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
+  public static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass,
+      File folder) {
     if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
       configureForSsl(cfg, folder);
     }
-    if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useCredProviderForIT"))) {
+    if ("true"
+        .equals(System.getProperty("org.apache.accumulo.test.functional.useCredProviderForIT"))) {
       cfg.setUseCredentialProvider(true);
     }
   }
@@ -90,11 +94,14 @@ public class ConfigurableMacBase extends AccumuloITBase {
     File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
     File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
     File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
-    final String rootKeystorePassword = "root_keystore_password", truststorePassword = "truststore_password";
+    final String rootKeystorePassword = "root_keystore_password",
+        truststorePassword = "truststore_password";
     try {
-      new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(), "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
-          .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(), rootKeystorePassword, cfg.getRootPassword(),
-              truststorePassword);
+      new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
+          "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
+              .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile,
+                  cfg.getInstanceName(), rootKeystorePassword, cfg.getRootPassword(),
+                  truststorePassword);
     } catch (Exception e) {
       throw new RuntimeException("error creating MAC keystore", e);
     }
@@ -102,7 +109,8 @@ public class ConfigurableMacBase extends AccumuloITBase {
     siteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
     siteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), localKeystoreFile.getAbsolutePath());
     siteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), cfg.getRootPassword());
-    siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), publicTruststoreFile.getAbsolutePath());
+    siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(),
+        publicTruststoreFile.getAbsolutePath());
     siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
     cfg.setSiteConfig(siteConfig);
   }
@@ -117,12 +125,14 @@ public class ConfigurableMacBase extends AccumuloITBase {
         return;
       } catch (ZooKeeperBindException e) {
         lastException = e;
-        log.warn("Failed to start MiniAccumuloCluster, assumably due to ZooKeeper issues", lastException);
+        log.warn("Failed to start MiniAccumuloCluster, assumably due to ZooKeeper issues",
+            lastException);
         Thread.sleep(3000);
         createMiniAccumulo();
       }
     }
-    throw new RuntimeException("Failed to start MiniAccumuloCluster after three attempts", lastException);
+    throw new RuntimeException("Failed to start MiniAccumuloCluster after three attempts",
+        lastException);
   }
 
   private void createMiniAccumulo() throws Exception {
@@ -171,14 +181,17 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected ConnectionInfo getConnectionInfo() {
-    return Connector.builder().forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers()).usingPassword("root", ROOT_PASSWORD).info();
+    return Connector.builder()
+        .forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers())
+        .usingPassword("root", ROOT_PASSWORD).info();
   }
 
   protected Process exec(Class<?> clazz, String... args) throws IOException {
     return getCluster().exec(clazz, args);
   }
 
-  protected String getMonitor() throws KeeperException, InterruptedException, AccumuloSecurityException, AccumuloException {
+  protected String getMonitor()
+      throws KeeperException, InterruptedException, AccumuloSecurityException, AccumuloException {
     return MonitorUtil.getLocation(getConnector().getInstance());
   }
 }

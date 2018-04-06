@@ -31,13 +31,16 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 
 /**
- * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes. This also concentrates a bunch of meta-operations like
- * waiting for SAFE_MODE, and closing WALs. N.B. implementations must be thread safe.
+ * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes.
+ * This also concentrates a bunch of meta-operations like waiting for SAFE_MODE, and closing WALs.
+ * N.B. implementations must be thread safe.
  */
 public interface VolumeManager {
 
   public static enum FileType {
-    TABLE(ServerConstants.TABLE_DIR), WAL(ServerConstants.WAL_DIR), RECOVERY(ServerConstants.RECOVERY_DIR);
+    TABLE(ServerConstants.TABLE_DIR),
+    WAL(ServerConstants.WAL_DIR),
+    RECOVERY(ServerConstants.RECOVERY_DIR);
 
     private String dir;
 
@@ -93,13 +96,15 @@ public interface VolumeManager {
   FSDataOutputStream create(Path path, boolean b) throws IOException;
 
   // forward to the appropriate FileSystem object
-  FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1) throws IOException;
+  FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1)
+      throws IOException;
 
   // create a file, but only if it doesn't exist
   boolean createNewFile(Path writable) throws IOException;
 
   // create a file which can be sync'd to disk
-  FSDataOutputStream createSyncable(Path logPath, int buffersize, short replication, long blockSize) throws IOException;
+  FSDataOutputStream createSyncable(Path logPath, int buffersize, short replication, long blockSize)
+      throws IOException;
 
   // delete a file
   boolean delete(Path path) throws IOException;
@@ -131,7 +136,8 @@ public interface VolumeManager {
   // forward to the appropriate FileSystem object
   FSDataInputStream open(Path path) throws IOException;
 
-  // forward to the appropriate FileSystem object, throws an exception if the paths are in different volumes
+  // forward to the appropriate FileSystem object, throws an exception if the paths are in different
+  // volumes
   boolean rename(Path path, Path newPath) throws IOException;
 
   // forward to the appropriate FileSystem object

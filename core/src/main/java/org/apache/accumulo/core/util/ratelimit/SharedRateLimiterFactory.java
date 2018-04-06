@@ -27,8 +27,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * Provides the ability to retrieve a {@link RateLimiter} keyed to a specific string, which will dynamically update its rate according to a specified callback
- * function.
+ * Provides the ability to retrieve a {@link RateLimiter} keyed to a specific string, which will
+ * dynamically update its rate according to a specified callback function.
  */
 public class SharedRateLimiterFactory {
   private static final long REPORT_RATE = 60000;
@@ -72,7 +72,8 @@ public class SharedRateLimiterFactory {
     /**
      * Calculate the current rate for the {@link RateLimiter}.
      *
-     * @return Count of permits which should be provided per second. A nonpositive count is taken to indicate that no rate limiting should be performed.
+     * @return Count of permits which should be provided per second. A nonpositive count is taken to
+     *         indicate that no rate limiting should be performed.
      */
     public long getDesiredRate();
   }
@@ -83,7 +84,8 @@ public class SharedRateLimiterFactory {
    * @param name
    *          key for the rate limiter
    * @param rateProvider
-   *          a function which can be called to get what the current rate for the rate limiter should be.
+   *          a function which can be called to get what the current rate for the rate limiter
+   *          should be.
    */
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {
@@ -101,8 +103,8 @@ public class SharedRateLimiterFactory {
   }
 
   /**
-   * Walk through all of the currently active RateLimiters, having each update its current rate. This is called periodically so that we can dynamically update
-   * as configuration changes.
+   * Walk through all of the currently active RateLimiters, having each update its current rate.
+   * This is called periodically so that we can dynamically update as configuration changes.
    */
   protected void update() {
     Map<String,SharedRateLimiter> limitersCopy;
@@ -118,7 +120,10 @@ public class SharedRateLimiterFactory {
     }
   }
 
-  /** Walk through all of the currently active RateLimiters, having each report its activity to the debug log. */
+  /**
+   * Walk through all of the currently active RateLimiters, having each report its activity to the
+   * debug log.
+   */
   protected void report() {
     Map<String,SharedRateLimiter> limitersCopy;
     synchronized (activeLimiters) {
@@ -174,7 +179,8 @@ public class SharedRateLimiterFactory {
         permitsAcquired = 0;
 
         if (sum > 0) {
-          log.debug(String.format("RateLimiter '%s': %,d of %,d permits/second", name, sum * 1000L / duration, getRate()));
+          log.debug(String.format("RateLimiter '%s': %,d of %,d permits/second", name,
+              sum * 1000L / duration, getRate()));
         }
       }
     }

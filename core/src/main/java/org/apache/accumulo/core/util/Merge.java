@@ -68,11 +68,14 @@ public class Merge {
   }
 
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(names = {"-s", "--size"}, description = "merge goal size", converter = MemoryConverter.class)
+    @Parameter(names = {"-s", "--size"}, description = "merge goal size",
+        converter = MemoryConverter.class)
     Long goalSize = null;
-    @Parameter(names = {"-f", "--force"}, description = "merge small tablets even if merging them to larger tablets might cause a split")
+    @Parameter(names = {"-f", "--force"},
+        description = "merge small tablets even if merging them to larger tablets might cause a split")
     boolean force = false;
-    @Parameter(names = {"-b", "--begin"}, description = "start tablet", converter = TextConverter.class)
+    @Parameter(names = {"-b", "--begin"}, description = "start tablet",
+        converter = TextConverter.class)
     Text begin = null;
     @Parameter(names = {"-e", "--end"}, description = "end tablet", converter = TextConverter.class)
     Text end = null;
@@ -90,7 +93,8 @@ public class Merge {
         return;
       }
       if (opts.goalSize == null || opts.goalSize < 1) {
-        AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(opts.getTableName()));
+        AccumuloConfiguration tableConfig = new ConfigurationCopy(
+            conn.tableOperations().getProperties(opts.getTableName()));
         opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
       }
 
@@ -116,7 +120,8 @@ public class Merge {
     long size;
   }
 
-  public void mergomatic(Connector conn, String table, Text start, Text end, long goalSize, boolean force) throws MergeException {
+  public void mergomatic(Connector conn, String table, Text start, Text end, long goalSize,
+      boolean force) throws MergeException {
     try {
       if (table.equals(MetadataTable.NAME)) {
         throw new IllegalArgumentException("cannot merge tablets on the metadata table");
@@ -140,7 +145,8 @@ public class Merge {
     }
   }
 
-  protected long mergeMany(Connector conn, String table, List<Size> sizes, long goalSize, boolean force, boolean last) throws MergeException {
+  protected long mergeMany(Connector conn, String table, List<Size> sizes, long goalSize,
+      boolean force, boolean last) throws MergeException {
     // skip the big tablets, which will be the typical case
     while (!sizes.isEmpty()) {
       if (sizes.get(0).size < goalSize)
@@ -166,7 +172,8 @@ public class Merge {
       mergeSome(conn, table, sizes, numToMerge);
     } else {
       if (numToMerge == 1 && sizes.size() > 1) {
-        // here we have the case of a merge candidate that is surrounded by candidates that would split
+        // here we have the case of a merge candidate that is surrounded by candidates that would
+        // split
         if (force) {
           mergeSome(conn, table, sizes, 2);
         } else {
@@ -185,25 +192,29 @@ public class Merge {
     return result;
   }
 
-  protected void mergeSome(Connector conn, String table, List<Size> sizes, int numToMerge) throws MergeException {
+  protected void mergeSome(Connector conn, String table, List<Size> sizes, int numToMerge)
+      throws MergeException {
     merge(conn, table, sizes, numToMerge);
     for (int i = 0; i < numToMerge; i++) {
       sizes.remove(0);
     }
   }
 
-  protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge) throws MergeException {
+  protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge)
+      throws MergeException {
     try {
       Text start = sizes.get(0).extent.getPrevEndRow();
       Text end = sizes.get(numToMerge - 1).extent.getEndRow();
-      message("Merging %d tablets from (%s to %s]", numToMerge, start == null ? "-inf" : start, end == null ? "+inf" : end);
+      message("Merging %d tablets from (%s to %s]", numToMerge, start == null ? "-inf" : start,
+          end == null ? "+inf" : end);
       conn.tableOperations().merge(table, start, end);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
   }
 
-  protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end) throws MergeException {
+  protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end)
+      throws MergeException {
     // open up metatadata, walk through the tablets.
     Table.ID tableId;
     Scanner scanner;

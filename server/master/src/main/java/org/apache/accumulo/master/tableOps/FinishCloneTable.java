@@ -38,7 +38,8 @@ class FinishCloneTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    // directories are intentionally not created.... this is done because directories should be unique
+    // directories are intentionally not created.... this is done because directories should be
+    // unique
     // because they occupy a different namespace than normal tablet directories... also some clones
     // may never create files.. therefore there is no need to consume namenode space w/ directories
     // that are not used... tablet will create directories as needed
@@ -51,9 +52,11 @@ class FinishCloneTable extends MasterRepo {
     Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
 
-    environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName, cloneInfo.srcTableId);
+    environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName,
+        cloneInfo.srcTableId);
 
-    LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
+    LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId
+        + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
 
     return null;
   }

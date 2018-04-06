@@ -42,9 +42,12 @@ public class ParameterValidatorTest {
   @Test
   public void testServerRegex() throws Exception {
     Pattern p = Pattern.compile(ParameterValidator.SERVER_REGEX);
-    Assert.assertTrue("Did not match hostname with dots", p.matcher("ab3cd.12d34.3xyz.net").matches());
-    Assert.assertTrue("Did not match hostname with dash", p.matcher("abcd.123.server-foo.com").matches());
-    Assert.assertTrue("Did not match hostname and port", p.matcher("abcd.123.server-foo.com:1234").matches());
+    Assert.assertTrue("Did not match hostname with dots",
+        p.matcher("ab3cd.12d34.3xyz.net").matches());
+    Assert.assertTrue("Did not match hostname with dash",
+        p.matcher("abcd.123.server-foo.com").matches());
+    Assert.assertTrue("Did not match hostname and port",
+        p.matcher("abcd.123.server-foo.com:1234").matches());
     Assert.assertTrue("Did not match all numeric", p.matcher("127.0.0.1").matches());
     Assert.assertTrue("Did not match all numeric and port", p.matcher("127.0.0.1:9999").matches());
     Assert.assertTrue("Did not match all numeric and port", p.matcher("ServerName:9999").matches());

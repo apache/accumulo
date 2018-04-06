@@ -27,23 +27,33 @@ public enum ClientProperty {
 
   // Instance
   INSTANCE_NAME("instance.name", "", "Name of Accumulo instance to connect to", "", true),
-  INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", "Zookeeper connection information for Accumulo instance", "", true),
-  INSTANCE_ZOOKEEPERS_TIMEOUT_SEC("instance.zookeepers.timeout.sec", "30", "Zookeeper session timeout (in seconds)"),
+  INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181",
+      "Zookeeper connection information for Accumulo instance", "", true),
+  INSTANCE_ZOOKEEPERS_TIMEOUT_SEC("instance.zookeepers.timeout.sec", "30",
+      "Zookeeper session timeout (in seconds)"),
 
   // Authentication
-  AUTH_METHOD("auth.method", "password", "Authentication method (i.e password, kerberos, provider). Set more properties for chosen method below.", "", true),
-  AUTH_USERNAME("auth.username", "", "Accumulo username/principal for chosen authentication method", "", true),
+  AUTH_METHOD("auth.method", "password",
+      "Authentication method (i.e password, kerberos, provider). Set more properties for chosen method below.",
+      "", true),
+  AUTH_USERNAME("auth.username", "", "Accumulo username/principal for chosen authentication method",
+      "", true),
   AUTH_PASSWORD("auth.password", "", "Accumulo user password", "", true),
   AUTH_KERBEROS_KEYTAB_PATH("auth.kerberos.keytab.path", "", "Path to Kerberos keytab"),
-  AUTH_PROVIDER_NAME("auth.provider.name", "", "Alias used to extract Accumulo user password from CredentialProvider"),
-  AUTH_PROVIDER_URLS("auth.provider.urls", "", "Comma separated list of URLs defining CredentialProvider(s)"),
+  AUTH_PROVIDER_NAME("auth.provider.name", "",
+      "Alias used to extract Accumulo user password from CredentialProvider"),
+  AUTH_PROVIDER_URLS("auth.provider.urls", "",
+      "Comma separated list of URLs defining CredentialProvider(s)"),
 
   // BatchWriter
-  BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800", "Max memory (in bytes) to batch before writing"),
-  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.sec", "120", "Max amount of time (in seconds) to hold data in memory before flushing it"),
+  BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800",
+      "Max memory (in bytes) to batch before writing"),
+  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.sec", "120",
+      "Max amount of time (in seconds) to hold data in memory before flushing it"),
   BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.max.timeout.sec", "0",
       "Max amount of time (in seconds) an unresponsive server will be re-tried. An exception is thrown when this timeout is exceeded. Set to zero for no timeout."),
-  BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.max.write.threads", "3", "Maximum number of threads to use for writing data to tablet servers."),
+  BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.max.write.threads", "3",
+      "Maximum number of threads to use for writing data to tablet servers."),
   BATCH_WRITER_DURABILITY("batch.writer.durability", "default",
       "Change the durability for the BatchWriter session. To use the table's durability setting. use \"default\" which is the table's durability setting."),
 
@@ -59,12 +69,16 @@ public enum ClientProperty {
 
   // SASL
   SASL_ENABLED("sasl.enabled", "false", "Enable SASL for client RPC"),
-  SASL_QOP("sasl.qop", "auth", "SASL quality of protection. Valid values are 'auth', 'auth-int', and 'auth-conf'"),
-  SASL_KERBEROS_SERVER_PRIMARY("sasl.kerberos.server.primary", "accumulo", "Kerberos principal/primary that Accumulo servers use to login"),
+  SASL_QOP("sasl.qop", "auth",
+      "SASL quality of protection. Valid values are 'auth', 'auth-int', and 'auth-conf'"),
+  SASL_KERBEROS_SERVER_PRIMARY("sasl.kerberos.server.primary", "accumulo",
+      "Kerberos principal/primary that Accumulo servers use to login"),
 
   // Trace
-  TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", "A list of span receiver classes to send trace spans"),
-  TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS, "The zookeeper node where tracers are registered");
+  TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
+      "A list of span receiver classes to send trace spans"),
+  TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS,
+      "The zookeeper node where tracers are registered");
 
   public static final String TRACE_SPAN_RECEIVER_PREFIX = "trace.span.receiver";
 
@@ -74,7 +88,8 @@ public enum ClientProperty {
   private String since;
   private boolean required;
 
-  ClientProperty(String key, String defaultValue, String description, String since, boolean required) {
+  ClientProperty(String key, String defaultValue, String description, String since,
+      boolean required) {
     Objects.requireNonNull(key);
     Objects.requireNonNull(defaultValue);
     Objects.requireNonNull(description);

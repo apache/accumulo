@@ -58,8 +58,10 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     String[] names = getUniqueNames(1);
     String tableName = names[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.setProperties(Stream.of(new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"), new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K")).collect(
-        Collectors.toMap(k -> k.getFirst(), v -> v.getSecond())));
+    ntc.setProperties(Stream
+        .of(new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"),
+            new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"))
+        .collect(Collectors.toMap(k -> k.getFirst(), v -> v.getSecond())));
     c.tableOperations().create(tableName, ntc);
 
     TestIngest.Opts opts = new TestIngest.Opts();

@@ -41,7 +41,8 @@ public class TabletServerWithTableInformation {
    * @param tableInfo
    *          Table information
    */
-  public TabletServerWithTableInformation(TabletServerInformation tserverInfo, TableInformation tableInfo) {
+  public TabletServerWithTableInformation(TabletServerInformation tserverInfo,
+      TableInformation tableInfo) {
     this.tserver = tserverInfo;
     this.table = tableInfo;
   }

@@ -50,8 +50,10 @@ import com.google.common.collect.Maps;
 public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
 
-  private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service", ACCUMULO_SCRIPT = "accumulo", ACCUMULO_UTIL_SCRIPT = "accumulo-util";
-  private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc", TSERVER_HOSTS_FILE = "tservers", TRACER_HOSTS_FILE = "tracers",
+  private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service",
+      ACCUMULO_SCRIPT = "accumulo", ACCUMULO_UTIL_SCRIPT = "accumulo-util";
+  private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc",
+      TSERVER_HOSTS_FILE = "tservers", TRACER_HOSTS_FILE = "tracers",
       MONITOR_HOSTS_FILE = "monitor";
 
   String accumuloHome;
@@ -63,8 +65,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
   protected String accumuloServicePath, accumuloPath, accumuloUtilPath;
 
-  public StandaloneClusterControl(String accumuloHome, String clientAccumuloConfDir, String serverAccumuloConfDir, String clientCmdPrefix,
-      String serverCmdPrefix) {
+  public StandaloneClusterControl(String accumuloHome, String clientAccumuloConfDir,
+      String serverAccumuloConfDir, String clientCmdPrefix, String serverCmdPrefix) {
     this.options = new RemoteShellOptions();
     this.accumuloHome = accumuloHome;
     this.clientAccumuloConfDir = clientAccumuloConfDir;
@@ -90,7 +92,8 @@ public class StandaloneClusterControl implements ClusterControl {
       // capture the stdout of the process as well.
       String output = shell.getOutput();
       // add output for the ExitCodeException.
-      ExitCodeException ece = new ExitCodeException(e.getExitCode(), "stderr: " + e.getMessage() + ", stdout: " + output);
+      ExitCodeException ece = new ExitCodeException(e.getExitCode(),
+          "stderr: " + e.getMessage() + ", stdout: " + output);
       log.error("Failed to run command", ece);
       return Maps.immutableEntry(e.getExitCode(), output);
     }
@@ -118,7 +121,8 @@ public class StandaloneClusterControl implements ClusterControl {
     return exec(master, cmd.toArray(new String[cmd.size()]));
   }
 
-  public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args) throws IOException {
+  public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args)
+      throws IOException {
     String host = "localhost";
     List<String> cmd = new ArrayList<>();
     cmd.add(getAccumuloUtilPath());
@@ -152,7 +156,8 @@ public class StandaloneClusterControl implements ClusterControl {
     // Directly invoke the RemoteShell
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey()) {
-      throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
+      throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey()
+          + ", stdout=" + pair.getValue());
     }
   }
 
@@ -168,10 +173,12 @@ public class StandaloneClusterControl implements ClusterControl {
     requireNonNull(goalState, "Goal state must not be null");
     checkArgument(MasterGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
     String master = getHosts(MASTER_HOSTS_FILE).get(0);
-    String[] cmd = new String[] {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(), goalState};
+    String[] cmd = new String[] {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(),
+        goalState};
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey()) {
-      throw new IOException("SetGoalState did not finish successfully, retcode=" + pair.getKey() + ", stdout=" + pair.getValue());
+      throw new IOException("SetGoalState did not finish successfully, retcode=" + pair.getKey()
+          + ", stdout=" + pair.getValue());
     }
   }
 
@@ -219,10 +226,12 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void start(ServerType server, String hostname) throws IOException {
-    String[] cmd = new String[] {serverCmdPrefix, accumuloServicePath, getProcessString(server), "start"};
+    String[] cmd = new String[] {serverCmdPrefix, accumuloServicePath, getProcessString(server),
+        "start"};
     Entry<Integer,String> pair = exec(hostname, cmd);
     if (0 != pair.getKey()) {
-      throw new IOException("Start " + server + " on " + hostname + " failed for execute successfully");
+      throw new IOException(
+          "Start " + server + " on " + hostname + " failed for execute successfully");
     }
   }
 
@@ -262,7 +271,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void stop(ServerType server, String hostname) throws IOException {
-    // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor, tracer instead kill
+    // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor, tracer
+    // instead kill
 
     kill(server, hostname);
   }
@@ -291,7 +301,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
     Entry<Integer,String> pair = exec(hostname, stopCmd);
     if (0 != pair.getKey()) {
-      throw new IOException("Signal " + signal + " to " + server + " on " + hostname + " failed for execute successfully. stdout=" + pair.getValue());
+      throw new IOException("Signal " + signal + " to " + server + " on " + hostname
+          + " failed for execute successfully. stdout=" + pair.getValue());
     }
   }
 
@@ -310,11 +321,13 @@ public class StandaloneClusterControl implements ClusterControl {
     signal(server, hostname, "SIGKILL");
   }
 
-  protected String getPid(ServerType server, String accumuloHome, String hostname) throws IOException {
+  protected String getPid(ServerType server, String accumuloHome, String hostname)
+      throws IOException {
     String[] getPidCommand = getPidCommand(server, accumuloHome);
     Entry<Integer,String> ret = exec(hostname, getPidCommand);
     if (0 != ret.getKey()) {
-      throw new IOException("Could not locate PID for " + getProcessString(server) + " on " + hostname);
+      throw new IOException(
+          "Could not locate PID for " + getProcessString(server) + " on " + hostname);
     }
 
     return ret.getValue();
@@ -322,8 +335,9 @@ public class StandaloneClusterControl implements ClusterControl {
 
   protected String[] getPidCommand(ServerType server, String accumuloHome) {
     // Lifted from stop-server.sh to get the PID
-    return new String[] {"ps", "aux", "|", "fgrep", accumuloHome, "|", "fgrep", getProcessString(server), "|", "fgrep", "-v", "grep", "|", "fgrep", "-v",
-        "ssh", "|", "awk", "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
+    return new String[] {"ps", "aux", "|", "fgrep", accumuloHome, "|", "fgrep",
+        getProcessString(server), "|", "fgrep", "-v", "grep", "|", "fgrep", "-v", "ssh", "|", "awk",
+        "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
   }
 
   protected String getProcessString(ServerType server) {
@@ -346,7 +360,8 @@ public class StandaloneClusterControl implements ClusterControl {
   protected File getClientConfDir() {
     File confDir = new File(clientAccumuloConfDir);
     if (!confDir.exists() || !confDir.isDirectory()) {
-      throw new IllegalStateException("Accumulo client conf dir does not exist or is not a directory: " + confDir);
+      throw new IllegalStateException(
+          "Accumulo client conf dir does not exist or is not a directory: " + confDir);
     }
     return confDir;
   }
@@ -354,7 +369,8 @@ public class StandaloneClusterControl implements ClusterControl {
   protected File getServerConfDir() {
     File confDir = new File(serverAccumuloConfDir);
     if (!confDir.exists() || !confDir.isDirectory()) {
-      throw new IllegalStateException("Accumulo server conf dir does not exist or is not a directory: " + confDir);
+      throw new IllegalStateException(
+          "Accumulo server conf dir does not exist or is not a directory: " + confDir);
     }
     return confDir;
   }

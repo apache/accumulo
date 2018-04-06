@@ -43,7 +43,8 @@ abstract class TableMetadataServicer extends MetadataServicer {
   private Table.ID tableIdBeingServiced;
   private String serviceTableName;
 
-  public TableMetadataServicer(ClientContext context, String serviceTableName, Table.ID tableIdBeingServiced) {
+  public TableMetadataServicer(ClientContext context, String serviceTableName,
+      Table.ID tableIdBeingServiced) {
     this.context = context;
     this.serviceTableName = serviceTableName;
     this.tableIdBeingServiced = tableIdBeingServiced;
@@ -59,9 +60,11 @@ abstract class TableMetadataServicer extends MetadataServicer {
   }
 
   @Override
-  public void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void getTabletLocations(SortedMap<KeyExtent,String> tablets)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    Scanner scanner = context.getConnector().createScanner(getServicingTableName(), Authorizations.EMPTY);
+    Scanner scanner = context.getConnector().createScanner(getServicingTableName(),
+        Authorizations.EMPTY);
 
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -109,15 +112,16 @@ abstract class TableMetadataServicer extends MetadataServicer {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
     if (tabletsKeys.size() == 0)
-      throw new AccumuloException("No entries found in metadata table for table " + getServicedTableId());
+      throw new AccumuloException(
+          "No entries found in metadata table for table " + getServicedTableId());
 
     if (tabletsKeys.first().getPrevEndRow() != null)
-      throw new AccumuloException("Problem with metadata table, first entry for table " + getServicedTableId() + "- " + tabletsKeys.first()
-          + " - has non null prev end row");
+      throw new AccumuloException("Problem with metadata table, first entry for table "
+          + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null prev end row");
 
     if (tabletsKeys.last().getEndRow() != null)
-      throw new AccumuloException("Problem with metadata table, last entry for table " + getServicedTableId() + "- " + tabletsKeys.first()
-          + " - has non null end row");
+      throw new AccumuloException("Problem with metadata table, last entry for table "
+          + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null end row");
 
     Iterator<KeyExtent> tabIter = tabletsKeys.iterator();
     Text lastEndRow = tabIter.next().getEndRow();
@@ -125,10 +129,12 @@ abstract class TableMetadataServicer extends MetadataServicer {
       KeyExtent tabke = tabIter.next();
 
       if (tabke.getPrevEndRow() == null)
-        throw new AccumuloException("Problem with metadata table, it has null prev end row in middle of table " + tabke);
+        throw new AccumuloException(
+            "Problem with metadata table, it has null prev end row in middle of table " + tabke);
 
       if (!tabke.getPrevEndRow().equals(lastEndRow))
-        throw new AccumuloException("Problem with metadata table, it has a hole " + tabke.getPrevEndRow() + " != " + lastEndRow);
+        throw new AccumuloException("Problem with metadata table, it has a hole "
+            + tabke.getPrevEndRow() + " != " + lastEndRow);
 
       lastEndRow = tabke.getEndRow();
     }

@@ -70,7 +70,8 @@ public class ServerMutation extends Mutation {
   }
 
   @Override
-  protected ColumnUpdate newColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+  protected ColumnUpdate newColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts,
+      boolean deleted, byte[] val) {
     return new ServerColumnUpdate(cf, cq, cv, hasts, ts, deleted, val, this);
   }
 
@@ -81,7 +82,8 @@ public class ServerMutation extends Mutation {
 
   @Override
   public boolean equals(Object o) {
-    return o == this || (o != null && o instanceof ServerMutation && systemTime == ((ServerMutation) o).systemTime && super.equals(o));
+    return o == this || (o != null && o instanceof ServerMutation
+        && systemTime == ((ServerMutation) o).systemTime && super.equals(o));
   }
 
   @Override
