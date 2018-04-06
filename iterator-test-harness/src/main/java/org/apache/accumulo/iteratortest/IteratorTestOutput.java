@@ -26,8 +26,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 
 /**
- * The expected results from invoking a {@link IteratorTestCase} on a {@link IteratorTestInput}. The output will be either a {@link SortedMap} of Keys and
- * Values or an exception but never both. If one of these members is null, the other is guaranteed to be non-null.
+ * The expected results from invoking a {@link IteratorTestCase} on a {@link IteratorTestInput}. The
+ * output will be either a {@link SortedMap} of Keys and Values or an exception but never both. If
+ * one of these members is null, the other is guaranteed to be non-null.
  */
 public class IteratorTestOutput {
 
@@ -38,10 +39,12 @@ public class IteratorTestOutput {
     /**
      * The IteratorTestCase proactively passed.
      */
-    PASSED, /**
+    PASSED,
+    /**
      * The IteratorTestCase proactively failed.
      */
-    FAILED, /**
+    FAILED,
+    /**
      * The IteratorTestCase completed, but the pass/fail should be determined by the other context.
      */
     COMPLETED
@@ -111,7 +114,8 @@ public class IteratorTestOutput {
   }
 
   /**
-   * @return True if there is an exception, null if the iterator successfully generated Key-Value pairs.
+   * @return True if there is an exception, null if the iterator successfully generated Key-Value
+   *         pairs.
    */
   public boolean hasException() {
     return null != exception;
@@ -156,7 +160,8 @@ public class IteratorTestOutput {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(64);
-    sb.append("[outcome=").append(outcome).append(", output='").append(output).append("', exception=").append(exception).append("]");
+    sb.append("[outcome=").append(outcome).append(", output='").append(output)
+        .append("', exception=").append(exception).append("]");
     return sb.toString();
   }
 }

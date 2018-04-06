@@ -26,7 +26,8 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
 /**
- * When multiple instance of this test suite are run, all instances will operate on the same set of table names.
+ * When multiple instance of this test suite are run, all instances will operate on the same set of
+ * table names.
  *
  *
  */
@@ -43,7 +44,8 @@ public class ConcurrentFixture extends Fixture {
    *
    * @param rand
    *          A Random to use
-   * @return A two element list with first being smaller than the second, but either value (or both) can be null
+   * @return A two element list with first being smaller than the second, but either value (or both)
+   *         can be null
    */
   public static List<Text> generateRange(Random rand) {
     ArrayList<Text> toRet = new ArrayList<>(2);

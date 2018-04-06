@@ -98,14 +98,17 @@ public class RFileWriter implements AutoCloseable {
     this.validVisibilities = new LRUMap(visCacheSize);
   }
 
-  private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException {
-    Preconditions.checkState(!startedDefaultLG, "Cannont start a locality group after starting the default locality group");
+  private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
+      throws IOException {
+    Preconditions.checkState(!startedDefaultLG,
+        "Cannont start a locality group after starting the default locality group");
     writer.startNewLocalityGroup(name, columnFamilies);
     startedLG = true;
   }
 
   /**
-   * Before appending any data, a locality group must be started. The default locality group must be started last.
+   * Before appending any data, a locality group must be started. The default locality group must be
+   * started last.
    *
    * @param name
    *          locality group name, used for informational purposes
@@ -168,8 +171,10 @@ public class RFileWriter implements AutoCloseable {
   }
 
   /**
-   * A locality group in which the column families do not need to specified. The locality group must be started after all other locality groups. Can not append
-   * column families that were in a previous locality group. If no locality groups were started, then the first append will start the default locality group.
+   * A locality group in which the column families do not need to specified. The locality group must
+   * be started after all other locality groups. Can not append column families that were in a
+   * previous locality group. If no locality groups were started, then the first append will start
+   * the default locality group.
    *
    * @throws IllegalStateException
    *           When default locality group already started.
@@ -183,18 +188,19 @@ public class RFileWriter implements AutoCloseable {
   }
 
   /**
-   * Append the key and value to the last locality group that was started. If no locality group was started, then the default group will automatically be
-   * started.
+   * Append the key and value to the last locality group that was started. If no locality group was
+   * started, then the default group will automatically be started.
    *
    * @param key
-   *          This key must be greater than or equal to the last key appended. For non-default locality groups, the keys column family must be one of the column
-   *          families specified when calling startNewLocalityGroup(). Must be non-null.
+   *          This key must be greater than or equal to the last key appended. For non-default
+   *          locality groups, the keys column family must be one of the column families specified
+   *          when calling startNewLocalityGroup(). Must be non-null.
    * @param val
    *          value to append, must be non-null.
    *
    * @throws IllegalArgumentException
-   *           This is thrown when data is appended out of order OR when the key contains a invalid visibility OR when a column family is not valid for a
-   *           locality group.
+   *           This is thrown when data is appended out of order OR when the key contains a invalid
+   *           visibility OR when a column family is not valid for a locality group.
    */
   public void append(Key key, Value val) throws IOException {
     if (!startedLG) {
@@ -213,13 +219,15 @@ public class RFileWriter implements AutoCloseable {
    * Append the keys and values to the last locality group that was started.
    *
    * @param keyValues
-   *          The keys must be in sorted order. The first key returned by the iterable must be greater than or equal to the last key appended. For non-default
-   *          locality groups, the keys column family must be one of the column families specified when calling startNewLocalityGroup(). Must be non-null. If no
-   *          locality group was started, then the default group will automatically be started.
+   *          The keys must be in sorted order. The first key returned by the iterable must be
+   *          greater than or equal to the last key appended. For non-default locality groups, the
+   *          keys column family must be one of the column families specified when calling
+   *          startNewLocalityGroup(). Must be non-null. If no locality group was started, then the
+   *          default group will automatically be started.
    *
    * @throws IllegalArgumentException
-   *           This is thrown when data is appended out of order OR when the key contains a invalid visibility OR when a column family is not valid for a
-   *           locality group.
+   *           This is thrown when data is appended out of order OR when the key contains a invalid
+   *           visibility OR when a column family is not valid for a locality group.
    */
   public void append(Iterable<Entry<Key,Value>> keyValues) throws IOException {
     for (Entry<Key,Value> entry : keyValues) {

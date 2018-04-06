@@ -46,7 +46,9 @@ public class MerkleTree {
       Pair<Integer,Integer> pairToJoin = findNextPair(buffer);
 
       // Make a parent node from them
-      MerkleTreeNode parent = new MerkleTreeNode(Arrays.asList(buffer.get(pairToJoin.getFirst()), buffer.get(pairToJoin.getSecond())), digestAlgorithm);
+      MerkleTreeNode parent = new MerkleTreeNode(
+          Arrays.asList(buffer.get(pairToJoin.getFirst()), buffer.get(pairToJoin.getSecond())),
+          digestAlgorithm);
 
       // Insert it back into the "tree" at the position of the first child
       buffer.set(pairToJoin.getFirst(), parent);
@@ -82,7 +84,8 @@ public class MerkleTree {
     }
 
     if (2 < nodes.size()) {
-      throw new IllegalStateException("Should not have exited loop without pairing two elements when we have at least 3 nodes");
+      throw new IllegalStateException(
+          "Should not have exited loop without pairing two elements when we have at least 3 nodes");
     } else if (2 == nodes.size()) {
       return new Pair<>(0, 1);
     } else {

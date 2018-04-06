@@ -52,7 +52,8 @@ public class MapFileIterator implements FileSKVIterator {
   private FileSystem fs;
   private String dirName;
 
-  public MapFileIterator(AccumuloConfiguration acuconf, FileSystem fs, String dir, Configuration conf) throws IOException {
+  public MapFileIterator(AccumuloConfiguration acuconf, FileSystem fs, String dir,
+      Configuration conf) throws IOException {
     this.reader = MapFileUtil.openMapFile(acuconf, fs, dir, conf);
     this.fs = fs;
     this.dirName = dir;
@@ -64,7 +65,8 @@ public class MapFileIterator implements FileSKVIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
 
@@ -82,7 +84,8 @@ public class MapFileIterator implements FileSKVIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     if (columnFamilies.size() != 0 || inclusive) {
       throw new IllegalArgumentException("I do not know how to filter column families");
     }

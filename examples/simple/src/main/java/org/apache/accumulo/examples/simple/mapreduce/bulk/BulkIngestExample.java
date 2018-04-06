@@ -46,7 +46,8 @@ import org.apache.hadoop.util.ToolRunner;
 import com.beust.jcommander.Parameter;
 
 /**
- * Example map reduce job that bulk ingest data into an accumulo table. The expected input is text files containing tab separated key value pairs on each line.
+ * Example map reduce job that bulk ingest data into an accumulo table. The expected input is text
+ * files containing tab separated key value pairs on each line.
  */
 public class BulkIngestExample extends Configured implements Tool {
   public static class MapClass extends Mapper<LongWritable,Text,Text,Text> {
@@ -54,7 +55,8 @@ public class BulkIngestExample extends Configured implements Tool {
     private Text outputValue = new Text();
 
     @Override
-    public void map(LongWritable key, Text value, Context output) throws IOException, InterruptedException {
+    public void map(LongWritable key, Text value, Context output)
+        throws IOException, InterruptedException {
       // split on tab
       int index = -1;
       for (int i = 0; i < value.getLength(); i++) {
@@ -74,7 +76,8 @@ public class BulkIngestExample extends Configured implements Tool {
 
   public static class ReduceClass extends Reducer<Text,Text,Key,Value> {
     @Override
-    public void reduce(Text key, Iterable<Text> values, Context output) throws IOException, InterruptedException {
+    public void reduce(Text key, Iterable<Text> values, Context output)
+        throws IOException, InterruptedException {
       // be careful with the timestamp... if you run on a cluster
       // where the time is whacked you may not see your updates in
       // accumulo if there is already an existing value with a later
@@ -85,7 +88,8 @@ public class BulkIngestExample extends Configured implements Tool {
 
       int index = 0;
       for (Text value : values) {
-        Key outputKey = new Key(key, new Text("colf"), new Text(String.format("col_%07d", index)), timestamp);
+        Key outputKey = new Key(key, new Text("colf"), new Text(String.format("col_%07d", index)),
+            timestamp);
         index++;
 
         Value outputValue = new Value(value.getBytes(), 0, value.getLength());
@@ -129,7 +133,8 @@ public class BulkIngestExample extends Configured implements Tool {
       AccumuloFileOutputFormat.setOutputPath(job, new Path(opts.workDir + "/files"));
 
       FileSystem fs = FileSystem.get(conf);
-      out = new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.workDir + "/splits.txt"))));
+      out = new PrintStream(
+          new BufferedOutputStream(fs.create(new Path(opts.workDir + "/splits.txt"))));
 
       Collection<Text> splits = connector.tableOperations().listSplits(opts.getTableName(), 100);
       for (Text split : splits)
@@ -148,7 +153,8 @@ public class BulkIngestExample extends Configured implements Tool {
       // With HDFS permissions on, we need to make sure the Accumulo user can read/move the rfiles
       FsShell fsShell = new FsShell(conf);
       fsShell.run(new String[] {"-chmod", "-R", "777", opts.workDir});
-      connector.tableOperations().importDirectory(opts.getTableName(), opts.workDir + "/files", opts.workDir + "/failures", false);
+      connector.tableOperations().importDirectory(opts.getTableName(), opts.workDir + "/files",
+          opts.workDir + "/failures", false);
 
     } catch (Exception e) {
       throw new RuntimeException(e);

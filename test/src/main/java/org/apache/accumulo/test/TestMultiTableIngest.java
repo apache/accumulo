@@ -52,7 +52,8 @@ public class TestMultiTableIngest {
     String prefix = "test_";
   }
 
-  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn, List<String> tableNames) throws Exception {
+  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn,
+      List<String> tableNames) throws Exception {
     int i = 0;
     for (String table : tableNames) {
       // wait for table to exist
@@ -64,7 +65,8 @@ public class TestMultiTableIngest {
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%06d", count);
         if (!elt.getKey().getRow().toString().equals(expected))
-          throw new RuntimeException("entry " + elt + " does not match expected " + expected + " in table " + table);
+          throw new RuntimeException(
+              "entry " + elt + " does not match expected " + expected + " in table " + table);
         count += tableNames.size();
       }
       i++;
@@ -105,7 +107,8 @@ public class TestMultiTableIngest {
       // populate
       for (int i = 0; i < opts.count; i++) {
         Mutation m = new Mutation(new Text(String.format("%06d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(UTF_8)));
+        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
+            new Value("junk".getBytes(UTF_8)));
         b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
       }
       try {

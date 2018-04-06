@@ -292,7 +292,8 @@ public class FilterTest {
   }
 
   /**
-   * Test for fix to ACCUMULO-1604: ColumnAgeOffFilter was throwing an error when using negate Test case for when "negate" is an actual column name
+   * Test for fix to ACCUMULO-1604: ColumnAgeOffFilter was throwing an error when using negate Test
+   * case for when "negate" is an actual column name
    */
   @Test
   public void test2b() throws IOException {
@@ -358,7 +359,8 @@ public class FilterTest {
     }
     assertTrue(tm.size() == 1000);
 
-    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
+    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm),
+        hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 1000);
 
@@ -389,25 +391,29 @@ public class FilterTest {
     Authorizations auths = new Authorizations("L1", "L2", "L0", "OFFICIAL");
 
     for (int i = 0; i < 1000; i++) {
-      Key k = new Key(new Text(String.format("%03d", i)), new Text("a"), new Text("b"), new Text(lea[i % 4].getExpression()));
+      Key k = new Key(new Text(String.format("%03d", i)), new Text("a"), new Text("b"),
+          new Text(lea[i % 4].getExpression()));
       tm.put(k, dv);
     }
     assertTrue(tm.size() == 1000);
 
-    SortedKeyValueIterator<Key,Value> a = VisibilityFilter.wrap(new SortedMapIterator(tm), auths, le2.getExpression());
+    SortedKeyValueIterator<Key,Value> a = VisibilityFilter.wrap(new SortedMapIterator(tm), auths,
+        le2.getExpression());
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertTrue("size was " + size, size == 750);
   }
 
-  private SortedKeyValueIterator<Key,Value> ncqf(TreeMap<Key,Value> tm, Column... columns) throws IOException {
+  private SortedKeyValueIterator<Key,Value> ncqf(TreeMap<Key,Value> tm, Column... columns)
+      throws IOException {
     HashSet<Column> hsc = new HashSet<>();
 
     for (Column column : columns) {
       hsc.add(column);
     }
 
-    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
+    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm),
+        hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     return a;
   }
@@ -434,13 +440,16 @@ public class FilterTest {
     size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null)));
     assertTrue(size == 1);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null), new Column("b".getBytes(), "x".getBytes(), null)));
+    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
+        new Column("b".getBytes(), "x".getBytes(), null)));
     assertTrue(size == 2);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null), new Column("b".getBytes(), "y".getBytes(), null)));
+    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
+        new Column("b".getBytes(), "y".getBytes(), null)));
     assertTrue(size == 2);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null), new Column("b".getBytes(), null, null)));
+    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
+        new Column("b".getBytes(), null, null)));
     assertTrue(size == 3);
   }
 

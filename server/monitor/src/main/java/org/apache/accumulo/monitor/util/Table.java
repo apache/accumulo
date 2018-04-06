@@ -57,7 +57,8 @@ public class Table {
     columns.add(column);
   }
 
-  private synchronized <T> void addColumn(String title, CellType<T> type, String legend, boolean sortable) {
+  private synchronized <T> void addColumn(String title, CellType<T> type, String legend,
+      boolean sortable) {
     if (type == null)
       type = new StringType<>();
     type.setSortable(sortable);
@@ -109,8 +110,8 @@ public class Table {
       if (row.size() != columns.size())
         throw new RuntimeException("Each row must have the same number of columns");
 
-    boolean sortAscending = !"false".equals(BasicServlet.getCookieValue(req, "tableSort." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName)
-        + "." + "sortAsc"));
+    boolean sortAscending = !"false".equals(BasicServlet.getCookieValue(req, "tableSort."
+        + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "." + "sortAsc"));
 
     int sortCol = -1; // set to first sortable column by default
     int numLegends = 0;
@@ -124,12 +125,14 @@ public class Table {
 
     // only get cookie if there is a possibility that it is sortable
     if (sortCol >= 0) {
-      String sortColStr = BasicServlet.getCookieValue(req, "tableSort." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "." + "sortCol");
+      String sortColStr = BasicServlet.getCookieValue(req, "tableSort." + BasicServlet.encode(page)
+          + "." + BasicServlet.encode(tableName) + "." + "sortCol");
       if (sortColStr != null) {
         try {
           int col = Integer.parseInt(sortColStr);
           // only bother if specified column is sortable
-          if (!(col < 0 || sortCol >= columns.size()) && columns.get(col).getCellType().isSortable())
+          if (!(col < 0 || sortCol >= columns.size())
+              && columns.get(col).getCellType().isSortable())
             sortCol = col;
         } catch (NumberFormatException e) {
           // ignore improperly formatted user cookie
@@ -139,7 +142,8 @@ public class Table {
 
     boolean showLegend = false;
     if (numLegends > 0) {
-      String showStr = BasicServlet.getCookieValue(req, "tableLegend." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "." + "show");
+      String showStr = BasicServlet.getCookieValue(req, "tableLegend." + BasicServlet.encode(page)
+          + "." + BasicServlet.encode(tableName) + "." + "show");
       showLegend = showStr != null && Boolean.parseBoolean(showStr);
     }
 
@@ -157,8 +161,10 @@ public class Table {
 
     String redir = BasicServlet.currentPage(req);
     if (numLegends > 0) {
-      String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, tableName, !showLegend);
-      sb.append("<a href='").append(legendUrl).append("'>").append(showLegend ? "Hide" : "Show").append("&nbsp;Legend</a>\n");
+      String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s",
+          redir, page, tableName, !showLegend);
+      sb.append("<a href='").append(legendUrl).append("'>").append(showLegend ? "Hide" : "Show")
+          .append("&nbsp;Legend</a>\n");
       if (showLegend)
         sb.append("<div class='left show'><dl>\n");
     }
@@ -166,16 +172,18 @@ public class Table {
       TableColumn<?> col = columns.get(i);
       String title = col.getTitle();
       if (rows.size() > 1 && col.getCellType().isSortable()) {
-        String url = String.format("/op?action=sortTable&redir=%s&page=%s&table=%s&%s=%s", redir, page, tableName, sortCol == i ? "asc" : "col",
-            sortCol == i ? !sortAscending : i);
+        String url = String.format("/op?action=sortTable&redir=%s&page=%s&table=%s&%s=%s", redir,
+            page, tableName, sortCol == i ? "asc" : "col", sortCol == i ? !sortAscending : i);
         String img = "";
         if (sortCol == i)
-          img = String.format("&nbsp;<img width='10px' height='10px' src='/web/%s.gif' alt='%s' />", sortAscending ? "up" : "down", !sortAscending ? "^" : "v");
+          img = String.format("&nbsp;<img width='10px' height='10px' src='/web/%s.gif' alt='%s' />",
+              sortAscending ? "up" : "down", !sortAscending ? "^" : "v");
         col.setTitle(String.format("<a href='%s'>%s%s</a>", url, title, img));
       }
       String legend = col.getLegend();
       if (showLegend && legend != null && !legend.isEmpty())
-        sb.append("<dt class='smalltext'><b>").append(title.replace("<br />", "&nbsp;")).append("</b><dd>").append(legend).append("</dd></dt>\n");
+        sb.append("<dt class='smalltext'><b>").append(title.replace("<br />", "&nbsp;"))
+            .append("</b><dd>").append(legend).append("</dd></dt>\n");
     }
     if (showLegend && numLegends > 0)
       sb.append("</dl></div>\n");
@@ -184,7 +192,8 @@ public class Table {
     boolean first = true;
     for (TableColumn<?> col : columns) {
       String cellValue = col.getTitle() == null ? "" : String.valueOf(col.getTitle()).trim();
-      sb.append("<th").append(first ? " class='firstcell'" : "").append(">").append(cellValue.isEmpty() ? "-" : cellValue).append("</th>");
+      sb.append("<th").append(first ? " class='firstcell'" : "").append(">")
+          .append(cellValue.isEmpty() ? "-" : cellValue).append("</th>");
       first = false;
     }
     sb.append("</tr>\n");
@@ -207,11 +216,13 @@ public class Table {
       highlight = !highlight;
     }
     if (rows.isEmpty())
-      sb.append("<tr><td class='center' colspan='").append(columns.size()).append("'><i>Empty</i></td></tr>\n");
+      sb.append("<tr><td class='center' colspan='").append(columns.size())
+          .append("'><i>Empty</i></td></tr>\n");
     sb.append("</table>\n</div>\n\n");
   }
 
-  private static void row(StringBuilder sb, boolean highlight, ArrayList<TableColumn<?>> columns, TableRow row) {
+  private static void row(StringBuilder sb, boolean highlight, ArrayList<TableColumn<?>> columns,
+      TableRow row) {
     sb.append(highlight ? "<tr class='highlight'>" : "<tr>");
     boolean first = true;
     for (int i = 0; i < row.size(); ++i) {

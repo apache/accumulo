@@ -19,8 +19,9 @@ package org.apache.accumulo.core.util.interpret;
 import org.apache.accumulo.core.util.format.HexFormatter;
 
 /**
- * As simple scan interpreter that converts hex to binary. IT supports translating the output of {@link HexFormatter} back to binary. The hex input can contain
- * dashes (because {@link HexFormatter} outputs dashes) which are ignored.
+ * As simple scan interpreter that converts hex to binary. IT supports translating the output of
+ * {@link HexFormatter} back to binary. The hex input can contain dashes (because
+ * {@link HexFormatter} outputs dashes) which are ignored.
  */
 public class HexScanInterpreter extends HexFormatter {
 

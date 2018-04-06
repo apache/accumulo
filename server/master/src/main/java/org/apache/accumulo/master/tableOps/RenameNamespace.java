@@ -59,7 +59,8 @@ public class RenameNamespace extends MasterRepo {
     try {
       Utils.checkNamespaceDoesNotExist(instance, newName, namespaceId, TableOperation.RENAME);
 
-      final String tap = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
+      final String tap = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId
+          + Constants.ZNAMESPACE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
         @Override
@@ -68,8 +69,8 @@ public class RenameNamespace extends MasterRepo {
           if (currentName.equals(newName))
             return null; // assume in this case the operation is running again, so we are done
           if (!currentName.equals(oldName)) {
-            throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME, TableOperationExceptionType.NAMESPACE_NOTFOUND,
-                "Name changed while processing");
+            throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
+                TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
           }
           return newName.getBytes();
         }
@@ -80,7 +81,8 @@ public class RenameNamespace extends MasterRepo {
       Utils.unreserveNamespace(namespaceId, id, true);
     }
 
-    LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace " + namespaceId + " " + oldName + " " + newName);
+    LoggerFactory.getLogger(RenameNamespace.class)
+        .debug("Renamed namespace " + namespaceId + " " + oldName + " " + newName);
 
     return null;
   }

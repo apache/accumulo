@@ -58,7 +58,8 @@ public class TestProxyTableOperations {
     prop.setProperty("useMockInstance", "true");
     prop.put("tokenClass", PasswordToken.class.getName());
 
-    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port), new TCompactProtocol.Factory(), prop).server;
+    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
+        new TCompactProtocol.Factory(), prop).server;
     while (!proxy.isServing()) {
       Thread.sleep(500);
     }
@@ -109,7 +110,8 @@ public class TestProxyTableOperations {
     splits.add(ByteBuffer.wrap("z".getBytes()));
     tpc.proxy().addSplits(userpass, testtable, splits);
 
-    tpc.proxy().mergeTablets(userpass, testtable, ByteBuffer.wrap("b".getBytes()), ByteBuffer.wrap("d".getBytes()));
+    tpc.proxy().mergeTablets(userpass, testtable, ByteBuffer.wrap("b".getBytes()),
+        ByteBuffer.wrap("d".getBytes()));
 
     splits.remove(ByteBuffer.wrap("c".getBytes()));
 
@@ -173,13 +175,16 @@ public class TestProxyTableOperations {
   @Test
   public void tableProperties() throws TException {
     tpc.proxy().setTableProperty(userpass, testtable, "test.property1", "wharrrgarbl");
-    assertEquals(tpc.proxy().getTableProperties(userpass, testtable).get("test.property1"), "wharrrgarbl");
+    assertEquals(tpc.proxy().getTableProperties(userpass, testtable).get("test.property1"),
+        "wharrrgarbl");
     tpc.proxy().removeTableProperty(userpass, testtable, "test.property1");
     assertNull(tpc.proxy().getTableProperties(userpass, testtable).get("test.property1"));
   }
 
-  private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row, String cf, String cq, String value) {
-    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
+  private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row,
+      String cf, String cq, String value) {
+    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()),
+        ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
@@ -192,10 +197,13 @@ public class TestProxyTableOperations {
     }
     tpc.proxy().updateAndFlush(userpass, testtable, mutations);
 
-    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
+    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true),
+        ByteBuffer.wrap("9".getBytes()));
 
-    tpc.proxy().deleteRows(userpass, testtable, ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
-    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
+    tpc.proxy().deleteRows(userpass, testtable, ByteBuffer.wrap("51".getBytes()),
+        ByteBuffer.wrap("99".getBytes()));
+    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true),
+        ByteBuffer.wrap("5".getBytes()));
   }
 
 }

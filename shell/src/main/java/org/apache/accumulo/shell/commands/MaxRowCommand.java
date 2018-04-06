@@ -30,7 +30,8 @@ public class MaxRowCommand extends ScanCommand {
   private static final Logger log = LoggerFactory.getLogger(MaxRowCommand.class);
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
@@ -41,8 +42,8 @@ public class MaxRowCommand extends ScanCommand {
     final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
 
     try {
-      final Text max = shellState.getConnector().tableOperations()
-          .getMaxRow(tableName, auths, startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
+      final Text max = shellState.getConnector().tableOperations().getMaxRow(tableName, auths,
+          startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
       if (max != null) {
         shellState.getReader().println(max.toString());
       }

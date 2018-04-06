@@ -37,7 +37,8 @@ public class ClientContextTest {
   private static boolean isCredentialProviderAvailable = false;
   private static final String keystoreName = "/site-cfg.jceks";
 
-  // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret', 'general.rpc.timeout'=>'timeout'}
+  // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
+  // 'general.rpc.timeout'=>'timeout'}
   private static File keystore;
 
   @BeforeClass
@@ -69,7 +70,8 @@ public class ClientContextTest {
     }
 
     String absPath = getKeyStoreUrl(keystore);
-    ClientConfiguration clientConf = ClientConfiguration.create().with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    ClientConfiguration clientConf = ClientConfiguration.create()
+        .with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
@@ -84,7 +86,8 @@ public class ClientContextTest {
     ClientConfiguration clientConf = ClientConfiguration.create();
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
-    Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(), accClientConf.get(Property.INSTANCE_SECRET));
+    Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
+        accClientConf.get(Property.INSTANCE_SECRET));
   }
 
   @Test
@@ -94,7 +97,8 @@ public class ClientContextTest {
     }
 
     String absPath = getKeyStoreUrl(keystore);
-    ClientConfiguration clientConf = ClientConfiguration.create().with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    ClientConfiguration clientConf = ClientConfiguration.create()
+        .with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Map<String,String> props = new HashMap<>();
@@ -102,7 +106,8 @@ public class ClientContextTest {
     accClientConf.getProperties(props, all);
 
     // Only sensitive properties are added
-    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
+    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
+        props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
     // Only known properties are added
     Assert.assertFalse(props.containsKey("ignored.property"));
     Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));

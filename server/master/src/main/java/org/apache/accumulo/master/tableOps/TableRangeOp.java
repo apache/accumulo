@@ -52,7 +52,8 @@ public class TableRangeOp extends MasterRepo {
         + Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
   }
 
-  public TableRangeOp(MergeInfo.Operation op, String namespaceId, String tableId, Text startRow, Text endRow) throws AcceptableThriftTableOperationException {
+  public TableRangeOp(MergeInfo.Operation op, String namespaceId, String tableId, Text startRow,
+      Text endRow) throws AcceptableThriftTableOperationException {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     this.startRow = TextUtil.getBytes(startRow);
@@ -64,7 +65,8 @@ public class TableRangeOp extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
 
     if (RootTable.ID.equals(tableId) && Operation.MERGE.equals(op)) {
-      log.warn("Attempt to merge tablets for " + RootTable.NAME + " does nothing. It is not splittable.");
+      log.warn("Attempt to merge tablets for " + RootTable.NAME
+          + " does nothing. It is not splittable.");
     }
 
     Text start = startRow.length == 0 ? null : new Text(startRow);
@@ -72,8 +74,8 @@ public class TableRangeOp extends MasterRepo {
 
     if (start != null && end != null)
       if (start.compareTo(end) >= 0)
-        throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.MERGE, TableOperationExceptionType.BAD_RANGE,
-            "start row must be less than end row");
+        throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.MERGE,
+            TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
 
     env.mustBeOnline(tableId);
 

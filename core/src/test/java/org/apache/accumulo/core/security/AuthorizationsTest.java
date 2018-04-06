@@ -78,7 +78,8 @@ public class AuthorizationsTest {
     assertEquals(expected.serialize(), actual.serialize());
   }
 
-  // This should throw ReadOnlyBufferException, but THRIFT-883 requires that the ByteBuffers themselves not be read-only
+  // This should throw ReadOnlyBufferException, but THRIFT-883 requires that the ByteBuffers
+  // themselves not be read-only
   // @Test(expected = ReadOnlyBufferException.class)
   @Test
   public void testReadOnlyByteBuffer() {

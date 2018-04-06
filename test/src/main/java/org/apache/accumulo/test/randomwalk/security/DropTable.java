@@ -54,15 +54,16 @@ public class DropTable extends Test {
     String namespaceName = WalkingSecurity.get(state, env).getNamespaceName();
 
     boolean exists = WalkingSecurity.get(state, env).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state, env).canDeleteTable(new Credentials(principal, token).toThrift(env.getInstance()), tableName,
-        namespaceName);
+    boolean hasPermission = WalkingSecurity.get(state, env).canDeleteTable(
+        new Credentials(principal, token).toThrift(env.getInstance()), tableName, namespaceName);
 
     try {
       conn.tableOperations().delete(tableName);
     } catch (AccumuloSecurityException ae) {
       if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
         if (hasPermission)
-          throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+          throw new AccumuloException("Got a security exception when I should have had permission.",
+              ae);
         else {
           // Drop anyway for sake of state
           env.getConnector().tableOperations().delete(tableName);
@@ -76,7 +77,8 @@ public class DropTable extends Test {
       throw new AccumuloException("Got unexpected ae error code", ae);
     } catch (TableNotFoundException tnfe) {
       if (exists)
-        throw new TableExistsException(null, tableName, "Got a TableNotFOundException but it should have existed", tnfe);
+        throw new TableExistsException(null, tableName,
+            "Got a TableNotFOundException but it should have existed", tnfe);
       else
         return;
     }

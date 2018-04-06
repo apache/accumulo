@@ -42,7 +42,9 @@ public class SortedKeyIterator extends WrappingIterator implements OptionDescrib
 
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions("keyset", SortedKeyIterator.class.getSimpleName() + " filters out values, but leaves keys intact", null, null);
+    return new IteratorOptions("keyset",
+        SortedKeyIterator.class.getSimpleName() + " filters out values, but leaves keys intact",
+        null, null);
   }
 
   @Override

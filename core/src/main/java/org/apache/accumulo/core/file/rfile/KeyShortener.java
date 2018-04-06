@@ -89,8 +89,8 @@ public class KeyShortener {
   }
 
   /*
-   * This entire class supports an optional optimization. This code does a sanity check to ensure the optimization code did what was intended, doing a noop if
-   * there is a bug.
+   * This entire class supports an optional optimization. This code does a sanity check to ensure
+   * the optimization code did what was intended, doing a noop if there is a bug.
    */
   @VisibleForTesting
   static Key sanityCheck(Key prev, Key current, Key shortened) {
@@ -108,10 +108,12 @@ public class KeyShortener {
   }
 
   /*
-   * Find a key K where prev < K < current AND K is shorter. If can not find a K that meets criteria, then returns prev.
+   * Find a key K where prev < K < current AND K is shorter. If can not find a K that meets
+   * criteria, then returns prev.
    */
   public static Key shorten(Key prev, Key current) {
-    Preconditions.checkArgument(prev.compareTo(current) <= 0, "Expected key less than or equal. " + prev + " > " + current);
+    Preconditions.checkArgument(prev.compareTo(current) <= 0,
+        "Expected key less than or equal. " + prev + " > " + current);
 
     if (prev.getRowData().compareTo(current.getRowData()) < 0) {
       ByteSequence shortenedRow = shorten(prev.getRowData(), current.getRowData());
@@ -120,17 +122,21 @@ public class KeyShortener {
       }
       return sanityCheck(prev, current, new Key(shortenedRow.toArray(), EMPTY, EMPTY, EMPTY, 0));
     } else if (prev.getColumnFamilyData().compareTo(current.getColumnFamilyData()) < 0) {
-      ByteSequence shortenedFam = shorten(prev.getColumnFamilyData(), current.getColumnFamilyData());
+      ByteSequence shortenedFam = shorten(prev.getColumnFamilyData(),
+          current.getColumnFamilyData());
       if (shortenedFam == null) {
         return prev;
       }
-      return sanityCheck(prev, current, new Key(prev.getRowData().toArray(), shortenedFam.toArray(), EMPTY, EMPTY, 0));
+      return sanityCheck(prev, current,
+          new Key(prev.getRowData().toArray(), shortenedFam.toArray(), EMPTY, EMPTY, 0));
     } else if (prev.getColumnQualifierData().compareTo(current.getColumnQualifierData()) < 0) {
-      ByteSequence shortenedQual = shorten(prev.getColumnQualifierData(), current.getColumnQualifierData());
+      ByteSequence shortenedQual = shorten(prev.getColumnQualifierData(),
+          current.getColumnQualifierData());
       if (shortenedQual == null) {
         return prev;
       }
-      return sanityCheck(prev, current, new Key(prev.getRowData().toArray(), prev.getColumnFamilyData().toArray(), shortenedQual.toArray(), EMPTY, 0));
+      return sanityCheck(prev, current, new Key(prev.getRowData().toArray(),
+          prev.getColumnFamilyData().toArray(), shortenedQual.toArray(), EMPTY, 0));
     } else {
       return prev;
     }

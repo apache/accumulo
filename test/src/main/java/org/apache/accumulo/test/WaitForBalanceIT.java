@@ -78,9 +78,11 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
       String location = null;
       for (Entry<Key,Value> entry : s) {
         Key key = entry.getKey();
-        if (key.getColumnFamily().equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
+        if (key.getColumnFamily()
+            .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
           location = key.getColumnQualifier().toString();
-        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN
+            .hasColumns(key)) {
           if (location == null) {
             offline++;
           } else {
@@ -108,7 +110,8 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
     int tablesCount = c.tableOperations().list().size();
     for (Entry<String,Integer> hostCount : counts.entrySet()) {
       if (Math.abs(average - hostCount.getValue()) > tablesCount) {
-        System.out.println("Average " + average + " count " + hostCount.getKey() + ": " + hostCount.getValue());
+        System.out.println(
+            "Average " + average + " count " + hostCount.getKey() + ": " + hostCount.getValue());
         return false;
       }
     }

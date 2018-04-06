@@ -17,7 +17,7 @@
 package org.apache.accumulo.test.categories;
 
 /**
- * Interface to be used with JUnit Category annotation to represent the integration test is part of a minimal set of tests which should pass for basic
- * functionality of Accumulo.
+ * Interface to be used with JUnit Category annotation to represent the integration test is part of
+ * a minimal set of tests which should pass for basic functionality of Accumulo.
  */
 public interface SunnyDayTests {}

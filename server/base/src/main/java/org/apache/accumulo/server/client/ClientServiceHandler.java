@@ -80,7 +80,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   private final SecurityOperation security;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
-  public ClientServiceHandler(AccumuloServerContext context, TransactionWatcher transactionWatcher, VolumeManager fs) {
+  public ClientServiceHandler(AccumuloServerContext context, TransactionWatcher transactionWatcher,
+      VolumeManager fs) {
     this.context = context;
     this.instance = context.getInstance();
     this.transactionWatcher = transactionWatcher;
@@ -88,7 +89,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     this.security = AuditedSecurityOperation.getInstance(context);
   }
 
-  public static String checkTableId(Instance instance, String tableName, TableOperation operation) throws ThriftTableOperationException {
+  public static String checkTableId(Instance instance, String tableName, TableOperation operation)
+      throws ThriftTableOperationException {
     TableOperationExceptionType reason = null;
     try {
       return Tables._getTableId(instance, tableName);
@@ -100,14 +102,17 @@ public class ClientServiceHandler implements ClientService.Iface {
     throw new ThriftTableOperationException(null, tableName, operation, reason, null);
   }
 
-  public static String checkNamespaceId(Instance instance, String namespace, TableOperation operation) throws ThriftTableOperationException {
+  public static String checkNamespaceId(Instance instance, String namespace,
+      TableOperation operation) throws ThriftTableOperationException {
     String namespaceId = Namespaces.getNameToIdMap(instance).get(namespace);
     if (namespaceId == null) {
-      // maybe the namespace exists, but the cache was not updated yet... so try to clear the cache and check again
+      // maybe the namespace exists, but the cache was not updated yet... so try to clear the cache
+      // and check again
       Tables.clearCache(instance);
       namespaceId = Namespaces.getNameToIdMap(instance).get(namespace);
       if (namespaceId == null)
-        throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
+        throw new ThriftTableOperationException(null, namespace, operation,
+            TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
     }
     return namespaceId;
   }
@@ -134,7 +139,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean authenticate(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+  public boolean authenticate(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
     try {
       return security.authenticateUser(credentials, credentials);
     } catch (ThriftSecurityException e) {
@@ -144,7 +150,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean authenticateUser(TInfo tinfo, TCredentials credentials, TCredentials toAuth) throws ThriftSecurityException {
+  public boolean authenticateUser(TInfo tinfo, TCredentials credentials, TCredentials toAuth)
+      throws ThriftSecurityException {
     try {
       return security.authenticateUser(credentials, toAuth);
     } catch (ThriftSecurityException e) {
@@ -154,19 +161,22 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void changeAuthorizations(TInfo tinfo, TCredentials credentials, String user, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public void changeAuthorizations(TInfo tinfo, TCredentials credentials, String user,
+      List<ByteBuffer> authorizations) throws ThriftSecurityException {
     security.changeAuthorizations(credentials, user, new Authorizations(authorizations));
   }
 
   @Override
-  public void changeLocalUserPassword(TInfo tinfo, TCredentials credentials, String principal, ByteBuffer password) throws ThriftSecurityException {
+  public void changeLocalUserPassword(TInfo tinfo, TCredentials credentials, String principal,
+      ByteBuffer password) throws ThriftSecurityException {
     PasswordToken token = new PasswordToken(password);
     Credentials toChange = new Credentials(principal, token);
     security.changePassword(credentials, toChange);
   }
 
   @Override
-  public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal, ByteBuffer password) throws ThriftSecurityException {
+  public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal,
+      ByteBuffer password) throws ThriftSecurityException {
     AuthenticationToken token;
     if (null != context.getSaslParams()) {
       try {
@@ -183,22 +193,27 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void dropLocalUser(TInfo tinfo, TCredentials credentials, String user) throws ThriftSecurityException {
+  public void dropLocalUser(TInfo tinfo, TCredentials credentials, String user)
+      throws ThriftSecurityException {
     security.dropUser(credentials, user);
   }
 
   @Override
-  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, TCredentials credentials, String user) throws ThriftSecurityException {
+  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, TCredentials credentials, String user)
+      throws ThriftSecurityException {
     return security.getUserAuthorizations(credentials, user).getAuthorizationsBB();
   }
 
   @Override
-  public void grantSystemPermission(TInfo tinfo, TCredentials credentials, String user, byte permission) throws ThriftSecurityException {
-    security.grantSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
+  public void grantSystemPermission(TInfo tinfo, TCredentials credentials, String user,
+      byte permission) throws ThriftSecurityException {
+    security.grantSystemPermission(credentials, user,
+        SystemPermission.getPermissionById(permission));
   }
 
   @Override
-  public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws TException {
+  public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user,
+      String tableName, byte permission) throws TException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
     String namespaceId;
     try {
@@ -207,23 +222,28 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new TException(e);
     }
 
-    security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
+    security.grantTablePermission(credentials, user, tableId,
+        TablePermission.getPermissionById(permission), namespaceId);
   }
 
   @Override
-  public void grantNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte permission) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public void grantNamespacePermission(TInfo tinfo, TCredentials credentials, String user,
+      String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException {
     String namespaceId = checkNamespaceId(instance, ns, TableOperation.PERMISSION);
-    security.grantNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(permission));
+    security.grantNamespacePermission(credentials, user, namespaceId,
+        NamespacePermission.getPermissionById(permission));
   }
 
   @Override
-  public void revokeSystemPermission(TInfo tinfo, TCredentials credentials, String user, byte permission) throws ThriftSecurityException {
-    security.revokeSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
+  public void revokeSystemPermission(TInfo tinfo, TCredentials credentials, String user,
+      byte permission) throws ThriftSecurityException {
+    security.revokeSystemPermission(credentials, user,
+        SystemPermission.getPermissionById(permission));
   }
 
   @Override
-  public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws TException {
+  public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user,
+      String tableName, byte permission) throws TException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
     String namespaceId;
     try {
@@ -232,41 +252,50 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new TException(e);
     }
 
-    security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
+    security.revokeTablePermission(credentials, user, tableId,
+        TablePermission.getPermissionById(permission), namespaceId);
   }
 
   @Override
-  public boolean hasSystemPermission(TInfo tinfo, TCredentials credentials, String user, byte sysPerm) throws ThriftSecurityException {
-    return security.hasSystemPermission(credentials, user, SystemPermission.getPermissionById(sysPerm));
+  public boolean hasSystemPermission(TInfo tinfo, TCredentials credentials, String user,
+      byte sysPerm) throws ThriftSecurityException {
+    return security.hasSystemPermission(credentials, user,
+        SystemPermission.getPermissionById(sysPerm));
   }
 
   @Override
-  public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String user,
+      String tableName, byte tblPerm)
+      throws ThriftSecurityException, ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
-    return security.hasTablePermission(credentials, user, tableId, TablePermission.getPermissionById(tblPerm));
+    return security.hasTablePermission(credentials, user, tableId,
+        TablePermission.getPermissionById(tblPerm));
   }
 
   @Override
-  public boolean hasNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte perm) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public boolean hasNamespacePermission(TInfo tinfo, TCredentials credentials, String user,
+      String ns, byte perm) throws ThriftSecurityException, ThriftTableOperationException {
     String namespaceId = checkNamespaceId(instance, ns, TableOperation.PERMISSION);
-    return security.hasNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(perm));
+    return security.hasNamespacePermission(credentials, user, namespaceId,
+        NamespacePermission.getPermissionById(perm));
   }
 
   @Override
-  public void revokeNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte permission) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public void revokeNamespacePermission(TInfo tinfo, TCredentials credentials, String user,
+      String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException {
     String namespaceId = checkNamespaceId(instance, ns, TableOperation.PERMISSION);
-    security.revokeNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(permission));
+    security.revokeNamespacePermission(credentials, user, namespaceId,
+        NamespacePermission.getPermissionById(permission));
   }
 
   @Override
-  public Set<String> listLocalUsers(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+  public Set<String> listLocalUsers(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
     return security.listUsers(credentials);
   }
 
-  private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf) throws TException {
+  private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf)
+      throws TException {
     security.authenticateUser(credentials, credentials);
     conf.invalidateCache();
 
@@ -280,7 +309,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials, ConfigurationType type) throws TException {
+  public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
+      ConfigurationType type) throws TException {
     ServerConfigurationFactory factory = context.getServerConfigurationFactory();
     switch (type) {
       case CURRENT:
@@ -294,31 +324,36 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials, String tableName) throws TException, ThriftTableOperationException {
+  public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
+      String tableName) throws TException, ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, null);
-    AccumuloConfiguration config = context.getServerConfigurationFactory().getTableConfiguration(tableId);
+    AccumuloConfiguration config = context.getServerConfigurationFactory()
+        .getTableConfiguration(tableId);
     return conf(credentials, config);
   }
 
   @Override
-  public List<String> bulkImportFiles(TInfo tinfo, final TCredentials credentials, final long tid, final String tableId, final List<String> files,
-      final String errorDir, final boolean setTime) throws ThriftSecurityException, ThriftTableOperationException, TException {
+  public List<String> bulkImportFiles(TInfo tinfo, final TCredentials credentials, final long tid,
+      final String tableId, final List<String> files, final String errorDir, final boolean setTime)
+      throws ThriftSecurityException, ThriftTableOperationException, TException {
     try {
       if (!security.canPerformSystemActions(credentials))
-        throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        throw new AccumuloSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED);
       bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
       log.debug("Got request to bulk import files to table(" + tableId + "): " + files);
-      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
-        @Override
-        public List<String> call() throws Exception {
-          bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
-          try {
-            return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
-          } finally {
-            bulkImportStatus.removeBulkImportStatus(files);
-          }
-        }
-      });
+      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid,
+          new Callable<List<String>>() {
+            @Override
+            public List<String> call() throws Exception {
+              bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
+              try {
+                return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
+              } finally {
+                bulkImportStatus.removeBulkImportStatus(files);
+              }
+            }
+          });
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (Exception ex) {
@@ -333,7 +368,8 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
-  public boolean checkClass(TInfo tinfo, TCredentials credentials, String className, String interfaceMatch) throws TException {
+  public boolean checkClass(TInfo tinfo, TCredentials credentials, String className,
+      String interfaceMatch) throws TException {
     security.authenticateUser(credentials, credentials);
 
     ClassLoader loader = getClass().getClassLoader();
@@ -359,8 +395,9 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean checkTableClass(TInfo tinfo, TCredentials credentials, String tableName, String className, String interfaceMatch) throws TException,
-      ThriftTableOperationException, ThriftSecurityException {
+  public boolean checkTableClass(TInfo tinfo, TCredentials credentials, String tableName,
+      String className, String interfaceMatch)
+      throws TException, ThriftTableOperationException, ThriftSecurityException {
 
     security.authenticateUser(credentials, credentials);
 
@@ -371,7 +408,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfigurationFactory().getTableConfiguration(tableId);
+      AccumuloConfiguration conf = context.getServerConfigurationFactory()
+          .getTableConfiguration(tableId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 
@@ -393,8 +431,9 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean checkNamespaceClass(TInfo tinfo, TCredentials credentials, String ns, String className, String interfaceMatch) throws TException,
-      ThriftTableOperationException, ThriftSecurityException {
+  public boolean checkNamespaceClass(TInfo tinfo, TCredentials credentials, String ns,
+      String className, String interfaceMatch)
+      throws TException, ThriftTableOperationException, ThriftSecurityException {
 
     security.authenticateUser(credentials, credentials);
 
@@ -405,7 +444,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfigurationFactory().getNamespaceConfiguration(namespaceId);
+      AccumuloConfiguration conf = context.getServerConfigurationFactory()
+          .getNamespaceConfiguration(namespaceId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 
@@ -427,7 +467,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
+  public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials)
+      throws ThriftTableOperationException, ThriftSecurityException, TException {
     try {
       HashSet<String> tableIds = new HashSet<>();
 
@@ -437,11 +478,13 @@ public class ClientServiceHandler implements ClientService.Iface {
         tableIds.add(tableId);
         String namespaceId = Tables.getNamespaceId(instance, tableId);
         if (!security.canScan(credentials, tableId, namespaceId))
-          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          throw new ThriftSecurityException(credentials.getPrincipal(),
+              SecurityErrorCode.PERMISSION_DENIED);
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(context.getServerConfigurationFactory().getConfiguration(), tableIds, fs,
+      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(
+          context.getServerConfigurationFactory().getConfiguration(), tableIds, fs,
           context.getConnector());
       List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
@@ -461,15 +504,18 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials, String ns) throws ThriftTableOperationException, TException {
+  public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials,
+      String ns) throws ThriftTableOperationException, TException {
     String namespaceId;
     try {
       namespaceId = Namespaces.getNamespaceId(instance, ns);
     } catch (NamespaceNotFoundException e) {
       String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null, TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
+      throw new ThriftTableOperationException(null, ns, null,
+          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    AccumuloConfiguration config = context.getServerConfigurationFactory().getNamespaceConfiguration(namespaceId);
+    AccumuloConfiguration config = context.getServerConfigurationFactory()
+        .getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
   }
 

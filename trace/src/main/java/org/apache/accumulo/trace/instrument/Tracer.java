@@ -17,9 +17,11 @@
 package org.apache.accumulo.trace.instrument;
 
 /**
- * ACCUMULO-3738: Temporary fix to keep Hive working with all versions of Accumulo without extra burden on users. Hive referenced this class in the build-up of
- * the classpath used to compute the answer to a query. Without this class, the accumulo-trace jar would not make it onto the classpath which would break the
- * query. Whenever Hive can get this patch into their build and a sufficient number of releases pass, we can remove this class.
+ * ACCUMULO-3738: Temporary fix to keep Hive working with all versions of Accumulo without extra
+ * burden on users. Hive referenced this class in the build-up of the classpath used to compute the
+ * answer to a query. Without this class, the accumulo-trace jar would not make it onto the
+ * classpath which would break the query. Whenever Hive can get this patch into their build and a
+ * sufficient number of releases pass, we can remove this class.
  *
  * Accumulo should not reference this class at all. It is solely here for Hive integration.
  */

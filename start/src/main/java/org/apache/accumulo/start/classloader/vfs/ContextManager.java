@@ -41,7 +41,8 @@ public class ContextManager {
         return null;
 
       if (loader == null) {
-        loader = new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent, cconfig.preDelegation);
+        loader = new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent,
+            cconfig.preDelegation);
       }
 
       return loader.getClassLoader();
@@ -145,7 +146,8 @@ public class ContextManager {
     Context contextToClose = null;
 
     synchronized (this) {
-      // only manipulate internal data structs in this sync block... avoid creating or closing classloader, reading config, etc... basically avoid operations
+      // only manipulate internal data structs in this sync block... avoid creating or closing
+      // classloader, reading config, etc... basically avoid operations
       // that may block
       context = contexts.get(contextName);
 
@@ -172,7 +174,8 @@ public class ContextManager {
 
   }
 
-  public <U> Class<? extends U> loadClass(String context, String classname, Class<U> extension) throws ClassNotFoundException {
+  public <U> Class<? extends U> loadClass(String context, String classname, Class<U> extension)
+      throws ClassNotFoundException {
     try {
       return getClassLoader(context).loadClass(classname).asSubclass(extension);
     } catch (IOException e) {

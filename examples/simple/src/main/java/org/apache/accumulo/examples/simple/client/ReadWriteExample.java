@@ -64,7 +64,9 @@ public class ReadWriteExample {
     boolean readEntries = false;
     @Parameter(names = {"-d", "--delete"}, description = "delete entries after any creates")
     boolean deleteEntries = false;
-    @Parameter(names = {"--durability"}, description = "durability used for writes (none, log, flush or sync)", converter = DurabilityConverter.class)
+    @Parameter(names = {"--durability"},
+        description = "durability used for writes (none, log, flush or sync)",
+        converter = DurabilityConverter.class)
     Durability durability = Durability.DEFAULT;
 
     public Opts() {
@@ -80,11 +82,13 @@ public class ReadWriteExample {
     conn = opts.getConnector();
 
     // add the authorizations to the user
-    Authorizations userAuthorizations = conn.securityOperations().getUserAuthorizations(opts.getPrincipal());
+    Authorizations userAuthorizations = conn.securityOperations()
+        .getUserAuthorizations(opts.getPrincipal());
     ByteArraySet auths = new ByteArraySet(userAuthorizations.getAuthorizations());
     auths.addAll(opts.auths.getAuthorizations());
     if (!auths.isEmpty())
-      conn.securityOperations().changeUserAuthorizations(opts.getPrincipal(), new Authorizations(auths));
+      conn.securityOperations().changeUserAuthorizations(opts.getPrincipal(),
+          new Authorizations(auths));
 
     // create table
     if (opts.createtable) {

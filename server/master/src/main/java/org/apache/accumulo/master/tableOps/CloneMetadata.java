@@ -37,18 +37,22 @@ class CloneMetadata extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    LoggerFactory.getLogger(CloneMetadata.class).info(
-        String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName, cloneInfo.tableId, cloneInfo.srcTableId));
+    LoggerFactory.getLogger(CloneMetadata.class)
+        .info(String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName,
+            cloneInfo.tableId, cloneInfo.srcTableId));
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment, environment.getMasterLock());
-    MetadataTableUtil.cloneTable(environment, cloneInfo.srcTableId, cloneInfo.tableId, environment.getFileSystem());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment,
+        environment.getMasterLock());
+    MetadataTableUtil.cloneTable(environment, cloneInfo.srcTableId, cloneInfo.tableId,
+        environment.getFileSystem());
     return new FinishCloneTable(cloneInfo);
   }
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment, environment.getMasterLock());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment,
+        environment.getMasterLock());
   }
 
 }

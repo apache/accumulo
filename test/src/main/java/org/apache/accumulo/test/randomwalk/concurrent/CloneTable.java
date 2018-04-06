@@ -48,7 +48,8 @@ public class CloneTable extends Test {
 
     try {
       log.debug("Cloning table " + srcTableName + " " + newTableName + " " + flush);
-      conn.tableOperations().clone(srcTableName, newTableName, flush, new HashMap<String,String>(), new HashSet<String>());
+      conn.tableOperations().clone(srcTableName, newTableName, flush, new HashMap<String,String>(),
+          new HashSet<String>());
     } catch (TableExistsException e) {
       log.debug("Clone " + srcTableName + " failed, " + newTableName + " exists");
     } catch (TableNotFoundException e) {
@@ -58,7 +59,8 @@ public class CloneTable extends Test {
     } catch (AccumuloException e) {
       Throwable cause = e.getCause();
       if (cause != null && cause instanceof NamespaceNotFoundException)
-        log.debug("Clone: " + srcTableName + " to " + newTableName + " failed, namespace not found");
+        log.debug(
+            "Clone: " + srcTableName + " to " + newTableName + " failed, namespace not found");
       else
         throw e;
     }

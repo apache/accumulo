@@ -33,7 +33,8 @@ public interface ABlockReader extends DataInput {
   void close() throws IOException;
 
   /**
-   * An indexable block supports seeking, getting a position, and associating an arbitrary index with the block
+   * An indexable block supports seeking, getting a position, and associating an arbitrary index
+   * with the block
    *
    * @return true, if the block is indexable; otherwise false.
    */

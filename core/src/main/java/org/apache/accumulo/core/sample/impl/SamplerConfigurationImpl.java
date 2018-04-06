@@ -83,7 +83,8 @@ public class SamplerConfigurationImpl implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    // The Writable serialization methods for this class are called by RFile and therefore must be very stable. An alternative way to serialize this class is to
+    // The Writable serialization methods for this class are called by RFile and therefore must be
+    // very stable. An alternative way to serialize this class is to
     // use Thrift. That was not used here inorder to avoid making RFile depend on Thrift.
 
     // versioning info
@@ -130,7 +131,8 @@ public class SamplerConfigurationImpl implements Writable {
     ArrayList<Pair<String,String>> props = new ArrayList<>();
 
     for (Entry<String,String> entry : options.entrySet()) {
-      props.add(new Pair<>(Property.TABLE_SAMPLER_OPTS.getKey() + entry.getKey(), entry.getValue()));
+      props
+          .add(new Pair<>(Property.TABLE_SAMPLER_OPTS.getKey() + entry.getKey(), entry.getValue()));
     }
 
     // intentionally added last, so its set last
@@ -171,20 +173,24 @@ public class SamplerConfigurationImpl implements Writable {
     return className + " " + options;
   }
 
-  public static void checkDisjoint(Map<String,String> props, SamplerConfiguration samplerConfiguration) {
+  public static void checkDisjoint(Map<String,String> props,
+      SamplerConfiguration samplerConfiguration) {
     if (props.isEmpty() || samplerConfiguration == null) {
       return;
     }
 
-    Map<String,String> sampleProps = new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
+    Map<String,String> sampleProps = new SamplerConfigurationImpl(samplerConfiguration)
+        .toTablePropertiesMap();
 
-    checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()), "Properties and derived sampler properties are not disjoint");
+    checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()),
+        "Properties and derived sampler properties are not disjoint");
   }
 
   public static TSamplerConfiguration toThrift(SamplerConfiguration samplerConfig) {
     if (samplerConfig == null)
       return null;
-    return new TSamplerConfiguration(samplerConfig.getSamplerClassName(), samplerConfig.getOptions());
+    return new TSamplerConfiguration(samplerConfig.getSamplerClassName(),
+        samplerConfig.getOptions());
   }
 
   public static SamplerConfiguration fromThrift(TSamplerConfiguration tsc) {

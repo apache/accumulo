@@ -100,7 +100,8 @@ public class ColumnSet {
       int b = (0xff & t.getBytes()[i]);
 
       // very inefficient code
-      if ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_' || b == '-') {
+      if ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
+          || b == '-') {
         sb.append((char) b);
       } else {
         sb.append('%');
@@ -111,7 +112,8 @@ public class ColumnSet {
 
   public static boolean isValidEncoding(String enc) {
     for (char c : enc.toCharArray()) {
-      boolean validChar = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == ':' || c == '%';
+      boolean validChar = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+          || c == '_' || c == '-' || c == ':' || c == '%';
       if (!validChar)
         return false;
     }

@@ -71,9 +71,12 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       bw = ReplicationTable.getBatchWriter(conn);
 
       if (bs == null || bw == null)
-        throw new AssertionError("Inconceivable; an exception should have been thrown, but 'bs' or 'bw' was null instead");
+        throw new AssertionError(
+            "Inconceivable; an exception should have been thrown, but 'bs' or 'bw' was null instead");
     } catch (ReplicationTableOfflineException e) {
-      log.debug("Not attempting to remove complete replication records as the table ({}) isn't yet online", ReplicationTable.NAME);
+      log.debug(
+          "Not attempting to remove complete replication records as the table ({}) isn't yet online",
+          ReplicationTable.NAME);
       return;
     }
 
@@ -103,12 +106,14 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       sw.stop();
     }
 
-    log.info("Removed {} complete replication entries from the table {}", recordsRemoved, ReplicationTable.NAME);
+    log.info("Removed {} complete replication entries from the table {}", recordsRemoved,
+        ReplicationTable.NAME);
   }
 
   /**
-   * Removes {@link Status} records read from the given {@code bs} and writes a delete, using the given {@code bw}, when that {@link Status} is fully replicated
-   * and closed, as defined by {@link StatusUtil#isSafeForRemoval(org.apache.accumulo.server.replication.proto.Replication.Status)}.
+   * Removes {@link Status} records read from the given {@code bs} and writes a delete, using the
+   * given {@code bw}, when that {@link Status} is fully replicated and closed, as defined by
+   * {@link StatusUtil#isSafeForRemoval(org.apache.accumulo.server.replication.proto.Replication.Status)}.
    *
    * @param conn
    *          A Connector
@@ -141,7 +146,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     return recordsRemoved;
   }
 
-  protected long removeRowIfNecessary(BatchWriter bw, SortedMap<Key,Value> columns, Text row, Text colf, Text colq) {
+  protected long removeRowIfNecessary(BatchWriter bw, SortedMap<Key,Value> columns, Text row,
+      Text colf, Text colq) {
     long recordsRemoved = 0;
     if (columns.isEmpty()) {
       return recordsRemoved;
@@ -154,7 +160,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       try {
         status = Status.parseFrom(entry.getValue().get());
       } catch (InvalidProtocolBufferException e) {
-        log.error("Encountered unparsable protobuf for key: {}", entry.getKey().toStringNoTruncate());
+        log.error("Encountered unparsable protobuf for key: {}",
+            entry.getKey().toStringNoTruncate());
         continue;
       }
 
@@ -186,7 +193,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
         if (null == timeClosed) {
           tableToTimeCreated.put(tableId, status.getCreatedTime());
         } else if (timeClosed != status.getCreatedTime()) {
-          log.warn("Found multiple values for timeClosed for {}: {} and {}", row, timeClosed, status.getCreatedTime());
+          log.warn("Found multiple values for timeClosed for {}: {} and {}", row, timeClosed,
+              status.getCreatedTime());
         }
       }
 
@@ -196,7 +204,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     List<Mutation> mutations = new ArrayList<>();
     mutations.add(m);
     for (Entry<String,Long> entry : tableToTimeCreated.entrySet()) {
-      log.info("Removing order mutation for table {} at {} for {}", entry.getKey(), entry.getValue(), row.toString());
+      log.info("Removing order mutation for table {} at {} for {}", entry.getKey(),
+          entry.getValue(), row.toString());
       Mutation orderMutation = OrderSection.createMutation(row.toString(), entry.getValue());
       orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey()));
       mutations.add(orderMutation);
@@ -204,7 +213,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
     // Send the mutation deleting all the columns at once.
     // If we send them not as a single Mutation, we run the risk of having some of them be applied
-    // which would mean that we might accidentally re-replicate data. We want to get rid of them all at once
+    // which would mean that we might accidentally re-replicate data. We want to get rid of them all
+    // at once
     // or not at all.
     try {
       bw.addMutations(mutations);

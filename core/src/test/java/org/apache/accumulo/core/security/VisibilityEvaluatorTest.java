@@ -31,7 +31,8 @@ public class VisibilityEvaluatorTest {
 
   @Test
   public void testVisibilityEvaluator() throws VisibilityParseException {
-    VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations(ByteArraySet.fromStrings("one", "two", "three", "four")));
+    VisibilityEvaluator ct = new VisibilityEvaluator(
+        new Authorizations(ByteArraySet.fromStrings("one", "two", "three", "four")));
 
     // test for empty vis
     assertTrue(ct.evaluate(new ColumnVisibility(new byte[0])));
@@ -46,7 +47,8 @@ public class VisibilityEvaluatorTest {
     assertTrue("'and' and 'or' test", ct.evaluate(new ColumnVisibility("(one&two)|(foo&bar)")));
 
     // test for false negatives
-    for (String marking : new String[] {"one", "one|five", "five|one", "(one)", "(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar",
+    for (String marking : new String[] {"one", "one|five", "five|one", "(one)",
+        "(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar",
         "((one|foo)|bar)&two"}) {
       assertTrue(marking, ct.evaluate(new ColumnVisibility(marking)));
     }
@@ -67,7 +69,8 @@ public class VisibilityEvaluatorTest {
     }
 
     // test unexpected separator
-    for (String marking : new String[] {"&(five)", "|(five)", "(five)&", "five|", "a|(b)&", "(&five)", "(five|)"}) {
+    for (String marking : new String[] {"&(five)", "|(five)", "(five)&", "five|", "a|(b)&",
+        "(&five)", "(five|)"}) {
       try {
         ct.evaluate(new ColumnVisibility(marking));
         fail(marking + " failed to throw");
@@ -101,10 +104,13 @@ public class VisibilityEvaluatorTest {
 
   private void runQuoteTest(VisibilityEvaluator ct) throws VisibilityParseException {
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))));
-    assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A#C") + "|" + quote("A?C")).flatten())));
+    assertTrue(ct.evaluate(
+        new ColumnVisibility(new ColumnVisibility(quote("A#C") + "|" + quote("A?C")).flatten())));
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C"))));
-    assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C")).flatten())));
-    assertTrue(ct.evaluate(new ColumnVisibility("(" + quote("A\"C") + "|B)&(" + quote("A#C") + "|D)")));
+    assertTrue(ct.evaluate(
+        new ColumnVisibility(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C")).flatten())));
+    assertTrue(
+        ct.evaluate(new ColumnVisibility("(" + quote("A\"C") + "|B)&(" + quote("A#C") + "|D)")));
 
     assertFalse(ct.evaluate(new ColumnVisibility(quote("A#C") + "&B")));
 
@@ -126,9 +132,12 @@ public class VisibilityEvaluatorTest {
   public void testUnescape() {
     assertEquals("a\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\"b")).toString());
     assertEquals("a\\b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b")).toString());
-    assertEquals("a\\\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\\\\"b")).toString());
-    assertEquals("\\\"", VisibilityEvaluator.unescape(new ArrayByteSequence("\\\\\\\"")).toString());
-    assertEquals("a\\b\\c\\d", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b\\\\c\\\\d")).toString());
+    assertEquals("a\\\"b",
+        VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\\\\"b")).toString());
+    assertEquals("\\\"",
+        VisibilityEvaluator.unescape(new ArrayByteSequence("\\\\\\\"")).toString());
+    assertEquals("a\\b\\c\\d",
+        VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b\\\\c\\\\d")).toString());
 
     try {
       VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b"));
@@ -153,9 +162,11 @@ public class VisibilityEvaluatorTest {
 
     assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "|" + quote("四"))));
     assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&" + quote("四"))));
-    assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")")));
+    assertTrue(
+        ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")")));
     assertTrue(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"五十\")")));
-    assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")")));
+    assertFalse(
+        ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")")));
     assertFalse(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"三\")")));
   }
 }

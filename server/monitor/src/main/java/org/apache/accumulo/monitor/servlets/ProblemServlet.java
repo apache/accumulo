@@ -47,13 +47,15 @@ public class ProblemServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(final HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
+  protected void pageBody(final HttpServletRequest req, HttpServletResponse resp,
+      StringBuilder sb) {
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(Monitor.getContext().getInstance());
     doProblemSummary(req, sb, tidToNameMap);
     doProblemDetails(req, sb, req.getParameter("table"), tidToNameMap);
   }
 
-  private static void doProblemSummary(final HttpServletRequest req, StringBuilder sb, final Map<String,String> tidToNameMap) {
+  private static void doProblemSummary(final HttpServletRequest req, StringBuilder sb,
+      final Map<String,String> tidToNameMap) {
     if (Monitor.getProblemSummary().isEmpty() && Monitor.getProblemException() == null)
       return;
 
@@ -61,11 +63,13 @@ public class ProblemServlet extends BasicServlet {
     problemSummary.addSortableColumn("Table", new TableProblemLinkType(tidToNameMap), null);
     for (ProblemType type : ProblemType.values())
       problemSummary.addSortableColumn(type.name(), new NumberType<Integer>(), null);
-    problemSummary.addUnsortableColumn("Operations", new ClearTableProblemsLinkType(req, tidToNameMap), null);
+    problemSummary.addUnsortableColumn("Operations",
+        new ClearTableProblemsLinkType(req, tidToNameMap), null);
 
     if (Monitor.getProblemException() != null) {
       StringBuilder cell = new StringBuilder();
-      cell.append("<b>Failed to obtain problem reports</b> : " + Monitor.getProblemException().getMessage());
+      cell.append("<b>Failed to obtain problem reports</b> : "
+          + Monitor.getProblemException().getMessage());
       Throwable cause = Monitor.getProblemException().getCause();
       while (cause != null) {
         if (cause.getMessage() != null)
@@ -88,14 +92,16 @@ public class ProblemServlet extends BasicServlet {
     problemSummary.generate(req, sb);
   }
 
-  private static void doProblemDetails(final HttpServletRequest req, StringBuilder sb, String tableId, Map<String,String> tidToNameMap) {
+  private static void doProblemDetails(final HttpServletRequest req, StringBuilder sb,
+      String tableId, Map<String,String> tidToNameMap) {
 
     if (Monitor.getProblemException() != null)
       return;
 
     ArrayList<ProblemReport> problemReports = new ArrayList<>();
-    Iterator<ProblemReport> iter = tableId == null ? ProblemReports.getInstance(Monitor.getContext()).iterator() : ProblemReports.getInstance(
-        Monitor.getContext()).iterator(tableId);
+    Iterator<ProblemReport> iter = tableId == null
+        ? ProblemReports.getInstance(Monitor.getContext()).iterator()
+        : ProblemReports.getInstance(Monitor.getContext()).iterator(tableId);
     while (iter.hasNext())
       problemReports.add(iter.next());
     final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss zzz");
@@ -136,7 +142,8 @@ public class ProblemServlet extends BasicServlet {
       if (obj == null)
         return "-";
       String table = String.valueOf(obj);
-      return String.format("<a href='/problems?table=%s'>%s</a>", encode(table), encode((Tables.getPrintableTableNameFromId(tidToNameMap, table))));
+      return String.format("<a href='/problems?table=%s'>%s</a>", encode(table),
+          encode((Tables.getPrintableTableNameFromId(tidToNameMap, table))));
     }
   }
 
@@ -160,8 +167,9 @@ public class ProblemServlet extends BasicServlet {
       if (obj == null)
         return "-";
       String table = String.valueOf(obj);
-      return String.format("<a href='/op?table=%s&action=clearTableProblems&redir=%s'>clear ALL %s problems</a>", encode(table), currentPage,
-          Tables.getPrintableTableNameFromId(tidToNameMap, table));
+      return String.format(
+          "<a href='/op?table=%s&action=clearTableProblems&redir=%s'>clear ALL %s problems</a>",
+          encode(table), currentPage, Tables.getPrintableTableNameFromId(tidToNameMap, table));
     }
   }
 
@@ -183,8 +191,10 @@ public class ProblemServlet extends BasicServlet {
       if (obj == null)
         return "-";
       ProblemReport p = (ProblemReport) obj;
-      return String.format("<a href='/op?table=%s&action=clearProblem&redir=%s&resource=%s&ptype=%s'>clear this problem</a>", encode(p.getTableName()),
-          currentPage, encode(p.getResource()), encode(p.getProblemType().name()));
+      return String.format(
+          "<a href='/op?table=%s&action=clearProblem&redir=%s&resource=%s&ptype=%s'>clear this problem</a>",
+          encode(p.getTableName()), currentPage, encode(p.getResource()),
+          encode(p.getProblemType().name()));
     }
 
     @Override

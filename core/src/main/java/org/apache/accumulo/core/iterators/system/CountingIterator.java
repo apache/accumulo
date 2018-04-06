@@ -45,7 +45,8 @@ public class CountingIterator extends WrappingIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
 

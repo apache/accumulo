@@ -58,7 +58,8 @@ public class ThriftUtil {
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
-  private static final TFramedTransport.Factory transportFactory = new TFramedTransport.Factory(Integer.MAX_VALUE);
+  private static final TFramedTransport.Factory transportFactory = new TFramedTransport.Factory(
+      Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
@@ -87,12 +88,15 @@ public class ThriftUtil {
   /**
    * Create a Thrift client using the given factory and transport
    */
-  public static <T extends TServiceClient> T createClient(TServiceClientFactory<T> factory, TTransport transport) {
-    return factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport));
+  public static <T extends TServiceClient> T createClient(TServiceClientFactory<T> factory,
+      TTransport transport) {
+    return factory.getClient(protocolFactory.getProtocol(transport),
+        protocolFactory.getProtocol(transport));
   }
 
   /**
-   * Create a Thrift client using the given factory with a pooled transport (if available), the address, and client context with no timeout.
+   * Create a Thrift client using the given factory with a pooled transport (if available), the
+   * address, and client context with no timeout.
    *
    * @param factory
    *          Thrift client factory
@@ -101,14 +105,14 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context)
-      throws TTransportException {
+  public static <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory,
+      HostAndPort address, ClientContext context) throws TTransportException {
     return getClient(factory, address, context, 0);
   }
 
   /**
-   * Create a Thrift client using the given factory with a pooled transport (if available), the address and client context. Client timeout is extracted from the
-   * ClientContext
+   * Create a Thrift client using the given factory with a pooled transport (if available), the
+   * address and client context. Client timeout is extracted from the ClientContext
    *
    * @param factory
    *          Thrift client factory
@@ -117,13 +121,16 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context) throws TTransportException {
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, context.getClientTimeoutInMillis(), context);
+  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory,
+      HostAndPort address, ClientContext context) throws TTransportException {
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address,
+        context.getClientTimeoutInMillis(), context);
     return createClient(factory, transport);
   }
 
   /**
-   * Create a Thrift client using the given factory with a pooled transport (if available) using the address, client context and timeou
+   * Create a Thrift client using the given factory with a pooled transport (if available) using the
+   * address, client context and timeou
    *
    * @param factory
    *          Thrift client factory
@@ -134,9 +141,10 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context, long timeout)
-      throws TTransportException {
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, context);
+  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory,
+      HostAndPort address, ClientContext context, long timeout) throws TTransportException {
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout,
+        context);
     return createClient(factory, transport);
   }
 
@@ -160,7 +168,8 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static TabletClientService.Client getTServerClient(HostAndPort address, ClientContext context) throws TTransportException {
+  public static TabletClientService.Client getTServerClient(HostAndPort address,
+      ClientContext context) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, context);
   }
 
@@ -174,7 +183,8 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  public static TabletClientService.Client getTServerClient(HostAndPort address, ClientContext context, long timeout) throws TTransportException {
+  public static TabletClientService.Client getTServerClient(HostAndPort address,
+      ClientContext context, long timeout) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, context, timeout);
   }
 
@@ -186,8 +196,10 @@ public class ThriftUtil {
    * @param context
    *          RPC options
    */
-  public static TTransport createTransport(HostAndPort address, ClientContext context) throws TException {
-    return createClientTransport(address, (int) context.getClientTimeoutInMillis(), context.getClientSslParams(), context.getSaslParams());
+  public static TTransport createTransport(HostAndPort address, ClientContext context)
+      throws TException {
+    return createClientTransport(address, (int) context.getClientTimeoutInMillis(),
+        context.getClientSslParams(), context.getSaslParams());
   }
 
   /**
@@ -216,7 +228,8 @@ public class ThriftUtil {
   }
 
   /**
-   * Create a TTransport for clients to the given address with the provided socket timeout and session-layer configuration
+   * Create a TTransport for clients to the given address with the provided socket timeout and
+   * session-layer configuration
    *
    * @param address
    *          Server address to connect to
@@ -228,13 +241,14 @@ public class ThriftUtil {
    *          RPC options for SASL servers
    * @return An open TTransport which must be closed when finished
    */
-  public static TTransport createClientTransport(HostAndPort address, int timeout, SslConnectionParams sslParams, SaslConnectionParams saslParams)
-      throws TTransportException {
+  public static TTransport createClientTransport(HostAndPort address, int timeout,
+      SslConnectionParams sslParams, SaslConnectionParams saslParams) throws TTransportException {
     boolean success = false;
     TTransport transport = null;
     try {
       if (sslParams != null) {
-        // The check in AccumuloServerContext ensures that servers are brought up with sane configurations, but we also want to validate clients
+        // The check in AccumuloServerContext ensures that servers are brought up with sane
+        // configurations, but we also want to validate clients
         if (null != saslParams) {
           throw new IllegalStateException("Cannot use both SSL and SASL");
         }
@@ -243,7 +257,8 @@ public class ThriftUtil {
 
         // TSSLTransportFactory handles timeout 0 -> forever natively
         if (sslParams.useJsse()) {
-          transport = TSSLTransportFactory.getClientSocket(address.getHost(), address.getPort(), timeout);
+          transport = TSSLTransportFactory.getClientSocket(address.getHost(), address.getPort(),
+              timeout);
         } else {
           // JDK6's factory doesn't appear to pass the protocol onto the Socket properly so we have
           // to do some magic to make sure that happens. Not an issue in JDK7
@@ -254,19 +269,22 @@ public class ThriftUtil {
           // Create the factory from it
           SSLSocketFactory sslSockFactory = sslContext.getSocketFactory();
 
-          // Wrap the real factory with our own that will set the protocol on the Socket before returning it
-          ProtocolOverridingSSLSocketFactory wrappingSslSockFactory = new ProtocolOverridingSSLSocketFactory(sslSockFactory,
-              new String[] {sslParams.getClientProtocol()});
+          // Wrap the real factory with our own that will set the protocol on the Socket before
+          // returning it
+          ProtocolOverridingSSLSocketFactory wrappingSslSockFactory = new ProtocolOverridingSSLSocketFactory(
+              sslSockFactory, new String[] {sslParams.getClientProtocol()});
 
           // Create the TSocket from that
-          transport = createClient(wrappingSslSockFactory, address.getHost(), address.getPort(), timeout);
+          transport = createClient(wrappingSslSockFactory, address.getHost(), address.getPort(),
+              timeout);
           // TSSLTransportFactory leaves transports open, so no need to open here
         }
 
         transport = ThriftUtil.transportFactory().getTransport(transport);
       } else if (null != saslParams) {
         if (!UserGroupInformation.isSecurityEnabled()) {
-          throw new IllegalStateException("Expected Kerberos security to be enabled if SASL is in use");
+          throw new IllegalStateException(
+              "Expected Kerberos security to be enabled if SASL is in use");
         }
 
         log.trace("Creating SASL connection to {}:{}", address.getHost(), address.getPort());
@@ -291,9 +309,12 @@ public class ThriftUtil {
               userForRpc = currentUser.getRealUser();
               log.trace("{} is a proxy user, using real user instead {}", currentUser, userForRpc);
             } else {
-              // The current user has no credentials, let it fail naturally at the RPC layer (no ticket)
+              // The current user has no credentials, let it fail naturally at the RPC layer (no
+              // ticket)
               // We know this won't work, but we can't do anything else
-              log.warn("The current user is a proxy user but there is no underlying real user (likely that RPCs will fail): {}", currentUser);
+              log.warn(
+                  "The current user is a proxy user but there is no underlying real user (likely that RPCs will fail): {}",
+                  currentUser);
               userForRpc = currentUser;
             }
           } else {
@@ -306,12 +327,15 @@ public class ThriftUtil {
 
           final SaslMechanism mechanism = saslParams.getMechanism();
 
-          log.trace("Opening transport to server as {} to {}/{} using {}", userForRpc, saslParams.getKerberosServerPrimary(), hostname, mechanism);
+          log.trace("Opening transport to server as {} to {}/{} using {}", userForRpc,
+              saslParams.getKerberosServerPrimary(), hostname, mechanism);
 
           // Create the client SASL transport using the information for the server
-          // Despite the 'protocol' argument seeming to be useless, it *must* be the primary of the server being connected to
-          transport = new TSaslClientTransport(mechanism.getMechanismName(), null, saslParams.getKerberosServerPrimary(), hostname,
-              saslParams.getSaslProperties(), saslParams.getCallbackHandler(), transport);
+          // Despite the 'protocol' argument seeming to be useless, it *must* be the primary of the
+          // server being connected to
+          transport = new TSaslClientTransport(mechanism.getMechanismName(), null,
+              saslParams.getKerberosServerPrimary(), hostname, saslParams.getSaslProperties(),
+              saslParams.getCallbackHandler(), transport);
 
           // Wrap it all in a processor which will run with a doAs the current user
           transport = new UGIAssumingTransport(transport, userForRpc);
@@ -321,9 +345,12 @@ public class ThriftUtil {
         } catch (TTransportException e) {
           log.warn("Failed to open SASL transport", e);
 
-          // We might have had a valid ticket, but it expired. We'll let the caller retry, but we will attempt to re-login to make the next attempt work.
-          // Sadly, we have no way to determine the actual reason we got this TTransportException other than inspecting the exception msg.
-          log.debug("Caught TTransportException opening SASL transport, checking if re-login is necessary before propagating the exception.");
+          // We might have had a valid ticket, but it expired. We'll let the caller retry, but we
+          // will attempt to re-login to make the next attempt work.
+          // Sadly, we have no way to determine the actual reason we got this TTransportException
+          // other than inspecting the exception msg.
+          log.debug(
+              "Caught TTransportException opening SASL transport, checking if re-login is necessary before propagating the exception.");
           attemptClientReLogin();
 
           throw e;
@@ -359,23 +386,28 @@ public class ThriftUtil {
   }
 
   /**
-   * Some wonderful snippets of documentation from HBase on performing the re-login client-side (as well as server-side) in the following paragraph. We want to
-   * attempt a re-login to automatically refresh the client's Krb "credentials" (remember, a server might also be a client, master sending RPC to tserver), but
-   * we have to take care to avoid Kerberos' replay attack protection.
+   * Some wonderful snippets of documentation from HBase on performing the re-login client-side (as
+   * well as server-side) in the following paragraph. We want to attempt a re-login to automatically
+   * refresh the client's Krb "credentials" (remember, a server might also be a client, master
+   * sending RPC to tserver), but we have to take care to avoid Kerberos' replay attack protection.
    * <p>
-   * If multiple clients with the same principal try to connect to the same server at the same time, the server assumes a replay attack is in progress. This is
-   * a feature of kerberos. In order to work around this, what is done is that the client backs off randomly and tries to initiate the connection again. The
-   * other problem is to do with ticket expiry. To handle that, a relogin is attempted.
+   * If multiple clients with the same principal try to connect to the same server at the same time,
+   * the server assumes a replay attack is in progress. This is a feature of kerberos. In order to
+   * work around this, what is done is that the client backs off randomly and tries to initiate the
+   * connection again. The other problem is to do with ticket expiry. To handle that, a relogin is
+   * attempted.
    */
   static void attemptClientReLogin() {
     try {
       UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
       if (null == loginUser || !loginUser.hasKerberosCredentials()) {
-        // We should have already checked that we're logged in and have credentials. A precondition-like check.
+        // We should have already checked that we're logged in and have credentials. A
+        // precondition-like check.
         throw new RuntimeException("Expected to find Kerberos UGI credentials, but did not");
       }
       UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
-      // A Proxy user is the "effective user" (in name only), riding on top of the "real user"'s Krb credentials.
+      // A Proxy user is the "effective user" (in name only), riding on top of the "real user"'s Krb
+      // credentials.
       UserGroupInformation realUser = currentUser.getRealUser();
 
       // re-login only in case it is the login user or superuser.
@@ -396,23 +428,27 @@ public class ThriftUtil {
           return;
         }
       } else {
-        log.debug("Not attempting Kerberos re-login: loginUser={}, currentUser={}, realUser={}", loginUser, currentUser, realUser);
+        log.debug("Not attempting Kerberos re-login: loginUser={}, currentUser={}, realUser={}",
+            loginUser, currentUser, realUser);
       }
     } catch (IOException e) {
-      // The inability to check is worrisome and deserves a RuntimeException instead of a propagated IO-like Exception.
+      // The inability to check is worrisome and deserves a RuntimeException instead of a propagated
+      // IO-like Exception.
       log.warn("Failed to check (and/or perform) Kerberos client re-login", e);
       throw new RuntimeException(e);
     }
   }
 
   /**
-   * Lifted from TSSLTransportFactory in Thrift-0.9.1. The method to create a client socket with an SSLContextFactory object is not visibile to us. Have to use
-   * SslConnectionParams instead of TSSLTransportParameters because no getters exist on TSSLTransportParameters.
+   * Lifted from TSSLTransportFactory in Thrift-0.9.1. The method to create a client socket with an
+   * SSLContextFactory object is not visibile to us. Have to use SslConnectionParams instead of
+   * TSSLTransportParameters because no getters exist on TSSLTransportParameters.
    *
    * @param params
    *          Parameters to use to create the SSLContext
    */
-  private static SSLContext createSSLContext(SslConnectionParams params) throws TTransportException {
+  private static SSLContext createSSLContext(SslConnectionParams params)
+      throws TTransportException {
     SSLContext ctx;
     try {
       ctx = SSLContext.getInstance(params.getClientProtocol());
@@ -452,7 +488,8 @@ public class ThriftUtil {
   }
 
   /**
-   * Lifted from Thrift-0.9.1 because it was private. Create an SSLSocket with the given factory, host:port, and timeout.
+   * Lifted from Thrift-0.9.1 because it was private. Create an SSLSocket with the given factory,
+   * host:port, and timeout.
    *
    * @param factory
    *          Factory to create the socket from
@@ -463,7 +500,8 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout
    */
-  private static TSocket createClient(SSLSocketFactory factory, String host, int port, int timeout) throws TTransportException {
+  private static TSocket createClient(SSLSocketFactory factory, String host, int port, int timeout)
+      throws TTransportException {
     SSLSocket socket = null;
     try {
       socket = (SSLSocket) factory.createSocket(host, port);

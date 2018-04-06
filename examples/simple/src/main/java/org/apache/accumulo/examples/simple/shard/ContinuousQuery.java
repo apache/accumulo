@@ -39,8 +39,9 @@ import com.beust.jcommander.Parameter;
 import com.google.common.collect.Iterators;
 
 /**
- * Using the doc2word table created by Reverse.java, this program randomly selects N words per document. Then it continually queries a random set of words in
- * the shard table (created by {@link Index}) using the {@link IntersectingIterator}.
+ * Using the doc2word table created by Reverse.java, this program randomly selects N words per
+ * document. Then it continually queries a random set of words in the shard table (created by
+ * {@link Index}) using the {@link IntersectingIterator}.
  *
  * See docs/examples/README.shard for instructions.
  */
@@ -65,7 +66,8 @@ public class ContinuousQuery {
 
     Connector conn = opts.getConnector();
 
-    ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(opts.doc2Term, opts.auths), opts.numTerms);
+    ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(opts.doc2Term, opts.auths),
+        opts.numTerms);
 
     Random rand = new Random();
 
@@ -124,7 +126,8 @@ public class ContinuousQuery {
     return ret;
   }
 
-  private static void selectRandomWords(ArrayList<Text> words, ArrayList<Text[]> ret, Random rand, int numTerms) {
+  private static void selectRandomWords(ArrayList<Text> words, ArrayList<Text[]> ret, Random rand,
+      int numTerms) {
     if (words.size() >= numTerms) {
       Collections.shuffle(words, rand);
       Text docWords[] = new Text[numTerms];

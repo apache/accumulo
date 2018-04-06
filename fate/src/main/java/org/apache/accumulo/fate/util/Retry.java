@@ -28,7 +28,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
- * Encapsulates the retrying implementation for some operation. Provides bounded retry attempts with a bounded, linear backoff.
+ * Encapsulates the retrying implementation for some operation. Provides bounded retry attempts with
+ * a bounded, linear backoff.
  */
 public class Retry {
   private static final Logger log = LoggerFactory.getLogger(Retry.class);
@@ -56,7 +57,8 @@ public class Retry {
    * @param logInterval
    *          The amount of time (ms) between logging retries
    */
-  private Retry(long maxRetries, long startWait, long waitIncrement, long maxWait, long logInterval) {
+  private Retry(long maxRetries, long startWait, long waitIncrement, long maxWait,
+      long logInterval) {
     this.maxRetries = maxRetries;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;
@@ -192,11 +194,13 @@ public class Retry {
   }
 
   private String getMessage(String message) {
-    return message + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + getLogInterval() + "ms)";
+    return message + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for "
+        + getLogInterval() + "ms)";
   }
 
   private String getMessage(String message, Throwable t) {
-    return message + ":" + t + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + getLogInterval() + "ms)";
+    return message + ":" + t + ", retrying attempt " + (retriesDone + 1)
+        + " (suppressing retry messages for " + getLogInterval() + "ms)";
   }
 
   public interface NeedsRetries {
@@ -216,7 +220,8 @@ public class Retry {
   public interface NeedsRetryDelay {
     /**
      * @param duration
-     *          the amount of time to wait before the first retry; input is converted to milliseconds, rounded down to the nearest
+     *          the amount of time to wait before the first retry; input is converted to
+     *          milliseconds, rounded down to the nearest
      * @return this builder with the initial wait period set
      */
     NeedsTimeIncrement retryAfter(long duration, TimeUnit unit);
@@ -225,7 +230,8 @@ public class Retry {
   public interface NeedsTimeIncrement {
     /**
      * @param duration
-     *          the amount of additional time to add before each subsequent retry; input is converted to milliseconds, rounded down to the nearest
+     *          the amount of additional time to add before each subsequent retry; input is
+     *          converted to milliseconds, rounded down to the nearest
      * @return this builder with the increment amount set
      */
     NeedsMaxWait incrementBy(long duration, TimeUnit unit);
@@ -234,8 +240,8 @@ public class Retry {
   public interface NeedsMaxWait {
     /**
      * @param duration
-     *          the maximum amount of time to which the waiting period between retries can be incremented; input is converted to milliseconds, rounded down to
-     *          the nearest
+     *          the maximum amount of time to which the waiting period between retries can be
+     *          incremented; input is converted to milliseconds, rounded down to the nearest
      * @return this builder with a maximum time limit set
      */
     NeedsLogInterval maxWait(long duration, TimeUnit unit);
@@ -244,7 +250,8 @@ public class Retry {
   public interface NeedsLogInterval {
     /**
      * @param duration
-     *          the minimum time interval between logging that a retry is occurring; input is converted to milliseconds, rounded down to the nearest
+     *          the minimum time interval between logging that a retry is occurring; input is
+     *          converted to milliseconds, rounded down to the nearest
      * @return this builder with a logging interval set
      */
     BuilderDone logInterval(long duration, TimeUnit unit);
@@ -252,9 +259,11 @@ public class Retry {
 
   public interface BuilderDone {
     /**
-     * Create a RetryFactory from this builder which can be used to create many Retry objects with the same settings.
+     * Create a RetryFactory from this builder which can be used to create many Retry objects with
+     * the same settings.
      *
-     * @return this builder as a factory; intermediate references to this builder cannot be used to change options after this has been called
+     * @return this builder as a factory; intermediate references to this builder cannot be used to
+     *         change options after this has been called
      */
     RetryFactory createFactory();
 
@@ -279,8 +288,8 @@ public class Retry {
     return new RetryFactoryBuilder();
   }
 
-  private static class RetryFactoryBuilder implements NeedsRetries, NeedsRetryDelay, NeedsTimeIncrement, NeedsMaxWait, NeedsLogInterval, BuilderDone,
-      RetryFactory {
+  private static class RetryFactoryBuilder implements NeedsRetries, NeedsRetryDelay,
+      NeedsTimeIncrement, NeedsMaxWait, NeedsLogInterval, BuilderDone, RetryFactory {
 
     private boolean modifiable = true;
     private long maxRetries;
@@ -292,7 +301,8 @@ public class Retry {
     RetryFactoryBuilder() {}
 
     private void checkState() {
-      Preconditions.checkState(modifiable, "Cannot modify this builder once 'createFactory()' has been called");
+      Preconditions.checkState(modifiable,
+          "Cannot modify this builder once 'createFactory()' has been called");
     }
 
     @Override
@@ -321,7 +331,8 @@ public class Retry {
     @Override
     public NeedsMaxWait incrementBy(long duration, TimeUnit unit) {
       checkState();
-      Preconditions.checkArgument(duration >= 0, "Amount of time to increment the wait between each retry must not be negative");
+      Preconditions.checkArgument(duration >= 0,
+          "Amount of time to increment the wait between each retry must not be negative");
       this.waitIncrement = unit.toMillis(duration);
       return this;
     }
@@ -330,14 +341,16 @@ public class Retry {
     public NeedsLogInterval maxWait(long duration, TimeUnit unit) {
       checkState();
       this.maxWait = unit.toMillis(duration);
-      Preconditions.checkArgument(maxWait >= initialWait, "Maximum wait between retries must not be less than the initial delay");
+      Preconditions.checkArgument(maxWait >= initialWait,
+          "Maximum wait between retries must not be less than the initial delay");
       return this;
     }
 
     @Override
     public BuilderDone logInterval(long duration, TimeUnit unit) {
       checkState();
-      Preconditions.checkArgument(duration >= 0, "The amount of time between logging retries must not be negative");
+      Preconditions.checkArgument(duration >= 0,
+          "The amount of time between logging retries must not be negative");
       this.logInterval = unit.toMillis(duration);
       return this;
     }

@@ -51,8 +51,8 @@ public class SetAuths extends Test {
     Connector conn = env.getInstance().getConnector(authPrincipal, authToken);
 
     boolean exists = WalkingSecurity.get(state, env).userExists(target);
-    boolean hasPermission = WalkingSecurity.get(state, env).canChangeAuthorizations(new Credentials(authPrincipal, authToken).toThrift(env.getInstance()),
-        target);
+    boolean hasPermission = WalkingSecurity.get(state, env).canChangeAuthorizations(
+        new Credentials(authPrincipal, authToken).toThrift(env.getInstance()), target);
 
     Authorizations auths;
     if (authsString.equals("_random")) {
@@ -80,12 +80,14 @@ public class SetAuths extends Test {
       switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (hasPermission)
-            throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+            throw new AccumuloException(
+                "Got a security exception when I should have had permission.", ae);
           else
             return;
         case USER_DOESNT_EXIST:
           if (exists)
-            throw new AccumuloException("Got security exception when the user should have existed", ae);
+            throw new AccumuloException("Got security exception when the user should have existed",
+                ae);
           else
             return;
         default:

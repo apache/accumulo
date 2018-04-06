@@ -37,13 +37,17 @@ public class Util {
     return ByteBuffer.wrap(new BigInteger(numbytes * 5, random).toString(32).getBytes(UTF_8));
   }
 
-  public static IteratorSetting iteratorSetting2ProxyIteratorSetting(org.apache.accumulo.core.client.IteratorSetting is) {
-    return new IteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
+  public static IteratorSetting iteratorSetting2ProxyIteratorSetting(
+      org.apache.accumulo.core.client.IteratorSetting is) {
+    return new IteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(),
+        is.getOptions());
   }
 
   public static Key toThrift(org.apache.accumulo.core.data.Key key) {
-    Key pkey = new Key(ByteBuffer.wrap(key.getRow().getBytes()), ByteBuffer.wrap(key.getColumnFamily().getBytes()), ByteBuffer.wrap(key.getColumnQualifier()
-        .getBytes()), ByteBuffer.wrap(key.getColumnVisibility().getBytes()));
+    Key pkey = new Key(ByteBuffer.wrap(key.getRow().getBytes()),
+        ByteBuffer.wrap(key.getColumnFamily().getBytes()),
+        ByteBuffer.wrap(key.getColumnQualifier().getBytes()),
+        ByteBuffer.wrap(key.getColumnVisibility().getBytes()));
     pkey.setTimestamp(key.getTimestamp());
     return pkey;
   }
@@ -51,7 +55,8 @@ public class Util {
   public static org.apache.accumulo.core.data.Key fromThrift(Key pkey) {
     if (pkey == null)
       return null;
-    return new org.apache.accumulo.core.data.Key(deNullify(pkey.getRow()), deNullify(pkey.getColFamily()), deNullify(pkey.getColQualifier()),
+    return new org.apache.accumulo.core.data.Key(deNullify(pkey.getRow()),
+        deNullify(pkey.getColFamily()), deNullify(pkey.getColQualifier()),
         deNullify(pkey.getColVisibility()), pkey.getTimestamp());
   }
 

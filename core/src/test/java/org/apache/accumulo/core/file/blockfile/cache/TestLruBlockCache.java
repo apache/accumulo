@@ -26,8 +26,8 @@ import junit.framework.TestCase;
  * Tests the concurrent LruBlockCache.
  * <p>
  *
- * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to and do what they should, and that cached blocks are
- * accessible when expected to be.
+ * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to
+ * and do what they should, and that cached blocks are accessible when expected to be.
  */
 public class TestLruBlockCache extends TestCase {
 
@@ -146,7 +146,8 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+        (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
         0.25f, // single
@@ -195,8 +196,10 @@ public class TestLruBlockCache extends TestCase {
 
     // And all others to be cached
     for (int i = 1; i < 4; i++) {
-      assertTrue(Arrays.equals(cache.getBlock(singleBlocks[i].blockName).getBuffer(), singleBlocks[i].buf));
-      assertTrue(Arrays.equals(cache.getBlock(multiBlocks[i].blockName).getBuffer(), multiBlocks[i].buf));
+      assertTrue(Arrays.equals(cache.getBlock(singleBlocks[i].blockName).getBuffer(),
+          singleBlocks[i].buf));
+      assertTrue(
+          Arrays.equals(cache.getBlock(multiBlocks[i].blockName).getBuffer(), multiBlocks[i].buf));
     }
   }
 
@@ -205,7 +208,8 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+        (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
         0.33f, // single
@@ -323,7 +327,8 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+        (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.66f, // min
         0.99f, // acceptable
         0.33f, // single
@@ -382,7 +387,8 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 300000;
     long blockSize = calculateBlockSize(maxSize, 31);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+        (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
         0.33f, // single
@@ -428,9 +434,12 @@ public class TestLruBlockCache extends TestCase {
 
     // And the newest 5 blocks should still be accessible
     for (int i = 5; i < 10; i++) {
-      assertTrue(Arrays.equals(singleBlocks[i].buf, cache.getBlock(singleBlocks[i].blockName).getBuffer()));
-      assertTrue(Arrays.equals(multiBlocks[i].buf, cache.getBlock(multiBlocks[i].blockName).getBuffer()));
-      assertTrue(Arrays.equals(memoryBlocks[i].buf, cache.getBlock(memoryBlocks[i].blockName).getBuffer()));
+      assertTrue(Arrays.equals(singleBlocks[i].buf,
+          cache.getBlock(singleBlocks[i].blockName).getBuffer()));
+      assertTrue(
+          Arrays.equals(multiBlocks[i].buf, cache.getBlock(multiBlocks[i].blockName).getBuffer()));
+      assertTrue(Arrays.equals(memoryBlocks[i].buf,
+          cache.getBlock(memoryBlocks[i].blockName).getBuffer()));
     }
   }
 
@@ -458,7 +467,8 @@ public class TestLruBlockCache extends TestCase {
   private long calculateBlockSize(long maxSize, int numBlocks) {
     long roughBlockSize = maxSize / numBlocks;
     int numEntries = (int) Math.ceil((1.2) * maxSize / roughBlockSize);
-    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
+    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
+        + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
         + (LruBlockCache.DEFAULT_CONCURRENCY_LEVEL * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
     long negateBlockSize = totalOverhead / numEntries;
     negateBlockSize += CachedBlock.PER_BLOCK_OVERHEAD;
@@ -468,11 +478,13 @@ public class TestLruBlockCache extends TestCase {
   private long calculateBlockSizeDefault(long maxSize, int numBlocks) {
     long roughBlockSize = maxSize / numBlocks;
     int numEntries = (int) Math.ceil((1.2) * maxSize / roughBlockSize);
-    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
+    long totalOverhead = LruBlockCache.CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
+        + (numEntries * ClassSize.CONCURRENT_HASHMAP_ENTRY)
         + (LruBlockCache.DEFAULT_CONCURRENCY_LEVEL * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
     long negateBlockSize = totalOverhead / numEntries;
     negateBlockSize += CachedBlock.PER_BLOCK_OVERHEAD;
-    return ClassSize.align((long) Math.floor((roughBlockSize - negateBlockSize) * LruBlockCache.DEFAULT_ACCEPTABLE_FACTOR));
+    return ClassSize.align((long) Math
+        .floor((roughBlockSize - negateBlockSize) * LruBlockCache.DEFAULT_ACCEPTABLE_FACTOR));
   }
 
   private static class Block implements HeapSize {
@@ -486,7 +498,8 @@ public class TestLruBlockCache extends TestCase {
 
     @Override
     public long heapSize() {
-      return CachedBlock.PER_BLOCK_OVERHEAD + ClassSize.align(blockName.length()) + ClassSize.align(buf.length);
+      return CachedBlock.PER_BLOCK_OVERHEAD + ClassSize.align(blockName.length())
+          + ClassSize.align(buf.length);
     }
   }
 }

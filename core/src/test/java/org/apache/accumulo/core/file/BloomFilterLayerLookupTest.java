@@ -55,7 +55,8 @@ public class BloomFilterLayerLookupTest {
   public TestName testName = new TestName();
 
   @Rule
-  public TemporaryFolder tempDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempDir = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void test() throws IOException {
@@ -67,7 +68,8 @@ public class BloomFilterLayerLookupTest {
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
     Collections.sort(vals);
 
-    ConfigurationCopy acuconf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy acuconf = new ConfigurationCopy(
+        AccumuloConfiguration.getDefaultConfiguration());
     acuconf.set(Property.TABLE_BLOOM_ENABLED, "true");
     acuconf.set(Property.TABLE_BLOOM_KEY_FUNCTOR, ColumnFamilyFunctor.class.getName());
     acuconf.set(Property.TABLE_FILE_TYPE, RFile.EXTENSION);
@@ -80,7 +82,8 @@ public class BloomFilterLayerLookupTest {
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = new File(tempDir.getRoot(), testName + "." + suffix).getAbsolutePath();
-    FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder().forFile(fname, fs, conf).withTableConfiguration(acuconf).build();
+    FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder().forFile(fname, fs, conf)
+        .withTableConfiguration(acuconf).build();
 
     // write data to file
     long t1 = System.currentTimeMillis();
@@ -96,7 +99,8 @@ public class BloomFilterLayerLookupTest {
     bmfw.close();
 
     t1 = System.currentTimeMillis();
-    FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder().forFile(fname, fs, conf).withTableConfiguration(acuconf).build();
+    FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder().forFile(fname, fs, conf)
+        .withTableConfiguration(acuconf).build();
     t2 = System.currentTimeMillis();
     LOG.debug("Opened " + fname + " in " + (t2 - t1));
 
@@ -140,7 +144,8 @@ public class BloomFilterLayerLookupTest {
     String fi = String.format("%010d", row);
     // bmfr.seek(new Range(new Text("r"+fi)));
     Key k1 = new Key(new Text("r" + fi), new Text("cf1"));
-    bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<ByteSequence>(), false);
+    bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
+        new ArrayList<ByteSequence>(), false);
   }
 
 }

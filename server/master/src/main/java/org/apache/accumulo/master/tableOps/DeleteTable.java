@@ -30,7 +30,8 @@ public class DeleteTable extends MasterRepo {
   private String namespaceId;
 
   private String getNamespaceId(Master env) throws Exception {
-    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.DELETE, this.namespaceId);
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.DELETE,
+        this.namespaceId);
   }
 
   public DeleteTable(String namespaceId, String tableId) {

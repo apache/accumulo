@@ -63,20 +63,25 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   }
 
   @Override
-  public void addPeer(final String name, final String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException {
+  public void addPeer(final String name, final String replicaType)
+      throws AccumuloException, AccumuloSecurityException, PeerExistsException {
     requireNonNull(name);
     requireNonNull(replicaType);
-    context.getConnector().instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + name, replicaType);
+    context.getConnector().instanceOperations()
+        .setProperty(Property.REPLICATION_PEERS.getKey() + name, replicaType);
   }
 
   @Override
-  public void removePeer(final String name) throws AccumuloException, AccumuloSecurityException, PeerNotFoundException {
+  public void removePeer(final String name)
+      throws AccumuloException, AccumuloSecurityException, PeerNotFoundException {
     requireNonNull(name);
-    context.getConnector().instanceOperations().removeProperty(Property.REPLICATION_PEERS.getKey() + name);
+    context.getConnector().instanceOperations()
+        .removeProperty(Property.REPLICATION_PEERS.getKey() + name);
   }
 
   @Override
-  public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void drain(String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     requireNonNull(tableName);
 
     Set<String> wals = referencedFiles(tableName);
@@ -85,13 +90,15 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   }
 
   @Override
-  public void drain(final String tableName, final Set<String> wals) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void drain(final String tableName, final Set<String> wals)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     requireNonNull(tableName);
 
     final TInfo tinfo = Tracer.traceInfo();
     final TCredentials rpcCreds = context.rpcCreds();
 
-    // Ask the master if the table is fully replicated given these WALs, but don't poll inside the master
+    // Ask the master if the table is fully replicated given these WALs, but don't poll inside the
+    // master
     boolean drained = false;
     while (!drained) {
       drained = getMasterDrain(tinfo, rpcCreds, tableName, wals);
@@ -107,8 +114,9 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
   }
 
-  protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds, final String tableName, final Set<String> wals) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
+      final String tableName, final Set<String> wals)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return MasterClient.execute(context, new ClientExecReturn<Boolean,Client>() {
       @Override
       public Boolean execute(Client client) throws Exception {
@@ -117,7 +125,8 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     });
   }
 
-  protected String getTableId(Connector conn, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  protected String getTableId(Connector conn, String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TableOperations tops = conn.tableOperations();
 
     if (!conn.tableOperations().exists(tableName)) {
@@ -136,7 +145,8 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   }
 
   @Override
-  public Set<String> referencedFiles(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public Set<String> referencedFiles(String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     requireNonNull(tableName);
 
     log.debug("Collecting referenced files for replication of table {}", tableName);

@@ -55,7 +55,8 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     this.inst = inst;
     this.parent = parent;
     this.namespaceId = namespaceId;
-    this.path = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_CONF;
+    this.path = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + namespaceId
+        + Constants.ZNAMESPACE_CONF;
   }
 
   /**
@@ -77,7 +78,8 @@ public class NamespaceConfiguration extends ObservableConfiguration {
         PropCacheKey key = new PropCacheKey(inst.getInstanceID(), namespaceId);
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
-          propCache = zcf.getZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(inst));
+          propCache = zcf.getZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(),
+              new NamespaceConfWatcher(inst));
           propCaches.put(key, propCache);
         }
         propCacheAccessor = new ZooCachePropertyAccessor(propCache);
@@ -157,7 +159,8 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   }
 
   static boolean isIteratorOrConstraint(String key) {
-    return key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey());
+    return key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+        || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey());
   }
 
   @Override

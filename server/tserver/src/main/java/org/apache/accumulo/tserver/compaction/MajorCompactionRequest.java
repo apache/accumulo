@@ -42,7 +42,8 @@ public class MajorCompactionRequest implements Cloneable {
   final private AccumuloConfiguration tableConfig;
   private Map<FileRef,DataFileValue> files;
 
-  public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason, VolumeManager manager, AccumuloConfiguration tabletConfig) {
+  public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
+      VolumeManager manager, AccumuloConfiguration tabletConfig) {
     this.extent = extent;
     this.reason = reason;
     this.volumeManager = manager;
@@ -77,7 +78,8 @@ public class MajorCompactionRequest implements Cloneable {
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem ns = volumeManager.getVolumeByPath(ref.path()).getFileSystem();
-    FileSKVIterator openReader = fileFactory.newReaderBuilder().forFile(ref.path().toString(), ns, ns.getConf()).withTableConfiguration(tableConfig)
+    FileSKVIterator openReader = fileFactory.newReaderBuilder()
+        .forFile(ref.path().toString(), ns, ns.getConf()).withTableConfiguration(tableConfig)
         .seekToBeginning().build();
     return openReader;
   }

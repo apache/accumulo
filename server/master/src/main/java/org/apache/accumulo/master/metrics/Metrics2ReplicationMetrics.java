@@ -47,10 +47,13 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
-  public static final String NAME = MASTER_NAME + ",sub=Replication", DESCRIPTION = "Data-Center Replication Metrics", CONTEXT = "master",
+  public static final String NAME = MASTER_NAME + ",sub=Replication",
+      DESCRIPTION = "Data-Center Replication Metrics", CONTEXT = "master",
       RECORD = "MasterReplication";
-  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers", MAX_REPLICATION_THREADS = "maxReplicationThreads",
-      REPLICATION_QUEUE_TIME_QUANTILES = "replicationQueue10m", REPLICATION_QUEUE_TIME = "replicationQueue";
+  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers",
+      MAX_REPLICATION_THREADS = "maxReplicationThreads",
+      REPLICATION_QUEUE_TIME_QUANTILES = "replicationQueue10m",
+      REPLICATION_QUEUE_TIME = "replicationQueue";
 
   private final static Logger log = LoggerFactory.getLogger(Metrics2ReplicationMetrics.class);
 
@@ -71,14 +74,16 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
     replicationUtil = new ReplicationUtil(master);
-    replicationQueueTimeQuantiles = registry.newQuantiles(REPLICATION_QUEUE_TIME_QUANTILES, "Replication queue time quantiles in milliseconds", "ops",
-        "latency", 600);
-    replicationQueueTimeStat = registry.newStat(REPLICATION_QUEUE_TIME, "Replication queue time statistics in milliseconds", "ops", "latency", true);
+    replicationQueueTimeQuantiles = registry.newQuantiles(REPLICATION_QUEUE_TIME_QUANTILES,
+        "Replication queue time quantiles in milliseconds", "ops", "latency", 600);
+    replicationQueueTimeStat = registry.newStat(REPLICATION_QUEUE_TIME,
+        "Replication queue time statistics in milliseconds", "ops", "latency", true);
   }
 
   protected void snapshot() {
     // Only add these metrics if the replication table is online and there are peers
-    if (TableState.ONLINE == Tables.getTableState(master.getInstance(), ReplicationTable.ID) && !replicationUtil.getPeers().isEmpty()) {
+    if (TableState.ONLINE == Tables.getTableState(master.getInstance(), ReplicationTable.ID)
+        && !replicationUtil.getPeers().isEmpty()) {
       registry.add(PENDING_FILES, getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();
     } else {
@@ -161,7 +166,9 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
           // Ignore all IOExceptions
           // Either the system is unavailable or the file was deleted
           // since the initial scan and this check
-          log.trace("Failed to get file status for {}, file system is unavailable or it does not exist", path);
+          log.trace(
+              "Failed to get file status for {}, file system is unavailable or it does not exist",
+              path);
         }
       }
     }

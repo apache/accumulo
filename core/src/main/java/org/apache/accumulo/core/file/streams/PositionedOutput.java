@@ -19,7 +19,8 @@ package org.apache.accumulo.core.file.streams;
 import java.io.IOException;
 
 /**
- * For any byte sink (but especially OutputStream), the ability to report how many bytes have been sunk.
+ * For any byte sink (but especially OutputStream), the ability to report how many bytes have been
+ * sunk.
  */
 public interface PositionedOutput {
   public long position() throws IOException;

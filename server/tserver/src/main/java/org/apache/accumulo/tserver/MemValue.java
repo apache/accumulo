@@ -45,7 +45,8 @@ public class MemValue {
     byte[] originalBytes = new byte[v.getSize() - 4];
     byte[] combined = v.get();
     System.arraycopy(combined, 4, originalBytes, 0, originalBytes.length);
-    int kv = (combined[0] << 24) + ((combined[1] & 0xFF) << 16) + ((combined[2] & 0xFF) << 8) + (combined[3] & 0xFF);
+    int kv = (combined[0] << 24) + ((combined[1] & 0xFF) << 16) + ((combined[2] & 0xFF) << 8)
+        + (combined[3] & 0xFF);
 
     return new MemValue(new Value(originalBytes), kv);
   }

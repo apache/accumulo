@@ -20,26 +20,33 @@ package org.apache.accumulo.core.client.sample;
 import org.apache.accumulo.core.data.Key;
 
 /**
- * A function that decides which key values are stored in a tables sample. As Accumuo compacts data and creates rfiles it uses a Sampler to decided what to
- * store in the rfiles sample section. The class name of the Sampler and the Samplers configuration are stored in each rfile. A scan of a tables sample will
- * only succeed if all rfiles were created with the same sampler and sampler configuration.
+ * A function that decides which key values are stored in a tables sample. As Accumuo compacts data
+ * and creates rfiles it uses a Sampler to decided what to store in the rfiles sample section. The
+ * class name of the Sampler and the Samplers configuration are stored in each rfile. A scan of a
+ * tables sample will only succeed if all rfiles were created with the same sampler and sampler
+ * configuration.
  *
  * <p>
- * Since the decisions that Sampler makes are persisted, the behavior of a Sampler for a given configuration should always be the same. One way to offer a new
- * behavior is to offer new options, while still supporting old behavior with a Samplers existing options.
+ * Since the decisions that Sampler makes are persisted, the behavior of a Sampler for a given
+ * configuration should always be the same. One way to offer a new behavior is to offer new options,
+ * while still supporting old behavior with a Samplers existing options.
  *
  * <p>
- * Ideally a sampler that selects a Key k1 would also select updates for k1. For example if a Sampler selects :
- * {@code row='000989' family='name' qualifier='last' visibility='ADMIN' time=9 value='Doe'}, it would be nice if it also selected :
- * {@code row='000989' family='name' qualifier='last' visibility='ADMIN' time=20 value='Dough'}. Using hash and modulo on the key fields is a good way to
- * accomplish this and {@link AbstractHashSampler} provides a good basis for implementation.
+ * Ideally a sampler that selects a Key k1 would also select updates for k1. For example if a
+ * Sampler selects :
+ * {@code row='000989' family='name' qualifier='last' visibility='ADMIN' time=9 value='Doe'}, it
+ * would be nice if it also selected :
+ * {@code row='000989' family='name' qualifier='last' visibility='ADMIN' time=20 value='Dough'}.
+ * Using hash and modulo on the key fields is a good way to accomplish this and
+ * {@link AbstractHashSampler} provides a good basis for implementation.
  *
  * @since 1.8.0
  */
 public interface Sampler {
 
   /**
-   * An implementation of Sampler must have a noarg constructor. After construction this method is called once to initialize a sampler before it is used.
+   * An implementation of Sampler must have a noarg constructor. After construction this method is
+   * called once to initialize a sampler before it is used.
    *
    * @param config
    *          Configuration options for a sampler.
@@ -49,7 +56,8 @@ public interface Sampler {
   /**
    * @param k
    *          A key that was written to a rfile.
-   * @return True if the key (and its associtated value) should be stored in the rfile's sample. Return false if it should not be included.
+   * @return True if the key (and its associtated value) should be stored in the rfile's sample.
+   *         Return false if it should not be included.
    */
   boolean accept(Key k);
 }

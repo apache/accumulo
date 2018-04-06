@@ -49,8 +49,8 @@ public class LocatorIT extends AccumuloClusterHarness {
     return 60;
   }
 
-  private void assertContains(Locations locations, HashSet<String> tservers, Map<Range,ImmutableSet<TabletId>> expected1,
-      Map<TabletId,ImmutableSet<Range>> expected2) {
+  private void assertContains(Locations locations, HashSet<String> tservers,
+      Map<Range,ImmutableSet<TabletId>> expected1, Map<TabletId,ImmutableSet<Range>> expected2) {
 
     Map<Range,Set<TabletId>> gbr = new HashMap<>();
     for (Entry<Range,List<TabletId>> entry : locations.groupByRange().entrySet()) {
@@ -75,7 +75,8 @@ public class LocatorIT extends AccumuloClusterHarness {
   }
 
   private static TabletId newTabletId(String tableId, String endRow, String prevRow) {
-    return new TabletIdImpl(new KeyExtent(tableId, endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow)));
+    return new TabletIdImpl(new KeyExtent(tableId, endRow == null ? null : new Text(endRow),
+        prevRow == null ? null : new Text(prevRow)));
   }
 
   @Test
@@ -100,18 +101,21 @@ public class LocatorIT extends AccumuloClusterHarness {
 
     ranges.add(r1);
     Locations ret = conn.tableOperations().locate(tableName, ranges);
-    assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1)), ImmutableMap.of(t1, ImmutableSet.of(r1)));
+    assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1)),
+        ImmutableMap.of(t1, ImmutableSet.of(r1)));
 
     ranges.add(r2);
     ret = conn.tableOperations().locate(tableName, ranges);
-    assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1), r2, ImmutableSet.of(t1)), ImmutableMap.of(t1, ImmutableSet.of(r1, r2)));
+    assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1), r2, ImmutableSet.of(t1)),
+        ImmutableMap.of(t1, ImmutableSet.of(r1, r2)));
 
     TreeSet<Text> splits = new TreeSet<>();
     splits.add(new Text("r"));
     conn.tableOperations().addSplits(tableName, splits);
 
     ret = conn.tableOperations().locate(tableName, ranges);
-    assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t2), r2, ImmutableSet.of(t2, t3)),
+    assertContains(ret, tservers,
+        ImmutableMap.of(r1, ImmutableSet.of(t2), r2, ImmutableSet.of(t2, t3)),
         ImmutableMap.of(t2, ImmutableSet.of(r1, r2), t3, ImmutableSet.of(r2)));
 
     conn.tableOperations().offline(tableName, true);

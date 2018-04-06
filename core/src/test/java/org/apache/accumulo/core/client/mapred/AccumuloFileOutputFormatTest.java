@@ -51,14 +51,16 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job, e);
     AccumuloFileOutputFormat.setSampler(job, samplerConfig);
 
-    AccumuloConfiguration acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
+    AccumuloConfiguration acuconf = FileOutputConfigurator
+        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
     assertEquals(50l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(10l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+    assertEquals(new SamplerConfigurationImpl(samplerConfig),
+        SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
     a = 17;
     b = 1300l;
@@ -84,6 +86,7 @@ public class AccumuloFileOutputFormatTest {
     assertEquals(150l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(110l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+    assertEquals(new SamplerConfigurationImpl(samplerConfig),
+        SamplerConfigurationImpl.newSamplerConfig(acuconf));
   }
 }

@@ -36,7 +36,8 @@ public class OnlineCommand extends TableOperation {
   }
 
   @Override
-  protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  protected void doTableOp(final Shell shellState, final String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (tableName.equals(RootTable.NAME)) {
       Shell.log.info("  The " + RootTable.NAME + " is always online.");
     } else {
@@ -46,7 +47,8 @@ public class OnlineCommand extends TableOperation {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     wait = cl.hasOption(waitOpt.getLongOpt());
     return super.execute(fullCommand, cl, shellState);
   }

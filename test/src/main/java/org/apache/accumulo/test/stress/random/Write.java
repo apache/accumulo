@@ -53,19 +53,23 @@ public class Write {
       writeDelay = 0;
     }
 
-    DataWriter dw = new DataWriter(c.createBatchWriter(opts.getTableName(), batch_writer_opts.getBatchWriterConfig()), new RandomMutations(
-    // rows
-        new RandomByteArrays(new RandomWithinRange(opts.row_seed, opts.rowMin(), opts.rowMax())),
-        // cfs
-        new RandomByteArrays(new RandomWithinRange(opts.cf_seed, opts.cfMin(), opts.cfMax())),
-        // cqs
-        new RandomByteArrays(new RandomWithinRange(opts.cq_seed, opts.cqMin(), opts.cqMax())),
-        // vals
-        new RandomByteArrays(new RandomWithinRange(opts.value_seed, opts.valueMin(), opts.valueMax())),
-        // number of cells per row
-        new RandomWithinRange(opts.row_width_seed, opts.rowWidthMin(), opts.rowWidthMax()),
-        // max cells per mutation
-        opts.max_cells_per_mutation));
+    DataWriter dw = new DataWriter(
+        c.createBatchWriter(opts.getTableName(), batch_writer_opts.getBatchWriterConfig()),
+        new RandomMutations(
+            // rows
+            new RandomByteArrays(
+                new RandomWithinRange(opts.row_seed, opts.rowMin(), opts.rowMax())),
+            // cfs
+            new RandomByteArrays(new RandomWithinRange(opts.cf_seed, opts.cfMin(), opts.cfMax())),
+            // cqs
+            new RandomByteArrays(new RandomWithinRange(opts.cq_seed, opts.cqMin(), opts.cqMax())),
+            // vals
+            new RandomByteArrays(
+                new RandomWithinRange(opts.value_seed, opts.valueMin(), opts.valueMax())),
+            // number of cells per row
+            new RandomWithinRange(opts.row_width_seed, opts.rowWidthMin(), opts.rowWidthMax()),
+            // max cells per mutation
+            opts.max_cells_per_mutation));
 
     while (true) {
       dw.next();

@@ -40,10 +40,12 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * Simple example for writing random data to Accumulo. See docs/examples/README.batch for instructions.
+ * Simple example for writing random data to Accumulo. See docs/examples/README.batch for
+ * instructions.
  *
- * The rows of the entries will be randomly generated numbers between a specified min and max (prefixed by "row_"). The column families will be "foo" and column
- * qualifiers will be "1". The values will be random byte arrays of a specified size.
+ * The rows of the entries will be randomly generated numbers between a specified min and max
+ * (prefixed by "row_"). The column families will be "foo" and column qualifiers will be "1". The
+ * values will be random byte arrays of a specified size.
  */
 public class RandomBatchWriter {
 
@@ -71,7 +73,8 @@ public class RandomBatchWriter {
   }
 
   /**
-   * Creates a mutation on a specified row with column family "foo", column qualifier "1", specified visibility, and a random value of specified size.
+   * Creates a mutation on a specified row with column family "foo", column qualifier "1", specified
+   * visibility, and a random value of specified size.
    *
    * @param rowid
    *          the row of the mutation
@@ -120,14 +123,17 @@ public class RandomBatchWriter {
   /**
    * Writes a specified number of entries to Accumulo using a {@link BatchWriter}.
    */
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void main(String[] args)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RandomBatchWriter.class.getName(), args, bwOpts);
-    if ((opts.max - opts.min) < 1L * opts.num) { // right-side multiplied by 1L to convert to long in a way that doesn't trigger FindBugs
-      System.err.println(String.format("You must specify a min and a max that allow for at least num possible values. "
-          + "For example, you requested %d rows, but a min of %d and a max of %d (exclusive), which only allows for %d rows.", opts.num, opts.min, opts.max,
-          (opts.max - opts.min)));
+    if ((opts.max - opts.min) < 1L * opts.num) { // right-side multiplied by 1L to convert to long
+                                                 // in a way that doesn't trigger FindBugs
+      System.err.println(String.format(
+          "You must specify a min and a max that allow for at least num possible values. "
+              + "For example, you requested %d rows, but a min of %d and a max of %d (exclusive), which only allows for %d rows.",
+          opts.num, opts.min, opts.max, (opts.max - opts.min)));
       System.exit(1);
     }
     Random r;
@@ -137,7 +143,8 @@ public class RandomBatchWriter {
       r = new Random(opts.seed);
     }
     Connector connector = opts.getConnector();
-    BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+    BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
+        bwOpts.getBatchWriterConfig());
 
     // reuse the ColumnVisibility object to improve performance
     ColumnVisibility cv = opts.visiblity;
@@ -170,7 +177,8 @@ public class RandomBatchWriter {
       }
 
       if (e.getConstraintViolationSummaries().size() > 0) {
-        System.err.println("ERROR : Constraint violations occurred : " + e.getConstraintViolationSummaries());
+        System.err.println(
+            "ERROR : Constraint violations occurred : " + e.getConstraintViolationSummaries());
       }
       System.exit(1);
     }

@@ -133,11 +133,13 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     assertEquals(10, count(tableName));
   }
 
-  private void conditionWriteSome(String tableName, int n, ConditionalWriterConfig cfg) throws Exception {
+  private void conditionWriteSome(String tableName, int n, ConditionalWriterConfig cfg)
+      throws Exception {
     Connector c = getConnector();
     ConditionalWriter cw = c.createConditionalWriter(tableName, cfg);
     for (int i = 0; i < n; i++) {
-      ConditionalMutation m = new ConditionalMutation((CharSequence) (i + ""), new Condition("", ""));
+      ConditionalMutation m = new ConditionalMutation((CharSequence) (i + ""),
+          new Condition("", ""));
       m.put("", "", "X");
       assertEquals(Status.ACCEPTED, cw.write(m).getStatus());
     }

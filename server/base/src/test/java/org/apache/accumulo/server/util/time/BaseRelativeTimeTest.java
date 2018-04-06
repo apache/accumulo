@@ -64,7 +64,8 @@ public class BaseRelativeTimeTest {
     }
     long many = brt.currentTime();
     assertTrue(many > once);
-    assertTrue("after much advice, relative time is still closer to local time", (advice.value - many) < (once - local.value));
+    assertTrue("after much advice, relative time is still closer to local time",
+        (advice.value - many) < (once - local.value));
   }
 
   @Test

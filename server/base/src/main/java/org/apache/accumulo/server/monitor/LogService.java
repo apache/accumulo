@@ -92,7 +92,8 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
    * @param hostAddress
    *          Address that monitor process is bound to
    */
-  public static void startLogListener(AccumuloConfiguration conf, String instanceId, String hostAddress) {
+  public static void startLogListener(AccumuloConfiguration conf, String instanceId,
+      String hostAddress) {
     try {
       SocketServer server = new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT)[0]);
 
@@ -132,7 +133,8 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
 
   private static final int MAX_LOGS = 50;
 
-  private LinkedHashMap<String,DedupedLogEvent> events = new LinkedHashMap<String,DedupedLogEvent>(MAX_LOGS + 1, (float) .75, true) {
+  private LinkedHashMap<String,DedupedLogEvent> events = new LinkedHashMap<String,DedupedLogEvent>(
+      MAX_LOGS + 1, (float) .75, true) {
 
     private static final long serialVersionUID = 1L;
 

@@ -34,7 +34,8 @@ public class ConditionTest {
   private static final String QUALIFIER = "qualifier";
   private static final String VISIBILITY = "visibility";
   private static final String VALUE = "value";
-  private static final IteratorSetting[] ITERATORS = {new IteratorSetting(1, "first", "someclass"), new IteratorSetting(2, "second", "someotherclass"),
+  private static final IteratorSetting[] ITERATORS = {new IteratorSetting(1, "first", "someclass"),
+      new IteratorSetting(2, "second", "someotherclass"),
       new IteratorSetting(3, "third", "yetanotherclass")};
 
   private String toString(ByteSequence bs) {
@@ -76,7 +77,8 @@ public class ConditionTest {
 
   @Test
   public void testConstruction_ByteSequence() {
-    c = new Condition(new ArrayByteSequence(FAMILY.getBytes(UTF_8)), new ArrayByteSequence(QUALIFIER.getBytes(UTF_8)));
+    c = new Condition(new ArrayByteSequence(FAMILY.getBytes(UTF_8)),
+        new ArrayByteSequence(QUALIFIER.getBytes(UTF_8)));
     assertEquals(FAMILY, toString(c.getFamily()));
     assertEquals(QUALIFIER, toString(c.getQualifier()));
     assertEquals(EMPTY, c.getVisibility());
@@ -127,14 +129,16 @@ public class ConditionTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testSetIterators_DuplicateName() {
-    IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"), new IteratorSetting(2, "second", "someotherclass"),
+    IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"),
+        new IteratorSetting(2, "second", "someotherclass"),
         new IteratorSetting(3, "first", "yetanotherclass")};
     c.setIterators(iterators);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testSetIterators_DuplicatePriority() {
-    IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"), new IteratorSetting(2, "second", "someotherclass"),
+    IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"),
+        new IteratorSetting(2, "second", "someotherclass"),
         new IteratorSetting(1, "third", "yetanotherclass")};
     c.setIterators(iterators);
   }

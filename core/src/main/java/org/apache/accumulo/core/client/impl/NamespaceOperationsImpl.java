@@ -76,12 +76,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    TreeSet<String> namespaces = new TreeSet<>(Namespaces.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> namespaces = new TreeSet<>(
+        Namespaces.getNameToIdMap(context.getInstance()).keySet());
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(), namespaces.size(),
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+      log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
+          namespaces.size(), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
     return namespaces;
@@ -94,7 +95,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Checking if namespace {} exists", Thread.currentThread().getId(), namespace);
+      log.trace("tid={} Checking if namespace {} exists", Thread.currentThread().getId(),
+          namespace);
       timer = new OpTimer().start();
     }
 
@@ -102,18 +104,21 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists, String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists,
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
     return exists;
   }
 
   @Override
-  public void create(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
+  public void create(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
     checkArgument(namespace != null, "namespace is null");
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))),
+      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE,
+          Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))),
           Collections.<String,String> emptyMap(), namespace);
     } catch (NamespaceNotFoundException e) {
       // should not happen
@@ -122,14 +127,17 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException {
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
+      NamespaceNotFoundException, NamespaceNotEmptyException {
     checkArgument(namespace != null, "namespace is null");
     String namespaceId = Namespaces.getNamespaceId(context.getInstance(), namespace);
 
-    if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
+    if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID)
+        || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
       Credentials credentials = context.getCredentials();
       log.debug("{} attempted to delete the {} namespace", credentials.getPrincipal(), namespaceId);
-      throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.UNSUPPORTED_OPERATION);
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
     if (Namespaces.getTableIds(context.getInstance(), namespaceId).size() > 0) {
@@ -149,17 +157,19 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
+  public void rename(String oldNamespaceName, String newNamespaceName)
+      throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)), ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)),
+        ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
   }
 
   @Override
-  public void setProperty(final String namespace, final String property, final String value) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException {
+  public void setProperty(final String namespace, final String property, final String value)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
@@ -167,13 +177,15 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     MasterClient.executeNamespace(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.setNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property, value);
+        client.setNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property,
+            value);
       }
     });
   }
 
   @Override
-  public void removeProperty(final String namespace, final String property) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+  public void removeProperty(final String namespace, final String property)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(property != null, "property is null");
 
@@ -186,15 +198,18 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  public Iterable<Entry<String,String>> getProperties(final String namespace) throws AccumuloException, NamespaceNotFoundException {
+  public Iterable<Entry<String,String>> getProperties(final String namespace)
+      throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     try {
-      return ServerClient.executeRaw(context, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
-        @Override
-        public Map<String,String> execute(ClientService.Client client) throws Exception {
-          return client.getNamespaceConfiguration(Tracer.traceInfo(), context.rpcCreds(), namespace);
-        }
-      }).entrySet();
+      return ServerClient
+          .executeRaw(context, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
+            @Override
+            public Map<String,String> execute(ClientService.Client client) throws Exception {
+              return client.getNamespaceConfiguration(Tracer.traceInfo(), context.rpcCreds(),
+                  namespace);
+            }
+          }).entrySet();
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:
@@ -217,8 +232,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  public boolean testClassLoad(final String namespace, final String className, final String asTypeName) throws NamespaceNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+  public boolean testClassLoad(final String namespace, final String className,
+      final String asTypeName)
+      throws NamespaceNotFoundException, AccumuloException, AccumuloSecurityException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(className != null, "className is null");
     checkArgument(asTypeName != null, "asTypeName is null");
@@ -227,7 +243,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       return ServerClient.executeRaw(context, new ClientExecReturn<Boolean,ClientService.Client>() {
         @Override
         public Boolean execute(ClientService.Client client) throws Exception {
-          return client.checkNamespaceClass(Tracer.traceInfo(), context.rpcCreds(), namespace, className, asTypeName);
+          return client.checkNamespaceClass(Tracer.traceInfo(), context.rpcCreds(), namespace,
+              className, asTypeName);
         }
       });
     } catch (ThriftTableOperationException e) {
@@ -247,19 +264,22 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void attachIterator(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
-      NamespaceNotFoundException {
+  public void attachIterator(String namespace, IteratorSetting setting,
+      EnumSet<IteratorScope> scopes)
+      throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     testClassLoad(namespace, setting.getIteratorClass(), SortedKeyValueIterator.class.getName());
     super.attachIterator(namespace, setting, scopes);
   }
 
   @Override
-  public int addConstraint(String namespace, String constraintClassName) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+  public int addConstraint(String namespace, String constraintClassName)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     testClassLoad(namespace, constraintClassName, Constraint.class.getName());
     return super.addConstraint(namespace, constraintClassName);
   }
 
-  private String doNamespaceFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts, String namespace) throws AccumuloSecurityException,
+  private String doNamespaceFateOperation(FateOperation op, List<ByteBuffer> args,
+      Map<String,String> opts, String namespace) throws AccumuloSecurityException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     try {
       return tableOps.doFateOperation(op, args, opts, namespace);

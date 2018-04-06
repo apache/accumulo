@@ -60,7 +60,8 @@ public class BulkPlusOne extends BulkImportTest {
   static void bulkLoadLots(Logger log, State state, Environment env, Value value) throws Exception {
     final Path dir = new Path("/tmp", "bulk_" + UUID.randomUUID().toString());
     final Path fail = new Path(dir.toString() + "_fail");
-    final DefaultConfiguration defaultConfiguration = AccumuloConfiguration.getDefaultConfiguration();
+    final DefaultConfiguration defaultConfiguration = AccumuloConfiguration
+        .getDefaultConfiguration();
     final Random rand = (Random) state.get("rand");
     final FileSystem fs = (FileSystem) state.get("fs");
     fs.mkdirs(fail);
@@ -76,15 +77,16 @@ public class BulkPlusOne extends BulkImportTest {
       printRows.add(String.format(FMT, row));
 
     String markerColumnQualifier = String.format("%07d", counter.incrementAndGet());
-    log.debug("preparing bulk files with start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
+    log.debug("preparing bulk files with start rows " + printRows + " last row "
+        + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
 
     List<Integer> rows = new ArrayList<>(startRows);
     rows.add(LOTS);
 
     for (int i = 0; i < parts; i++) {
       String fileName = dir + "/" + String.format("part_%d.", i) + RFile.EXTENSION;
-      FileSKVWriter f = FileOperations.getInstance().newWriterBuilder().forFile(fileName, fs, fs.getConf()).withTableConfiguration(defaultConfiguration)
-          .build();
+      FileSKVWriter f = FileOperations.getInstance().newWriterBuilder()
+          .forFile(fileName, fs, fs.getConf()).withTableConfiguration(defaultConfiguration).build();
       f.startDefaultLocalityGroup();
       int start = rows.get(i);
       int end = rows.get(i + 1);
@@ -97,7 +99,8 @@ public class BulkPlusOne extends BulkImportTest {
       }
       f.close();
     }
-    env.getConnector().tableOperations().importDirectory(Setup.getTableName(), dir.toString(), fail.toString(), true);
+    env.getConnector().tableOperations().importDirectory(Setup.getTableName(), dir.toString(),
+        fail.toString(), true);
     fs.delete(dir, true);
     FileStatus[] failures = fs.listStatus(fail);
     if (failures != null && failures.length > 0) {
@@ -105,7 +108,8 @@ public class BulkPlusOne extends BulkImportTest {
       throw new Exception(failures.length + " failure files found importing files from " + dir);
     }
     fs.delete(fail, true);
-    log.debug("Finished bulk import, start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
+    log.debug("Finished bulk import, start rows " + printRows + " last row "
+        + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
   }
 
   @Override

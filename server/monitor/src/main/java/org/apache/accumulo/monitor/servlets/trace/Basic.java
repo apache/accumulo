@@ -49,7 +49,8 @@ abstract class Basic extends BasicServlet {
 
   private static final long serialVersionUID = 1L;
 
-  public static String getStringParameter(HttpServletRequest req, String name, String defaultValue) {
+  public static String getStringParameter(HttpServletRequest req, String name,
+      String defaultValue) {
     String result = req.getParameter(name).replaceAll("[^A-Za-z]", "");
     if (result == null) {
       return defaultValue;
@@ -74,13 +75,15 @@ abstract class Basic extends BasicServlet {
     return TraceFormatter.formatDate(new Date(millis));
   }
 
-  protected Entry<Scanner,UserGroupInformation> getScanner(final StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
+  protected Entry<Scanner,UserGroupInformation> getScanner(final StringBuilder sb)
+      throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     final boolean saslEnabled = conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
     UserGroupInformation traceUgi = null;
     final String principal;
     final AuthenticationToken at;
-    Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+    Map<String,String> loginMap = conf
+        .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
     if (keytab == null || keytab.length() == 0) {
@@ -109,7 +112,8 @@ abstract class Basic extends BasicServlet {
           props.put(entry.getKey().substring(prefixLength), entry.getValue());
         }
 
-        AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
+        AuthenticationToken token = Property.createInstanceFromPropertyName(conf,
+            Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
         token.init(props);
         at = token;
       }
@@ -147,16 +151,19 @@ abstract class Basic extends BasicServlet {
     return new AbstractMap.SimpleEntry<>(scanner, traceUgi);
   }
 
-  private Scanner getScanner(String table, String principal, AuthenticationToken at, StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
+  private Scanner getScanner(String table, String principal, AuthenticationToken at,
+      StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {
         return new NullScanner();
       }
-      Scanner scanner = conn.createScanner(table, conn.securityOperations().getUserAuthorizations(principal));
+      Scanner scanner = conn.createScanner(table,
+          conn.securityOperations().getUserAuthorizations(principal));
       return scanner;
     } catch (AccumuloSecurityException ex) {
-      sb.append("<h2>Unable to read trace table: check trace username and password configuration.</h2>\n");
+      sb.append(
+          "<h2>Unable to read trace table: check trace username and password configuration.</h2>\n");
       return null;
     } catch (TableNotFoundException ex) {
       return new NullScanner();

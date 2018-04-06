@@ -43,7 +43,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 /**
- * Provides a GUI for browsing the file system information stored in Accumulo. See docs/examples/README.dirlist for instructions.
+ * Provides a GUI for browsing the file system information stored in Accumulo. See
+ * docs/examples/README.dirlist for instructions.
  */
 @SuppressWarnings("serial")
 public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansionListener {
@@ -104,7 +105,8 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     setSize(1000, 800);
     setDefaultCloseOperation(EXIT_ON_CLOSE);
     q = new QueryUtil(opts);
-    fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.getPrincipal(), opts.getToken(), opts.dataTable, opts.auths);
+    fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.getPrincipal(), opts.getToken(),
+        opts.dataTable, opts.auths);
     this.topPath = opts.path;
   }
 
@@ -126,7 +128,8 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
   }
 
   public void init() throws TableNotFoundException {
-    DefaultMutableTreeNode root = new DefaultMutableTreeNode(new NodeInfo(topPath, q.getData(topPath)));
+    DefaultMutableTreeNode root = new DefaultMutableTreeNode(
+        new NodeInfo(topPath, q.getData(topPath)));
     populate(root);
     populateChildren(root);
 

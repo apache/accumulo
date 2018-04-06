@@ -26,13 +26,15 @@ public class IllegalTableTransitionExceptionTest {
 
   final TableState oldState = TableState.ONLINE;
   final TableState newState = TableState.OFFLINE;
-  final String defaultMsg = "Error transitioning from " + oldState + " state to " + newState + " state";
+  final String defaultMsg = "Error transitioning from " + oldState + " state to " + newState
+      + " state";
 
   @Test
   public void testIllegalTableTransitionExceptionMessage() {
     String userMessage = null;
     try {
-      userMessage = "User suppled message - Exception from " + oldState + " state to " + newState + " state";
+      userMessage = "User suppled message - Exception from " + oldState + " state to " + newState
+          + " state";
       throw new TableManager.IllegalTableTransitionException(oldState, newState, userMessage);
     } catch (IllegalTableTransitionException e) {
       assertEquals(userMessage, e.getMessage());

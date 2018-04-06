@@ -32,10 +32,13 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * {@link SortedKeyValueIterator} which attempts to compute a hash over some range of Key-Value pairs.
+ * {@link SortedKeyValueIterator} which attempts to compute a hash over some range of Key-Value
+ * pairs.
  * <p>
- * For the purposes of constructing a Merkle tree, this class will only generate a meaningful result if the (Batch)Scanner will compute a single digest over a
- * Range. If the (Batch)Scanner stops and restarts in the middle of a session, incorrect values will be returned and the merkle tree will be invalid.
+ * For the purposes of constructing a Merkle tree, this class will only generate a meaningful result
+ * if the (Batch)Scanner will compute a single digest over a Range. If the (Batch)Scanner stops and
+ * restarts in the middle of a session, incorrect values will be returned and the merkle tree will
+ * be invalid.
  */
 public class DigestIterator implements SortedKeyValueIterator<Key,Value> {
   public static final String HASH_NAME_KEY = "hash.name";
@@ -46,7 +49,8 @@ public class DigestIterator implements SortedKeyValueIterator<Key,Value> {
   private SortedKeyValueIterator<Key,Value> source;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     String hashName = options.get(HASH_NAME_KEY);
     if (null == hashName) {
       throw new IOException(HASH_NAME_KEY + " must be provided as option");
@@ -83,7 +87,8 @@ public class DigestIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     this.source.seek(range, columnFamilies, inclusive);
 
     consume();

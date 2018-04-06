@@ -42,7 +42,8 @@ public class CreateNamespace extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     Utils.idLock.lock();
     try {
-      namespaceInfo.namespaceId = Utils.getNextTableId(namespaceInfo.namespaceName, master.getInstance());
+      namespaceInfo.namespaceId = Utils.getNextTableId(namespaceInfo.namespaceName,
+          master.getInstance());
       return new SetupNamespacePermissions(namespaceInfo);
     } finally {
       Utils.idLock.unlock();

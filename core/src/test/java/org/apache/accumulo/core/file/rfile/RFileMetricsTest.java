@@ -48,7 +48,8 @@ import com.google.common.util.concurrent.AtomicLongMap;
 public class RFileMetricsTest {
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   static {
     Logger.getLogger(org.apache.hadoop.io.compress.CodecPool.class).setLevel(Level.OFF);
@@ -340,7 +341,8 @@ public class RFileMetricsTest {
 
   @Test
   public void multiCFNonDefaultAndDefaultLocGroup() throws IOException {
-    // test an rfile with multiple column families in a non-default locality group and the default locality group
+    // test an rfile with multiple column families in a non-default locality group and the default
+    // locality group
 
     trf.openWriter(false);
     Set<ByteSequence> lg1 = new HashSet<>();
@@ -458,7 +460,8 @@ public class RFileMetricsTest {
 
   @Test
   public void multiBlockMultiCFNonDefaultAndDefaultLocGroup() throws IOException {
-    // test an rfile with multiple column families and multiple blocks in a non-default locality group and the default locality group
+    // test an rfile with multiple column families and multiple blocks in a non-default locality
+    // group and the default locality group
 
     trf.openWriter(false, 10);// Each entry is a block
     Set<ByteSequence> lg1 = new HashSet<>();

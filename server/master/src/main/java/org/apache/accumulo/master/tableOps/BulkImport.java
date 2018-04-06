@@ -101,7 +101,8 @@ public class BulkImport extends MasterRepo {
         reserve2 = Utils.reserveHdfsDirectory(errorDir, tid);
       return reserve2;
     } else {
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.OFFLINE, null);
     }
   }
 
@@ -122,14 +123,14 @@ public class BulkImport extends MasterRepo {
       // ignored
     }
     if (errorStatus == null)
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
-          errorDir + " does not exist");
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " does not exist");
     if (!errorStatus.isDirectory())
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
-          errorDir + " is not a directory");
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not a directory");
     if (fs.listStatus(errorPath).length != 0)
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
-          errorDir + " is not empty");
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not empty");
 
     ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
     master.updateBulkImportStatus(sourceDir, BulkImportState.MOVING);
@@ -140,8 +141,8 @@ public class BulkImport extends MasterRepo {
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
       log.error("error preparing the bulk import directory", ex);
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY,
-          sourceDir + ": " + ex);
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY, sourceDir + ": " + ex);
     }
   }
 
@@ -176,10 +177,12 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  private String prepareBulkImport(Master master, final VolumeManager fs, String dir, String tableId) throws Exception {
+  private String prepareBulkImport(Master master, final VolumeManager fs, String dir,
+      String tableId) throws Exception {
     final Path bulkDir = createNewBulkDir(fs, tableId);
 
-    MetadataTableUtil.addBulkLoadInProgressFlag(master, "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+    MetadataTableUtil.addBulkLoadInProgressFlag(master,
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
 
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
@@ -217,11 +220,13 @@ public class BulkImport extends MasterRepo {
               }
 
               if (fileStatus.getPath().getName().equals("_logs")) {
-                log.info(fileStatus.getPath() + " is probably a log directory from a map/reduce task, skipping");
+                log.info(fileStatus.getPath()
+                    + " is probably a log directory from a map/reduce task, skipping");
                 return null;
               }
               try {
-                FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
+                FileStatus dataStatus = fs
+                    .getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
                 if (dataStatus.isDirectory()) {
                   log.warn(fileStatus.getPath() + " is not a map file, ignoring");
                   return null;

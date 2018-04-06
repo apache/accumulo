@@ -46,9 +46,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ImportTable didn't correctly place absolute paths in metadata. This resulted in the imported table only being usable when the actual HDFS directory for
- * Accumulo was the same as Property.INSTANCE_DFS_DIR. If any other HDFS directory was used, any interactions with the table would fail because the relative
- * path in the metadata table (created by the ImportTable process) would be converted to a non-existent absolute path.
+ * ImportTable didn't correctly place absolute paths in metadata. This resulted in the imported
+ * table only being usable when the actual HDFS directory for Accumulo was the same as
+ * Property.INSTANCE_DFS_DIR. If any other HDFS directory was used, any interactions with the table
+ * would fail because the relative path in the metadata table (created by the ImportTable process)
+ * would be converted to a non-existent absolute path.
  * <p>
  * ACCUMULO-3215
  *
@@ -149,11 +151,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
       Key k = fileEntry.getKey();
       String value = fileEntry.getValue().toString();
       if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
-        // The file should be an absolute URI (file:///...), not a relative path (/b-000.../I000001.rf)
+        // The file should be an absolute URI (file:///...), not a relative path
+        // (/b-000.../I000001.rf)
         String fileUri = k.getColumnQualifier().toString();
-        Assert.assertFalse("Imported files should have absolute URIs, not relative: " + fileUri, looksLikeRelativePath(fileUri));
-      } else if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
-        Assert.assertFalse("Server directory should have absolute URI, not relative: " + value, looksLikeRelativePath(value));
+        Assert.assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
+            looksLikeRelativePath(fileUri));
+      } else if (k.getColumnFamily()
+          .equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
+        Assert.assertFalse("Server directory should have absolute URI, not relative: " + value,
+            looksLikeRelativePath(value));
       } else {
         Assert.fail("Got expected pair: " + k + "=" + fileEntry.getValue());
       }
@@ -165,9 +171,10 @@ public class ImportExportIT extends AccumuloClusterHarness {
     verifyTableEquality(conn, srcTable, destTable);
   }
 
-  private void verifyTableEquality(Connector conn, String srcTable, String destTable) throws Exception {
-    Iterator<Entry<Key,Value>> src = conn.createScanner(srcTable, Authorizations.EMPTY).iterator(), dest = conn.createScanner(destTable, Authorizations.EMPTY)
-        .iterator();
+  private void verifyTableEquality(Connector conn, String srcTable, String destTable)
+      throws Exception {
+    Iterator<Entry<Key,Value>> src = conn.createScanner(srcTable, Authorizations.EMPTY).iterator(),
+        dest = conn.createScanner(destTable, Authorizations.EMPTY).iterator();
     Assert.assertTrue("Could not read any data from source table", src.hasNext());
     Assert.assertTrue("Could not read any data from destination table", dest.hasNext());
     while (src.hasNext() && dest.hasNext()) {

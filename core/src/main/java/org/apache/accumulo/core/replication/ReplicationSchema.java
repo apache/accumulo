@@ -41,7 +41,8 @@ public class ReplicationSchema {
   private static final Logger log = LoggerFactory.getLogger(ReplicationSchema.class);
 
   /**
-   * Portion of a file that must be replication to the given target: peer and some identifying location on that peer, e.g. remote table ID
+   * Portion of a file that must be replication to the given target: peer and some identifying
+   * location on that peer, e.g. remote table ID
    * <p>
    * <code>hdfs://localhost:8020/accumulo/wal/tserver+port/WAL work:serialized_ReplicationTarget [] -&gt; Status Protobuf</code>
    */
@@ -52,7 +53,8 @@ public class ReplicationSchema {
     public static void getFile(Key k, Text buff) {
       requireNonNull(k);
       requireNonNull(buff);
-      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
+      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()),
+          "Given replication work key with incorrect colfam");
       _getFile(k, buff);
     }
 
@@ -61,7 +63,8 @@ public class ReplicationSchema {
     }
 
     public static ReplicationTarget getTarget(Key k, Text buff) {
-      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
+      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()),
+          "Given replication work key with incorrect colfam");
       k.getColumnQualifier(buff);
 
       return ReplicationTarget.from(buff);
@@ -112,7 +115,8 @@ public class ReplicationSchema {
     public static void getFile(Key k, Text buff) {
       requireNonNull(k);
       requireNonNull(buff);
-      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication status key with incorrect colfam");
+      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()),
+          "Given replication status key with incorrect colfam");
 
       _getFile(k, buff);
     }
@@ -131,8 +135,9 @@ public class ReplicationSchema {
   }
 
   /**
-   * Holds the order in which files needed for replication were closed. The intent is to be able to guarantee that files which were closed earlier were
-   * replicated first and we don't replay data in the wrong order on our peers
+   * Holds the order in which files needed for replication were closed. The intent is to be able to
+   * guarantee that files which were closed earlier were replicated first and we don't replay data
+   * in the wrong order on our peers
    * <p>
    * <code>encodedTimeOfClosure\x00hdfs://localhost:8020/accumulo/wal/tserver+port/WAL order:source_table_id [] -&gt; Status Protobuf</code>
    */
@@ -200,7 +205,8 @@ public class ReplicationSchema {
       log.trace("Normalized {} into {}", file, pathString);
 
       // Append the file as a suffix to the row
-      row.append((ROW_SEPARATOR + pathString).getBytes(UTF_8), 0, pathString.length() + ROW_SEPARATOR.getLength());
+      row.append((ROW_SEPARATOR + pathString).getBytes(UTF_8), 0,
+          pathString.length() + ROW_SEPARATOR.getLength());
 
       // Make the mutation and add the column update
       return new Mutation(row);
@@ -239,7 +245,8 @@ public class ReplicationSchema {
       }
 
       if (-1 == offset) {
-        throw new IllegalArgumentException("Row does not contain expected separator for OrderSection");
+        throw new IllegalArgumentException(
+            "Row does not contain expected separator for OrderSection");
       }
 
       byte[] encodedLong = new byte[offset];
@@ -265,7 +272,8 @@ public class ReplicationSchema {
       }
 
       if (-1 == offset) {
-        throw new IllegalArgumentException("Row does not contain expected separator for OrderSection");
+        throw new IllegalArgumentException(
+            "Row does not contain expected separator for OrderSection");
       }
 
       try {

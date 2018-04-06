@@ -54,23 +54,27 @@ public class ConnectorImpl extends Connector {
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
 
-  public ConnectorImpl(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
+  public ConnectorImpl(final ClientContext context)
+      throws AccumuloException, AccumuloSecurityException {
     checkArgument(context != null, "Context is null");
     checkArgument(context.getCredentials() != null, "Credentials are null");
     checkArgument(context.getCredentials().getToken() != null, "Authentication token is null");
     if (context.getCredentials().getToken().isDestroyed())
-      throw new AccumuloSecurityException(context.getCredentials().getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED);
+      throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
+          SecurityErrorCode.TOKEN_EXPIRED);
 
     this.context = context;
 
-    // Skip fail fast for system services; string literal for class name, to avoid dependency on server jar
+    // Skip fail fast for system services; string literal for class name, to avoid dependency on
+    // server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
       ServerClient.execute(context, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {
           if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
-            throw new AccumuloSecurityException("Authentication failed, access denied", SecurityErrorCode.BAD_CREDENTIALS);
+            throw new AccumuloSecurityException("Authentication failed, access denied",
+                SecurityErrorCode.BAD_CREDENTIALS);
         }
       });
     }
@@ -92,49 +96,58 @@ public class ConnectorImpl extends Connector {
   }
 
   @Override
-  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
+  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
+      int numQueryThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchReader(context, getTableId(tableName), authorizations, numQueryThreads);
+    return new TabletServerBatchReader(context, getTableId(tableName), authorizations,
+        numQueryThreads);
   }
 
   @Deprecated
   @Override
-  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
-      int maxWriteThreads) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
-  }
-
-  @Override
-  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
+      int numQueryThreads, long maxMemory, long maxLatency, int maxWriteThreads)
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config);
+    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations,
+        numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
+            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+  }
+
+  @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
+      int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
+    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations,
+        numQueryThreads, config);
   }
 
   @Deprecated
   @Override
-  public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
+  public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
+      int maxWriteThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(context, getTableId(tableName), new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
-        .setMaxWriteThreads(maxWriteThreads));
+    return new BatchWriterImpl(context, getTableId(tableName),
+        new BatchWriterConfig().setMaxMemory(maxMemory)
+            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
-  public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
+  public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
+      throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     return new BatchWriterImpl(context, getTableId(tableName), config);
   }
 
   @Deprecated
   @Override
-  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
-        .setMaxWriteThreads(maxWriteThreads));
+  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency,
+      int maxWriteThreads) {
+    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig().setMaxMemory(maxMemory)
+        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
@@ -143,12 +156,14 @@ public class ConnectorImpl extends Connector {
   }
 
   @Override
-  public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config) throws TableNotFoundException {
+  public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
+      throws TableNotFoundException {
     return new ConditionalWriterImpl(context, getTableId(tableName), config);
   }
 
   @Override
-  public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
+  public Scanner createScanner(String tableName, Authorizations authorizations)
+      throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
     return new ScannerImpl(context, getTableId(tableName), authorizations);

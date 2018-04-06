@@ -97,7 +97,8 @@ public class AccumuloTest {
     FileSystem fs1 = createMock(FileSystem.class);
     Path baseVersion1 = new Path("hdfs://volume1/accumulo/version");
     Path oldVersion1 = new Path("hdfs://volume1/accumulo/version/7");
-    Path newVersion1 = new Path("hdfs://volume1/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
+    Path newVersion1 = new Path(
+        "hdfs://volume1/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
 
     FileStatus[] files1 = mockPersistentVersion("7");
     expect(fs1.listStatus(baseVersion1)).andReturn(files1);
@@ -114,7 +115,8 @@ public class AccumuloTest {
     FileSystem fs2 = createMock(FileSystem.class);
     Path baseVersion2 = new Path("hdfs://volume2/accumulo/version");
     Path oldVersion2 = new Path("hdfs://volume2/accumulo/version/7");
-    Path newVersion2 = new Path("hdfs://volume2/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
+    Path newVersion2 = new Path(
+        "hdfs://volume2/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
 
     FileStatus[] files2 = mockPersistentVersion("7");
     expect(fs2.listStatus(baseVersion2)).andReturn(files2);
@@ -140,7 +142,8 @@ public class AccumuloTest {
 
   @Test
   public void testLocateLogConfig() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
+    File confDir = new File(FileUtils.getTempDirectory(),
+        "AccumuloTest" + System.currentTimeMillis());
     String confDirName = confDir.getAbsolutePath();
     assertTrue("Failed to make test configuration directory", confDir.mkdir());
     try {
@@ -163,7 +166,8 @@ public class AccumuloTest {
 
   @Test
   public void testLocateLogConfig_Default() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
+    File confDir = new File(FileUtils.getTempDirectory(),
+        "AccumuloTest" + System.currentTimeMillis());
     String confDirName = confDir.getAbsolutePath();
     assertTrue("Failed to make test configuration directory", confDir.mkdir());
     try {
@@ -177,7 +181,8 @@ public class AccumuloTest {
 
   @Test
   public void testLocateLogConfig_Explicit() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
+    File confDir = new File(FileUtils.getTempDirectory(),
+        "AccumuloTest" + System.currentTimeMillis());
     String confDirName = confDir.getAbsolutePath();
     System.setProperty("log4j.configuration", "myconfig.xml");
     try {

@@ -33,7 +33,8 @@ public class RateLimitedOutputStreamTest {
     Random randGen = new Random();
     MockRateLimiter rateLimiter = new MockRateLimiter();
     long bytesWritten = 0;
-    try (RateLimitedOutputStream os = new RateLimitedOutputStream(new NullOutputStream(), rateLimiter)) {
+    try (RateLimitedOutputStream os = new RateLimitedOutputStream(new NullOutputStream(),
+        rateLimiter)) {
       for (int i = 0; i < 100; ++i) {
         byte[] bytes = new byte[Math.abs(randGen.nextInt() % 65536)];
         os.write(bytes);

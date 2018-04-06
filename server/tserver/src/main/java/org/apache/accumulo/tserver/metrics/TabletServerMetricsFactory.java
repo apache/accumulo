@@ -28,7 +28,8 @@ import org.apache.hadoop.metrics2.MetricsSystem;
 /**
  * Factory to create Metrics instances for various TabletServer functions.
  *
- * Necessary shim to support both the custom JMX metrics from &lt;1.7.0 and the new Hadoop Metrics2 implementations.
+ * Necessary shim to support both the custom JMX metrics from &lt;1.7.0 and the new Hadoop Metrics2
+ * implementations.
  */
 public class TabletServerMetricsFactory {
 

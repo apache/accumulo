@@ -61,7 +61,8 @@ public class MockTable {
 
     @Override
     public boolean equals(Object other) {
-      return (other instanceof MockMemKey) && super.equals(other) && count == ((MockMemKey) other).count;
+      return (other instanceof MockMemKey) && super.equals(other)
+          && count == ((MockMemKey) other).count;
     }
 
     @Override
@@ -109,7 +110,8 @@ public class MockTable {
     }
   }
 
-  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId, Map<String,String> properties) {
+  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId,
+      Map<String,String> properties) {
     this(limitVersion, timeType, tableId);
     Set<Entry<String,String>> set = namespace.settings.entrySet();
     Iterator<Entry<String,String>> entries = set.iterator();
@@ -125,7 +127,8 @@ public class MockTable {
     }
   }
 
-  public MockTable(MockNamespace namespace, TimeType timeType, String tableId, Map<String,String> properties) {
+  public MockTable(MockNamespace namespace, TimeType timeType, String tableId,
+      Map<String,String> properties) {
     this.timeType = timeType;
     this.tableId = tableId;
     settings = properties;
@@ -151,8 +154,9 @@ public class MockTable {
     long now = System.currentTimeMillis();
     mutationCount++;
     for (ColumnUpdate u : m.getUpdates()) {
-      Key key = new Key(m.getRow(), 0, m.getRow().length, u.getColumnFamily(), 0, u.getColumnFamily().length, u.getColumnQualifier(), 0,
-          u.getColumnQualifier().length, u.getColumnVisibility(), 0, u.getColumnVisibility().length, u.getTimestamp());
+      Key key = new Key(m.getRow(), 0, m.getRow().length, u.getColumnFamily(), 0,
+          u.getColumnFamily().length, u.getColumnQualifier(), 0, u.getColumnQualifier().length,
+          u.getColumnVisibility(), 0, u.getColumnVisibility().length, u.getTimestamp());
       if (u.isDeleted())
         key.setDeleted(true);
       if (!u.hasTimestamp())

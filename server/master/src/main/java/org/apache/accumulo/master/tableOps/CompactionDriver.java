@@ -62,10 +62,12 @@ class CompactionDriver extends MasterRepo {
   private byte[] endRow;
 
   private String getNamespaceId(Master env) throws Exception {
-    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT, this.namespaceId);
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT,
+        this.namespaceId);
   }
 
-  public CompactionDriver(long compactId, String namespaceId, String tableId, byte[] startRow, byte[] endRow) {
+  public CompactionDriver(long compactId, String namespaceId, String tableId, byte[] startRow,
+      byte[] endRow) {
     this.compactId = compactId;
     this.tableId = tableId;
     this.namespaceId = namespaceId;
@@ -76,13 +78,15 @@ class CompactionDriver extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    String zCancelID = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    String zCancelID = Constants.ZROOT + "/" + master.getInstance().getInstanceID()
+        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID, null))) >= compactId) {
       // compaction was canceled
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT,
+          TableOperationExceptionType.OTHER, "Compaction canceled");
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
@@ -95,7 +99,8 @@ class CompactionDriver extends MasterRepo {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
     } else {
       scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-      Range range = new KeyExtent(tableId, null, startRow == null ? null : new Text(startRow)).toMetadataRange();
+      Range range = new KeyExtent(tableId, null, startRow == null ? null : new Text(startRow))
+          .toMetadataRange();
       scanner.setRange(range);
     }
 
@@ -120,7 +125,8 @@ class CompactionDriver extends MasterRepo {
         entry = row.next();
         Key key = entry.getKey();
 
-        if (TabletsSection.ServerColumnFamily.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+        if (TabletsSection.ServerColumnFamily.COMPACT_COLUMN.equals(key.getColumnFamily(),
+            key.getColumnQualifier()))
           tabletCompactID = Long.parseLong(entry.getValue().toString());
 
         if (TabletsSection.CurrentLocationColumnFamily.NAME.equals(key.getColumnFamily()))
@@ -145,10 +151,12 @@ class CompactionDriver extends MasterRepo {
     Instance instance = master.getInstance();
     Tables.clearCache(instance);
     if (tabletCount == 0 && !Tables.exists(instance, tableId))
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT,
+          TableOperationExceptionType.NOTFOUND, null);
 
     if (serversToFlush.size() == 0 && Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT,
+          TableOperationExceptionType.OFFLINE, null);
 
     if (tabletsToWaitFor == 0)
       return 0;
@@ -166,7 +174,9 @@ class CompactionDriver extends MasterRepo {
     long sleepTime = 500;
 
     if (serversToFlush.size() > 0)
-      sleepTime = Collections.max(serversToFlush.values()) * sleepTime; // make wait time depend on the server with the most to
+      sleepTime = Collections.max(serversToFlush.values()) * sleepTime; // make wait time depend on
+                                                                        // the server with the most
+                                                                        // to
                                                                         // compact
 
     sleepTime = Math.max(2 * scanTime, sleepTime);

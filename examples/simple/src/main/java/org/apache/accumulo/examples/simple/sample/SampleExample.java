@@ -40,14 +40,17 @@ import org.apache.accumulo.examples.simple.shard.CutoffIntersectingIterator;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * A simple example of using Accumulo's sampling feature. This example does something similar to what README.sample shows using the shell. Also see
- * {@link CutoffIntersectingIterator} and README.sample for an example of how to use sample data from within an iterator.
+ * A simple example of using Accumulo's sampling feature. This example does something similar to
+ * what README.sample shows using the shell. Also see {@link CutoffIntersectingIterator} and
+ * README.sample for an example of how to use sample data from within an iterator.
  */
 public class SampleExample {
 
-  // a compaction strategy that only selects files for compaction that have no sample data or sample data created in a different way than the tables
+  // a compaction strategy that only selects files for compaction that have no sample data or sample
+  // data created in a different way than the tables
   static final CompactionStrategyConfig NO_SAMPLE_STRATEGY = new CompactionStrategyConfig(
-      "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy").setOptions(Collections.singletonMap("SF_NO_SAMPLE", ""));
+      "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy")
+          .setOptions(Collections.singletonMap("SF_NO_SAMPLE", ""));
 
   static class Opts extends ClientOnDefaultTable {
     public Opts() {
@@ -73,7 +76,8 @@ public class SampleExample {
     BatchWriter bw = conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
     bw.addMutation(createMutation("9225", "abcde", "file://foo.txt"));
     bw.addMutation(createMutation("8934", "accumulo scales", "file://accumulo_notes.txt"));
-    bw.addMutation(createMutation("2317", "milk, eggs, bread, parmigiano-reggiano", "file://groceries/9/txt"));
+    bw.addMutation(
+        createMutation("2317", "milk, eggs, bread, parmigiano-reggiano", "file://groceries/9/txt"));
     bw.addMutation(createMutation("3900", "EC2 ate my homework", "file://final_project.txt"));
     bw.flush();
 
@@ -87,7 +91,8 @@ public class SampleExample {
     print(scanner);
     System.out.println();
 
-    System.out.println("Scanning with sampler configuration.  Data was written before sampler was set on table, scan should fail.");
+    System.out.println(
+        "Scanning with sampler configuration.  Data was written before sampler was set on table, scan should fail.");
     scanner.setSamplerConfiguration(sc1);
     try {
       print(scanner);
@@ -97,16 +102,19 @@ public class SampleExample {
     System.out.println();
 
     // compact table to recreate sample data
-    conn.tableOperations().compact(opts.getTableName(), new CompactionConfig().setCompactionStrategy(NO_SAMPLE_STRATEGY));
+    conn.tableOperations().compact(opts.getTableName(),
+        new CompactionConfig().setCompactionStrategy(NO_SAMPLE_STRATEGY));
 
     System.out.println("Scanning after compaction (compaction should have created sample data) : ");
     print(scanner);
     System.out.println();
 
     // update a document in the sample data
-    bw.addMutation(createMutation("2317", "milk, eggs, bread, parmigiano-reggiano, butter", "file://groceries/9/txt"));
+    bw.addMutation(createMutation("2317", "milk, eggs, bread, parmigiano-reggiano, butter",
+        "file://groceries/9/txt"));
     bw.close();
-    System.out.println("Scanning sample after updating content for docId 2317 (should see content change in sample data) : ");
+    System.out.println(
+        "Scanning sample after updating content for docId 2317 (should see content change in sample data) : ");
     print(scanner);
     System.out.println();
 
@@ -115,9 +123,11 @@ public class SampleExample {
     sc2.setOptions(ImmutableMap.of("hasher", "murmur3_32", "modulus", "2"));
     conn.tableOperations().setSamplerConfiguration(opts.getTableName(), sc2);
     // compact table to recreate sample data using new configuration
-    conn.tableOperations().compact(opts.getTableName(), new CompactionConfig().setCompactionStrategy(NO_SAMPLE_STRATEGY));
+    conn.tableOperations().compact(opts.getTableName(),
+        new CompactionConfig().setCompactionStrategy(NO_SAMPLE_STRATEGY));
 
-    System.out.println("Scanning with old sampler configuration.  Sample data was created using new configuration with a compaction.  Scan should fail.");
+    System.out.println(
+        "Scanning with old sampler configuration.  Sample data was created using new configuration with a compaction.  Scan should fail.");
     try {
       // try scanning with old sampler configuration
       print(scanner);

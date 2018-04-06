@@ -47,7 +47,8 @@ public class GroupBalancerTest {
 
     @Override
     public String apply(KeyExtent input) {
-      return (input == null || input.getEndRow() == null) ? null : input.getEndRow().toString().substring(0, 2);
+      return (input == null || input.getEndRow() == null) ? null
+          : input.getEndRow().toString().substring(0, 2);
     }
   };
 
@@ -67,7 +68,8 @@ public class GroupBalancerTest {
 
     public void addTablet(String er, String location) {
       TServerInstance tsi = new TServerInstance(location, 6);
-      tabletLocs.put(new KeyExtent("b", er == null ? null : new Text(er), null), new TServerInstance(location, 6));
+      tabletLocs.put(new KeyExtent("b", er == null ? null : new Text(er), null),
+          new TServerInstance(location, 6));
       tservers.add(tsi);
     }
 
@@ -80,13 +82,15 @@ public class GroupBalancerTest {
 
         @Override
         protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
-          return Iterables.transform(tabletLocs.entrySet(), new Function<Map.Entry<KeyExtent,TServerInstance>,Pair<KeyExtent,Location>>() {
+          return Iterables.transform(tabletLocs.entrySet(),
+              new Function<Map.Entry<KeyExtent,TServerInstance>,Pair<KeyExtent,Location>>() {
 
-            @Override
-            public Pair<KeyExtent,Location> apply(final Entry<KeyExtent,TServerInstance> input) {
-              return new Pair<>(input.getKey(), new Location(input.getValue()));
-            }
-          });
+                @Override
+                public Pair<KeyExtent,Location> apply(
+                    final Entry<KeyExtent,TServerInstance> input) {
+                  return new Pair<>(input.getKey(), new Location(input.getValue()));
+                }
+              });
 
         }
 
@@ -122,7 +126,8 @@ public class GroupBalancerTest {
 
         balancer.balance(current, migrations, migrationsOut);
 
-        Assert.assertTrue("Max Migration exceeded " + maxMigrations + " " + migrationsOut.size(), migrationsOut.size() <= (maxMigrations + 5));
+        Assert.assertTrue("Max Migration exceeded " + maxMigrations + " " + migrationsOut.size(),
+            migrationsOut.size() <= (maxMigrations + 5));
 
         for (TabletMigration tabletMigration : migrationsOut) {
           Assert.assertEquals(tabletLocs.get(tabletMigration.tablet), tabletMigration.oldServer);
@@ -175,8 +180,10 @@ public class GroupBalancerTest {
         int tserverExtra = 0;
         for (String group : groupCounts.keySet()) {
           Assert.assertTrue(tgc.get(group) >= expectedCounts.get(group));
-          Assert.assertTrue("Group counts not as expected group:" + group + " actual:" + tgc.get(group) + " expected:" + (expectedCounts.get(group) + 1)
-              + " tserver:" + entry.getKey(), tgc.get(group) <= expectedCounts.get(group) + 1);
+          Assert.assertTrue(
+              "Group counts not as expected group:" + group + " actual:" + tgc.get(group)
+                  + " expected:" + (expectedCounts.get(group) + 1) + " tserver:" + entry.getKey(),
+              tgc.get(group) <= expectedCounts.get(group) + 1);
           tserverExtra += tgc.get(group) - expectedCounts.get(group);
         }
 
@@ -193,8 +200,10 @@ public class GroupBalancerTest {
   @Test
   public void testSingleGroup() {
 
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"}, new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
+    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
+        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
     for (String[] suffixes : tests) {
@@ -215,8 +224,10 @@ public class GroupBalancerTest {
 
   @Test
   public void testTwoGroups() {
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"}, new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
+    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
+        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
     for (String[] suffixes1 : tests) {
@@ -243,8 +254,10 @@ public class GroupBalancerTest {
 
   @Test
   public void testThreeGroups() {
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"}, new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
+    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
+        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+        new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
     for (String[] suffixes1 : tests) {
@@ -285,7 +298,8 @@ public class GroupBalancerTest {
         int ts = 0;
 
         for (int group = 1; group <= numGroups; group++) {
-          tservers.addTablet(String.format("%02d:p", group), "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
+          tservers.addTablet(String.format("%02d:p", group),
+              "192.168.1." + ((ts++ % maxTS) + 1) + ":9997");
         }
 
         tservers.addTservers("192.168.1.2:9997", "192.168.1.3:9997", "192.168.1.4:9997");
@@ -327,7 +341,8 @@ public class GroupBalancerTest {
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= 241; t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
+        tservers.addTablet(String.format("%02d:%d", g, t),
+            "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
       }
     }
 
@@ -345,7 +360,8 @@ public class GroupBalancerTest {
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= rand.nextInt(1000); t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
+        tservers.addTablet(String.format("%02d:%d", g, t),
+            "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
       }
     }
 

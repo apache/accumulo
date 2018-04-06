@@ -100,8 +100,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   }
 
   /**
-   * Constructs an authorization object from a collection of string authorizations that have each already been encoded as UTF-8 bytes. Warning: This method does
-   * not verify that each encoded string is valid UTF-8.
+   * Constructs an authorization object from a collection of string authorizations that have each
+   * already been encoded as UTF-8 bytes. Warning: This method does not verify that each encoded
+   * string is valid UTF-8.
    *
    * @param authorizations
    *          collection of authorizations, as strings encoded in UTF-8
@@ -117,8 +118,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   }
 
   /**
-   * Constructs an authorization object from a list of string authorizations that have each already been encoded as UTF-8 bytes. Warning: This method does not
-   * verify that each encoded string is valid UTF-8.
+   * Constructs an authorization object from a list of string authorizations that have each already
+   * been encoded as UTF-8 bytes. Warning: This method does not verify that each encoded string is
+   * valid UTF-8.
    *
    * @param authorizations
    *          list of authorizations, as strings encoded in UTF-8 and placed in buffers
@@ -135,11 +137,13 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   }
 
   /**
-   * Constructs an authorizations object from a serialized form. This is NOT a constructor for a set of authorizations of size one. Warning: This method does
-   * not verify that the encoded serialized form is valid UTF-8.
+   * Constructs an authorizations object from a serialized form. This is NOT a constructor for a set
+   * of authorizations of size one. Warning: This method does not verify that the encoded serialized
+   * form is valid UTF-8.
    *
    * @param authorizations
-   *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or {@link #serialize()}, converted to UTF-8 bytes
+   *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or
+   *          {@link #serialize()}, converted to UTF-8 bytes
    * @throws IllegalArgumentException
    *           if authorizations is null
    */
@@ -261,7 +265,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   }
 
   /**
-   * Checks whether this object contains the given authorization. Warning: This method does not verify that the encoded string is valid UTF-8.
+   * Checks whether this object contains the given authorization. Warning: This method does not
+   * verify that the encoded string is valid UTF-8.
    *
    * @param auth
    *          authorization, as a string encoded in UTF-8
@@ -330,7 +335,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   }
 
   /**
-   * Returns a serialized form of these authorizations. Convert the returned string to UTF-8 bytes to deserialize with {@link #Authorizations(byte[])}.
+   * Returns a serialized form of these authorizations. Convert the returned string to UTF-8 bytes
+   * to deserialize with {@link #Authorizations(byte[])}.
    *
    * @return serialized form of authorizations
    */

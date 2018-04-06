@@ -61,7 +61,8 @@ public class CombinerIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
     SummingCombiner.setEncodingType(setting, Type.STRING);
-    SummingCombiner.setColumns(setting, Collections.singletonList(new IteratorSetting.Column("cf")));
+    SummingCombiner.setColumns(setting,
+        Collections.singletonList(new IteratorSetting.Column("cf")));
     c.tableOperations().attachIterator(tableName, setting);
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {

@@ -30,8 +30,10 @@ import org.apache.hadoop.metrics2.lib.MutableStat;
 /**
  *
  */
-public class Metrics2TabletServerMinCMetrics implements Metrics, MetricsSource, TabletServerMinCMetricsKeys {
-  public static final String NAME = TSERVER_NAME + ",sub=MinorCompactions", DESCRIPTION = "TabletServer Minor Compaction Metrics", CONTEXT = "tserver",
+public class Metrics2TabletServerMinCMetrics
+    implements Metrics, MetricsSource, TabletServerMinCMetricsKeys {
+  public static final String NAME = TSERVER_NAME + ",sub=MinorCompactions",
+      DESCRIPTION = "TabletServer Minor Compaction Metrics", CONTEXT = "tserver",
       RECORD = "MinorCompactions";
 
   private final MetricsSystem system;

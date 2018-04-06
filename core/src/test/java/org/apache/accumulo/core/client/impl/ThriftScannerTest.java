@@ -33,13 +33,15 @@ public class ThriftScannerTest {
   @Test
   public void testPauseIncrease() throws Exception {
     long newPause = ThriftScanner.pause(5L, 5000L);
-    assertTrue("New pause should be within [9,11], but was " + newPause, withinTenPercent(10L, newPause));
+    assertTrue("New pause should be within [9,11], but was " + newPause,
+        withinTenPercent(10L, newPause));
   }
 
   @Test
   public void testMaxPause() throws Exception {
     long maxPause = 1L;
     long nextPause = ThriftScanner.pause(5L, maxPause);
-    assertTrue("New pause should be within [0,2], but was " + nextPause, withinTenPercent(maxPause, nextPause));
+    assertTrue("New pause should be within [0,2], but was " + nextPause,
+        withinTenPercent(maxPause, nextPause));
   }
 }

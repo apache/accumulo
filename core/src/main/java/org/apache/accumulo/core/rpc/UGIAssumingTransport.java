@@ -27,8 +27,10 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 /**
- * The Thrift SASL transports call Sasl.createSaslServer and Sasl.createSaslClient inside open(). So, we need to assume the correct UGI when the transport is
- * opened so that the SASL mechanisms have access to the right principal. This transport wraps the Sasl transports to set up the right UGI context for open().
+ * The Thrift SASL transports call Sasl.createSaslServer and Sasl.createSaslClient inside open().
+ * So, we need to assume the correct UGI when the transport is opened so that the SASL mechanisms
+ * have access to the right principal. This transport wraps the Sasl transports to set up the right
+ * UGI context for open().
  *
  * This is used on the client side, where the API explicitly opens a transport to the server.
  *

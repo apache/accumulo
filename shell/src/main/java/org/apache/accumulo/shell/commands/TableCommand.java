@@ -29,8 +29,8 @@ import org.apache.commons.cli.CommandLine;
 
 public class TableCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     final String tableName = cl.getArgs()[0];
     if (!shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
@@ -45,7 +45,8 @@ public class TableCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForTables(root, special);
   }
 

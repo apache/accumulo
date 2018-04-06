@@ -42,10 +42,12 @@ import org.apache.hadoop.fs.Path;
 public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   private static abstract class Test {
-    // Do any work that blocks in this method. This method is not always called before shouldCompact(). See CompactionStrategy javadocs.
+    // Do any work that blocks in this method. This method is not always called before
+    // shouldCompact(). See CompactionStrategy javadocs.
     void gatherInformation(MajorCompactionRequest request) {}
 
-    abstract boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request);
+    abstract boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request);
   }
 
   private static class NoSampleTest extends Test {
@@ -58,7 +60,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     void gatherInformation(MajorCompactionRequest request) {
       gatherCalled = true;
 
-      SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
+      SamplerConfigurationImpl sc = SamplerConfigurationImpl
+          .newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
       if (sc == null) {
         samplingConfigured = false;
       } else {
@@ -76,10 +79,12 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request) {
 
       if (!gatherCalled) {
-        SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
+        SamplerConfigurationImpl sc = SamplerConfigurationImpl
+            .newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
         return sc != null;
       }
 
@@ -99,7 +104,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request) {
       return shouldCompact(file.getValue().getSize(), esize);
     }
 
@@ -114,7 +120,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
 
     @Override
-    public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
+    public boolean shouldCompact(Entry<FileRef,DataFileValue> file,
+        MajorCompactionRequest request) {
       return pattern.matcher(getInput(file.getKey().path())).matches();
     }
 
@@ -221,7 +228,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   @Override
   public void gatherInformation(MajorCompactionRequest request) throws IOException {
-    // Gather any information that requires blocking calls here. This is only called before getCompactionPlan() is called.
+    // Gather any information that requires blocking calls here. This is only called before
+    // getCompactionPlan() is called.
     for (Test test : tests) {
       test.gatherInformation(request);
     }

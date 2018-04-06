@@ -30,8 +30,9 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 
 /**
- * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
- * code against a real Accumulo instance. The use of this utility will yield results which closely match a normal Accumulo instance.
+ * A utility class that will create Zookeeper and Accumulo processes that write all of their data to
+ * a single local directory. This class makes it easy to test code against a real Accumulo instance.
+ * The use of this utility will yield results which closely match a normal Accumulo instance.
  *
  * @since 1.5.0
  */
@@ -46,8 +47,9 @@ public class MiniAccumuloCluster {
   /**
    *
    * @param dir
-   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava,
-   *          and Junit provide methods for creating temporary directories.
+   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in.
+   *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
+   *          for creating temporary directories.
    * @param rootPassword
    *          Initial root password for instance.
    */
@@ -93,8 +95,9 @@ public class MiniAccumuloCluster {
   }
 
   /**
-   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
-   * call stop in a finally block as soon as possible.
+   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is
+   * setup to kill the processes. However its probably best to call stop in a finally block as soon
+   * as possible.
    */
   public void stop() throws IOException, InterruptedException {
     impl.stop();
@@ -112,7 +115,8 @@ public class MiniAccumuloCluster {
    *
    * @since 1.6.0
    */
-  public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String user, String passwd)
+      throws AccumuloException, AccumuloSecurityException {
     return impl.getConnector(user, new PasswordToken(passwd));
   }
 

@@ -31,7 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An input stream that reads file data stored in one or more Accumulo values. Used by {@link ChunkInputFormat} to present input streams to a mapper.
+ * An input stream that reads file data stored in one or more Accumulo values. Used by
+ * {@link ChunkInputFormat} to present input streams to a mapper.
  */
 public class ChunkInputStream extends InputStream {
   private static final Logger log = LoggerFactory.getLogger(ChunkInputStream.class);
@@ -144,7 +145,8 @@ public class ChunkInputStream extends InputStream {
     }
 
     if (gotEndMarker) {
-      log.debug("got another chunk after end marker: " + currentKey.toString() + " " + thisKey.toString());
+      log.debug("got another chunk after end marker: " + currentKey.toString() + " "
+          + thisKey.toString());
       clear();
       throw new IOException("found extra chunk after end marker");
     }
@@ -152,7 +154,8 @@ public class ChunkInputStream extends InputStream {
     // got new chunk of the same file, check that it's the next chunk
     int thisChunk = FileDataIngest.bytesToInt(thisKey.getColumnQualifier().getBytes(), 4);
     if (thisChunk != currentChunk + 1) {
-      log.debug("new chunk same file, unexpected chunkID: " + currentKey.toString() + " " + thisKey.toString());
+      log.debug("new chunk same file, unexpected chunkID: " + currentKey.toString() + " "
+          + thisKey.toString());
       clear();
       throw new IOException("missing chunks between " + currentChunk + " and " + thisChunk);
     }
@@ -173,7 +176,8 @@ public class ChunkInputStream extends InputStream {
 
   public Set<Text> getVisibilities() {
     if (source != null)
-      throw new IllegalStateException("don't get visibilities before chunks have been completely read");
+      throw new IllegalStateException(
+          "don't get visibilities before chunks have been completely read");
     return currentVis;
   }
 
@@ -184,7 +188,8 @@ public class ChunkInputStream extends InputStream {
     log.debug("pos: " + pos + " count: " + count);
     if (pos >= count) {
       if (fill() <= 0) {
-        log.debug("done reading input stream at key: " + (currentKey == null ? "null" : currentKey.toString()));
+        log.debug("done reading input stream at key: "
+            + (currentKey == null ? "null" : currentKey.toString()));
         if (source != null && source.hasNext())
           log.debug("next key: " + source.peek().getKey());
         clear();
@@ -198,7 +203,8 @@ public class ChunkInputStream extends InputStream {
   public int read(byte[] b, int off, int len) throws IOException {
     if (b == null) {
       throw new NullPointerException();
-    } else if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length) || ((off + len) < 0)) {
+    } else if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length)
+        || ((off + len) < 0)) {
       throw new IndexOutOfBoundsException();
     } else if (len == 0) {
       return 0;
@@ -211,7 +217,8 @@ public class ChunkInputStream extends InputStream {
       log.debug(avail + " available in current local buffer");
       if (avail <= 0) {
         if (fill() <= 0) {
-          log.debug("done reading input stream at key: " + (currentKey == null ? "null" : currentKey.toString()));
+          log.debug("done reading input stream at key: "
+              + (currentKey == null ? "null" : currentKey.toString()));
           if (source != null && source.hasNext())
             log.debug("next key: " + source.peek().getKey());
           clear();

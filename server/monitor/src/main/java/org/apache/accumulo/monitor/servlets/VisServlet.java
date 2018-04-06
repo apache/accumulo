@@ -28,12 +28,14 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 public class VisServlet extends BasicServlet {
-  private static final int concurrentScans = Monitor.getContext().getConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+  private static final int concurrentScans = Monitor.getContext().getConfiguration()
+      .getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
 
   private static final long serialVersionUID = 1L;
 
   public enum StatType {
-    osload(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load"),
+    osload(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100,
+        "OS Load"),
     ingest(1000, true, 1, "Ingest Entries"),
     query(10000, true, 1, "Scan Entries"),
     ingestMB(10, true, 10, "Ingest MB"),
@@ -64,7 +66,8 @@ public class VisServlet extends BasicServlet {
       this(max, adjustMax, significance, description, false);
     }
 
-    private StatType(int max, boolean adjustMax, float significance, String description, boolean derived) {
+    private StatType(int max, boolean adjustMax, float significance, String description,
+        boolean derived) {
       this.max = max;
       this.adjustMax = adjustMax;
       this.significance = significance;
@@ -115,7 +118,8 @@ public class VisServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb)
+      throws IOException {
     StringBuffer urlsb = req.getRequestURL();
     urlsb.setLength(urlsb.lastIndexOf("/") + 1);
     VisualizationConfig cfg = new VisualizationConfig();
@@ -167,20 +171,27 @@ public class VisServlet extends BasicServlet {
     sb.append("<div class='left'>\n");
     sb.append("<div id='parameters' class='nowrap'>\n");
     // shape select box
-    sb.append("<span class='viscontrol'>Shape: <select id='shape' onchange='setShape(this)'><option>Circles</option><option")
-        .append(!cfg.useCircles ? " selected='true'" : "").append(">Squares</option></select></span>\n");
+    sb.append(
+        "<span class='viscontrol'>Shape: <select id='shape' onchange='setShape(this)'><option>Circles</option><option")
+        .append(!cfg.useCircles ? " selected='true'" : "")
+        .append(">Squares</option></select></span>\n");
     // size select box
-    sb.append("&nbsp;&nbsp<span class='viscontrol'>Size: <select id='size' onchange='setSize(this)'><option")
-        .append(cfg.spacing == 10 ? " selected='true'" : "").append(">10</option><option").append(cfg.spacing == 20 ? " selected='true'" : "")
-        .append(">20</option><option").append(cfg.spacing == 40 ? " selected='true'" : "").append(">40</option><option")
-        .append(cfg.spacing == 80 ? " selected='true'" : "").append(">80</option></select></span>\n");
+    sb.append(
+        "&nbsp;&nbsp<span class='viscontrol'>Size: <select id='size' onchange='setSize(this)'><option")
+        .append(cfg.spacing == 10 ? " selected='true'" : "").append(">10</option><option")
+        .append(cfg.spacing == 20 ? " selected='true'" : "").append(">20</option><option")
+        .append(cfg.spacing == 40 ? " selected='true'" : "").append(">40</option><option")
+        .append(cfg.spacing == 80 ? " selected='true'" : "")
+        .append(">80</option></select></span>\n");
     // motion select box
-    sb.append("&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'>");
+    sb.append(
+        "&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'>");
     sb.append("<option selected='true'></option>");
     addOptions(sb, null);
     sb.append("</select></span>\n");
     // color select box
-    sb.append("&nbsp;&nbsp<span class='viscontrol'>Color: <select id='color' onchange='setColor(this)'>");
+    sb.append(
+        "&nbsp;&nbsp<span class='viscontrol'>Color: <select id='color' onchange='setColor(this)'>");
     addOptions(sb, cfg.color);
     sb.append("</select></span>\n");
     sb.append("&nbsp;&nbsp<span class='viscontrol'>(hover for info, click for details)</span>");
@@ -189,21 +200,25 @@ public class VisServlet extends BasicServlet {
     // floating info box
     sb.append("<div id='vishoverinfo'></div>\n\n");
     // canvas
-    sb.append("<br><canvas id='visCanvas' width='").append(width).append("' height='").append(height).append("'>Browser does not support canvas.</canvas>\n\n");
+    sb.append("<br><canvas id='visCanvas' width='").append(width).append("' height='")
+        .append(height).append("'>Browser does not support canvas.</canvas>\n\n");
     sb.append("</div>\n");
     sb.append("</div>\n\n");
   }
 
   private void addOptions(StringBuilder sb, StatType selectedStatType) {
     for (StatType st : StatType.values()) {
-      sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">").append(st.getDescription()).append("</option>");
+      sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">")
+          .append(st.getDescription()).append("</option>");
     }
   }
 
-  private void doScript(StringBuilder sb, VisualizationConfig cfg, ArrayList<TabletServerStatus> tservers) {
+  private void doScript(StringBuilder sb, VisualizationConfig cfg,
+      ArrayList<TabletServerStatus> tservers) {
     // initialization of some javascript variables
     sb.append("<script type='text/javascript'>\n");
-    sb.append("var numCores = " + ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors() + ";\n");
+    sb.append("var numCores = "
+        + ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors() + ";\n");
     sb.append("var jsonurl = '" + cfg.url + "json';\n");
     sb.append("var visurl = '" + cfg.url + "vis';\n");
     sb.append("var serverurl = '" + cfg.url + "tservers?s=';\n\n");
@@ -217,7 +232,8 @@ public class VisServlet extends BasicServlet {
     for (StatType st : StatType.values())
       sb.append("'").append(st).append("': ").append(st.getMax()).append(", ");
     sb.setLength(sb.length() - 2);
-    sb.append("}; // initial values that are system-dependent may increase based on observed values\n");
+    sb.append(
+        "}; // initial values that are system-dependent may increase based on observed values\n");
     sb.append("var adjustMax = {");
     for (StatType st : StatType.values())
       sb.append("'").append(st).append("': ").append(st.getAdjustMax()).append(", ");
@@ -228,7 +244,8 @@ public class VisServlet extends BasicServlet {
       sb.append("'").append(st).append("': ").append(st.getSignificance()).append(", ");
     sb.setLength(sb.length() - 2);
     sb.append("}; // values will be converted by floor(this*value)/this\n");
-    sb.append("var numNormalStats = ").append(StatType.values().length - StatType.numDerived()).append(";\n");
+    sb.append("var numNormalStats = ").append(StatType.values().length - StatType.numDerived())
+        .append(";\n");
     sb.append("</script>\n");
 
     sb.append("<script src='web/vis.js' type='text/javascript'></script>");

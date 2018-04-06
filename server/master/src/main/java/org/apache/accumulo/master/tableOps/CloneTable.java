@@ -28,7 +28,8 @@ public class CloneTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
 
-  public CloneTable(String user, String namespaceId, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
+  public CloneTable(String user, String namespaceId, String srcTableId, String tableName,
+      Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
     cloneInfo.srcTableId = srcTableId;
@@ -40,7 +41,8 @@ public class CloneTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    long val = Utils.reserveNamespace(cloneInfo.srcNamespaceId, tid, false, true, TableOperation.CLONE);
+    long val = Utils.reserveNamespace(cloneInfo.srcNamespaceId, tid, false, true,
+        TableOperation.CLONE);
     val += Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
     return val;
   }

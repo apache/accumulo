@@ -32,8 +32,9 @@ import org.apache.commons.cli.Options;
 
 public class CreateUserCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException,
-      AccumuloSecurityException, TableExistsException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      TableExistsException, IOException {
     final String user = cl.getArgs()[0];
 
     AuthenticationToken userToken = shellState.getToken();
@@ -41,12 +42,14 @@ public class CreateUserCommand extends Command {
     if (userToken instanceof KerberosToken) {
       passwordToken = new PasswordToken();
     } else {
-      final String password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
+      final String password = shellState.readMaskedLine("Enter new password for '" + user + "': ",
+          '*');
       if (password == null) {
         shellState.getReader().println();
         return 0;
       } // user canceled
-      String passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
+      String passwordConfirm = shellState
+          .readMaskedLine("Please confirm new password for '" + user + "': ", '*');
       if (passwordConfirm == null) {
         shellState.getReader().println();
         return 0;

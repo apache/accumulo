@@ -85,8 +85,8 @@ public abstract class AbstractMetricsImpl implements Metrics {
 
     @Override
     public String toString() {
-      return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("count", count).append("average", avg).append("minimum", min)
-          .append("maximum", max).toString();
+      return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("count", count)
+          .append("average", avg).append("minimum", min).append("maximum", max).toString();
     }
 
   }
@@ -168,7 +168,8 @@ public abstract class AbstractMetricsImpl implements Metrics {
     if (null == config.getMetricsConfiguration())
       return;
     // If we are already logging, then return
-    if (!currentlyLogging && config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
+    if (!currentlyLogging
+        && config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
       // Check to see if directory exists, else make it
       String mDir = config.getMetricsConfiguration().getString("logging.dir");
       if (null != mDir) {
@@ -209,7 +210,8 @@ public abstract class AbstractMetricsImpl implements Metrics {
       today = now;
       startNewLog();
     }
-    logWriter.append(logFormatter.format(now)).append(" Metric: ").append(name).append(": ").append(registry.get(name).toString()).append("\n");
+    logWriter.append(logFormatter.format(now)).append(" Metric: ").append(name).append(": ")
+        .append(registry.get(name).toString()).append("\n");
   }
 
   @Override
@@ -220,13 +222,15 @@ public abstract class AbstractMetricsImpl implements Metrics {
       registry.get(name).addMin(time);
       registry.get(name).addMax(time);
       // If we are not currently logging and should be, then initialize
-      if (!currentlyLogging && config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
+      if (!currentlyLogging
+          && config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
         try {
           setupLogging();
         } catch (IOException ioe) {
           log.error("Error setting up log", ioe);
         }
-      } else if (currentlyLogging && !config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
+      } else if (currentlyLogging
+          && !config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
         // if we are currently logging and shouldn't be, then close logs
         try {
           logWriter.flush();

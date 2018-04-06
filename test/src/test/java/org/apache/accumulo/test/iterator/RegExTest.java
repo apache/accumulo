@@ -108,7 +108,8 @@ public class RegExTest {
     runTest(range, null, null, null, "v[a-c][d-f][g-i]", 3 * 3 * 3);
   }
 
-  private void runTest(Range range, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
+  private void runTest(Range range, String rowRegEx, String cfRegEx, String cqRegEx,
+      String valRegEx, int expected) throws Exception {
 
     SortedKeyValueIterator<Key,Value> source = new SortedMapIterator(data);
     Set<ByteSequence> es = ImmutableSet.of();
@@ -120,7 +121,8 @@ public class RegExTest {
     runTest(iter, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
   }
 
-  private void runTest(RegExFilter scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {
+  private void runTest(RegExFilter scanner, String rowRegEx, String cfRegEx, String cqRegEx,
+      String valRegEx, int expected) throws Exception {
 
     int counter = 0;
 
@@ -138,7 +140,8 @@ public class RegExTest {
     }
 
     if (counter != expected) {
-      throw new Exception("scan did not return the expected number of entries " + counter + " " + expected);
+      throw new Exception(
+          "scan did not return the expected number of entries " + counter + " " + expected);
     }
   }
 }

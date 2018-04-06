@@ -52,7 +52,8 @@ public class ServerConfigurationFactoryTest {
   public static void setUpClass() throws Exception {
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
-    expect(zcf.getZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT), anyObject(NamespaceConfWatcher.class))).andReturn(zc);
+    expect(zcf.getZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT), anyObject(NamespaceConfWatcher.class)))
+        .andReturn(zc);
     expectLastCall().anyTimes();
     expect(zcf.getZooCache(ZK_HOST, ZK_TIMEOUT)).andReturn(zc);
     expectLastCall().anyTimes();

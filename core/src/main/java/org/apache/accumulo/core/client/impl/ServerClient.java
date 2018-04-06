@@ -45,7 +45,8 @@ import org.slf4j.LoggerFactory;
 public class ServerClient {
   private static final Logger log = LoggerFactory.getLogger(ServerClient.class);
 
-  public static <T> T execute(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static <T> T execute(ClientContext context, ClientExecReturn<T,ClientService.Client> exec)
+      throws AccumuloException, AccumuloSecurityException {
     try {
       return executeRaw(context, exec);
     } catch (ThriftSecurityException e) {
@@ -57,7 +58,8 @@ public class ServerClient {
     }
   }
 
-  public static void execute(ClientContext context, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static void execute(ClientContext context, ClientExec<ClientService.Client> exec)
+      throws AccumuloException, AccumuloSecurityException {
     try {
       executeRaw(context, exec);
     } catch (ThriftSecurityException e) {
@@ -69,7 +71,8 @@ public class ServerClient {
     }
   }
 
-  public static <T> T executeRaw(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
+  public static <T> T executeRaw(ClientContext context,
+      ClientExecReturn<T,ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
       String server = null;
@@ -88,7 +91,8 @@ public class ServerClient {
     }
   }
 
-  public static void executeRaw(ClientContext context, ClientExec<ClientService.Client> exec) throws Exception {
+  public static void executeRaw(ClientContext context, ClientExec<ClientService.Client> exec)
+      throws Exception {
     while (true) {
       ClientService.Client client = null;
       String server = null;
@@ -110,37 +114,43 @@ public class ServerClient {
 
   static volatile boolean warnedAboutTServersBeingDown = false;
 
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context) throws TTransportException {
+  public static Pair<String,ClientService.Client> getConnection(ClientContext context)
+      throws TTransportException {
     return getConnection(context, true);
   }
 
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections) throws TTransportException {
+  public static Pair<String,ClientService.Client> getConnection(ClientContext context,
+      boolean preferCachedConnections) throws TTransportException {
     return getConnection(context, preferCachedConnections, context.getClientTimeoutInMillis());
   }
 
-  public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections, long rpcTimeout)
-      throws TTransportException {
+  public static Pair<String,ClientService.Client> getConnection(ClientContext context,
+      boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
     checkArgument(context != null, "context is null");
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
     Instance instance = context.getInstance();
-    ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);
         if (!strData.equals("master"))
-          servers.add(new ThriftTransportKey(new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
+          servers.add(new ThriftTransportKey(
+              new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
       }
     }
 
     boolean opened = false;
     try {
-      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
-      ClientService.Client client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
+      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers,
+          preferCachedConnections);
+      ClientService.Client client = ThriftUtil.createClient(new ClientService.Client.Factory(),
+          pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
       return new Pair<>(pair.getFirst(), client);
@@ -159,7 +169,8 @@ public class ServerClient {
   }
 
   public static void close(ClientService.Client client) {
-    if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
+    if (client != null && client.getInputProtocol() != null
+        && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
     } else {
       log.debug("Attempt to close null connection to a server", new Exception());

@@ -40,8 +40,10 @@ class ChooseDir extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add one here
-    tableInfo.dir = master.getFileSystem().choose(Optional.of(tableInfo.tableId), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+    // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add
+    // one here
+    tableInfo.dir = master.getFileSystem().choose(Optional.of(tableInfo.tableId),
+        ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
         + tableInfo.tableId + Constants.DEFAULT_TABLET_LOCATION;
     return new CreateDir(tableInfo);
   }

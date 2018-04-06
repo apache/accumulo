@@ -50,7 +50,8 @@ public class SimpleStore<T> implements TStore<T> {
   @Override
   public void reserve(long tid) {
     if (reserved.contains(tid))
-      throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve twice... if test change, then change this
+      throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
+                                         // twice... if test change, then change this
     reserved.add(tid);
   }
 
@@ -97,7 +98,8 @@ public class SimpleStore<T> implements TStore<T> {
   }
 
   @Override
-  public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid, EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
+  public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid,
+      EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
     throw new NotImplementedException();
   }
 

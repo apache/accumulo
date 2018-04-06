@@ -22,27 +22,31 @@ import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 
 /**
- * If we have a sufficient back-up of imports, let them work off before adding even more bulk-imports. Imports of PlusOne must always be balanced with imports
- * of MinusOne.
+ * If we have a sufficient back-up of imports, let them work off before adding even more
+ * bulk-imports. Imports of PlusOne must always be balanced with imports of MinusOne.
  */
 public abstract class BulkImportTest extends BulkTest {
 
-  public static final String SKIPPED_IMPORT = "skipped.import", TRUE = Boolean.TRUE.toString(), FALSE = Boolean.FALSE.toString();
+  public static final String SKIPPED_IMPORT = "skipped.import", TRUE = Boolean.TRUE.toString(),
+      FALSE = Boolean.FALSE.toString();
 
   @Override
   public void visit(final State state, Environment env, Properties props) throws Exception {
     /**
-     * Each visit() is performed sequentially and then submitted to the threadpool which will have async execution. As long as we're checking the state and
-     * making decisions about what to do before we submit something to the thread pool, we're fine.
+     * Each visit() is performed sequentially and then submitted to the threadpool which will have
+     * async execution. As long as we're checking the state and making decisions about what to do
+     * before we submit something to the thread pool, we're fine.
      */
 
     String lastImportSkipped = state.getString(SKIPPED_IMPORT);
-    // We have a marker in the state for the previous insert, we have to balance skipping BulkPlusOne
+    // We have a marker in the state for the previous insert, we have to balance skipping
+    // BulkPlusOne
     // with skipping the new BulkMinusOne to make sure that we maintain consistency
     if (null != lastImportSkipped) {
       if (!getClass().equals(BulkMinusOne.class)) {
-        throw new IllegalStateException("Should not have a skipped import marker for a class other than " + BulkMinusOne.class.getName() + " but was "
-            + getClass().getName());
+        throw new IllegalStateException(
+            "Should not have a skipped import marker for a class other than "
+                + BulkMinusOne.class.getName() + " but was " + getClass().getName());
       }
 
       if (TRUE.equals(lastImportSkipped)) {

@@ -102,7 +102,8 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     Assert.assertEquals(count, 0);
   }
 
-  // Tests set, get, and remove of user added arbitrary properties using a non-root account with permissions to alter tables
+  // Tests set, get, and remove of user added arbitrary properties using a non-root account with
+  // permissions to alter tables
   @Test
   public void userSetGetRemoveTablePropertyWithPermission() throws Exception {
     log.debug("Starting userSetGetRemoveTablePropertyWithPermission test ------------------------");
@@ -116,7 +117,8 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
     final Connector c = getConnector();
-    c.securityOperations().createLocalUser(testUser, (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
+    c.securityOperations().createLocalUser(testUser,
+        (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
     c.tableOperations().create(tableName);
     c.securityOperations().grantTablePermission(testUser, tableName, TablePermission.ALTER_TABLE);
 
@@ -165,7 +167,8 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
 
   }
 
-  // Tests set and get of user added arbitrary properties using a non-root account without permissions to alter tables
+  // Tests set and get of user added arbitrary properties using a non-root account without
+  // permissions to alter tables
   @Test
   public void userSetGetTablePropertyWithoutPermission() throws Exception {
     log.debug("Starting userSetGetTablePropertyWithoutPermission test ------------------------");
@@ -179,7 +182,8 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
     final Connector c = getConnector();
-    c.securityOperations().createLocalUser(testUser, (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
+    c.securityOperations().createLocalUser(testUser,
+        (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
     c.tableOperations().create(tableName);
 
     // Set variables for the property name to use and the initial value

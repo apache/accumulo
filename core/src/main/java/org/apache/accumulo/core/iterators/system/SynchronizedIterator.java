@@ -28,15 +28,18 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
- * Wraps a SortedKeyValueIterator so that all of its methods are synchronized. The intent is that user iterators which are multi-threaded have the possibility
- * to call parent methods concurrently. The SynchronizedIterators aims to reduce the likelihood of unwanted concurrent access.
+ * Wraps a SortedKeyValueIterator so that all of its methods are synchronized. The intent is that
+ * user iterators which are multi-threaded have the possibility to call parent methods concurrently.
+ * The SynchronizedIterators aims to reduce the likelihood of unwanted concurrent access.
  */
-public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writable> implements SortedKeyValueIterator<K,V> {
+public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writable>
+    implements SortedKeyValueIterator<K,V> {
 
   private SortedKeyValueIterator<K,V> source = null;
 
   @Override
-  public synchronized void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public synchronized void init(SortedKeyValueIterator<K,V> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     this.source = source;
     source.init(source, options, env);
   }
@@ -52,7 +55,8 @@ public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writ
   }
 
   @Override
-  public synchronized void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public synchronized void seek(Range range, Collection<ByteSequence> columnFamilies,
+      boolean inclusive) throws IOException {
     source.seek(range, columnFamilies, inclusive);
   }
 

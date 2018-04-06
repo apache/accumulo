@@ -42,14 +42,16 @@ public class ListBulkCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
 
     List<String> tservers;
 
     MasterMonitorInfo stats;
     MasterClientService.Iface client = null;
     try {
-      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(shellState.getInstance()));
+      AccumuloServerContext context = new AccumuloServerContext(
+          new ServerConfigurationFactory(shellState.getInstance()));
       client = MasterClient.getConnectionWithRetry(context);
       stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
     } finally {

@@ -59,8 +59,10 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     // its a bug when using rfiles, so flush
     conn.tableOperations().flush(table, null, null, true);
 
-    IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye", IntersectingIterator.class.getName());
-    IntersectingIterator.setColumnFamilies(iterCfg, new Text[] {new Text("the"), new Text("hamster")});
+    IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye",
+        IntersectingIterator.class.getName());
+    IntersectingIterator.setColumnFamilies(iterCfg,
+        new Text[] {new Text("the"), new Text("hamster")});
 
     Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
     scanner.enableIsolation();
@@ -74,7 +76,8 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     }
   }
 
-  private void addDocument(BatchWriter bw, String docId, String... terms) throws MutationsRejectedException {
+  private void addDocument(BatchWriter bw, String docId, String... terms)
+      throws MutationsRejectedException {
     Mutation m = new Mutation(String.format("%04d", docId.hashCode() % 10));
     for (String term : terms) {
       m.put(term, docId, "");

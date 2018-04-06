@@ -28,7 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This store removes Repos, in the store it wraps, that are in a finished or new state for more than a configurable time period.
+ * This store removes Repos, in the store it wraps, that are in a finished or new state for more
+ * than a configurable time period.
  *
  * No external time source is used. It starts tracking idle time when its created.
  *
@@ -207,7 +208,8 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid, EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
+  public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid,
+      EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
     return store.waitForStatusChange(tid, expected);
   }
 

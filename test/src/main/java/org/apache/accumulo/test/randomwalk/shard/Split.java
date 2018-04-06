@@ -33,7 +33,8 @@ public class Split extends Test {
     int numPartitions = (Integer) state.get("numPartitions");
     Random rand = (Random) state.get("rand");
 
-    SortedSet<Text> splitSet = ShardFixture.genSplits(numPartitions, rand.nextInt(numPartitions) + 1, "%06x");
+    SortedSet<Text> splitSet = ShardFixture.genSplits(numPartitions,
+        rand.nextInt(numPartitions) + 1, "%06x");
     log.debug("adding splits " + indexTableName);
     env.getConnector().tableOperations().addSplits(indexTableName, splitSet);
   }

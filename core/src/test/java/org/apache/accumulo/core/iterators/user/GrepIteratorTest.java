@@ -68,7 +68,8 @@ public class GrepIteratorTest {
     output.put(k, new Value("xyz".getBytes()));
   }
 
-  public static void checkEntries(SortedKeyValueIterator<Key,Value> skvi, SortedMap<Key,Value> map) throws IOException {
+  public static void checkEntries(SortedKeyValueIterator<Key,Value> skvi, SortedMap<Key,Value> map)
+      throws IOException {
     for (Entry<Key,Value> e : map.entrySet()) {
       assertTrue(skvi.hasTop());
       assertEquals(e.getKey(), skvi.getTopKey());

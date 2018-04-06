@@ -51,7 +51,8 @@ public class BatchVerify extends Test {
     }
 
     Connector conn = env.getConnector();
-    BatchScanner scanner = conn.createBatchScanner(state.getString("seqTableName"), new Authorizations(), 2);
+    BatchScanner scanner = conn.createBatchScanner(state.getString("seqTableName"),
+        new Authorizations(), 2);
 
     try {
       int count = 0;
@@ -63,7 +64,8 @@ public class BatchVerify extends Test {
           rangeEnd = numWrites - 1;
         }
         count += rangeEnd - rangeStart + 1;
-        ranges.add(new Range(new Text(String.format("%010d", rangeStart)), new Text(String.format("%010d", rangeEnd))));
+        ranges.add(new Range(new Text(String.format("%010d", rangeStart)),
+            new Text(String.format("%010d", rangeEnd))));
       }
 
       ranges = Range.mergeOverlapping(ranges);
@@ -74,7 +76,8 @@ public class BatchVerify extends Test {
       if (count == 0 || ranges.size() == 0)
         return;
 
-      log.debug(String.format("scanning %d rows in the following %d ranges:", count, ranges.size()));
+      log.debug(
+          String.format("scanning %d rows in the following %d ranges:", count, ranges.size()));
       for (Range r : ranges) {
         log.debug(r);
       }
@@ -95,7 +98,8 @@ public class BatchVerify extends Test {
       boolean done = false;
       for (Range r : ranges) {
         int start = Integer.parseInt(r.getStartKey().getRow().toString());
-        int end = Integer.parseInt(String.copyValueOf(r.getEndKey().getRow().toString().toCharArray(), 0, 10));
+        int end = Integer
+            .parseInt(String.copyValueOf(r.getEndKey().getRow().toString().toCharArray(), 0, 10));
         for (int i = start; i <= end; i++) {
 
           if (done) {

@@ -37,12 +37,15 @@ public class LoggingRunnable implements Runnable {
       try {
         log.error("Thread \"{}\" died {}", Thread.currentThread().getName(), t.getMessage(), t);
       } catch (Throwable t2) {
-        // maybe the logging system is screwed up OR there is a bug in the exception, like t.getMessage() throws a NPE
-        System.err.println("ERROR " + new Date() + " Failed to log message about thread death " + t2.getMessage());
+        // maybe the logging system is screwed up OR there is a bug in the exception, like
+        // t.getMessage() throws a NPE
+        System.err.println(
+            "ERROR " + new Date() + " Failed to log message about thread death " + t2.getMessage());
         t2.printStackTrace();
 
         // try to print original exception
-        System.err.println("ERROR " + new Date() + " Exception that failed to log : " + t.getMessage());
+        System.err
+            .println("ERROR " + new Date() + " Exception that failed to log : " + t.getMessage());
         t.printStackTrace();
       }
     }

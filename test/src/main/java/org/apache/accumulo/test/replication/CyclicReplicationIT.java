@@ -89,7 +89,8 @@ public class CyclicReplicationIT {
   private File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    File testDir = new File(baseDir, this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
+    File testDir = new File(baseDir,
+        this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
@@ -102,15 +103,18 @@ public class CyclicReplicationIT {
 
     Configuration coreSite = new Configuration(false);
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-    OutputStream out = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "core-site.xml")));
+    OutputStream out = new BufferedOutputStream(
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "core-site.xml")));
     coreSite.writeXml(out);
     out.close();
   }
 
   /**
-   * Use the same SSL and credential provider configuration that is set up by AbstractMacIT for the other MAC used for replication
+   * Use the same SSL and credential provider configuration that is set up by AbstractMacIT for the
+   * other MAC used for replication
    */
-  private void updatePeerConfigFromPrimary(MiniAccumuloConfigImpl primaryCfg, MiniAccumuloConfigImpl peerCfg) {
+  private void updatePeerConfigFromPrimary(MiniAccumuloConfigImpl primaryCfg,
+      MiniAccumuloConfigImpl peerCfg) {
     // Set the same SSL information from the primary when present
     Map<String,String> primarySiteConfig = primaryCfg.getSiteConfig();
     if ("true".equals(primarySiteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
@@ -128,7 +132,8 @@ public class CyclicReplicationIT {
       if (null != keystorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword = primarySiteConfig
+          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (null != truststorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -138,10 +143,12 @@ public class CyclicReplicationIT {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider = primarySiteConfig
+        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (null != credProvider) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
-      peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvider);
+      peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
+          credProvider);
       peerCfg.setSiteConfig(peerSiteConfig);
     }
   }
@@ -159,7 +166,8 @@ public class CyclicReplicationIT {
       master1Cfg.setInstanceName("master1");
 
       // Set up SSL if needed
-      ConfigurableMacBase.configureForEnvironment(master1Cfg, this.getClass(), ConfigurableMacBase.getSslDir(master1Dir));
+      ConfigurableMacBase.configureForEnvironment(master1Cfg, this.getClass(),
+          ConfigurableMacBase.getSslDir(master1Dir));
 
       master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
       master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
@@ -204,52 +212,76 @@ public class CyclicReplicationIT {
     }
 
     try {
-      Connector connMaster1 = master1Cluster.getConnector("root", new PasswordToken(password)), connMaster2 = master2Cluster.getConnector("root",
-          new PasswordToken(password));
+      Connector connMaster1 = master1Cluster.getConnector("root", new PasswordToken(password)),
+          connMaster2 = master2Cluster.getConnector("root", new PasswordToken(password));
 
       String master1UserName = "master1", master1Password = "foo";
       String master2UserName = "master2", master2Password = "bar";
-      String master1Table = master1Cluster.getInstanceName(), master2Table = master2Cluster.getInstanceName();
+      String master1Table = master1Cluster.getInstanceName(),
+          master2Table = master2Cluster.getInstanceName();
 
-      connMaster1.securityOperations().createLocalUser(master1UserName, new PasswordToken(master1Password));
-      connMaster2.securityOperations().createLocalUser(master2UserName, new PasswordToken(master2Password));
+      connMaster1.securityOperations().createLocalUser(master1UserName,
+          new PasswordToken(master1Password));
+      connMaster2.securityOperations().createLocalUser(master2UserName,
+          new PasswordToken(master2Password));
 
-      // Configure the credentials we should use to authenticate ourselves to the peer for replication
-      connMaster1.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + master2Cluster.getInstanceName(), master2UserName);
-      connMaster1.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + master2Cluster.getInstanceName(), master2Password);
+      // Configure the credentials we should use to authenticate ourselves to the peer for
+      // replication
+      connMaster1.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_USER.getKey() + master2Cluster.getInstanceName(),
+          master2UserName);
+      connMaster1.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_PASSWORD.getKey() + master2Cluster.getInstanceName(),
+          master2Password);
 
-      connMaster2.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + master1Cluster.getInstanceName(), master1UserName);
-      connMaster2.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + master1Cluster.getInstanceName(), master1Password);
+      connMaster2.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_USER.getKey() + master1Cluster.getInstanceName(),
+          master1UserName);
+      connMaster2.instanceOperations().setProperty(
+          Property.REPLICATION_PEER_PASSWORD.getKey() + master1Cluster.getInstanceName(),
+          master1Password);
 
       connMaster1.instanceOperations().setProperty(
           Property.REPLICATION_PEERS.getKey() + master2Cluster.getInstanceName(),
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-              AccumuloReplicaSystem.buildConfiguration(master2Cluster.getInstanceName(), master2Cluster.getZooKeepers())));
+              AccumuloReplicaSystem.buildConfiguration(master2Cluster.getInstanceName(),
+                  master2Cluster.getZooKeepers())));
 
       connMaster2.instanceOperations().setProperty(
           Property.REPLICATION_PEERS.getKey() + master1Cluster.getInstanceName(),
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-              AccumuloReplicaSystem.buildConfiguration(master1Cluster.getInstanceName(), master1Cluster.getZooKeepers())));
+              AccumuloReplicaSystem.buildConfiguration(master1Cluster.getInstanceName(),
+                  master1Cluster.getZooKeepers())));
 
-      connMaster1.tableOperations().create(master1Table, new NewTableConfiguration().withoutDefaultIterators());
+      connMaster1.tableOperations().create(master1Table,
+          new NewTableConfiguration().withoutDefaultIterators());
       String master1TableId = connMaster1.tableOperations().tableIdMap().get(master1Table);
       Assert.assertNotNull(master1TableId);
 
-      connMaster2.tableOperations().create(master2Table, new NewTableConfiguration().withoutDefaultIterators());
+      connMaster2.tableOperations().create(master2Table,
+          new NewTableConfiguration().withoutDefaultIterators());
       String master2TableId = connMaster2.tableOperations().tableIdMap().get(master2Table);
       Assert.assertNotNull(master2TableId);
 
       // Replicate master1 in the master1 cluster to master2 in the master2 cluster
-      connMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION_TARGET.getKey() + master2Cluster.getInstanceName(), master2TableId);
+      connMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION.getKey(),
+          "true");
+      connMaster1.tableOperations().setProperty(master1Table,
+          Property.TABLE_REPLICATION_TARGET.getKey() + master2Cluster.getInstanceName(),
+          master2TableId);
 
       // Replicate master2 in the master2 cluster to master1 in the master2 cluster
-      connMaster2.tableOperations().setProperty(master2Table, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster2.tableOperations().setProperty(master2Table, Property.TABLE_REPLICATION_TARGET.getKey() + master1Cluster.getInstanceName(), master1TableId);
+      connMaster2.tableOperations().setProperty(master2Table, Property.TABLE_REPLICATION.getKey(),
+          "true");
+      connMaster2.tableOperations().setProperty(master2Table,
+          Property.TABLE_REPLICATION_TARGET.getKey() + master1Cluster.getInstanceName(),
+          master1TableId);
 
       // Give our replication user the ability to write to the respective table
-      connMaster1.securityOperations().grantTablePermission(master1UserName, master1Table, TablePermission.WRITE);
-      connMaster2.securityOperations().grantTablePermission(master2UserName, master2Table, TablePermission.WRITE);
+      connMaster1.securityOperations().grantTablePermission(master1UserName, master1Table,
+          TablePermission.WRITE);
+      connMaster2.securityOperations().grantTablePermission(master2UserName, master2Table,
+          TablePermission.WRITE);
 
       IteratorSetting summingCombiner = new IteratorSetting(50, SummingCombiner.class);
       SummingCombiner.setEncodingType(summingCombiner, Type.STRING);

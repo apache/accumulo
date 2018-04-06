@@ -28,7 +28,8 @@ public class TBufferedSocket extends TIOStreamTransport {
   String client;
 
   public TBufferedSocket(TSocket sock, int bufferSize) throws IOException {
-    super(new BufferedInputStream(sock.getSocket().getInputStream(), bufferSize), new BufferedOutputStream(sock.getSocket().getOutputStream(), bufferSize));
+    super(new BufferedInputStream(sock.getSocket().getInputStream(), bufferSize),
+        new BufferedOutputStream(sock.getSocket().getOutputStream(), bufferSize));
     client = sock.getSocket().getInetAddress().getHostAddress() + ":" + sock.getSocket().getPort();
   }
 

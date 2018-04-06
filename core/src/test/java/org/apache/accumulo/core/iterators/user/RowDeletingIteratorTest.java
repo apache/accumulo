@@ -68,7 +68,8 @@ public class RowDeletingIteratorTest extends TestCase {
     put(tm, row, cf, cq, time, new Value(val.getBytes()));
   }
 
-  private void testAssertions(RowDeletingIterator rdi, String row, String cf, String cq, long time, String val) {
+  private void testAssertions(RowDeletingIterator rdi, String row, String cf, String cq, long time,
+      String val) {
     assertTrue(rdi.hasTop());
     assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
@@ -89,7 +90,8 @@ public class RowDeletingIteratorTest extends TestCase {
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
     for (int i = 0; i < 5; i++) {
-      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<ByteSequence>(), false);
+      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<ByteSequence>(),
+          false);
       testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
     }
 
@@ -101,7 +103,8 @@ public class RowDeletingIteratorTest extends TestCase {
     assertFalse(rdi.hasTop());
 
     for (int i = 0; i < 5; i++) {
-      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<ByteSequence>(), false);
+      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<ByteSequence>(),
+          false);
       assertFalse(rdi.hasTop());
     }
 
@@ -164,7 +167,8 @@ public class RowDeletingIteratorTest extends TestCase {
     put(tm1, "r2", "cf1", "cq1", 5, "v1");
 
     RowDeletingIterator rdi = new RowDeletingIterator();
-    rdi.init(new ColumnFamilySkippingIterator(new SortedMapIterator(tm1)), null, new TestIE(IteratorScope.scan, false));
+    rdi.init(new ColumnFamilySkippingIterator(new SortedMapIterator(tm1)), null,
+        new TestIE(IteratorScope.scan, false));
 
     HashSet<ByteSequence> cols = new HashSet<>();
     cols.add(new ArrayByteSequence("cf1".getBytes()));

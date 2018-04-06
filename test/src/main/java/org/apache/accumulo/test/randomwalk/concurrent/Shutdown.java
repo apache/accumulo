@@ -46,7 +46,8 @@ public class Shutdown extends Test {
 
     while (true) {
       try {
-        AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+        AccumuloServerContext context = new AccumuloServerContext(
+            new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
         Client client = MasterClient.getConnection(context);
         client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (Exception e) {

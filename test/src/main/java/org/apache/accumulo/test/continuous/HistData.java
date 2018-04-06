@@ -38,7 +38,8 @@ class HistData<T> implements Comparable<HistData<T>>, Serializable {
   @SuppressWarnings("unchecked")
   @Override
   public boolean equals(Object obj) {
-    return obj == this || (obj != null && obj instanceof HistData && 0 == compareTo((HistData<T>) obj));
+    return obj == this
+        || (obj != null && obj instanceof HistData && 0 == compareTo((HistData<T>) obj));
   }
 
   @SuppressWarnings("unchecked")

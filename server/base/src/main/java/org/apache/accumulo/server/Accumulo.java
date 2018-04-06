@@ -65,11 +65,14 @@ public class Accumulo {
         if (getAccumuloPersistentVersion(volume) == oldVersion) {
           log.debug("Attempting to upgrade " + volume);
           Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
-          fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION))).close();
-          // TODO document failure mode & recovery if FS permissions cause above to work and below to fail ACCUMULO-2596
+          fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION)))
+              .close();
+          // TODO document failure mode & recovery if FS permissions cause above to work and below
+          // to fail ACCUMULO-2596
           Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(oldVersion));
           if (!fs.delete(prevDataVersionLoc)) {
-            throw new RuntimeException("Could not delete previous data version location (" + prevDataVersionLoc + ") for " + volume);
+            throw new RuntimeException("Could not delete previous data version location ("
+                + prevDataVersionLoc + ") for " + volume);
           }
         }
       } catch (IOException e) {
@@ -110,8 +113,8 @@ public class Accumulo {
   }
 
   /**
-   * Finds the best log4j configuration file. A generic file is used only if an application-specific file is not available. An XML file is preferred over a
-   * properties file, if possible.
+   * Finds the best log4j configuration file. A generic file is used only if an application-specific
+   * file is not available. An XML file is preferred over a properties file, if possible.
    *
    * @param confDir
    *          directory where configuration files should reside
@@ -124,8 +127,10 @@ public class Accumulo {
     if (explicitConfigFile != null) {
       return explicitConfigFile;
     }
-    String[] configFiles = {String.format("%s/%s_logger.xml", confDir, application), String.format("%s/%s_logger.properties", confDir, application),
-        String.format("%s/generic_logger.xml", confDir), String.format("%s/generic_logger.properties", confDir)};
+    String[] configFiles = {String.format("%s/%s_logger.xml", confDir, application),
+        String.format("%s/%s_logger.properties", confDir, application),
+        String.format("%s/generic_logger.xml", confDir),
+        String.format("%s/generic_logger.properties", confDir)};
     String defaultConfigFile = configFiles[2]; // generic_logger.xml
     for (String f : configFiles) {
       if (new File(f).exists()) {
@@ -141,7 +146,8 @@ public class Accumulo {
     if (System.getenv("ACCUMULO_LOG_DIR") != null)
       System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_LOG_DIR"));
     else
-      System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_HOME") + "/logs/");
+      System.setProperty("org.apache.accumulo.core.dir.log",
+          System.getenv("ACCUMULO_HOME") + "/logs/");
 
     String localhost = InetAddress.getLocalHost().getHostName();
     System.setProperty("org.apache.accumulo.core.ip.localhost.hostname", localhost);
@@ -156,15 +162,18 @@ public class Accumulo {
     logConf.resetLogger();
   }
 
-  public static void init(VolumeManager fs, ServerConfigurationFactory serverConfig, String application) throws IOException {
+  public static void init(VolumeManager fs, ServerConfigurationFactory serverConfig,
+      String application) throws IOException {
     final AccumuloConfiguration conf = serverConfig.getConfiguration();
     final Instance instance = serverConfig.getInstance();
 
     // Use a specific log config, if it exists
     final String logConfigFile = locateLogConfig(System.getenv("ACCUMULO_CONF_DIR"), application);
 
-    // Set up polling log4j updates and log-forwarding using information advertised in zookeeper by the monitor
-    MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(instance.getInstanceID(), logConfigFile);
+    // Set up polling log4j updates and log-forwarding using information advertised in zookeeper by
+    // the monitor
+    MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(instance.getInstanceID(),
+        logConfigFile);
     logConfigWatcher.setDelay(5000L);
     logConfigWatcher.start();
 
@@ -179,7 +188,8 @@ public class Accumulo {
     Accumulo.waitForZookeeperAndHdfs(fs);
 
     if (!(canUpgradeFromDataVersion(dataVersion))) {
-      throw new RuntimeException("This version of accumulo (" + Constants.VERSION + ") is not compatible with files stored using data version " + dataVersion);
+      throw new RuntimeException("This version of accumulo (" + Constants.VERSION
+          + ") is not compatible with files stored using data version " + dataVersion);
     }
 
     TreeMap<String,String> sortedProps = new TreeMap<>();
@@ -195,8 +205,8 @@ public class Accumulo {
 
     // Encourage users to configure TLS
     final String SSL = "SSL";
-    for (Property sslProtocolProperty : Arrays.asList(Property.RPC_SSL_CLIENT_PROTOCOL, Property.RPC_SSL_ENABLED_PROTOCOLS,
-        Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
+    for (Property sslProtocolProperty : Arrays.asList(Property.RPC_SSL_CLIENT_PROTOCOL,
+        Property.RPC_SSL_ENABLED_PROTOCOLS, Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
       String value = conf.get(sslProtocolProperty);
       if (value.contains(SSL)) {
         log.warn("It is recommended that " + sslProtocolProperty + " only allow TLS");
@@ -205,7 +215,8 @@ public class Accumulo {
   }
 
   /**
-   * Sanity check that the current persistent version is allowed to upgrade to the version of Accumulo running.
+   * Sanity check that the current persistent version is allowed to upgrade to the version of
+   * Accumulo running.
    *
    * @param dataVersion
    *          the version that is persisted in the backing Volumes
@@ -215,7 +226,8 @@ public class Accumulo {
   }
 
   /**
-   * Does the data version number stored in the backing Volumes indicate we need to upgrade something?
+   * Does the data version number stored in the backing Volumes indicate we need to upgrade
+   * something?
    */
   public static boolean persistentVersionNeedsUpgrade(final int accumuloPersistentVersion) {
     return ServerConstants.NEEDS_UPGRADE.get(accumuloPersistentVersion);
@@ -239,7 +251,8 @@ public class Accumulo {
               String setting = new String(buffer, 0, bytes, UTF_8);
               setting = setting.trim();
               if (bytes > 0 && Integer.parseInt(setting) > 10) {
-                log.warn("System swappiness setting is greater than ten (" + setting + ") which can cause time-sensitive operations to be delayed. "
+                log.warn("System swappiness setting is greater than ten (" + setting
+                    + ") which can cause time-sensitive operations to be delayed. "
                     + " Accumulo is time sensitive because it needs to maintain distributed lock agreement.");
               }
             } finally {
@@ -281,10 +294,17 @@ public class Accumulo {
         if (exception.getCause() instanceof UnknownHostException) {
           if (unknownHostTries > 0) {
             log.warn("Unable to connect to HDFS, will retry. cause: " + exception.getCause());
-            /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
-            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
+            /*
+             * We need to make sure our sleep period is long enough to avoid getting a cached
+             * failure of the host lookup.
+             */
+            sleep = Math.max(sleep,
+                (AddressUtil
+                    .getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1)
+                    * 1000);
           } else {
-            log.error("Unable to connect to HDFS and have exceeded the maximum number of retries.", exception);
+            log.error("Unable to connect to HDFS and have exceeded the maximum number of retries.",
+                exception);
             throw exception;
           }
           unknownHostTries--;
@@ -301,23 +321,28 @@ public class Accumulo {
   }
 
   /**
-   * Exit loudly if there are outstanding Fate operations. Since Fate serializes class names, we need to make sure there are no queued transactions from a
-   * previous version before continuing an upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same problem as those just
-   * queued.
+   * Exit loudly if there are outstanding Fate operations. Since Fate serializes class names, we
+   * need to make sure there are no queued transactions from a previous version before continuing an
+   * upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same
+   * problem as those just queued.
    *
-   * Note that the Master should not allow write access to Fate until after all upgrade steps are complete.
+   * Note that the Master should not allow write access to Fate until after all upgrade steps are
+   * complete.
    *
-   * Should be called as a guard before performing any upgrade steps, after determining that an upgrade is needed.
+   * Should be called as a guard before performing any upgrade steps, after determining that an
+   * upgrade is needed.
    *
    * see ACCUMULO-2519
    */
   public static void abortIfFateTransactions() {
     try {
-      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(new ZooStore<Accumulo>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
-          ZooReaderWriter.getInstance()));
+      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(
+          new ZooStore<Accumulo>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
+              ZooReaderWriter.getInstance()));
       if (!(fate.list().isEmpty())) {
-        throw new AccumuloException("Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. "
-            + "Please see the README document for instructions on what to do under your previous version.");
+        throw new AccumuloException(
+            "Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. "
+                + "Please see the README document for instructions on what to do under your previous version.");
       }
     } catch (Exception exception) {
       log.fatal("Problem verifying Fate readiness", exception);

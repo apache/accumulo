@@ -42,8 +42,9 @@ public class Condition {
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[0]);
 
   /**
-   * Creates a new condition. The initial column value and timestamp are null, and the initial column visibility is empty. Characters in the column family and
-   * column qualifier are encoded as bytes in the condition using UTF-8.
+   * Creates a new condition. The initial column value and timestamp are null, and the initial
+   * column visibility is empty. Characters in the column family and column qualifier are encoded as
+   * bytes in the condition using UTF-8.
    *
    * @param cf
    *          column family
@@ -61,7 +62,8 @@ public class Condition {
   }
 
   /**
-   * Creates a new condition. The initial column value and timestamp are null, and the initial column visibility is empty.
+   * Creates a new condition. The initial column value and timestamp are null, and the initial
+   * column visibility is empty.
    *
    * @param cf
    *          column family
@@ -79,7 +81,8 @@ public class Condition {
   }
 
   /**
-   * Creates a new condition. The initial column value and timestamp are null, and the initial column visibility is empty.
+   * Creates a new condition. The initial column value and timestamp are null, and the initial
+   * column visibility is empty.
    *
    * @param cf
    *          column family
@@ -97,7 +100,8 @@ public class Condition {
   }
 
   /**
-   * Creates a new condition. The initial column value and timestamp are null, and the initial column visibility is empty.
+   * Creates a new condition. The initial column value and timestamp are null, and the initial
+   * column visibility is empty.
    *
    * @param cf
    *          column family
@@ -133,7 +137,8 @@ public class Condition {
   }
 
   /**
-   * Sets the version for the column to check. If this is not set then the latest column will be checked, unless iterators do something different.
+   * Sets the version for the column to check. If this is not set then the latest column will be
+   * checked, unless iterators do something different.
    *
    * @param ts
    *          timestamp
@@ -154,8 +159,10 @@ public class Condition {
   }
 
   /**
-   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
-   * the column must be absent for the condition to pass. The passed-in character sequence is encoded as UTF-8. See {@link #setValue(byte[])}.
+   * This method sets the expected value of a column. In order for the condition to pass the column
+   * must exist and have this value. If a value is not set, then the column must be absent for the
+   * condition to pass. The passed-in character sequence is encoded as UTF-8. See
+   * {@link #setValue(byte[])}.
    *
    * @param value
    *          value
@@ -170,8 +177,9 @@ public class Condition {
   }
 
   /**
-   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
-   * the column must be absent for the condition to pass.
+   * This method sets the expected value of a column. In order for the condition to pass the column
+   * must exist and have this value. If a value is not set, then the column must be absent for the
+   * condition to pass.
    *
    * @param value
    *          value
@@ -186,8 +194,9 @@ public class Condition {
   }
 
   /**
-   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
-   * the column must be absent for the condition to pass. See {@link #setValue(byte[])}.
+   * This method sets the expected value of a column. In order for the condition to pass the column
+   * must exist and have this value. If a value is not set, then the column must be absent for the
+   * condition to pass. See {@link #setValue(byte[])}.
    *
    * @param value
    *          value
@@ -202,8 +211,9 @@ public class Condition {
   }
 
   /**
-   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
-   * the column must be absent for the condition to pass. See {@link #setValue(byte[])}.
+   * This method sets the expected value of a column. In order for the condition to pass the column
+   * must exist and have this value. If a value is not set, then the column must be absent for the
+   * condition to pass. See {@link #setValue(byte[])}.
    *
    * @param value
    *          value
@@ -250,16 +260,19 @@ public class Condition {
   }
 
   /**
-   * Set iterators to use when reading the columns value. These iterators will be applied in addition to the iterators configured for the table. Using iterators
-   * its possible to test other conditions, besides equality and absence, like less than. On the server side the iterators will be seeked using a range that
-   * covers only the family, qualifier, and visibility (if the timestamp is set then it will be used to narrow the range). Value equality will be tested using
+   * Set iterators to use when reading the columns value. These iterators will be applied in
+   * addition to the iterators configured for the table. Using iterators its possible to test other
+   * conditions, besides equality and absence, like less than. On the server side the iterators will
+   * be seeked using a range that covers only the family, qualifier, and visibility (if the
+   * timestamp is set then it will be used to narrow the range). Value equality will be tested using
    * the first entry returned by the iterator stack.
    *
    * @param iterators
    *          iterators
    * @return this condition
    * @throws IllegalArgumentException
-   *           if iterators or any of its elements are null, or if any two iterators share the same name or priority
+   *           if iterators or any of its elements are null, or if any two iterators share the same
+   *           name or priority
    */
   public Condition setIterators(IteratorSetting... iterators) {
     checkArgument(iterators != null, "iterators is null");
@@ -270,9 +283,11 @@ public class Condition {
 
       for (IteratorSetting iteratorSetting : iterators) {
         if (!names.add(iteratorSetting.getName()))
-          throw new IllegalArgumentException("iterator name used more than once " + iteratorSetting.getName());
+          throw new IllegalArgumentException(
+              "iterator name used more than once " + iteratorSetting.getName());
         if (!prios.add(iteratorSetting.getPriority()))
-          throw new IllegalArgumentException("iterator priority used more than once " + iteratorSetting.getPriority());
+          throw new IllegalArgumentException(
+              "iterator priority used more than once " + iteratorSetting.getPriority());
       }
     }
 

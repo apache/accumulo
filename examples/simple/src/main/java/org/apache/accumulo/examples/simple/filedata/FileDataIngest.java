@@ -40,15 +40,18 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * Takes a list of files and archives them into Accumulo keyed on hashes of the files. See docs/examples/README.filedata for instructions.
+ * Takes a list of files and archives them into Accumulo keyed on hashes of the files. See
+ * docs/examples/README.filedata for instructions.
  */
 public class FileDataIngest {
   public static final Text CHUNK_CF = new Text("~chunk");
   public static final Text REFS_CF = new Text("refs");
   public static final String REFS_ORIG_FILE = "name";
   public static final String REFS_FILE_EXT = "filext";
-  public static final ByteSequence CHUNK_CF_BS = new ArrayByteSequence(CHUNK_CF.getBytes(), 0, CHUNK_CF.getLength());
-  public static final ByteSequence REFS_CF_BS = new ArrayByteSequence(REFS_CF.getBytes(), 0, REFS_CF.getLength());
+  public static final ByteSequence CHUNK_CF_BS = new ArrayByteSequence(CHUNK_CF.getBytes(), 0,
+      CHUNK_CF.getLength());
+  public static final ByteSequence REFS_CF_BS = new ArrayByteSequence(REFS_CF.getBytes(), 0,
+      REFS_CF.getLength());
 
   int chunkSize;
   byte[] chunkSizeBytes;
@@ -68,7 +71,8 @@ public class FileDataIngest {
     cv = colvis;
   }
 
-  public String insertFileData(String filename, BatchWriter bw) throws MutationsRejectedException, IOException {
+  public String insertFileData(String filename, BatchWriter bw)
+      throws MutationsRejectedException, IOException {
     if (chunkSize == 0)
       return "";
     md5digest.reset();
@@ -98,7 +102,8 @@ public class FileDataIngest {
 
     // write info to accumulo
     Mutation m = new Mutation(row);
-    m.put(REFS_CF, KeyUtil.buildNullSepText(uid, REFS_ORIG_FILE), cv, new Value(filename.getBytes()));
+    m.put(REFS_CF, KeyUtil.buildNullSepText(uid, REFS_ORIG_FILE), cv,
+        new Value(filename.getBytes()));
     String fext = getExt(filename);
     if (fext != null)
       m.put(REFS_CF, KeyUtil.buildNullSepText(uid, REFS_FILE_EXT), cv, new Value(fext.getBytes()));
@@ -123,7 +128,8 @@ public class FileDataIngest {
         m.put(CHUNK_CF, chunkCQ, cv, new Value(buf, 0, numRead));
         bw.addMutation(m);
         if (chunkCount == Integer.MAX_VALUE)
-          throw new RuntimeException("too many chunks for file " + filename + ", try raising chunk size");
+          throw new RuntimeException(
+              "too many chunks for file " + filename + ", try raising chunk size");
         chunkCount++;
         numRead = fis.read(buf);
       }
@@ -143,7 +149,8 @@ public class FileDataIngest {
   public static int bytesToInt(byte[] b, int offset) {
     if (b.length <= offset + 3)
       throw new NumberFormatException("couldn't pull integer from bytes at offset " + offset);
-    int i = (((b[offset] & 255) << 24) + ((b[offset + 1] & 255) << 16) + ((b[offset + 2] & 255) << 8) + ((b[offset + 3] & 255) << 0));
+    int i = (((b[offset] & 255) << 24) + ((b[offset + 1] & 255) << 16)
+        + ((b[offset + 2] & 255) << 8) + ((b[offset + 3] & 255) << 0));
     return i;
   }
 
@@ -171,7 +178,8 @@ public class FileDataIngest {
   }
 
   public static class Opts extends ClientOnRequiredTable {
-    @Parameter(names = "--vis", description = "use a given visibility for the new counts", converter = VisibilityConverter.class)
+    @Parameter(names = "--vis", description = "use a given visibility for the new counts",
+        converter = VisibilityConverter.class)
     ColumnVisibility visibility = new ColumnVisibility();
 
     @Parameter(names = "--chunk", description = "size of the chunks used to store partial files")
@@ -189,7 +197,8 @@ public class FileDataIngest {
     Connector conn = opts.getConnector();
     if (!conn.tableOperations().exists(opts.getTableName())) {
       conn.tableOperations().create(opts.getTableName());
-      conn.tableOperations().attachIterator(opts.getTableName(), new IteratorSetting(1, ChunkCombiner.class));
+      conn.tableOperations().attachIterator(opts.getTableName(),
+          new IteratorSetting(1, ChunkCombiner.class));
     }
     BatchWriter bw = conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
     FileDataIngest fdi = new FileDataIngest(opts.chunkSize, opts.visibility);

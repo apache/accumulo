@@ -53,7 +53,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 
 /**
- * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which we know to currently be running
+ * Verify that we have resolved blocking issue by ensuring that we have not lost scan sessions which
+ * we know to currently be running
  */
 public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   private static final Logger log = LoggerFactory.getLogger(SessionBlockVerifyIT.class);
@@ -154,19 +155,24 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
 
       if (tableName.equals(scan.getTable()) && scan.getSsiList().size() > 0) {
         assertEquals("Not the expected iterator", 1, scan.getSsiList().size());
-        assertTrue("Not the expected iterator", scan.getSsiList().iterator().next().contains("SlowIterator"));
+        assertTrue("Not the expected iterator",
+            scan.getSsiList().iterator().next().contains("SlowIterator"));
         sessionsFound++;
       }
 
     }
 
     /**
-     * The message below indicates the problem that we experience within ACCUMULO-3509. The issue manifests as a blockage in the Scanner synchronization that
-     * prevent us from making the close call against it. Since the close blocks until a read is finished, we ultimately have a block within the sweep of
-     * SessionManager. As a result never reap subsequent idle sessions AND we will orphan the sessionsToCleanup in the sweep, leading to an inaccurate count
-     * within sessionsFound.
+     * The message below indicates the problem that we experience within ACCUMULO-3509. The issue
+     * manifests as a blockage in the Scanner synchronization that prevent us from making the close
+     * call against it. Since the close blocks until a read is finished, we ultimately have a block
+     * within the sweep of SessionManager. As a result never reap subsequent idle sessions AND we
+     * will orphan the sessionsToCleanup in the sweep, leading to an inaccurate count within
+     * sessionsFound.
      */
-    assertEquals("Must have ten sessions. Failure indicates a synchronization block within the sweep mechanism", 10, sessionsFound);
+    assertEquals(
+        "Must have ten sessions. Failure indicates a synchronization block within the sweep mechanism",
+        10, sessionsFound);
     for (Future<Boolean> callable : callables) {
       callable.cancel(true);
     }

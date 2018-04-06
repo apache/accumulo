@@ -36,11 +36,13 @@ public class TimedProcessor implements TProcessor {
   private final Metrics metrics;
   private long idleStart = 0;
 
-  public TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName, String threadName) {
+  public TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName,
+      String threadName) {
     this(new MetricsFactory(conf), next, serverName, threadName);
   }
 
-  public TimedProcessor(MetricsFactory factory, TProcessor next, String serverName, String threadName) {
+  public TimedProcessor(MetricsFactory factory, TProcessor next, String serverName,
+      String threadName) {
     this.other = next;
     metrics = factory.createThriftMetrics(serverName, threadName);
     try {

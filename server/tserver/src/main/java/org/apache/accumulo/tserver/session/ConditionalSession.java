@@ -30,7 +30,8 @@ public class ConditionalSession extends Session {
   public final Durability durability;
   public final String classLoaderContext;
 
-  public ConditionalSession(TCredentials credentials, Authorizations authorizations, String tableId, Durability durability, String classLoaderContext) {
+  public ConditionalSession(TCredentials credentials, Authorizations authorizations, String tableId,
+      Durability durability, String classLoaderContext) {
     super(credentials);
     this.credentials = credentials;
     this.auths = authorizations;

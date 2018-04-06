@@ -59,12 +59,15 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void recordsWithProgressUpdateBothTables() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true).setInfiniteEnd(false).build();
+    Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true)
+        .setInfiniteEnd(false).build();
     ReplicationTarget target = new ReplicationTarget("peer", "table1", "1");
 
     // Create a single work record for a file to some peer
@@ -91,8 +94,10 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void chooseMinimumBeginOffset() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
@@ -131,8 +136,10 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void chooseMinimumBeginOffsetInfiniteEnd() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();

@@ -33,7 +33,8 @@ public class Jar implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
-    // need at least one argument for the jar file, two arguments if the jar file manifest doesn't specify a main class
+    // need at least one argument for the jar file, two arguments if the jar file manifest doesn't
+    // specify a main class
     if (args.length == 0) {
       Main.printUsage();
       System.exit(1);
@@ -47,8 +48,9 @@ public class Jar implements KeywordExecutable {
       System.out.println("File " + jarFileName + " could not be found or read.");
       System.exit(1);
     } catch (ClassNotFoundException cnfe) {
-      System.out.println("Classname " + (candidateMainClass != null ? candidateMainClass : "in JAR manifest")
-          + " not found.  Please make sure you use the wholly qualified package name.");
+      System.out.println(
+          "Classname " + (candidateMainClass != null ? candidateMainClass : "in JAR manifest")
+              + " not found.  Please make sure you use the wholly qualified package name.");
       System.exit(1);
     }
     // strip the jar file name and, if specified, the main class name from the args; then execute

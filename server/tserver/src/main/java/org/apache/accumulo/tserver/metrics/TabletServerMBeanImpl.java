@@ -35,7 +35,9 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   TabletServerMBeanImpl(TabletServer server) {
     util = new TabletServerMetricsUtil(server);
     try {
-      OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance=" + Thread.currentThread().getName());
+      OBJECT_NAME = new ObjectName(
+          "accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance="
+              + Thread.currentThread().getName());
     } catch (MalformedObjectNameException e) {
       log.error("Exception setting MBean object name", e);
     }

@@ -38,8 +38,8 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
 /**
- * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
- * like the following:
+ * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional
+ * configuration properties file. An example property file looks like the following:
  *
  * <pre>
  * rootPassword=secret
@@ -55,8 +55,9 @@ import com.beust.jcommander.Parameter;
  * site.instance.secret=HUSH
  * </pre>
  *
- * All items in the properties file above are optional and a default value will be provided in their absence. Any site configuration properties (typically found
- * in the accumulo-site.xml file) should be prefixed with "site." in the properties file.
+ * All items in the properties file above are optional and a default value will be provided in their
+ * absence. Any site configuration properties (typically found in the accumulo-site.xml file) should
+ * be prefixed with "site." in the properties file.
  *
  * @since 1.6.0
  */
@@ -80,7 +81,8 @@ public class MiniAccumuloRunner {
   private static void printProperties() {
     System.out.println("#mini Accumulo cluster runner properties.");
     System.out.println("#");
-    System.out.println("#uncomment following propeties to use, propeties not set will use default or random value");
+    System.out.println(
+        "#uncomment following propeties to use, propeties not set will use default or random value");
     System.out.println();
     System.out.println("#" + INSTANCE_NAME_PROP + "=devTest");
     System.out.println("#" + DIRECTORY_PROP + "=/tmp/mac1");
@@ -97,8 +99,10 @@ public class MiniAccumuloRunner {
     System.out.println("#" + EXISTING_ZOO_KEEPERS_PROP + "=localhost:2181");
 
     System.out.println();
-    System.out.println("# Configuration normally placed in accumulo-site.xml can be added using a site. prefix.");
-    System.out.println("# For example the following line will set tserver.compaction.major.concurrent.max");
+    System.out.println(
+        "# Configuration normally placed in accumulo-site.xml can be added using a site. prefix.");
+    System.out.println(
+        "# For example the following line will set tserver.compaction.major.concurrent.max");
     System.out.println();
     System.out.println("#site.tserver.compaction.major.concurrent.max=4");
 
@@ -126,15 +130,18 @@ public class MiniAccumuloRunner {
   private static final String FORMAT_STRING = "  %-21s %s";
 
   public static class Opts extends Help {
-    @Parameter(names = "-p", required = false, description = "properties file name", converter = PropertiesConverter.class)
+    @Parameter(names = "-p", required = false, description = "properties file name",
+        converter = PropertiesConverter.class)
     Properties prop = new Properties();
 
-    @Parameter(names = {"-c", "--printProperties"}, required = false, description = "prints an example propeties file, redirect to file to use")
+    @Parameter(names = {"-c", "--printProperties"}, required = false,
+        description = "prints an example propeties file, redirect to file to use")
     boolean printProps = false;
   }
 
   /**
-   * Runs the {@link MiniAccumuloCluster} given a -p argument with a property file. Establishes a shutdown port for asynchronous operation.
+   * Runs the {@link MiniAccumuloCluster} given a -p argument with a property file. Establishes a
+   * shutdown port for asynchronous operation.
    *
    * @param args
    *          An optional -p argument can be specified with the path to a valid properties file.
@@ -158,7 +165,9 @@ public class MiniAccumuloRunner {
       miniDir = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
     }
 
-    String rootPass = opts.prop.containsKey(ROOT_PASSWORD_PROP) ? opts.prop.getProperty(ROOT_PASSWORD_PROP) : "secret";
+    String rootPass = opts.prop.containsKey(ROOT_PASSWORD_PROP)
+        ? opts.prop.getProperty(ROOT_PASSWORD_PROP)
+        : "secret";
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(miniDir, rootPass);
 
@@ -169,15 +178,18 @@ public class MiniAccumuloRunner {
     if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP))
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_STARTUP_TIME_PROP))
-      config.setZooKeeperStartupTime(Long.parseLong(opts.prop.getProperty(ZOO_KEEPER_STARTUP_TIME_PROP)));
+      config.setZooKeeperStartupTime(
+          Long.parseLong(opts.prop.getProperty(ZOO_KEEPER_STARTUP_TIME_PROP)));
     if (opts.prop.containsKey(EXISTING_ZOO_KEEPERS_PROP))
       config.getImpl().setExistingZooKeepers(opts.prop.getProperty(EXISTING_ZOO_KEEPERS_PROP));
     if (opts.prop.containsKey(JDWP_ENABLED_PROP))
       config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty(JDWP_ENABLED_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_MEMORY_PROP))
-      setMemoryOnConfig(config, opts.prop.getProperty(ZOO_KEEPER_MEMORY_PROP), ServerType.ZOOKEEPER);
+      setMemoryOnConfig(config, opts.prop.getProperty(ZOO_KEEPER_MEMORY_PROP),
+          ServerType.ZOOKEEPER);
     if (opts.prop.containsKey(TSERVER_MEMORY_PROP))
-      setMemoryOnConfig(config, opts.prop.getProperty(TSERVER_MEMORY_PROP), ServerType.TABLET_SERVER);
+      setMemoryOnConfig(config, opts.prop.getProperty(TSERVER_MEMORY_PROP),
+          ServerType.TABLET_SERVER);
     if (opts.prop.containsKey(MASTER_MEMORY_PROP))
       setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MASTER);
     if (opts.prop.containsKey(DEFAULT_MEMORY_PROP))
@@ -224,7 +236,8 @@ public class MiniAccumuloRunner {
 
     printInfo(accumulo, shutdownPort);
 
-    // start a socket on the shutdown port and block- anything connected to this port will activate the shutdown
+    // start a socket on the shutdown port and block- anything connected to this port will activate
+    // the shutdown
     try (ServerSocket shutdownServer = new ServerSocket(shutdownPort)) {
       shutdownServer.accept().close();
     }
@@ -249,7 +262,8 @@ public class MiniAccumuloRunner {
     setMemoryOnConfig(config, memoryString, null);
   }
 
-  private static void setMemoryOnConfig(MiniAccumuloConfig config, String memoryString, ServerType serverType) {
+  private static void setMemoryOnConfig(MiniAccumuloConfig config, String memoryString,
+      ServerType serverType) {
     if (!validateMemoryString(memoryString))
       throw new IllegalArgumentException(memoryString + " is not a valid memory string");
 
@@ -264,21 +278,27 @@ public class MiniAccumuloRunner {
 
   private static void printInfo(MiniAccumuloCluster accumulo, int shutdownPort) {
     System.out.println("Mini Accumulo Cluster\n");
-    System.out.println(String.format(FORMAT_STRING, "Directory:", accumulo.getConfig().getDir().getAbsoluteFile()));
-    System.out.println(String.format(FORMAT_STRING, "Logs:", accumulo.getConfig().getImpl().getLogDir().getAbsoluteFile()));
-    System.out.println(String.format(FORMAT_STRING, "Instance Name:", accumulo.getConfig().getInstanceName()));
-    System.out.println(String.format(FORMAT_STRING, "Root Password:", accumulo.getConfig().getRootPassword()));
+    System.out.println(String.format(FORMAT_STRING, "Directory:",
+        accumulo.getConfig().getDir().getAbsoluteFile()));
+    System.out.println(String.format(FORMAT_STRING, "Logs:",
+        accumulo.getConfig().getImpl().getLogDir().getAbsoluteFile()));
+    System.out.println(
+        String.format(FORMAT_STRING, "Instance Name:", accumulo.getConfig().getInstanceName()));
+    System.out.println(
+        String.format(FORMAT_STRING, "Root Password:", accumulo.getConfig().getRootPassword()));
     System.out.println(String.format(FORMAT_STRING, "ZooKeeper:", accumulo.getZooKeepers()));
 
     for (Pair<ServerType,Integer> pair : accumulo.getDebugPorts()) {
-      System.out.println(String.format(FORMAT_STRING, pair.getFirst().prettyPrint() + " JDWP Host:", "localhost:" + pair.getSecond()));
+      System.out.println(String.format(FORMAT_STRING, pair.getFirst().prettyPrint() + " JDWP Host:",
+          "localhost:" + pair.getSecond()));
     }
 
     System.out.println(String.format(FORMAT_STRING, "Shutdown Port:", shutdownPort));
 
     System.out.println();
     System.out.println("  To connect with shell, use the following command : ");
-    System.out.println("    accumulo shell -zh " + accumulo.getZooKeepers() + " -zi " + accumulo.getConfig().getInstanceName() + " -u root ");
+    System.out.println("    accumulo shell -zh " + accumulo.getZooKeepers() + " -zi "
+        + accumulo.getConfig().getInstanceName() + " -u root ");
 
     System.out.println("\n\nSuccessfully started on " + new Date());
   }

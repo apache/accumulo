@@ -33,7 +33,8 @@ public class KerberosTokenTest {
   @Test
   public void testAuthMethodAcceptance() {
     // There is also KERBEROS_SSL but that appears to be deprecated/OBE
-    Set<AuthenticationMethod> allowedMethods = new HashSet<>(Arrays.asList(AuthenticationMethod.KERBEROS, AuthenticationMethod.PROXY));
+    Set<AuthenticationMethod> allowedMethods = new HashSet<>(
+        Arrays.asList(AuthenticationMethod.KERBEROS, AuthenticationMethod.PROXY));
     for (AuthenticationMethod authMethod : AuthenticationMethod.values()) {
       final boolean allowable = allowedMethods.contains(authMethod);
       try {

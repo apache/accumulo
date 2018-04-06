@@ -103,7 +103,8 @@ public class OperationServlet extends BasicServlet {
       if (rawValue != null) {
         refreshTime = Integer.parseInt(rawValue);
       }
-      return Collections.singletonList(createCookie("page.refresh.rate", Integer.toString(refreshTime)));
+      return Collections
+          .singletonList(createCookie("page.refresh.rate", Integer.toString(refreshTime)));
     }
   }
 
@@ -135,7 +136,8 @@ public class OperationServlet extends BasicServlet {
       String resource = req.getParameter("resource");
       String ptype = req.getParameter("ptype");
       try {
-        ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(table, ProblemType.valueOf(ptype), resource);
+        ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(table,
+            ProblemType.valueOf(ptype), resource);
       } catch (Exception e) {
         log.error("Failed to delete problem reports for table " + table, e);
       }
@@ -156,10 +158,12 @@ public class OperationServlet extends BasicServlet {
       table = BasicServlet.encode(table);
       if (asc == null) {
         col = BasicServlet.encode(col);
-        return Collections.singletonList(createCookie("tableSort." + page + "." + table + "." + "sortCol", col));
+        return Collections
+            .singletonList(createCookie("tableSort." + page + "." + table + "." + "sortCol", col));
       } else {
         asc = BasicServlet.encode(asc);
-        return Collections.singletonList(createCookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
+        return Collections
+            .singletonList(createCookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
       }
     }
   }
@@ -175,7 +179,8 @@ public class OperationServlet extends BasicServlet {
       page = BasicServlet.encode(page);
       table = BasicServlet.encode(table);
       show = BasicServlet.encode(show);
-      return Collections.singletonList(createCookie("tableLegend." + page + "." + table + "." + "show", show));
+      return Collections
+          .singletonList(createCookie("tableLegend." + page + "." + table + "." + "show", show));
     }
   }
 
@@ -184,7 +189,8 @@ public class OperationServlet extends BasicServlet {
     public List<Cookie> execute(HttpServletRequest req, Logger log) {
       String server = req.getParameter("server");
       // a dead server should have a uniq address: a logger or tserver
-      DeadServerList obit = new DeadServerList(ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
+      DeadServerList obit = new DeadServerList(
+          ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
       obit.delete(server);
       return Collections.emptyList();
     }

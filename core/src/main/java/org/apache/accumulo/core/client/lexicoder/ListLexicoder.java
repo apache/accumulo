@@ -27,7 +27,8 @@ import java.util.List;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
- * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each encoded element sorts lexicographically.
+ * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each
+ * encoded element sorts lexicographically.
  *
  * @since 1.6.0
  */
@@ -58,7 +59,8 @@ public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> {
 
   @Override
   public List<LT> decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
+    // in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 

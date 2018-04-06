@@ -34,7 +34,8 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
   public static synchronized ZooReaderWriter getInstance() {
     if (instance == null) {
       AccumuloConfiguration conf = SiteConfiguration.getInstance();
-      instance = new ZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST), (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+      instance = new ZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST),
+          (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
           conf.get(Property.INSTANCE_SECRET));
     }
     return instance;

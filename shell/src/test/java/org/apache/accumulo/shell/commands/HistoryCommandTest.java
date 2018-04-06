@@ -77,8 +77,10 @@ public class HistoryCommandTest {
 
   @Test
   public void testEventExpansion() throws IOException {
-    // If we use an unsupported terminal, then history expansion doesn't work because JLine can't do magic buffer manipulations.
-    // This has been observed to be the case on certain versions of Eclipse. However, mvn is usually fine.
+    // If we use an unsupported terminal, then history expansion doesn't work because JLine can't do
+    // magic buffer manipulations.
+    // This has been observed to be the case on certain versions of Eclipse. However, mvn is usually
+    // fine.
     Assume.assumeTrue(reader.getTerminal().isSupported());
 
     reader.readLine();

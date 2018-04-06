@@ -29,8 +29,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Property-based configuration of options to control how SSH is performed.
  *
- * A properties file can be provided using {@link #SSH_PROPERTIES_FILE} or using the normal system properties. Any relevant properties set in the system
- * properties take precedence over the provided file.
+ * A properties file can be provided using {@link #SSH_PROPERTIES_FILE} or using the normal system
+ * properties. Any relevant properties set in the system properties take precedence over the
+ * provided file.
  */
 public class RemoteShellOptions {
   private static final Logger log = LoggerFactory.getLogger(RemoteShellOptions.class);

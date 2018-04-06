@@ -61,7 +61,8 @@ public class LogSorter {
   VolumeManager fs;
   AccumuloConfiguration conf;
 
-  private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<String,LogProcessor>());
+  private final Map<String,LogProcessor> currentWork = Collections
+      .synchronizedMap(new HashMap<String,LogProcessor>());
 
   class LogProcessor implements Processor {
 
@@ -151,7 +152,8 @@ public class LogSorter {
             }
           }
           fs.create(new Path(destPath, "finished")).close();
-          log.info("Finished log sort " + name + " " + getBytesCopied() + " bytes " + part + " parts in " + getSortTime() + "ms");
+          log.info("Finished log sort " + name + " " + getBytesCopied() + " bytes " + part
+              + " parts in " + getSortTime() + "ms");
         }
       } catch (Throwable t) {
         try {
@@ -175,12 +177,13 @@ public class LogSorter {
       }
     }
 
-    private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
+    private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part)
+        throws IOException {
       Path path = new Path(destPath, String.format("part-r-%05d", part));
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
 
-      MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path), MapFile.Writer.keyClass(LogFileKey.class),
-          MapFile.Writer.valueClass(LogFileValue.class));
+      MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path),
+          MapFile.Writer.keyClass(LogFileKey.class), MapFile.Writer.valueClass(LogFileValue.class));
       try {
         Collections.sort(buffer, new Comparator<Pair<LogFileKey,LogFileValue>>() {
           @Override
@@ -232,9 +235,11 @@ public class LogSorter {
     this.threadPool = new SimpleThreadPool(threadPoolSize, this.getClass().getName());
   }
 
-  public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool) throws KeeperException, InterruptedException {
+  public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
+      throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
-    new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, conf).startProcessing(new LogProcessor(), this.threadPool);
+    new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, conf)
+        .startProcessing(new LogProcessor(), this.threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {
@@ -244,7 +249,8 @@ public class LogSorter {
         RecoveryStatus status = new RecoveryStatus();
         status.name = entries.getKey();
         try {
-          status.progress = entries.getValue().getBytesCopied() / (0.0 + conf.getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
+          status.progress = entries.getValue().getBytesCopied()
+              / (0.0 + conf.getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
         } catch (IOException ex) {
           log.warn("Error getting bytes read");
         }

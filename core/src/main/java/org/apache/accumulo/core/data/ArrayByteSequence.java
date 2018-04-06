@@ -35,7 +35,8 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   protected int length;
 
   /**
-   * Creates a new sequence. The given byte array is used directly as the backing array, so later changes made to the array reflect into the new sequence.
+   * Creates a new sequence. The given byte array is used directly as the backing array, so later
+   * changes made to the array reflect into the new sequence.
    *
    * @param data
    *          byte data
@@ -47,8 +48,9 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
 
   /**
-   * Creates a new sequence from a subsequence of the given byte array. The given byte array is used directly as the backing array, so later changes made to the
-   * (relevant portion of the) array reflect into the new sequence.
+   * Creates a new sequence from a subsequence of the given byte array. The given byte array is used
+   * directly as the backing array, so later changes made to the (relevant portion of the) array
+   * reflect into the new sequence.
    *
    * @param data
    *          byte data
@@ -62,7 +64,8 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   public ArrayByteSequence(byte data[], int offset, int length) {
 
     if (offset < 0 || offset > data.length || length < 0 || (offset + length) > data.length) {
-      throw new IllegalArgumentException(" Bad offset and/or length data.length = " + data.length + " offset = " + offset + " length = " + length);
+      throw new IllegalArgumentException(" Bad offset and/or length data.length = " + data.length
+          + " offset = " + offset + " length = " + length);
     }
 
     this.data = data;
@@ -72,7 +75,8 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
 
   /**
-   * Creates a new sequence from the given string. The bytes are determined from the string using the default platform encoding.
+   * Creates a new sequence from the given string. The bytes are determined from the string using
+   * the default platform encoding.
    *
    * @param s
    *          string to represent as bytes
@@ -82,9 +86,10 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
 
   /**
-   * Creates a new sequence based on a byte buffer. If the byte buffer has an array, that array (and the buffer's offset and limit) are used; otherwise, a new
-   * backing array is created and a relative bulk get is performed to transfer the buffer's contents (starting at its current position and not beyond its
-   * limit).
+   * Creates a new sequence based on a byte buffer. If the byte buffer has an array, that array (and
+   * the buffer's offset and limit) are used; otherwise, a new backing array is created and a
+   * relative bulk get is performed to transfer the buffer's contents (starting at its current
+   * position and not beyond its limit).
    *
    * @param buffer
    *          byte buffer
@@ -139,7 +144,8 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   public ByteSequence subSequence(int start, int end) {
 
     if (start > end || start < 0 || end > length) {
-      throw new IllegalArgumentException("Bad start and/end start = " + start + " end=" + end + " offset=" + offset + " length=" + length);
+      throw new IllegalArgumentException("Bad start and/end start = " + start + " end=" + end
+          + " offset=" + offset + " length=" + length);
     }
 
     return new ArrayByteSequence(data, offset + start, end - start);

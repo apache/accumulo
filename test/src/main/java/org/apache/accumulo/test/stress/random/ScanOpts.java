@@ -21,13 +21,15 @@ import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import com.beust.jcommander.Parameter;
 
 class ScanOpts extends ClientOnDefaultTable {
-  @Parameter(names = "--isolate", description = "true to turn on scan isolation, false to turn off. default is false.")
+  @Parameter(names = "--isolate",
+      description = "true to turn on scan isolation, false to turn off. default is false.")
   boolean isolate = false;
 
   @Parameter(names = "--num-iterations", description = "number of scan iterations")
   int scan_iterations = 1024;
 
-  @Parameter(names = "--continuous", description = "continuously scan the table. note that this overrides --num-iterations")
+  @Parameter(names = "--continuous",
+      description = "continuously scan the table. note that this overrides --num-iterations")
   boolean continuous;
 
   @Parameter(names = "--scan-seed", description = "seed for randomly choosing tablets to scan")

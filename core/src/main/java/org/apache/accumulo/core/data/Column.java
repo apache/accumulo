@@ -44,7 +44,8 @@ public class Column implements WritableComparable<Column> {
   }
 
   /**
-   * Compares this column to another. Column families are compared first, then qualifiers, then visibilities.
+   * Compares this column to another. Column families are compared first, then qualifiers, then
+   * visibilities.
    *
    * @param that
    *          column to compare
@@ -212,8 +213,8 @@ public class Column implements WritableComparable<Column> {
   }
 
   /**
-   * Gets a string representation of this column. The family, qualifier, and visibility are interpreted as strings using the UTF-8 encoding; nulls are
-   * interpreted as empty strings.
+   * Gets a string representation of this column. The family, qualifier, and visibility are
+   * interpreted as strings using the UTF-8 encoding; nulls are interpreted as empty strings.
    *
    * @return string form of column
    */
@@ -230,7 +231,8 @@ public class Column implements WritableComparable<Column> {
    * @return Thrift column
    */
   public TColumn toThrift() {
-    return new TColumn(columnFamily == null ? null : ByteBuffer.wrap(columnFamily), columnQualifier == null ? null : ByteBuffer.wrap(columnQualifier),
+    return new TColumn(columnFamily == null ? null : ByteBuffer.wrap(columnFamily),
+        columnQualifier == null ? null : ByteBuffer.wrap(columnQualifier),
         columnVisibility == null ? null : ByteBuffer.wrap(columnVisibility));
   }
 

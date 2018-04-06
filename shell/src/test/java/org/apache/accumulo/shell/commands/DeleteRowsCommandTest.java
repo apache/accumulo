@@ -24,7 +24,8 @@ public class DeleteRowsCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is exclusive", new DeleteRowsCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
+    assertTrue("-b should say it is exclusive", new DeleteRowsCommand().getOptions().getOption("b")
+        .getDescription().contains("(exclusive)"));
   }
 
 }

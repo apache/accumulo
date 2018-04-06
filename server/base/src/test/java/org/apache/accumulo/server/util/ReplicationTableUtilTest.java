@@ -91,14 +91,16 @@ public class ReplicationTableUtilTest {
     String myFile = "file:////home/user/accumulo/wal/server+port/" + uuid;
 
     long createdTime = System.currentTimeMillis();
-    ReplicationTableUtil.updateFiles(context, new KeyExtent("1", null, null), myFile, StatusUtil.fileCreated(createdTime));
+    ReplicationTableUtil.updateFiles(context, new KeyExtent("1", null, null), myFile,
+        StatusUtil.fileCreated(createdTime));
 
     verify(writer);
 
     Assert.assertEquals(1, mutations.size());
     Mutation m = mutations.get(0);
 
-    Assert.assertEquals(MetadataSchema.ReplicationSection.getRowPrefix() + "file:/home/user/accumulo/wal/server+port/" + uuid, new Text(m.getRow()).toString());
+    Assert.assertEquals(MetadataSchema.ReplicationSection.getRowPrefix()
+        + "file:/home/user/accumulo/wal/server+port/" + uuid, new Text(m.getRow()).toString());
 
     List<ColumnUpdate> updates = m.getUpdates();
     Assert.assertEquals(1, updates.size());
@@ -112,15 +114,18 @@ public class ReplicationTableUtilTest {
   @Test
   public void replEntryMutation() {
     // We stopped using a WAL -- we need a reference that this WAL needs to be replicated completely
-    Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setCreatedTime(System.currentTimeMillis()).build();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
+        .setCreatedTime(System.currentTimeMillis()).build();
     String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Path filePath = new Path(file);
     Text row = new Text(filePath.toString());
     KeyExtent extent = new KeyExtent("1", new Text("b"), new Text("a"));
 
-    Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
+    Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat),
+        extent);
 
-    Assert.assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row), new Text(m.getRow()));
+    Assert.assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row),
+        new Text(m.getRow()));
     Assert.assertEquals(1, m.getUpdates().size());
     ColumnUpdate col = m.getUpdates().get(0);
 
@@ -146,8 +151,10 @@ public class ReplicationTableUtilTest {
     tops.attachIterator(myMetadataTable, combiner);
     expectLastCall().once();
 
-    expect(tops.getProperties(myMetadataTable)).andReturn(Collections.<Entry<String,String>> emptyList());
-    tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
+    expect(tops.getProperties(myMetadataTable))
+        .andReturn(Collections.<Entry<String,String>> emptyList());
+    tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(),
+        ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();
 
     replay(conn, tops);

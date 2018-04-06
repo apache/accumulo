@@ -33,8 +33,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 /**
- * A scanner that presents a row isolated view of an accumulo table. Rows are buffered in memory on the client side. If you think your rows may not fit into
- * memory, then you can provide an alternative row buffer factory to the constructor. This would allow rows to be buffered to disk for example.
+ * A scanner that presents a row isolated view of an accumulo table. Rows are buffered in memory on
+ * the client side. If you think your rows may not fit into memory, then you can provide an
+ * alternative row buffer factory to the constructor. This would allow rows to be buffered to disk
+ * for example.
  *
  */
 
@@ -133,8 +135,8 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       }
     }
 
-    public RowBufferingIterator(Scanner scanner, ScannerOptions opts, Range range, long timeout, int batchSize, long readaheadThreshold,
-        RowBufferFactory bufferFactory) {
+    public RowBufferingIterator(Scanner scanner, ScannerOptions opts, Range range, long timeout,
+        int batchSize, long readaheadThreshold, RowBufferFactory bufferFactory) {
       this.scanner = scanner;
       this.opts = new ScannerOptions(opts);
       this.range = range;
@@ -235,7 +237,8 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, readaheadThreshold, bufferFactory);
+    return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, readaheadThreshold,
+        bufferFactory);
   }
 
   @Deprecated
@@ -294,7 +297,8 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   @Override
   public void setReadaheadThreshold(long batches) {
     if (0 > batches) {
-      throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
+      throw new IllegalArgumentException(
+          "Number of batches before read-ahead must be non-negative");
     }
 
     this.readaheadThreshold = batches;

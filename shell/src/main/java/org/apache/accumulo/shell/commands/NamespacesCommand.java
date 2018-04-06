@@ -40,22 +40,25 @@ public class NamespacesCommand extends Command {
   private static final String DEFAULT_NAMESPACE_DISPLAY_NAME = "\"\"";
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-    Map<String,String> namespaces = new TreeMap<>(shellState.getConnector().namespaceOperations().namespaceIdMap());
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, IOException {
+    Map<String,String> namespaces = new TreeMap<>(
+        shellState.getConnector().namespaceOperations().namespaceIdMap());
 
-    Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), new Function<Entry<String,String>,String>() {
-      @Override
-      public String apply(Map.Entry<String,String> entry) {
-        String name = entry.getKey();
-        if (Namespaces.DEFAULT_NAMESPACE.equals(name))
-          name = DEFAULT_NAMESPACE_DISPLAY_NAME;
-        String id = entry.getValue();
-        if (cl.hasOption(namespaceIdOption.getOpt()))
-          return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
-        else
-          return name;
-      }
-    });
+    Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(),
+        new Function<Entry<String,String>,String>() {
+          @Override
+          public String apply(Map.Entry<String,String> entry) {
+            String name = entry.getKey();
+            if (Namespaces.DEFAULT_NAMESPACE.equals(name))
+              name = DEFAULT_NAMESPACE_DISPLAY_NAME;
+            String id = entry.getValue();
+            if (cl.hasOption(namespaceIdOption.getOpt()))
+              return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
+            else
+              return name;
+          }
+        });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
     return 0;
@@ -69,7 +72,8 @@ public class NamespacesCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    namespaceIdOption = new Option("l", "list-ids", false, "display internal namespace ids along with the name");
+    namespaceIdOption = new Option("l", "list-ids", false,
+        "display internal namespace ids along with the name");
     o.addOption(namespaceIdOption);
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);

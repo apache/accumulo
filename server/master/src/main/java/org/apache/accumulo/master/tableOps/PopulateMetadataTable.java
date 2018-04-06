@@ -65,8 +65,10 @@ class PopulateMetadataTable extends MasterRepo {
     this.tableInfo = ti;
   }
 
-  static Map<String,String> readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo) throws Exception {
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8));
+  static Map<String,String> readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo)
+      throws Exception {
+    BufferedReader in = new BufferedReader(
+        new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8));
 
     try {
       Map<String,String> map = new HashMap<>();
@@ -103,7 +105,8 @@ class PopulateMetadataTable extends MasterRepo {
 
       log.info("importDir is " + tableInfo.importDir);
 
-      // This is a directory already prefixed with proper volume information e.g. hdfs://localhost:8020/path/to/accumulo/tables/...
+      // This is a directory already prefixed with proper volume information e.g.
+      // hdfs://localhost:8020/path/to/accumulo/tables/...
       final String bulkDir = tableInfo.importDir;
 
       final String[] tableDirs = ServerConstants.getTablesDirs();
@@ -134,8 +137,9 @@ class PopulateMetadataTable extends MasterRepo {
               String newName = fileNameMappings.get(oldName);
 
               if (newName == null) {
-                throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT,
-                    TableOperationExceptionType.OTHER, "File " + oldName + " does not exist in import dir");
+                throw new AcceptableThriftTableOperationException(tableInfo.tableId,
+                    tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+                    "File " + oldName + " does not exist in import dir");
               }
 
               cq = new Text(bulkDir + "/" + newName);
@@ -144,33 +148,42 @@ class PopulateMetadataTable extends MasterRepo {
             }
 
             if (m == null) {
-              // Make a unique directory inside the table's dir. Cannot import multiple tables into one table, so don't need to use unique allocator
-              String tabletDir = new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES), UTF_8);
+              // Make a unique directory inside the table's dir. Cannot import multiple tables into
+              // one table, so don't need to use unique allocator
+              String tabletDir = new String(
+                  FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
+                  UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
               String absolutePath = getClonedTabletDir(master, tableDirs, tabletDir);
 
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(absolutePath.getBytes(UTF_8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
+                  new Value(absolutePath.getBytes(UTF_8)));
               currentRow = metadataRow;
             }
 
             if (!currentRow.equals(metadataRow)) {
               mbw.addMutation(m);
 
-              // Make a unique directory inside the table's dir. Cannot import multiple tables into one table, so don't need to use unique allocator
-              String tabletDir = new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES), UTF_8);
+              // Make a unique directory inside the table's dir. Cannot import multiple tables into
+              // one table, so don't need to use unique allocator
+              String tabletDir = new String(
+                  FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
+                  UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
               String absolutePath = getClonedTabletDir(master, tableDirs, tabletDir);
 
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(absolutePath.getBytes(UTF_8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
+                  new Value(absolutePath.getBytes(UTF_8)));
             }
 
             m.put(key.getColumnFamily(), cq, val);
 
-            if (endRow == null && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+            if (endRow == null
+                && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
               mbw.addMutation(m);
               break; // its the last column in the last row
             }
@@ -183,7 +196,8 @@ class PopulateMetadataTable extends MasterRepo {
       return new MoveExportedFiles(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error reading " + path + " " + ioe.getMessage());
     } finally {
       if (zis != null) {
@@ -201,7 +215,8 @@ class PopulateMetadataTable extends MasterRepo {
   }
 
   /**
-   * Given options for tables (across multiple volumes), construct an absolute path using the unique name within the chosen volume
+   * Given options for tables (across multiple volumes), construct an absolute path using the unique
+   * name within the chosen volume
    *
    * @return An absolute, unique path for the imported table
    */
@@ -215,6 +230,7 @@ class PopulateMetadataTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment, environment.getMasterLock());
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment,
+        environment.getMasterLock());
   }
 }

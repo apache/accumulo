@@ -37,7 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AuthenticationTokenKeyManagerTest {
-  private static final Logger log = LoggerFactory.getLogger(AuthenticationTokenKeyManagerTest.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(AuthenticationTokenKeyManagerTest.class);
 
   // From org.apache.hadoop.security.token.SecretManager
   private static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA1";
@@ -64,7 +65,8 @@ public class AuthenticationTokenKeyManagerTest {
   public void testIntervalNotPassed() {
     long updateInterval = 5 * 1000l;
     long tokenLifetime = 100 * 1000l;
-    AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager, zooDistributor, updateInterval, tokenLifetime);
+    AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
+        zooDistributor, updateInterval, tokenLifetime);
 
     // Have never updated the key
     assertEquals(0l, keyManager.getLastKeyUpdate());
@@ -87,8 +89,10 @@ public class AuthenticationTokenKeyManagerTest {
     long runTime = 10l;
     SecretKey secretKey = keyGen.generateKey();
 
-    AuthenticationKey authKey = new AuthenticationKey(1, runTime, runTime + tokenLifetime, secretKey);
-    AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager, zooDistributor, updateInterval, tokenLifetime);
+    AuthenticationKey authKey = new AuthenticationKey(1, runTime, runTime + tokenLifetime,
+        secretKey);
+    AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
+        zooDistributor, updateInterval, tokenLifetime);
 
     // Have never updated the key
     assertEquals(0l, keyManager.getLastKeyUpdate());
@@ -110,7 +114,8 @@ public class AuthenticationTokenKeyManagerTest {
 
     // Last key update time should match when we ran
     assertEquals(runTime, keyManager.getLastKeyUpdate());
-    // KeyManager uses the incremented value for the new AuthKey (the current idSeq will match the keyId for the last generated key)
+    // KeyManager uses the incremented value for the new AuthKey (the current idSeq will match the
+    // keyId for the last generated key)
     assertEquals(authKey.getKeyId(), keyManager.getIdSeq());
   }
 
@@ -133,8 +138,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test(timeout = 30 * 1000)
   public void testStopLoop() throws InterruptedException {
-    final MockManager keyManager = EasyMock.createMockBuilder(MockManager.class).addMockedMethod("_run").addMockedMethod("updateStateFromCurrentKeys")
-        .createMock();
+    final MockManager keyManager = EasyMock.createMockBuilder(MockManager.class)
+        .addMockedMethod("_run").addMockedMethod("updateStateFromCurrentKeys").createMock();
     keyManager.latch = new CountDownLatch(1);
 
     // Mock out the _run and updateStateFromCurrentKeys method so we just get the logic from "run()"
@@ -147,7 +152,8 @@ public class AuthenticationTokenKeyManagerTest {
 
     keyManager.setKeepRunning(true);
 
-    // Wrap another Runnable around our KeyManager so we know when the thread is actually run as it's "async" when the method will actually be run after we call
+    // Wrap another Runnable around our KeyManager so we know when the thread is actually run as
+    // it's "async" when the method will actually be run after we call
     // thread.start()
     Thread t = new Thread(keyManager);
 
@@ -158,7 +164,8 @@ public class AuthenticationTokenKeyManagerTest {
     keyManager.latch.await();
     log.info("Latch fired");
 
-    // Wait a little bit to let the first call to _run() happen (avoid exiting the loop before any calls to _run())
+    // Wait a little bit to let the first call to _run() happen (avoid exiting the loop before any
+    // calls to _run())
     Thread.sleep(1000);
 
     log.info("Finished waiting, stopping keymanager");
@@ -178,9 +185,10 @@ public class AuthenticationTokenKeyManagerTest {
     long tokenLifetime = 100 * 1000l;
     SecretKey secretKey1 = keyGen.generateKey(), secretKey2 = keyGen.generateKey();
 
-    AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1), authKey2 = new AuthenticationKey(2, tokenLifetime, tokenLifetime * 2,
-        secretKey2);
-    AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager, zooDistributor, updateInterval, tokenLifetime);
+    AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1),
+        authKey2 = new AuthenticationKey(2, tokenLifetime, tokenLifetime * 2, secretKey2);
+    AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
+        zooDistributor, updateInterval, tokenLifetime);
 
     // Have never updated the key
     assertEquals(0l, keyManager.getLastKeyUpdate());

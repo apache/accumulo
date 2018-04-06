@@ -32,7 +32,8 @@ public class DeleteTableCommandTest {
 
   @Test
   public void removeAccumuloNamespaceTables() {
-    Set<String> tables = new HashSet<>(Arrays.asList(MetadataTable.NAME, RootTable.NAME, "a1", "a2"));
+    Set<String> tables = new HashSet<>(
+        Arrays.asList(MetadataTable.NAME, RootTable.NAME, "a1", "a2"));
     DeleteTableCommand cmd = new DeleteTableCommand();
     cmd.pruneTables("a.*", tables);
 

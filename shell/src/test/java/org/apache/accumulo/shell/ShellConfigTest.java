@@ -105,23 +105,27 @@ public class ShellConfigTest {
 
   @Test
   public void testTokenAndOption() throws IOException {
-    assertTrue(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo")));
+    assertTrue(shell.config(
+        args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo")));
   }
 
   @Test
   public void testTokenAndOptionAndPassword() throws IOException {
-    assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-l", "password=foo", "-p", "bar")));
+    assertFalse(shell.config(
+        args("--fake", "-tc", PasswordToken.class.getName(), "-l", "password=foo", "-p", "bar")));
     assertTrue(output.get().contains(ParameterException.class.getName()));
   }
 
   /**
-   * Tests getting the ZK hosts config value will fail on String parameter, client config and then fall back to Site configuration. SiteConfiguration will get
-   * the accumulo-site.xml from the classpath in src/test/resources
+   * Tests getting the ZK hosts config value will fail on String parameter, client config and then
+   * fall back to Site configuration. SiteConfiguration will get the accumulo-site.xml from the
+   * classpath in src/test/resources
    */
   @Test
   public void testZooKeeperHostFallBackToSite() throws Exception {
     ClientConfiguration clientConfig = ClientConfiguration.create();
-    assertFalse("Client config contains zk hosts", clientConfig.containsKey(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST.getKey()));
+    assertFalse("Client config contains zk hosts",
+        clientConfig.containsKey(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST.getKey()));
     assertEquals("ShellConfigTestZKHostValue", Shell.getZooKeepers(null, clientConfig));
   }
 

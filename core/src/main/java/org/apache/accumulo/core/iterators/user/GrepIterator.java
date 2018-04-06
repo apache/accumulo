@@ -31,7 +31,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * This iterator provides exact string matching. It searches both the Key and Value for the string. The string to match is specified by the "term" option.
+ * This iterator provides exact string matching. It searches both the Key and Value for the string.
+ * The string to match is specified by the "term" option.
  */
 public class GrepIterator extends Filter {
 
@@ -40,7 +41,8 @@ public class GrepIterator extends Filter {
 
   @Override
   public boolean accept(Key k, Value v) {
-    return match(v.get()) || match(k.getRowData()) || match(k.getColumnFamilyData()) || match(k.getColumnQualifierData());
+    return match(v.get()) || match(k.getRowData()) || match(k.getColumnFamilyData())
+        || match(k.getColumnQualifierData());
   }
 
   protected boolean match(ByteSequence bs) {
@@ -77,7 +79,8 @@ public class GrepIterator extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     term = options.get("term").getBytes(UTF_8);
     for (int i = 0; i < right.length; i++) {

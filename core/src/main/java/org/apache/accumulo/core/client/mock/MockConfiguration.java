@@ -45,7 +45,8 @@ class MockConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * Don't use this method. It has been deprecated. Its parameters are not public API and subject to change.
+   * Don't use this method. It has been deprecated. Its parameters are not public API and subject to
+   * change.
    *
    * @deprecated since 1.7.0; use {@link #getProperties(Map, Predicate)} instead.
    */

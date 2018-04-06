@@ -94,9 +94,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
   private void killMacGc() throws ProcessNotFoundException, InterruptedException, KeeperException {
     // kill gc started by MAC
-    getCluster().killProcess(ServerType.GARBAGE_COLLECTOR, getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
+    getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
+        getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    String path = ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig())) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig()))
+        + Constants.ZGC_LOCK;
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
     try {
       ZooLock.deleteLock(zk, path);
@@ -207,7 +209,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     getConnector().tableOperations().flush(table, null, null, true);
 
     // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
-    getConnector().securityOperations().grantTablePermission(getConnector().whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    getConnector().securityOperations().grantTablePermission(getConnector().whoami(),
+        MetadataTable.NAME, TablePermission.WRITE);
     BatchWriter bw3 = getConnector().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     bw3.addMutation(createDelMutation("", "", "", ""));
@@ -265,7 +268,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
         String gcLoc = new String(zk.getData(lockPath, null));
 
-        Assert.assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc, gcLoc.startsWith(Service.GC_CLIENT.name()));
+        Assert.assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
+            gcLoc.startsWith(Service.GC_CLIENT.name()));
         int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
         Assert.assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
         String addr = gcLoc.substring(loc + 1);
@@ -293,12 +297,14 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   public static void addEntries(Connector conn, BatchWriterOpts bwOpts) throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
+        TablePermission.WRITE);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, bwOpts.getBatchWriterConfig());
 
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
-      Text row = new Text(String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(), i,
+      Text row = new Text(String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(),
+          i,
           "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
       Mutation delFlag = new Mutation(row);
       delFlag.put(emptyText, emptyText, new Value(new byte[] {}));

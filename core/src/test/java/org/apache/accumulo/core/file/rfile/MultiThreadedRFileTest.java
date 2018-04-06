@@ -68,7 +68,8 @@ public class MultiThreadedRFileTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   private static void checkIndex(Reader reader) throws IOException {
     FileSKVIterator indexIter = reader.getIndex();
@@ -77,13 +78,15 @@ public class MultiThreadedRFileTest {
       Key lastKey = new Key(indexIter.getTopKey());
 
       if (reader.getFirstKey().compareTo(lastKey) > 0)
-        throw new RuntimeException("First key out of order " + reader.getFirstKey() + " " + lastKey);
+        throw new RuntimeException(
+            "First key out of order " + reader.getFirstKey() + " " + lastKey);
 
       indexIter.next();
 
       while (indexIter.hasTop()) {
         if (lastKey.compareTo(indexIter.getTopKey()) > 0)
-          throw new RuntimeException("Indext out of order " + lastKey + " " + indexIter.getTopKey());
+          throw new RuntimeException(
+              "Indext out of order " + lastKey + " " + indexIter.getTopKey());
 
         lastKey = new Key(indexIter.getTopKey());
         indexIter.next();
@@ -143,8 +146,10 @@ public class MultiThreadedRFileTest {
       FileSystem fs = FileSystem.newInstance(conf);
       Path path = new Path("file://" + rfile.toString());
       dos = fs.create(path, true);
-      CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos), "gz", conf, accumuloConfiguration);
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
+      CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos),
+          "gz", conf, accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
+          .newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
       if (samplerConfig != null) {
         sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
@@ -174,7 +179,8 @@ public class MultiThreadedRFileTest {
       Path path = new Path("file://" + rfile.toString());
 
       // the caches used to obfuscate the multithreaded issues
-      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null, AccumuloConfiguration.getDefaultConfiguration());
+      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null,
+          AccumuloConfiguration.getDefaultConfiguration());
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
 
@@ -202,7 +208,8 @@ public class MultiThreadedRFileTest {
 
   @Test
   public void testMultipleReaders() throws IOException {
-    final List<Throwable> threadExceptions = Collections.synchronizedList(new ArrayList<Throwable>());
+    final List<Throwable> threadExceptions = Collections
+        .synchronizedList(new ArrayList<Throwable>());
     Map<String,MutableInt> messages = new HashMap<>();
     Map<String,String> stackTrace = new HashMap<>();
 
@@ -223,8 +230,8 @@ public class MultiThreadedRFileTest {
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
-      ThreadPoolExecutor pool = new ThreadPoolExecutor(maxThreads + 1, maxThreads + 1, 5 * 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
-          new NamingThreadFactory(name));
+      ThreadPoolExecutor pool = new ThreadPoolExecutor(maxThreads + 1, maxThreads + 1, 5 * 60,
+          TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name));
       pool.allowCoreThreadTimeOut(true);
       try {
         Runnable runnable = new Runnable() {
@@ -292,15 +299,21 @@ public class MultiThreadedRFileTest {
         for (int i = 0; i < 2048; i++) {
           Key key = getKey(part, locality, i);
           Value value = getValue(i);
-          assertTrue("No record found for row " + part + " locality " + locality + " index " + i, trf.iter.hasTop());
-          assertEquals("Invalid key found for row " + part + " locality " + locality + " index " + i, key, trf.iter.getTopKey());
-          assertEquals("Invalie value found for row " + part + " locality " + locality + " index " + i, value, trf.iter.getTopValue());
+          assertTrue("No record found for row " + part + " locality " + locality + " index " + i,
+              trf.iter.hasTop());
+          assertEquals(
+              "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
+              trf.iter.getTopKey());
+          assertEquals(
+              "Invalie value found for row " + part + " locality " + locality + " index " + i,
+              value, trf.iter.getTopValue());
           last = trf.iter.getTopKey();
           trf.iter.next();
         }
       }
       if (trf.iter.hasTop()) {
-        assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range, trf.iter.hasTop());
+        assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range,
+            trf.iter.hasTop());
       }
 
       range = new Range(getKey(4, 4, 0), true, null, true);
@@ -319,9 +332,14 @@ public class MultiThreadedRFileTest {
         for (int i = 0; i < 2048; i++) {
           Key key = getKey(part, locality, i);
           Value value = getValue(i);
-          assertTrue("No record found for row " + part + " locality " + locality + " index " + i, trf.iter.hasTop());
-          assertEquals("Invalid key found for row " + part + " locality " + locality + " index " + i, key, trf.iter.getTopKey());
-          assertEquals("Invalie value found for row " + part + " locality " + locality + " index " + i, value, trf.iter.getTopValue());
+          assertTrue("No record found for row " + part + " locality " + locality + " index " + i,
+              trf.iter.hasTop());
+          assertEquals(
+              "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
+              trf.iter.getTopKey());
+          assertEquals(
+              "Invalie value found for row " + part + " locality " + locality + " index " + i,
+              value, trf.iter.getTopValue());
           last = trf.iter.getTopKey();
           trf.iter.next();
         }
@@ -329,7 +347,8 @@ public class MultiThreadedRFileTest {
     }
 
     if (trf.iter.hasTop()) {
-      assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range, trf.iter.hasTop());
+      assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range,
+          trf.iter.hasTop());
     }
   }
 
@@ -338,7 +357,8 @@ public class MultiThreadedRFileTest {
 
     try {
       for (int locality = 1; locality < 4; locality++) {
-        trfBase.writer.startNewLocalityGroup("locality" + locality, Collections.singleton((ByteSequence) (new ArrayByteSequence(getCf(locality)))));
+        trfBase.writer.startNewLocalityGroup("locality" + locality,
+            Collections.singleton((ByteSequence) (new ArrayByteSequence(getCf(locality)))));
         for (int part = 0; part < 4; part++) {
           for (int i = 0; i < 2048; i++) {
             trfBase.writer.append(getKey(part, locality, i), getValue(i));

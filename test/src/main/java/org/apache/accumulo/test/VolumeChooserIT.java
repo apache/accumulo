@@ -79,7 +79,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     namespace1 = "ns_" + getUniqueNames(2)[0];
     namespace2 = "ns_" + getUniqueNames(2)[1];
 
-    // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be specified
+    // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be
+    // specified
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
     cfg.setSiteConfig(siteConfig);
@@ -96,8 +97,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     v3 = new Path("file://" + v3f.getAbsolutePath());
     v4 = new Path("file://" + v4f.getAbsolutePath());
 
-    // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in the options list when they are choosing
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString() + "," + v4.toString());
+    // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
+    // the options list when they are choosing
+    cfg.setProperty(Property.INSTANCE_VOLUMES,
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -106,7 +109,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   }
 
-  public void addSplits(Connector connector, String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public void addSplits(Connector connector, String tableName)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Add 10 splits to the table
     SortedSet<Text> partitions = new TreeSet<>();
     for (String s : "b,e,g,j,l,o,q,t,v,y".split(","))
@@ -114,7 +118,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     connector.tableOperations().addSplits(tableName, partitions);
   }
 
-  public void writeAndReadData(Connector connector, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void writeAndReadData(Connector connector, String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Write some data to the table
     BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
     for (String s : rows) {
@@ -133,7 +138,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     }
   }
 
-  public void verifyVolumes(Connector connector, String tableName, Range tableRange, String vol) throws TableNotFoundException {
+  public void verifyVolumes(Connector connector, String tableName, Range tableRange, String vol)
+      throws TableNotFoundException {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
     for (String s : vol.split(","))
@@ -155,7 +161,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     assertEquals("Wrong number of files", 11, fileCount);
   }
 
-  // Test that uses two tables with 10 split points each. They each use the PreferredVolumeChooser to choose volumes.
+  // Test that uses two tables with 10 split points each. They each use the PreferredVolumeChooser
+  // to choose volumes.
   @Test
   public void twoTablesPreferredVolumeChooser() throws Exception {
     log.info("Starting twoTablesPreferredVolumeChooser");
@@ -210,7 +217,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2), volume);
   }
 
-  // Test that uses two tables with 10 split points each. They each use the RandomVolumeChooser to choose volumes.
+  // Test that uses two tables with 10 split points each. They each use the RandomVolumeChooser to
+  // choose volumes.
   @Test
   public void twoTablesRandomVolumeChooser() throws Exception {
     log.info("Starting twoTablesRandomVolumeChooser()");
@@ -235,7 +243,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     writeAndReadData(connector, tableName);
     // Verify the new files are written to the Volumes specified
 
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID),
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
 
     connector.namespaceOperations().create(namespace2);
 
@@ -254,10 +263,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Write some data to the table
     writeAndReadData(connector, tableName2);
     // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2),
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
   }
 
-  // Test that uses two tables with 10 split points each. The first uses the RandomVolumeChooser and the second uses the
+  // Test that uses two tables with 10 split points each. The first uses the RandomVolumeChooser and
+  // the second uses the
   // StaticVolumeChooser to choose volumes.
   @Test
   public void twoTablesDiffChoosers() throws Exception {
@@ -283,7 +294,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     writeAndReadData(connector, tableName);
     // Verify the new files are written to the Volumes specified
 
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID),
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
 
     connector.namespaceOperations().create(namespace2);
 
@@ -309,7 +321,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2), volume);
   }
 
-  // Test that uses one table with 10 split points each. It uses the StaticVolumeChooser, but no preferred volume is specified. This means that the volume
+  // Test that uses one table with 10 split points each. It uses the StaticVolumeChooser, but no
+  // preferred volume is specified. This means that the volume
   // is chosen randomly from all instance volumes.
   @Test
   public void missingVolumePreferredVolumeChooser() throws Exception {
@@ -334,10 +347,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Write some data to the table
     writeAndReadData(connector, tableName);
     // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID),
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
   }
 
-  // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but preferred volume is not an instance volume. This means that the
+  // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but
+  // preferred volume is not an instance volume. This means that the
   // volume is chosen randomly from all instance volumes
   @Test
   public void notInstancePreferredVolumeChooser() throws Exception {
@@ -366,10 +381,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Write some data to the table
     writeAndReadData(connector, tableName);
     // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID),
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
   }
 
-  // Test that uses one table with 10 split points each. It does not specify a specific chooser, so the volume is chosen randomly from all instance volumes.
+  // Test that uses one table with 10 split points each. It does not specify a specific chooser, so
+  // the volume is chosen randomly from all instance volumes.
   @Test
   public void chooserNotSpecified() throws Exception {
     log.info("Starting chooserNotSpecified");
@@ -386,7 +403,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     writeAndReadData(connector, tableName);
 
     // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID),
+        v1.toString() + "," + v2.toString() + "," + v4.toString());
   }
 
 }

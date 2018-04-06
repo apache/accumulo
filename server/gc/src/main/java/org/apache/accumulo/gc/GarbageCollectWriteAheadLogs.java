@@ -88,13 +88,15 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(final AccumuloServerContext context, VolumeManager fs, boolean useTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(final AccumuloServerContext context, VolumeManager fs,
+      boolean useTrash) throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
     this.liveServers = new LiveTServerSet(context, new Listener() {
       @Override
-      public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
+      public void update(LiveTServerSet current, Set<TServerInstance> deleted,
+          Set<TServerInstance> added) {
         log.debug("New tablet servers noticed: " + added);
         log.debug("Tablet servers removed: " + deleted);
       }
@@ -104,7 +106,8 @@ public class GarbageCollectWriteAheadLogs {
     this.store = new Iterable<TabletLocationState>() {
       @Override
       public Iterator<TabletLocationState> iterator() {
-        return Iterators.concat(new RootTabletStateStore(context).iterator(), new MetaDataStateStore(context).iterator());
+        return Iterators.concat(new RootTabletStateStore(context).iterator(),
+            new MetaDataStateStore(context).iterator());
       }
     };
   }
@@ -122,8 +125,9 @@ public class GarbageCollectWriteAheadLogs {
    *          a started LiveTServerSet instance
    */
   @VisibleForTesting
-  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash, LiveTServerSet liveTServerSet, WalStateManager walMarker,
-      Iterable<TabletLocationState> store) throws IOException {
+  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash,
+      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletLocationState> store)
+      throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
@@ -149,7 +153,8 @@ public class GarbageCollectWriteAheadLogs {
       long count = getCurrent(logsByServer, logsState);
       long fileScanStop = System.currentTimeMillis();
 
-      log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count, logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
+      log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
+          logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
       status.currentLog.candidates = count;
       span.stop();
 
@@ -169,7 +174,8 @@ public class GarbageCollectWriteAheadLogs {
       }
 
       long logEntryScanStop = System.currentTimeMillis();
-      log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
+      log.info(String.format("%d log entries scanned in %.2f seconds", count,
+          (logEntryScanStop - fileScanStop) / 1000.));
 
       span = Trace.start("removeReplicationEntries");
       try {
@@ -182,7 +188,8 @@ public class GarbageCollectWriteAheadLogs {
       }
 
       long replicationEntryScanStop = System.currentTimeMillis();
-      log.info(String.format("%d replication entries scanned in %.2f seconds", count, (replicationEntryScanStop - logEntryScanStop) / 1000.));
+      log.info(String.format("%d replication entries scanned in %.2f seconds", count,
+          (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
       span = Trace.start("removeFiles");
 
@@ -190,13 +197,15 @@ public class GarbageCollectWriteAheadLogs {
       count = removeFiles(logsState.values(), status);
 
       long removeStop = System.currentTimeMillis();
-      log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, logsByServer.size(), (removeStop - logEntryScanStop) / 1000.));
+      log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count,
+          logsByServer.size(), (removeStop - logEntryScanStop) / 1000.));
       span.stop();
 
       span = Trace.start("removeMarkers");
       count = removeTabletServerMarkers(uuidToTServer, logsByServer, currentServers);
       long removeMarkersStop = System.currentTimeMillis();
-      log.info(String.format("%d markers removed in %.2f seconds", count, (removeMarkersStop - removeStop) / 1000.));
+      log.info(String.format("%d markers removed in %.2f seconds", count,
+          (removeMarkersStop - removeStop) / 1000.));
       span.stop();
 
       status.currentLog.finished = removeStop;
@@ -210,7 +219,8 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
-  private long removeTabletServerMarkers(Map<UUID,TServerInstance> uidMap, Map<TServerInstance,Set<UUID>> candidates, Set<TServerInstance> liveServers) {
+  private long removeTabletServerMarkers(Map<UUID,TServerInstance> uidMap,
+      Map<TServerInstance,Set<UUID>> candidates, Set<TServerInstance> liveServers) {
     long result = 0;
     // remove markers for files removed
     try {
@@ -256,8 +266,9 @@ public class GarbageCollectWriteAheadLogs {
     return UUID.fromString(path.getName());
   }
 
-  private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates, Set<TServerInstance> liveServers,
-      Map<UUID,Pair<WalState,Path>> logsState) throws IOException, KeeperException, InterruptedException {
+  private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates,
+      Set<TServerInstance> liveServers, Map<UUID,Pair<WalState,Path>> logsState)
+      throws IOException, KeeperException, InterruptedException {
 
     Map<UUID,TServerInstance> result = new HashMap<>();
     for (Entry<TServerInstance,Set<UUID>> entry : candidates.entrySet()) {
@@ -314,7 +325,8 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) throws IOException, KeeperException, InterruptedException {
+  protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates)
+      throws IOException, KeeperException, InterruptedException {
     Connector conn;
     try {
       conn = context.getConnector();
@@ -355,7 +367,8 @@ public class GarbageCollectWriteAheadLogs {
    *          map of dead server to log file entries
    * @return total number of log files
    */
-  private long getCurrent(Map<TServerInstance,Set<UUID>> logsByServer, Map<UUID,Pair<WalState,Path>> logState) throws Exception {
+  private long getCurrent(Map<TServerInstance,Set<UUID>> logsByServer,
+      Map<UUID,Pair<WalState,Path>> logState) throws Exception {
 
     // get all the unused WALs in zookeeper
     long result = 0;

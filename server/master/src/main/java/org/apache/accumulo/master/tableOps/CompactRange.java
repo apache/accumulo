@@ -52,11 +52,13 @@ public class CompactRange extends MasterRepo {
   private byte[] config;
 
   private String getNamespaceId(Master env) throws Exception {
-    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT, this.namespaceId);
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT,
+        this.namespaceId);
   }
 
-  public CompactRange(String namespaceId, String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators,
-      CompactionStrategyConfig compactionStrategy) throws AcceptableThriftTableOperationException {
+  public CompactRange(String namespaceId, String tableId, byte[] startRow, byte[] endRow,
+      List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
+      throws AcceptableThriftTableOperationException {
 
     requireNonNull(namespaceId, "Invalid argument: null namespaceId");
     requireNonNull(tableId, "Invalid argument: null tableId");
@@ -68,15 +70,18 @@ public class CompactRange extends MasterRepo {
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
 
-    if (iterators.size() > 0 || !compactionStrategy.equals(CompactionStrategyConfigUtil.DEFAULT_STRATEGY)) {
-      this.config = WritableUtils.toByteArray(new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));
+    if (iterators.size() > 0
+        || !compactionStrategy.equals(CompactionStrategyConfigUtil.DEFAULT_STRATEGY)) {
+      this.config = WritableUtils.toByteArray(
+          new UserCompactionConfig(this.startRow, this.endRow, iterators, compactionStrategy));
     } else {
       log.info("No iterators or compaction strategy");
     }
 
-    if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0)
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
-          "start row must be less than end row");
+    if (this.startRow != null && this.endRow != null
+        && new Text(startRow).compareTo(new Text(endRow)) >= 0)
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT,
+          TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
   }
 
   @Override
@@ -87,7 +92,8 @@ public class CompactRange extends MasterRepo {
 
   @Override
   public Repo<Master> call(final long tid, Master env) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + env.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zTablePath = Constants.ZROOT + "/" + env.getInstance().getInstanceID()
+        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     byte[] cid;
@@ -109,7 +115,8 @@ public class CompactRange extends MasterRepo {
             log.debug("txidString : " + txidString);
             log.debug("tokens[" + i + "] : " + tokens[i]);
 
-            throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
+            throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT,
+                TableOperationExceptionType.OTHER,
                 "Another compaction with iterators and/or a compaction strategy is running");
           }
 
@@ -127,15 +134,19 @@ public class CompactRange extends MasterRepo {
         }
       });
 
-      return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]), getNamespaceId(env), tableId, startRow, endRow);
+      return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]),
+          getNamespaceId(env), tableId, startRow, endRow);
     } catch (NoNodeException nne) {
-      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT,
+          TableOperationExceptionType.NOTFOUND, null);
     }
 
   }
 
-  static void removeIterators(Master environment, final long txid, String tableId) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+  static void removeIterators(Master environment, final long txid, String tableId)
+      throws Exception {
+    String zTablePath = Constants.ZROOT + "/" + environment.getInstance().getInstanceID()
+        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 

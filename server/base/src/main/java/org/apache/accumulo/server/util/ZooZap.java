@@ -95,7 +95,8 @@ public class ZooZap {
           message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
 
           if (opts.zapMaster)
-            ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
+            ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child,
+                NodeMissingPolicy.SKIP);
           else {
             String path = tserversPath + "/" + child;
             if (zoo.getChildren(path).size() > 0) {
@@ -121,7 +122,8 @@ public class ZooZap {
 
   }
 
-  private static void zapDirectory(IZooReaderWriter zoo, String path, Opts opts) throws KeeperException, InterruptedException {
+  private static void zapDirectory(IZooReaderWriter zoo, String path, Opts opts)
+      throws KeeperException, InterruptedException {
     List<String> children = zoo.getChildren(path);
     for (String child : children) {
       message("Deleting " + path + "/" + child + " from zookeeper", opts);

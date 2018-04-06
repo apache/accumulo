@@ -180,21 +180,27 @@ public class ExamplesIT extends AccumuloClusterHarness {
     }
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-C", "-D", "-c"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-C",
+          "-D", "-c"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D",
+          "-c"};
     }
-    Entry<Integer,String> pair = cluster.getClusterControl().execWithStdout(TracingExample.class, args);
-    Assert.assertEquals("Expected return code of zero. STDOUT=" + pair.getValue(), 0, pair.getKey().intValue());
+    Entry<Integer,String> pair = cluster.getClusterControl().execWithStdout(TracingExample.class,
+        args);
+    Assert.assertEquals("Expected return code of zero. STDOUT=" + pair.getValue(), 0,
+        pair.getKey().intValue());
     String result = pair.getValue();
     Pattern pattern = Pattern.compile("TraceID: ([0-9a-f]+)");
     Matcher matcher = pattern.matcher(result);
     int count = 0;
     while (matcher.find()) {
       if (saslEnabled) {
-        args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--traceid", matcher.group(1)};
+        args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab,
+            "--traceid", matcher.group(1)};
       } else {
-        args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--traceid", matcher.group(1)};
+        args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--traceid",
+            matcher.group(1)};
       }
       pair = cluster.getClusterControl().execWithStdout(TraceDumpExample.class, args);
       count++;
@@ -208,7 +214,8 @@ public class ExamplesIT extends AccumuloClusterHarness {
 
   @Test
   public void testClasspath() throws Exception {
-    Entry<Integer,String> entry = getCluster().getClusterControl().execWithStdout(Main.class, new String[] {"classpath"});
+    Entry<Integer,String> entry = getCluster().getClusterControl().execWithStdout(Main.class,
+        new String[] {"classpath"});
     assertEquals(0, entry.getKey().intValue());
     String result = entry.getValue();
     int level1 = result.indexOf("Level 1");
@@ -232,7 +239,8 @@ public class ExamplesIT extends AccumuloClusterHarness {
     String dirListDirectory;
     switch (getClusterType()) {
       case MINI:
-        dirListDirectory = ((MiniAccumuloClusterImpl) getCluster()).getConfig().getDir().getAbsolutePath();
+        dirListDirectory = ((MiniAccumuloClusterImpl) getCluster()).getConfig().getDir()
+            .getAbsolutePath();
         break;
       case STANDALONE:
         dirListDirectory = ((StandaloneAccumuloCluster) getCluster()).getAccumuloHome();
@@ -241,16 +249,20 @@ public class ExamplesIT extends AccumuloClusterHarness {
         throw new RuntimeException("Unknown cluster type");
     }
     assumeTrue(new File(dirListDirectory).exists());
-    // Index a directory listing on /tmp. If this is running against a standalone cluster, we can't guarantee Accumulo source will be there.
+    // Index a directory listing on /tmp. If this is running against a standalone cluster, we can't
+    // guarantee Accumulo source will be there.
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
-          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), dirListDirectory};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab,
+          "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable", dataTable, "--vis",
+          visibility, "--chunkSize", Integer.toString(10000), dirListDirectory};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", dirTable, "--indexTable", indexTable, "--dataTable",
-          dataTable, "--vis", visibility, "--chunkSize", Integer.toString(10000), dirListDirectory};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable",
+          dirTable, "--indexTable", indexTable, "--dataTable", dataTable, "--vis", visibility,
+          "--chunkSize", Integer.toString(10000), dirListDirectory};
     }
     Entry<Integer,String> entry = getClusterControl().execWithStdout(Ingest.class, args);
-    assertEquals("Got non-zero return code. Stdout=" + entry.getValue(), 0, entry.getKey().intValue());
+    assertEquals("Got non-zero return code. Stdout=" + entry.getValue(), 0,
+        entry.getKey().intValue());
 
     String expectedFile;
     switch (getClusterType()) {
@@ -266,10 +278,11 @@ public class ExamplesIT extends AccumuloClusterHarness {
         throw new RuntimeException("Unknown cluster type");
     }
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "--keytab", keytab, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path",
-          expectedFile};
+      args = new String[] {"-i", instance, "-z", keepers, "--keytab", keytab, "-u", user, "-t",
+          indexTable, "--auths", auths, "--search", "--path", expectedFile};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", indexTable, "--auths", auths, "--search", "--path", expectedFile};
+      args = new String[] {"-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t",
+          indexTable, "--auths", auths, "--search", "--path", expectedFile};
     }
     entry = getClusterControl().execWithStdout(QueryUtil.class, args);
     if (ClusterType.MINI == getClusterType()) {
@@ -344,11 +357,13 @@ public class ExamplesIT extends AccumuloClusterHarness {
     c.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--num", "100000", "--min", "0", "--max",
-          "1000000000", "--size", "50", "--batchMemory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", tableName};
+      args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "--keytab",
+          keytab, "--num", "100000", "--min", "0", "--max", "1000000000", "--size", "50",
+          "--batchMemory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", tableName};
     } else {
-      args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "100000", "--min", "0", "--max", "1000000000",
-          "--size", "50", "--batchMemory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", tableName};
+      args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd,
+          "--num", "100000", "--min", "0", "--max", "1000000000", "--size", "50", "--batchMemory",
+          "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", tableName};
     }
     goodExec(RandomBatchWriter.class, args);
     c.tableOperations().flush(tableName, null, null, true);
@@ -357,21 +372,25 @@ public class ExamplesIT extends AccumuloClusterHarness {
     for (int i = 0; i < 2; i++) {
       long now = System.currentTimeMillis();
       if (saslEnabled) {
-        args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--num", "10000", "--min", "0", "--max",
-            "1000000000", "--size", "50", "--scanThreads", "4", "-t", tableName};
+        args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "--keytab",
+            keytab, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
+            "--scanThreads", "4", "-t", tableName};
       } else {
-        args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "10000", "--min", "0", "--max", "1000000000",
-            "--size", "50", "--scanThreads", "4", "-t", tableName};
+        args = new String[] {"--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", passwd,
+            "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50", "--scanThreads",
+            "4", "-t", tableName};
       }
       goodExec(RandomBatchScanner.class, args);
       diff = System.currentTimeMillis() - now;
       now = System.currentTimeMillis();
       if (saslEnabled) {
-        args = new String[] {"--seed", "8", "-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--num", "10000", "--min", "0", "--max",
-            "1000000000", "--size", "50", "--scanThreads", "4", "-t", tableName};
+        args = new String[] {"--seed", "8", "-i", instance, "-z", keepers, "-u", user, "--keytab",
+            keytab, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
+            "--scanThreads", "4", "-t", tableName};
       } else {
-        args = new String[] {"--seed", "8", "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--num", "10000", "--min", "0", "--max", "1000000000",
-            "--size", "50", "--scanThreads", "4", "-t", tableName};
+        args = new String[] {"--seed", "8", "-i", instance, "-z", keepers, "-u", user, "-p", passwd,
+            "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50", "--scanThreads",
+            "4", "-t", tableName};
       }
       int retCode = getClusterControl().exec(RandomBatchScanner.class, args);
       assertEquals(1, retCode);
@@ -406,19 +425,21 @@ public class ExamplesIT extends AccumuloClusterHarness {
 
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", user, "--keytab", keytab};
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term",
+          index, "-u", user, "--keytab", keytab};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", getAdminPrincipal(), "-p", passwd};
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term",
+          index, "-u", getAdminPrincipal(), "-p", passwd};
     }
     // create a reverse index
     goodExec(Reverse.class, args);
 
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", user, "--keytab", keytab, "--terms", "5",
-          "--count", "1000"};
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term",
+          index, "-u", user, "--keytab", keytab, "--terms", "5", "--count", "1000"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term", index, "-u", user, "-p", passwd, "--terms", "5", "--count",
-          "1000"};
+      args = new String[] {"-i", instance, "-z", keepers, "--shardTable", shard, "--doc2Term",
+          index, "-u", user, "-p", passwd, "--terms", "5", "--count", "1000"};
     }
     // run some queries
     goodExec(ContinuousQuery.class, args);
@@ -455,9 +476,11 @@ public class ExamplesIT extends AccumuloClusterHarness {
     if (fs.exists(p)) {
       fs.delete(p, true);
     }
-    goodExec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data");
+    goodExec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output",
+        dir + "/tmp/input/data");
 
-    List<String> commonArgs = new ArrayList<>(Arrays.asList(new String[] {"-i", instance, "-z", keepers, "-u", user, "--table", tableName}));
+    List<String> commonArgs = new ArrayList<>(Arrays
+        .asList(new String[] {"-i", instance, "-z", keepers, "-u", user, "--table", tableName}));
     if (saslEnabled) {
       commonArgs.add("--keytab");
       commonArgs.add(keytab);
@@ -470,7 +493,8 @@ public class ExamplesIT extends AccumuloClusterHarness {
     goodExec(SetupTable.class, args.toArray(new String[0]));
 
     args = new ArrayList<>(commonArgs);
-    args.addAll(Arrays.asList(new String[] {"--inputDir", dir + "/tmp/input", "--workDir", dir + "/tmp"}));
+    args.addAll(
+        Arrays.asList(new String[] {"--inputDir", dir + "/tmp/input", "--workDir", dir + "/tmp"}));
     goodExec(BulkIngestExample.class, args.toArray(new String[0]));
 
     args = new ArrayList<>(commonArgs);
@@ -485,11 +509,13 @@ public class ExamplesIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance, "-z", keepers,
-          "-u", user, "--keytab", keytab, "--splits", "4"};
+      args = new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10",
+          "-xv", "10", "-t", tableName, "-i", instance, "-z", keepers, "-u", user, "--keytab",
+          keytab, "--splits", "4"};
     } else {
-      args = new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", tableName, "-i", instance, "-z", keepers,
-          "-u", user, "-p", passwd, "--splits", "4"};
+      args = new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10",
+          "-xv", "10", "-t", tableName, "-i", instance, "-z", keepers, "-u", user, "-p", passwd,
+          "--splits", "4"};
     }
     goodExec(TeraSortIngest.class, args);
     Path output = new Path(dir, "tmp/nines");
@@ -497,16 +523,19 @@ public class ExamplesIT extends AccumuloClusterHarness {
       fs.delete(output, true);
     }
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--rowRegex", ".*999.*", "--output",
-          output.toString()};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
+          tableName, "--rowRegex", ".*999.*", "--output", output.toString()};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--rowRegex", ".*999.*", "--output", output.toString()};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName,
+          "--rowRegex", ".*999.*", "--output", output.toString()};
     }
     goodExec(RegexExample.class, args);
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--column", "c:"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
+          tableName, "--column", "c:"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--column", "c:"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName,
+          "--column", "c:"};
     }
     goodExec(RowHash.class, args);
     output = new Path(dir, "tmp/tableFile");
@@ -514,9 +543,11 @@ public class ExamplesIT extends AccumuloClusterHarness {
       fs.delete(output, true);
     }
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--output", output.toString()};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
+          tableName, "--output", output.toString()};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--output", output.toString()};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName,
+          "--output", output.toString()};
     }
     goodExec(TableToFile.class, args);
   }
@@ -528,7 +559,8 @@ public class ExamplesIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     is = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column(new Text("count"))));
+    SummingCombiner.setColumns(is,
+        Collections.singletonList(new IteratorSetting.Column(new Text("count"))));
     SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(tableName, is);
     Path readme = new Path(new Path(System.getProperty("user.dir")).getParent(), "README.md");
@@ -539,9 +571,11 @@ public class ExamplesIT extends AccumuloClusterHarness {
     fs.copyFromLocalFile(readme, new Path(dir + "/tmp/wc/README.md"));
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-u", user, "--keytab", keytab, "-z", keepers, "--input", dir + "/tmp/wc", "-t", tableName};
+      args = new String[] {"-i", instance, "-u", user, "--keytab", keytab, "-z", keepers, "--input",
+          dir + "/tmp/wc", "-t", tableName};
     } else {
-      args = new String[] {"-i", instance, "-u", user, "-p", passwd, "-z", keepers, "--input", dir + "/tmp/wc", "-t", tableName};
+      args = new String[] {"-i", instance, "-u", user, "-p", passwd, "-z", keepers, "--input",
+          dir + "/tmp/wc", "-t", tableName};
     }
     goodExec(WordCount.class, args);
   }
@@ -551,9 +585,11 @@ public class ExamplesIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
+          tableName};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t",
+          tableName};
     }
     goodExec(InsertWithBatchWriter.class, args);
     goodExec(ReadData.class, args);
@@ -563,9 +599,11 @@ public class ExamplesIT extends AccumuloClusterHarness {
   public void testIsolatedScansWithInterference() throws Exception {
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", getUniqueNames(1)[0], "--iterations", "100000", "--isolated"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
+          getUniqueNames(1)[0], "--iterations", "100000", "--isolated"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", getUniqueNames(1)[0], "--iterations", "100000", "--isolated"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t",
+          getUniqueNames(1)[0], "--iterations", "100000", "--isolated"};
     }
     goodExec(InterferenceTest.class, args);
   }
@@ -574,9 +612,11 @@ public class ExamplesIT extends AccumuloClusterHarness {
   public void testScansWithInterference() throws Exception {
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", getUniqueNames(1)[0], "--iterations", "100000"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
+          getUniqueNames(1)[0], "--iterations", "100000"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", getUniqueNames(1)[0], "--iterations", "100000"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t",
+          getUniqueNames(1)[0], "--iterations", "100000"};
     }
     goodExec(InterferenceTest.class, args);
   }
@@ -598,11 +638,13 @@ public class ExamplesIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t", tableName, "--start", "0", "--num", "100000", "--size", "50",
-          "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "-t",
+          tableName, "--start", "0", "--num", "100000", "--size", "50", "--batchMemory", "10000000",
+          "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName, "--start", "0", "--num", "100000", "--size", "50",
-          "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", tableName,
+          "--start", "0", "--num", "100000", "--size", "50", "--batchMemory", "10000000",
+          "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
     }
     goodExec(SequentialBatchWriter.class, args);
 
@@ -613,16 +655,19 @@ public class ExamplesIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--auths", auths, "--table", tableName, "--createtable", "-c",
-          "--debug"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--auths",
+          auths, "--table", tableName, "--createtable", "-c", "--debug"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", tableName, "--createtable", "-c", "--debug"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths",
+          auths, "--table", tableName, "--createtable", "-c", "--debug"};
     }
     goodExec(ReadWriteExample.class, args);
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--auths", auths, "--table", tableName, "-d", "--debug"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--auths",
+          auths, "--table", tableName, "-d", "--debug"};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", tableName, "-d", "--debug"};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths",
+          auths, "--table", tableName, "-d", "--debug"};
     }
     goodExec(ReadWriteExample.class, args);
 
@@ -634,38 +679,48 @@ public class ExamplesIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     String[] args;
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName, "--num", "100000", "--min", "0", "--max",
-          "100000", "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table",
+          tableName, "--num", "100000", "--min", "0", "--max", "100000", "--size", "100",
+          "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis",
+          visibility};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "100000", "--min", "0", "--max", "100000",
-          "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table",
+          tableName, "--num", "100000", "--min", "0", "--max", "100000", "--size", "100",
+          "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis",
+          visibility};
     }
     goodExec(RandomBatchWriter.class, args);
 
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName, "--num", "10000", "--min", "0", "--max",
-          "100000", "--size", "100", "--scanThreads", "4", "--auths", auths};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table",
+          tableName, "--num", "10000", "--min", "0", "--max", "100000", "--size", "100",
+          "--scanThreads", "4", "--auths", auths};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName, "--num", "10000", "--min", "0", "--max", "100000",
-          "--size", "100", "--scanThreads", "4", "--auths", auths};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table",
+          tableName, "--num", "10000", "--min", "0", "--max", "100000", "--size", "100",
+          "--scanThreads", "4", "--auths", auths};
     }
     goodExec(RandomBatchScanner.class, args);
 
     if (saslEnabled) {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table", tableName};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "--keytab", keytab, "--table",
+          tableName};
     } else {
-      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", tableName};
+      args = new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table",
+          tableName};
     }
     goodExec(Flush.class, args);
   }
 
-  private void goodExec(Class<?> theClass, String... args) throws InterruptedException, IOException {
+  private void goodExec(Class<?> theClass, String... args)
+      throws InterruptedException, IOException {
     Entry<Integer,String> pair;
     if (Tool.class.isAssignableFrom(theClass) && ClusterType.STANDALONE == getClusterType()) {
       StandaloneClusterControl control = (StandaloneClusterControl) getClusterControl();
       pair = control.execMapreduceWithStdout(theClass, args);
     } else {
-      // We're already slurping stdout into memory (not redirecting to file). Might as well add it to error message.
+      // We're already slurping stdout into memory (not redirecting to file). Might as well add it
+      // to error message.
       pair = getClusterControl().execWithStdout(theClass, args);
     }
     Assert.assertEquals("stdout=" + pair.getValue(), 0, pair.getKey().intValue());

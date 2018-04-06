@@ -23,18 +23,22 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
 /**
- * @deprecated Use {@link DefaultFormatter} providing showLength and printTimestamps via {@link FormatterConfig}.
+ * @deprecated Use {@link DefaultFormatter} providing showLength and printTimestamps via
+ *             {@link FormatterConfig}.
  */
 @Deprecated
 public class BinaryFormatter extends DefaultFormatter {
-  // this class can probably be replaced by DefaultFormatter since DefaultFormatter has the max length stuff
+  // this class can probably be replaced by DefaultFormatter since DefaultFormatter has the max
+  // length stuff
   @Override
   public String next() {
     checkState(true);
-    return formatEntry(getScannerIterator().next(), config.willPrintTimestamps(), config.getShownLength());
+    return formatEntry(getScannerIterator().next(), config.willPrintTimestamps(),
+        config.getShownLength());
   }
 
-  public static String formatEntry(Entry<Key,Value> entry, boolean printTimestamps, int shownLength) {
+  public static String formatEntry(Entry<Key,Value> entry, boolean printTimestamps,
+      int shownLength) {
     StringBuilder sb = new StringBuilder();
 
     Key key = entry.getKey();

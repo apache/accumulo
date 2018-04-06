@@ -40,8 +40,8 @@ import org.apache.hadoop.util.ToolRunner;
 import com.beust.jcommander.Parameter;
 
 /**
- * A simple map reduce job that computes the unique column families and column qualifiers in a table. This example shows one way to run against an offline
- * table.
+ * A simple map reduce job that computes the unique column families and column qualifiers in a
+ * table. This example shows one way to run against an offline table.
  */
 public class UniqueColumns extends Configured implements Tool {
 
@@ -53,7 +53,8 @@ public class UniqueColumns extends Configured implements Tool {
     private static final Text CQ = new Text("cq:");
 
     @Override
-    public void map(Key key, Value value, Context context) throws IOException, InterruptedException {
+    public void map(Key key, Value value, Context context)
+        throws IOException, InterruptedException {
       temp.set(CF);
       ByteSequence cf = key.getColumnFamilyData();
       temp.append(cf.getBackingArray(), cf.offset(), cf.length());
@@ -68,7 +69,8 @@ public class UniqueColumns extends Configured implements Tool {
 
   public static class UReducer extends Reducer<Text,Text,Text,Text> {
     @Override
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+    public void reduce(Text key, Iterable<Text> values, Context context)
+        throws IOException, InterruptedException {
       context.write(key, EMPTY);
     }
   }
@@ -100,13 +102,15 @@ public class UniqueColumns extends Configured implements Tool {
 
     if (opts.offline) {
       /*
-       * this example clones the table and takes it offline. If you plan to run map reduce jobs over a table many times, it may be more efficient to compact the
-       * table, clone it, and then keep using the same clone as input for map reduce.
+       * this example clones the table and takes it offline. If you plan to run map reduce jobs over
+       * a table many times, it may be more efficient to compact the table, clone it, and then keep
+       * using the same clone as input for map reduce.
        */
 
       conn = opts.getConnector();
       clone = opts.getTableName() + "_" + jobName;
-      conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
+      conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(),
+          new HashSet<String>());
       conn.tableOperations().offline(clone);
 
       AccumuloInputFormat.setOfflineTableScan(job, true);

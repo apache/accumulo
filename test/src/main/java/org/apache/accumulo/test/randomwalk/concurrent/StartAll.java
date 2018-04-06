@@ -40,13 +40,16 @@ public class StartAll extends Test {
   public void visit(State state, Environment env, Properties props) throws Exception {
     log.info("Starting all servers");
     SetGoalState.main(new String[] {MasterGoalState.NORMAL.name()});
-    Process exec = Runtime.getRuntime().exec(new String[] {System.getenv().get("ACCUMULO_HOME") + "/bin/start-all.sh"});
+    Process exec = Runtime.getRuntime()
+        .exec(new String[] {System.getenv().get("ACCUMULO_HOME") + "/bin/start-all.sh"});
     exec.waitFor();
     while (true) {
       try {
-        AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+        AccumuloServerContext context = new AccumuloServerContext(
+            new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
         Client client = MasterClient.getConnection(context);
-        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(),
+            context.rpcCreds());
         if (!masterStats.tServerInfo.isEmpty())
           break;
       } catch (Exception ex) {

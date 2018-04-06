@@ -36,7 +36,8 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * Represents a secret key used for signing and verifying authentication tokens by {@link AuthenticationTokenSecretManager}.
+ * Represents a secret key used for signing and verifying authentication tokens by
+ * {@link AuthenticationTokenSecretManager}.
  */
 public class AuthenticationKey implements Writable {
   private TAuthenticationKey authKey;
@@ -94,13 +95,15 @@ public class AuthenticationKey implements Writable {
       return 1;
     }
     HashCodeBuilder hcb = new HashCodeBuilder(29, 31);
-    hcb.append(authKey.getKeyId()).append(authKey.getExpirationDate()).append(authKey.getCreationDate()).append(secret.getEncoded());
+    hcb.append(authKey.getKeyId()).append(authKey.getExpirationDate())
+        .append(authKey.getCreationDate()).append(secret.getEncoded());
     return hcb.toHashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    return obj != null && obj instanceof AuthenticationKey && Objects.equals(authKey, ((AuthenticationKey) obj).authKey);
+    return obj != null && obj instanceof AuthenticationKey
+        && Objects.equals(authKey, ((AuthenticationKey) obj).authKey);
   }
 
   @Override
@@ -110,7 +113,8 @@ public class AuthenticationKey implements Writable {
     if (null == authKey) {
       buf.append("null]");
     } else {
-      buf.append("id=").append(authKey.getKeyId()).append(", expiration=").append(authKey.getExpirationDate()).append(", creation=")
+      buf.append("id=").append(authKey.getKeyId()).append(", expiration=")
+          .append(authKey.getExpirationDate()).append(", creation=")
           .append(authKey.getCreationDate()).append("]");
     }
     return buf.toString();

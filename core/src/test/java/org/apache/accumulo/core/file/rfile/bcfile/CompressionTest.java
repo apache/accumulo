@@ -49,7 +49,8 @@ public class CompressionTest {
     String extClazz = System.getProperty(Compression.Algorithm.CONF_LZO_CLASS);
     String clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.LzoCodec";
     try {
-      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz),
+          myConf);
 
       Assert.assertNotNull(codec);
       isSupported.put(Compression.Algorithm.LZO, true);
@@ -61,7 +62,8 @@ public class CompressionTest {
     extClazz = System.getProperty(Compression.Algorithm.CONF_SNAPPY_CLASS);
     clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.SnappyCodec";
     try {
-      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz),
+          myConf);
 
       Assert.assertNotNull(codec);
 
@@ -102,7 +104,8 @@ public class CompressionTest {
         // assert that additional calls to create will not create
         // additional codecs
 
-        Assert.assertNotEquals(al + " should have created a new codec, but did not", System.identityHashCode(al.getCodec()), al.createNewCodec(88 * 1024));
+        Assert.assertNotEquals(al + " should have created a new codec, but did not",
+            System.identityHashCode(al.getCodec()), al.createNewCodec(88 * 1024));
       }
     }
   }
@@ -145,7 +148,8 @@ public class CompressionTest {
         }
 
         for (Future<Boolean> result : results) {
-          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool", result.get());
+          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
+              result.get());
         }
       }
     }
@@ -154,7 +158,8 @@ public class CompressionTest {
 
   // don't start until we have created the codec
   @Test(timeout = 60 * 1000)
-  public void testManyDontStartUntilThread() throws IOException, InterruptedException, ExecutionException {
+  public void testManyDontStartUntilThread()
+      throws IOException, InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
@@ -186,7 +191,8 @@ public class CompressionTest {
         }
 
         for (Future<Boolean> result : results) {
-          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool", result.get());
+          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
+              result.get());
         }
       }
     }
@@ -237,7 +243,8 @@ public class CompressionTest {
         }
 
         for (Future<Boolean> result : results) {
-          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool", result.get());
+          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
+              result.get());
         }
       }
     }

@@ -37,7 +37,10 @@ public interface CloudtraceSpan {
   /** Get the stop time, in milliseconds */
   long getStopTimeMillis();
 
-  /** Return the total amount of time elapsed since start was called, if running, or difference between stop and start */
+  /**
+   * Return the total amount of time elapsed since start was called, if running, or difference
+   * between stop and start
+   */
   long accumulatedMillis();
 
   /** Has the span been started and not yet stopped? */
@@ -61,7 +64,10 @@ public interface CloudtraceSpan {
   @Override
   String toString();
 
-  /** Return the pseudo-unique (random) number of the parent span, returns ROOT_SPAN_ID if this is the root span */
+  /**
+   * Return the pseudo-unique (random) number of the parent span, returns ROOT_SPAN_ID if this is
+   * the root span
+   */
   long parentId();
 
   /** Add data associated with this span */

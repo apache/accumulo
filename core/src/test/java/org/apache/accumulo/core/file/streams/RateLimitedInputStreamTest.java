@@ -52,17 +52,23 @@ public class RateLimitedInputStreamTest {
 
     @Override
     public void seek(long pos) throws IOException {
-      throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+      throw new UnsupportedOperationException("Not supported yet."); // To change body of generated
+                                                                     // methods, choose Tools |
+                                                                     // Templates.
     }
 
     @Override
     public long getPos() throws IOException {
-      throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+      throw new UnsupportedOperationException("Not supported yet."); // To change body of generated
+                                                                     // methods, choose Tools |
+                                                                     // Templates.
     }
 
     @Override
     public boolean seekToNewSource(long targetPos) throws IOException {
-      throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+      throw new UnsupportedOperationException("Not supported yet."); // To change body of generated
+                                                                     // methods, choose Tools |
+                                                                     // Templates.
     }
 
   }

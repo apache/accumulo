@@ -41,7 +41,8 @@ import org.apache.hadoop.io.Text;
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
 
-  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ClientOpts opts) throws AccumuloSecurityException {
+  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ClientOpts opts)
+      throws AccumuloSecurityException {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
 
@@ -52,13 +53,15 @@ public class CheckForMetadataProblems {
     }
 
     if (tablets.first().getPrevEndRow() != null) {
-      System.out.println("First entry for table " + tablename + "- " + tablets.first() + " - has non null prev end row");
+      System.out.println("First entry for table " + tablename + "- " + tablets.first()
+          + " - has non null prev end row");
       sawProblems = true;
       return;
     }
 
     if (tablets.last().getEndRow() != null) {
-      System.out.println("Last entry for table " + tablename + "- " + tablets.last() + " - has non null end row");
+      System.out.println(
+          "Last entry for table " + tablename + "- " + tablets.last() + " - has non null end row");
       sawProblems = true;
       return;
     }
@@ -70,10 +73,12 @@ public class CheckForMetadataProblems {
       KeyExtent tabke = tabIter.next();
       boolean broke = false;
       if (tabke.getPrevEndRow() == null) {
-        System.out.println("Table " + tablename + " has null prev end row in middle of table " + tabke);
+        System.out
+            .println("Table " + tablename + " has null prev end row in middle of table " + tabke);
         broke = true;
       } else if (!tabke.getPrevEndRow().equals(lastEndRow)) {
-        System.out.println("Table " + tablename + " has a hole " + tabke.getPrevEndRow() + " != " + lastEndRow);
+        System.out.println(
+            "Table " + tablename + " has a hole " + tabke.getPrevEndRow() + " != " + lastEndRow);
         broke = true;
       }
       if (broke) {
@@ -88,7 +93,8 @@ public class CheckForMetadataProblems {
       sawProblems = true;
   }
 
-  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ClientOpts opts, VolumeManager fs) throws Exception {
+  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ClientOpts opts,
+      VolumeManager fs) throws Exception {
     System.out.println("Checking table: " + tableNameToCheck);
     Map<String,TreeSet<KeyExtent>> tables = new HashMap<>();
 

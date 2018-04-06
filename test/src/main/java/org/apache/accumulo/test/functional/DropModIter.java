@@ -36,7 +36,8 @@ public class DropModIter extends SkippingIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.mod = Integer.parseInt(options.get("mod"));
     this.drop = Integer.parseInt(options.get("drop"));
@@ -44,7 +45,8 @@ public class DropModIter extends SkippingIterator {
 
   @Override
   protected void consume() throws IOException {
-    while (getSource().hasTop() && Integer.parseInt(getSource().getTopKey().getRow().toString()) % mod == drop) {
+    while (getSource().hasTop()
+        && Integer.parseInt(getSource().getTopKey().getRow().toString()) % mod == drop) {
       getSource().next();
     }
   }

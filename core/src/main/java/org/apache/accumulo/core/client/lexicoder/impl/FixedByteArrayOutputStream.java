@@ -20,7 +20,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Uses a fixed length array and will not grow in size dynamically like the {@link java.io.ByteArrayOutputStream}.
+ * Uses a fixed length array and will not grow in size dynamically like the
+ * {@link java.io.ByteArrayOutputStream}.
  */
 public class FixedByteArrayOutputStream extends OutputStream {
 

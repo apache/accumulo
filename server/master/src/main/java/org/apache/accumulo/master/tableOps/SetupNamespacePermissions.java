@@ -40,7 +40,8 @@ class SetupNamespacePermissions extends MasterRepo {
     SecurityOperation security = AuditedSecurityOperation.getInstance(env);
     for (NamespacePermission permission : NamespacePermission.values()) {
       try {
-        security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user, namespaceInfo.namespaceId, permission);
+        security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user,
+            namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);
         throw e;

@@ -98,7 +98,8 @@ public class MiniAccumuloClusterTest {
 
     IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
     SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
-    SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
+    SummingCombiner.setColumns(is,
+        Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
 
     conn.tableOperations().attachIterator("table1", is);
 
@@ -156,7 +157,8 @@ public class MiniAccumuloClusterTest {
   }
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
@@ -168,9 +170,11 @@ public class MiniAccumuloClusterTest {
     File jarFile = folder.newFile("iterator.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
 
-    conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
+    conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
+        jarFile.toURI().toString());
     conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
-    conn.tableOperations().attachIterator("table2", new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
+    conn.tableOperations().attachIterator("table2",
+        new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
 
     BatchWriter bw = conn.createBatchWriter("table2", new BatchWriterConfig());
 
@@ -198,7 +202,8 @@ public class MiniAccumuloClusterTest {
 
     Assert.assertEquals(2, count);
 
-    conn.instanceOperations().removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    conn.instanceOperations()
+        .removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete("table2");
   }
 
@@ -227,8 +232,9 @@ public class MiniAccumuloClusterTest {
     File accumuloSite = new File(confDir, "accumulo-site.xml");
     Configuration conf = new Configuration(false);
     conf.addResource(accumuloSite.toURI().toURL());
-    for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT, Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT,
-        Property.TRACE_PORT, Property.GC_PORT}) {
+    for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
+        Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT, Property.TRACE_PORT,
+        Property.GC_PORT}) {
       String value = conf.get(randomPortProp.getKey());
       Assert.assertNotNull("Found no value for " + randomPortProp, value);
       Assert.assertEquals("0", value);

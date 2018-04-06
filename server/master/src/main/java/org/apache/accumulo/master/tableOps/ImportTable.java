@@ -101,16 +101,19 @@ public class ImportTable extends MasterRepo {
       }
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Failed to read export metadata " + ioe.getMessage());
     }
 
     if (exportVersion == null || exportVersion > ExportTable.VERSION)
-      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible export version " + exportVersion);
 
     if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
-      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible data version " + exportVersion);
   }
 

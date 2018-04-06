@@ -52,8 +52,8 @@ public class OutputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Sets the default table name to use if one emits a null in place of a table name for a given mutation. Table names can only be alpha-numeric and
-   * underscores.
+   * Sets the default table name to use if one emits a null in place of a table name for a given
+   * mutation. Table names can only be alpha-numeric and underscores.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -63,7 +63,8 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the table to use when the tablename is null in the write call
    * @since 1.6.0
    */
-  public static void setDefaultTableName(Class<?> implementingClass, Configuration conf, String tableName) {
+  public static void setDefaultTableName(Class<?> implementingClass, Configuration conf,
+      String tableName) {
     if (tableName != null)
       conf.set(enumToConfKey(implementingClass, WriteOpts.DEFAULT_TABLE_NAME), tableName);
   }
@@ -84,8 +85,9 @@ public class OutputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
-   * used. Setting the configuration multiple times overwrites any previous configuration.
+   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new
+   * {@link BatchWriterConfig}, with sensible built-in defaults is used. Setting the configuration
+   * multiple times overwrites any previous configuration.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -95,7 +97,8 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the configuration for the {@link BatchWriter}
    * @since 1.6.0
    */
-  public static void setBatchWriterOptions(Class<?> implementingClass, Configuration conf, BatchWriterConfig bwConfig) {
+  public static void setBatchWriterOptions(Class<?> implementingClass, Configuration conf,
+      BatchWriterConfig bwConfig) {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     String serialized;
     try {
@@ -103,7 +106,8 @@ public class OutputConfigurator extends ConfiguratorBase {
       serialized = new String(baos.toByteArray(), UTF_8);
       baos.close();
     } catch (IOException e) {
-      throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
+      throw new IllegalArgumentException(
+          "unable to serialize " + BatchWriterConfig.class.getName());
     }
     conf.set(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG), serialized);
   }
@@ -119,7 +123,8 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    * @see #setBatchWriterOptions(Class, Configuration, BatchWriterConfig)
    */
-  public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass, Configuration conf) {
+  public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass,
+      Configuration conf) {
     String serialized = conf.get(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG));
     BatchWriterConfig bwConfig = new BatchWriterConfig();
     if (serialized == null || serialized.isEmpty()) {
@@ -131,13 +136,15 @@ public class OutputConfigurator extends ConfiguratorBase {
         bais.close();
         return bwConfig;
       } catch (IOException e) {
-        throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
+        throw new IllegalArgumentException(
+            "unable to serialize " + BatchWriterConfig.class.getName());
       }
     }
   }
 
   /**
-   * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric and underscores.
+   * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric
+   * and underscores.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -150,7 +157,8 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public static void setCreateTables(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
+  public static void setCreateTables(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.CAN_CREATE_TABLES), enableFeature);
   }
 
@@ -170,7 +178,8 @@ public class OutputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
+   * Sets the directive to use simulation mode for this job. In simulation mode, no output is
+   * produced. This is useful for testing.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -183,7 +192,8 @@ public class OutputConfigurator extends ConfiguratorBase {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public static void setSimulationMode(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
+  public static void setSimulationMode(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.SIMULATION_MODE), enableFeature);
   }
 

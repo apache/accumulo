@@ -44,7 +44,8 @@ public class TestBatchScanner821 {
     @Override
     public Key getTopKey() {
       Key k = getSource().getTopKey();
-      return new Key(new Text(k.getRow().toString().toLowerCase()), k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibility(), k.getTimestamp());
+      return new Key(new Text(k.getRow().toString().toLowerCase()), k.getColumnFamily(),
+          k.getColumnQualifier(), k.getColumnVisibility(), k.getTimestamp());
     }
   }
 

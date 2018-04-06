@@ -37,9 +37,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Optional;
 
 /**
- * This iterator which implements yielding will yield after every other next and every other seek call.
+ * This iterator which implements yielding will yield after every other next and every other seek
+ * call.
  */
-public class YieldingIterator extends WrappingIterator implements YieldingKeyValueIterator<Key,Value> {
+public class YieldingIterator extends WrappingIterator
+    implements YieldingKeyValueIterator<Key,Value> {
   private static final Logger log = LoggerFactory.getLogger(YieldingIterator.class);
   private static final AtomicInteger yieldNexts = new AtomicInteger(0);
   private static final AtomicInteger yieldSeeks = new AtomicInteger(0);
@@ -72,7 +74,8 @@ public class YieldingIterator extends WrappingIterator implements YieldingKeyVal
     if (yield.isPresent() && yieldNextKey.get()) {
       yielded = true;
       yieldNexts.incrementAndGet();
-      // since we are not actually skipping keys underneath, simply use the key following the top key as the yield key
+      // since we are not actually skipping keys underneath, simply use the key following the top
+      // key as the yield key
       yield.get().yield(getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
       log.info("end YieldingIterator.next: yielded at " + getTopKey());
     }
@@ -80,23 +83,27 @@ public class YieldingIterator extends WrappingIterator implements YieldingKeyVal
     // if not yielding, then simply pass on the next call
     if (!yielded) {
       super.next();
-      log.info("end YieldingIterator.next: " + (hasTop() ? getTopKey() + " " + getTopValue() : "no top"));
+      log.info("end YieldingIterator.next: "
+          + (hasTop() ? getTopKey() + " " + getTopValue() : "no top"));
     }
   }
 
   /**
-   * The top value will encode the current state of the yields, seeks, and rebuilds for use by the YieldScannersIT tests.
+   * The top value will encode the current state of the yields, seeks, and rebuilds for use by the
+   * YieldScannersIT tests.
    *
    * @return a top value of the form {yieldNexts},{yieldSeeks},{rebuilds}
    */
   @Override
   public Value getTopValue() {
-    String value = Integer.toString(yieldNexts.get()) + ',' + Integer.toString(yieldSeeks.get()) + ',' + Integer.toString(rebuilds.get());
+    String value = Integer.toString(yieldNexts.get()) + ',' + Integer.toString(yieldSeeks.get())
+        + ',' + Integer.toString(rebuilds.get());
     return new Value(value);
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     log.info("start YieldingIterator.seek: " + getTopValue() + " with range " + range);
     boolean yielded = false;
 
@@ -108,8 +115,10 @@ public class YieldingIterator extends WrappingIterator implements YieldingKeyVal
       if (yield.isPresent() && yieldSeekKey.get()) {
         yielded = true;
         yieldSeeks.incrementAndGet();
-        // since we are not actually skipping keys underneath, simply use the key following the range start key
-        yield.get().yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+        // since we are not actually skipping keys underneath, simply use the key following the
+        // range start key
+        yield.get()
+            .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
         log.info("end YieldingIterator.next: yielded at " + range.getStartKey());
       }
     }
@@ -117,7 +126,8 @@ public class YieldingIterator extends WrappingIterator implements YieldingKeyVal
     // if not yielding, then simply pass on the call to the source
     if (!yielded) {
       super.seek(range, columnFamilies, inclusive);
-      log.info("end YieldingIterator.seek: " + (hasTop() ? getTopKey() + " " + getTopValue() : "no top"));
+      log.info("end YieldingIterator.seek: "
+          + (hasTop() ? getTopKey() + " " + getTopValue() : "no top"));
     }
   }
 

@@ -59,7 +59,8 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
   public static Object[][] parameters() {
     IteratorTestInput input = getIteratorInput();
     IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = Collections.<IteratorTestCase> singletonList(new NoopIteratorTestCase());
+    List<IteratorTestCase> tests = Collections
+        .<IteratorTestCase> singletonList(new NoopIteratorTestCase());
     return BaseJUnit4IteratorTest.createParameters(input, output, tests);
   }
 
@@ -74,14 +75,16 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
   }
 
   private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(IdentityIterator.class, Collections.<String,String> emptyMap(), new Range(), DATA);
+    return new IteratorTestInput(IdentityIterator.class, Collections.<String,String> emptyMap(),
+        new Range(), DATA);
   }
 
   private static IteratorTestOutput getIteratorOutput() {
     return new IteratorTestOutput(DATA);
   }
 
-  public JUnitFrameworkTest(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestCase testCase) {
+  public JUnitFrameworkTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
+      IteratorTestCase testCase) {
     super(input, expectedOutput, testCase);
   }
 

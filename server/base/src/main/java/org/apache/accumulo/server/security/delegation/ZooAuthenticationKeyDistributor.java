@@ -40,7 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Class that manages distribution of {@link AuthenticationKey}s, Accumulo's secret in the delegation token model, to other Accumulo nodes via ZooKeeper.
+ * Class that manages distribution of {@link AuthenticationKey}s, Accumulo's secret in the
+ * delegation token model, to other Accumulo nodes via ZooKeeper.
  */
 public class ZooAuthenticationKeyDistributor {
   private static final Logger log = LoggerFactory.getLogger(ZooAuthenticationKeyDistributor.class);
@@ -57,7 +58,8 @@ public class ZooAuthenticationKeyDistributor {
   }
 
   /**
-   * Ensures that ZooKeeper is in a correct state to perform distribution of {@link AuthenticationKey}s.
+   * Ensures that ZooKeeper is in a correct state to perform distribution of
+   * {@link AuthenticationKey}s.
    */
   public synchronized void initialize() throws KeeperException, InterruptedException {
     if (initialized.get()) {
@@ -74,7 +76,8 @@ public class ZooAuthenticationKeyDistributor {
         ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
         Id actualId = actualAcl.getId();
         // The expected outcome from ZooUtil.PRIVATE
-        if (actualAcl.getPerms() == expectedAcl.getPerms() && actualId.getScheme().equals("digest") && actualId.getId().startsWith("accumulo:")) {
+        if (actualAcl.getPerms() == expectedAcl.getPerms() && actualId.getScheme().equals("digest")
+            && actualId.getId().startsWith("accumulo:")) {
           initialized.set(true);
           return;
         }
@@ -83,14 +86,16 @@ public class ZooAuthenticationKeyDistributor {
       }
 
       log.error("Expected {} to have ACLs {} but was {}", baseNode, ZooUtil.PRIVATE, acls);
-      throw new IllegalStateException("Delegation token secret key node in ZooKeeper is not protected.");
+      throw new IllegalStateException(
+          "Delegation token secret key node in ZooKeeper is not protected.");
     }
 
     initialized.set(true);
   }
 
   /**
-   * Fetch all {@link AuthenticationKey}s currently stored in ZooKeeper beneath the configured {@code baseNode}.
+   * Fetch all {@link AuthenticationKey}s currently stored in ZooKeeper beneath the configured
+   * {@code baseNode}.
    *
    * @return A list of {@link AuthenticationKey}s
    */
@@ -112,7 +117,8 @@ public class ZooAuthenticationKeyDistributor {
         try {
           key.readFields(new DataInputStream(new ByteArrayInputStream(data)));
         } catch (IOException e) {
-          throw new AssertionError("Error reading from in-memory buffer which should not happen", e);
+          throw new AssertionError("Error reading from in-memory buffer which should not happen",
+              e);
         }
         keys.add(key);
       }
@@ -127,7 +133,8 @@ public class ZooAuthenticationKeyDistributor {
    * @param newKey
    *          The key to add to ZooKeeper
    */
-  public synchronized void advertise(AuthenticationKey newKey) throws KeeperException, InterruptedException {
+  public synchronized void advertise(AuthenticationKey newKey)
+      throws KeeperException, InterruptedException {
     checkState(initialized.get(), "Not initialized");
     requireNonNull(newKey);
 
@@ -148,20 +155,24 @@ public class ZooAuthenticationKeyDistributor {
 
     byte[] serializedKey = baos.toByteArray();
 
-    log.debug("Advertising AuthenticationKey with keyId {} in ZooKeeper at {}", newKey.getKeyId(), path);
+    log.debug("Advertising AuthenticationKey with keyId {} in ZooKeeper at {}", newKey.getKeyId(),
+        path);
 
     // Put it into ZK with the private ACL
     zk.putPrivatePersistentData(path, serializedKey, NodeExistsPolicy.FAIL);
   }
 
   /**
-   * Remove the given {@link AuthenticationKey} from ZooKeeper. If the node for the provided {@code key} doesn't exist in ZooKeeper, a warning is printed but an
-   * error is not thrown. Since there is only a single process managing ZooKeeper at one time, any inconsistencies should be client error.
+   * Remove the given {@link AuthenticationKey} from ZooKeeper. If the node for the provided
+   * {@code key} doesn't exist in ZooKeeper, a warning is printed but an error is not thrown. Since
+   * there is only a single process managing ZooKeeper at one time, any inconsistencies should be
+   * client error.
    *
    * @param key
    *          The key to remove from ZooKeeper
    */
-  public synchronized void remove(AuthenticationKey key) throws KeeperException, InterruptedException {
+  public synchronized void remove(AuthenticationKey key)
+      throws KeeperException, InterruptedException {
     checkState(initialized.get(), "Not initialized");
     requireNonNull(key);
 
@@ -171,7 +182,8 @@ public class ZooAuthenticationKeyDistributor {
       return;
     }
 
-    log.debug("Removing AuthenticationKey with keyId {} from ZooKeeper at {}", key.getKeyId(), path);
+    log.debug("Removing AuthenticationKey with keyId {} from ZooKeeper at {}", key.getKeyId(),
+        path);
 
     // Delete the node, any version
     zk.delete(path, -1);

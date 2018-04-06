@@ -46,7 +46,8 @@ public class MutationTest {
   }
 
   /*
-   * Test constructing a Mutation using a byte buffer. The byte array returned as the row is converted to a hexadecimal string for easy comparision.
+   * Test constructing a Mutation using a byte buffer. The byte array returned as the row is
+   * converted to a hexadecimal string for easy comparision.
    */
   public void testByteConstructor() {
     Mutation m = new Mutation("0123456789".getBytes());
@@ -313,9 +314,11 @@ public class MutationTest {
   }
 
   /**
-   * Test for regression on bug 3422. If a {@link Mutation} object is reused for multiple calls to readFields, the mutation would previously be "locked in" to
-   * the first set of column updates (and value lengths). Hadoop input formats reuse objects when reading, so if Mutations are used with an input format (or as
-   * the input to a combiner or reducer) then they will be used in this fashion.
+   * Test for regression on bug 3422. If a {@link Mutation} object is reused for multiple calls to
+   * readFields, the mutation would previously be "locked in" to the first set of column updates
+   * (and value lengths). Hadoop input formats reuse objects when reading, so if Mutations are used
+   * with an input format (or as the input to a combiner or reducer) then they will be used in this
+   * fashion.
    */
   @Test
   public void testMultipleReadFieldsCalls() throws IOException {
@@ -356,7 +359,8 @@ public class MutationTest {
     assertEquals(3, m.getUpdates().size());
     verifyColumnUpdate(m.getUpdates().get(0), "cf1.1", "cq1.1", "A|B", 0L, false, false, "val1.1");
     verifyColumnUpdate(m.getUpdates().get(1), "cf1.2", "cq1.2", "C|D", 0L, false, false, "val1.2");
-    verifyColumnUpdate(m.getUpdates().get(2), "cf1.3", "cq1.3", "E|F", 0L, false, false, new String(val1_3));
+    verifyColumnUpdate(m.getUpdates().get(2), "cf1.3", "cq1.3", "E|F", 0L, false, false,
+        new String(val1_3));
 
     // Reuse the same mutation object (which is what happens in the hadoop framework
     // when objects are read by an input format)
@@ -366,10 +370,12 @@ public class MutationTest {
     assertEquals(size2, m.size());
     assertEquals(nb2, m.numBytes());
     assertEquals(1, m.getUpdates().size());
-    verifyColumnUpdate(m.getUpdates().get(0), "cf2", "cq2", "G|H", 1234L, true, false, new String(val2));
+    verifyColumnUpdate(m.getUpdates().get(0), "cf2", "cq2", "G|H", 1234L, true, false,
+        new String(val2));
   }
 
-  private void verifyColumnUpdate(ColumnUpdate cu, String cf, String cq, String cv, long ts, boolean timeSet, boolean deleted, String val) {
+  private void verifyColumnUpdate(ColumnUpdate cu, String cf, String cq, String cv, long ts,
+      boolean timeSet, boolean deleted, String val) {
 
     assertEquals(cf, new String(cu.getColumnFamily()));
     assertEquals(cq, new String(cu.getColumnQualifier()));
@@ -482,14 +488,16 @@ public class MutationTest {
       }
       sb.append(" ");
     }
-    assertEquals("80322031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 06000000 00000001 ",
+    assertEquals(
+        "80322031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 06000000 00000001 ",
         sb.toString());
 
   }
 
   @Test
   public void testReserialize() throws Exception {
-    // test reading in a new mutation from an old mutation and reserializing the new mutation... this was failing
+    // test reading in a new mutation from an old mutation and reserializing the new mutation...
+    // this was failing
     OldMutation om = new OldMutation("r1");
     om.put("cf1", "cq1", "v1");
     om.put("cf2", "cq2", new ColumnVisibility("cv2"), "v2");
@@ -519,7 +527,8 @@ public class MutationTest {
     verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
     verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
     verifyColumnUpdate(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
-    verifyColumnUpdate(m2.getUpdates().get(3), "cf2", "big", "", 0l, false, false, bigVal.toString());
+    verifyColumnUpdate(m2.getUpdates().get(3), "cf2", "big", "", 0l, false, false,
+        bigVal.toString());
   }
 
   // populate for testInitialBufferSizesEquals method
@@ -654,8 +663,8 @@ public class MutationTest {
   }
 
   /*
-   * The following two tests assert that no exception is thrown after calling hashCode or equals on a Mutation. These guard against the condition noted in
-   * ACCUMULO-3718.
+   * The following two tests assert that no exception is thrown after calling hashCode or equals on
+   * a Mutation. These guard against the condition noted in ACCUMULO-3718.
    */
   @Test
   public void testPutAfterHashCode() {
@@ -664,7 +673,8 @@ public class MutationTest {
     try {
       m.put("cf", "cq", "v");
     } catch (IllegalStateException e) {
-      fail("Calling Mutation#hashCode then Mutation#put should not result in an IllegalStateException.");
+      fail(
+          "Calling Mutation#hashCode then Mutation#put should not result in an IllegalStateException.");
     }
   }
 
@@ -677,7 +687,8 @@ public class MutationTest {
       m.put("cf", "cq", "v");
       m2.put("cf", "cq", "v");
     } catch (IllegalStateException e) {
-      fail("Calling Mutation#equals then Mutation#put should not result in an IllegalStateException.");
+      fail(
+          "Calling Mutation#equals then Mutation#put should not result in an IllegalStateException.");
     }
   }
 }

@@ -45,7 +45,8 @@ public class KeyRangePartitioner extends Partitioner<Key,Writable> implements Co
   }
 
   /**
-   * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split points that represent ranges for partitioning
+   * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split
+   * points that represent ranges for partitioning
    */
   public static void setSplitFile(Job job, String file) {
     RangePartitioner.setSplitFile(job, file);

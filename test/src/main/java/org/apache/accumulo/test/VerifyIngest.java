@@ -77,8 +77,8 @@ public class VerifyIngest {
     }
   }
 
-  public static void verifyIngest(Connector connector, Opts opts, ScannerOpts scanOpts) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public static void verifyIngest(Connector connector, Opts opts, ScannerOpts scanOpts)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     byte[][] bytevals = TestIngest.generateValues(opts.dataSize);
 
     Authorizations labelAuths = new Authorizations("L1", "L2", "G1", "GROUP2");
@@ -121,7 +121,8 @@ public class VerifyIngest {
 
         byte ev[];
         if (opts.random != null) {
-          ev = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, expectedCol);
+          ev = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow,
+              expectedCol);
         } else {
           ev = bytevals[expectedCol % bytevals.length];
         }
@@ -134,7 +135,8 @@ public class VerifyIngest {
           bytesRead += val.length;
           Value value = new Value(val);
           if (value.compareTo(ev) != 0) {
-            log.error("unexpected value  (" + rowKey + " " + colf + " " + colq + " : saw " + value + " expected " + new Value(ev));
+            log.error("unexpected value  (" + rowKey + " " + colf + " " + colq + " : saw " + value
+                + " expected " + new Value(ev));
             errors++;
           }
         }
@@ -153,7 +155,8 @@ public class VerifyIngest {
         scanner.setBatchSize(scanOpts.scanBatchSize);
         scanner.setRange(new Range(startKey, endKey));
         for (int j = 0; j < opts.cols; j++) {
-          scanner.fetchColumn(new Text(opts.columnFamily), new Text("col_" + String.format("%07d", j)));
+          scanner.fetchColumn(new Text(opts.columnFamily),
+              new Text("col_" + String.format("%07d", j)));
         }
 
         int recsReadBefore = recsRead;
@@ -175,32 +178,37 @@ public class VerifyIngest {
           }
 
           if (colNum != expectedCol) {
-            log.error("colNum != expectedCol  " + colNum + " != " + expectedCol + "  rowNum : " + rowNum);
+            log.error(
+                "colNum != expectedCol  " + colNum + " != " + expectedCol + "  rowNum : " + rowNum);
             errors++;
           }
 
           if (expectedRow >= (opts.rows + opts.startRow)) {
-            log.error("expectedRow (" + expectedRow + ") >= (ingestArgs.rows + ingestArgs.startRow)  (" + (opts.rows + opts.startRow)
-                + "), get batch returned data passed end key");
+            log.error(
+                "expectedRow (" + expectedRow + ") >= (ingestArgs.rows + ingestArgs.startRow)  ("
+                    + (opts.rows + opts.startRow) + "), get batch returned data passed end key");
             errors++;
             break;
           }
 
           byte value[];
           if (opts.random != null) {
-            value = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, colNum);
+            value = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(),
+                expectedRow, colNum);
           } else {
             value = bytevals[colNum % bytevals.length];
           }
 
           if (entry.getValue().compareTo(value) != 0) {
             log.error("unexpected value, rowNum : " + rowNum + " colNum : " + colNum);
-            log.error(" saw = " + new String(entry.getValue().get()) + " expected = " + new String(value));
+            log.error(" saw = " + new String(entry.getValue().get()) + " expected = "
+                + new String(value));
             errors++;
           }
 
           if (opts.timestamp >= 0 && entry.getKey().getTimestamp() != opts.timestamp) {
-            log.error("unexpected timestamp " + entry.getKey().getTimestamp() + ", rowNum : " + rowNum + " colNum : " + colNum);
+            log.error("unexpected timestamp " + entry.getKey().getTimestamp() + ", rowNum : "
+                + rowNum + " colNum : " + colNum);
             errors++;
           }
 
@@ -227,10 +235,13 @@ public class VerifyIngest {
     }
 
     if (expectedRow != (opts.rows + opts.startRow)) {
-      throw new AccumuloException("Did not read expected number of rows. Saw " + (expectedRow - opts.startRow) + " expected " + opts.rows);
+      throw new AccumuloException("Did not read expected number of rows. Saw "
+          + (expectedRow - opts.startRow) + " expected " + opts.rows);
     } else {
-      System.out.printf("%,12d records read | %,8d records/sec | %,12d bytes read | %,8d bytes/sec | %6.3f secs   %n", recsRead,
-          (int) ((recsRead) / ((t2 - t1) / 1000.0)), bytesRead, (int) (bytesRead / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0);
+      System.out.printf(
+          "%,12d records read | %,8d records/sec | %,12d bytes read | %,8d bytes/sec | %6.3f secs   %n",
+          recsRead, (int) ((recsRead) / ((t2 - t1) / 1000.0)), bytesRead,
+          (int) (bytesRead / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0);
     }
   }
 

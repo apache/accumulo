@@ -25,7 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Chooses whether or not an operation should be queued based on the current thread pool queue length and the number of available TServers.
+ * Chooses whether or not an operation should be queued based on the current thread pool queue
+ * length and the number of available TServers.
  */
 public class SelectiveQueueing {
   private static final Logger log = LoggerFactory.getLogger(SelectiveQueueing.class);

@@ -39,10 +39,11 @@ import org.slf4j.LoggerFactory;
 //TODO ACCUMULO-2530 Update properties to use a URI instead of a relative path to secret key
 public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  private static final Logger log = LoggerFactory.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(NonCachingSecretKeyEncryptionStrategy.class);
 
-  private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params, String pathToKeyName, Path pathToKey, FileSystem fs)
-      throws IOException {
+  private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params,
+      String pathToKeyName, Path pathToKey, FileSystem fs) throws IOException {
     DataInputStream in = null;
     try {
       if (!fs.exists(pathToKey)) {
@@ -50,14 +51,17 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
         if (encryptionMode == Cipher.UNWRAP_MODE) {
           log.error("There was a call to decrypt the session key but no key encryption key exists. "
               + "Either restore it, reconfigure the conf file to point to it in HDFS, or throw the affected data away and begin again.");
-          throw new RuntimeException("Could not find key encryption key file in configured location in HDFS (" + pathToKeyName + ")");
+          throw new RuntimeException(
+              "Could not find key encryption key file in configured location in HDFS ("
+                  + pathToKeyName + ")");
         } else {
           DataOutputStream out = null;
           try {
             out = fs.create(pathToKey);
             // Very important, lets hedge our bets
             fs.setReplication(pathToKey, (short) 5);
-            SecureRandom random = DefaultCryptoModuleUtils.getSecureRandom(params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
+            SecureRandom random = DefaultCryptoModuleUtils.getSecureRandom(
+                params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
             int keyLength = params.getKeyLength();
             byte[] newRandomKeyEncryptionKey = new byte[keyLength / 8];
             random.nextBytes(newRandomKeyEncryptionKey);
@@ -78,12 +82,15 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       byte[] keyEncryptionKey = new byte[keyEncryptionKeyLength];
       int bytesRead = in.read(keyEncryptionKey);
 
-      Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
+      Cipher cipher = DefaultCryptoModuleUtils.getCipher(
+          params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
 
-      // check if the number of bytes read into the array is the same as the value of the length field,
+      // check if the number of bytes read into the array is the same as the value of the length
+      // field,
       if (bytesRead == keyEncryptionKeyLength) {
         try {
-          cipher.init(encryptionMode, new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
+          cipher.init(encryptionMode,
+              new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
         } catch (InvalidKeyException e) {
           log.error("{}", e.getMessage(), e);
           throw new RuntimeException(e);
@@ -91,7 +98,8 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
 
         if (Cipher.UNWRAP_MODE == encryptionMode) {
           try {
-            Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
+            Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(),
+                Cipher.SECRET_KEY);
             params.setPlaintextKey(plaintextKey.getEncoded());
           } catch (InvalidKeyException e) {
             log.error("{}", e.getMessage(), e);
@@ -128,7 +136,8 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
 
   @SuppressWarnings("deprecation")
   private String getFullPathToKey(CryptoModuleParameters params) {
-    String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
+    String pathToKeyName = params.getAllOptions()
+        .get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
     String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
 
     if (pathToKeyName == null) {

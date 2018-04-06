@@ -36,9 +36,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Creates work in ZK which is <code>filename.serialized_ReplicationTarget =&gt; filename</code>, but replicates files in the order in which they were created.
+ * Creates work in ZK which is <code>filename.serialized_ReplicationTarget =&gt; filename</code>,
+ * but replicates files in the order in which they were created.
  * <p>
- * The intent is to ensure that WALs are replayed in the same order on the peer in which they were applied on the primary.
+ * The intent is to ensure that WALs are replayed in the same order on the peer in which they were
+ * applied on the primary.
  */
 public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(SequentialWorkAssigner.class);
@@ -94,12 +96,14 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     log.info("Restoring replication work queue state from zookeeper");
 
     for (String work : existingWork) {
-      Entry<String,ReplicationTarget> entry = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(work);
+      Entry<String,ReplicationTarget> entry = DistributedWorkQueueWorkAssignerHelper
+          .fromQueueKey(work);
       String filename = entry.getKey();
       String peerName = entry.getValue().getPeerName();
       String sourceTableId = entry.getValue().getSourceTableId();
 
-      log.debug("In progress replication of {} from table with ID {} to peer {}", filename, sourceTableId, peerName);
+      log.debug("In progress replication of {} from table with ID {} to peer {}", filename,
+          sourceTableId, peerName);
 
       Map<String,String> replicationForPeer = queuedWorkByPeerName.get(peerName);
       if (null == replicationForPeer) {
@@ -116,7 +120,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
    */
   @Override
   protected void cleanupFinishedWork() {
-    final Iterator<Entry<String,Map<String,String>>> queuedWork = queuedWorkByPeerName.entrySet().iterator();
+    final Iterator<Entry<String,Map<String,String>>> queuedWork = queuedWorkByPeerName.entrySet()
+        .iterator();
     final String instanceId = conn.getInstance().getInstanceID();
 
     int elementsRemoved = 0;
@@ -135,7 +140,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
         // tableID -> workKey
         Entry<String,String> entry = iter.next();
         // Null equates to the work for this target was finished
-        if (null == zooCache.get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/" + entry.getValue())) {
+        if (null == zooCache.get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE
+            + "/" + entry.getValue())) {
           log.debug("Removing {} from work assignment state", entry.getValue());
           iter.remove();
           elementsRemoved++;
@@ -143,7 +149,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       }
     }
 
-    log.info("Removed {} elements from internal workqueue state because the work was complete", elementsRemoved);
+    log.info("Removed {} elements from internal workqueue state because the work was complete",
+        elementsRemoved);
   }
 
   @Override
@@ -185,10 +192,12 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
       return true;
     } else if (queuedWork.startsWith(path.getName())) {
-      log.debug("Not re-queueing work for {} as it has already been queued for replication to {}", path, target);
+      log.debug("Not re-queueing work for {} as it has already been queued for replication to {}",
+          path, target);
       return false;
     } else {
-      log.debug("Not queueing {} for work as {} must be replicated to {} first", path, queuedWork, target.getPeerName());
+      log.debug("Not queueing {} for work as {} must be replicated to {} first", path, queuedWork,
+          target.getPeerName());
       return false;
     }
   }
@@ -220,7 +229,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     if (queuedWork.equals(queueKey)) {
       queuedWorkForPeer.remove(target.getSourceTableId());
     } else {
-      log.warn("removeQueuedWork called on {} with differing queueKeys, expected {} but was {}", target, queueKey, queuedWork);
+      log.warn("removeQueuedWork called on {} with differing queueKeys, expected {} but was {}",
+          target, queueKey, queuedWork);
       return;
     }
   }

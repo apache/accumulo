@@ -86,7 +86,8 @@ public class MergeInfo implements Writable {
     if (!otherExtent.getTableId().equals(extent.getTableId()))
       return false;
     if (isDelete())
-      return otherExtent.getPrevEndRow() != null && otherExtent.getPrevEndRow().equals(extent.getEndRow());
+      return otherExtent.getPrevEndRow() != null
+          && otherExtent.getPrevEndRow().equals(extent.getEndRow());
     else
       return this.extent.overlaps(otherExtent);
   }

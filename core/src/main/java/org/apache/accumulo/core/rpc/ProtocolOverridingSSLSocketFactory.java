@@ -28,8 +28,9 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 /**
- * JDK6's SSLSocketFactory doesn't seem to properly set the protocols on the Sockets that it creates which causes an SSLv2 client hello message during
- * handshake, even when only TLSv1 is enabled. This only appears to be an issue on the client sockets, not the server sockets.
+ * JDK6's SSLSocketFactory doesn't seem to properly set the protocols on the Sockets that it creates
+ * which causes an SSLv2 client hello message during handshake, even when only TLSv1 is enabled.
+ * This only appears to be an issue on the client sockets, not the server sockets.
  *
  * This class wraps the SSLSocketFactory ensuring that the Socket is properly configured.
  * http://www.coderanch.com/t/637177/Security/Disabling-handshake-message-Java
@@ -41,7 +42,8 @@ class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
   private final SSLSocketFactory delegate;
   private final String[] enabledProtocols;
 
-  public ProtocolOverridingSSLSocketFactory(final SSLSocketFactory delegate, final String[] enabledProtocols) {
+  public ProtocolOverridingSSLSocketFactory(final SSLSocketFactory delegate,
+      final String[] enabledProtocols) {
     requireNonNull(enabledProtocols);
     checkArgument(0 != enabledProtocols.length, "Expected at least one protocol");
     this.delegate = delegate;
@@ -59,19 +61,22 @@ class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
   }
 
   @Override
-  public Socket createSocket(final Socket socket, final String host, final int port, final boolean autoClose) throws IOException {
+  public Socket createSocket(final Socket socket, final String host, final int port,
+      final boolean autoClose) throws IOException {
     final Socket underlyingSocket = delegate.createSocket(socket, host, port, autoClose);
     return overrideProtocol(underlyingSocket);
   }
 
   @Override
-  public Socket createSocket(final String host, final int port) throws IOException, UnknownHostException {
+  public Socket createSocket(final String host, final int port)
+      throws IOException, UnknownHostException {
     final Socket underlyingSocket = delegate.createSocket(host, port);
     return overrideProtocol(underlyingSocket);
   }
 
   @Override
-  public Socket createSocket(final String host, final int port, final InetAddress localAddress, final int localPort) throws IOException, UnknownHostException {
+  public Socket createSocket(final String host, final int port, final InetAddress localAddress,
+      final int localPort) throws IOException, UnknownHostException {
     final Socket underlyingSocket = delegate.createSocket(host, port, localAddress, localPort);
     return overrideProtocol(underlyingSocket);
   }
@@ -83,14 +88,15 @@ class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
   }
 
   @Override
-  public Socket createSocket(final InetAddress host, final int port, final InetAddress localAddress, final int localPort) throws IOException {
+  public Socket createSocket(final InetAddress host, final int port, final InetAddress localAddress,
+      final int localPort) throws IOException {
     final Socket underlyingSocket = delegate.createSocket(host, port, localAddress, localPort);
     return overrideProtocol(underlyingSocket);
   }
 
   /**
-   * Set the {@link javax.net.ssl.SSLSocket#getEnabledProtocols() enabled protocols} to {@link #enabledProtocols} if the <code>socket</code> is a
-   * {@link SSLSocket}
+   * Set the {@link javax.net.ssl.SSLSocket#getEnabledProtocols() enabled protocols} to
+   * {@link #enabledProtocols} if the <code>socket</code> is a {@link SSLSocket}
    *
    * @param socket
    *          The Socket

@@ -54,7 +54,8 @@ import org.junit.Test;
 
 public class TracerTest {
   static class SpanStruct {
-    public SpanStruct(long traceId, long spanId, long parentId, long start, long stop, String description, Map<byte[],byte[]> data) {
+    public SpanStruct(long traceId, long spanId, long parentId, long start, long stop,
+        String description, Map<byte[],byte[]> data) {
       super();
       this.traceId = traceId;
       this.spanId = spanId;
@@ -88,8 +89,8 @@ public class TracerTest {
     @Override
     public void receiveSpan(org.apache.htrace.Span s) {
       long traceId = s.getTraceId();
-      SpanStruct span = new SpanStruct(traceId, s.getSpanId(), s.getParentId(), s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(),
-          s.getKVAnnotations());
+      SpanStruct span = new SpanStruct(traceId, s.getSpanId(), s.getParentId(),
+          s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(), s.getKVAnnotations());
       if (!traces.containsKey(traceId))
         traces.put(traceId, new ArrayList<SpanStruct>());
       traces.get(traceId).add(span);
@@ -177,7 +178,8 @@ public class TracerTest {
     };
     t.start();
     TTransport clientTransport = new TSocket(new Socket("localhost", socket.getLocalPort()));
-    TestService.Iface client = new TestService.Client(new TBinaryProtocol(clientTransport), new TBinaryProtocol(clientTransport));
+    TestService.Iface client = new TestService.Client(new TBinaryProtocol(clientTransport),
+        new TBinaryProtocol(clientTransport));
     client = TraceWrap.client(client);
     assertFalse(client.checkTrace(null, "test"));
 
@@ -208,7 +210,8 @@ public class TracerTest {
   }
 
   /**
-   * Verify that exceptions propagate up through the trace wrapping with sampling enabled, as the cause of the reflexive exceptions.
+   * Verify that exceptions propagate up through the trace wrapping with sampling enabled, as the
+   * cause of the reflexive exceptions.
    */
   @Test(expected = IOException.class)
   public void testTracedException() throws Throwable {
@@ -220,7 +223,8 @@ public class TracerTest {
   }
 
   /**
-   * Verify that exceptions propagate up through the trace wrapping with sampling disabled, as the cause of the reflexive exceptions.
+   * Verify that exceptions propagate up through the trace wrapping with sampling disabled, as the
+   * cause of the reflexive exceptions.
    */
   @Test(expected = IOException.class)
   public void testUntracedException() throws Throwable {

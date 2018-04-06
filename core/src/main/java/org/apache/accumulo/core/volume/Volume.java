@@ -20,7 +20,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 /**
- * Encapsulates a {@link FileSystem} and a base {@link Path} within that filesystem. This also avoid the necessity to pass around a Configuration.
+ * Encapsulates a {@link FileSystem} and a base {@link Path} within that filesystem. This also avoid
+ * the necessity to pass around a Configuration.
  */
 public interface Volume {
 
@@ -53,7 +54,8 @@ public interface Volume {
   public Path prefixChild(String p);
 
   /**
-   * Determine if the Path is valid on this Volume. A Path is valid if it is contained in the Volume's FileSystem and is rooted beneath the basePath
+   * Determine if the Path is valid on this Volume. A Path is valid if it is contained in the
+   * Volume's FileSystem and is rooted beneath the basePath
    */
   public boolean isValidPath(Path p);
 }

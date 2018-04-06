@@ -65,13 +65,17 @@ public class MutationsRejectedException extends AccumuloException {
    * @param unknownErrors
    *          number of unknown errors
    *
-   * @deprecated since 1.6.0, see {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
+   * @deprecated since 1.6.0, see
+   *             {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
    */
   @Deprecated
-  public MutationsRejectedException(List<ConstraintViolationSummary> cvsList, HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
+  public MutationsRejectedException(List<ConstraintViolationSummary> cvsList,
+      HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
       Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.values() + "  # server errors " + serverSideErrors.size()
-        + " # exceptions " + unknownErrors, cause);
+    super(
+        "# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.values()
+            + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors,
+        cause);
     this.cvsl = cvsList;
     this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
     this.es = serverSideErrors;
@@ -88,13 +92,18 @@ public class MutationsRejectedException extends AccumuloException {
    * @param unknownErrors
    *          number of unknown errors
    *
-   * @deprecated since 1.7.0 see {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
+   * @deprecated since 1.7.0 see
+   *             {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
    */
   @Deprecated
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
-      HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD), instance)
-        + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
+      HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
+      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
+    super(
+        "# constraint violations : " + cvsList.size() + "  security codes: "
+            + format(transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD), instance)
+            + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors,
+        cause);
     this.cvsl = cvsList;
     this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
     this.es = serverSideErrors;
@@ -114,9 +123,11 @@ public class MutationsRejectedException extends AccumuloException {
    *
    * @since 1.7.0
    */
-  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, Map<TabletId,Set<SecurityErrorCode>> hashMap,
-      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(hashMap, instance) + "  # server errors " + serverSideErrors.size()
+  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
+      Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
+      int unknownErrors, Throwable cause) {
+    super("# constraint violations : " + cvsList.size() + "  security codes: "
+        + format(hashMap, instance) + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = hashMap;
@@ -128,7 +139,8 @@ public class MutationsRejectedException extends AccumuloException {
     Map<String,Set<SecurityErrorCode>> result = new HashMap<>();
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
-      String tableInfo = Tables.getPrintableTableInfoFromId(instance, entry.getKey().getTableId().toString());
+      String tableInfo = Tables.getPrintableTableInfoFromId(instance,
+          entry.getKey().getTableId().toString());
 
       if (!result.containsKey(tableInfo)) {
         result.put(tableInfo, new HashSet<SecurityErrorCode>());

@@ -56,7 +56,8 @@ public class MockScannerTest {
   public static class DeepCopyIterator extends WrappingIterator {
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       super.init(source.deepCopy(env), options, env);
     }
   }
@@ -89,7 +90,8 @@ public class MockScannerTest {
 
   @Test
   public void testEnvironment() throws Exception {
-    MockScannerBase.MockIteratorEnvironment env = new MockScannerBase.MockIteratorEnvironment(Authorizations.EMPTY);
+    MockScannerBase.MockIteratorEnvironment env = new MockScannerBase.MockIteratorEnvironment(
+        Authorizations.EMPTY);
     assertFalse(env.isSamplingEnabled());
     assertNull(env.getSamplerConfiguration());
     try {

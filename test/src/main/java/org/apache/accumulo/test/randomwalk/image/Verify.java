@@ -83,7 +83,8 @@ public class Verify extends Test {
     if (count != numVerifications && curRow != null) {
       Text lastRow = (Text) state.get("lastIndexRow");
       if (lastRow.compareTo(curRow) != 0) {
-        log.error("Verified only " + count + " of " + numVerifications + " - curRow " + curRow + " lastKey " + lastRow);
+        log.error("Verified only " + count + " of " + numVerifications + " - curRow " + curRow
+            + " lastKey " + lastRow);
       }
     }
 

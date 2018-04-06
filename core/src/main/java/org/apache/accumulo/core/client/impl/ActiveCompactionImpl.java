@@ -39,7 +39,8 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
   private Instance instance;
 
-  ActiveCompactionImpl(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac) {
+  ActiveCompactionImpl(Instance instance,
+      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac) {
     this.tac = tac;
     this.instance = instance;
   }
@@ -53,7 +54,8 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   @Deprecated
   public org.apache.accumulo.core.data.KeyExtent getExtent() {
     KeyExtent ke = new KeyExtent(tac.getExtent());
-    org.apache.accumulo.core.data.KeyExtent oke = new org.apache.accumulo.core.data.KeyExtent(new Text(ke.getTableId()), ke.getEndRow(), ke.getPrevEndRow());
+    org.apache.accumulo.core.data.KeyExtent oke = new org.apache.accumulo.core.data.KeyExtent(
+        new Text(ke.getTableId()), ke.getEndRow(), ke.getPrevEndRow());
     return oke;
   }
 
@@ -107,7 +109,8 @@ public class ActiveCompactionImpl extends ActiveCompaction {
     ArrayList<IteratorSetting> ret = new ArrayList<>();
 
     for (IterInfo ii : tac.getSsiList()) {
-      IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(), ii.getClassName());
+      IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(),
+          ii.getClassName());
       Map<String,String> options = tac.getSsio().get(ii.getIterName());
       settings.addOptions(options);
 

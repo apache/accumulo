@@ -76,8 +76,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setInputTableName(Class<?> implementingClass, Configuration conf, String tableName) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.setInputTableName(implementingClass, conf, tableName);
+  public static void setInputTableName(Class<?> implementingClass, Configuration conf,
+      String tableName) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .setInputTableName(implementingClass, conf, tableName);
   }
 
   /**
@@ -94,11 +96,13 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static String getInputTableName(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getInputTableName(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .getInputTableName(implementingClass, conf);
   }
 
   /**
-   * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization. Defaults to the empty set.
+   * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization.
+   * Defaults to the empty set.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -110,8 +114,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setScanAuthorizations(Class<?> implementingClass, Configuration conf, Authorizations auths) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.setScanAuthorizations(implementingClass, conf, auths);
+  public static void setScanAuthorizations(Class<?> implementingClass, Configuration conf,
+      Authorizations auths) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .setScanAuthorizations(implementingClass, conf, auths);
   }
 
   /**
@@ -127,8 +133,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @see #setScanAuthorizations(Class, Configuration, Authorizations)
    */
   @Deprecated
-  public static Authorizations getScanAuthorizations(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getScanAuthorizations(implementingClass, conf);
+  public static Authorizations getScanAuthorizations(Class<?> implementingClass,
+      Configuration conf) {
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .getScanAuthorizations(implementingClass, conf);
   }
 
   /**
@@ -144,8 +152,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setRanges(Class<?> implementingClass, Configuration conf, Collection<Range> ranges) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.setRanges(implementingClass, conf, ranges);
+  public static void setRanges(Class<?> implementingClass, Configuration conf,
+      Collection<Range> ranges) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .setRanges(implementingClass, conf, ranges);
   }
 
   /**
@@ -163,8 +173,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @see #setRanges(Class, Configuration, Collection)
    */
   @Deprecated
-  public static List<Range> getRanges(Class<?> implementingClass, Configuration conf) throws IOException {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getRanges(implementingClass, conf);
+  public static List<Range> getRanges(Class<?> implementingClass, Configuration conf)
+      throws IOException {
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .getRanges(implementingClass, conf);
   }
 
   /**
@@ -175,22 +187,27 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @param columnFamilyColumnQualifierPairs
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If the column qualifier is null, the entire column family is
-   *          selected. An empty set is the default and is equivalent to scanning the all columns.
+   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
+   *          the column qualifier is null, the entire column family is selected. An empty set is
+   *          the default and is equivalent to scanning the all columns.
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
    */
   @Deprecated
-  public static void fetchColumns(Class<?> implementingClass, Configuration conf, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.fetchColumns(implementingClass, conf, columnFamilyColumnQualifierPairs);
+  public static void fetchColumns(Class<?> implementingClass, Configuration conf,
+      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .fetchColumns(implementingClass, conf, columnFamilyColumnQualifierPairs);
   }
 
   /**
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    */
   @Deprecated
-  public static String[] serializeColumns(Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.serializeColumns(columnFamilyColumnQualifierPairs);
+  public static String[] serializeColumns(
+      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .serializeColumns(columnFamilyColumnQualifierPairs);
   }
 
   /**
@@ -206,8 +223,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @see #fetchColumns(Class, Configuration, Collection)
    */
   @Deprecated
-  public static Set<Pair<Text,Text>> getFetchedColumns(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getFetchedColumns(implementingClass, conf);
+  public static Set<Pair<Text,Text>> getFetchedColumns(Class<?> implementingClass,
+      Configuration conf) {
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .getFetchedColumns(implementingClass, conf);
   }
 
   /**
@@ -215,7 +234,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static Set<Pair<Text,Text>> deserializeFetchedColumns(Collection<String> serialized) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.deserializeFetchedColumns(serialized);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .deserializeFetchedColumns(serialized);
   }
 
   /**
@@ -231,12 +251,15 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void addIterator(Class<?> implementingClass, Configuration conf, IteratorSetting cfg) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.addIterator(implementingClass, conf, cfg);
+  public static void addIterator(Class<?> implementingClass, Configuration conf,
+      IteratorSetting cfg) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .addIterator(implementingClass, conf, cfg);
   }
 
   /**
-   * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
+   * Gets a list of the iterator settings (for iterators to apply to a scanner) from this
+   * configuration.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -249,12 +272,14 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static List<IteratorSetting> getIterators(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getIterators(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .getIterators(implementingClass, conf);
   }
 
   /**
-   * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
-   * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
+   * Controls the automatic adjustment of ranges for this job. This feature merges overlapping
+   * ranges, then splits them to align with tablet boundaries. Disabling this feature will cause
+   * exactly one Map task to be created for each specified range. The default setting is enabled. *
    *
    * <p>
    * By default, this feature is <b>enabled</b>.
@@ -270,8 +295,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setAutoAdjustRanges(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.setAutoAdjustRanges(implementingClass, conf, enableFeature);
+  public static void setAutoAdjustRanges(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .setAutoAdjustRanges(implementingClass, conf, enableFeature);
   }
 
   /**
@@ -288,7 +315,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static Boolean getAutoAdjustRanges(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getAutoAdjustRanges(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .getAutoAdjustRanges(implementingClass, conf);
   }
 
   /**
@@ -307,8 +335,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setScanIsolation(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.setScanIsolation(implementingClass, conf, enableFeature);
+  public static void setScanIsolation(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .setScanIsolation(implementingClass, conf, enableFeature);
   }
 
   /**
@@ -325,12 +355,15 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static Boolean isIsolated(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.isIsolated(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .isIsolated(implementingClass, conf);
   }
 
   /**
-   * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack to be constructed within the Map
-   * task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be available on the classpath for the task.
+   * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature
+   * will cause the iterator stack to be constructed within the Map task, rather than within the
+   * Accumulo TServer. To use this feature, all classes needed for those iterators must be available
+   * on the classpath for the task.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -345,8 +378,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setLocalIterators(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.setLocalIterators(implementingClass, conf, enableFeature);
+  public static void setLocalIterators(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .setLocalIterators(implementingClass, conf, enableFeature);
   }
 
   /**
@@ -363,29 +398,37 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static Boolean usesLocalIterators(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.usesLocalIterators(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .usesLocalIterators(implementingClass, conf);
   }
 
   /**
-   * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
-   * table's files. If the table is not offline, then the job will fail. If the table comes online during the map reduce job, it is likely that the job will
-   * fail.
+   * Enable reading offline tables. By default, this feature is disabled and only online tables are
+   * scanned. This will make the map reduce job directly read the table's files. If the table is not
+   * offline, then the job will fail. If the table comes online during the map reduce job, it is
+   * likely that the job will fail.
    *
    * <p>
-   * To use this option, the map reduce user will need access to read the Accumulo directory in HDFS.
+   * To use this option, the map reduce user will need access to read the Accumulo directory in
+   * HDFS.
    *
    * <p>
-   * Reading the offline table will create the scan time iterator stack in the map process. So any iterators that are configured for the table will need to be
-   * on the mapper's classpath. The accumulo-site.xml may need to be on the mapper's classpath if HDFS or the Accumulo directory in HDFS are non-standard.
+   * Reading the offline table will create the scan time iterator stack in the map process. So any
+   * iterators that are configured for the table will need to be on the mapper's classpath. The
+   * accumulo-site.xml may need to be on the mapper's classpath if HDFS or the Accumulo directory in
+   * HDFS are non-standard.
    *
    * <p>
-   * One way to use this feature is to clone a table, take the clone offline, and use the clone as the input table for a map reduce job. If you plan to map
-   * reduce over the data many times, it may be better to the compact the table, clone it, take it offline, and use the clone for all map reduce jobs. The
-   * reason to do this is that compaction will reduce each tablet in the table to one file, and it is faster to read from one file.
+   * One way to use this feature is to clone a table, take the clone offline, and use the clone as
+   * the input table for a map reduce job. If you plan to map reduce over the data many times, it
+   * may be better to the compact the table, clone it, take it offline, and use the clone for all
+   * map reduce jobs. The reason to do this is that compaction will reduce each tablet in the table
+   * to one file, and it is faster to read from one file.
    *
    * <p>
-   * There are two possible advantages to reading a tables file directly out of HDFS. First, you may see better read performance. Second, it will support
-   * speculative execution better. When reading an online table speculative execution can put more load on an already slow tablet server.
+   * There are two possible advantages to reading a tables file directly out of HDFS. First, you may
+   * see better read performance. Second, it will support speculative execution better. When reading
+   * an online table speculative execution can put more load on an already slow tablet server.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -400,8 +443,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setOfflineTableScan(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.setOfflineTableScan(implementingClass, conf, enableFeature);
+  public static void setOfflineTableScan(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .setOfflineTableScan(implementingClass, conf, enableFeature);
   }
 
   /**
@@ -418,7 +463,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static Boolean isOfflineScan(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.isOfflineScan(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .isOfflineScan(implementingClass, conf);
   }
 
   /**
@@ -435,14 +481,17 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf) throws TableNotFoundException {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getTabletLocator(implementingClass, conf,
-        Tables.getTableId(getInstance(implementingClass, conf), getInputTableName(implementingClass, conf)));
+  public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf)
+      throws TableNotFoundException {
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.getTabletLocator(
+        implementingClass, conf, Tables.getTableId(getInstance(implementingClass, conf),
+            getInputTableName(implementingClass, conf)));
   }
 
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
-   * Check whether a configuration is fully configured to be used with an Accumulo {@link org.apache.hadoop.mapreduce.InputFormat}.
+   * Check whether a configuration is fully configured to be used with an Accumulo
+   * {@link org.apache.hadoop.mapreduce.InputFormat}.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -454,8 +503,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void validateOptions(Class<?> implementingClass, Configuration conf) throws IOException {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator.validateOptions(implementingClass, conf);
+  public static void validateOptions(Class<?> implementingClass, Configuration conf)
+      throws IOException {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator
+        .validateOptions(implementingClass, conf);
   }
 
 }

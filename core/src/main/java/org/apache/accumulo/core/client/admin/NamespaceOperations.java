@@ -32,8 +32,9 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 /**
  * Provides an API for administering namespaces
  *
- * All tables exist in a namespace. The default namespace has no name, and is used if an explicit namespace is not specified. Fully qualified table names look
- * like "namespaceName.tableName". Tables in the default namespace are fully qualified simply as "tableName".
+ * All tables exist in a namespace. The default namespace has no name, and is used if an explicit
+ * namespace is not specified. Fully qualified table names look like "namespaceName.tableName".
+ * Tables in the default namespace are fully qualified simply as "tableName".
  *
  * @since 1.6.0
  */
@@ -82,7 +83,8 @@ public interface NamespaceOperations {
   boolean exists(String namespace) throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Create an empty namespace with no initial configuration. Valid names for a namespace contain letters, numbers, and the underscore character.
+   * Create an empty namespace with no initial configuration. Valid names for a namespace contain
+   * letters, numbers, and the underscore character.
    *
    * @param namespace
    *          the name of the namespace
@@ -94,7 +96,8 @@ public interface NamespaceOperations {
    *           if the specified namespace already exists
    * @since 1.6.0
    */
-  void create(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException;
+  void create(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceExistsException;
 
   /**
    * Delete an empty namespace
@@ -111,7 +114,8 @@ public interface NamespaceOperations {
    *           if the namespaces still contains tables
    * @since 1.6.0
    */
-  void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException;
+  void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
+      NamespaceNotFoundException, NamespaceNotEmptyException;
 
   /**
    * Rename a namespace
@@ -130,11 +134,12 @@ public interface NamespaceOperations {
    *           if the new namespace already exists
    * @since 1.6.0
    */
-  void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException,
-      NamespaceExistsException;
+  void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloException,
+      AccumuloSecurityException, NamespaceNotFoundException, NamespaceExistsException;
 
   /**
-   * Sets a property on a namespace which applies to all tables in the namespace. Note that it may take a few seconds to propagate the change everywhere.
+   * Sets a property on a namespace which applies to all tables in the namespace. Note that it may
+   * take a few seconds to propagate the change everywhere.
    *
    * @param namespace
    *          the name of the namespace
@@ -150,10 +155,12 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void setProperty(String namespace, String property, String value) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  void setProperty(String namespace, String property, String value)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
-   * Removes a property from a namespace. Note that it may take a few seconds to propagate the change everywhere.
+   * Removes a property from a namespace. Note that it may take a few seconds to propagate the
+   * change everywhere.
    *
    * @param namespace
    *          the name of the namespace
@@ -167,14 +174,17 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void removeProperty(String namespace, String property) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  void removeProperty(String namespace, String property)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
-   * Gets properties of a namespace, which are inherited by tables in this namespace. Note that recently changed properties may not be available immediately.
+   * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
+   * recently changed properties may not be available immediately.
    *
    * @param namespace
    *          the name of the namespace
-   * @return all properties visible by this namespace (system and per-table properties). Note that recently changed properties may not be visible immediately.
+   * @return all properties visible by this namespace (system and per-table properties). Note that
+   *         recently changed properties may not be visible immediately.
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -183,7 +193,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  Iterable<Entry<String,String>> getProperties(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  Iterable<Entry<String,String>> getProperties(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Get a mapping of namespace name to internal namespace id.
@@ -212,7 +223,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void attachIterator(String namespace, IteratorSetting setting) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  void attachIterator(String namespace, IteratorSetting setting)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Add an iterator to a namespace on the given scopes.
@@ -231,8 +243,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void attachIterator(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException;
+  void attachIterator(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Remove an iterator from a namespace by name.
@@ -251,8 +263,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void removeIterator(String namespace, String name, EnumSet<IteratorScope> scopes) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException;
+  void removeIterator(String namespace, String name, EnumSet<IteratorScope> scopes)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Get the settings for an iterator.
@@ -272,8 +284,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  IteratorSetting getIteratorSetting(String namespace, String name, IteratorScope scope) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException;
+  IteratorSetting getIteratorSetting(String namespace, String name, IteratorScope scope)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Get a list of iterators for this namespace.
@@ -289,11 +301,13 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  Map<String,EnumSet<IteratorScope>> listIterators(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  Map<String,EnumSet<IteratorScope>> listIterators(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
-   * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for
-   * the specified scopes. If so, an IllegalArgumentException is thrown, wrapped in an AccumuloException.
+   * Check whether a given iterator configuration conflicts with existing configuration; in
+   * particular, determine if the name or priority are already in use for the specified scopes. If
+   * so, an IllegalArgumentException is thrown, wrapped in an AccumuloException.
    *
    * @param namespace
    *          the name of the namespace
@@ -309,8 +323,9 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void checkIteratorConflicts(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException;
+  void checkIteratorConflicts(String namespace, IteratorSetting setting,
+      EnumSet<IteratorScope> scopes)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Add a new constraint to a namespace.
@@ -328,7 +343,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  int addConstraint(String namespace, String constraintClassName) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  int addConstraint(String namespace, String constraintClassName)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Remove a constraint from a namespace.
@@ -345,7 +361,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void removeConstraint(String namespace, int id) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  void removeConstraint(String namespace, int id)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * List constraints on a namespace with their assigned numbers.
@@ -361,10 +378,12 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  Map<String,Integer> listConstraints(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  Map<String,Integer> listConstraints(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
-   * Test to see if the instance can load the given class as the given type. This check uses the table classpath property if it is set.
+   * Test to see if the instance can load the given class as the given type. This check uses the
+   * table classpath property if it is set.
    *
    * @param namespace
    *          the name of the namespace
@@ -381,5 +400,6 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  boolean testClassLoad(String namespace, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  boolean testClassLoad(String namespace, String className, String asTypeName)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 }

@@ -57,7 +57,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   public void test() throws Exception {
     Random random = new Random();
     Connector c = getConnector();
-    c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "" + SMALL_QUEUE_SIZE);
+    c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
+        "" + SMALL_QUEUE_SIZE);
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
@@ -85,13 +86,16 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     double secs = diff / 1000.;
     double syncs = bytesSent / SMALL_QUEUE_SIZE;
     double syncsPerSec = syncs / secs;
-    System.out.println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)", bytesSent, secs, ((long) syncs), syncsPerSec));
+    System.out
+        .println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
+            bytesSent, secs, ((long) syncs), syncsPerSec));
     long update = getSyncs();
     System.out.println("Syncs " + (update - realSyncs));
     realSyncs = update;
 
     // Now with a much bigger total queue
-    c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "" + LARGE_QUEUE_SIZE);
+    c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
+        "" + LARGE_QUEUE_SIZE);
     c.tableOperations().flush(tableName, null, null, true);
     sleepUninterruptibly(1, TimeUnit.SECONDS);
     bw = c.createBatchWriter(tableName, cfg);
@@ -109,7 +113,9 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     secs = diff / 1000.;
     syncs = bytesSent / LARGE_QUEUE_SIZE;
     syncsPerSec = syncs / secs;
-    System.out.println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)", bytesSent, secs, ((long) syncs), syncsPerSec));
+    System.out
+        .println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
+            bytesSent, secs, ((long) syncs), syncsPerSec));
     update = getSyncs();
     System.out.println("Syncs " + (update - realSyncs));
     assertTrue(update - realSyncs < realSyncs);
@@ -120,7 +126,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(c.getInstance());
     AccumuloServerContext context = new AccumuloServerContext(confFactory);
     for (String address : c.instanceOperations().getTabletServers()) {
-      TabletClientService.Client client = ThriftUtil.getTServerClient(HostAndPort.fromString(address), context);
+      TabletClientService.Client client = ThriftUtil
+          .getTServerClient(HostAndPort.fromString(address), context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }

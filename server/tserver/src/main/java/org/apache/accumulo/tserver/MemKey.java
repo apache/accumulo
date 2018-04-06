@@ -29,7 +29,8 @@ public class MemKey extends Key {
 
   private int kvCount;
 
-  public MemKey(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean del, boolean copy, int mc) {
+  public MemKey(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean del, boolean copy,
+      int mc) {
     super(row, cf, cq, cv, ts, del, copy);
     this.kvCount = mc;
   }

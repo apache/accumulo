@@ -46,7 +46,8 @@ public class AccumuloMultiTableInputFormatTest {
     String table2 = testName.getMethodName() + "2";
     Job job = Job.getInstance();
 
-    InputTableConfig tableConfig = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
+    InputTableConfig tableConfig = new InputTableConfig()
+        .setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 

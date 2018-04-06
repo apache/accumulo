@@ -47,8 +47,9 @@ public class JSONServlet extends BasicServlet {
     resp.setContentType("application/json");
   }
 
-  private static Map<String,Object> addServer(String ip, String hostname, double osload, double ingest, double query, double ingestMB, double queryMB,
-      int scans, double scansessions, long holdtime) {
+  private static Map<String,Object> addServer(String ip, String hostname, double osload,
+      double ingest, double query, double ingestMB, double queryMB, int scans, double scansessions,
+      long holdtime) {
     Map<String,Object> map = new HashMap<>();
     map.put("ip", ip);
     map.put("hostname", hostname);
@@ -74,9 +75,10 @@ public class JSONServlet extends BasicServlet {
 
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
       TableInfo summary = TableInfoUtil.summarizeTableStats(status);
-      servers.add(addServer(status.name, TServerLinkType.displayName(status.name), status.osLoad, summary.ingestRate, summary.queryRate,
-          summary.ingestByteRate / 1000000.0, summary.queryByteRate / 1000000.0, summary.scans.running + summary.scans.queued, Monitor.getLookupRate(),
-          status.holdTime));
+      servers.add(addServer(status.name, TServerLinkType.displayName(status.name), status.osLoad,
+          summary.ingestRate, summary.queryRate, summary.ingestByteRate / 1000000.0,
+          summary.queryByteRate / 1000000.0, summary.scans.running + summary.scans.queued,
+          Monitor.getLookupRate(), status.holdTime));
     }
 
     for (Entry<String,Byte> entry : Monitor.getMmi().badTServers.entrySet()) {

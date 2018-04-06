@@ -33,7 +33,8 @@ import org.apache.accumulo.core.security.Authorizations;
 public class SimpleIteratorEnvironment implements IteratorEnvironment {
 
   @Override
-  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+      throws IOException {
     throw new UnsupportedOperationException();
   }
 

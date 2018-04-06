@@ -44,7 +44,8 @@ public class BulkImportCacheCleaner implements Runnable {
     }
     try {
       // get the current transactions from ZooKeeper
-      final Set<Long> allTransactionsAlive = ZooArbitrator.allTransactionsAlive(Constants.BULK_ARBITRATOR_TYPE);
+      final Set<Long> allTransactionsAlive = ZooArbitrator
+          .allTransactionsAlive(Constants.BULK_ARBITRATOR_TYPE);
       // remove any that are still alive
       tids.removeAll(allTransactionsAlive);
       // cleanup any memory of these transactions

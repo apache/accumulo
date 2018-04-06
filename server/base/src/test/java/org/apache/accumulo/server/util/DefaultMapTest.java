@@ -34,7 +34,8 @@ public class DefaultMapTest {
     assertNotNull(value);
     assertEquals(Integer.valueOf(1), value);
 
-    AtomicInteger canConstruct = new DefaultMap<String,AtomicInteger>(new AtomicInteger(1)).get("test");
+    AtomicInteger canConstruct = new DefaultMap<String,AtomicInteger>(new AtomicInteger(1))
+        .get("test");
     assertNotNull(canConstruct);
     assertEquals(new AtomicInteger(0).get(), canConstruct.get());
 

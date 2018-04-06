@@ -43,7 +43,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * This test verifies that when a lot of files are bulk imported into a table with one tablet and then splits that not all map files go to the children tablets.
+ * This test verifies that when a lot of files are bulk imported into a table with one tablet and
+ * then splits that not all map files go to the children tablets.
  */
 
 public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
@@ -63,7 +64,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     Connector conn = getConnector();
-    majcDelay = conn.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
+    majcDelay = conn.instanceOperations().getSystemConfiguration()
+        .get(Property.TSERV_MAJC_DELAY.getKey());
     if (!"1s".equals(majcDelay)) {
       conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -103,7 +105,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
 
     // initiate splits
-    getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
+    getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+        "100K");
 
     sleepUninterruptibly(2, TimeUnit.SECONDS);
 

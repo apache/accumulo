@@ -48,7 +48,8 @@ import org.junit.Test;
 public class ZooCacheTest {
   private static final String ZPATH = "/some/path/in/zk";
   private static final byte[] DATA = {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
-  private static final List<String> CHILDREN = java.util.Arrays.asList(new String[] {"huey", "dewey", "louie"});
+  private static final List<String> CHILDREN = java.util.Arrays
+      .asList(new String[] {"huey", "dewey", "louie"});
 
   private ZooReader zr;
   private ZooKeeper zk;
@@ -199,7 +200,8 @@ public class ZooCacheTest {
 
   @Test
   public void testGetChildren_Retry() throws Exception {
-    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andThrow(new KeeperException.BadVersionException(ZPATH));
+    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class)))
+        .andThrow(new KeeperException.BadVersionException(ZPATH));
     expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andReturn(CHILDREN);
     replay(zk);
 
@@ -209,7 +211,8 @@ public class ZooCacheTest {
 
   @Test
   public void testGetChildren_EatNoNode() throws Exception {
-    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class))).andThrow(new KeeperException.NoNodeException(ZPATH));
+    expect(zk.getChildren(eq(ZPATH), anyObject(Watcher.class)))
+        .andThrow(new KeeperException.NoNodeException(ZPATH));
     replay(zk);
 
     assertNull(zc.getChildren(ZPATH));
@@ -256,8 +259,10 @@ public class ZooCacheTest {
     testWatchDataNode(null, Watcher.Event.EventType.None, true);
   }
 
-  private void testWatchDataNode(byte[] initialData, Watcher.Event.EventType eventType, boolean stillCached) throws Exception {
-    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
+  private void testWatchDataNode(byte[] initialData, Watcher.Event.EventType eventType,
+      boolean stillCached) throws Exception {
+    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected,
+        ZPATH);
     TestWatcher exw = new TestWatcher(event);
     zc = new ZooCache(zr, exw);
 
@@ -272,7 +277,8 @@ public class ZooCacheTest {
     Stat existsStat = new Stat();
     if (initialData != null) {
       expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(existsStat);
-      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(initialData);
+      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat)))
+          .andReturn(initialData);
     } else {
       expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(null);
     }
@@ -325,8 +331,10 @@ public class ZooCacheTest {
     testWatchChildrenNode(CHILDREN, Watcher.Event.EventType.None, true);
   }
 
-  private void testWatchChildrenNode(List<String> initialChildren, Watcher.Event.EventType eventType, boolean stillCached) throws Exception {
-    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
+  private void testWatchChildrenNode(List<String> initialChildren,
+      Watcher.Event.EventType eventType, boolean stillCached) throws Exception {
+    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected,
+        ZPATH);
     TestWatcher exw = new TestWatcher(event);
     zc = new ZooCache(zr, exw);
 

@@ -33,7 +33,8 @@ public interface CurrentState {
   Collection<MergeInfo> merges();
 
   /**
-   * Provide an immutable snapshot view of migrating tablets. Objects contained in the set may still be mutable.
+   * Provide an immutable snapshot view of migrating tablets. Objects contained in the set may still
+   * be mutable.
    */
   Set<KeyExtent> migrationsSnapshot();
 

@@ -50,7 +50,8 @@ public class Verify extends Test {
 
   }
 
-  private void verifyBank(String table, Connector conn, String row, int numAccts) throws TableNotFoundException, Exception {
+  private void verifyBank(String table, Connector conn, String row, int numAccts)
+      throws TableNotFoundException, Exception {
     log.debug("Verifying bank " + row);
 
     int count = 0;
@@ -83,7 +84,8 @@ public class Verify extends Test {
       throw new Exception("Sum is off " + sum);
     }
 
-    log.debug("Verified " + row + " count = " + count + " sum = " + sum + " min = " + min + " max = " + max);
+    log.debug("Verified " + row + " count = " + count + " sum = " + sum + " min = " + min
+        + " max = " + max);
   }
 
 }

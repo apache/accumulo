@@ -37,7 +37,8 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * This program queries a set of terms in the shard table (populated by {@link Index}) using the {@link IntersectingIterator}.
+ * This program queries a set of terms in the shard table (populated by {@link Index}) using the
+ * {@link IntersectingIterator}.
  *
  * See docs/examples/README.shard for instructions.
  */
@@ -48,7 +49,8 @@ public class Query {
     @Parameter(description = " term { <term> ... }")
     List<String> terms = new ArrayList<>();
 
-    @Parameter(names = {"--sample"}, description = "Do queries against sample, useful when sample is built using column qualifier")
+    @Parameter(names = {"--sample"},
+        description = "Do queries against sample, useful when sample is built using column qualifier")
     private boolean useSample = false;
 
     @Parameter(names = {"--sampleCutoff"},
@@ -91,8 +93,10 @@ public class Query {
     BatchScanner bs = conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     if (opts.useSample) {
-      SamplerConfiguration samplerConfig = conn.tableOperations().getSamplerConfiguration(opts.getTableName());
-      CutoffIntersectingIterator.validateSamplerConfig(conn.tableOperations().getSamplerConfiguration(opts.getTableName()));
+      SamplerConfiguration samplerConfig = conn.tableOperations()
+          .getSamplerConfiguration(opts.getTableName());
+      CutoffIntersectingIterator.validateSamplerConfig(
+          conn.tableOperations().getSamplerConfiguration(opts.getTableName()));
       bs.setSamplerConfiguration(samplerConfig);
     }
     for (String entry : query(bs, opts.terms, opts.sampleCutoff))

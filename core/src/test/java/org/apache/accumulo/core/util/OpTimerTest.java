@@ -27,7 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Exercise basic timer (org.apache.hadoop.util.StopWatch) functionality. Current usage requires ability to reset timer.
+ * Exercise basic timer (org.apache.hadoop.util.StopWatch) functionality. Current usage requires
+ * ability to reset timer.
  */
 public class OpTimerTest {
 
@@ -52,7 +53,8 @@ public class OpTimerTest {
 
     long tValue = timer.now();
 
-    log.debug("Time value before reset {}", String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+    log.debug("Time value before reset {}",
+        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
 
     timer.reset().start();
 
@@ -71,7 +73,8 @@ public class OpTimerTest {
 
     timer.reset();
 
-    log.debug("Time value after reset {}", String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+    log.debug("Time value after reset {}",
+        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
 
     assertEquals(0, timer.now());
 
@@ -156,7 +159,8 @@ public class OpTimerTest {
 
     long tValue = timer.now();
 
-    log.debug("Time value after first stop {}", String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+    log.debug("Time value after first stop {}",
+        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
 
     timer.start();
 
@@ -169,7 +173,8 @@ public class OpTimerTest {
 
     timer.stop();
 
-    log.debug("Time value after second stop {}", String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
+    log.debug("Time value after second stop {}",
+        String.format("%.3f ms", timer.scale(TimeUnit.MILLISECONDS)));
 
     assertTrue(tValue < timer.now());
 

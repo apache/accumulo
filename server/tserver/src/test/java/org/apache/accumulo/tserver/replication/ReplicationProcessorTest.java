@@ -80,10 +80,12 @@ public class ReplicationProcessorTest {
     ReplicaSystem replica = EasyMock.createMock(ReplicaSystem.class);
     ReplicaSystemHelper helper = EasyMock.createMock(ReplicaSystemHelper.class);
     ReplicationProcessor proc = EasyMock.createMockBuilder(ReplicationProcessor.class)
-        .addMockedMethods("getReplicaSystem", "doesFileExist", "getStatus", "getHelper").createMock();
+        .addMockedMethods("getReplicaSystem", "doesFileExist", "getStatus", "getHelper")
+        .createMock();
 
     ReplicationTarget target = new ReplicationTarget("peer", "1", "1");
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
+    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
+        .build();
     Path path = new Path("/accumulo");
 
     String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.toString(), target);

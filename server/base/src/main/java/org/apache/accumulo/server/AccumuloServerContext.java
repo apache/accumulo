@@ -43,7 +43,8 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretM
 import org.apache.hadoop.security.UserGroupInformation;
 
 /**
- * Provides a server context for Accumulo server components that operate with the system credentials and have access to the system files and configuration.
+ * Provides a server context for Accumulo server components that operate with the system credentials
+ * and have access to the system files and configuration.
  */
 public class AccumuloServerContext extends ClientContext {
 
@@ -60,8 +61,10 @@ public class AccumuloServerContext extends ClientContext {
   /**
    * Construct a server context from the server's configuration
    */
-  public AccumuloServerContext(ServerConfigurationFactory confFactory, AuthenticationTokenSecretManager secretManager) {
-    super(confFactory.getInstance(), getCredentials(confFactory.getInstance()), confFactory.getConfiguration());
+  public AccumuloServerContext(ServerConfigurationFactory confFactory,
+      AuthenticationTokenSecretManager secretManager) {
+    super(confFactory.getInstance(), getCredentials(confFactory.getInstance()),
+        confFactory.getConfiguration());
     this.confFactory = confFactory;
     this.secretManager = secretManager;
     if (null != getSaslParams()) {
@@ -71,27 +74,32 @@ public class AccumuloServerContext extends ClientContext {
   }
 
   /**
-   * A "client-side" assertion for servers to validate that they are logged in as the expected user, per the configuration, before performing any RPC
+   * A "client-side" assertion for servers to validate that they are logged in as the expected user,
+   * per the configuration, before performing any RPC
    */
   // Should be private, but package-protected so EasyMock will work
   void enforceKerberosLogin() {
     final AccumuloConfiguration conf = confFactory.getSiteConfiguration();
     // Unwrap _HOST into the FQDN to make the kerberos principal we'll compare against
-    final String kerberosPrincipal = SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+    final String kerberosPrincipal = SecurityUtil
+        .getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     UserGroupInformation loginUser;
     try {
-      // The system user should be logged in via keytab when the process is started, not the currentUser() like KerberosToken
+      // The system user should be logged in via keytab when the process is started, not the
+      // currentUser() like KerberosToken
       loginUser = UserGroupInformation.getLoginUser();
     } catch (IOException e) {
       throw new RuntimeException("Could not get login user", e);
     }
 
     checkArgument(loginUser.hasKerberosCredentials(), "Server does not have Kerberos credentials");
-    checkArgument(kerberosPrincipal.equals(loginUser.getUserName()), "Expected login user to be " + kerberosPrincipal + " but was " + loginUser.getUserName());
+    checkArgument(kerberosPrincipal.equals(loginUser.getUserName()),
+        "Expected login user to be " + kerberosPrincipal + " but was " + loginUser.getUserName());
   }
 
   /**
-   * Get the credentials to use for this instance so it can be passed to the superclass during construction.
+   * Get the credentials to use for this instance so it can be passed to the superclass during
+   * construction.
    */
   private static Credentials getCredentials(Instance instance) {
     if (DeprecationUtil.isMockInstance(instance)) {
@@ -132,13 +140,15 @@ public class AccumuloServerContext extends ClientContext {
     AccumuloConfiguration conf = getConfiguration();
     if (conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED)) {
       if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-        throw new IllegalStateException("Cannot create a Thrift server capable of both SASL and SSL");
+        throw new IllegalStateException(
+            "Cannot create a Thrift server capable of both SASL and SSL");
       }
 
       return ThriftServerType.SSL;
     } else if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       if (conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED)) {
-        throw new IllegalStateException("Cannot create a Thrift server capable of both SASL and SSL");
+        throw new IllegalStateException(
+            "Cannot create a Thrift server capable of both SASL and SSL");
       }
 
       return ThriftServerType.SASL;

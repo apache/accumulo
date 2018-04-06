@@ -27,7 +27,8 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 /**
- * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the instance.
+ * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the
+ * instance.
  *
  * This is useful for filenames because it makes caching easy.
  *
@@ -40,7 +41,8 @@ public class UniqueNameAllocator {
   private Random rand;
 
   private UniqueNameAllocator() {
-    nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZNEXT_FILE;
+    nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
+        + Constants.ZNEXT_FILE;
     rand = new Random();
   }
 
@@ -50,14 +52,15 @@ public class UniqueNameAllocator {
       final int allocate = 100 + rand.nextInt(100);
 
       try {
-        byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
-          @Override
-          public byte[] mutate(byte[] currentValue) throws Exception {
-            long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
-            l += allocate;
-            return Long.toString(l, Character.MAX_RADIX).getBytes(UTF_8);
-          }
-        });
+        byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE,
+            new ZooReaderWriter.Mutator() {
+              @Override
+              public byte[] mutate(byte[] currentValue) throws Exception {
+                long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
+                l += allocate;
+                return Long.toString(l, Character.MAX_RADIX).getBytes(UTF_8);
+              }
+            });
 
         maxAllocated = Long.parseLong(new String(max, UTF_8), Character.MAX_RADIX);
         next = maxAllocated - allocate;
@@ -67,7 +70,8 @@ public class UniqueNameAllocator {
       }
     }
 
-    return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]), UTF_8);
+    return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]),
+        UTF_8);
   }
 
   private static UniqueNameAllocator instance = null;

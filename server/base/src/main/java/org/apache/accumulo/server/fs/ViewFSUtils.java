@@ -46,7 +46,8 @@ public class ViewFSUtils {
     return fs.getClass().getName().equals(VIEWFS_CLASSNAME);
   }
 
-  public static Path matchingFileSystem(Path source, String[] options, Configuration conf) throws IOException {
+  public static Path matchingFileSystem(Path source, String[] options, Configuration conf)
+      throws IOException {
 
     if (!isViewFS(source, conf))
       throw new IllegalArgumentException("source " + source + " is not view fs");
@@ -75,7 +76,8 @@ public class ViewFSUtils {
         if (commonPrefixLen > matchPrefixLen) {
           matchPrefixLen = commonPrefixLen;
           match = optionPath;
-        } else if (match != null && commonPrefixLen == matchPrefixLen && optionPath.depth() < match.depth()) {
+        } else if (match != null && commonPrefixLen == matchPrefixLen
+            && optionPath.depth() < match.depth()) {
           // take path with less depth when match perfix length is the same
           match = optionPath;
         }

@@ -42,7 +42,8 @@ public class FirstEntryInRowTest {
   }
 
   private Key newKey(int row, int cf, int cq, long time) {
-    return newKey(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq), time);
+    return newKey(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq),
+        time);
   }
 
   private void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, Value val) {
@@ -57,14 +58,16 @@ public class FirstEntryInRowTest {
     tm.put(newKey(row, cf, cq, time), new Value((val + "").getBytes()));
   }
 
-  private void testAndCallNext(FirstEntryInRowIterator rdi, String row, String cf, String cq, long time, String val) throws Exception {
+  private void testAndCallNext(FirstEntryInRowIterator rdi, String row, String cf, String cq,
+      long time, String val) throws Exception {
     assertTrue(rdi.hasTop());
     assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
     rdi.next();
   }
 
-  private void testAndCallNext(FirstEntryInRowIterator rdi, int row, int cf, int cq, long time, int val) throws Exception {
+  private void testAndCallNext(FirstEntryInRowIterator rdi, int row, int cf, int cq, long time,
+      int val) throws Exception {
     assertTrue(rdi.hasTop());
     assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, Integer.parseInt(rdi.getTopValue().toString()));

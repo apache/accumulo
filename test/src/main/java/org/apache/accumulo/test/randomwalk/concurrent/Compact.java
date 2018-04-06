@@ -46,11 +46,14 @@ public class Compact extends Test {
     try {
       boolean wait = rand.nextBoolean();
       conn.tableOperations().compact(tableName, range.get(0), range.get(1), false, wait);
-      log.debug((wait ? "compacted " : "initiated compaction ") + tableName + " from " + range.get(0) + " to " + range.get(1));
+      log.debug((wait ? "compacted " : "initiated compaction ") + tableName + " from "
+          + range.get(0) + " to " + range.get(1));
     } catch (TableNotFoundException tne) {
-      log.debug("compact " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, doesnt exist");
+      log.debug("compact " + tableName + " from " + range.get(0) + " to " + range.get(1)
+          + " failed, doesnt exist");
     } catch (TableOfflineException toe) {
-      log.debug("compact " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, offline");
+      log.debug("compact " + tableName + " from " + range.get(0) + " to " + range.get(1)
+          + " failed, offline");
     }
 
   }

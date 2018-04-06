@@ -126,7 +126,8 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       bw.addMutation(m);
     }
 
-    conn.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
+    conn.tableOperations().addSplits(tableName,
+        new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
 
     IteratorSetting is = new IteratorSetting(50, OrIterator.class);
     is.addOption(OrIterator.COLUMNS_KEY, "mort,frank,nick");
@@ -187,7 +188,8 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : bs) {
         String term = entry.getKey().getColumnFamily().toString();
         String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null", expectedDocId);
+        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
+            expectedDocId);
         assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
       }
       assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
@@ -226,7 +228,8 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : bs) {
         String term = entry.getKey().getColumnFamily().toString();
         String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null", expectedDocId);
+        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
+            expectedDocId);
         assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
       }
       assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
@@ -270,7 +273,8 @@ public class OrIteratorIT extends AccumuloClusterHarness {
     expectedData.put("steve", "01");
 
     // Split each row into its own tablet
-    conn.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
+    conn.tableOperations().addSplits(tableName,
+        new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
 
     try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
@@ -278,7 +282,8 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : bs) {
         String term = entry.getKey().getColumnFamily().toString();
         String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null", expectedDocId);
+        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
+            expectedDocId);
         assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
       }
       assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
@@ -307,10 +312,12 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       Iterator<Entry<Key,Value>> iter = s.iterator();
       assertTrue(iter.hasNext());
       Key k = iter.next().getKey();
-      assertEquals("Actual key was " + k, 0, k.compareTo(new Key("row1", "steve", "1"), PartialKey.ROW_COLFAM_COLQUAL));
+      assertEquals("Actual key was " + k, 0,
+          k.compareTo(new Key("row1", "steve", "1"), PartialKey.ROW_COLFAM_COLQUAL));
       assertTrue(iter.hasNext());
       k = iter.next().getKey();
-      assertEquals("Actual key was " + k, 0, k.compareTo(new Key("row1", "bob", "2"), PartialKey.ROW_COLFAM_COLQUAL));
+      assertEquals("Actual key was " + k, 0,
+          k.compareTo(new Key("row1", "bob", "2"), PartialKey.ROW_COLFAM_COLQUAL));
       assertFalse(iter.hasNext());
     }
   }

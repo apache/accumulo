@@ -61,7 +61,8 @@ public class TestProxySecurityOperations {
     prop.setProperty("useMockInstance", "true");
     prop.put("tokenClass", PasswordToken.class.getName());
 
-    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port), new TCompactProtocol.Factory(), prop).server;
+    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
+        new TCompactProtocol.Factory(), prop).server;
     while (!proxy.isServing()) {
       Thread.sleep(500);
     }
@@ -103,17 +104,20 @@ public class TestProxySecurityOperations {
 
     tpc.proxy().changeLocalUserPassword(userpass, testuser, ByteBuffer.wrap("newpass".getBytes()));
     assertFalse(tpc.proxy().authenticateUser(userpass, testuser, bb2pp(testpw)));
-    assertTrue(tpc.proxy().authenticateUser(userpass, testuser, bb2pp(ByteBuffer.wrap("newpass".getBytes()))));
+    assertTrue(tpc.proxy().authenticateUser(userpass, testuser,
+        bb2pp(ByteBuffer.wrap("newpass".getBytes()))));
 
   }
 
   @Test
   public void tablePermissions() throws TException {
     tpc.proxy().grantTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE);
-    assertTrue(tpc.proxy().hasTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE));
+    assertTrue(
+        tpc.proxy().hasTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE));
 
     tpc.proxy().revokeTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE);
-    assertFalse(tpc.proxy().hasTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE));
+    assertFalse(
+        tpc.proxy().hasTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE));
 
   }
 
@@ -143,11 +147,15 @@ public class TestProxySecurityOperations {
 
   @Test
   public void namespacePermissions() throws TException {
-    tpc.proxy().grantNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE);
-    assertTrue(tpc.proxy().hasNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE));
+    tpc.proxy().grantNamespacePermission(userpass, testuser, testnamespace,
+        NamespacePermission.ALTER_NAMESPACE);
+    assertTrue(tpc.proxy().hasNamespacePermission(userpass, testuser, testnamespace,
+        NamespacePermission.ALTER_NAMESPACE));
 
-    tpc.proxy().revokeNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE);
-    assertFalse(tpc.proxy().hasNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE));
+    tpc.proxy().revokeNamespacePermission(userpass, testuser, testnamespace,
+        NamespacePermission.ALTER_NAMESPACE);
+    assertFalse(tpc.proxy().hasNamespacePermission(userpass, testuser, testnamespace,
+        NamespacePermission.ALTER_NAMESPACE));
   }
 
   private Map<String,String> bb2pp(ByteBuffer cf) {

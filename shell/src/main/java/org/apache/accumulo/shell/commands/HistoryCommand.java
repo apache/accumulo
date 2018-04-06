@@ -35,7 +35,8 @@ public class HistoryCommand extends Command {
   private Option disablePaginationOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws IOException {
     if (cl.hasOption(clearHist.getOpt())) {
       shellState.getReader().getHistory().clear();
     } else {

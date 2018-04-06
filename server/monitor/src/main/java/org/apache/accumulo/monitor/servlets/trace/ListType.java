@@ -47,7 +47,8 @@ public class ListType extends Basic {
   }
 
   @Override
-  public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
+  public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb)
+      throws Exception {
     final String type = getType(req);
     int minutes = getMinutes(req);
     long endTime = System.currentTimeMillis();
@@ -57,7 +58,8 @@ public class ListType extends Basic {
     if (scanner == null) {
       return;
     }
-    Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
+    Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
+        new Text("start:" + Long.toHexString(endTime)));
     scanner.setRange(range);
     final Table trace = new Table("trace", "Traces for " + getType(req));
     trace.addSortableColumn("Start", new ShowTraceLinkType(), "Start Time");

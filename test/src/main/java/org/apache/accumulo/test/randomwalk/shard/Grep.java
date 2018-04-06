@@ -53,7 +53,8 @@ public class Grep extends Test {
       words[i] = new Text(Insert.generateRandomWord(rand));
     }
 
-    BatchScanner bs = env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 16);
+    BatchScanner bs = env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY,
+        16);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(ii, words);
     bs.addScanIterator(ii);
@@ -71,7 +72,8 @@ public class Grep extends Test {
 
     for (int i = 0; i < words.length; i++) {
       IteratorSetting more = new IteratorSetting(20 + i, "ii" + i, RegExFilter.class);
-      RegExFilter.setRegexs(more, null, null, null, "(^|(.*\\s))" + words[i] + "($|(\\s.*))", false);
+      RegExFilter.setRegexs(more, null, null, null, "(^|(.*\\s))" + words[i] + "($|(\\s.*))",
+          false);
       bs.addScanIterator(more);
     }
 
@@ -86,11 +88,13 @@ public class Grep extends Test {
     bs.close();
 
     if (!documentsFoundInIndex.equals(documentsFoundByGrep)) {
-      throw new Exception("Set of documents found not equal for words " + Arrays.asList(words).toString() + " " + documentsFoundInIndex + " "
-          + documentsFoundByGrep);
+      throw new Exception(
+          "Set of documents found not equal for words " + Arrays.asList(words).toString() + " "
+              + documentsFoundInIndex + " " + documentsFoundByGrep);
     }
 
-    log.debug("Grep and index agree " + Arrays.asList(words).toString() + " " + documentsFoundInIndex.size());
+    log.debug("Grep and index agree " + Arrays.asList(words).toString() + " "
+        + documentsFoundInIndex.size());
 
   }
 

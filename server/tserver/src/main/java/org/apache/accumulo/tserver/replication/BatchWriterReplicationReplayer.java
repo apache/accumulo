@@ -47,18 +47,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Use a BatchWriter to replay WAL entries to an Accumulo table. This assumes that all WAL entries are for this table. Pruning out undesired entries is expected
- * to be done by the sender.
+ * Use a BatchWriter to replay WAL entries to an Accumulo table. This assumes that all WAL entries
+ * are for this table. Pruning out undesired entries is expected to be done by the sender.
  */
 public class BatchWriterReplicationReplayer implements AccumuloReplicationReplayer {
   private static final Logger log = LoggerFactory.getLogger(BatchWriterReplicationReplayer.class);
 
   @Override
-  public long replicateLog(ClientContext context, String tableName, WalEdits data) throws RemoteReplicationException, AccumuloException,
-      AccumuloSecurityException {
+  public long replicateLog(ClientContext context, String tableName, WalEdits data)
+      throws RemoteReplicationException, AccumuloException, AccumuloSecurityException {
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
-    final long memoryInBytes = context.getConfiguration().getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
+    final long memoryInBytes = context.getConfiguration()
+        .getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
 
     BatchWriter bw = null;
     long mutationsApplied = 0l;
@@ -67,12 +68,14 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         DataInputStream dis = new DataInputStream(ByteBufferUtil.toByteArrayInputStream(edit));
         try {
           key.readFields(dis);
-          // TODO this is brittle because AccumuloReplicaSystem isn't actually calling LogFileValue.write, but we're expecting
+          // TODO this is brittle because AccumuloReplicaSystem isn't actually calling
+          // LogFileValue.write, but we're expecting
           // what we receive to be readable by the LogFileValue.
           value.readFields(dis);
         } catch (IOException e) {
           log.error("Could not deserialize edit from stream", e);
-          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_DESERIALIZE, "Could not deserialize edit from stream");
+          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_DESERIALIZE,
+              "Could not deserialize edit from stream");
         }
 
         // Create the batchScanner if we don't already have one.
@@ -82,13 +85,16 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           try {
             bw = context.getConnector().createBatchWriter(tableName, bwConfig);
           } catch (TableNotFoundException e) {
-            throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST, "Table " + tableName + " does not exist");
+            throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,
+                "Table " + tableName + " does not exist");
           }
         }
 
-        log.info("Applying {} mutations to table {} as part of batch", value.mutations.size(), tableName);
+        log.info("Applying {} mutations to table {} as part of batch", value.mutations.size(),
+            tableName);
 
-        // If we got a ServerMutation, we have to make sure that we preserve the systemTimestamp otherwise
+        // If we got a ServerMutation, we have to make sure that we preserve the systemTimestamp
+        // otherwise
         // the local system will assign a new timestamp.
         List<Mutation> mutationsCopy = new ArrayList<>(value.mutations.size());
         long mutationsCopied = 0l;
@@ -110,9 +116,11 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
 
               // TODO ACCUMULO-2937 cache the CVs
               if (update.isDeleted()) {
-                copy.putDelete(update.getColumnFamily(), update.getColumnQualifier(), new ColumnVisibility(update.getColumnVisibility()), timestamp);
+                copy.putDelete(update.getColumnFamily(), update.getColumnQualifier(),
+                    new ColumnVisibility(update.getColumnVisibility()), timestamp);
               } else {
-                copy.put(update.getColumnFamily(), update.getColumnQualifier(), new ColumnVisibility(update.getColumnVisibility()), timestamp,
+                copy.put(update.getColumnFamily(), update.getColumnQualifier(),
+                    new ColumnVisibility(update.getColumnVisibility()), timestamp,
                     update.getValue());
               }
             }
@@ -131,13 +139,15 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           }
         }
 
-        log.debug("Copied {} mutations to ensure server-assigned timestamps are propagated", mutationsCopied);
+        log.debug("Copied {} mutations to ensure server-assigned timestamps are propagated",
+            mutationsCopied);
 
         try {
           bw.addMutations(mutationsCopy);
         } catch (MutationsRejectedException e) {
           log.error("Could not apply mutations to {}", tableName);
-          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY, "Could not apply mutations to " + tableName);
+          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY,
+              "Could not apply mutations to " + tableName);
         }
 
         log.debug("{} mutations added to the BatchScanner", mutationsCopy.size());
@@ -150,7 +160,8 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           bw.close();
         } catch (MutationsRejectedException e) {
           log.error("Could not apply mutations to {}", tableName);
-          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY, "Could not apply mutations to " + tableName);
+          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY,
+              "Could not apply mutations to " + tableName);
         }
       }
     }

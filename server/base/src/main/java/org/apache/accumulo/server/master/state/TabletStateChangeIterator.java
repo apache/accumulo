@@ -66,7 +66,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private MasterState masterState = MasterState.NORMAL;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     current = parseServers(options.get(SERVERS_OPTION));
     onlineTables = parseTables(options.get(TABLES_OPTION));
@@ -184,7 +185,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
       boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId());
 
       if (debug) {
-        log.debug(tls.extent + " is " + tls.getState(current) + " and should be " + (shouldBeOnline ? "on" : "off") + "line");
+        log.debug(tls.extent + " is " + tls.getState(current) + " and should be "
+            + (shouldBeOnline ? "on" : "off") + "line");
       }
       switch (tls.getState(current)) {
         case ASSIGNED:
@@ -202,7 +204,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
             return;
           break;
         default:
-          throw new AssertionError("Inconceivable! The tablet is an unrecognized state: " + tls.getState(current));
+          throw new AssertionError(
+              "Inconceivable! The tablet is an unrecognized state: " + tls.getState(current));
       }
       // table is in the expected state so don't bother returning any information about it
       getSource().next();

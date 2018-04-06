@@ -111,7 +111,8 @@ class LoadFiles extends MasterRepo {
       // Maybe this is a re-try... clear the flag and try again
       fs.delete(writable);
       if (!fs.createNewFile(writable))
-        throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
+        throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+            TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
             "Unable to write to " + this.errorDir);
     }
     fs.delete(writable);
@@ -134,7 +135,8 @@ class LoadFiles extends MasterRepo {
       // Use the threadpool to assign files one-at-a-time to the server
       final List<String> loaded = Collections.synchronizedList(new ArrayList<String>());
       final Random random = new Random();
-      final TServerInstance[] servers = master.onlineTabletServers().toArray(new TServerInstance[0]);
+      final TServerInstance[] servers = master.onlineTabletServers()
+          .toArray(new TServerInstance[0]);
       for (final String file : filesToLoad) {
         results.add(executor.submit(new Callable<List<String>>() {
           @Override
@@ -143,16 +145,19 @@ class LoadFiles extends MasterRepo {
             ClientService.Client client = null;
             HostAndPort server = null;
             try {
-              // get a connection to a random tablet server, do not prefer cached connections because
+              // get a connection to a random tablet server, do not prefer cached connections
+              // because
               // this is running on the master and there are lots of connections to tablet servers
               // serving the metadata tablets
-              long timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              long timeInMillis = master.getConfiguration()
+                  .getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
               // Pair<String,Client> pair = ServerClient.getConnection(master, false, timeInMillis);
               server = servers[random.nextInt(servers.length)].getLocation();
               client = ThriftUtil.getTServerClient(server, master, timeInMillis);
               List<String> attempt = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId, attempt, errorDir, setTime);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid,
+                  tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
               } else {
@@ -172,7 +177,8 @@ class LoadFiles extends MasterRepo {
         failures.addAll(f.get());
       filesToLoad.removeAll(loaded);
       if (filesToLoad.size() > 0) {
-        log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10) + " failed");
+        log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10)
+            + " failed");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       }
     }

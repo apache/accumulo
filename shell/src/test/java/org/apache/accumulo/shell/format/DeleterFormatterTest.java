@@ -100,13 +100,15 @@ public class DeleterFormatterTest {
 
   @Test
   public void testEmpty() {
-    formatter = new DeleterFormatter(writer, Collections.<Key,Value> emptyMap().entrySet(), new FormatterConfig().setPrintTimestamps(true), shellState, true);
+    formatter = new DeleterFormatter(writer, Collections.<Key,Value> emptyMap().entrySet(),
+        new FormatterConfig().setPrintTimestamps(true), shellState, true);
     assertFalse(formatter.hasNext());
   }
 
   @Test
   public void testSingle() throws IOException {
-    formatter = new DeleterFormatter(writer, data.entrySet(), new FormatterConfig().setPrintTimestamps(true), shellState, true);
+    formatter = new DeleterFormatter(writer, data.entrySet(),
+        new FormatterConfig().setPrintTimestamps(true), shellState, true);
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
@@ -118,7 +120,8 @@ public class DeleterFormatterTest {
   public void testNo() throws IOException {
     input.set("no\n");
     data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
-    formatter = new DeleterFormatter(writer, data.entrySet(), new FormatterConfig().setPrintTimestamps(true), shellState, false);
+    formatter = new DeleterFormatter(writer, data.entrySet(),
+        new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
@@ -132,7 +135,8 @@ public class DeleterFormatterTest {
   public void testNoConfirmation() throws IOException {
     input.set("");
     data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
-    formatter = new DeleterFormatter(writer, data.entrySet(), new FormatterConfig().setPrintTimestamps(true), shellState, false);
+    formatter = new DeleterFormatter(writer, data.entrySet(),
+        new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
@@ -146,7 +150,8 @@ public class DeleterFormatterTest {
   public void testYes() throws IOException {
     input.set("y\nyes\n");
     data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
-    formatter = new DeleterFormatter(writer, data.entrySet(), new FormatterConfig().setPrintTimestamps(true), shellState, false);
+    formatter = new DeleterFormatter(writer, data.entrySet(),
+        new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());
@@ -159,7 +164,8 @@ public class DeleterFormatterTest {
 
   @Test
   public void testMutationException() {
-    formatter = new DeleterFormatter(exceptionWriter, data.entrySet(), new FormatterConfig().setPrintTimestamps(true), shellState, true);
+    formatter = new DeleterFormatter(exceptionWriter, data.entrySet(),
+        new FormatterConfig().setPrintTimestamps(true), shellState, true);
 
     assertTrue(formatter.hasNext());
     assertNull(formatter.next());

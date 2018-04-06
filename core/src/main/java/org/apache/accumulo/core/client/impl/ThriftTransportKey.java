@@ -53,7 +53,8 @@ public class ThriftTransportKey {
   /**
    * Visible only for testing
    */
-  ThriftTransportKey(HostAndPort server, long timeout, SslConnectionParams sslParams, SaslConnectionParams saslParams) {
+  ThriftTransportKey(HostAndPort server, long timeout, SslConnectionParams sslParams,
+      SaslConnectionParams saslParams) {
     requireNonNull(server, "location is null");
     this.server = server;
     this.timeout = timeout;
@@ -82,7 +83,8 @@ public class ThriftTransportKey {
     if (!(o instanceof ThriftTransportKey))
       return false;
     ThriftTransportKey ttk = (ThriftTransportKey) o;
-    return server.equals(ttk.server) && timeout == ttk.timeout && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))
+    return server.equals(ttk.server) && timeout == ttk.timeout
+        && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))
         && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));
   }
 

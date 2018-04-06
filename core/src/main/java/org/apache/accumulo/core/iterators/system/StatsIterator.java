@@ -37,7 +37,8 @@ public class StatsIterator extends WrappingIterator {
   private AtomicLong seekCounter;
   private AtomicLong readCounter;
 
-  public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong seekCounter, AtomicLong readCounter) {
+  public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong seekCounter,
+      AtomicLong readCounter) {
     super.setSource(source);
     this.seekCounter = seekCounter;
     this.readCounter = readCounter;
@@ -60,7 +61,8 @@ public class StatsIterator extends WrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     super.seek(range, columnFamilies, inclusive);
     seekCounter.incrementAndGet();
     readCounter.addAndGet(numRead);

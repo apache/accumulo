@@ -36,7 +36,8 @@ public class DeleteManyCommand extends ScanCommand {
   private Option forceOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
@@ -46,7 +47,8 @@ public class DeleteManyCommand extends ScanCommand {
     final Authorizations auths = getAuths(cl, shellState);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
 
-    scanner.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
+    scanner.addScanIterator(
+        new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
 
     // handle session-specific scan iterators
     addScanIterators(shellState, cl, scanner, tableName);
@@ -60,11 +62,13 @@ public class DeleteManyCommand extends ScanCommand {
     fetchColumns(cl, scanner, interpeter);
 
     // output / delete the records
-    final BatchWriter writer = shellState.getConnector()
-        .createBatchWriter(tableName, new BatchWriterConfig().setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
+    final BatchWriter writer = shellState.getConnector().createBatchWriter(tableName,
+        new BatchWriterConfig().setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     FormatterConfig config = new FormatterConfig();
     config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
-    shellState.printLines(new DeleterFormatter(writer, scanner, config, shellState, cl.hasOption(forceOpt.getOpt())), false);
+    shellState.printLines(
+        new DeleterFormatter(writer, scanner, config, shellState, cl.hasOption(forceOpt.getOpt())),
+        false);
 
     return 0;
   }

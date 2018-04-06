@@ -91,15 +91,18 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void getDiskUsageErrors() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
+  public void getDiskUsageErrors() throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, TException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsage = connector.tableOperations()
+        .getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
     assertEquals(0, (long) diskUsage.get(0).getUsage());
     assertEquals(tableName, diskUsage.get(0).getTables().iterator().next());
 
-    connector.securityOperations().revokeTablePermission(getAdminPrincipal(), tableName, TablePermission.READ);
+    connector.securityOperations().revokeTablePermission(getAdminPrincipal(), tableName,
+        TablePermission.READ);
     try {
       connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
       fail("Should throw securityexception");
@@ -113,13 +116,15 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void getDiskUsage() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
+  public void getDiskUsage() throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, TException {
     final String[] names = getUniqueNames(2);
     String tableName = names[0];
     connector.tableOperations().create(tableName);
 
     // verify 0 disk usage
-    List<DiskUsage> diskUsages = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsages = connector.tableOperations()
+        .getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
     assertEquals(Long.valueOf(0), diskUsages.get(0).getUsage());
@@ -171,12 +176,15 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void createTable() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void createTable() throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    Iterable<Map.Entry<String,String>> itrProps = connector.tableOperations().getProperties(tableName);
+    Iterable<Map.Entry<String,String>> itrProps = connector.tableOperations()
+        .getProperties(tableName);
     Map<String,String> props = propsToMap(itrProps);
-    assertEquals(DefaultKeySizeConstraint.class.getName(), props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
+    assertEquals(DefaultKeySizeConstraint.class.getName(),
+        props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
     connector.tableOperations().delete(tableName);
   }
 
@@ -186,7 +194,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     String originalTable = names[0];
     TableOperations tops = connector.tableOperations();
 
-    TreeSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
+    TreeSet<Text> splits = Sets
+        .newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
 
     tops.create(originalTable);
     tops.addSplits(originalTable, splits);
@@ -230,10 +239,12 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     Collection<Text> clonedSplits = tops.listSplits(clonedTable);
     Set<Text> expectedSplits = Sets.newHashSet(new Text("b"), new Text("c"), new Text("d"));
     for (Text clonedSplit : clonedSplits) {
-      Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit, expectedSplits.remove(clonedSplit));
+      Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit,
+          expectedSplits.remove(clonedSplit));
     }
 
-    Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits, expectedSplits.isEmpty());
+    Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits,
+        expectedSplits.isEmpty());
   }
 
   private Map<String,String> propsToMap(Iterable<Map.Entry<String,String>> props) {
@@ -245,7 +256,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testCompactEmptyTableWithGeneratorIterator() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void testCompactEmptyTableWithGeneratorIterator() throws TableExistsException,
+      AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
 
@@ -272,8 +284,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   static final KeyRowColFColQComparator COMPARE_KEY_TO_COLQ = new KeyRowColFColQComparator();
 
   @Test
-  public void testCompactEmptyTableWithGeneratorIterator_Splits() throws TableExistsException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public void testCompactEmptyTableWithGeneratorIterator_Splits() throws TableExistsException,
+      AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
     SortedSet<Text> splitset = new TreeSet<>();
@@ -293,7 +305,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testCompactEmptyTableWithGeneratorIterator_Splits_Cancel() throws TableExistsException, AccumuloException, AccumuloSecurityException,
+  public void testCompactEmptyTableWithGeneratorIterator_Splits_Cancel()
+      throws TableExistsException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
@@ -335,7 +348,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testCompactEmptyTableWithGeneratorIterator_Splits_Partial() throws TableExistsException, AccumuloException, AccumuloSecurityException,
+  public void testCompactEmptyTableWithGeneratorIterator_Splits_Partial()
+      throws TableExistsException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
@@ -360,8 +374,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   /** Test recovery from bad majc iterator via compaction cancel. */
   @Test
-  public void testCompactEmptyTablesWithBadIterator_FailsAndCancel() throws TableExistsException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public void testCompactEmptyTablesWithBadIterator_FailsAndCancel() throws TableExistsException,
+      AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
 

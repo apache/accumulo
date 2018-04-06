@@ -36,10 +36,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This iterator facilitates document-partitioned indexing. It is an example of extending the IntersectingIterator to customize the placement of the term and
- * docID. As with the IntersectingIterator, documents are grouped together and indexed into a single row of an Accumulo table. This allows a tablet server to
- * perform boolean AND operations on terms in the index. This iterator also stores the document contents in a separate column family in the same row so that the
- * full document can be returned with each query.
+ * This iterator facilitates document-partitioned indexing. It is an example of extending the
+ * IntersectingIterator to customize the placement of the term and docID. As with the
+ * IntersectingIterator, documents are grouped together and indexed into a single row of an Accumulo
+ * table. This allows a tablet server to perform boolean AND operations on terms in the index. This
+ * iterator also stores the document contents in a separate column family in the same row so that
+ * the full document can be returned with each query.
  *
  * The table structure should have the following form:
  *
@@ -47,12 +49,13 @@ import org.slf4j.LoggerFactory;
  *
  * row: shardID, colfam: indexColf, colqual: term\0doctype\0docID\0info, value: (empty)
  *
- * When you configure this iterator with a set of terms, it will return only the docIDs and docs that appear with all of the specified terms. The result will
- * have the following form:
+ * When you configure this iterator with a set of terms, it will return only the docIDs and docs
+ * that appear with all of the specified terms. The result will have the following form:
  *
  * row: shardID, colfam: indexColf, colqual: doctype\0docID\0info, value: doc
  *
- * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the search over all shardIDs.
+ * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the
+ * search over all shardIDs.
  */
 public class IndexedDocIterator extends IntersectingIterator {
   private static final Logger log = LoggerFactory.getLogger(IndexedDocIterator.class);
@@ -109,7 +112,8 @@ public class IndexedDocIterator extends IntersectingIterator {
     try {
       docID.set(colq.getBytes(), firstZeroIndex + 1, thirdZeroIndex - 1 - firstZeroIndex);
     } catch (ArrayIndexOutOfBoundsException e) {
-      throw new IllegalArgumentException("bad indices for docid: " + key.toString() + " " + firstZeroIndex + " " + secondZeroIndex + " " + thirdZeroIndex);
+      throw new IllegalArgumentException("bad indices for docid: " + key.toString() + " "
+          + firstZeroIndex + " " + secondZeroIndex + " " + thirdZeroIndex);
     }
     return docID;
   }
@@ -129,14 +133,16 @@ public class IndexedDocIterator extends IntersectingIterator {
   }
 
   @Override
-  synchronized public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  synchronized public void init(SortedKeyValueIterator<Key,Value> source,
+      Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(indexFamilyOptionName))
       indexColf = new Text(options.get(indexFamilyOptionName));
     if (options.containsKey(docFamilyOptionName))
       docColf = new Text(options.get(docFamilyOptionName));
     docSource = source.deepCopy(env);
-    indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
+    indexColfSet = Collections.singleton(
+        (ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
 
     for (TermSource ts : this.sources) {
       ts.seekColfams = indexColfSet;
@@ -149,7 +155,8 @@ public class IndexedDocIterator extends IntersectingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive)
+      throws IOException {
     super.seek(range, null, true);
 
   }
@@ -179,7 +186,8 @@ public class IndexedDocIterator extends IntersectingIterator {
     Text colf = new Text(docColf);
     colf.append(nullByte, 0, 1);
     colf.append(currentDocID.getBytes(), 0, zeroIndex);
-    docColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
+    docColfSet = Collections
+        .singleton((ByteSequence) new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
     if (log.isTraceEnabled())
       log.trace(zeroIndex + " " + currentDocID.getLength());
     Text colq = new Text();
@@ -208,7 +216,8 @@ public class IndexedDocIterator extends IntersectingIterator {
    * @param is
    *          IteratorSetting object to configure.
    * @param docColfPrefix
-   *          the prefix of the document column family (colf will be of the form docColfPrefix\0doctype)
+   *          the prefix of the document column family (colf will be of the form
+   *          docColfPrefix\0doctype)
    */
   public static void setDocColfPrefix(IteratorSetting is, String docColfPrefix) {
     is.addOption(docFamilyOptionName, docColfPrefix);
@@ -222,7 +231,8 @@ public class IndexedDocIterator extends IntersectingIterator {
    * @param indexColf
    *          the index column family
    * @param docColfPrefix
-   *          the prefix of the document column family (colf will be of the form docColfPrefix\0doctype)
+   *          the prefix of the document column family (colf will be of the form
+   *          docColfPrefix\0doctype)
    */
   public static void setColfs(IteratorSetting is, String indexColf, String docColfPrefix) {
     setIndexColf(is, indexColf);

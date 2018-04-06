@@ -44,8 +44,8 @@ class NamespaceConfWatcher implements Watcher {
   }
 
   static String toString(WatchedEvent event) {
-    return new StringBuilder("{path=").append(event.getPath()).append(",state=").append(event.getState()).append(",type=").append(event.getType()).append("}")
-        .toString();
+    return new StringBuilder("{path=").append(event.getPath()).append(",state=")
+        .append(event.getState()).append(",type=").append(event.getType()).append("}").toString();
   }
 
   @Override
@@ -63,12 +63,14 @@ class NamespaceConfWatcher implements Watcher {
         if (namespaceId.contains("/")) {
           namespaceId = namespaceId.substring(0, namespaceId.indexOf('/'));
           if (path.startsWith(namespacesPrefix + namespaceId + Constants.ZNAMESPACE_CONF + "/"))
-            key = path.substring((namespacesPrefix + namespaceId + Constants.ZNAMESPACE_CONF + "/").length());
+            key = path.substring(
+                (namespacesPrefix + namespaceId + Constants.ZNAMESPACE_CONF + "/").length());
         }
       }
 
       if (namespaceId == null) {
-        log.warn("Zookeeper told me about a path I was not watching: " + path + ", event " + toString(event));
+        log.warn("Zookeeper told me about a path I was not watching: " + path + ", event "
+            + toString(event));
         return;
       }
     }
@@ -85,7 +87,8 @@ class NamespaceConfWatcher implements Watcher {
         break;
       case NodeDeleted:
         if (key == null) {
-          ServerConfigurationFactory.removeCachedNamespaceConfiguration(instance.getInstanceID(), namespaceId);
+          ServerConfigurationFactory.removeCachedNamespaceConfiguration(instance.getInstanceID(),
+              namespaceId);
         }
         break;
       case None:

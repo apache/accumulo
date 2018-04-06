@@ -34,8 +34,10 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides row names as {@link Text} as keys, and a
- * corresponding {@link PeekingIterator} as a value, which in turn makes the {@link Key}/{@link Value} pairs for that row available to the Map function.
+ * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat}
+ * provides row names as {@link Text} as keys, and a corresponding {@link PeekingIterator} as a
+ * value, which in turn makes the {@link Key}/{@link Value} pairs for that row available to the Map
+ * function.
  *
  * The user must specify the following via static configurator methods:
  *
@@ -48,9 +50,11 @@ import org.apache.hadoop.mapred.Reporter;
  *
  * Other static methods are optional.
  */
-public class AccumuloRowInputFormat extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
+public class AccumuloRowInputFormat
+    extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
   @Override
-  public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
+  public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> getRecordReader(InputSplit split,
+      JobConf job, Reporter reporter) throws IOException {
     log.setLevel(getLogLevel(job));
     RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader = new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
       RowIterator rowIterator;

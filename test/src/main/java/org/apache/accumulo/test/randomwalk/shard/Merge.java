@@ -42,7 +42,8 @@ public class Merge extends Test {
     if (splits.size() > splitSet.size()) {
       // throw an excpetion so that test will die an no further changes to table will occur...
       // this way table is left as is for debugging.
-      throw new Exception("There are more tablets after a merge: " + splits.size() + " was " + splitSet.size());
+      throw new Exception(
+          "There are more tablets after a merge: " + splits.size() + " was " + splitSet.size());
     }
   }
 

@@ -31,7 +31,8 @@ import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 
 public class MetricsConfiguration {
 
-  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MetricsConfiguration.class);
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory
+      .getLogger(MetricsConfiguration.class);
 
   private static final String metricsFileName = "accumulo-metrics.xml";
 
@@ -68,7 +69,8 @@ public class MetricsConfiguration {
   private String enabledName = null;
 
   /**
-   * Background thread that pokes the XMLConfiguration file to see if it has changed. If it has, then the Configuration Listener will get an event.
+   * Background thread that pokes the XMLConfiguration file to see if it has changed. If it has,
+   * then the Configuration Listener will get an event.
    *
    */
   private class MetricsConfigWatcher extends Daemon {
@@ -126,7 +128,8 @@ public class MetricsConfiguration {
     if (notFound) {
       if (notFoundCount <= CONFIG_FILE_CHECK_COUNTER) {
         return null;
-      } else if ((notFoundCount > CONFIG_FILE_CHECK_COUNTER) && ((System.currentTimeMillis() - lastCheckTime) > CONFIG_FILE_CHECK_INTERVAL)) {
+      } else if ((notFoundCount > CONFIG_FILE_CHECK_COUNTER)
+          && ((System.currentTimeMillis() - lastCheckTime) > CONFIG_FILE_CHECK_INTERVAL)) {
         notFoundCount = 0;
         lastCheckTime = System.currentTimeMillis();
         notFound = false;
@@ -184,7 +187,8 @@ public class MetricsConfiguration {
       }
     } else {
       if (!alreadyWarned)
-        log.warn("ACCUMULO_CONF_DIR variable not found in environment. Metrics collection will be disabled.");
+        log.warn(
+            "ACCUMULO_CONF_DIR variable not found in environment. Metrics collection will be disabled.");
       alreadyWarned = true;
       notFound = true;
       return;
@@ -211,7 +215,8 @@ public class MetricsConfiguration {
   public static void main(String[] args) throws Exception {
     MetricsConfiguration mc = new MetricsConfiguration("master");
     while (true) {
-      System.out.println("------------------------------------------------------------------------------------------------");
+      System.out.println(
+          "------------------------------------------------------------------------------------------------");
       long t1 = System.currentTimeMillis();
       System.out.println(mc.isEnabled() + " took: " + (System.currentTimeMillis() - t1));
       Thread.sleep(1000);

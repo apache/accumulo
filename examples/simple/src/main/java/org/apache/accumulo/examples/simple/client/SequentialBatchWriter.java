@@ -30,7 +30,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import com.beust.jcommander.Parameter;
 
 /**
- * Simple example for writing random data in sequential order to Accumulo. See docs/examples/README.batch for instructions.
+ * Simple example for writing random data in sequential order to Accumulo. See
+ * docs/examples/README.batch for instructions.
  */
 public class SequentialBatchWriter {
 
@@ -46,15 +47,18 @@ public class SequentialBatchWriter {
   }
 
   /**
-   * Writes a specified number of entries to Accumulo using a {@link BatchWriter}. The rows of the entries will be sequential starting at a specified number.
-   * The column families will be "foo" and column qualifiers will be "1". The values will be random byte arrays of a specified size.
+   * Writes a specified number of entries to Accumulo using a {@link BatchWriter}. The rows of the
+   * entries will be sequential starting at a specified number. The column families will be "foo"
+   * and column qualifiers will be "1". The values will be random byte arrays of a specified size.
    */
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
+  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, MutationsRejectedException {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(SequentialBatchWriter.class.getName(), args, bwOpts);
     Connector connector = opts.getConnector();
-    BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+    BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
+        bwOpts.getBatchWriterConfig());
 
     long end = opts.start + opts.num;
 

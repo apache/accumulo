@@ -23,7 +23,8 @@ import java.util.List;
  * Accumulo namespace permissions. Each permission has an associated byte ID.
  */
 public enum NamespacePermission {
-  // One may add new permissions, but new permissions must use new numbers. Current numbers in use must not be changed.
+  // One may add new permissions, but new permissions must use new numbers. Current numbers in use
+  // must not be changed.
   READ((byte) 0),
   WRITE((byte) 1),
   ALTER_NAMESPACE((byte) 2),

@@ -28,7 +28,8 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.Base64;
 
 /**
- * Kerberos principals might contains identifiers that are not valid ZNodes ('/'). Base64-encodes the principals before interacting with ZooKeeper.
+ * Kerberos principals might contains identifiers that are not valid ZNodes ('/'). Base64-encodes
+ * the principals before interacting with ZooKeeper.
  */
 public class KerberosAuthorizor implements Authorizor {
 
@@ -49,23 +50,30 @@ public class KerberosAuthorizor implements Authorizor {
   }
 
   @Override
-  public void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException {
-    zkAuthorizor.initializeSecurity(credentials, Base64.encodeBase64String(rootuser.getBytes(UTF_8)));
+  public void initializeSecurity(TCredentials credentials, String rootuser)
+      throws AccumuloSecurityException, ThriftSecurityException {
+    zkAuthorizor.initializeSecurity(credentials,
+        Base64.encodeBase64String(rootuser.getBytes(UTF_8)));
   }
 
   @Override
-  public void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException {
-    zkAuthorizor.changeAuthorizations(Base64.encodeBase64String(user.getBytes(UTF_8)), authorizations);
+  public void changeAuthorizations(String user, Authorizations authorizations)
+      throws AccumuloSecurityException {
+    zkAuthorizor.changeAuthorizations(Base64.encodeBase64String(user.getBytes(UTF_8)),
+        authorizations);
   }
 
   @Override
   public Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException {
-    return zkAuthorizor.getCachedUserAuthorizations(Base64.encodeBase64String(user.getBytes(UTF_8)));
+    return zkAuthorizor
+        .getCachedUserAuthorizations(Base64.encodeBase64String(user.getBytes(UTF_8)));
   }
 
   @Override
-  public boolean isValidAuthorizations(String user, List<ByteBuffer> list) throws AccumuloSecurityException {
-    return zkAuthorizor.isValidAuthorizations(Base64.encodeBase64String(user.getBytes(UTF_8)), list);
+  public boolean isValidAuthorizations(String user, List<ByteBuffer> list)
+      throws AccumuloSecurityException {
+    return zkAuthorizor.isValidAuthorizations(Base64.encodeBase64String(user.getBytes(UTF_8)),
+        list);
   }
 
   @Override

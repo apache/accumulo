@@ -39,13 +39,16 @@ import org.apache.log4j.Logger;
 
 /**
  * This class allows MapReduce jobs to write output in the Accumulo data file format.<br>
- * Care should be taken to write only sorted data (sorted by {@link Key}), as this is an important requirement of Accumulo data files.
+ * Care should be taken to write only sorted data (sorted by {@link Key}), as this is an important
+ * requirement of Accumulo data files.
  *
  * <p>
- * The output path to be created must be specified via {@link AccumuloFileOutputFormat#setOutputPath(JobConf, Path)}. This is inherited from
- * {@link FileOutputFormat#setOutputPath(JobConf, Path)}. Other methods from {@link FileOutputFormat} are not supported and may be ignored or cause failures.
- * Using other Hadoop configuration options that affect the behavior of the underlying files directly in the Job's configuration may work, but are not directly
- * supported at this time.
+ * The output path to be created must be specified via
+ * {@link AccumuloFileOutputFormat#setOutputPath(JobConf, Path)}. This is inherited from
+ * {@link FileOutputFormat#setOutputPath(JobConf, Path)}. Other methods from
+ * {@link FileOutputFormat} are not supported and may be ignored or cause failures. Using other
+ * Hadoop configuration options that affect the behavior of the underlying files directly in the
+ * Job's configuration may work, but are not directly supported at this time.
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
@@ -53,14 +56,15 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   protected static final Logger log = Logger.getLogger(CLASS);
 
   /**
-   * This helper method provides an AccumuloConfiguration object constructed from the Accumulo defaults, and overridden with Accumulo properties that have been
-   * stored in the Job's configuration.
+   * This helper method provides an AccumuloConfiguration object constructed from the Accumulo
+   * defaults, and overridden with Accumulo properties that have been stored in the Job's
+   * configuration.
    *
    * @param job
    *          the Hadoop context for the configured job
    * @since 1.5.0
-   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
-   *             discourage its use.
+   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is
+   *             not guaranteed to be stable. The method was deprecated to discourage its use.
    */
   @Deprecated
   protected static AccumuloConfiguration getAccumuloConfiguration(JobConf job) {
@@ -68,7 +72,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Sets the compression type to use for data blocks. Specifying a compression may require additional libraries to be available to your Job.
+   * Sets the compression type to use for data blocks. Specifying a compression may require
+   * additional libraries to be available to your Job.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -82,10 +87,12 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
   /**
    * Sets the size for data blocks within each file.<br>
-   * Data blocks are a span of key/value pairs stored in the file that are compressed and indexed as a group.
+   * Data blocks are a span of key/value pairs stored in the file that are compressed and indexed as
+   * a group.
    *
    * <p>
-   * Making this value smaller may increase seek performance, but at the cost of increasing the size of the indexes (which can also affect seek performance).
+   * Making this value smaller may increase seek performance, but at the cost of increasing the size
+   * of the indexes (which can also affect seek performance).
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -98,7 +105,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by the underlying file system.
+   * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by
+   * the underlying file system.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -111,8 +119,9 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Sets the size for index blocks within each file; smaller blocks means a deeper index hierarchy within the file, while larger blocks mean a more shallow
-   * index hierarchy within the file. This can affect the performance of queries.
+   * Sets the size for index blocks within each file; smaller blocks means a deeper index hierarchy
+   * within the file, while larger blocks mean a more shallow index hierarchy within the file. This
+   * can affect the performance of queries.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -125,7 +134,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Sets the file system replication factor for the resulting file, overriding the file system default.
+   * Sets the file system replication factor for the resulting file, overriding the file system
+   * default.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -138,7 +148,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Specify a sampler to be used when writing out data. This will result in the output file having sample data.
+   * Specify a sampler to be used when writing out data. This will result in the output file having
+   * sample data.
    *
    * @param job
    *          The Hadoop job instance to be configured
@@ -152,13 +163,16 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   @Override
-  public RecordWriter<Key,Value> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
+  public RecordWriter<Key,Value> getRecordWriter(FileSystem ignored, JobConf job, String name,
+      Progressable progress) throws IOException {
     // get the path of the temporary output file
     final Configuration conf = job;
-    final AccumuloConfiguration acuConf = FileOutputConfigurator.getAccumuloConfiguration(CLASS, job);
+    final AccumuloConfiguration acuConf = FileOutputConfigurator.getAccumuloConfiguration(CLASS,
+        job);
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
-    final Path file = new Path(getWorkOutputPath(job), getUniqueName(job, "part") + "." + extension);
+    final Path file = new Path(getWorkOutputPath(job),
+        getUniqueName(job, "part") + "." + extension);
     final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
 
     return new RecordWriter<Key,Value>() {
@@ -173,8 +187,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
       @Override
       public void write(Key key, Value value) throws IOException {
         if (out == null) {
-          out = RFile.newWriter().to(file.toString()).withFileSystem(file.getFileSystem(conf)).withTableProperties(acuConf)
-              .withVisibilityCacheSize(visCacheSize).build();
+          out = RFile.newWriter().to(file.toString()).withFileSystem(file.getFileSystem(conf))
+              .withTableProperties(acuConf).withVisibilityCacheSize(visCacheSize).build();
           out.startDefaultLocalityGroup();
         }
         out.append(key, value);

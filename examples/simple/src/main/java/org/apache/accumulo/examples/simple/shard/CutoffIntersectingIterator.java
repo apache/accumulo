@@ -36,7 +36,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 
 /**
- * This iterator uses a sample built from the Column Qualifier to quickly avoid intersecting iterator queries that may return too many documents.
+ * This iterator uses a sample built from the Column Qualifier to quickly avoid intersecting
+ * iterator queries that may return too many documents.
  */
 
 public class CutoffIntersectingIterator extends IntersectingIterator {
@@ -56,7 +57,8 @@ public class CutoffIntersectingIterator extends IntersectingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive)
+      throws IOException {
 
     sampleII.seek(range, seekColumnFamilies, inclusive);
 
@@ -68,7 +70,8 @@ public class CutoffIntersectingIterator extends IntersectingIterator {
     }
 
     if (count > sampleMax) {
-      // In a real application would probably want to return a key value that indicates too much data. Since this would execute for each tablet, some tablets
+      // In a real application would probably want to return a key value that indicates too much
+      // data. Since this would execute for each tablet, some tablets
       // may return data. For tablets that did not return data, would want an indication.
       hasTop = false;
     } else {
@@ -78,7 +81,8 @@ public class CutoffIntersectingIterator extends IntersectingIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
 
     IteratorEnvironment sampleEnv = env.cloneWithSamplingEnabled();
@@ -93,16 +97,20 @@ public class CutoffIntersectingIterator extends IntersectingIterator {
 
   static void validateSamplerConfig(SamplerConfiguration sampleConfig) {
     requireNonNull(sampleConfig);
-    checkArgument(sampleConfig.getSamplerClassName().equals(RowColumnSampler.class.getName()), "Unexpected Sampler " + sampleConfig.getSamplerClassName());
-    checkArgument(sampleConfig.getOptions().get("qualifier").equals("true"), "Expected sample on column qualifier");
-    checkArgument(isNullOrFalse(sampleConfig.getOptions(), "row", "family", "visibility"), "Expected sample on column qualifier only");
+    checkArgument(sampleConfig.getSamplerClassName().equals(RowColumnSampler.class.getName()),
+        "Unexpected Sampler " + sampleConfig.getSamplerClassName());
+    checkArgument(sampleConfig.getOptions().get("qualifier").equals("true"),
+        "Expected sample on column qualifier");
+    checkArgument(isNullOrFalse(sampleConfig.getOptions(), "row", "family", "visibility"),
+        "Expected sample on column qualifier only");
   }
 
   private void setMax(IteratorEnvironment sampleEnv, Map<String,String> options) {
     String cutoffValue = options.get("cutoff");
     SamplerConfiguration sampleConfig = sampleEnv.getSamplerConfiguration();
 
-    // Ensure the sample was constructed in an expected way. If the sample is not built as expected, then can not draw conclusions based on sample.
+    // Ensure the sample was constructed in an expected way. If the sample is not built as expected,
+    // then can not draw conclusions based on sample.
     requireNonNull(cutoffValue, "Expected cutoff option is missing");
     validateSamplerConfig(sampleConfig);
 

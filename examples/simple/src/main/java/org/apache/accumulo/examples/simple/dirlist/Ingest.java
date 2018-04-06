@@ -38,8 +38,9 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * Recursively lists the files and directories under a given path, ingests their names and file info into one Accumulo table, indexes the file names in a
- * separate table, and the file data into a third table. See docs/examples/README.dirlist for instructions.
+ * Recursively lists the files and directories under a given path, ingests their names and file info
+ * into one Accumulo table, indexes the file names in a separate table, and the file data into a
+ * third table. See docs/examples/README.dirlist for instructions.
  */
 public class Ingest {
   static final Value nullValue = new Value(new byte[0]);
@@ -50,8 +51,8 @@ public class Ingest {
   public static final String HASH_CQ = "md5";
   public static final Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
 
-  public static Mutation buildMutation(ColumnVisibility cv, String path, boolean isDir, boolean isHidden, boolean canExec, long length, long lastmod,
-      String hash) {
+  public static Mutation buildMutation(ColumnVisibility cv, String path, boolean isDir,
+      boolean isHidden, boolean canExec, long length, long lastmod, String hash) {
     if (path.equals("/"))
       path = "";
     Mutation m = new Mutation(QueryUtil.getRow(path));
@@ -69,7 +70,8 @@ public class Ingest {
     return m;
   }
 
-  private static void ingest(File src, ColumnVisibility cv, BatchWriter dirBW, BatchWriter indexBW, FileDataIngest fdi, BatchWriter data) throws Exception {
+  private static void ingest(File src, ColumnVisibility cv, BatchWriter dirBW, BatchWriter indexBW,
+      FileDataIngest fdi, BatchWriter data) throws Exception {
     // build main table entry
     String path = null;
     try {
@@ -89,7 +91,8 @@ public class Ingest {
       }
     }
 
-    dirBW.addMutation(buildMutation(cv, path, src.isDirectory(), src.isHidden(), src.canExecute(), src.length(), src.lastModified(), hash));
+    dirBW.addMutation(buildMutation(cv, path, src.isDirectory(), src.isHidden(), src.canExecute(),
+        src.length(), src.lastModified(), hash));
 
     // build index table entries
     Text row = QueryUtil.getForwardIndex(path);
@@ -106,7 +109,8 @@ public class Ingest {
     }
   }
 
-  private static void recurse(File src, ColumnVisibility cv, BatchWriter dirBW, BatchWriter indexBW, FileDataIngest fdi, BatchWriter data) throws Exception {
+  private static void recurse(File src, ColumnVisibility cv, BatchWriter dirBW, BatchWriter indexBW,
+      FileDataIngest fdi, BatchWriter data) throws Exception {
     // ingest this File
     ingest(src, cv, dirBW, indexBW, fdi, data);
     // recurse into subdirectories
@@ -127,7 +131,8 @@ public class Ingest {
     String indexTable = "indexTable";
     @Parameter(names = "--dataTable", description = "the file data, chunked into parts")
     String dataTable = "dataTable";
-    @Parameter(names = "--vis", description = "the visibility to mark the data", converter = VisibilityConverter.class)
+    @Parameter(names = "--vis", description = "the visibility to mark the data",
+        converter = VisibilityConverter.class)
     ColumnVisibility visibility = new ColumnVisibility();
     @Parameter(names = "--chunkSize", description = "the size of chunks when breaking down files")
     int chunkSize = 100000;
@@ -147,7 +152,8 @@ public class Ingest {
       conn.tableOperations().create(opts.indexTable);
     if (!conn.tableOperations().exists(opts.dataTable)) {
       conn.tableOperations().create(opts.dataTable);
-      conn.tableOperations().attachIterator(opts.dataTable, new IteratorSetting(1, ChunkCombiner.class));
+      conn.tableOperations().attachIterator(opts.dataTable,
+          new IteratorSetting(1, ChunkCombiner.class));
     }
 
     BatchWriter dirBW = conn.createBatchWriter(opts.nameTable, bwOpts.getBatchWriterConfig());

@@ -41,7 +41,8 @@ public enum TabletType {
       if (ttype == null)
         ttype = type(extent);
       else if (ttype != type(extent))
-        throw new IllegalArgumentException("multiple extent types not allowed " + ttype + " " + type(extent));
+        throw new IllegalArgumentException(
+            "multiple extent types not allowed " + ttype + " " + type(extent));
     }
 
     return ttype;

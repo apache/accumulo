@@ -69,16 +69,20 @@ public class MasterMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
 
-  public static void addNewTablet(ClientContext context, KeyExtent extent, String path, TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
-      Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
+  public static void addNewTablet(ClientContext context, KeyExtent extent, String path,
+      TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
+      Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, String time, long lastFlushID,
+      long lastCompactID, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(UTF_8)));
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(UTF_8)));
     if (lastFlushID > 0)
-      TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(("" + lastFlushID).getBytes()));
+      TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m,
+          new Value(("" + lastFlushID).getBytes()));
     if (lastCompactID > 0)
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m, new Value(("" + lastCompactID).getBytes()));
+      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m,
+          new Value(("" + lastCompactID).getBytes()));
 
     if (location != null) {
       location.putLocation(m);
@@ -99,28 +103,33 @@ public class MasterMetadataUtil {
     MetadataTableUtil.update(context, zooLock, m, extent);
   }
 
-  public static KeyExtent fixSplit(ClientContext context, Text metadataEntry, SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, ZooLock lock)
+  public static KeyExtent fixSplit(ClientContext context, Text metadataEntry,
+      SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, ZooLock lock)
       throws AccumuloException, IOException {
     log.info("Incomplete split " + metadataEntry + " attempting to fix");
 
     Value oper = columns.get(TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN);
 
     if (columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN) == null) {
-      throw new IllegalArgumentException("Metadata entry does not have split ratio (" + metadataEntry + ")");
+      throw new IllegalArgumentException(
+          "Metadata entry does not have split ratio (" + metadataEntry + ")");
     }
 
-    double splitRatio = Double.parseDouble(new String(columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN).get(), UTF_8));
+    double splitRatio = Double.parseDouble(
+        new String(columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN).get(), UTF_8));
 
     Value prevEndRowIBW = columns.get(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
 
     if (prevEndRowIBW == null) {
-      throw new IllegalArgumentException("Metadata entry does not have prev row (" + metadataEntry + ")");
+      throw new IllegalArgumentException(
+          "Metadata entry does not have prev row (" + metadataEntry + ")");
     }
 
     Value time = columns.get(TabletsSection.ServerColumnFamily.TIME_COLUMN);
 
     if (time == null) {
-      throw new IllegalArgumentException("Metadata entry does not have time (" + metadataEntry + ")");
+      throw new IllegalArgumentException(
+          "Metadata entry does not have time (" + metadataEntry + ")");
     }
 
     Value flushID = columns.get(TabletsSection.ServerColumnFamily.FLUSH_COLUMN);
@@ -137,15 +146,18 @@ public class MasterMetadataUtil {
 
     String table = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
 
-    return fixSplit(context, table, metadataEntry, metadataPrevEndRow, oper, splitRatio, tserver, time.toString(), initFlushID, initCompactID, lock);
+    return fixSplit(context, table, metadataEntry, metadataPrevEndRow, oper, splitRatio, tserver,
+        time.toString(), initFlushID, initCompactID, lock);
   }
 
-  private static KeyExtent fixSplit(ClientContext context, String table, Text metadataEntry, Text metadataPrevEndRow, Value oper, double splitRatio,
-      TServerInstance tserver, String time, long initFlushID, long initCompactID, ZooLock lock) throws AccumuloException, IOException {
+  private static KeyExtent fixSplit(ClientContext context, String table, Text metadataEntry,
+      Text metadataPrevEndRow, Value oper, double splitRatio, TServerInstance tserver, String time,
+      long initFlushID, long initCompactID, ZooLock lock) throws AccumuloException, IOException {
     if (metadataPrevEndRow == null)
       // something is wrong, this should not happen... if a tablet is split, it will always have a
       // prev end row....
-      throw new AccumuloException("Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
+      throw new AccumuloException(
+          "Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
 
     // check to see if prev tablet exist in metadata tablet
     Key prevRowKey = new Key(new Text(KeyExtent.getMetadataEntry(table, metadataPrevEndRow)));
@@ -156,7 +168,8 @@ public class MasterMetadataUtil {
       VolumeManager fs = VolumeManagerImpl.get();
       if (!scanner2.iterator().hasNext()) {
         log.info("Rolling back incomplete split " + metadataEntry + " " + metadataPrevEndRow);
-        MetadataTableUtil.rollBackSplit(metadataEntry, KeyExtent.decodePrevEndRow(oper), context, lock);
+        MetadataTableUtil.rollBackSplit(metadataEntry, KeyExtent.decodePrevEndRow(oper), context,
+            lock);
         return new KeyExtent(metadataEntry, KeyExtent.decodePrevEndRow(oper));
       } else {
         log.info("Finishing incomplete split " + metadataEntry + " " + metadataPrevEndRow);
@@ -175,15 +188,18 @@ public class MasterMetadataUtil {
 
           for (Entry<Key,Value> entry : scanner3) {
             if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-              origDatafileSizes.put(new FileRef(fs, entry.getKey()), new DataFileValue(entry.getValue().get()));
+              origDatafileSizes.put(new FileRef(fs, entry.getKey()),
+                  new DataFileValue(entry.getValue().get()));
             }
           }
         }
 
-        MetadataTableUtil.splitDatafiles(table, metadataPrevEndRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes,
+        MetadataTableUtil.splitDatafiles(table, metadataPrevEndRow, splitRatio,
+            new HashMap<FileRef,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes,
             highDatafileSizes, highDatafilesToRemove);
 
-        MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove, context, lock);
+        MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove,
+            context, lock);
 
         return new KeyExtent(metadataEntry, KeyExtent.encodePrevEndRow(metadataPrevEndRow));
       }
@@ -203,13 +219,18 @@ public class MasterMetadataUtil {
     }
   }
 
-  public static void replaceDatafiles(ClientContext context, KeyExtent extent, Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path,
-      Long compactionId, DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock) throws IOException {
-    replaceDatafiles(context, extent, datafilesToDelete, scanFiles, path, compactionId, size, address, lastLocation, zooLock, true);
+  public static void replaceDatafiles(ClientContext context, KeyExtent extent,
+      Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path, Long compactionId,
+      DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock)
+      throws IOException {
+    replaceDatafiles(context, extent, datafilesToDelete, scanFiles, path, compactionId, size,
+        address, lastLocation, zooLock, true);
   }
 
-  public static void replaceDatafiles(ClientContext context, KeyExtent extent, Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path,
-      Long compactionId, DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock, boolean insertDeleteFlags) throws IOException {
+  public static void replaceDatafiles(ClientContext context, KeyExtent extent,
+      Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path, Long compactionId,
+      DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock,
+      boolean insertDeleteFlags) throws IOException {
 
     if (insertDeleteFlags) {
       // add delete flags for those paths before the data file reference is removed
@@ -229,7 +250,8 @@ public class MasterMetadataUtil {
       m.put(DataFileColumnFamily.NAME, path.meta(), new Value(size.encode()));
 
     if (compactionId != null)
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m, new Value(("" + compactionId).getBytes()));
+      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m,
+          new Value(("" + compactionId).getBytes()));
 
     TServerInstance self = getTServerInstance(address, zooLock);
     self.putLastLocation(m);
@@ -248,23 +270,28 @@ public class MasterMetadataUtil {
    *          should be relative to the table directory
    *
    */
-  public static void updateTabletDataFile(ClientContext context, KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
-      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+  public static void updateTabletDataFile(ClientContext context, KeyExtent extent, FileRef path,
+      FileRef mergeFile, DataFileValue dfv, String time, Set<FileRef> filesInUseByScans,
+      String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
+      long flushId) {
     if (extent.isRootTablet()) {
       if (unusedWalLogs != null) {
-        updateRootTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address, zooLock, unusedWalLogs, lastLocation, flushId);
+        updateRootTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address,
+            zooLock, unusedWalLogs, lastLocation, flushId);
       }
       return;
     }
-    Mutation m = getUpdateForTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address, zooLock, unusedWalLogs, lastLocation, flushId);
+    Mutation m = getUpdateForTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans,
+        address, zooLock, unusedWalLogs, lastLocation, flushId);
     MetadataTableUtil.update(context, zooLock, m, extent);
   }
 
   /**
    * Update the data file for the root tablet
    */
-  private static void updateRootTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
-      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+  private static void updateRootTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile,
+      DataFileValue dfv, String time, Set<FileRef> filesInUseByScans, String address,
+      ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     String root = MetadataTableUtil.getZookeeperLogLocation();
     for (String entry : unusedWalLogs) {
@@ -292,8 +319,10 @@ public class MasterMetadataUtil {
    *
    * @return A Mutation to update a tablet from the given information
    */
-  private static Mutation getUpdateForTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
-      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+  private static Mutation getUpdateForTabletDataFile(KeyExtent extent, FileRef path,
+      FileRef mergeFile, DataFileValue dfv, String time, Set<FileRef> filesInUseByScans,
+      String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
+      long flushId) {
     Mutation m = new Mutation(extent.getMetadataEntry());
 
     if (dfv.getNumEntries() > 0) {
@@ -318,7 +347,8 @@ public class MasterMetadataUtil {
     if (mergeFile != null)
       m.putDelete(DataFileColumnFamily.NAME, mergeFile.meta());
 
-    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(Long.toString(flushId).getBytes(UTF_8)));
+    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m,
+        new Value(Long.toString(flushId).getBytes(UTF_8)));
 
     return m;
   }

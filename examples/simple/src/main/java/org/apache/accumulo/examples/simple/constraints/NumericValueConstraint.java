@@ -26,14 +26,16 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 
 /**
- * This class is an accumulo constraint that ensures values are numeric strings. See docs/examples/README.constraint for instructions.
+ * This class is an accumulo constraint that ensures values are numeric strings. See
+ * docs/examples/README.constraint for instructions.
  */
 public class NumericValueConstraint implements Constraint {
 
   static final short NON_NUMERIC_VALUE = 1;
   static final String VIOLATION_MESSAGE = "Value is not numeric";
 
-  private static final List<Short> VIOLATION_LIST = Collections.unmodifiableList(Arrays.asList(NON_NUMERIC_VALUE));
+  private static final List<Short> VIOLATION_LIST = Collections
+      .unmodifiableList(Arrays.asList(NON_NUMERIC_VALUE));
 
   private boolean isNumeric(byte bytes[]) {
     for (byte b : bytes) {

@@ -98,21 +98,24 @@ public class ZooCache {
       childrenCache = Collections.emptyMap();
     }
 
-    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,ZcStat> statCache, Map<String,List<String>> childrenCache) {
+    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,ZcStat> statCache,
+        Map<String,List<String>> childrenCache) {
       this.updateCount = updateCount;
       this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
       this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
       this.childrenCache = Collections.unmodifiableMap(new HashMap<>(childrenCache));
     }
 
-    ImmutableCacheCopies(long updateCount, ImmutableCacheCopies prev, Map<String,List<String>> childrenCache) {
+    ImmutableCacheCopies(long updateCount, ImmutableCacheCopies prev,
+        Map<String,List<String>> childrenCache) {
       this.updateCount = updateCount;
       this.cache = prev.cache;
       this.statCache = prev.statCache;
       this.childrenCache = Collections.unmodifiableMap(new HashMap<>(childrenCache));
     }
 
-    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,ZcStat> statCache, ImmutableCacheCopies prev) {
+    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,ZcStat> statCache,
+        ImmutableCacheCopies prev) {
       this.updateCount = updateCount;
       this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
       this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
@@ -124,10 +127,12 @@ public class ZooCache {
   private long updateCount = 0;
 
   /**
-   * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are checked. This will be performed at each retry of the run
-   * method. Calls to {@link #getZooKeeper()} should be made, ideally, after cache checks since other threads may have succeeded when updating the cache. Doing
-   * this will ensure that we don't pay the cost of retrieving a ZooKeeper session on each retry until we've ensured the caches aren't populated for a given
-   * node.
+   * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are
+   * checked. This will be performed at each retry of the run method. Calls to
+   * {@link #getZooKeeper()} should be made, ideally, after cache checks since other threads may
+   * have succeeded when updating the cache. Doing this will ensure that we don't pay the cost of
+   * retrieving a ZooKeeper session on each retry until we've ensured the caches aren't populated
+   * for a given node.
    *
    * @return ZooKeeper session.
    */
@@ -224,19 +229,24 @@ public class ZooCache {
 
   private abstract class ZooRunnable<T> {
     /**
-     * Runs an operation against ZooKeeper. Retries are performed by the retry method when KeeperExceptions occur.
+     * Runs an operation against ZooKeeper. Retries are performed by the retry method when
+     * KeeperExceptions occur.
      *
-     * Changes were made in ACCUMULO-4388 so that the run method no longer accepts Zookeeper as an argument, and instead relies on the ZooRunnable
-     * implementation to call {@link #getZooKeeper()}. Performing the call to retrieving a ZooKeeper Session after caches are checked has the benefit of
-     * limiting ZK connections and blocking as a result of obtaining these sessions.
+     * Changes were made in ACCUMULO-4388 so that the run method no longer accepts Zookeeper as an
+     * argument, and instead relies on the ZooRunnable implementation to call
+     * {@link #getZooKeeper()}. Performing the call to retrieving a ZooKeeper Session after caches
+     * are checked has the benefit of limiting ZK connections and blocking as a result of obtaining
+     * these sessions.
      *
      * @return T the result of the runnable
      */
     abstract T run() throws KeeperException, InterruptedException;
 
     /**
-     * Retry will attempt to call the run method. Run should make a call to {@link #getZooKeeper()} after checks to cached information are made. This change,
-     * per ACCUMULO-4388 ensures that we don't create a ZooKeeper session when information is cached, and access to ZooKeeper is unnecessary.
+     * Retry will attempt to call the run method. Run should make a call to {@link #getZooKeeper()}
+     * after checks to cached information are made. This change, per ACCUMULO-4388 ensures that we
+     * don't create a ZooKeeper session when information is cached, and access to ZooKeeper is
+     * unnecessary.
      *
      * @return result of the runnable access success ( i.e. no exceptions ).
      */
@@ -252,8 +262,10 @@ public class ZooCache {
           final Code code = e.code();
           if (code == Code.NONODE) {
             log.error("Looked up non-existent node in cache " + e.getPath(), e);
-          } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
-            log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry", e);
+          } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+              || code == Code.SESSIONEXPIRED) {
+            log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry",
+                e);
           } else {
             log.warn("Zookeeper error, will retry", e);
           }
@@ -329,7 +341,8 @@ public class ZooCache {
   }
 
   /**
-   * Gets data at the given path. Status information is not returned. A watch is established by this call.
+   * Gets data at the given path. Status information is not returned. A watch is established by this
+   * call.
    *
    * @param zPath
    *          path to get
@@ -340,7 +353,8 @@ public class ZooCache {
   }
 
   /**
-   * Gets data at the given path, filling status information into the given <code>Stat</code> object. A watch is established by this call.
+   * Gets data at the given path, filling status information into the given <code>Stat</code>
+   * object. A watch is established by this call.
    *
    * @param zPath
    *          path to get
@@ -367,9 +381,12 @@ public class ZooCache {
         }
 
         /*
-         * The following call to exists() is important, since we are caching that a node does not exist. Once the node comes into existence, it will be added to
-         * the cache. But this notification of a node coming into existence will only be given if exists() was previously called. If the call to exists() is
-         * bypassed and only getData() is called with a special case that looks for Code.NONODE in the KeeperException, then non-existence can not be cached.
+         * The following call to exists() is important, since we are caching that a node does not
+         * exist. Once the node comes into existence, it will be added to the cache. But this
+         * notification of a node coming into existence will only be given if exists() was
+         * previously called. If the call to exists() is bypassed and only getData() is called with
+         * a special case that looks for Code.NONODE in the KeeperException, then non-existence can
+         * not be cached.
          */
         cacheWriteLock.lock();
         try {
@@ -390,7 +407,8 @@ public class ZooCache {
               throw new ConcurrentModificationException();
             }
             if (log.isTraceEnabled()) {
-              log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data, UTF_8)));
+              log.trace("zookeeper contained " + zPath + " "
+                  + (data == null ? null : new String(data, UTF_8)));
             }
           }
           put(zPath, data, zstat);
@@ -461,7 +479,8 @@ public class ZooCache {
   }
 
   /**
-   * Returns a monotonically increasing count of the number of time the cache was updated. If the count is the same, then it means cache did not change.
+   * Returns a monotonically increasing count of the number of time the cache was updated. If the
+   * count is the same, then it means cache did not change.
    */
   public long getUpdateCount() {
     return immutableCache.updateCount;

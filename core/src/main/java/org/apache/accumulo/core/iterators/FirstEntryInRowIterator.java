@@ -66,7 +66,8 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     String o = options.get(NUM_SCANS_STRING_NAME);
     numscans = o == null ? 10 : Integer.parseInt(o);
@@ -92,7 +93,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
         // determine where to seek to, but don't go beyond the user-specified range
         Key nextKey = source.getTopKey().followingKey(PartialKey.ROW);
         if (!latestRange.afterEndKey(nextKey))
-          source.seek(new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()), latestColumnFamilies, latestInclusive);
+          source.seek(
+              new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()),
+              latestColumnFamilies, latestInclusive);
         else {
           finished = true;
           break;
@@ -110,7 +113,8 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     // save parameters for future internal seeks
     latestRange = range;
     latestColumnFamilies = columnFamilies;
@@ -118,7 +122,8 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     lastRowFound = null;
 
     Key startKey = range.getStartKey();
-    Range seekRange = new Range(startKey == null ? null : new Key(startKey.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
+    Range seekRange = new Range(startKey == null ? null : new Key(startKey.getRow()), true,
+        range.getEndKey(), range.isEndKeyInclusive());
     super.seek(seekRange, columnFamilies, inclusive);
     finished = false;
 
@@ -145,7 +150,8 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
       if (o != null)
         Integer.parseInt(o);
     } catch (Exception e) {
-      throw new IllegalArgumentException("bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME), e);
+      throw new IllegalArgumentException(
+          "bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME), e);
     }
     return true;
   }

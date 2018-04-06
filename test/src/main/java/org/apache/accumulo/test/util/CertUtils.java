@@ -79,36 +79,41 @@ public class CertUtils {
   }
 
   static class Opts extends Help {
-    @Parameter(description = "generate-all | generate-local | generate-self-trusted", required = true, arity = 1)
+    @Parameter(description = "generate-all | generate-local | generate-self-trusted",
+        required = true, arity = 1)
     List<String> operation = null;
 
     @Parameter(names = {"--local-keystore"}, description = "Target path for generated keystore")
     String localKeystore = null;
 
-    @Parameter(names = {"--root-keystore"}, description = "Path to root truststore, generated with generate-all, or used for signing with generate-local")
+    @Parameter(names = {"--root-keystore"},
+        description = "Path to root truststore, generated with generate-all, or used for signing with generate-local")
     String rootKeystore = null;
 
-    @Parameter(names = {"--root-truststore"}, description = "Target path for generated public root truststore")
+    @Parameter(names = {"--root-truststore"},
+        description = "Target path for generated public root truststore")
     String truststore = null;
 
     @Parameter(names = {"--keystore-type"}, description = "Type of keystore file to use")
     String keystoreType = "JKS";
 
-    @Parameter(names = {"--root-keystore-password"}, description = "Password for root keystore, falls back to --keystore-password if not provided")
+    @Parameter(names = {"--root-keystore-password"},
+        description = "Password for root keystore, falls back to --keystore-password if not provided")
     String rootKeystorePassword = null;
 
-    @Parameter(
-        names = {"--keystore-password"},
+    @Parameter(names = {"--keystore-password"},
         description = "Password used to encrypt keystores.  If omitted, the instance-wide secret will be used.  If specified, the password must also be explicitly configured in Accumulo.")
     String keystorePassword = null;
 
-    @Parameter(names = {"--truststore-password"}, description = "Password used to encrypt the truststore. If omitted, empty password is used")
+    @Parameter(names = {"--truststore-password"},
+        description = "Password used to encrypt the truststore. If omitted, empty password is used")
     String truststorePassword = "";
 
     @Parameter(names = {"--key-name-prefix"}, description = "Prefix for names of generated keys")
     String keyNamePrefix = CertUtils.class.getSimpleName();
 
-    @Parameter(names = {"--issuer-rdn"}, description = "RDN string for issuer, for example: 'c=US,o=My Organization,cn=My Name'")
+    @Parameter(names = {"--issuer-rdn"},
+        description = "RDN string for issuer, for example: 'c=US,o=My Organization,cn=My Name'")
     String issuerDirString = "o=Apache Accumulo";
 
     @Parameter(names = "--site-file", description = "Load configuration from the given site file")
@@ -117,7 +122,8 @@ public class CertUtils {
     @Parameter(names = "--signing-algorithm", description = "Algorithm used to sign certificates")
     public String signingAlg = "SHA256WITHRSA";
 
-    @Parameter(names = "--encryption-algorithm", description = "Algorithm used to encrypt private keys")
+    @Parameter(names = "--encryption-algorithm",
+        description = "Algorithm used to encrypt private keys")
     public String encryptionAlg = "RSA";
 
     @Parameter(names = "--keysize", description = "Key size used by encryption algorithm")
@@ -176,15 +182,19 @@ public class CertUtils {
       rootKeyPassword = keyPassword;
     }
 
-    CertUtils certUtils = new CertUtils(opts.keystoreType, opts.issuerDirString, opts.encryptionAlg, opts.keysize, opts.signingAlg);
+    CertUtils certUtils = new CertUtils(opts.keystoreType, opts.issuerDirString, opts.encryptionAlg,
+        opts.keysize, opts.signingAlg);
 
     if ("generate-all".equals(operation)) {
-      certUtils.createAll(new File(opts.rootKeystore), new File(opts.localKeystore), new File(opts.truststore), opts.keyNamePrefix, rootKeyPassword,
-          keyPassword, opts.truststorePassword);
+      certUtils.createAll(new File(opts.rootKeystore), new File(opts.localKeystore),
+          new File(opts.truststore), opts.keyNamePrefix, rootKeyPassword, keyPassword,
+          opts.truststorePassword);
     } else if ("generate-local".equals(operation)) {
-      certUtils.createSignedCert(new File(opts.localKeystore), opts.keyNamePrefix + "-local", keyPassword, opts.rootKeystore, rootKeyPassword);
+      certUtils.createSignedCert(new File(opts.localKeystore), opts.keyNamePrefix + "-local",
+          keyPassword, opts.rootKeystore, rootKeyPassword);
     } else if ("generate-self-trusted".equals(operation)) {
-      certUtils.createSelfSignedCert(new File(opts.truststore), opts.keyNamePrefix + "-selfTrusted", keyPassword);
+      certUtils.createSelfSignedCert(new File(opts.truststore), opts.keyNamePrefix + "-selfTrusted",
+          keyPassword);
     } else {
       JCommander jcommander = new JCommander(opts);
       jcommander.setProgramName(CertUtils.class.getName());
@@ -204,7 +214,8 @@ public class CertUtils {
   private int keysize;
   private String signingAlgorithm;
 
-  public CertUtils(String keystoreType, String issuerDirString, String encryptionAlgorithm, int keysize, String signingAlgorithm) {
+  public CertUtils(String keystoreType, String issuerDirString, String encryptionAlgorithm,
+      int keysize, String signingAlgorithm) {
     super();
     this.keystoreType = keystoreType;
     this.issuerDirString = issuerDirString;
@@ -213,16 +224,22 @@ public class CertUtils {
     this.signingAlgorithm = signingAlgorithm;
   }
 
-  public void createAll(File rootKeystoreFile, File localKeystoreFile, File trustStoreFile, String keyNamePrefix, String rootKeystorePassword,
-      String keystorePassword, String truststorePassword) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException,
-      OperatorCreationException, AccumuloSecurityException, NoSuchProviderException, UnrecoverableKeyException, FileNotFoundException {
+  public void createAll(File rootKeystoreFile, File localKeystoreFile, File trustStoreFile,
+      String keyNamePrefix, String rootKeystorePassword, String keystorePassword,
+      String truststorePassword) throws KeyStoreException, CertificateException,
+      NoSuchAlgorithmException, IOException, OperatorCreationException, AccumuloSecurityException,
+      NoSuchProviderException, UnrecoverableKeyException, FileNotFoundException {
     createSelfSignedCert(rootKeystoreFile, keyNamePrefix + "-root", rootKeystorePassword);
-    createSignedCert(localKeystoreFile, keyNamePrefix + "-local", keystorePassword, rootKeystoreFile.getAbsolutePath(), rootKeystorePassword);
-    createPublicCert(trustStoreFile, keyNamePrefix + "-public", rootKeystoreFile.getAbsolutePath(), rootKeystorePassword, truststorePassword);
+    createSignedCert(localKeystoreFile, keyNamePrefix + "-local", keystorePassword,
+        rootKeystoreFile.getAbsolutePath(), rootKeystorePassword);
+    createPublicCert(trustStoreFile, keyNamePrefix + "-public", rootKeystoreFile.getAbsolutePath(),
+        rootKeystorePassword, truststorePassword);
   }
 
-  public void createPublicCert(File targetKeystoreFile, String keyName, String rootKeystorePath, String rootKeystorePassword, String truststorePassword)
-      throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, KeyStoreException, UnrecoverableKeyException {
+  public void createPublicCert(File targetKeystoreFile, String keyName, String rootKeystorePath,
+      String rootKeystorePassword, String truststorePassword)
+      throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException,
+      KeyStoreException, UnrecoverableKeyException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = rootKeystorePassword.toCharArray();
     try (FileInputStream fis = new FileInputStream(rootKeystorePath)) {
@@ -238,9 +255,10 @@ public class CertUtils {
     }
   }
 
-  public void createSignedCert(File targetKeystoreFile, String keyName, String keystorePassword, String signerKeystorePath, String signerKeystorePassword)
-      throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, OperatorCreationException, AccumuloSecurityException,
-      UnrecoverableKeyException, NoSuchProviderException {
+  public void createSignedCert(File targetKeystoreFile, String keyName, String keystorePassword,
+      String signerKeystorePath, String signerKeystorePassword) throws KeyStoreException,
+      CertificateException, NoSuchAlgorithmException, IOException, OperatorCreationException,
+      AccumuloSecurityException, UnrecoverableKeyException, NoSuchProviderException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = signerKeystorePassword.toCharArray();
     try (FileInputStream fis = new FileInputStream(signerKeystorePath)) {
@@ -256,14 +274,16 @@ public class CertUtils {
     KeyStore keystore = KeyStore.getInstance(keystoreType);
     keystore.load(null, null);
     keystore.setCertificateEntry(keyName + "Cert", cert);
-    keystore.setKeyEntry(keyName + "Key", kp.getPrivate(), password, new Certificate[] {cert, signerCert});
+    keystore.setKeyEntry(keyName + "Key", kp.getPrivate(), password,
+        new Certificate[] {cert, signerCert});
     try (FileOutputStream fos = new FileOutputStream(targetKeystoreFile)) {
       keystore.store(fos, password);
     }
   }
 
-  public void createSelfSignedCert(File targetKeystoreFile, String keyName, String keystorePassword) throws KeyStoreException, CertificateException,
-      NoSuchAlgorithmException, IOException, OperatorCreationException, AccumuloSecurityException, NoSuchProviderException {
+  public void createSelfSignedCert(File targetKeystoreFile, String keyName, String keystorePassword)
+      throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException,
+      OperatorCreationException, AccumuloSecurityException, NoSuchProviderException {
     if (targetKeystoreFile.exists()) {
       throw new FileExistsException(targetKeystoreFile);
     }
@@ -288,23 +308,29 @@ public class CertUtils {
     return gen.generateKeyPair();
   }
 
-  private Certificate generateCert(String keyName, KeyPair kp, boolean isCertAuthority, PublicKey signerPublicKey, PrivateKey signerPrivateKey)
-      throws IOException, CertIOException, OperatorCreationException, CertificateException, NoSuchAlgorithmException {
+  private Certificate generateCert(String keyName, KeyPair kp, boolean isCertAuthority,
+      PublicKey signerPublicKey, PrivateKey signerPrivateKey) throws IOException, CertIOException,
+      OperatorCreationException, CertificateException, NoSuchAlgorithmException {
     Calendar startDate = Calendar.getInstance();
     Calendar endDate = Calendar.getInstance();
     endDate.add(Calendar.YEAR, 100);
 
     BigInteger serialNumber = BigInteger.valueOf((startDate.getTimeInMillis()));
-    X500Name issuer = new X500Name(IETFUtils.rDNsFromString(issuerDirString, RFC4519Style.INSTANCE));
-    JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(issuer, serialNumber, startDate.getTime(), endDate.getTime(), issuer, kp.getPublic());
+    X500Name issuer = new X500Name(
+        IETFUtils.rDNsFromString(issuerDirString, RFC4519Style.INSTANCE));
+    JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(issuer, serialNumber,
+        startDate.getTime(), endDate.getTime(), issuer, kp.getPublic());
     JcaX509ExtensionUtils extensionUtils = new JcaX509ExtensionUtils();
-    certGen.addExtension(Extension.subjectKeyIdentifier, false, extensionUtils.createSubjectKeyIdentifier(kp.getPublic()));
+    certGen.addExtension(Extension.subjectKeyIdentifier, false,
+        extensionUtils.createSubjectKeyIdentifier(kp.getPublic()));
     certGen.addExtension(Extension.basicConstraints, false, new BasicConstraints(isCertAuthority));
-    certGen.addExtension(Extension.authorityKeyIdentifier, false, extensionUtils.createAuthorityKeyIdentifier(signerPublicKey));
+    certGen.addExtension(Extension.authorityKeyIdentifier, false,
+        extensionUtils.createAuthorityKeyIdentifier(signerPublicKey));
     if (isCertAuthority) {
       certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign));
     }
-    X509CertificateHolder cert = certGen.build(new JcaContentSignerBuilder(signingAlgorithm).build(signerPrivateKey));
+    X509CertificateHolder cert = certGen
+        .build(new JcaContentSignerBuilder(signingAlgorithm).build(signerPrivateKey));
     return new JcaX509CertificateConverter().getCertificate(cert);
   }
 
@@ -327,7 +353,8 @@ public class CertUtils {
     return cert;
   }
 
-  static PrivateKey findPrivateKey(KeyStore keyStore, char[] keystorePassword) throws UnrecoverableKeyException, KeyStoreException, NoSuchAlgorithmException {
+  static PrivateKey findPrivateKey(KeyStore keyStore, char[] keystorePassword)
+      throws UnrecoverableKeyException, KeyStoreException, NoSuchAlgorithmException {
     Enumeration<String> aliases = keyStore.aliases();
     PrivateKey key = null;
     while (aliases.hasMoreElements()) {

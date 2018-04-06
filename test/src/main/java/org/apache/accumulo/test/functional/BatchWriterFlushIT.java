@@ -76,7 +76,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   private void runLatencyTest(String tableName) throws Exception {
     // should automatically flush after 2 seconds
-    try (BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS))) {
+    try (BatchWriter bw = getConnector().createBatchWriter(tableName,
+        new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS))) {
       Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
@@ -101,8 +102,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     }
   }
 
-  private void runFlushTest(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException,
-      Exception {
+  private void runFlushTest(String tableName) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, MutationsRejectedException, Exception {
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     Random r = new Random();
@@ -139,7 +140,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       }
 
       // scan all data just flushed
-      scanner.setRange(new Range(new Text(String.format("r_%10d", i * NUM_TO_FLUSH)), true, new Text(String.format("r_%10d", (i + 1) * NUM_TO_FLUSH)), false));
+      scanner.setRange(new Range(new Text(String.format("r_%10d", i * NUM_TO_FLUSH)), true,
+          new Text(String.format("r_%10d", (i + 1) * NUM_TO_FLUSH)), false));
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
       for (int j = 0; j < NUM_TO_FLUSH; j++) {
@@ -180,7 +182,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     String tableName = tableNames[0];
     c.tableOperations().create(tableName);
     for (int x = 0; x < NUM_THREADS; x++) {
-      c.tableOperations().addSplits(tableName, new TreeSet<>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
+      c.tableOperations().addSplits(tableName,
+          new TreeSet<>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
     }
     c.instanceOperations().waitForBalance();
 

@@ -33,7 +33,8 @@ public class RootTabletStateStore extends MetaDataStateStore {
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state, RootTable.NAME);
+    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state,
+        RootTable.NAME);
   }
 
   @Override

@@ -38,7 +38,8 @@ public class TableLinkType extends CellType<String> {
     String tableId = (String) obj;
     // Encode the tableid we use in the link so we construct a correct url
     // e.g. the root table's id of "+r" would not be interpreted properly
-    return String.format("<a href='/tables?t=%s'>%s</a>", BasicServlet.encode(tableId), displayName(tableId));
+    return String.format("<a href='/tables?t=%s'>%s</a>", BasicServlet.encode(tableId),
+        displayName(tableId));
   }
 
   private String displayName(String tableId) {

@@ -51,7 +51,8 @@ import com.beust.jcommander.JCommander;
 public class TestClientOpts {
 
   @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tmpDir = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Rule
   public TestName testName = new TestName();
@@ -93,8 +94,9 @@ public class TestClientOpts {
     jc.addObject(args);
     jc.addObject(bwOpts);
     jc.addObject(bsOpts);
-    jc.parse("-u", "bar", "-p", "foo", "--batchLatency", "3s", "--batchTimeout", "2s", "--batchMemory", "1M", "--debug", "--trace", "--scanThreads", "7", "-i",
-        "instance", "--auths", "G1,G2,G3", "-z", "zoohost1,zoohost2", "--help");
+    jc.parse("-u", "bar", "-p", "foo", "--batchLatency", "3s", "--batchTimeout", "2s",
+        "--batchMemory", "1M", "--debug", "--trace", "--scanThreads", "7", "-i", "instance",
+        "--auths", "G1,G2,G3", "-z", "zoohost1,zoohost2", "--help");
     assertEquals("bar", args.getPrincipal());
     assertNull(args.getSecurePassword());
     assertEquals(new PasswordToken("foo"), args.getToken());
@@ -118,13 +120,15 @@ public class TestClientOpts {
     assertTrue(uuid.createNewFile());
     // document the defaults
     ClientOpts args = new ClientOpts();
-    File siteXml = tmpDir.newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
+    File siteXml = tmpDir
+        .newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
     FileWriter fileWriter = new FileWriter(siteXml);
     fileWriter.append("<configuration>\n");
 
-    fileWriter.append("<property><name>" + Property.INSTANCE_VOLUMES.getKey() + "</name><value>" + tmpDir.getRoot().toURI().toString()
-        + "</value></property>\n");
-    fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
+    fileWriter.append("<property><name>" + Property.INSTANCE_VOLUMES.getKey() + "</name><value>"
+        + tmpDir.getRoot().toURI().toString() + "</value></property>\n");
+    fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME
+        + "</name><value>foo</value></property>\n");
 
     fileWriter.append("</configuration>\n");
     fileWriter.close();
@@ -146,14 +150,17 @@ public class TestClientOpts {
     assertTrue(uuid.createNewFile());
     // document the defaults
     ClientOpts args = new ClientOpts();
-    File siteXml = tmpDir.newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
+    File siteXml = tmpDir
+        .newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
     FileWriter fileWriter = new FileWriter(siteXml);
     fileWriter.append("<configuration>\n");
 
-    fileWriter
-        .append("<property><name>" + Property.INSTANCE_DFS_DIR.getKey() + "</name><value>" + tmpDir.getRoot().getAbsolutePath() + "</value></property>\n");
-    fileWriter.append("<property><name>" + Property.INSTANCE_DFS_URI.getKey() + "</name><value>file://</value></property>\n");
-    fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
+    fileWriter.append("<property><name>" + Property.INSTANCE_DFS_DIR.getKey() + "</name><value>"
+        + tmpDir.getRoot().getAbsolutePath() + "</value></property>\n");
+    fileWriter.append("<property><name>" + Property.INSTANCE_DFS_URI.getKey()
+        + "</name><value>file://</value></property>\n");
+    fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME
+        + "</name><value>foo</value></property>\n");
 
     fileWriter.append("</configuration>\n");
     fileWriter.close();
@@ -184,7 +191,8 @@ public class TestClientOpts {
     FileWriter writer = new FileWriter(clientConfFile);
 
     try {
-      writer.write(String.format("%s=%s\n", ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), "true"));
+      writer.write(
+          String.format("%s=%s\n", ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), "true"));
     } finally {
       writer.close();
     }

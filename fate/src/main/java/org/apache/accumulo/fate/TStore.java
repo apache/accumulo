@@ -21,9 +21,10 @@ import java.io.Serializable;
 /**
  * Transaction Store: a place to save transactions
  *
- * A transaction consists of a number of operations. To use, first create a transaction id, and then seed the transaction with an initial operation. An executor
- * service can then execute the transaction's operation, possibly pushing more operations onto the transaction as each step successfully completes. If a step
- * fails, the stack can be unwound, undoing each operation.
+ * A transaction consists of a number of operations. To use, first create a transaction id, and then
+ * seed the transaction with an initial operation. An executor service can then execute the
+ * transaction's operation, possibly pushing more operations onto the transaction as each step
+ * successfully completes. If a step fails, the stack can be unwound, undoing each operation.
  */
 public interface TStore<T> extends ReadOnlyTStore<T> {
 

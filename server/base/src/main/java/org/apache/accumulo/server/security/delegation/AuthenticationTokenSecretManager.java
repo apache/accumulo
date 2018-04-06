@@ -45,12 +45,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 /**
- * Manages an internal list of secret keys used to sign new authentication tokens as they are generated, and to validate existing tokens used for
- * authentication.
+ * Manages an internal list of secret keys used to sign new authentication tokens as they are
+ * generated, and to validate existing tokens used for authentication.
  *
- * Each TabletServer, in addition to the Master, has an instance of this {@link SecretManager} so that each can authenticate requests from clients presenting
- * delegation tokens. The Master will also run an instance of {@link AuthenticationTokenKeyManager} which handles generation of new keys and removal of old
- * keys. That class will call the methods here to ensure the in-memory cache is consistent with what is advertised in ZooKeeper.
+ * Each TabletServer, in addition to the Master, has an instance of this {@link SecretManager} so
+ * that each can authenticate requests from clients presenting delegation tokens. The Master will
+ * also run an instance of {@link AuthenticationTokenKeyManager} which handles generation of new
+ * keys and removal of old keys. That class will call the methods here to ensure the in-memory cache
+ * is consistent with what is advertised in ZooKeeper.
  */
 public class AuthenticationTokenSecretManager extends SecretManager<AuthenticationTokenIdentifier> {
 
@@ -107,7 +109,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
         if (requestedExpirationDate > identifier.getExpirationDate()) {
           throw new RuntimeException("Requested token lifetime exceeds configured maximum");
         }
-        log.trace("Overriding token expiration date from {} to {}", identifier.getExpirationDate(), requestedExpirationDate);
+        log.trace("Overriding token expiration date from {} to {}", identifier.getExpirationDate(),
+            requestedExpirationDate);
         identifier.setExpirationDate(requestedExpirationDate);
       }
     }
@@ -148,8 +151,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    *          A configuration object for obtaining the delegation token
    * @return A delegation token for {@code username} created using the {@link #currentKey}.
    */
-  public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> generateToken(String username, DelegationTokenConfig cfg)
-      throws AccumuloException {
+  public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> generateToken(
+      String username, DelegationTokenConfig cfg) throws AccumuloException {
     requireNonNull(username);
     requireNonNull(cfg);
 
@@ -159,7 +162,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     if (null != id.getInstanceId()) {
       svcName.append("-").append(id.getInstanceId());
     }
-    // Create password will update the state on the identifier given currentKey. Need to call this before serializing the identifier
+    // Create password will update the state on the identifier given currentKey. Need to call this
+    // before serializing the identifier
     byte[] password;
     try {
       password = createPassword(id);
@@ -168,7 +172,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     }
     // The use of the ServiceLoader inside Token doesn't work to automatically get the Identifier
     // Explicitly returning the identifier also saves an extra deserialization
-    Token<AuthenticationTokenIdentifier> token = new Token<>(id.getBytes(), password, id.getKind(), new Text(svcName.toString()));
+    Token<AuthenticationTokenIdentifier> token = new Token<>(id.getBytes(), password, id.getKind(),
+        new Text(svcName.toString()));
     return Maps.immutableEntry(token, id);
   }
 
@@ -190,7 +195,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   }
 
   /**
-   * Removes the {@link AuthenticationKey} from the local cache of keys using the provided {@code keyId}.
+   * Removes the {@link AuthenticationKey} from the local cache of keys using the provided
+   * {@code keyId}.
    *
    * @param keyId
    *          The unique ID for the {@link AuthenticationKey} to remove.
@@ -220,8 +226,9 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   }
 
   /**
-   * Inspect each key cached in {@link #allKeys} and remove it if the expiration date has passed. For each removed local {@link AuthenticationKey}, the key is
-   * also removed from ZooKeeper using the provided {@code keyDistributor} instance.
+   * Inspect each key cached in {@link #allKeys} and remove it if the expiration date has passed.
+   * For each removed local {@link AuthenticationKey}, the key is also removed from ZooKeeper using
+   * the provided {@code keyDistributor} instance.
    *
    * @param keyDistributor
    *          ZooKeeper key distribution class
@@ -262,7 +269,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
 
   @Override
   protected SecretKey generateSecret() {
-    // Method in the parent is a different package, provide the explicit override so we can use it directly in our package.
+    // Method in the parent is a different package, provide the explicit override so we can use it
+    // directly in our package.
     return super.generateSecret();
   }
 

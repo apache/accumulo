@@ -149,7 +149,8 @@ public class ShellCompletor implements Completer {
       else
         prefix += current_string_token.toUpperCase() + " ";
 
-      if (current_command_token != null && current_command_token.getSubcommandNames().contains(current_string_token))
+      if (current_command_token != null
+          && current_command_token.getSubcommandNames().contains(current_string_token))
         current_command_token = current_command_token.getSubcommand(current_string_token);
 
     }

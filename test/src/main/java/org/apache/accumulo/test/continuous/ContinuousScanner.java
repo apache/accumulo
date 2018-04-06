@@ -40,7 +40,8 @@ import com.beust.jcommander.validators.PositiveInteger;
 public class ContinuousScanner {
 
   static class Opts extends ContinuousWalk.Opts {
-    @Parameter(names = "--numToScan", description = "Number rows to scan between sleeps", required = true, validateWith = PositiveInteger.class)
+    @Parameter(names = "--numToScan", description = "Number rows to scan between sleeps",
+        required = true, validateWith = PositiveInteger.class)
     long numToScan = 0;
   }
 
@@ -81,7 +82,8 @@ public class ContinuousScanner {
 
       long t2 = System.currentTimeMillis();
 
-      // System.out.println("P1 " +count +" "+((1-delta) * numToScan)+" "+((1+delta) * numToScan)+" "+numToScan);
+      // System.out.println("P1 " +count +" "+((1-delta) * numToScan)+" "+((1+delta) * numToScan)+"
+      // "+numToScan);
 
       if (count < (1 - delta) * opts.numToScan || count > (1 + delta) * opts.numToScan) {
         if (count == 0) {
@@ -95,7 +97,8 @@ public class ContinuousScanner {
           distance = (long) (ratio * distance);
         }
 
-        // System.out.println("P2 "+delta +" "+numToScan+" "+distance+"  "+((double)numToScan/count ));
+        // System.out.println("P2 "+delta +" "+numToScan+" "+distance+" "+((double)numToScan/count
+        // ));
       }
 
       System.out.printf("SCN %d %s %d %d%n", t1, new String(scanStart, UTF_8), (t2 - t1), count);

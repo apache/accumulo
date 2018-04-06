@@ -31,8 +31,9 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 
 /**
- * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This {@link org.apache.hadoop.mapred.InputFormat} provides keys and
- * values of type {@link Key} and {@link Value} to the Map function.
+ * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This
+ * {@link org.apache.hadoop.mapred.InputFormat} provides keys and values of type {@link Key} and
+ * {@link Value} to the Map function.
  *
  * The user must specify the following via static configurator methods:
  *
@@ -63,7 +64,8 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
   }
 
   @Override
-  public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
+  public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
+      throws IOException {
     log.setLevel(getLogLevel(job));
     InputFormatBase.RecordReaderBase<Key,Value> recordReader = new InputFormatBase.RecordReaderBase<Key,Value>() {
 

@@ -39,14 +39,17 @@ public class RootFiles {
 
   private static final Logger log = LoggerFactory.getLogger(RootFiles.class);
 
-  public static void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
+  public static void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles,
+      String compactName) throws IOException {
     for (FileRef ref : oldDatafiles) {
       Path path = ref.path();
-      DatafileManager.rename(fs, path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
+      DatafileManager.rename(fs, path,
+          new Path(location + "/delete+" + compactName + "+" + path.getName()));
     }
   }
 
-  public static void renameReplacement(VolumeManager fs, FileRef tmpDatafile, FileRef newDatafile) throws IOException {
+  public static void renameReplacement(VolumeManager fs, FileRef tmpDatafile, FileRef newDatafile)
+      throws IOException {
     if (fs.exists(newDatafile.path())) {
       log.error("Target map file already exist " + newDatafile, new Exception());
       throw new IllegalStateException("Target map file already exist " + newDatafile);
@@ -55,8 +58,8 @@ public class RootFiles {
     DatafileManager.rename(fs, tmpDatafile.path(), newDatafile.path());
   }
 
-  public static void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName)
-      throws IOException {
+  public static void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs,
+      Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
     // start deleting files, if we do not finish they will be cleaned
     // up later
     for (FileRef ref : oldDatafiles) {
@@ -67,8 +70,9 @@ public class RootFiles {
     }
   }
 
-  public static void replaceFiles(AccumuloConfiguration acuTableConf, VolumeManager fs, Path location, Set<FileRef> oldDatafiles, FileRef tmpDatafile,
-      FileRef newDatafile) throws IOException {
+  public static void replaceFiles(AccumuloConfiguration acuTableConf, VolumeManager fs,
+      Path location, Set<FileRef> oldDatafiles, FileRef tmpDatafile, FileRef newDatafile)
+      throws IOException {
     String compactName = newDatafile.path().getName();
 
     prepareReplacement(fs, location, oldDatafiles, compactName);
@@ -76,7 +80,8 @@ public class RootFiles {
     finishReplacement(acuTableConf, fs, location, oldDatafiles, compactName);
   }
 
-  public static Collection<String> cleanupReplacement(VolumeManager fs, FileStatus[] files, boolean deleteTmp) throws IOException {
+  public static Collection<String> cleanupReplacement(VolumeManager fs, FileStatus[] files,
+      boolean deleteTmp) throws IOException {
     /*
      * called in constructor and before major compactions
      */
@@ -86,7 +91,8 @@ public class RootFiles {
 
       String path = file.getPath().toString();
       if (file.getPath().toUri().getScheme() == null) {
-        // depending on the behavior of HDFS, if list status does not return fully qualified volumes then could switch to the default volume
+        // depending on the behavior of HDFS, if list status does not return fully qualified volumes
+        // then could switch to the default volume
         throw new IllegalArgumentException("Require fully qualified paths " + file.getPath());
       }
 
@@ -95,7 +101,8 @@ public class RootFiles {
       // check for incomplete major compaction, this should only occur
       // for root tablet
       if (filename.startsWith("delete+")) {
-        String expectedCompactedFile = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename.split("\\+")[1];
+        String expectedCompactedFile = path.substring(0, path.lastIndexOf("/delete+")) + "/"
+            + filename.split("\\+")[1];
         if (fs.exists(new Path(expectedCompactedFile))) {
           // compaction finished, but did not finish deleting compacted files.. so delete it
           if (!fs.deleteRecursively(file.getPath()))
@@ -121,7 +128,8 @@ public class RootFiles {
         continue;
       }
 
-      if (!filename.startsWith(Constants.MAPFILE_EXTENSION + "_") && !FileOperations.getValidExtensions().contains(filename.split("\\.")[1])) {
+      if (!filename.startsWith(Constants.MAPFILE_EXTENSION + "_")
+          && !FileOperations.getValidExtensions().contains(filename.split("\\.")[1])) {
         log.error("unknown file in tablet: " + path);
         continue;
       }

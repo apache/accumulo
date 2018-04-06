@@ -48,7 +48,8 @@ public class PrintScanTimeHistogram {
     log.info("{}", report);
   }
 
-  private static void processFile(InputStream ins, Histogram<String> srqHist, Histogram<String> fsrHist) throws FileNotFoundException, IOException {
+  private static void processFile(InputStream ins, Histogram<String> srqHist,
+      Histogram<String> fsrHist) throws FileNotFoundException, IOException {
     String line;
     BufferedReader in = new BufferedReader(new InputStreamReader(ins, UTF_8));
 

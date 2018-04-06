@@ -31,7 +31,8 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
  */
 public class BlockIndex {
 
-  public static BlockIndex getIndex(ABlockReader cacheBlock, IndexEntry indexEntry) throws IOException {
+  public static BlockIndex getIndex(ABlockReader cacheBlock, IndexEntry indexEntry)
+      throws IOException {
 
     BlockIndex blockIndex = cacheBlock.getIndex(BlockIndex.class);
 
@@ -114,7 +115,8 @@ public class BlockIndex {
 
     if (pos < 0) {
       if (pos == -1)
-        return null; // less than the first key in index, did not index the first key in block so just return null... code calling this will scan from beginning
+        return null; // less than the first key in index, did not index the first key in block so
+                     // just return null... code calling this will scan from beginning
                      // of block
       index = (pos * -1) - 2;
     } else {
@@ -128,7 +130,8 @@ public class BlockIndex {
       }
     }
 
-    // handle case where multiple keys in block are exactly the same, want to find the earliest key in the index
+    // handle case where multiple keys in block are exactly the same, want to find the earliest key
+    // in the index
     while (index - 1 > 0) {
       if (blockIndex[index].getPrevKey().equals(blockIndex[index - 1].getPrevKey()))
         index--;
@@ -145,7 +148,8 @@ public class BlockIndex {
     return bie;
   }
 
-  private synchronized void buildIndex(int indexEntries, ABlockReader cacheBlock, IndexEntry indexEntry) throws IOException {
+  private synchronized void buildIndex(int indexEntries, ABlockReader cacheBlock,
+      IndexEntry indexEntry) throws IOException {
     cacheBlock.seek(0);
 
     RelativeKey rk = new RelativeKey();
@@ -156,7 +160,8 @@ public class BlockIndex {
     if (interval <= 32)
       return;
 
-    // multiple threads could try to create the index with different sizes, do not replace a large index with a smaller one
+    // multiple threads could try to create the index with different sizes, do not replace a large
+    // index with a smaller one
     if (this.blockIndex != null && this.blockIndex.length > indexEntries - 1)
       return;
 

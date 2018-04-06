@@ -80,7 +80,8 @@ public class DefaultCompactionStrategyTest {
     public void setInterruptFlag(AtomicBoolean flag) {}
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {}
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {}
 
     @Override
     public boolean hasTop() {
@@ -91,7 +92,8 @@ public class DefaultCompactionStrategyTest {
     public void next() throws IOException {}
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {}
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {}
 
     @Override
     public Key getTopKey() {
@@ -150,21 +152,25 @@ public class DefaultCompactionStrategyTest {
       return new TestFileSKVIterator(ref.toString());
     }
 
-    TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason, Map<FileRef,DataFileValue> files) {
+    TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
+        Map<FileRef,DataFileValue> files) {
       super(extent, reason, null, dfault);
       setFiles(files);
     }
 
   }
 
-  private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs) throws IOException {
+  private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs)
+      throws IOException {
     return createRequest(new KeyExtent("0", null, null), reason, objs);
   }
 
-  private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason, Object... objs) throws IOException {
+  private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason,
+      Object... objs) throws IOException {
     Map<FileRef,DataFileValue> files = new HashMap<>();
     for (int i = 0; i < objs.length; i += 2) {
-      files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + (String) objs[i]), new DataFileValue(((Number) objs[i + 1]).longValue(), 0));
+      files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + (String) objs[i]),
+          new DataFileValue(((Number) objs[i + 1]).longValue(), 0));
     }
     return new TestCompactionRequest(extent, reason, files);
   }
@@ -193,7 +199,8 @@ public class DefaultCompactionStrategyTest {
     DefaultCompactionStrategy s = new DefaultCompactionStrategy();
 
     // do nothing
-    MajorCompactionRequest request = createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2", 10);
+    MajorCompactionRequest request = createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2",
+        10);
     s.gatherInformation(request);
     CompactionPlan plan = s.getCompactionPlan(request);
     assertTrue(plan.inputFiles.isEmpty());
@@ -211,7 +218,8 @@ public class DefaultCompactionStrategyTest {
     assertEquals(2, plan.inputFiles.size());
 
     // partial
-    request = createRequest(MajorCompactionReason.NORMAL, "file0", 100, "file1", 10, "file2", 10, "file3", 10);
+    request = createRequest(MajorCompactionReason.NORMAL, "file0", 100, "file1", 10, "file2", 10,
+        "file3", 10);
     s.gatherInformation(request);
     plan = s.getCompactionPlan(request);
     assertEquals(3, plan.inputFiles.size());

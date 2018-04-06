@@ -157,7 +157,8 @@ public class VolumeIT extends ConfigurableMacBase {
       fileCount++;
     }
     assertEquals(4, fileCount);
-    List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsage = connector.tableOperations()
+        .getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
     long usage = diskUsage.get(0).getUsage().longValue();
     log.debug("usage {}", usage);
@@ -170,7 +171,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
     for (Entry<Key,Value> entry : createScanner) {
       Key k = entry.getKey();
-      actual.add(k.getRow() + ":" + k.getColumnFamily() + ":" + k.getColumnQualifier() + ":" + entry.getValue());
+      actual.add(k.getRow() + ":" + k.getColumnFamily() + ":" + k.getColumnQualifier() + ":"
+          + entry.getValue());
     }
 
     Collections.sort(expected);
@@ -186,7 +188,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
-    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+    connector.tableOperations().create(tableName,
+        new NewTableConfiguration().withoutDefaultIterators());
 
     String tableId = connector.tableOperations().tableIdMap().get(tableName);
 
@@ -226,7 +229,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
     connector.tableOperations().offline(tableName, true);
 
-    connector.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+    connector.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+        TablePermission.WRITE);
 
     Scanner metaScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -241,7 +245,8 @@ public class VolumeIT extends ConfigurableMacBase {
         String relPath = "/" + path.getParent().getName() + "/" + path.getName();
         Mutation fileMut = new Mutation(entry.getKey().getRow());
         fileMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-        fileMut.put(entry.getKey().getColumnFamily().toString(), relPath, entry.getValue().toString());
+        fileMut.put(entry.getKey().getColumnFamily().toString(), relPath,
+            entry.getValue().toString());
         mbw.addMutation(fileMut);
       }
     }
@@ -278,14 +283,17 @@ public class VolumeIT extends ConfigurableMacBase {
     cluster.stop();
 
     Configuration conf = new Configuration(false);
-    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+    conf.addResource(
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
 
     File v3f = new File(volDirBase, "v3");
     assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v1.toString() + "," + v2.toString() + "," + v3.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    conf.set(Property.INSTANCE_VOLUMES.getKey(),
+        v1.toString() + "," + v2.toString() + "," + v3.toString());
+    BufferedOutputStream fos = new BufferedOutputStream(
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
     fos.close();
 
@@ -321,14 +329,16 @@ public class VolumeIT extends ConfigurableMacBase {
     cluster.stop();
 
     Configuration conf = new Configuration(false);
-    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+    conf.addResource(
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
 
     File v3f = new File(volDirBase, "v3");
     assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString() + "," + v3.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    BufferedOutputStream fos = new BufferedOutputStream(
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
     fos.close();
 
@@ -347,7 +357,8 @@ public class VolumeIT extends ConfigurableMacBase {
     // start cluster and verify that new volume is used
     cluster.start();
 
-    // Make sure we can still read the tables (tableNames[0] is very likely to have a file still on v1)
+    // Make sure we can still read the tables (tableNames[0] is very likely to have a file still on
+    // v1)
     List<String> expected = new ArrayList<>();
     for (int i = 0; i < 100; i++) {
       String row = String.format("%06d", i * 100 + 3);
@@ -360,8 +371,9 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(tableNames[1], false, v2, v3);
   }
 
-  private void writeData(String tableName, Connector conn) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
-      MutationsRejectedException {
+  private void writeData(String tableName, Connector conn)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException,
+      TableNotFoundException, MutationsRejectedException {
     TreeSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 100; i++) {
       splits.add(new Text(String.format("%06d", i * 100)));
@@ -381,7 +393,8 @@ public class VolumeIT extends ConfigurableMacBase {
     bw.close();
   }
 
-  private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths) throws Exception {
+  private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths)
+      throws Exception {
 
     Connector conn = getConnector();
 
@@ -434,7 +447,8 @@ public class VolumeIT extends ConfigurableMacBase {
     // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
     retry: while (true) {
       Instance i = conn.getInstance();
-      ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+      ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
+          "");
       WalStateManager wals = new WalStateManager(i, zk);
       try {
         outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
@@ -457,8 +471,10 @@ public class VolumeIT extends ConfigurableMacBase {
       break;
     }
 
-    // if a volume is chosen randomly for each tablet, then the probability that a volume will not be chosen for any tablet is ((num_volumes -
-    // 1)/num_volumes)^num_tablets. For 100 tablets and 3 volumes the probability that only 2 volumes would be chosen is 2.46e-18
+    // if a volume is chosen randomly for each tablet, then the probability that a volume will not
+    // be chosen for any tablet is ((num_volumes -
+    // 1)/num_volumes)^num_tablets. For 100 tablets and 3 volumes the probability that only 2
+    // volumes would be chosen is 2.46e-18
 
     int sum = 0;
     for (int count : counts) {
@@ -480,10 +496,12 @@ public class VolumeIT extends ConfigurableMacBase {
     cluster.stop();
 
     Configuration conf = new Configuration(false);
-    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+    conf.addResource(
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    BufferedOutputStream fos = new BufferedOutputStream(
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
     fos.close();
 
@@ -497,11 +515,13 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig())) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig()))
+        + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
 
-    conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<String,String>(), new HashSet<String>());
+    conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<String,String>(),
+        new HashSet<String>());
 
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
@@ -535,11 +555,13 @@ public class VolumeIT extends ConfigurableMacBase {
     Path v9 = new Path(v9f.toURI());
 
     Configuration conf = new Configuration(false);
-    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+    conf.addResource(
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
     conf.set(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(), v1 + " " + v8 + "," + v2 + " " + v9);
-    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    BufferedOutputStream fos = new BufferedOutputStream(
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
     fos.close();
 
@@ -558,11 +580,14 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1 or 2
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig())) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig()))
+        + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
-    Assert.assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
+    Assert.assertTrue(
+        rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
 
-    getConnector().tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<String,String>(), new HashSet<String>());
+    getConnector().tableOperations().clone(tableNames[1], tableNames[2], true,
+        new HashMap<String,String>(), new HashSet<String>());
 
     getConnector().tableOperations().flush(MetadataTable.NAME, null, null, true);
     getConnector().tableOperations().flush(RootTable.NAME, null, null, true);

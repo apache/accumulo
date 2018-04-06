@@ -50,7 +50,8 @@ class CountingVerifyingReceiver {
     byte expectedValue[] = RandomBatchWriter.createValue(rowid, expectedValueSize);
 
     if (!Arrays.equals(expectedValue, value.get())) {
-      log.error("Got unexpected value for " + key + " expected : " + new String(expectedValue, UTF_8) + " got : " + new String(value.get(), UTF_8));
+      log.error("Got unexpected value for " + key + " expected : "
+          + new String(expectedValue, UTF_8) + " got : " + new String(value.get(), UTF_8));
     }
 
     if (!expectedRows.containsKey(key.getRow())) {

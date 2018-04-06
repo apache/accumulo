@@ -41,7 +41,8 @@ public class IteratorAdapter implements Iterator<Entry<Key,Value>> {
   @Override
   public Entry<Key,Value> next() {
     try {
-      Entry<Key,Value> result = new KeyValue(new Key(inner.getTopKey()), new Value(inner.getTopValue()).get());
+      Entry<Key,Value> result = new KeyValue(new Key(inner.getTopKey()),
+          new Value(inner.getTopValue()).get());
       inner.next();
       return result;
     } catch (IOException ex) {

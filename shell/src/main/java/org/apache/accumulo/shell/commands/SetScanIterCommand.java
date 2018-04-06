@@ -40,15 +40,18 @@ import org.apache.commons.cli.Options;
 
 public class SetScanIterCommand extends SetIterCommand {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, IOException, ShellCommandException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
+      ShellCommandException {
     Shell.log.warn("Deprecated, use " + new SetShellIterCommand().getName());
     return super.execute(fullCommand, cl, shellState);
   }
 
   @Override
-  protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
-      final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
+  protected void setTableProperties(final CommandLine cl, final Shell shellState,
+      final int priority, final Map<String,String> options, final String classname,
+      final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException,
+      TableNotFoundException {
 
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
@@ -71,7 +74,8 @@ public class SetScanIterCommand extends SetIterCommand {
 
     // initialize a scanner to ensure the new setting does not conflict with existing settings
     final String user = shellState.getConnector().whoami();
-    final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
+    final Authorizations auths = shellState.getConnector().securityOperations()
+        .getUserAuthorizations(user);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     for (IteratorSetting s : tableScanIterators) {
       scanner.addScanIterator(s);
@@ -97,7 +101,9 @@ public class SetScanIterCommand extends SetIterCommand {
     final Options modifiedOptions = new Options();
     for (Iterator<?> it = parentOptions.getOptions().iterator(); it.hasNext();) {
       Option o = (Option) it.next();
-      if (!IteratorScope.majc.name().equals(o.getOpt()) && !IteratorScope.minc.name().equals(o.getOpt()) && !IteratorScope.scan.name().equals(o.getOpt())) {
+      if (!IteratorScope.majc.name().equals(o.getOpt())
+          && !IteratorScope.minc.name().equals(o.getOpt())
+          && !IteratorScope.scan.name().equals(o.getOpt())) {
         modifiedOptions.addOption(o);
         OptionGroup group = parentOptions.getOptionGroup(o);
         if (group != null)

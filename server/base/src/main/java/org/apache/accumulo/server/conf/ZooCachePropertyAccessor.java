@@ -87,8 +87,8 @@ public class ZooCachePropertyAccessor {
   }
 
   /**
-   * Gets a property. If the property is not in ZooKeeper or is present but an invalid format for the property type, the parent configuration is consulted (if
-   * provided).
+   * Gets a property. If the property is not in ZooKeeper or is present but an invalid format for
+   * the property type, the parent configuration is consulted (if provided).
    *
    * @param property
    *          property to get
@@ -104,7 +104,8 @@ public class ZooCachePropertyAccessor {
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null) {
-        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+        log.error("Using default value for " + key + " due to improperly formatted "
+            + property.getType() + ": " + value);
       }
       if (parent != null) {
         value = parent.get(property);
@@ -123,8 +124,9 @@ public class ZooCachePropertyAccessor {
   }
 
   /**
-   * Gets all properties into the given map. Properties are filtered using the given filter. Properties from a parent configuration are also added to the map
-   * and filtered, either using a separate filter or, if not specified, the other filter.
+   * Gets all properties into the given map. Properties are filtered using the given filter.
+   * Properties from a parent configuration are also added to the map and filtered, either using a
+   * separate filter or, if not specified, the other filter.
    *
    * @param props
    *          map to populate with properties
@@ -137,7 +139,8 @@ public class ZooCachePropertyAccessor {
    * @param parentFilter
    *          separate filter for parent properties (optional)
    */
-  void getProperties(Map<String,String> props, String path, Predicate<String> filter, AccumuloConfiguration parent, Predicate<String> parentFilter) {
+  void getProperties(Map<String,String> props, String path, Predicate<String> filter,
+      AccumuloConfiguration parent, Predicate<String> parentFilter) {
     parent.getProperties(props, parentFilter != null ? parentFilter : filter);
 
     List<String> children = propCache.getChildren(path);

@@ -52,8 +52,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
-  static final List<ServerType> ALL_SERVER_TYPES = Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER,
-      ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
+  static final List<ServerType> ALL_SERVER_TYPES = Collections
+      .unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
+          ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private Instance instance;
   private ClientConfiguration clientConf;
@@ -62,11 +63,13 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private List<ClusterUser> users;
   private String serverUser;
 
-  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
+  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp,
+      List<ClusterUser> users, String serverUser) {
     this(new ZooKeeperInstance(clientConf), clientConf, tmp, users, serverUser);
   }
 
-  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
+  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp,
+      List<ClusterUser> users, String serverUser) {
     this.instance = instance;
     this.clientConf = clientConf;
     this.tmp = tmp;
@@ -123,7 +126,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String user, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
     return instance.getConnector(user, token);
   }
 
@@ -134,7 +138,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public StandaloneClusterControl getClusterControl() {
-    return new StandaloneClusterControl(serverUser, null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
+    return new StandaloneClusterControl(serverUser,
+        null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
         null == clientAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : clientAccumuloConfDir,
         null == serverAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : serverAccumuloConfDir);
   }
@@ -143,7 +148,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public void start() throws IOException {
     StandaloneClusterControl control = getClusterControl();
 
-    // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
+    // TODO We can check the hosts files, but that requires us to be on a host with the
+    // installation. Limitation at the moment.
 
     control.setGoalState(MasterGoalState.NORMAL.toString());
 
@@ -156,7 +162,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public void stop() throws IOException {
     StandaloneClusterControl control = getClusterControl();
 
-    // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
+    // TODO We can check the hosts files, but that requires us to be on a host with the
+    // installation. Limitation at the moment.
 
     for (ServerType type : ALL_SERVER_TYPES) {
       control.stopAllServers(type);
@@ -185,7 +192,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   public ClusterUser getUser(int offset) {
-    checkArgument(offset >= 0 && offset < users.size(), "Invalid offset, should be non-negative and less than " + users.size());
+    checkArgument(offset >= 0 && offset < users.size(),
+        "Invalid offset, should be non-negative and less than " + users.size());
     return users.get(offset);
   }
 
@@ -194,6 +202,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     Configuration conf = new Configuration(false);
     Path accumuloSite = new Path(serverAccumuloConfDir, "accumulo-site.xml");
     conf.addResource(accumuloSite);
-    return new ConfigurationCopy(Iterables.concat(AccumuloConfiguration.getDefaultConfiguration(), conf));
+    return new ConfigurationCopy(
+        Iterables.concat(AccumuloConfiguration.getDefaultConfiguration(), conf));
   }
 }

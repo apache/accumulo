@@ -24,7 +24,8 @@ import java.util.List;
  */
 public enum TablePermission {
   /*
-   * One may add new permissions, but new permissions must use new numbers. Current numbers in use must not be changed.
+   * One may add new permissions, but new permissions must use new numbers. Current numbers in use
+   * must not be changed.
    */
   // CREATE_LOCALITY_GROUP(0),
   // DROP_LOCALITY_GROUP(1),

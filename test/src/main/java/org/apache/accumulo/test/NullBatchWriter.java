@@ -48,7 +48,8 @@ public class NullBatchWriter implements BatchWriter {
 
   @Override
   public void flush() throws MutationsRejectedException {
-    System.out.printf("Mutation add rate : %,6.2f mutations/sec%n", mutationsAdded / ((System.currentTimeMillis() - startTime) / 1000.0));
+    System.out.printf("Mutation add rate : %,6.2f mutations/sec%n",
+        mutationsAdded / ((System.currentTimeMillis() - startTime) / 1000.0));
     mutationsAdded = 0;
   }
 

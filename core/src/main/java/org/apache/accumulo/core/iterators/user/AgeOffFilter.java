@@ -27,7 +27,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * A filter that ages off key/value pairs based on the Key's timestamp. It removes an entry if its timestamp is less than currentTime - threshold.
+ * A filter that ages off key/value pairs based on the Key's timestamp. It removes an entry if its
+ * timestamp is less than currentTime - threshold.
  *
  * This filter requires a "ttl" option, in milliseconds, to determine the age off threshold.
  */
@@ -40,7 +41,8 @@ public class AgeOffFilter extends Filter {
   /**
    * Accepts entries whose timestamps are less than currentTime - threshold.
    *
-   * @see org.apache.accumulo.core.iterators.Filter#accept(org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value)
+   * @see org.apache.accumulo.core.iterators.Filter#accept(org.apache.accumulo.core.data.Key,
+   *      org.apache.accumulo.core.data.Value)
    */
   @Override
   public boolean accept(Key k, Value v) {
@@ -50,7 +52,8 @@ public class AgeOffFilter extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     if (options == null)
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
 
@@ -82,9 +85,11 @@ public class AgeOffFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.addNamedOption(TTL, "time to live (milliseconds)");
-    io.addNamedOption(CURRENT_TIME, "if set, use the given value as the absolute time in milliseconds as the current time of day");
+    io.addNamedOption(CURRENT_TIME,
+        "if set, use the given value as the absolute time in milliseconds as the current time of day");
     io.setName("ageoff");
-    io.setDescription("AgeOffFilter removes entries with timestamps more than <ttl> milliseconds old");
+    io.setDescription(
+        "AgeOffFilter removes entries with timestamps more than <ttl> milliseconds old");
     return io;
   }
 
@@ -113,7 +118,8 @@ public class AgeOffFilter extends Filter {
   }
 
   /**
-   * A convenience method for setting the current time (from which to measure the age off threshold).
+   * A convenience method for setting the current time (from which to measure the age off
+   * threshold).
    *
    * @param is
    *          IteratorSetting object to configure.

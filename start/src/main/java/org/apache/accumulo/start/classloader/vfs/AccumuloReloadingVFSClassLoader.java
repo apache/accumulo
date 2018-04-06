@@ -37,15 +37,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Classloader that delegates operations to a VFSClassLoader object. This class also listens for changes in any of the files/directories that are in the
- * classpath and will recreate the delegate object if there is any change in the classpath.
+ * Classloader that delegates operations to a VFSClassLoader object. This class also listens for
+ * changes in any of the files/directories that are in the classpath and will recreate the delegate
+ * object if there is any change in the classpath.
  *
  */
 public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingClassLoader {
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloReloadingVFSClassLoader.class);
 
-  // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking the name node for info too frequently.
+  // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking
+  // the name node for info too frequently.
   private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
 
   private FileObject[] files;
@@ -133,7 +135,8 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     this.cl = cl;
   }
 
-  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, ReloadingClassLoader parent, long monitorDelay, boolean preDelegate)
+  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs,
+      ReloadingClassLoader parent, long monitorDelay, boolean preDelegate)
       throws FileSystemException {
 
     this.uris = uris;
@@ -158,7 +161,8 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     monitor.start();
   }
 
-  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, final ReloadingClassLoader parent, boolean preDelegate) throws FileSystemException {
+  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs,
+      final ReloadingClassLoader parent, boolean preDelegate) throws FileSystemException {
     this(uris, vfs, parent, DEFAULT_TIMEOUT, preDelegate);
   }
 
@@ -167,7 +171,8 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   }
 
   /**
-   * Should be ok if this is not called because the thread started by DefaultFileMonitor is a daemon thread
+   * Should be ok if this is not called because the thread started by DefaultFileMonitor is a daemon
+   * thread
    */
   public void close() {
     executor.shutdownNow();

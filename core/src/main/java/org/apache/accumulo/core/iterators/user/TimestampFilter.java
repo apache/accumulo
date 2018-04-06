@@ -68,9 +68,11 @@ public class TimestampFilter extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     if (options == null)
-      throw new IllegalArgumentException("start and/or end must be set for " + TimestampFilter.class.getName());
+      throw new IllegalArgumentException(
+          "start and/or end must be set for " + TimestampFilter.class.getName());
 
     super.init(source, options, env);
 
@@ -84,7 +86,8 @@ public class TimestampFilter extends Filter {
     if (options.containsKey(END))
       hasEnd = true;
     if (!hasStart && !hasEnd)
-      throw new IllegalArgumentException("must have either start or end for " + TimestampFilter.class.getName());
+      throw new IllegalArgumentException(
+          "must have either start or end for " + TimestampFilter.class.getName());
 
     try {
       if (hasStart) {
@@ -197,7 +200,8 @@ public class TimestampFilter extends Filter {
    * @param endInclusive
    *          boolean indicating whether the end is inclusive
    */
-  public static void setRange(IteratorSetting is, String start, boolean startInclusive, String end, boolean endInclusive) {
+  public static void setRange(IteratorSetting is, String start, boolean startInclusive, String end,
+      boolean endInclusive) {
     setStart(is, start, startInclusive);
     setEnd(is, end, endInclusive);
   }
@@ -270,7 +274,8 @@ public class TimestampFilter extends Filter {
    * @param endInclusive
    *          boolean indicating whether the end is inclusive
    */
-  public static void setRange(IteratorSetting is, long start, boolean startInclusive, long end, boolean endInclusive) {
+  public static void setRange(IteratorSetting is, long start, boolean startInclusive, long end,
+      boolean endInclusive) {
     setStart(is, start, startInclusive);
     setEnd(is, end, endInclusive);
   }

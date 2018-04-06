@@ -88,7 +88,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       return;
 
     if (getPrevEndRow().compareTo(getEndRow()) >= 0) {
-      throw new IllegalArgumentException("prevEndRow (" + getPrevEndRow() + ") >= endRow (" + getEndRow() + ")");
+      throw new IllegalArgumentException(
+          "prevEndRow (" + getPrevEndRow() + ") >= endRow (" + getEndRow() + ")");
     }
   }
 
@@ -121,8 +122,11 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   public KeyExtent(TKeyExtent tke) {
     this.setTableId(dedupeTableId(new String(ByteBufferUtil.toBytes(tke.table), UTF_8)));
-    this.setEndRow(tke.endRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.endRow)), false, false);
-    this.setPrevEndRow(tke.prevEndRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.prevEndRow)), false, false);
+    this.setEndRow(tke.endRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.endRow)), false,
+        false);
+    this.setPrevEndRow(
+        tke.prevEndRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.prevEndRow)), false,
+        false);
 
     check();
   }
@@ -296,13 +300,16 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   /**
-   * Empty start or end rows tell the method there are no start or end rows, and to use all the keyextents that are before the end row if no start row etc.
+   * Empty start or end rows tell the method there are no start or end rows, and to use all the
+   * keyextents that are before the end row if no start row etc.
    *
-   * @deprecated this method not intended for public use and is likely to be removed in a future version.
+   * @deprecated this method not intended for public use and is likely to be removed in a future
+   *             version.
    * @return all the key extents that the rows cover
    */
   @Deprecated
-  public static Collection<KeyExtent> getKeyExtentsForRange(Text startRow, Text endRow, Set<KeyExtent> kes) {
+  public static Collection<KeyExtent> getKeyExtentsForRange(Text startRow, Text endRow,
+      Set<KeyExtent> kes) {
     if (kes == null)
       return Collections.emptyList();
     if (startRow == null)
@@ -317,7 +324,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
           keys.add(ckes);
         } else {
           // first tablet
-          // if start row = '' then we want everything up to the endRow which will always include the first tablet
+          // if start row = '' then we want everything up to the endRow which will always include
+          // the first tablet
           if (startRow.getLength() == 0) {
             keys.add(ckes);
           } else if (ckes.getEndRow().compareTo(startRow) >= 0) {
@@ -355,7 +363,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
             }
           } else {
             // no null prevend or endrows and no empty string start or end rows
-            if (ckes.getPrevEndRow().compareTo(endRow) < 0 && ckes.getEndRow().compareTo(startRow) >= 0) {
+            if (ckes.getPrevEndRow().compareTo(endRow) < 0
+                && ckes.getEndRow().compareTo(startRow) >= 0) {
               keys.add(ckes);
             }
           }
@@ -455,7 +464,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     if (!(o instanceof KeyExtent))
       return false;
     KeyExtent oke = (KeyExtent) o;
-    return tableId.equals(oke.tableId) && equals(textEndRow, oke.textEndRow) && equals(textPrevEndRow, oke.textPrevEndRow);
+    return tableId.equals(oke.tableId) && equals(textEndRow, oke.textEndRow)
+        && equals(textPrevEndRow, oke.textPrevEndRow);
   }
 
   @Override
@@ -467,12 +477,14 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     if (getEndRow() == null)
       endRowString = "<";
     else
-      endRowString = ";" + TextUtil.truncate(getEndRow()).toString().replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
+      endRowString = ";" + TextUtil.truncate(getEndRow()).toString().replaceAll(";", "\\\\;")
+          .replaceAll("\\\\", "\\\\\\\\");
 
     if (getPrevEndRow() == null)
       prevEndRowString = "<";
     else
-      prevEndRowString = ";" + TextUtil.truncate(getPrevEndRow()).toString().replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
+      prevEndRowString = ";" + TextUtil.truncate(getPrevEndRow()).toString()
+          .replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
 
     return tableIdString + endRowString + prevEndRowString;
   }
@@ -519,16 +531,19 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     }
 
     if (semiPos < 0 && ltPos < 0) {
-      throw new IllegalArgumentException("Metadata row does not contain ; or <  " + flattenedExtent);
+      throw new IllegalArgumentException(
+          "Metadata row does not contain ; or <  " + flattenedExtent);
     }
 
     if (semiPos < 0) {
 
       if (ltPos != flattenedExtent.getLength() - 1) {
-        throw new IllegalArgumentException("< must come at end of Metadata row  " + flattenedExtent);
+        throw new IllegalArgumentException(
+            "< must come at end of Metadata row  " + flattenedExtent);
       }
 
-      String tableId = new String(flattenedExtent.getBytes(), 0, flattenedExtent.getLength() - 1, UTF_8);
+      String tableId = new String(flattenedExtent.getBytes(), 0, flattenedExtent.getLength() - 1,
+          UTF_8);
       this.setTableId(tableId);
       this.setEndRow(null, false, false);
     } else {
@@ -536,7 +551,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       String tableId = new String(flattenedExtent.getBytes(), 0, semiPos, UTF_8);
 
       Text endRow = new Text();
-      endRow.set(flattenedExtent.getBytes(), semiPos + 1, flattenedExtent.getLength() - (semiPos + 1));
+      endRow.set(flattenedExtent.getBytes(), semiPos + 1,
+          flattenedExtent.getLength() - (semiPos + 1));
 
       this.setTableId(tableId);
 
@@ -552,7 +568,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   public boolean contains(final ByteSequence bsrow) {
     if (bsrow == null) {
-      throw new IllegalArgumentException("Passing null to contains is ambiguous, could be in first or last extent of table");
+      throw new IllegalArgumentException(
+          "Passing null to contains is ambiguous, could be in first or last extent of table");
     }
 
     BinaryComparable row = new BinaryComparable() {
@@ -571,7 +588,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       }
     };
 
-    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0) && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
+    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0)
+        && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
       return true;
     }
     return false;
@@ -579,10 +597,12 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   public boolean contains(BinaryComparable row) {
     if (row == null) {
-      throw new IllegalArgumentException("Passing null to contains is ambiguous, could be in first or last extent of table");
+      throw new IllegalArgumentException(
+          "Passing null to contains is ambiguous, could be in first or last extent of table");
     }
 
-    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0) && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
+    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0)
+        && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
       return true;
     }
     return false;
@@ -609,8 +629,9 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
     for (KeyExtent tabletKe : tablets) {
 
-      if (ke.getPrevEndRow() == tabletKe.getPrevEndRow() || ke.getPrevEndRow() != null && tabletKe.getPrevEndRow() != null
-          && tabletKe.getPrevEndRow().compareTo(ke.getPrevEndRow()) == 0) {
+      if (ke.getPrevEndRow() == tabletKe.getPrevEndRow()
+          || ke.getPrevEndRow() != null && tabletKe.getPrevEndRow() != null
+              && tabletKe.getPrevEndRow().compareTo(ke.getPrevEndRow()) == 0) {
         children = new TreeSet<>();
       }
 
@@ -618,8 +639,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
         children.add(tabletKe);
       }
 
-      if (ke.getEndRow() == tabletKe.getEndRow() || ke.getEndRow() != null && tabletKe.getEndRow() != null
-          && tabletKe.getEndRow().compareTo(ke.getEndRow()) == 0) {
+      if (ke.getEndRow() == tabletKe.getEndRow() || ke.getEndRow() != null
+          && tabletKe.getEndRow() != null && tabletKe.getEndRow().compareTo(ke.getEndRow()) == 0) {
         return children;
       }
     }
@@ -665,7 +686,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       return true;
     }
 
-    return ke.getPrevEndRow() != null && nke.getEndRow() != null && ke.getPrevEndRow().compareTo(nke.getEndRow()) >= 0;
+    return ke.getPrevEndRow() != null && nke.getEndRow() != null
+        && ke.getPrevEndRow().compareTo(nke.getEndRow()) >= 0;
   }
 
   private static Text rowAfterPrevRow(KeyExtent nke) {
@@ -738,7 +760,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public TKeyExtent toThrift() {
-    return new TKeyExtent(ByteBuffer.wrap(tableId.getBytes(UTF_8)), textEndRow == null ? null : TextUtil.getByteBuffer(textEndRow),
+    return new TKeyExtent(ByteBuffer.wrap(tableId.getBytes(UTF_8)),
+        textEndRow == null ? null : TextUtil.getByteBuffer(textEndRow),
         textPrevEndRow == null ? null : TextUtil.getByteBuffer(textPrevEndRow));
   }
 
@@ -747,7 +770,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       return getPrevEndRow() == null;
 
     if (!prevExtent.getTableId().equals(getTableId()))
-      throw new IllegalArgumentException("Cannot compare accross tables " + prevExtent + " " + this);
+      throw new IllegalArgumentException(
+          "Cannot compare accross tables " + prevExtent + " " + this);
 
     if (prevExtent.getEndRow() == null)
       return false;

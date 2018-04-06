@@ -35,14 +35,15 @@ import org.apache.hadoop.io.Text;
  */
 public class InsertWithBatchWriter {
 
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, MutationsRejectedException, TableExistsException,
-      TableNotFoundException {
+  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException,
+      MutationsRejectedException, TableExistsException, TableNotFoundException {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(InsertWithBatchWriter.class.getName(), args, bwOpts);
 
     Connector connector = opts.getConnector();
-    MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
+    MultiTableBatchWriter mtbw = connector
+        .createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
 
     if (!connector.tableOperations().exists(opts.getTableName()))
       connector.tableOperations().create(opts.getTableName());
@@ -53,7 +54,8 @@ public class InsertWithBatchWriter {
     for (int i = 0; i < 10000; i++) {
       Mutation m = new Mutation(new Text(String.format("row_%d", i)));
       for (int j = 0; j < 5; j++) {
-        m.put(colf, new Text(String.format("colqual_%d", j)), new Value((String.format("value_%d_%d", i, j)).getBytes()));
+        m.put(colf, new Text(String.format("colqual_%d", j)),
+            new Value((String.format("value_%d_%d", i, j)).getBytes()));
       }
       bw.addMutation(m);
       if (i % 100 == 0)

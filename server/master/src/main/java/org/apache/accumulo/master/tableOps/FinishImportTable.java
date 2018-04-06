@@ -52,7 +52,8 @@ class FinishImportTable extends MasterRepo {
 
     env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
 
-    LoggerFactory.getLogger(FinishImportTable.class).debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
+    LoggerFactory.getLogger(FinishImportTable.class)
+        .debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
 
     return null;
   }

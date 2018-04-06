@@ -97,8 +97,10 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     conn = getConnector();
     assigner = new MockSequentialWorkAssigner(conn);
     // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
   }
 
@@ -111,11 +113,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
-    String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
+    String file1 = "/accumulo/wal/tserver+port/" + filename1,
+        file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false)
+        .setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false)
+        .setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget, ProtobufUtil.toValue(stat1));
@@ -158,7 +163,8 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target), cluster1Work.get(target.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target),
+        cluster1Work.get(target.getSourceTableId()));
   }
 
   @Test
@@ -173,11 +179,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
-    String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
+    String file1 = "/accumulo/wal/tserver+port/" + filename1,
+        file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false)
+        .setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false)
+        .setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget1, ProtobufUtil.toValue(stat1));
@@ -204,10 +213,12 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
-    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), file1);
+    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
+        file1);
     expectLastCall().once();
 
-    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), file2);
+    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
+        file2);
     expectLastCall().once();
 
     // file2 is *not* queued because file1 must be replicated first
@@ -224,10 +235,12 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(2, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
+        cluster1Work.get(target1.getSourceTableId()));
 
     Assert.assertTrue(cluster1Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), cluster1Work.get(target2.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
+        cluster1Work.get(target2.getSourceTableId()));
   }
 
   @Test
@@ -242,11 +255,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
-    String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
+    String file1 = "/accumulo/wal/tserver+port/" + filename1,
+        file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false)
+        .setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false)
+        .setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget1, ProtobufUtil.toValue(stat1));
@@ -273,10 +289,12 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
-    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), file1);
+    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
+        file1);
     expectLastCall().once();
 
-    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), file2);
+    workQueue.addWork(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
+        file2);
     expectLastCall().once();
 
     // file2 is *not* queued because file1 must be replicated first
@@ -293,12 +311,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
+        cluster1Work.get(target1.getSourceTableId()));
 
     Map<String,String> cluster2Work = queuedWork.get("cluster2");
     Assert.assertEquals(1, cluster2Work.size());
     Assert.assertTrue(cluster2Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), cluster2Work.get(target2.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
+        cluster2Work.get(target2.getSourceTableId()));
   }
 
   @Test
@@ -310,11 +330,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
-    String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
+    String file1 = "/accumulo/wal/tserver+port/" + filename1,
+        file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(100).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(100).setEnd(100).setClosed(true)
+        .setInfiniteEnd(false).setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false)
+        .setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget, ProtobufUtil.toValue(stat1));
@@ -339,7 +362,8 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     // Treat filename1 as we have already submitted it for replication
     Map<String,Map<String,String>> queuedWork = new HashMap<>();
     Map<String,String> queuedWorkForCluster = new HashMap<>();
-    queuedWorkForCluster.put(target.getSourceTableId(), DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target));
+    queuedWorkForCluster.put(target.getSourceTableId(),
+        DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target));
     queuedWork.put("cluster1", queuedWorkForCluster);
 
     assigner.setQueuedWork(queuedWork);
@@ -363,6 +387,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target), cluster1Work.get(target.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target),
+        cluster1Work.get(target.getSourceTableId()));
   }
 }

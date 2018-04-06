@@ -40,7 +40,8 @@ public class MinCombiner extends LongCombiner {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("min");
-    io.setDescription("MinCombiner interprets Values as Longs and finds their minimum.  A variety of encodings (variable length, fixed length, or string) are available");
+    io.setDescription(
+        "MinCombiner interprets Values as Longs and finds their minimum.  A variety of encodings (variable length, fixed length, or string) are available");
     return io;
   }
 }

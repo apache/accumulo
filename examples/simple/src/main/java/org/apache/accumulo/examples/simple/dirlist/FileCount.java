@@ -35,7 +35,8 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * Computes recursive counts over file system information and stores them back into the same Accumulo table. See docs/examples/README.dirlist for instructions.
+ * Computes recursive counts over file system information and stores them back into the same
+ * Accumulo table. See docs/examples/README.dirlist for instructions.
  */
 public class FileCount {
 
@@ -61,7 +62,9 @@ public class FileCount {
     }
 
     Value toValue() {
-      return new Value((dirCount + "," + fileCount + "," + recursiveDirCount + "," + recusiveFileCount).getBytes());
+      return new Value(
+          (dirCount + "," + fileCount + "," + recursiveDirCount + "," + recusiveFileCount)
+              .getBytes());
     }
 
     void incrementFiles() {
@@ -97,7 +100,8 @@ public class FileCount {
     if (max < min)
       return -1;
 
-    scanner.setRange(new Range(String.format("%03d", mid), true, String.format("%03d", mid + 1), false));
+    scanner.setRange(
+        new Range(String.format("%03d", mid), true, String.format("%03d", mid + 1), false));
 
     if (scanner.iterator().hasNext()) {
       // this depth exist, check to see if a larger depth exist
@@ -123,7 +127,8 @@ public class FileCount {
   }
 
   // find the count column and consume a row
-  private Entry<Key,Value> findCount(Entry<Key,Value> entry, Iterator<Entry<Key,Value>> iterator, CountValue cv) {
+  private Entry<Key,Value> findCount(Entry<Key,Value> entry, Iterator<Entry<Key,Value>> iterator,
+      CountValue cv) {
 
     Key key = entry.getKey();
     Text currentRow = key.getRow();
@@ -139,7 +144,8 @@ public class FileCount {
       if (key.compareRow(currentRow) != 0)
         return entry;
 
-      if (key.compareColumnFamily(QueryUtil.DIR_COLF) == 0 && key.compareColumnQualifier(QueryUtil.COUNTS_COLQ) == 0) {
+      if (key.compareColumnFamily(QueryUtil.DIR_COLF) == 0
+          && key.compareColumnQualifier(QueryUtil.COUNTS_COLQ) == 0) {
         cv.set(entry.getValue());
       }
 
@@ -175,9 +181,11 @@ public class FileCount {
     return m;
   }
 
-  private void calculateCounts(Scanner scanner, int depth, BatchWriter batchWriter) throws Exception {
+  private void calculateCounts(Scanner scanner, int depth, BatchWriter batchWriter)
+      throws Exception {
 
-    scanner.setRange(new Range(String.format("%03d", depth), true, String.format("%03d", depth + 1), false));
+    scanner.setRange(
+        new Range(String.format("%03d", depth), true, String.format("%03d", depth + 1), false));
 
     CountValue countVal = new CountValue();
 
@@ -273,7 +281,8 @@ public class FileCount {
   }
 
   public static class Opts extends ClientOnRequiredTable {
-    @Parameter(names = "--vis", description = "use a given visibility for the new counts", converter = VisibilityConverter.class)
+    @Parameter(names = "--vis", description = "use a given visibility for the new counts",
+        converter = VisibilityConverter.class)
     ColumnVisibility visibility = new ColumnVisibility();
   }
 

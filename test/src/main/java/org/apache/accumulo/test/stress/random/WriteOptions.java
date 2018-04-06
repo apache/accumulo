@@ -24,34 +24,44 @@ class WriteOptions extends ClientOnDefaultTable {
   static final String DEFAULT_TABLE = "stress_test";
   static final int DEFAULT_MIN = 1, DEFAULT_MAX = 128, DEFAULT_SPREAD = DEFAULT_MAX - DEFAULT_MIN;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-row-size", description = "minimum row size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-row-size",
+      description = "minimum row size")
   Integer row_min;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-row-size", description = "maximum row size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-row-size",
+      description = "maximum row size")
   Integer row_max;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-cf-size", description = "minimum column family size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-cf-size",
+      description = "minimum column family size")
   Integer cf_min;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-cf-size", description = "maximum column family size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-cf-size",
+      description = "maximum column family size")
   Integer cf_max;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-cq-size", description = "minimum column qualifier size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-cq-size",
+      description = "minimum column qualifier size")
   Integer cq_min;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-cq-size", description = "maximum column qualifier size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-cq-size",
+      description = "maximum column qualifier size")
   Integer cq_max;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-value-size", description = "minimum value size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-value-size",
+      description = "minimum value size")
   Integer value_min;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-value-size", description = "maximum value size")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-value-size",
+      description = "maximum value size")
   Integer value_max;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-row-width", description = "minimum row width")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-row-width",
+      description = "minimum row width")
   Integer row_width_min;
 
-  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-row-width", description = "maximum row width")
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-row-width",
+      description = "maximum row width")
   Integer row_width_max;
 
   @Parameter(names = "--clear-table", description = "clears the table before ingesting")
@@ -69,10 +79,12 @@ class WriteOptions extends ClientOnDefaultTable {
   @Parameter(names = "--value-seed", description = "seed for generating values")
   int value_seed = 99;
 
-  @Parameter(names = "--row-width-seed", description = "seed for generating the number of cells within a row (a row's \"width\")")
+  @Parameter(names = "--row-width-seed",
+      description = "seed for generating the number of cells within a row (a row's \"width\")")
   int row_width_seed = 444;
 
-  @Parameter(names = "--max-cells-per-mutation", description = "maximum number of cells per mutation; non-positive value implies no limit")
+  @Parameter(names = "--max-cells-per-mutation",
+      description = "maximum number of cells per mutation; non-positive value implies no limit")
   int max_cells_per_mutation = -1;
 
   @Parameter(names = "--write-delay", description = "milliseconds to wait between writes")
@@ -117,12 +129,15 @@ class WriteOptions extends ClientOnDefaultTable {
 
     if (min_ref == null && max_ref != null) {
       // we don't support just specifying a max yet
-      throw new IllegalArgumentException(String.format("[%s] Maximum value supplied, but no minimum. Must supply a minimum with a maximum value.", label));
+      throw new IllegalArgumentException(String.format(
+          "[%s] Maximum value supplied, but no minimum. Must supply a minimum with a maximum value.",
+          label));
     } else if (min_ref != null && max_ref != null) {
       // if a user supplied lower and upper bounds, we need to verify
       // that min <= max
       if (min_ref.compareTo(max_ref) > 0) {
-        throw new IllegalArgumentException(String.format("[%s] Min value (%d) is greater than max value (%d)", label, min_ref, max_ref));
+        throw new IllegalArgumentException(String
+            .format("[%s] Min value (%d) is greater than max value (%d)", label, min_ref, max_ref));
       }
     }
   }

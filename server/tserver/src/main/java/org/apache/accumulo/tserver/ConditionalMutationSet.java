@@ -34,12 +34,14 @@ import org.apache.hadoop.io.WritableComparator;
 public class ConditionalMutationSet {
 
   interface DeferFilter {
-    void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred);
+    void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations,
+        List<ServerConditionalMutation> deferred);
   }
 
   static class DuplicateFilter implements DeferFilter {
     @Override
-    public void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
+    public void defer(List<ServerConditionalMutation> scml,
+        List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
       okMutations.add(scml.get(0));
       for (int i = 1; i < scml.size(); i++) {
         if (Arrays.equals(scml.get(i - 1).getRow(), scml.get(i).getRow())) {
@@ -51,7 +53,8 @@ public class ConditionalMutationSet {
     }
   }
 
-  static void defer(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferredMutations, DeferFilter filter) {
+  static void defer(Map<KeyExtent,List<ServerConditionalMutation>> updates,
+      Map<KeyExtent,List<ServerConditionalMutation>> deferredMutations, DeferFilter filter) {
     for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : updates.entrySet()) {
       List<ServerConditionalMutation> scml = entry.getValue();
       List<ServerConditionalMutation> okMutations = new ArrayList<>(scml.size());
@@ -73,7 +76,8 @@ public class ConditionalMutationSet {
     }
   }
 
-  static void deferDuplicatesRows(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
+  static void deferDuplicatesRows(Map<KeyExtent,List<ServerConditionalMutation>> updates,
+      Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
     defer(updates, deferred, new DuplicateFilter());
   }
 
@@ -82,7 +86,8 @@ public class ConditionalMutationSet {
       Collections.sort(entry.getValue(), new Comparator<ServerConditionalMutation>() {
         @Override
         public int compare(ServerConditionalMutation o1, ServerConditionalMutation o2) {
-          return WritableComparator.compareBytes(o1.getRow(), 0, o1.getRow().length, o2.getRow(), 0, o2.getRow().length);
+          return WritableComparator.compareBytes(o1.getRow(), 0, o1.getRow().length, o2.getRow(), 0,
+              o2.getRow().length);
         }
       });
     }

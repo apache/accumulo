@@ -92,9 +92,11 @@ public class ShutdownTServer extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
-      String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZTSERVERS + "/" + server.getLocation();
+      String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZTSERVERS + "/"
+          + server.getLocation();
       ZooLock.deleteLock(path);
-      path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/" + server.getLocation();
+      path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/"
+          + server.getLocation();
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     }

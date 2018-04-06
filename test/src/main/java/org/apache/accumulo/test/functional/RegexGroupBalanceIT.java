@@ -74,7 +74,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     conn.tableOperations().setProperty(tablename, RegexGroupBalancer.REGEX_PROPERTY, "(\\d\\d).*");
     conn.tableOperations().setProperty(tablename, RegexGroupBalancer.DEFAUT_GROUP_PROPERTY, "03");
     conn.tableOperations().setProperty(tablename, RegexGroupBalancer.WAIT_TIME_PROPERTY, "50ms");
-    conn.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(), RegexGroupBalancer.class.getName());
+    conn.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(),
+        RegexGroupBalancer.class.getName());
 
     conn.tableOperations().addSplits(tablename, splits);
 
@@ -137,8 +138,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     }
   }
 
-  private boolean checkTabletsPerTserver(Table<String,String,MutableInt> groupLocationCounts, int minTabletPerTserver, int maxTabletsPerTserver,
-      int totalTservser) {
+  private boolean checkTabletsPerTserver(Table<String,String,MutableInt> groupLocationCounts,
+      int minTabletPerTserver, int maxTabletsPerTserver, int totalTservser) {
     // check that each tserver has between min and max tablets
     for (Map<String,MutableInt> groups : groupLocationCounts.columnMap().values()) {
       int sum = 0;
@@ -154,15 +155,18 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     return groupLocationCounts.columnKeySet().size() == totalTservser;
   }
 
-  private boolean checkGroup(Table<String,String,MutableInt> groupLocationCounts, String group, int min, int max, int tsevers) {
+  private boolean checkGroup(Table<String,String,MutableInt> groupLocationCounts, String group,
+      int min, int max, int tsevers) {
     Collection<MutableInt> counts = groupLocationCounts.row(group).values();
     if (counts.size() == 0) {
       return min == 0 && max == 0 && tsevers == 0;
     }
-    return min == Collections.min(counts).intValue() && max == Collections.max(counts).intValue() && counts.size() == tsevers;
+    return min == Collections.min(counts).intValue() && max == Collections.max(counts).intValue()
+        && counts.size() == tsevers;
   }
 
-  private Table<String,String,MutableInt> getCounts(Connector conn, String tablename) throws TableNotFoundException {
+  private Table<String,String,MutableInt> getCounts(Connector conn, String tablename)
+      throws TableNotFoundException {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     String tableId = conn.tableOperations().tableIdMap().get(tablename);
@@ -177,7 +181,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       } else {
         group = group.substring(tableId.length() + 1).substring(0, 2);
       }
-      String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()).toString();
+      String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier())
+          .toString();
 
       MutableInt count = groupLocationCounts.get(group, loc);
       if (count == null) {

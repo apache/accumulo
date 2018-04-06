@@ -75,7 +75,8 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     super.seek(range, columnFamilies, inclusive);
 
     if (hasTop())

@@ -96,12 +96,14 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     runTest(c, getUniqueNames(1)[0]);
   }
 
-  static void runTest(Connector c, String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
-      MutationsRejectedException, Exception, InterruptedException {
+  static void runTest(Connector c, String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException,
+      TableNotFoundException, MutationsRejectedException, Exception, InterruptedException {
     c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(10, SlowIterator.class);
     SlowIterator.setSleepTime(is, 50);
-    c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc, IteratorScope.majc));
+    c.tableOperations().attachIterator(tableName, is,
+        EnumSet.of(IteratorScope.minc, IteratorScope.majc));
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());

@@ -45,11 +45,13 @@ public class TraceDumpExample {
       super("trace");
     }
 
-    @Parameter(names = {"--traceid"}, description = "The hex string id of a given trace, for example 16cfbbd7beec4ae3")
+    @Parameter(names = {"--traceid"},
+        description = "The hex string id of a given trace, for example 16cfbbd7beec4ae3")
     public String traceId = "";
   }
 
-  public void dump(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public void dump(Opts opts)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
     if (opts.traceId.isEmpty()) {
       throw new IllegalArgumentException("--traceid option is required");
@@ -66,7 +68,8 @@ public class TraceDumpExample {
         Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
-      while (!conn.securityOperations().hasTablePermission(principal, table, TablePermission.READ)) {
+      while (!conn.securityOperations().hasTablePermission(principal, table,
+          TablePermission.READ)) {
         log.info("{} didn't propagate read permission on {}", principal, table);
         try {
           Thread.sleep(1000);
@@ -86,7 +89,8 @@ public class TraceDumpExample {
     });
   }
 
-  public static void main(String[] args) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public static void main(String[] args)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     TraceDumpExample traceDumpExample = new TraceDumpExample();
     Opts opts = new Opts();
     ScannerOpts scannerOpts = new ScannerOpts();

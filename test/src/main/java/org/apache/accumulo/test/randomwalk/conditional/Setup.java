@@ -49,11 +49,13 @@ public class Setup extends Test {
       env.getConnector().tableOperations().create(tableName);
       log.debug("created table " + tableName);
       boolean blockCache = rand.nextBoolean();
-      env.getConnector().tableOperations().setProperty(tableName, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), blockCache + "");
+      env.getConnector().tableOperations().setProperty(tableName,
+          Property.TABLE_BLOCKCACHE_ENABLED.getKey(), blockCache + "");
       log.debug("set " + Property.TABLE_BLOCKCACHE_ENABLED.getKey() + " " + blockCache);
     } catch (TableExistsException tee) {}
 
-    ConditionalWriter cw = env.getConnector().createConditionalWriter(tableName, new ConditionalWriterConfig().setMaxWriteThreads(1));
+    ConditionalWriter cw = env.getConnector().createConditionalWriter(tableName,
+        new ConditionalWriterConfig().setMaxWriteThreads(1));
     state.set("cw", cw);
 
   }

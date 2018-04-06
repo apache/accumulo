@@ -48,7 +48,8 @@ public class DedupedLogEvent {
   @Override
   public int hashCode() {
     if (hash == -1) {
-      String eventId = event.getMDC("application").toString() + ":" + event.getLevel().toString() + ":" + event.getMessage().toString();
+      String eventId = event.getMDC("application").toString() + ":" + event.getLevel().toString()
+          + ":" + event.getMessage().toString();
       hash = eventId.hashCode();
     }
     return hash;
@@ -63,6 +64,7 @@ public class DedupedLogEvent {
 
   @Override
   public String toString() {
-    return event.getMDC("application").toString() + ":" + event.getLevel().toString() + ":" + event.getMessage().toString();
+    return event.getMDC("application").toString() + ":" + event.getLevel().toString() + ":"
+        + event.getMessage().toString();
   }
 }

@@ -29,7 +29,8 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  * Goal which stops all instances of {@link MiniAccumuloCluster} started with the start mojo.
  */
 @ThreadSafe
-@Mojo(name = "stop", defaultPhase = LifecyclePhase.POST_INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.TEST)
+@Mojo(name = "stop", defaultPhase = LifecyclePhase.POST_INTEGRATION_TEST,
+    requiresDependencyResolution = ResolutionScope.TEST)
 public class StopMojo extends AbstractAccumuloMojo {
 
   @Override
@@ -45,7 +46,8 @@ public class StopMojo extends AbstractAccumuloMojo {
         for (LogWriter log : mac.getLogWriters())
           log.flush();
       } catch (Exception e) {
-        throw new MojoExecutionException("Unable to start " + MiniAccumuloCluster.class.getSimpleName(), e);
+        throw new MojoExecutionException(
+            "Unable to start " + MiniAccumuloCluster.class.getSimpleName(), e);
       }
     }
   }

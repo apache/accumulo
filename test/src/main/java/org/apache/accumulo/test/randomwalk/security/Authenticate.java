@@ -33,10 +33,12 @@ public class Authenticate extends Test {
 
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    authenticate(WalkingSecurity.get(state, env).getSysUserName(), WalkingSecurity.get(state, env).getSysToken(), state, env, props);
+    authenticate(WalkingSecurity.get(state, env).getSysUserName(),
+        WalkingSecurity.get(state, env).getSysToken(), state, env, props);
   }
 
-  public static void authenticate(String principal, AuthenticationToken token, State state, Environment env, Properties props) throws Exception {
+  public static void authenticate(String principal, AuthenticationToken token, State state,
+      Environment env, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
 
@@ -51,8 +53,10 @@ public class Authenticate extends Test {
     }
     boolean exists = WalkingSecurity.get(state, env).userExists(target);
     // Copy so if failed it doesn't mess with the password stored in state
-    byte[] password = Arrays.copyOf(WalkingSecurity.get(state, env).getUserPassword(target), WalkingSecurity.get(state, env).getUserPassword(target).length);
-    boolean hasPermission = WalkingSecurity.get(state, env).canAskAboutUser(new Credentials(principal, token).toThrift(env.getInstance()), target);
+    byte[] password = Arrays.copyOf(WalkingSecurity.get(state, env).getUserPassword(target),
+        WalkingSecurity.get(state, env).getUserPassword(target).length);
+    boolean hasPermission = WalkingSecurity.get(state, env)
+        .canAskAboutUser(new Credentials(principal, token).toThrift(env.getInstance()), target);
 
     if (!success)
       for (int i = 0; i < password.length; i++)
@@ -66,7 +70,8 @@ public class Authenticate extends Test {
       switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (exists && hasPermission)
-            throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+            throw new AccumuloException(
+                "Got a security exception when I should have had permission.", ae);
           else
             return;
         default:
@@ -76,7 +81,8 @@ public class Authenticate extends Test {
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
     if (result != (success && exists))
-      throw new AccumuloException("Authentication " + (result ? "succeeded" : "failed") + " when it should have "
-          + ((success && exists) ? "succeeded" : "failed") + " while the user exists? " + exists);
+      throw new AccumuloException("Authentication " + (result ? "succeeded" : "failed")
+          + " when it should have " + ((success && exists) ? "succeeded" : "failed")
+          + " while the user exists? " + exists);
   }
 }

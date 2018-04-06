@@ -96,7 +96,8 @@ public class QueryMetadataTable {
     int numThreads = 1;
   }
 
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void main(String[] args)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(QueryMetadataTable.class.getName(), args, scanOpts);
@@ -115,7 +116,8 @@ public class QueryMetadataTable {
       if (count % 72 == 0) {
         System.out.printf(" %,d%n", count);
       }
-      if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily().compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
+      if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily()
+          .compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
         System.out.println(entry.getKey() + " " + entry.getValue());
         location = entry.getValue().toString();
       }

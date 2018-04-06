@@ -53,8 +53,10 @@ public class BulkImport extends Test {
 
     public RFileBatchWriter(Configuration conf, FileSystem fs, String file) throws IOException {
       AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
-      CachableBlockFile.Writer cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(fs.create(new Path(file), false,
-          conf.getInt("io.file.buffer.size", 4096), (short) conf.getInt("dfs.replication", 3), conf.getLong("dfs.block.size", 1 << 26))), "gz", conf, aconf);
+      CachableBlockFile.Writer cbw = new CachableBlockFile.Writer(PositionedOutputs
+          .wrap(fs.create(new Path(file), false, conf.getInt("io.file.buffer.size", 4096),
+              (short) conf.getInt("dfs.replication", 3), conf.getLong("dfs.block.size", 1 << 26))),
+          "gz", conf, aconf);
       writer = new RFile.Writer(cbw, 100000);
       writer.startDefaultLocalityGroup();
     }
@@ -63,7 +65,8 @@ public class BulkImport extends Test {
     public void addMutation(Mutation m) throws MutationsRejectedException {
       List<ColumnUpdate> updates = m.getUpdates();
       for (ColumnUpdate cu : updates) {
-        Key key = new Key(m.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(), cu.getColumnVisibility(), 42, false, false);
+        Key key = new Key(m.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(),
+            cu.getColumnVisibility(), 42, false, false);
         Value val = new Value(cu.getValue(), false);
 
         try {
@@ -108,7 +111,8 @@ public class BulkImport extends Test {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
 
-    String bulkDir = "/tmp/concurrent_bulk/b_" + String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl);
+    String bulkDir = "/tmp/concurrent_bulk/b_"
+        + String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl);
 
     fs.mkdirs(new Path(bulkDir));
     fs.mkdirs(new Path(bulkDir + "_f"));
@@ -135,7 +139,8 @@ public class BulkImport extends Test {
         bw.close();
       }
 
-      conn.tableOperations().importDirectory(tableName, bulkDir, bulkDir + "_f", rand.nextBoolean());
+      conn.tableOperations().importDirectory(tableName, bulkDir, bulkDir + "_f",
+          rand.nextBoolean());
 
       log.debug("BulkImported to " + tableName);
     } catch (TableNotFoundException e) {

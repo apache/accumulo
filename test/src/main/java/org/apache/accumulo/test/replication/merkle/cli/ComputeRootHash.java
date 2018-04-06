@@ -40,8 +40,9 @@ import org.apache.commons.codec.binary.Hex;
 import com.beust.jcommander.Parameter;
 
 /**
- * Given a table created by {@link GenerateHashes} which contains the leaves of a Merkle tree, compute the root node of the Merkle tree which can be quickly
- * compared to the root node of another Merkle tree to ascertain equality.
+ * Given a table created by {@link GenerateHashes} which contains the leaves of a Merkle tree,
+ * compute the root node of the Merkle tree which can be quickly compared to the root node of
+ * another Merkle tree to ascertain equality.
  */
 public class ComputeRootHash {
 
@@ -58,14 +59,16 @@ public class ComputeRootHash {
     }
   }
 
-  public byte[] getHash(ComputeRootHashOpts opts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, NoSuchAlgorithmException {
+  public byte[] getHash(ComputeRootHashOpts opts) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, NoSuchAlgorithmException {
     Connector conn = opts.getConnector();
     String table = opts.getTableName();
 
     return getHash(conn, table, opts.getHashName());
   }
 
-  public byte[] getHash(Connector conn, String table, String hashName) throws TableNotFoundException, NoSuchAlgorithmException {
+  public byte[] getHash(Connector conn, String table, String hashName)
+      throws TableNotFoundException, NoSuchAlgorithmException {
     List<MerkleTreeNode> leaves = getLeaves(conn, table);
 
     MerkleTree tree = new MerkleTree(leaves, hashName);
@@ -73,8 +76,10 @@ public class ComputeRootHash {
     return tree.getRootNode().getHash();
   }
 
-  protected ArrayList<MerkleTreeNode> getLeaves(Connector conn, String tableName) throws TableNotFoundException {
-    // TODO make this a bit more resilient to very large merkle trees by lazily reading more data from the table when necessary
+  protected ArrayList<MerkleTreeNode> getLeaves(Connector conn, String tableName)
+      throws TableNotFoundException {
+    // TODO make this a bit more resilient to very large merkle trees by lazily reading more data
+    // from the table when necessary
     final Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
     final ArrayList<MerkleTreeNode> leaves = new ArrayList<>();
 

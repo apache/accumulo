@@ -19,7 +19,8 @@ package org.apache.accumulo.server.util.time;
 /**
  * Provide time from a local source and a hint from a time source.
  *
- * RelativeTime and BaseRelativeTime are separated to provide unit tests of the core functionality of Relative timekeeping.
+ * RelativeTime and BaseRelativeTime are separated to provide unit tests of the core functionality
+ * of Relative timekeeping.
  *
  */
 public class BaseRelativeTime implements ProvidesTime {

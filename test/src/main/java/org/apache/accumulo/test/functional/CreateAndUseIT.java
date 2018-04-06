@@ -82,7 +82,8 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     int ei = 1;
 
     for (Entry<Key,Value> entry : scanner1) {
-      Assert.assertEquals(String.format("%08x", (ei << 8) - 16), entry.getKey().getRow().toString());
+      Assert.assertEquals(String.format("%08x", (ei << 8) - 16),
+          entry.getKey().getRow().toString());
       Assert.assertEquals(Integer.toString(ei), entry.getValue().toString());
 
       ei++;

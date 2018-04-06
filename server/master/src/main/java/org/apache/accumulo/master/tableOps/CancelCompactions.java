@@ -33,7 +33,8 @@ public class CancelCompactions extends MasterRepo {
   private String namespaceId;
 
   private String getNamespaceId(Master env) throws Exception {
-    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT_CANCEL, this.namespaceId);
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT_CANCEL,
+        this.namespaceId);
   }
 
   public CancelCompactions(String namespaceId, String tableId) {
@@ -43,15 +44,17 @@ public class CancelCompactions extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(getNamespaceId(env), tid, false, true, TableOperation.COMPACT_CANCEL)
+    return Utils.reserveNamespace(getNamespaceId(env), tid, false, true,
+        TableOperation.COMPACT_CANCEL)
         + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    String zCompactID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-    String zCancelID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    String zCompactID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID()
+        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zCancelID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID()
+        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 

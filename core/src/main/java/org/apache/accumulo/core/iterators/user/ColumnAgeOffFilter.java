@@ -32,8 +32,9 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
 /**
- * A filter that ages off key/value pairs based on the Key's column and timestamp. It removes an entry if its timestamp is less than currentTime - threshold.
- * Different thresholds are set for each column.
+ * A filter that ages off key/value pairs based on the Key's column and timestamp. It removes an
+ * entry if its timestamp is less than currentTime - threshold. Different thresholds are set for
+ * each column.
  */
 public class ColumnAgeOffFilter extends Filter {
   public static class TTLSet extends ColumnToClassMapping<Long> {
@@ -44,7 +45,8 @@ public class ColumnAgeOffFilter extends Filter {
         String column = entry.getKey();
         String ttl = entry.getValue().trim();
         // skip the negate option, it will cause an exception to be thrown
-        if (column.equals(NEGATE) && (ttl.isEmpty() || ttl.equalsIgnoreCase("true") || ttl.equalsIgnoreCase("false"))) {
+        if (column.equals(NEGATE)
+            && (ttl.isEmpty() || ttl.equalsIgnoreCase("true") || ttl.equalsIgnoreCase("false"))) {
           continue;
         }
 
@@ -75,7 +77,8 @@ public class ColumnAgeOffFilter extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.ttls = new TTLSet(options);
     currentTime = System.currentTimeMillis();
@@ -97,7 +100,8 @@ public class ColumnAgeOffFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("colageoff");
-    io.setDescription("ColumnAgeOffFilter ages off columns at different rates given a time to live in milliseconds for each column");
+    io.setDescription(
+        "ColumnAgeOffFilter ages off columns at different rates given a time to live in milliseconds for each column");
     io.addUnnamedOption("<col fam>[:<col qual>] <Long> (escape non-alphanum chars using %<hex>)");
     return io;
   }
@@ -125,7 +129,8 @@ public class ColumnAgeOffFilter extends Filter {
    *          age off threshold in milliseconds.
    */
   public static void addTTL(IteratorSetting is, IteratorSetting.Column column, Long ttl) {
-    is.addOption(ColumnSet.encodeColumns(column.getFirst(), column.getSecond()), Long.toString(ttl));
+    is.addOption(ColumnSet.encodeColumns(column.getFirst(), column.getSecond()),
+        Long.toString(ttl));
   }
 
   /**

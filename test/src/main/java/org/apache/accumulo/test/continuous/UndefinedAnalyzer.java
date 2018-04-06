@@ -49,8 +49,10 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * BUGS This code does not handle the fact that these files could include log events from previous months. It therefore it assumes all dates are in the current
- * month. One solution might be to skip log files that haven't been touched in the last month, but that doesn't prevent newer files that have old dates in them.
+ * BUGS This code does not handle the fact that these files could include log events from previous
+ * months. It therefore it assumes all dates are in the current month. One solution might be to skip
+ * log files that haven't been touched in the last month, but that doesn't prevent newer files that
+ * have old dates in them.
  *
  */
 public class UndefinedAnalyzer {
@@ -87,7 +89,8 @@ public class UndefinedAnalyzer {
     }
 
     private void parseLog(File log) throws Exception {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(log), UTF_8));
+      BufferedReader reader = new BufferedReader(
+          new InputStreamReader(new FileInputStream(log), UTF_8));
       String line;
       TreeMap<Long,Long> tm = null;
       try {
@@ -180,7 +183,8 @@ public class UndefinedAnalyzer {
       if (masterLogs != null) {
         for (File masterLog : masterLogs) {
 
-          BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(masterLog), UTF_8));
+          BufferedReader reader = new BufferedReader(
+              new InputStreamReader(new FileInputStream(masterLog), UTF_8));
           String line;
           try {
             while ((line = reader.readLine()) != null) {
@@ -207,14 +211,17 @@ public class UndefinedAnalyzer {
 
                 if (pos1 > 0 && pos2 > 0 && pos3 == -1) {
                   String tid = tablet.substring(0, pos1);
-                  String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000" : tablet.substring(pos1 + 1, pos2);
+                  String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000"
+                      : tablet.substring(pos1 + 1, pos2);
                   String prevEndRow = tablet.charAt(pos2) == '<' ? "" : tablet.substring(pos2 + 1);
                   if (tid.equals(tableId)) {
                     // System.out.println(" "+server+" "+tid+" "+endRow+" "+prevEndRow);
-                    Date date = sdf.parse(tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
+                    Date date = sdf.parse(
+                        tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
                     // System.out.println(" "+date);
 
-                    assignments.add(new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
+                    assignments.add(
+                        new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
 
                   }
                 } else if (!tablet.startsWith("!0")) {
@@ -247,7 +254,8 @@ public class UndefinedAnalyzer {
   }
 
   static class Opts extends ClientOnDefaultTable {
-    @Parameter(names = "--logdir", description = "directory containing the log files", required = true)
+    @Parameter(names = "--logdir", description = "directory containing the log files",
+        required = true)
     String logDir;
 
     Opts() {
@@ -256,7 +264,8 @@ public class UndefinedAnalyzer {
   }
 
   /**
-   * Class to analyze undefined references and accumulo logs to isolate the time/tablet where data was lost.
+   * Class to analyze undefined references and accumulo logs to isolate the time/tablet where data
+   * was lost.
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
@@ -276,7 +285,8 @@ public class UndefinedAnalyzer {
     }
 
     Connector conn = opts.getConnector();
-    BatchScanner bscanner = conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
+    BatchScanner bscanner = conn.createBatchScanner(opts.getTableName(), opts.auths,
+        bsOpts.scanThreads);
     bscanner.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     List<Range> refs = new ArrayList<>();
 
@@ -301,7 +311,8 @@ public class UndefinedAnalyzer {
     bscanner.close();
 
     IngestInfo ingestInfo = new IngestInfo(opts.logDir);
-    TabletHistory tabletHistory = new TabletHistory(Tables.getTableId(conn.getInstance(), opts.getTableName()), opts.logDir);
+    TabletHistory tabletHistory = new TabletHistory(
+        Tables.getTableId(conn.getInstance(), opts.getTableName()), opts.logDir);
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
@@ -334,9 +345,11 @@ public class UndefinedAnalyzer {
           }
 
           if (ta == null)
-            System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + uuid + " " + t1 + " " + t2);
+            System.out.println(
+                undefinedNode.undef + " " + undefinedNode.ref + " " + uuid + " " + t1 + " " + t2);
           else
-            System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + ta.tablet + " " + ta.server + " " + uuid + " " + t1 + " " + t2);
+            System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + ta.tablet + " "
+                + ta.server + " " + uuid + " " + t1 + " " + t2);
 
         }
       } else {

@@ -39,7 +39,8 @@ public class SummingCombiner extends LongCombiner {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("sum");
-    io.setDescription("SummingCombiner interprets Values as Longs and adds them together.  A variety of encodings (variable length, fixed length, or string) are available");
+    io.setDescription(
+        "SummingCombiner interprets Values as Longs and adds them together.  A variety of encodings (variable length, fixed length, or string) are available");
     return io;
   }
 }

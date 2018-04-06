@@ -79,8 +79,10 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   @Before
   public void setupInstance() throws Exception {
     conn = getConnector();
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
+        TablePermission.WRITE);
     ReplicationTable.setOnline(conn);
   }
 
@@ -99,20 +101,22 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
-    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<String>() {
-      @Override
-      public String answer() {
-        Object[] args = EasyMock.getCurrentArguments();
-        return systemConf.get((Property) args[0]);
-      }
-    }).anyTimes();
-    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<Boolean>() {
-      @Override
-      public Boolean answer() {
-        Object[] args = EasyMock.getCurrentArguments();
-        return systemConf.getBoolean((Property) args[0]);
-      }
-    }).anyTimes();
+    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
+        .andAnswer(new IAnswer<String>() {
+          @Override
+          public String answer() {
+            Object[] args = EasyMock.getCurrentArguments();
+            return systemConf.get((Property) args[0]);
+          }
+        }).anyTimes();
+    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class)))
+        .andAnswer(new IAnswer<Boolean>() {
+          @Override
+          public Boolean answer() {
+            Object[] args = EasyMock.getCurrentArguments();
+            return systemConf.getBoolean((Property) args[0]);
+          }
+        }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
       @Override
@@ -129,8 +133,10 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+    Mutation m = new Mutation(
+        ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
+    m.put(ReplicationSection.COLF, new Text("1"),
+        StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     bw.addMutation(m);
     bw.close();
 
@@ -149,7 +155,8 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     Set<String> wals = Collections.singleton(file);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+    m.put(ReplicationSection.COLF, new Text("1"),
+        StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     bw.addMutation(m);
     bw.close();
 

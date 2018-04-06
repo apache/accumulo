@@ -60,10 +60,12 @@ public class MonitorSslIT extends ConfigurableMacBase {
 
   private static class TestTrustManager implements X509TrustManager {
     @Override
-    public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+    public void checkClientTrusted(X509Certificate[] arg0, String arg1)
+        throws CertificateException {}
 
     @Override
-    public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+    public void checkServerTrusted(X509Certificate[] arg0, String arg1)
+        throws CertificateException {}
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {
@@ -89,19 +91,27 @@ public class MonitorSslIT extends ConfigurableMacBase {
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
     configureForSsl(cfg, getSslDir(baseDir));
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.MONITOR_SSL_KEYSTORE.getKey(), siteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey()));
-    siteConfig.put(Property.MONITOR_SSL_KEYSTOREPASS.getKey(), siteConfig.get(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey()));
+    siteConfig.put(Property.MONITOR_SSL_KEYSTORE.getKey(),
+        siteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey()));
+    siteConfig.put(Property.MONITOR_SSL_KEYSTOREPASS.getKey(),
+        siteConfig.get(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey()));
     if (siteConfig.containsKey(Property.RPC_SSL_KEYSTORE_TYPE.getKey())) {
-      siteConfig.put(Property.MONITOR_SSL_KEYSTORETYPE.getKey(), siteConfig.get(Property.RPC_SSL_KEYSTORE_TYPE.getKey()));
+      siteConfig.put(Property.MONITOR_SSL_KEYSTORETYPE.getKey(),
+          siteConfig.get(Property.RPC_SSL_KEYSTORE_TYPE.getKey()));
     } else {
-      siteConfig.put(Property.MONITOR_SSL_KEYSTORETYPE.getKey(), Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue());
+      siteConfig.put(Property.MONITOR_SSL_KEYSTORETYPE.getKey(),
+          Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue());
     }
-    siteConfig.put(Property.MONITOR_SSL_TRUSTSTORE.getKey(), siteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey()));
-    siteConfig.put(Property.MONITOR_SSL_TRUSTSTOREPASS.getKey(), siteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey()));
+    siteConfig.put(Property.MONITOR_SSL_TRUSTSTORE.getKey(),
+        siteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey()));
+    siteConfig.put(Property.MONITOR_SSL_TRUSTSTOREPASS.getKey(),
+        siteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey()));
     if (siteConfig.containsKey(Property.RPC_SSL_TRUSTSTORE_TYPE.getKey())) {
-      siteConfig.put(Property.MONITOR_SSL_TRUSTSTORETYPE.getKey(), siteConfig.get(Property.RPC_SSL_TRUSTSTORE_TYPE.getKey()));
+      siteConfig.put(Property.MONITOR_SSL_TRUSTSTORETYPE.getKey(),
+          siteConfig.get(Property.RPC_SSL_TRUSTSTORE_TYPE.getKey()));
     } else {
-      siteConfig.put(Property.MONITOR_SSL_TRUSTSTORETYPE.getKey(), Property.RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue());
+      siteConfig.put(Property.MONITOR_SSL_TRUSTSTORETYPE.getKey(),
+          Property.RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue());
     }
     cfg.setSiteConfig(siteConfig);
   }

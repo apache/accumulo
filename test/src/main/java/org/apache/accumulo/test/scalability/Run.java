@@ -37,7 +37,8 @@ public class Run {
   static class Opts extends Help {
     @Parameter(names = "--testId", required = true)
     String testId;
-    @Parameter(names = "--action", required = true, description = "one of 'setup', 'teardown' or 'client'")
+    @Parameter(names = "--action", required = true,
+        description = "one of 'setup', 'teardown' or 'client'")
     String action;
     @Parameter(names = "--count", description = "number of tablet servers", required = true)
     int numTabletServers;
@@ -55,7 +56,8 @@ public class Run {
     fs = FileSystem.get(conf);
 
     fs.copyToLocalFile(new Path("/accumulo-scale/conf/site.conf"), new Path(sitePath));
-    fs.copyToLocalFile(new Path(String.format("/accumulo-scale/conf/%s.conf", opts.testId)), new Path(testPath));
+    fs.copyToLocalFile(new Path(String.format("/accumulo-scale/conf/%s.conf", opts.testId)),
+        new Path(testPath));
 
     // load configuration file properties
     Properties scaleProps = new Properties();
@@ -77,7 +79,9 @@ public class Run {
       log.error("Error loading config file.", e);
     }
 
-    ScaleTest test = (ScaleTest) Class.forName(String.format("org.apache.accumulo.test.scalability.%s", opts.testId)).newInstance();
+    ScaleTest test = (ScaleTest) Class
+        .forName(String.format("org.apache.accumulo.test.scalability.%s", opts.testId))
+        .newInstance();
 
     test.init(scaleProps, testProps, opts.numTabletServers);
 

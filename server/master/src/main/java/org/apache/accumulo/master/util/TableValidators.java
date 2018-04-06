@@ -43,22 +43,24 @@ public class TableValidators {
     public String invalidMessage(String tableName) {
       if (tableName == null)
         return "Table name cannot be null";
-      return "Table names must only contain word characters (letters, digits, and underscores): " + tableName;
+      return "Table names must only contain word characters (letters, digits, and underscores): "
+          + tableName;
     }
   };
 
   public static final Validator<String> VALID_ID = new Validator<String>() {
     @Override
     public boolean apply(String tableId) {
-      return tableId != null
-          && (RootTable.ID.equals(tableId) || MetadataTable.ID.equals(tableId) || ReplicationTable.ID.equals(tableId) || tableId.matches(VALID_ID_REGEX));
+      return tableId != null && (RootTable.ID.equals(tableId) || MetadataTable.ID.equals(tableId)
+          || ReplicationTable.ID.equals(tableId) || tableId.matches(VALID_ID_REGEX));
     }
 
     @Override
     public String invalidMessage(String tableId) {
       if (tableId == null)
         return "Table id cannot be null";
-      return "Table IDs are base-36 numbers, represented with lowercase alphanumeric digits: " + tableId;
+      return "Table IDs are base-36 numbers, represented with lowercase alphanumeric digits: "
+          + tableId;
     }
   };
 

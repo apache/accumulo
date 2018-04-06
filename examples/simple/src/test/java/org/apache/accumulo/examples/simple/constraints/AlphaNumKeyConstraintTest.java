@@ -39,15 +39,20 @@ public class AlphaNumKeyConstraintTest {
     // Check that violations are in row, cf, cq order
     Mutation badMutation = new Mutation(new Text("Row#1"));
     badMutation.put(new Text("Colf$2"), new Text("Colq%3"), new Value("value".getBytes()));
-    assertEquals(ImmutableList.of(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW, AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF, AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ),
+    assertEquals(
+        ImmutableList.of(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW,
+            AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF, AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ),
         ankc.check(null, badMutation));
   }
 
   @Test
   public void testGetViolationDescription() {
-    assertEquals(AlphaNumKeyConstraint.ROW_VIOLATION_MESSAGE, ankc.getViolationDescription(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW));
-    assertEquals(AlphaNumKeyConstraint.COLF_VIOLATION_MESSAGE, ankc.getViolationDescription(AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF));
-    assertEquals(AlphaNumKeyConstraint.COLQ_VIOLATION_MESSAGE, ankc.getViolationDescription(AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ));
+    assertEquals(AlphaNumKeyConstraint.ROW_VIOLATION_MESSAGE,
+        ankc.getViolationDescription(AlphaNumKeyConstraint.NON_ALPHA_NUM_ROW));
+    assertEquals(AlphaNumKeyConstraint.COLF_VIOLATION_MESSAGE,
+        ankc.getViolationDescription(AlphaNumKeyConstraint.NON_ALPHA_NUM_COLF));
+    assertEquals(AlphaNumKeyConstraint.COLQ_VIOLATION_MESSAGE,
+        ankc.getViolationDescription(AlphaNumKeyConstraint.NON_ALPHA_NUM_COLQ));
     assertNull(ankc.getViolationDescription((short) 4));
   }
 }

@@ -27,7 +27,8 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
- * An iterator that supports iterating over key and value pairs. Anything implementing this interface should return keys in sorted order.
+ * An iterator that supports iterating over key and value pairs. Anything implementing this
+ * interface should return keys in sorted order.
  */
 
 public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extends Writable> {
@@ -47,11 +48,12 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * @exception UnsupportedOperationException
    *              if not supported.
    */
-  void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException;
+  void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env)
+      throws IOException;
 
   /**
-   * Returns true if the iterator has more elements. Note that if this iterator has yielded (@see enableYielding(YieldCallback)), this this method must return
-   * false.
+   * Returns true if the iterator has more elements. Note that if this iterator has yielded (@see
+   * enableYielding(YieldCallback)), this this method must return false.
    *
    * @return <tt>true</tt> if the iterator has more elements.
    * @exception IllegalStateException
@@ -60,9 +62,10 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
   boolean hasTop();
 
   /**
-   * Advances to the next K,V pair. Note that in minor compaction scope and in non-full major compaction scopes the iterator may see deletion entries. These
-   * entries should be preserved by all iterators except ones that are strictly scan-time iterators that will never be configured for the minc or majc scopes.
-   * Deletion entries are only removed during full major compactions.
+   * Advances to the next K,V pair. Note that in minor compaction scope and in non-full major
+   * compaction scopes the iterator may see deletion entries. These entries should be preserved by
+   * all iterators except ones that are strictly scan-time iterators that will never be configured
+   * for the minc or majc scopes. Deletion entries are only removed during full major compactions.
    *
    * @throws IOException
    *           if an I/O error occurs.
@@ -74,43 +77,54 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
   void next() throws IOException;
 
   /**
-   * Seeks to the first key in the Range, restricting the resulting K,V pairs to those with the specified columns. An iterator does not have to stop at the end
-   * of the range. The whole range is provided so that iterators can make optimizations.
+   * Seeks to the first key in the Range, restricting the resulting K,V pairs to those with the
+   * specified columns. An iterator does not have to stop at the end of the range. The whole range
+   * is provided so that iterators can make optimizations.
    *
    * Seek may be called multiple times with different parameters after {@link #init} is called.
    *
-   * Iterators that examine groups of adjacent key/value pairs (e.g. rows) to determine their top key and value should be sure that they properly handle a seek
-   * to a key in the middle of such a group (e.g. the middle of a row). Even if the client always seeks to a range containing an entire group (a,c), the tablet
-   * server could send back a batch of entries corresponding to (a,b], then reseek the iterator to range (b,c) when the scan is continued.
+   * Iterators that examine groups of adjacent key/value pairs (e.g. rows) to determine their top
+   * key and value should be sure that they properly handle a seek to a key in the middle of such a
+   * group (e.g. the middle of a row). Even if the client always seeks to a range containing an
+   * entire group (a,c), the tablet server could send back a batch of entries corresponding to
+   * (a,b], then reseek the iterator to range (b,c) when the scan is continued.
    *
-   * {@code columnFamilies} is used, at the lowest level, to determine which data blocks inside of an RFile need to be opened for this iterator. This set of
-   * data blocks is also the set of locality groups defined for the given table. If no columnFamilies are provided, the data blocks for all locality groups
-   * inside of the correct RFile will be opened and seeked in an attempt to find the correct start key, regardless of the startKey in the {@code range}.
+   * {@code columnFamilies} is used, at the lowest level, to determine which data blocks inside of
+   * an RFile need to be opened for this iterator. This set of data blocks is also the set of
+   * locality groups defined for the given table. If no columnFamilies are provided, the data blocks
+   * for all locality groups inside of the correct RFile will be opened and seeked in an attempt to
+   * find the correct start key, regardless of the startKey in the {@code range}.
    *
-   * In an Accumulo instance in which multiple locality groups exist for a table, it is important to ensure that {@code columnFamilies} is properly set to the
-   * minimum required column families to ensure that data from separate locality groups is not inadvertently read.
+   * In an Accumulo instance in which multiple locality groups exist for a table, it is important to
+   * ensure that {@code columnFamilies} is properly set to the minimum required column families to
+   * ensure that data from separate locality groups is not inadvertently read.
    *
    * @param range
    *          <tt>Range</tt> of keys to iterate over.
    * @param columnFamilies
    *          <tt>Collection</tt> of column families to include or exclude.
    * @param inclusive
-   *          <tt>boolean</tt> that indicates whether to include (true) or exclude (false) column families.
+   *          <tt>boolean</tt> that indicates whether to include (true) or exclude (false) column
+   *          families.
    * @throws IOException
    *           if an I/O error occurs.
    * @exception IllegalArgumentException
    *              if there are problems with the parameters.
    */
-  void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException;
+  void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException;
 
   /**
-   * Returns top key. Can be called 0 or more times without affecting behavior of next() or hasTop(). Note that in minor compaction scope and in non-full major
-   * compaction scopes the iterator may see deletion entries. These entries should be preserved by all iterators except ones that are strictly scan-time
-   * iterators that will never be configured for the minc or majc scopes. Deletion entries are only removed during full major compactions.
+   * Returns top key. Can be called 0 or more times without affecting behavior of next() or
+   * hasTop(). Note that in minor compaction scope and in non-full major compaction scopes the
+   * iterator may see deletion entries. These entries should be preserved by all iterators except
+   * ones that are strictly scan-time iterators that will never be configured for the minc or majc
+   * scopes. Deletion entries are only removed during full major compactions.
    * <p>
-   * For performance reasons, iterators reserve the right to reuse objects returned by <tt>getTopKey</tt> when {@link #next()} is called, changing the data that
-   * the object references. Iterators that need to save an object returned by <tt>getTopKey</tt> ought to copy the object's data into a new object in order to
-   * avoid aliasing bugs.
+   * For performance reasons, iterators reserve the right to reuse objects returned by
+   * <tt>getTopKey</tt> when {@link #next()} is called, changing the data that the object
+   * references. Iterators that need to save an object returned by <tt>getTopKey</tt> ought to copy
+   * the object's data into a new object in order to avoid aliasing bugs.
    *
    * @return <tt>K</tt>
    * @exception IllegalStateException
@@ -121,11 +135,13 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
   K getTopKey();
 
   /**
-   * Returns top value. Can be called 0 or more times without affecting behavior of next() or hasTop().
+   * Returns top value. Can be called 0 or more times without affecting behavior of next() or
+   * hasTop().
    * <p>
-   * For performance reasons, iterators reserve the right to reuse objects returned by <tt>getTopValue</tt> when {@link #next()} is called, changing the
-   * underlying data that the object references. Iterators that need to save an object returned by <tt>getTopValue</tt> ought to copy the object's data into a
-   * new object in order to avoid aliasing bugs.
+   * For performance reasons, iterators reserve the right to reuse objects returned by
+   * <tt>getTopValue</tt> when {@link #next()} is called, changing the underlying data that the
+   * object references. Iterators that need to save an object returned by <tt>getTopValue</tt> ought
+   * to copy the object's data into a new object in order to avoid aliasing bugs.
    *
    * @return <tt>V</tt>
    * @exception IllegalStateException
@@ -136,14 +152,16 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
   V getTopValue();
 
   /**
-   * Creates a deep copy of this iterator as though seek had not yet been called. init should be called on an iterator before deepCopy is called. init should
-   * not need to be called on the copy that is returned by deepCopy; that is, when necessary init should be called in the deepCopy method on the iterator it
-   * returns. The behavior is unspecified if init is called after deepCopy either on the original or the copy. A proper implementation would call deepCopy on
-   * the source.
+   * Creates a deep copy of this iterator as though seek had not yet been called. init should be
+   * called on an iterator before deepCopy is called. init should not need to be called on the copy
+   * that is returned by deepCopy; that is, when necessary init should be called in the deepCopy
+   * method on the iterator it returns. The behavior is unspecified if init is called after deepCopy
+   * either on the original or the copy. A proper implementation would call deepCopy on the source.
    *
    * @param env
    *          <tt>IteratorEnvironment</tt> environment in which iterator is being run.
-   * @return <tt>SortedKeyValueIterator</tt> a copy of this iterator (with the same source and settings).
+   * @return <tt>SortedKeyValueIterator</tt> a copy of this iterator (with the same source and
+   *         settings).
    * @exception UnsupportedOperationException
    *              if not supported.
    */

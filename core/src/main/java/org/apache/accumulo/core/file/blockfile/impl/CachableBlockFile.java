@@ -47,7 +47,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks and metadatablocks
+ * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
+ * and metadatablocks
  */
 
 public class CachableBlockFile {
@@ -62,19 +63,22 @@ public class CachableBlockFile {
     private final PositionedOutput fsout;
     private long length = 0;
 
-    public Writer(FileSystem fs, Path fName, String compressAlgor, RateLimiter writeLimiter, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
-      this(new RateLimitedOutputStream(fs.create(fName), writeLimiter), compressAlgor, conf, accumuloConfiguration);
+    public Writer(FileSystem fs, Path fName, String compressAlgor, RateLimiter writeLimiter,
+        Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this(new RateLimitedOutputStream(fs.create(fName), writeLimiter), compressAlgor, conf,
+          accumuloConfiguration);
     }
 
-    public <OutputStreamType extends OutputStream & PositionedOutput> Writer(OutputStreamType fsout, String compressAlgor, Configuration conf,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
+    public <OutputStreamType extends OutputStream & PositionedOutput> Writer(OutputStreamType fsout,
+        String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration)
+        throws IOException {
       this.fsout = fsout;
       init(fsout, compressAlgor, conf, accumuloConfiguration);
     }
 
-    private <OutputStreamT extends OutputStream & PositionedOutput> void init(OutputStreamT fsout, String compressAlgor, Configuration conf,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
+    private <OutputStreamT extends OutputStream & PositionedOutput> void init(OutputStreamT fsout,
+        String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration)
+        throws IOException {
       _bc = new BCFile.Writer(fsout, compressAlgor, conf, false, accumuloConfiguration);
     }
 
@@ -156,8 +160,10 @@ public class CachableBlockFile {
     private boolean closed = false;
     private AccumuloConfiguration accumuloConfiguration = null;
 
-    // ACCUMULO-4716 - Define MAX_ARRAY_SIZE smaller than Integer.MAX_VALUE to prevent possible OutOfMemory
-    // errors when allocating arrays - described in stackoverflow post: https://stackoverflow.com/a/8381338
+    // ACCUMULO-4716 - Define MAX_ARRAY_SIZE smaller than Integer.MAX_VALUE to prevent possible
+    // OutOfMemory
+    // errors when allocating arrays - described in stackoverflow post:
+    // https://stackoverflow.com/a/8381338
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     private interface BlockLoader {
@@ -230,13 +236,14 @@ public class CachableBlockFile {
       }
     }
 
-    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data, BlockCache index, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
+        BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
       this(fs, dataFile, conf, data, index, null, accumuloConfiguration);
     }
 
-    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data, BlockCache index, RateLimiter readLimiter,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
+    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
+        BlockCache index, RateLimiter readLimiter, AccumuloConfiguration accumuloConfiguration)
+        throws IOException {
 
       /*
        * Grab path create input stream grab len create file
@@ -251,8 +258,9 @@ public class CachableBlockFile {
       this.readLimiter = readLimiter;
     }
 
-    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId, InputStreamType fsin, long len, Configuration conf, BlockCache data,
-        BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
+    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId,
+        InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.fileName = cacheId;
       this._dCache = data;
       this._iCache = index;
@@ -260,19 +268,21 @@ public class CachableBlockFile {
       init(fsin, len, conf, accumuloConfiguration);
     }
 
-    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId, InputStreamType fsin, long len, Configuration conf,
+    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId,
+        InputStreamType fsin, long len, Configuration conf,
         AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.fileName = cacheId;
       this.readLimiter = null;
       init(fsin, len, conf, accumuloConfiguration);
     }
 
-    private <InputStreamT extends InputStream & Seekable> void init(InputStreamT fsin, long len, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+    private <InputStreamT extends InputStream & Seekable> void init(InputStreamT fsin, long len,
+        Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
       this._bc = new BCFile.Reader(this, fsin, len, conf, accumuloConfiguration);
     }
 
-    private synchronized BCFile.Reader getBCFile(AccumuloConfiguration accumuloConfiguration) throws IOException {
+    private synchronized BCFile.Reader getBCFile(AccumuloConfiguration accumuloConfiguration)
+        throws IOException {
       if (closed)
         throw new IllegalStateException("File " + fileName + " is closed");
 
@@ -320,7 +330,8 @@ public class CachableBlockFile {
       }
     }
 
-    private BlockRead getBlock(String _lookup, BlockCache cache, BlockLoader loader) throws IOException {
+    private BlockRead getBlock(String _lookup, BlockCache cache, BlockLoader loader)
+        throws IOException {
 
       BlockReader _currBlock;
 
@@ -346,9 +357,11 @@ public class CachableBlockFile {
 
     }
 
-    private BlockRead cacheBlock(String _lookup, BlockCache cache, BlockReader _currBlock, String block) throws IOException {
+    private BlockRead cacheBlock(String _lookup, BlockCache cache, BlockReader _currBlock,
+        String block) throws IOException {
 
-      if ((cache == null) || (_currBlock.getRawSize() > Math.min(cache.getMaxSize(), MAX_ARRAY_SIZE))) {
+      if ((cache == null)
+          || (_currBlock.getRawSize() > Math.min(cache.getMaxSize(), MAX_ARRAY_SIZE))) {
         return new BlockRead(_currBlock, _currBlock.getRawSize());
       } else {
 
@@ -383,11 +396,11 @@ public class CachableBlockFile {
     }
 
     /**
-     * It is intended that once the BlockRead object is returned to the caller, that the caller will read the entire block and then call close on the BlockRead
-     * class.
+     * It is intended that once the BlockRead object is returned to the caller, that the caller will
+     * read the entire block and then call close on the BlockRead class.
      *
-     * NOTE: In the case of multi-read threads: This method can do redundant work where an entry is read from disk and other threads check the cache before it
-     * has been inserted.
+     * NOTE: In the case of multi-read threads: This method can do redundant work where an entry is
+     * read from disk and other threads check the cache before it has been inserted.
      */
     @Override
     public BlockRead getMetaBlock(String blockName) throws IOException {
@@ -396,17 +409,18 @@ public class CachableBlockFile {
     }
 
     @Override
-    public ABlockReader getMetaBlock(long offset, long compressedSize, long rawSize) throws IOException {
+    public ABlockReader getMetaBlock(long offset, long compressedSize, long rawSize)
+        throws IOException {
       String _lookup = this.fileName + "R" + offset;
       return getBlock(_lookup, _iCache, new RawBlockLoader(offset, compressedSize, rawSize));
     }
 
     /**
-     * It is intended that once the BlockRead object is returned to the caller, that the caller will read the entire block and then call close on the BlockRead
-     * class.
+     * It is intended that once the BlockRead object is returned to the caller, that the caller will
+     * read the entire block and then call close on the BlockRead class.
      *
-     * NOTE: In the case of multi-read threads: This method can do redundant work where an entry is read from disk and other threads check the cache before it
-     * has been inserted.
+     * NOTE: In the case of multi-read threads: This method can do redundant work where an entry is
+     * read from disk and other threads check the cache before it has been inserted.
      */
 
     @Override
@@ -417,7 +431,8 @@ public class CachableBlockFile {
     }
 
     @Override
-    public ABlockReader getDataBlock(long offset, long compressedSize, long rawSize) throws IOException {
+    public ABlockReader getDataBlock(long offset, long compressedSize, long rawSize)
+        throws IOException {
       String _lookup = this.fileName + "R" + offset;
       return getBlock(_lookup, _dCache, new RawBlockLoader(offset, compressedSize, rawSize));
     }
@@ -433,7 +448,8 @@ public class CachableBlockFile {
         _bc.close();
 
       if (fin != null) {
-        // synchronize on the FSDataInputStream to ensure thread safety with the BoundedRangeFileInputStream
+        // synchronize on the FSDataInputStream to ensure thread safety with the
+        // BoundedRangeFileInputStream
         synchronized (fin) {
           fin.close();
         }
@@ -501,8 +517,9 @@ public class CachableBlockFile {
 
   /**
    *
-   * Class provides functionality to read one block from the underlying BCFile Since We are caching blocks in the Reader class as bytearrays, this class will
-   * wrap a DataInputStream(ByteArrayStream(cachedBlock)).
+   * Class provides functionality to read one block from the underlying BCFile Since We are caching
+   * blocks in the Reader class as bytearrays, this class will wrap a
+   * DataInputStream(ByteArrayStream(cachedBlock)).
    *
    *
    */
@@ -513,8 +530,9 @@ public class CachableBlockFile {
     }
 
     /**
-     * It is intended that the caller of this method will close the stream we also only intend that this be called once per BlockRead. This method is provide
-     * for methods up stream that expect to receive a DataInputStream object.
+     * It is intended that the caller of this method will close the stream we also only intend that
+     * this be called once per BlockRead. This method is provide for methods up stream that expect
+     * to receive a DataInputStream object.
      */
     @Override
     public DataInputStream getStream() throws IOException {
@@ -542,7 +560,8 @@ public class CachableBlockFile {
     }
 
     /**
-     * The byte array returned by this method is only for read optimizations, it should not be modified.
+     * The byte array returned by this method is only for read optimizations, it should not be
+     * modified.
      */
     @Override
     public byte[] getBuffer() {

@@ -51,9 +51,11 @@ class PopulateZookeeper extends MasterRepo {
       // write tableName & tableId to zookeeper
       Instance instance = master.getInstance();
 
-      Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId, TableOperation.CREATE);
+      Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId,
+          TableOperation.CREATE);
 
-      TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
+      TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.namespaceId,
+          tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : tableInfo.props.entrySet())
         TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue());

@@ -54,7 +54,8 @@ public class ReplicationTable {
   public static final Set<Text> STATUS_LG_COLFAMS = Collections.singleton(StatusSection.NAME);
   public static final String WORK_LG_NAME = WorkSection.NAME.toString();
   public static final Set<Text> WORK_LG_COLFAMS = Collections.singleton(WorkSection.NAME);
-  public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME, STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
+  public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME,
+      STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
 
   public static Scanner getScanner(Connector conn) throws ReplicationTableOfflineException {
     try {
@@ -76,7 +77,8 @@ public class ReplicationTable {
     }
   }
 
-  public static BatchScanner getBatchScanner(Connector conn, int queryThreads) throws ReplicationTableOfflineException {
+  public static BatchScanner getBatchScanner(Connector conn, int queryThreads)
+      throws ReplicationTableOfflineException {
     try {
       return conn.createBatchScanner(NAME, Authorizations.EMPTY, queryThreads);
     } catch (TableNotFoundException e) {
@@ -87,7 +89,8 @@ public class ReplicationTable {
   }
 
   public static boolean isOnline(Connector conn) {
-    return DeprecationUtil.isMockInstance(conn.getInstance()) || TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
+    return DeprecationUtil.isMockInstance(conn.getInstance())
+        || TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
   }
 
   public static void setOnline(Connector conn) throws AccumuloSecurityException, AccumuloException {

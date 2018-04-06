@@ -61,7 +61,8 @@ public class ServerServices implements Comparable<ServerServices> {
       String prefix = "";
       for (Service service : new Service[] {Service.TSERV_CLIENT, Service.GC_CLIENT}) {
         if (services.containsKey(service)) {
-          sb.append(prefix).append(service.name()).append(SEPARATOR_CHAR).append(services.get(service));
+          sb.append(prefix).append(service.name()).append(SEPARATOR_CHAR)
+              .append(services.get(service));
           prefix = SERVICE_SEPARATOR;
         }
       }

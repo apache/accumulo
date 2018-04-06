@@ -41,9 +41,10 @@ public class Scanner {
   private boolean sawException = false;
   private boolean scanClosed = false;
   /**
-   * A fair semaphore of one is used since explicitly know the access pattern will be one thread to read and another to call close if the session becomes idle.
-   * Since we're explicitly preventing re-entrance, we're currently using a Sempahore. If at any point we decide read needs to be re-entrant, we can switch to a
-   * Reentrant lock.
+   * A fair semaphore of one is used since explicitly know the access pattern will be one thread to
+   * read and another to call close if the session becomes idle. Since we're explicitly preventing
+   * re-entrance, we're currently using a Sempahore. If at any point we decide read needs to be
+   * re-entrant, we can switch to a Reentrant lock.
    */
   private Semaphore scannerSemaphore;
 
@@ -68,7 +69,8 @@ public class Scanner {
         sawException = true;
       }
 
-      // sawException may have occurred within close, so we cannot assume that an interrupted exception was its cause
+      // sawException may have occurred within close, so we cannot assume that an interrupted
+      // exception was its cause
       if (sawException)
         throw new IllegalStateException("Tried to use scanner after exception occurred.");
 
@@ -95,7 +97,8 @@ public class Scanner {
         iter = new SourceSwitchingIterator(dataSource, false);
       }
 
-      results = tablet.nextBatch(iter, range, options.getNum(), options.getColumnSet(), options.getBatchTimeOut(), options.isIsolated());
+      results = tablet.nextBatch(iter, range, options.getNum(), options.getColumnSet(),
+          options.getBatchTimeOut(), options.isIsolated());
 
       if (results.getResults() == null) {
         range = null;
@@ -103,7 +106,8 @@ public class Scanner {
       } else if (results.getContinueKey() == null) {
         return new ScanBatch(results.getResults(), false);
       } else {
-        range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(), range.isEndKeyInclusive());
+        range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(),
+            range.isEndKeyInclusive());
         return new ScanBatch(results.getResults(), true);
       }
 
@@ -116,7 +120,8 @@ public class Scanner {
     } catch (IOException ioe) {
       if (tablet.shutdownInProgress()) {
         log.debug("IOException while shutdown in progress ", ioe);
-        throw new TabletClosedException(ioe); // assume IOException was caused by execution of HDFS shutdown hook
+        throw new TabletClosedException(ioe); // assume IOException was caused by execution of HDFS
+                                              // shutdown hook
       }
 
       sawException = true;
@@ -141,7 +146,8 @@ public class Scanner {
     }
   }
 
-  // close and read are synchronized because can not call close on the data source while it is in use
+  // close and read are synchronized because can not call close on the data source while it is in
+  // use
   // this could lead to the case where file iterators that are in use by a thread are returned
   // to the pool... this would be bad
   public boolean close() {

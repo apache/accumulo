@@ -67,7 +67,8 @@ public class ChaoticLoadBalancerTest {
   class TestChaoticLoadBalancer extends ChaoticLoadBalancer {
 
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String table) throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String table)
+        throws ThriftSecurityException, TException {
       List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
         if (extent.getTableId().equals(table)) {
@@ -81,9 +82,12 @@ public class ChaoticLoadBalancerTest {
   @Test
   public void testAssignMigrations() {
     servers.clear();
-    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), "a"), new FakeTServer());
-    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1235), "b"), new FakeTServer());
-    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1236), "c"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), "a"),
+        new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1235), "b"),
+        new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1236), "c"),
+        new FakeTServer());
     Map<KeyExtent,TServerInstance> metadataTable = new TreeMap<>();
     String table = "t1";
     metadataTable.put(makeExtent(table, null, null), null);
@@ -111,7 +115,8 @@ public class ChaoticLoadBalancerTest {
     assertEquals(assignments.size(), metadataTable.size());
   }
 
-  SortedMap<TServerInstance,TabletServerStatus> getAssignments(Map<TServerInstance,FakeTServer> servers) {
+  SortedMap<TServerInstance,TabletServerStatus> getAssignments(
+      Map<TServerInstance,FakeTServer> servers) {
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
       result.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
@@ -145,7 +150,8 @@ public class ChaoticLoadBalancerTest {
     TestChaoticLoadBalancer balancer = new TestChaoticLoadBalancer();
     Set<KeyExtent> migrations = Collections.emptySet();
 
-    // Just want to make sure it gets some migrations, randomness prevents guarantee of a defined amount, or even expected amount
+    // Just want to make sure it gets some migrations, randomness prevents guarantee of a defined
+    // amount, or even expected amount
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (migrationsOut.size() != 0) {
       balancer.balance(getAssignments(servers), migrations, migrationsOut);

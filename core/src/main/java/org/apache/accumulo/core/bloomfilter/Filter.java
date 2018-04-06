@@ -62,8 +62,9 @@ import org.apache.hadoop.util.hash.Hash;
 /**
  * Defines the general behavior of a filter.
  * <p>
- * A filter is a data structure which aims at offering a lossy summary of a set <code>A</code>. The key idea is to map entries of <code>A</code> (also called
- * <i>keys</i>) into several positions in a vector through the use of several hash functions.
+ * A filter is a data structure which aims at offering a lossy summary of a set <code>A</code>. The
+ * key idea is to map entries of <code>A</code> (also called <i>keys</i>) into several positions in
+ * a vector through the use of several hash functions.
  * <p>
  * Typically, a filter will be implemented as a Bloom filter (or a Bloom filter extension).
  * <p>

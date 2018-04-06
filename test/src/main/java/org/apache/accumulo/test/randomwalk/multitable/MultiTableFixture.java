@@ -35,7 +35,8 @@ public class MultiTableFixture extends Fixture {
 
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
 
-    state.set("tableNamePrefix", String.format("multi_%s_%s_%d", hostname, env.getPid(), System.currentTimeMillis()));
+    state.set("tableNamePrefix",
+        String.format("multi_%s_%s_%d", hostname, env.getPid(), System.currentTimeMillis()));
     state.set("nextId", Integer.valueOf(0));
     state.set("numWrites", Long.valueOf(0));
     state.set("totalWrites", Long.valueOf(0));

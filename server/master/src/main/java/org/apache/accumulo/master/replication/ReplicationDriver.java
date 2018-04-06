@@ -53,7 +53,8 @@ public class ReplicationDriver extends Daemon {
 
   @Override
   public void run() {
-    ProbabilitySampler sampler = new ProbabilitySampler(conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
+    ProbabilitySampler sampler = new ProbabilitySampler(
+        conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
 
     long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
     log.debug("Waiting " + millisToWait + "ms before starting main replication loop");
@@ -100,7 +101,8 @@ public class ReplicationDriver extends Daemon {
       try {
         finishedWorkUpdater.run();
       } catch (Exception e) {
-        log.error("Caught Exception trying to update Replication records using finished work records", e);
+        log.error(
+            "Caught Exception trying to update Replication records using finished work records", e);
       }
 
       // Clean up records we no longer need.

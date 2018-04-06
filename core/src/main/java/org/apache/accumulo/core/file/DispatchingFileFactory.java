@@ -44,7 +44,8 @@ class DispatchingFileFactory extends FileOperations {
 
     String extension = sp[sp.length - 1];
 
-    if (extension.equals(Constants.MAPFILE_EXTENSION) || extension.equals(Constants.MAPFILE_EXTENSION + "_tmp")) {
+    if (extension.equals(Constants.MAPFILE_EXTENSION)
+        || extension.equals(Constants.MAPFILE_EXTENSION + "_tmp")) {
       return new MapFileOperations();
     } else if (extension.equals(RFile.EXTENSION) || extension.equals(RFile.EXTENSION + "_tmp")) {
       return new RFileOperations();
@@ -53,7 +54,10 @@ class DispatchingFileFactory extends FileOperations {
     }
   }
 
-  /** If the table configuration disallows caching, rewrite the options object to not pass the caches. */
+  /**
+   * If the table configuration disallows caching, rewrite the options object to not pass the
+   * caches.
+   */
   private static <T extends FileReaderOperation<T>> T selectivelyDisableCaches(T input) {
     if (!input.getTableConfiguration().getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
       input = input.withIndexCache(null);

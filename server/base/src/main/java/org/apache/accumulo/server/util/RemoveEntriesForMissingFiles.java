@@ -77,8 +77,8 @@ public class RemoveEntriesForMissingFiles {
     private AtomicReference<Exception> exceptionRef;
 
     @SuppressWarnings({"rawtypes"})
-    CheckFileTask(Map cache, VolumeManager fs, AtomicInteger missing, BatchWriter writer, Key key, Path map, Set<Path> processing,
-        AtomicReference<Exception> exceptionRef) {
+    CheckFileTask(Map cache, VolumeManager fs, AtomicInteger missing, BatchWriter writer, Key key,
+        Path map, Set<Path> processing, AtomicReference<Exception> exceptionRef) {
       this.cache = cache;
       this.fs = fs;
       this.missing = missing;
@@ -120,7 +120,8 @@ public class RemoveEntriesForMissingFiles {
     }
   }
 
-  private static int checkTable(ClientContext context, String table, Range range, boolean fix) throws Exception {
+  private static int checkTable(ClientContext context, String table, Range range, boolean fix)
+      throws Exception {
 
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
@@ -161,7 +162,8 @@ public class RemoveEntriesForMissingFiles {
         processing.add(map);
       }
 
-      threadPool.submit(new CheckFileTask(cache, fs, missing, writer, key, map, processing, exceptionRef));
+      threadPool.submit(
+          new CheckFileTask(cache, fs, missing, writer, key, map, processing, exceptionRef));
     }
 
     threadPool.shutdown();
@@ -183,7 +185,8 @@ public class RemoveEntriesForMissingFiles {
   }
 
   static int checkAllTables(ClientContext context, boolean fix) throws Exception {
-    int missing = checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+    int missing = checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(),
+        fix);
 
     if (missing == 0)
       return checkTable(context, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
@@ -209,6 +212,8 @@ public class RemoveEntriesForMissingFiles {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
 
-    checkAllTables(new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), ClientConfiguration.loadDefault()), opts.fix);
+    checkAllTables(new ClientContext(opts.getInstance(),
+        new Credentials(opts.getPrincipal(), opts.getToken()), ClientConfiguration.loadDefault()),
+        opts.fix);
   }
 }

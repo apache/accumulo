@@ -32,8 +32,9 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * The program reads an accumulo table written by {@link Index} and writes out to another table. It writes out a mapping of documents to terms. The document to
- * term mapping is used by {@link ContinuousQuery}.
+ * The program reads an accumulo table written by {@link Index} and writes out to another table. It
+ * writes out a mapping of documents to terms. The document to term mapping is used by
+ * {@link ContinuousQuery}.
  *
  * See docs/examples/README.shard for instructions.
  */

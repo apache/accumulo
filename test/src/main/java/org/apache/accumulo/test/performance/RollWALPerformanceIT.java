@@ -82,8 +82,9 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
 
     log.info("Starting ingest");
     final long start = System.currentTimeMillis();
-    final String args[] = {"-i", inst.getInstanceName(), "-z", inst.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--batchThreads", "2", "--table",
-        tableName, "--num", Long.toString(50 * 1000), // 50K 100 byte entries
+    final String args[] = {"-i", inst.getInstanceName(), "-z", inst.getZooKeepers(), "-u", "root",
+        "-p", ROOT_PASSWORD, "--batchThreads", "2", "--table", tableName, "--num",
+        Long.toString(50 * 1000), // 50K 100 byte entries
     };
 
     ContinuousIngest.main(args);

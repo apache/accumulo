@@ -26,12 +26,14 @@ public class DelegationTokenConfigTest {
 
   @Test
   public void testTimeUnit() {
-    DelegationTokenConfig config1 = new DelegationTokenConfig(), config2 = new DelegationTokenConfig();
+    DelegationTokenConfig config1 = new DelegationTokenConfig(),
+        config2 = new DelegationTokenConfig();
 
     config1.setTokenLifetime(1000, TimeUnit.MILLISECONDS);
     config2.setTokenLifetime(1, TimeUnit.SECONDS);
 
-    assertEquals(config1.getTokenLifetime(TimeUnit.MILLISECONDS), config2.getTokenLifetime(TimeUnit.MILLISECONDS));
+    assertEquals(config1.getTokenLifetime(TimeUnit.MILLISECONDS),
+        config2.getTokenLifetime(TimeUnit.MILLISECONDS));
     assertEquals(config1, config2);
     assertEquals(config1.hashCode(), config2.hashCode());
   }

@@ -35,11 +35,13 @@ public class UtilWaitThread {
   }
 
   /**
-   * Copied from Guava release 23. The Uniterruptibles class was annotated as Beta by Google, therefore unstable to use. The following javadoc was copied from
+   * Copied from Guava release 23. The Uniterruptibles class was annotated as Beta by Google,
+   * therefore unstable to use. The following javadoc was copied from
    * com.google.common.util.concurrent.Uninterruptibles:
    *
-   * Utilities for treating interruptible operations as uninterruptible. In all cases, if a thread is interrupted during such a call, the call continues to
-   * block until the result is available or the timeout elapses, and only then re-interrupts the thread.
+   * Utilities for treating interruptible operations as uninterruptible. In all cases, if a thread
+   * is interrupted during such a call, the call continues to block until the result is available or
+   * the timeout elapses, and only then re-interrupts the thread.
    *
    */
   public static void sleepUninterruptibly(long sleepFor, TimeUnit unit) {

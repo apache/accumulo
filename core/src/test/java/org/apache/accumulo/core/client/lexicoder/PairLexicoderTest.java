@@ -26,19 +26,26 @@ import org.apache.accumulo.core.util.ComparablePair;
  */
 public class PairLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
-    PairLexicoder<String,String> plexc = new PairLexicoder<>(new StringLexicoder(), new StringLexicoder());
+    PairLexicoder<String,String> plexc = new PairLexicoder<>(new StringLexicoder(),
+        new StringLexicoder());
 
-    assertSortOrder(plexc, Arrays.asList(new ComparablePair<>("a", "b"), new ComparablePair<>("a", "bc"), new ComparablePair<>("a", "c"), new ComparablePair<>(
-        "ab", "c"), new ComparablePair<>("ab", ""), new ComparablePair<>("ab", "d"), new ComparablePair<>("b", "f"), new ComparablePair<>("b", "a")));
+    assertSortOrder(plexc,
+        Arrays.asList(new ComparablePair<>("a", "b"), new ComparablePair<>("a", "bc"),
+            new ComparablePair<>("a", "c"), new ComparablePair<>("ab", "c"),
+            new ComparablePair<>("ab", ""), new ComparablePair<>("ab", "d"),
+            new ComparablePair<>("b", "f"), new ComparablePair<>("b", "a")));
 
-    PairLexicoder<Long,String> plexc2 = new PairLexicoder<>(new LongLexicoder(), new StringLexicoder());
+    PairLexicoder<Long,String> plexc2 = new PairLexicoder<>(new LongLexicoder(),
+        new StringLexicoder());
 
-    assertSortOrder(plexc2, Arrays.asList(new ComparablePair<>(0x100l, "a"), new ComparablePair<>(0x100l, "ab"), new ComparablePair<>(0xf0l, "a"),
-        new ComparablePair<>(0xf0l, "ab")));
+    assertSortOrder(plexc2,
+        Arrays.asList(new ComparablePair<>(0x100l, "a"), new ComparablePair<>(0x100l, "ab"),
+            new ComparablePair<>(0xf0l, "a"), new ComparablePair<>(0xf0l, "ab")));
   }
 
   public void testDecodes() {
-    PairLexicoder<String,String> plexc = new PairLexicoder<>(new StringLexicoder(), new StringLexicoder());
+    PairLexicoder<String,String> plexc = new PairLexicoder<>(new StringLexicoder(),
+        new StringLexicoder());
     assertDecodes(plexc, new ComparablePair<>("a", "b"));
   }
 }

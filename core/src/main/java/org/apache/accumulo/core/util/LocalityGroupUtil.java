@@ -56,8 +56,9 @@ public class LocalityGroupUtil {
   public static final ImmutableSet<ByteSequence> EMPTY_CF_SET = ImmutableSet.of();
 
   /**
-   * Create a set of families to be passed into the SortedKeyValueIterator seek call from a supplied set of columns. We are using the ImmutableSet to enable
-   * faster comparisons down in the LocalityGroupIterator.
+   * Create a set of families to be passed into the SortedKeyValueIterator seek call from a supplied
+   * set of columns. We are using the ImmutableSet to enable faster comparisons down in the
+   * LocalityGroupIterator.
    *
    * @param columns
    *          The set of columns
@@ -80,7 +81,8 @@ public class LocalityGroupUtil {
     }
   }
 
-  public static Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuconf) throws LocalityGroupConfigurationError {
+  public static Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuconf)
+      throws LocalityGroupConfigurationError {
     Map<String,Set<ByteSequence>> result = new HashMap<>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
@@ -102,7 +104,8 @@ public class LocalityGroupUtil {
             Set<ByteSequence> colFamsSet = decodeColumnFamilies(value);
             if (!Collections.disjoint(all, colFamsSet)) {
               colFamsSet.retainAll(all);
-              throw new LocalityGroupConfigurationError("Column families " + colFamsSet + " in group " + group + " is already used by another locality group");
+              throw new LocalityGroupConfigurationError("Column families " + colFamsSet
+                  + " in group " + group + " is already used by another locality group");
             }
 
             all.addAll(colFamsSet);
@@ -115,7 +118,8 @@ public class LocalityGroupUtil {
     return result;
   }
 
-  public static Set<ByteSequence> decodeColumnFamilies(String colFams) throws LocalityGroupConfigurationError {
+  public static Set<ByteSequence> decodeColumnFamilies(String colFams)
+      throws LocalityGroupConfigurationError {
     HashSet<ByteSequence> colFamsSet = new HashSet<>();
 
     for (String family : colFams.split(",")) {
@@ -126,7 +130,8 @@ public class LocalityGroupUtil {
     return colFamsSet;
   }
 
-  public static ByteSequence decodeColumnFamily(String colFam) throws LocalityGroupConfigurationError {
+  public static ByteSequence decodeColumnFamily(String colFam)
+      throws LocalityGroupConfigurationError {
     byte output[] = new byte[colFam.length()];
     int pos = 0;
 
@@ -154,7 +159,8 @@ public class LocalityGroupUtil {
             i++;
             break;
           default:
-            throw new LocalityGroupConfigurationError("Expected 'x' or '\' after '\'  in " + colFam);
+            throw new LocalityGroupConfigurationError(
+                "Expected 'x' or '\' after '\'  in " + colFam);
         }
       } else {
         output[pos++] = (byte) (0xff & c);
@@ -259,7 +265,8 @@ public class LocalityGroupUtil {
       }
     }
 
-    public void partition(List<Mutation> mutations, PreAllocatedArray<List<Mutation>> partitionedMutations) {
+    public void partition(List<Mutation> mutations,
+        PreAllocatedArray<List<Mutation>> partitionedMutations) {
 
       MutableByteSequence mbs = new MutableByteSequence(new byte[0], 0, 0);
 
@@ -296,7 +303,8 @@ public class LocalityGroupUtil {
           } else {
             for (int i = 0; i < parts.length; i++)
               if (parts.get(i) != null)
-                partitionedMutations.get(i).add(new PartitionedMutation(mutation.getRow(), parts.get(i)));
+                partitionedMutations.get(i)
+                    .add(new PartitionedMutation(mutation.getRow(), parts.get(i)));
           }
         }
       }
@@ -312,15 +320,19 @@ public class LocalityGroupUtil {
   }
 
   /**
-   * This method created to help seek an rfile for a locality group obtained from {@link Reader#getLocalityGroupCF()}. This method can possibly return an empty
-   * list for the default locality group. When this happens the default locality group needs to be seeked differently. This method helps do that.
+   * This method created to help seek an rfile for a locality group obtained from
+   * {@link Reader#getLocalityGroupCF()}. This method can possibly return an empty list for the
+   * default locality group. When this happens the default locality group needs to be seeked
+   * differently. This method helps do that.
    *
    * <p>
-   * For the default locality group will seek using the families of all other locality groups non-inclusive.
+   * For the default locality group will seek using the families of all other locality groups
+   * non-inclusive.
    *
    * @see Reader#getLocalityGroupCF()
    */
-  public static void seek(FileSKVIterator reader, Range range, String lgName, Map<String,ArrayList<ByteSequence>> localityGroupCF) throws IOException {
+  public static void seek(FileSKVIterator reader, Range range, String lgName,
+      Map<String,ArrayList<ByteSequence>> localityGroupCF) throws IOException {
 
     Collection<ByteSequence> families;
     boolean inclusive;

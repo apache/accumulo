@@ -44,33 +44,46 @@ import org.slf4j.LoggerFactory;
  * Extract connection information to a standalone Accumulo instance from Java properties
  */
 public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPropertyConfiguration {
-  private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloClusterConfiguration.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(StandaloneAccumuloClusterConfiguration.class);
 
-  public static final String ACCUMULO_STANDALONE_ADMIN_PRINCIPAL_KEY = ACCUMULO_STANDALONE_PREFIX + "admin.principal";
+  public static final String ACCUMULO_STANDALONE_ADMIN_PRINCIPAL_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "admin.principal";
   public static final String ACCUMULO_STANDALONE_ADMIN_PRINCIPAL_DEFAULT = "root";
-  public static final String ACCUMULO_STANDALONE_PASSWORD_KEY = ACCUMULO_STANDALONE_PREFIX + "admin.password";
+  public static final String ACCUMULO_STANDALONE_PASSWORD_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "admin.password";
   public static final String ACCUMULO_STANDALONE_PASSWORD_DEFAULT = "rootPassword1";
-  public static final String ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY = ACCUMULO_STANDALONE_PREFIX + "admin.keytab";
-  public static final String ACCUMULO_STANDALONE_ZOOKEEPERS_KEY = ACCUMULO_STANDALONE_PREFIX + "zookeepers";
+  public static final String ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "admin.keytab";
+  public static final String ACCUMULO_STANDALONE_ZOOKEEPERS_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "zookeepers";
   public static final String ACCUMULO_STANDALONE_ZOOKEEPERS_DEFAULT = "localhost";
-  public static final String ACCUMULO_STANDALONE_INSTANCE_NAME_KEY = ACCUMULO_STANDALONE_PREFIX + "instance.name";
+  public static final String ACCUMULO_STANDALONE_INSTANCE_NAME_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "instance.name";
   public static final String ACCUMULO_STANDALONE_INSTANCE_NAME_DEFAULT = "accumulo";
-  public static final String ACCUMULO_STANDALONE_TMP_DIR_KEY = ACCUMULO_STANDALONE_PREFIX + "tmpdir";
+  public static final String ACCUMULO_STANDALONE_TMP_DIR_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "tmpdir";
   public static final String ACCUMULO_STANDALONE_TMP_DIR_DEFAULT = "/tmp";
-  public static final String ACCUMULO_STANDALONE_SERVER_USER = ACCUMULO_STANDALONE_PREFIX + "server.user";
+  public static final String ACCUMULO_STANDALONE_SERVER_USER = ACCUMULO_STANDALONE_PREFIX
+      + "server.user";
   public static final String ACCUMULO_STANDALONE_SERVER_USER_DEFAULT = "accumulo";
 
   // A set of users we can use to connect to this instances
   public static final String ACCUMULO_STANDALONE_USER_KEY = ACCUMULO_STANDALONE_PREFIX + "users.";
   // Keytabs for the users
-  public static final String ACCUMULO_STANDALONE_USER_KEYTABS_KEY = ACCUMULO_STANDALONE_PREFIX + "keytabs.";
+  public static final String ACCUMULO_STANDALONE_USER_KEYTABS_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "keytabs.";
   // Passwords for the users
-  public static final String ACCUMULO_STANDALONE_USER_PASSWORDS_KEY = ACCUMULO_STANDALONE_PREFIX + "passwords.";
+  public static final String ACCUMULO_STANDALONE_USER_PASSWORDS_KEY = ACCUMULO_STANDALONE_PREFIX
+      + "passwords.";
 
   public static final String ACCUMULO_STANDALONE_HOME = ACCUMULO_STANDALONE_PREFIX + "home";
-  public static final String ACCUMULO_STANDALONE_CLIENT_CONF = ACCUMULO_STANDALONE_PREFIX + "client.conf";
-  public static final String ACCUMULO_STANDALONE_SERVER_CONF = ACCUMULO_STANDALONE_PREFIX + "server.conf";
-  public static final String ACCUMULO_STANDALONE_HADOOP_CONF = ACCUMULO_STANDALONE_PREFIX + "hadoop.conf";
+  public static final String ACCUMULO_STANDALONE_CLIENT_CONF = ACCUMULO_STANDALONE_PREFIX
+      + "client.conf";
+  public static final String ACCUMULO_STANDALONE_SERVER_CONF = ACCUMULO_STANDALONE_PREFIX
+      + "server.conf";
+  public static final String ACCUMULO_STANDALONE_HADOOP_CONF = ACCUMULO_STANDALONE_PREFIX
+      + "hadoop.conf";
 
   private Map<String,String> conf;
   private String serverUser;
@@ -110,12 +123,14 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
         String keytab = conf.get(ACCUMULO_STANDALONE_USER_KEYTABS_KEY + suffix);
         if (null != keytab) {
           File keytabFile = new File(keytab);
-          assertTrue("Keytab doesn't exist: " + keytabFile, keytabFile.exists() && keytabFile.isFile());
+          assertTrue("Keytab doesn't exist: " + keytabFile,
+              keytabFile.exists() && keytabFile.isFile());
           clusterUsers.add(new ClusterUser(entry.getValue(), keytabFile));
         } else {
           String password = conf.get(ACCUMULO_STANDALONE_USER_PASSWORDS_KEY + suffix);
           if (null == password) {
-            throw new IllegalArgumentException("Missing password or keytab configuration for user with offset " + suffix);
+            throw new IllegalArgumentException(
+                "Missing password or keytab configuration for user with offset " + suffix);
           }
           clusterUsers.add(new ClusterUser(entry.getValue(), password));
         }
@@ -144,7 +159,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   public File getAdminKeytab() {
     String keytabPath = conf.get(ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY);
     if (null == keytabPath) {
-      throw new RuntimeException("SASL is enabled, but " + ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY + " was not provided");
+      throw new RuntimeException(
+          "SASL is enabled, but " + ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY + " was not provided");
     }
     File keytab = new File(keytabPath);
     if (!keytab.exists() || !keytab.isFile()) {
@@ -194,7 +210,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   }
 
   public Instance getInstance() {
-    // Make sure the ZKI is created with the ClientConf so it gets things like SASL passed through to the connector
+    // Make sure the ZKI is created with the ClientConf so it gets things like SASL passed through
+    // to the connector
     return new ZooKeeperInstance(clientConf);
   }
 

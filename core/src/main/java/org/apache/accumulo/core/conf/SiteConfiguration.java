@@ -30,11 +30,13 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Predicate;
 
 /**
- * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
- * property values to a parent configuration's definitions.
+ * An {@link AccumuloConfiguration} which loads properties from an XML file, usually
+ * accumulo-site.xml. This implementation supports defaulting undefined property values to a parent
+ * configuration's definitions.
  * <p>
- * The system property "org.apache.accumulo.config.file" can be used to specify the location of the XML configuration file on the classpath. If the system
- * property is not defined, it defaults to "accumulo-site.xml".
+ * The system property "org.apache.accumulo.config.file" can be used to specify the location of the
+ * XML configuration file on the classpath. If the system property is not defined, it defaults to
+ * "accumulo-site.xml".
  * <p>
  * This class is a singleton.
  * <p>
@@ -51,7 +53,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private SiteConfiguration() {
     /*
-     * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop Configuration object
+     * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop
+     * Configuration object
      */
     final Configuration conf = getXmlConfig();
     Map<String,String> temp = new HashMap<>((int) (Math.ceil(conf.size() / 0.75f)), 0.75f);
@@ -59,8 +62,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       temp.put(entry.getKey(), entry.getValue());
     }
     /*
-     * If any of the configs used in hot codepaths are unset here, set a null so that we'll default to the parent config without contending for the Hadoop
-     * Configuration object
+     * If any of the configs used in hot codepaths are unset here, set a null so that we'll default
+     * to the parent config without contending for the Hadoop Configuration object
      */
     for (Property hotConfig : Property.HOT_PATH_PROPERTIES) {
       if (!(temp.containsKey(hotConfig.getKey()))) {
@@ -107,22 +110,29 @@ public class SiteConfiguration extends AccumuloConfiguration {
       if (null != hadoopConf) {
         // Try to find the sensitive value from the CredentialProvider
         try {
-          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
+              key);
           if (null != value) {
             return new String(value);
           }
         } catch (IOException e) {
-          log.warn("Failed to extract sensitive property (" + key + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+          log.warn("Failed to extract sensitive property (" + key
+              + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
         }
       }
     }
 
-    /* Check the available-on-load configs and fall-back to the possibly-update Configuration object. */
-    String value = staticConfigs.containsKey(key) ? staticConfigs.get(key) : getXmlConfig().get(key);
+    /*
+     * Check the available-on-load configs and fall-back to the possibly-update Configuration
+     * object.
+     */
+    String value = staticConfigs.containsKey(key) ? staticConfigs.get(key)
+        : getXmlConfig().get(key);
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
-        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+        log.error("Using default value for " + key + " due to improperly formatted "
+            + property.getType() + ": " + value);
       value = parent.get(property);
     }
     return value;
@@ -146,14 +156,17 @@ public class SiteConfiguration extends AccumuloConfiguration {
           }
 
           if (filter.apply(key)) {
-            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
+                key);
             if (null != value) {
               props.put(key, new String(value));
             }
           }
         }
       } catch (IOException e) {
-        log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+        log.warn(
+            "Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml",
+            e);
       }
     }
   }
@@ -174,7 +187,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * Clears the configuration properties in this configuration (but not the parent). This method supports testing and should not be called.
+   * Clears the configuration properties in this configuration (but not the parent). This method
+   * supports testing and should not be called.
    */
   synchronized public static void clearInstance() {
     instance = null;

@@ -36,10 +36,13 @@ public class SetAuthsCommand extends Command {
   private Option clearOptAuths;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
-    final String scanOpts = cl.hasOption(clearOptAuths.getOpt()) ? null : cl.getOptionValue(scanOptAuths.getOpt());
-    shellState.getConnector().securityOperations().changeUserAuthorizations(user, ScanCommand.parseAuthorizations(scanOpts));
+    final String scanOpts = cl.hasOption(clearOptAuths.getOpt()) ? null
+        : cl.getOptionValue(scanOptAuths.getOpt());
+    shellState.getConnector().securityOperations().changeUserAuthorizations(user,
+        ScanCommand.parseAuthorizations(scanOpts));
     Shell.log.debug("Changed record-level authorizations for user " + user);
     return 0;
   }
@@ -50,7 +53,8 @@ public class SetAuthsCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
 

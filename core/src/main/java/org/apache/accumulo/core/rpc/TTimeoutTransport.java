@@ -41,7 +41,8 @@ public class TTimeoutTransport {
       synchronized (TTimeoutTransport.class) {
         if (null == GET_INPUT_STREAM_METHOD) {
           try {
-            GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class, Long.TYPE);
+            GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class,
+                Long.TYPE);
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -72,7 +73,8 @@ public class TTimeoutTransport {
       socket.setTcpNoDelay(true);
       socket.connect(addr);
       InputStream input = new BufferedInputStream(getInputStream(socket, timeoutMillis), 1024 * 10);
-      OutputStream output = new BufferedOutputStream(NetUtils.getOutputStream(socket, timeoutMillis), 1024 * 10);
+      OutputStream output = new BufferedOutputStream(
+          NetUtils.getOutputStream(socket, timeoutMillis), 1024 * 10);
       return new TIOStreamTransport(input, output);
     } catch (IOException e) {
       try {

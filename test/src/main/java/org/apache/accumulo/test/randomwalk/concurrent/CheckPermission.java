@@ -53,13 +53,16 @@ public class CheckPermission extends Test {
       int dice = rand.nextInt(2);
       if (dice == 0) {
         log.debug("Checking systerm permission " + userName);
-        conn.securityOperations().hasSystemPermission(userName, SystemPermission.values()[rand.nextInt(SystemPermission.values().length)]);
+        conn.securityOperations().hasSystemPermission(userName,
+            SystemPermission.values()[rand.nextInt(SystemPermission.values().length)]);
       } else if (dice == 1) {
         log.debug("Checking table permission " + userName + " " + tableName);
-        conn.securityOperations().hasTablePermission(userName, tableName, TablePermission.values()[rand.nextInt(TablePermission.values().length)]);
+        conn.securityOperations().hasTablePermission(userName, tableName,
+            TablePermission.values()[rand.nextInt(TablePermission.values().length)]);
       } else if (dice == 2) {
         log.debug("Checking namespace permission " + userName + " " + namespace);
-        conn.securityOperations().hasNamespacePermission(userName, namespace, NamespacePermission.values()[rand.nextInt(NamespacePermission.values().length)]);
+        conn.securityOperations().hasNamespacePermission(userName, namespace,
+            NamespacePermission.values()[rand.nextInt(NamespacePermission.values().length)]);
       }
 
     } catch (AccumuloSecurityException ex) {

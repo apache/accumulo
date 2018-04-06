@@ -44,6 +44,7 @@ public class RootTable {
   public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
 
   public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
-  public static final KeyExtent OLD_EXTENT = new KeyExtent(MetadataTable.ID, KeyExtent.getMetadataEntry(MetadataTable.ID, null), null);
+  public static final KeyExtent OLD_EXTENT = new KeyExtent(MetadataTable.ID,
+      KeyExtent.getMetadataEntry(MetadataTable.ID, null), null);
 
 }

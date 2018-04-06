@@ -65,11 +65,12 @@ public class ProblemReports implements Iterable<ProblemReport> {
   /**
    * use a thread pool so that reporting a problem never blocks
    *
-   * make the thread pool use a bounded queue to avoid the case where problem reports are not being processed because the whole system is in a really bad state
-   * (like HDFS is down) and everything is reporting lots of problems, but problem reports can not be processed
+   * make the thread pool use a bounded queue to avoid the case where problem reports are not being
+   * processed because the whole system is in a really bad state (like HDFS is down) and everything
+   * is reporting lots of problems, but problem reports can not be processed
    */
-  private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(500), new NamingThreadFactory(
-      "acu-problem-reporter"));
+  private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS,
+      new LinkedBlockingQueue<Runnable>(500), new NamingThreadFactory("acu-problem-reporter"));
 
   private final AccumuloServerContext context;
 
@@ -92,7 +93,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
       @Override
       public void run() {
 
-        log.debug("Filing problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource());
+        log.debug("Filing problem report " + pr.getTableName() + " " + pr.getProblemType() + " "
+            + pr.getResource());
 
         try {
           if (isMeta(pr.getTableName())) {
@@ -103,7 +105,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.saveToMetadataTable(context);
           }
         } catch (Exception e) {
-          log.error("Failed to file problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource(), e);
+          log.error("Failed to file problem report " + pr.getTableName() + " " + pr.getProblemType()
+              + " " + pr.getResource(), e);
         }
       }
 
@@ -112,14 +115,16 @@ public class ProblemReports implements Iterable<ProblemReport> {
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
-      log.error("Failed to report problem {} {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), ree.getMessage());
+      log.error("Failed to report problem {} {} {} {}", pr.getTableName(), pr.getProblemType(),
+          pr.getResource(), ree.getMessage());
     }
 
   }
 
   public void printProblems() throws Exception {
     for (ProblemReport pr : this) {
-      System.out.println(pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource() + " " + pr.getException());
+      System.out.println(pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource()
+          + " " + pr.getException());
     }
   }
 
@@ -139,7 +144,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.removeFromMetadataTable(context);
           }
         } catch (Exception e) {
-          log.error("Failed to delete problem report {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), e);
+          log.error("Failed to delete problem report {} {} {}", pr.getTableName(),
+              pr.getProblemType(), pr.getResource(), e);
         }
       }
     };
@@ -147,7 +153,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
-      log.error("Failed to delete problem report {} {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), ree.getMessage());
+      log.error("Failed to delete problem report {} {} {} {}", pr.getTableName(),
+          pr.getProblemType(), pr.getResource(), ree.getMessage());
     }
   }
 
@@ -199,7 +206,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
             try {
               List<String> children;
               if (table == null || isMeta(table)) {
-                children = zoo.getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZPROBLEMS);
+                children = zoo
+                    .getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZPROBLEMS);
               } else {
                 children = Collections.emptyList();
               }
@@ -300,7 +308,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String args[]) throws Exception {
-    getInstance(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()))).printProblems();
+    getInstance(
+        new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())))
+            .printProblems();
   }
 
   public Map<String,Map<ProblemType,Integer>> summarize() {

@@ -72,7 +72,8 @@ public class DebugIterator extends WrappingIterator implements OptionDescriber {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     log.debug(prefix + " seek(" + range + ", " + columnFamilies + ", " + inclusive + ")");
     super.seek(range, columnFamilies, inclusive);
   }
@@ -84,7 +85,8 @@ public class DebugIterator extends WrappingIterator implements OptionDescriber {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     log.debug("init(" + source + ", " + options + ", " + env + ")");
 
     if (null == prefix) {
@@ -96,7 +98,9 @@ public class DebugIterator extends WrappingIterator implements OptionDescriber {
 
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions("debug", DebugIterator.class.getSimpleName() + " prints debug information on each SortedKeyValueIterator method invocation",
+    return new IteratorOptions("debug",
+        DebugIterator.class.getSimpleName()
+            + " prints debug information on each SortedKeyValueIterator method invocation",
         null, null);
   }
 

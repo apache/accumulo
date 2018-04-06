@@ -36,7 +36,8 @@ public class ExecfileCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     Scanner scanner = new Scanner(new File(cl.getArgs()[0]), UTF_8.name());
     try {
       while (scanner.hasNextLine()) {
@@ -61,7 +62,8 @@ public class ExecfileCommand extends Command {
   @Override
   public Options getOptions() {
     final Options opts = new Options();
-    verboseOption = new Option("v", "verbose", false, "display command prompt as commands are executed");
+    verboseOption = new Option("v", "verbose", false,
+        "display command prompt as commands are executed");
     opts.addOption(verboseOption);
     return opts;
   }

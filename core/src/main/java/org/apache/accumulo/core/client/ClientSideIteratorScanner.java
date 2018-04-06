@@ -48,14 +48,16 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 /**
- * A scanner that instantiates iterators on the client side instead of on the tablet server. This can be useful for testing iterators or in cases where you
- * don't want iterators affecting the performance of tablet servers.<br>
+ * A scanner that instantiates iterators on the client side instead of on the tablet server. This
+ * can be useful for testing iterators or in cases where you don't want iterators affecting the
+ * performance of tablet servers.<br>
  * <br>
  * Suggested usage:<br>
  * <code>Scanner scanner = new ClientSideIteratorScanner(connector.createScanner(tableName, authorizations));</code><br>
  * <br>
- * Iterators added to this scanner will be run in the client JVM. Separate scan iterators can be run on the server side and client side by adding iterators to
- * the source scanner (which will execute server side) and to the client side scanner (which will execute client side).
+ * Iterators added to this scanner will be run in the client JVM. Separate scan iterators can be run
+ * on the server side and client side by adding iterators to the source scanner (which will execute
+ * server side) and to the client side scanner (which will execute client side).
  */
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
   private int size;
@@ -66,7 +68,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private SamplerConfiguration iteratorSamplerConfig;
 
   /**
-   * @deprecated since 1.7.0 was never intended for public use. However this could have been used by anything extending this class.
+   * @deprecated since 1.7.0 was never intended for public use. However this could have been used by
+   *             anything extending this class.
    */
   @Deprecated
   public class ScannerTranslator extends ScannerTranslatorImpl {
@@ -91,7 +94,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+        throws IOException {
       throw new UnsupportedOperationException();
     }
 
@@ -137,7 +141,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   }
 
   /**
-   * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can use it as a source.
+   * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can
+   * use it as a source.
    */
   private class ScannerTranslatorImpl implements SortedKeyValueIterator<Key,Value> {
     protected Scanner scanner;
@@ -157,7 +162,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     @Override
-    public void init(final SortedKeyValueIterator<Key,Value> source, final Map<String,String> options, final IteratorEnvironment env) throws IOException {
+    public void init(final SortedKeyValueIterator<Key,Value> source,
+        final Map<String,String> options, final IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }
 
@@ -175,7 +181,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     @Override
-    public void seek(final Range range, final Collection<ByteSequence> columnFamilies, final boolean inclusive) throws IOException {
+    public void seek(final Range range, final Collection<ByteSequence> columnFamilies,
+        final boolean inclusive) throws IOException {
       if (!inclusive && columnFamilies.size() > 0) {
         throw new IllegalArgumentException();
       }
@@ -207,7 +214,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
-      return new ScannerTranslatorImpl(scanner, env.isSamplingEnabled() ? env.getSamplerConfiguration() : null);
+      return new ScannerTranslatorImpl(scanner,
+          env.isSamplingEnabled() ? env.getSamplerConfiguration() : null);
     }
   }
 
@@ -259,8 +267,10 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions, new ClientSideIteratorEnvironment(getSamplerConfiguration() != null,
-          getIteratorSamplerConfigurationInternal()), false, null);
+      skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions,
+          new ClientSideIteratorEnvironment(getSamplerConfiguration() != null,
+              getIteratorSamplerConfigurationInternal()),
+          false, null);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -340,7 +350,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public void setReadaheadThreshold(long batches) {
     if (0 > batches) {
-      throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
+      throw new IllegalArgumentException(
+          "Number of batches before read-ahead must be non-negative");
     }
     this.readaheadThreshold = batches;
   }
@@ -359,8 +370,10 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   }
 
   /**
-   * This is provided for the case where no sampler configuration is set on the scanner, but there is a need to create iterator deep copies that have sampling
-   * enabled. If sampler configuration is set on the scanner, then this method does not need to be called inorder to create deep copies with sampling.
+   * This is provided for the case where no sampler configuration is set on the scanner, but there
+   * is a need to create iterator deep copies that have sampling enabled. If sampler configuration
+   * is set on the scanner, then this method does not need to be called inorder to create deep
+   * copies with sampling.
    *
    * <p>
    * Setting this differently than the scanners sampler configuration may cause exceptions.

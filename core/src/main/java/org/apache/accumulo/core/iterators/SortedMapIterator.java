@@ -34,9 +34,10 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 /**
  * A simple iterator over a Java SortedMap
  *
- * Note that this class is intended as an in-memory replacement for RFile$Reader, so its behavior reflects the same assumptions; namely, that this iterator is
- * not responsible for respecting the columnFamilies passed into seek(). If you want a Map-backed Iterator that returns only sought CFs, construct a new
- * ColumnFamilySkippingIterator(new SortedMapIterator(map)).
+ * Note that this class is intended as an in-memory replacement for RFile$Reader, so its behavior
+ * reflects the same assumptions; namely, that this iterator is not responsible for respecting the
+ * columnFamilies passed into seek(). If you want a Map-backed Iterator that returns only sought
+ * CFs, construct a new ColumnFamilySkippingIterator(new SortedMapIterator(map)).
  *
  * @see org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator
  *
@@ -108,7 +109,8 @@ public class SortedMapIterator implements InterruptibleIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
 
     if (interruptFlag != null && interruptFlag.get())
       throw new IterationInterruptedException();
@@ -135,7 +137,8 @@ public class SortedMapIterator implements InterruptibleIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
 

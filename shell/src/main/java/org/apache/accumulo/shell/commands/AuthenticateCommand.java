@@ -32,7 +32,8 @@ import org.apache.commons.cli.CommandLine;
 
 public class AuthenticateCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getArgs()[0];
     final String p = shellState.readMaskedLine("Enter current password for '" + user + "': ", '*');
     if (p == null) {
@@ -40,7 +41,8 @@ public class AuthenticateCommand extends Command {
       return 0;
     } // user canceled
     final byte[] password = p.getBytes(UTF_8);
-    final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user, new PasswordToken(password));
+    final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user,
+        new PasswordToken(password));
     shellState.getReader().println((valid ? "V" : "Not v") + "alid");
     return 0;
   }
@@ -56,7 +58,8 @@ public class AuthenticateCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
 

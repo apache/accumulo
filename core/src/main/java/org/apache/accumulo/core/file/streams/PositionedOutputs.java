@@ -29,7 +29,10 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 public class PositionedOutputs {
   private PositionedOutputs() {}
 
-  /** Convert an {@code OutputStream} into an {@code OutputStream} implementing {@link PositionedOutput}. */
+  /**
+   * Convert an {@code OutputStream} into an {@code OutputStream} implementing
+   * {@link PositionedOutput}.
+   */
   public static PositionedOutputStream wrap(final OutputStream fout) {
     Objects.requireNonNull(fout);
     if (fout instanceof FSDataOutputStream) {
@@ -56,7 +59,8 @@ public class PositionedOutputs {
     }
   }
 
-  private static abstract class PositionedOutputStream extends FilterOutputStream implements PositionedOutput {
+  private static abstract class PositionedOutputStream extends FilterOutputStream
+      implements PositionedOutput {
     public PositionedOutputStream(OutputStream stream) {
       super(stream);
     }

@@ -22,7 +22,8 @@ import java.util.Map;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 
 /**
- * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to constructor(s) and all other configurations are optional.
+ * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to
+ * constructor(s) and all other configurations are optional.
  *
  * @since 1.5.0
  */
@@ -40,8 +41,9 @@ public class MiniAccumuloConfig {
 
   /**
    * @param dir
-   *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava, and
-   *          Junit provide methods for creating temporary directories.
+   *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in.
+   *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
+   *          for creating temporary directories.
    * @param rootPassword
    *          The initial password for the Accumulo root user
    */
@@ -95,7 +97,8 @@ public class MiniAccumuloConfig {
   }
 
   /**
-   * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds
+   * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The
+   * default is 20000 milliseconds
    *
    * @param zooKeeperStartupTime
    *          Time to wait for ZooKeeper to startup, in milliseconds
@@ -108,7 +111,8 @@ public class MiniAccumuloConfig {
   }
 
   /**
-   * Sets the amount of memory to use in the master process. Calling this method is optional. Default memory is 128M
+   * Sets the amount of memory to use in the master process. Calling this method is optional.
+   * Default memory is 128M
    *
    * @param serverType
    *          the type of server to apply the memory settings
@@ -126,8 +130,8 @@ public class MiniAccumuloConfig {
   }
 
   /**
-   * Sets the default memory size to use. This value is also used when a ServerType has not been configured explicitly. Calling this method is optional. Default
-   * memory is 128M
+   * Sets the default memory size to use. This value is also used when a ServerType has not been
+   * configured explicitly. Calling this method is optional. Default memory is 128M
    *
    * @param memory
    *          amount of memory to set

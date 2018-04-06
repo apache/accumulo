@@ -22,8 +22,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
- * This is a glue object, to convert short file references to long references. The metadata may contain old relative file references. This class keeps track of
- * the short file reference, so it can be removed properly from the metadata tables.
+ * This is a glue object, to convert short file references to long references. The metadata may
+ * contain old relative file references. This class keeps track of the short file reference, so it
+ * can be removed properly from the metadata tables.
  */
 public class FileRef implements Comparable<FileRef> {
   private String metaReference; // something like ../2/d-00000/A00001.rf
@@ -65,7 +66,8 @@ public class FileRef implements Comparable<FileRef> {
 
     try {
       Path parent = path.getParent().getParent();
-      if (!parent.getName().equals(FileType.TABLE.getDirectory()) && !parent.getParent().getName().equals(FileType.TABLE.getDirectory()))
+      if (!parent.getName().equals(FileType.TABLE.getDirectory())
+          && !parent.getParent().getName().equals(FileType.TABLE.getDirectory()))
         throw new IllegalArgumentException("Invalid table path " + pstr);
     } catch (NullPointerException npe) {
       throw new IllegalArgumentException("Invalid table path " + pstr);

@@ -43,7 +43,8 @@ public class Delete extends Test {
     String docID = entry.getKey().getRow().toString();
     String doc = entry.getValue().toString();
 
-    Insert.unindexDocument(env.getMultiTableBatchWriter().getBatchWriter(indexTableName), doc, docID, numPartitions);
+    Insert.unindexDocument(env.getMultiTableBatchWriter().getBatchWriter(indexTableName), doc,
+        docID, numPartitions);
 
     Mutation m = new Mutation(docID);
     m.putDelete("doc", "");

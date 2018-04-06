@@ -28,8 +28,8 @@ import org.apache.hadoop.fs.Path;
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  *
- * ZooTabletStateStore: information about the root tablet is stored in ZooKeeper MetaDataStateStore: information about the other tablets are stored in the
- * metadata table
+ * ZooTabletStateStore: information about the root tablet is stored in ZooKeeper MetaDataStateStore:
+ * information about the other tablets are stored in the metadata table
  *
  */
 public abstract class TabletStateStore implements Iterable<TabletLocationState> {
@@ -48,12 +48,14 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
   /**
    * Store the assigned locations in the data store.
    */
-  abstract public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
+  abstract public void setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
-  abstract public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
+  abstract public void setLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException;
 
   /**
    * Mark the tablets as having no known or future location.
@@ -63,34 +65,44 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    * @param logsForDeadServers
    *          a cache of logs in use by servers when they died
    */
-  abstract public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
+  abstract public void unassign(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
 
   /**
-   * Mark tablets as having no known or future location, but desiring to be returned to their previous tserver.
+   * Mark tablets as having no known or future location, but desiring to be returned to their
+   * previous tserver.
    */
-  abstract public void suspend(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+  abstract public void suspend(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
    * Remove a suspension marker for a collection of tablets, moving them to being simply unassigned.
    */
-  abstract public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException;
+  abstract public void unsuspend(Collection<TabletLocationState> tablets)
+      throws DistributedStoreException;
 
-  public static void unassign(AccumuloServerContext context, TabletLocationState tls, Map<TServerInstance,List<Path>> logsForDeadServers)
+  public static void unassign(AccumuloServerContext context, TabletLocationState tls,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+    getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls),
+        logsForDeadServers);
+  }
+
+  public static void suspend(AccumuloServerContext context, TabletLocationState tls,
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
-    getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls), logsForDeadServers);
+    getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
+        logsForDeadServers, suspensionTimestamp);
   }
 
-  public static void suspend(AccumuloServerContext context, TabletLocationState tls, Map<TServerInstance,List<Path>> logsForDeadServers,
-      long suspensionTimestamp) throws DistributedStoreException {
-    getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls), logsForDeadServers, suspensionTimestamp);
+  public static void setLocation(AccumuloServerContext context, Assignment assignment)
+      throws DistributedStoreException {
+    getStoreForTablet(assignment.tablet, context)
+        .setLocations(Collections.singletonList(assignment));
   }
 
-  public static void setLocation(AccumuloServerContext context, Assignment assignment) throws DistributedStoreException {
-    getStoreForTablet(assignment.tablet, context).setLocations(Collections.singletonList(assignment));
-  }
-
-  protected static TabletStateStore getStoreForTablet(KeyExtent extent, AccumuloServerContext context) throws DistributedStoreException {
+  protected static TabletStateStore getStoreForTablet(KeyExtent extent,
+      AccumuloServerContext context) throws DistributedStoreException {
     if (extent.isRootTablet()) {
       return new ZooTabletStateStore();
     } else if (extent.isMeta()) {

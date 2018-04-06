@@ -62,8 +62,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Central logging facility for the TServerInfo.
  *
- * Forwards in-memory updates to remote logs, carefully writing the same data to every log, while maintaining the maximum thread parallelism for greater
- * performance. As new logs are used and minor compactions are performed, the metadata table is kept up-to-date.
+ * Forwards in-memory updates to remote logs, carefully writing the same data to every log, while
+ * maintaining the maximum thread parallelism for greater performance. As new logs are used and
+ * minor compactions are performed, the metadata table is kept up-to-date.
  *
  */
 public class TabletServerLogger {
@@ -90,7 +91,8 @@ public class TabletServerLogger {
   // already fetched a new log.
   private final AtomicInteger logId = new AtomicInteger();
 
-  // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
+  // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to
+  // change them
   private final ReentrantReadWriteLock logIdLock = new ReentrantReadWriteLock();
 
   private final AtomicLong syncCounter;
@@ -117,7 +119,8 @@ public class TabletServerLogger {
    * @param code
    *          a test/work pair
    */
-  private static void testLockAndRun(final ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
+  private static void testLockAndRun(final ReadWriteLock rwlock, TestCallWithWriteLock code)
+      throws IOException {
     // Get a read lock
     rwlock.readLock().lock();
     try {
@@ -146,8 +149,9 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory createRetryFactory,
-      RetryFactory writeRetryFactory, long maxAge) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter,
+      AtomicLong flushCounter, RetryFactory createRetryFactory, RetryFactory writeRetryFactory,
+      long maxAge) {
     this.tserver = tserver;
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
@@ -351,20 +355,24 @@ public class TabletServerLogger {
     LoggerOperation write(DfsLogger logger) throws Exception;
   }
 
-  private void write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
+  private void write(CommitSession commitSession, boolean mincFinish, Writer writer)
+      throws IOException {
     write(commitSession, mincFinish, writer, writeRetryFactory.createRetry());
   }
 
-  private void write(CommitSession commitSession, boolean mincFinish, Writer writer, Retry writeRetry) throws IOException {
+  private void write(CommitSession commitSession, boolean mincFinish, Writer writer,
+      Retry writeRetry) throws IOException {
     List<CommitSession> sessions = Collections.singletonList(commitSession);
     write(sessions, mincFinish, writer, writeRetry);
   }
 
-  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
+  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer)
+      throws IOException {
     write(sessions, mincFinish, writer, writeRetryFactory.createRetry());
   }
 
-  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer, Retry writeRetry) throws IOException {
+  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer,
+      Retry writeRetry) throws IOException {
     // Work very hard not to lock this during calls to the outside world
     int currentLogId = logId.get();
 
@@ -392,11 +400,14 @@ public class TabletServerLogger {
 
               // Need to release
               KeyExtent extent = commitSession.getExtent();
-              if (ReplicationConfigurationUtil.isEnabled(extent, tserver.getTableConfiguration(extent))) {
+              if (ReplicationConfigurationUtil.isEnabled(extent,
+                  tserver.getTableConfiguration(extent))) {
                 Status status = StatusUtil.openWithUnknownLength(System.currentTimeMillis());
-                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for " + copy.getFileName());
+                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
+                    + copy.getFileName());
                 // Got some new WALs, note this in the metadata table
-                ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(), copy.getFileName(), status);
+                ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(),
+                    copy.getFileName(), status);
               }
             }
           }
@@ -452,7 +463,8 @@ public class TabletServerLogger {
     testLockAndRun(logIdLock, new TestCallWithWriteLock() {
       @Override
       boolean test() {
-        return (logSizeEstimate.get() > maxSize) || ((System.currentTimeMillis() - createTime) > maxAge);
+        return (logSizeEstimate.get() > maxSize)
+            || ((System.currentTimeMillis() - createTime) > maxAge);
       }
 
       @Override
@@ -467,18 +479,21 @@ public class TabletServerLogger {
     // TODO We can close the WAL here for replication purposes
   }
 
-  public void defineTablet(final CommitSession commitSession, final Retry writeRetry) throws IOException {
+  public void defineTablet(final CommitSession commitSession, final Retry writeRetry)
+      throws IOException {
     // scribble this into the metadata tablet, too.
     write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger) throws Exception {
-        logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
+        logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(),
+            commitSession.getExtent());
         return DfsLogger.NO_WAIT_LOGGER_OP;
       }
     }, writeRetry);
   }
 
-  public void log(final CommitSession commitSession, final long tabletSeq, final Mutation m, final Durability durability) throws IOException {
+  public void log(final CommitSession commitSession, final long tabletSeq, final Mutation m,
+      final Durability durability) throws IOException {
     if (durability == Durability.NONE) {
       return;
     }
@@ -512,7 +527,8 @@ public class TabletServerLogger {
         for (Entry<CommitSession,Mutations> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
           Durability durability = entry.getValue().getDurability();
-          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), entry.getValue().getMutations(), durability));
+          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
+              entry.getValue().getMutations(), durability));
         }
         return logger.logManyTablets(copy);
       }
@@ -527,7 +543,8 @@ public class TabletServerLogger {
     }
   }
 
-  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final long walogSeq, final Durability durability)
+  public void minorCompactionFinished(final CommitSession commitSession,
+      final String fullyQualifiedFileName, final long walogSeq, final Durability durability)
       throws IOException {
 
     long t1 = System.currentTimeMillis();
@@ -535,7 +552,8 @@ public class TabletServerLogger {
     write(commitSession, true, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName, durability);
+        return logger.minorCompactionFinished(walogSeq, commitSession.getLogId(),
+            fullyQualifiedFileName, durability);
       }
     });
 
@@ -544,19 +562,20 @@ public class TabletServerLogger {
     log.debug(" wrote MinC finish: writeTime:{}ms  durability:{}", (t2 - t1), durability);
   }
 
-  public long minorCompactionStarted(final CommitSession commitSession, final long seq, final String fullyQualifiedFileName, final Durability durability)
-      throws IOException {
+  public long minorCompactionStarted(final CommitSession commitSession, final long seq,
+      final String fullyQualifiedFileName, final Durability durability) throws IOException {
     write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName, durability);
+        return logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName,
+            durability);
       }
     });
     return seq;
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<Path> logs, Set<String> tabletFiles, MutationReceiver mr)
-      throws IOException {
+  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<Path> logs,
+      Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
       SortedLogRecovery recovery = new SortedLogRecovery(fs);
       recovery.recover(extent, logs, tabletFiles, mr);

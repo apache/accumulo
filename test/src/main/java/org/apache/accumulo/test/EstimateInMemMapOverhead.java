@@ -18,9 +18,11 @@ package org.apache.accumulo.test;
 
 public class EstimateInMemMapOverhead {
 
-  private static void runTest(int numEntries, int keyLen, int colFamLen, int colQualLen, int colVisLen, int dataLen) {
+  private static void runTest(int numEntries, int keyLen, int colFamLen, int colQualLen,
+      int colVisLen, int dataLen) {
     new IntObjectMemoryUsageTest(numEntries).run();
-    new InMemoryMapMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, colVisLen, dataLen).run();
+    new InMemoryMapMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, colVisLen, dataLen)
+        .run();
     new TextMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, dataLen).run();
     new MutationMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, dataLen).run();
   }

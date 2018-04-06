@@ -23,8 +23,8 @@ import java.util.List;
 /**
  * Read only access to a Transaction Store.
  *
- * A transaction consists of a number of operations. Instances of this class may check on the queue of outstanding transactions but may neither modify them nor
- * create new ones.
+ * A transaction consists of a number of operations. Instances of this class may check on the queue
+ * of outstanding transactions but may neither modify them nor create new ones.
  */
 public interface ReadOnlyTStore<T> {
 
@@ -49,7 +49,8 @@ public interface ReadOnlyTStore<T> {
   /**
    * Reserve a transaction that is IN_PROGRESS or FAILED_IN_PROGRESS.
    *
-   * Reserving a transaction id ensures that nothing else in-process interacting via the same instance will be operating on that transaction id.
+   * Reserving a transaction id ensures that nothing else in-process interacting via the same
+   * instance will be operating on that transaction id.
    *
    * @return a transaction id that is safe to interact with, chosen by the store.
    */
@@ -58,7 +59,8 @@ public interface ReadOnlyTStore<T> {
   /**
    * Reserve the specific tid.
    *
-   * Reserving a transaction id ensures that nothing else in-process interacting via the same instance will be operating on that transaction id.
+   * Reserving a transaction id ensures that nothing else in-process interacting via the same
+   * instance will be operating on that transaction id.
    *
    */
   void reserve(long tid);
@@ -66,12 +68,14 @@ public interface ReadOnlyTStore<T> {
   /**
    * Return the given transaction to the store.
    *
-   * upon successful return the store now controls the referenced transaction id. caller should no longer interact with it.
+   * upon successful return the store now controls the referenced transaction id. caller should no
+   * longer interact with it.
    *
    * @param tid
    *          transaction id, previously reserved.
    * @param deferTime
-   *          time in millis to keep this transaction out of the pool used in the {@link #reserve() reserve} method. must be non-negative.
+   *          time in millis to keep this transaction out of the pool used in the {@link #reserve()
+   *          reserve} method. must be non-negative.
    */
   void unreserve(long tid, long deferTime);
 
@@ -87,7 +91,8 @@ public interface ReadOnlyTStore<T> {
   ReadOnlyRepo<T> top(long tid);
 
   /**
-   * Get all operations on a transactions stack. Element 0 contains the most recent operation pushed or the top.
+   * Get all operations on a transactions stack. Element 0 contains the most recent operation pushed
+   * or the top.
    */
   List<ReadOnlyRepo<T>> getStack(long tid);
 

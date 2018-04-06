@@ -100,7 +100,8 @@ public class ArrayByteSequenceTest {
 
   @Test
   public void testToString() {
-    assertEquals("String conversion should round trip correctly", "", new ArrayByteSequence("").toString());
+    assertEquals("String conversion should round trip correctly", "",
+        new ArrayByteSequence("").toString());
   }
 
 }

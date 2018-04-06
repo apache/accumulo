@@ -46,7 +46,9 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
     super();
     this.master = master;
     try {
-      objectName = new ObjectName("accumulo.server.metrics:service=Replication Metrics,name=ReplicationMBean,instance=" + Thread.currentThread().getName());
+      objectName = new ObjectName(
+          "accumulo.server.metrics:service=Replication Metrics,name=ReplicationMBean,instance="
+              + Thread.currentThread().getName());
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }

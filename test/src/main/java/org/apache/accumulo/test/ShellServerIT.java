@@ -154,7 +154,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public StringInputStream input;
     public Shell shell;
 
-    TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile) throws IOException {
+    TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
+        throws IOException {
       ClientConfiguration clientConf;
       clientConf = ClientConfiguration.fromFile(configFile);
       // start the shell
@@ -164,9 +165,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
       shell.setLogErrorsToConsole();
       if (clientConf.hasSasl()) {
         // Pull the kerberos principal out when we're using SASL
-        shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
+        shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file",
+            configFile.getAbsolutePath());
       } else {
-        shell.config("-u", user, "-p", rootPass, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
+        shell.config("-u", user, "-p", rootPass, "-z", instanceName, zookeepers, "--config-file",
+            configFile.getAbsolutePath());
       }
       exec("quit", true);
       shell.start();
@@ -183,7 +186,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       return exec(cmd, expectGoodExit, noop);
     }
 
-    String exec(String cmd, boolean expectGoodExit, ErrorMessageCallback callback) throws IOException {
+    String exec(String cmd, boolean expectGoodExit, ErrorMessageCallback callback)
+        throws IOException {
       String result = exec(cmd);
       if (expectGoodExit)
         assertGoodExit("", true, callback);
@@ -196,15 +200,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
       return exec(cmd, expectGoodExit, expectString, noop);
     }
 
-    String exec(String cmd, boolean expectGoodExit, String expectString, ErrorMessageCallback callback) throws IOException {
+    String exec(String cmd, boolean expectGoodExit, String expectString,
+        ErrorMessageCallback callback) throws IOException {
       return exec(cmd, expectGoodExit, expectString, true, callback);
     }
 
-    String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent) throws IOException {
+    String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent)
+        throws IOException {
       return exec(cmd, expectGoodExit, expectString, stringPresent, noop);
     }
 
-    String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent, ErrorMessageCallback callback) throws IOException {
+    String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent,
+        ErrorMessageCallback callback) throws IOException {
       String result = exec(cmd);
       if (expectGoodExit)
         assertGoodExit(expectString, stringPresent, callback);
@@ -225,7 +232,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
 
       if (s.length() > 0)
-        assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
+        assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
+            output.get().contains(s));
     }
 
     void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
@@ -236,7 +244,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       }
 
       if (s.length() > 0)
-        assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
+        assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
+            output.get().contains(s));
       shell.resetExitCode();
     }
   }
@@ -285,8 +294,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Before
   public void setupShell() throws Exception {
-    ts = new TestShell(getPrincipal(), getRootPassword(), getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(), getCluster()
-        .getConfig().getClientConfFile());
+    ts = new TestShell(getPrincipal(), getRootPassword(),
+        getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
+        getCluster().getConfig().getClientConfFile());
   }
 
   @AfterClass
@@ -338,7 +348,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     DistCp cp = newDistCp(new Configuration(false));
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
     if (getCluster().getClientConfig().hasSasl()) {
-      // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it ourselves by hand.
+      // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
+      // ourselves by hand.
       FileSystem fs = getCluster().getFileSystem();
       FileSystem localFs = FileSystem.getLocal(new Configuration(false));
 
@@ -351,7 +362,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       fs.mkdirs(importDir);
 
       // Implement a poor-man's DistCp
-      try (BufferedReader reader = new BufferedReader(new FileReader(new File(exportDir, "distcp.txt")))) {
+      try (BufferedReader reader = new BufferedReader(
+          new FileReader(new File(exportDir, "distcp.txt")))) {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??
@@ -456,7 +468,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.shell.execCommand("du -h", false, false);
     String o = ts.output.get();
     // for some reason, there's a bit of fluctuation
-    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*[1-9][0-9][0-9]\\s\\[" + table + "\\]\\n"));
+    assertTrue("Output did not match regex: '" + o + "'",
+        o.matches(".*[1-9][0-9][0-9]\\s\\[" + table + "\\]\\n"));
     ts.exec("deletetable -f " + table);
   }
 
@@ -583,7 +596,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", false);
 
     // Name as option will work
-    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
+        true);
 
     String expectedKey = "table.iterator.scan.cfcounter";
     String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
@@ -630,7 +644,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
+        true);
     expectedKey = "table.iterator.scan.cfcounter";
     expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
@@ -642,7 +657,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
   }
 
-  protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey, String expectedValue) throws Exception {
+  protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey,
+      String expectedValue) throws Exception {
     for (int i = 0; i < 5; i++) {
       for (Entry<String,String> entry : tops.getProperties(tableName)) {
         if (expectedKey.equals(entry.getKey())) {
@@ -653,7 +669,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       Thread.sleep(500);
     }
 
-    fail("Failed to find expected property on " + tableName + ": " + expectedKey + "=" + expectedValue);
+    fail("Failed to find expected property on " + tableName + ": " + expectedKey + "="
+        + expectedValue);
   }
 
   @Test
@@ -689,17 +706,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // Rely on the timeout rule in AccumuloIT
     while (!success) {
       try {
-        ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
-          @Override
-          public String getErrorMessage() {
-            try {
-              Connector c = getConnector();
-              return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
-            } catch (Exception e) {
-              return "Could not check authorizations";
-            }
-          }
-        });
+        ts.exec("insert a b c d -l foo", false, "does not have authorization", true,
+            new ErrorMessageCallback() {
+              @Override
+              public String getErrorMessage() {
+                try {
+                  Connector c = getConnector();
+                  return "Current auths for root are: "
+                      + c.securityOperations().getUserAuthorizations("root").toString();
+                } catch (Exception e) {
+                  return "Could not check authorizations";
+                }
+              }
+            });
         success = true;
       } catch (AssertionError e) {
         Thread.sleep(500);
@@ -782,7 +801,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void classpath() throws Exception {
     // classpath
-    ts.exec("classpath", true, "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are", true);
+    ts.exec("classpath", true,
+        "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are",
+        true);
   }
 
   @Test
@@ -821,7 +842,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = name.getMethodName();
 
     // create table with initial properties
-    String testProp = "table.custom.description=description,table.custom.testProp=testProp," + Property.TABLE_SPLIT_THRESHOLD.getKey() + "=10K";
+    String testProp = "table.custom.description=description,table.custom.testProp=testProp,"
+        + Property.TABLE_SPLIT_THRESHOLD.getKey() + "=10K";
 
     ts.exec("createtable " + table + " -prop " + testProp, true);
     ts.exec("insert a b c value", true);
@@ -830,10 +852,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Connector connector = getConnector();
     for (Entry<String,String> entry : connector.tableOperations().getProperties(table)) {
       if (entry.getKey().equals("table.custom.description"))
-        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("description"));
+        Assert.assertTrue("Initial property was not set correctly",
+            entry.getValue().equals("description"));
 
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("testProp"));
+        Assert.assertTrue("Initial property was not set correctly",
+            entry.getValue().equals("testProp"));
 
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
         Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
@@ -882,7 +906,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // test compaction strategy
     ts.exec("insert z 1 2 v900");
-    ts.exec("compact -w -s " + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A");
+    ts.exec("compact -w -s " + TestCompactionStrategy.class.getName()
+        + " -sc inputPrefix=F,dropPrefix=A");
     assertEquals(1, countFiles(tableId));
     ts.exec("scan", true, "v900", true);
     ts.exec("scan", true, "v901", false);
@@ -985,8 +1010,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(3, countFiles(cloneId));
 
     String clone2 = table + "_clone_2";
-    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler=" + RowSampler.class.getName() + " " + clone + " "
-        + clone2);
+    ts.exec(
+        "clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler="
+            + RowSampler.class.getName() + " " + clone + " " + clone2);
     String clone2Id = getTableId(clone2);
 
     assertEquals(3, countFiles(clone2Id));
@@ -1013,7 +1039,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table);
 
     // expect this to fail
-    ts.exec("compact -t " + table + " -w --sf-ename F.* -s " + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A", false);
+    ts.exec("compact -t " + table + " -w --sf-ename F.* -s "
+        + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A", false);
   }
 
   @Test
@@ -1033,8 +1060,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert 3900 doc uril file://final_project.txt");
 
     String clone1 = table + "_clone_1";
-    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler=" + RowSampler.class.getName() + " " + table + " "
-        + clone1);
+    ts.exec(
+        "clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler="
+            + RowSampler.class.getName() + " " + table + " " + clone1);
 
     ts.exec("compact -t " + clone1 + " -w --sf-no-sample");
 
@@ -1046,8 +1074,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // create table where table sample config differs from whats in file
     String clone2 = table + "_clone_2";
-    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler=" + RowSampler.class.getName() + " " + clone1 + " "
-        + clone2);
+    ts.exec(
+        "clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler="
+            + RowSampler.class.getName() + " " + clone1 + " " + clone2);
 
     ts.exec("table " + clone2);
     ts.exec("scan --sample", false, "SampleNotPresentException", true);
@@ -1133,7 +1162,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("flush -w -t " + table);
     log.info("Table flush completed");
 
-    // One of the tablets we're writing to might migrate inbetween writing data which would create a 2nd file for that tablet
+    // One of the tablets we're writing to might migrate inbetween writing data which would create a
+    // 2nd file for that tablet
     // If we notice this, compact and then move on.
     List<String> files = getFiles(tableId);
     if (3 < files.size()) {
@@ -1208,8 +1238,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Simple <code>Formatter</code> that will convert each character in the Value from decimal to hexadecimal. Will automatically skip over characters in the
-   * value which do not fall within the [0-9,a-f] range.
+   * Simple <code>Formatter</code> that will convert each character in the Value from decimal to
+   * hexadecimal. Will automatically skip over characters in the value which do not fall within the
+   * [0-9,a-f] range.
    *
    * <p>
    * Example: <code>'0'</code> will be displayed as <code>'0x30'</code>
@@ -1307,11 +1338,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void help() throws Exception {
     ts.exec("help -np", true, "Help Commands", true);
     ts.exec("?", true, "Help Commands", true);
-    for (String c : ("bye exit quit " + "about help info ? " + "deleteiter deletescaniter listiter setiter setscaniter "
-        + "grant revoke systempermissions tablepermissions userpermissions " + "execfile history " + "authenticate cls clear notable sleep table user whoami "
+    for (String c : ("bye exit quit " + "about help info ? "
+        + "deleteiter deletescaniter listiter setiter setscaniter "
+        + "grant revoke systempermissions tablepermissions userpermissions " + "execfile history "
+        + "authenticate cls clear notable sleep table user whoami "
         + "clonetable config createtable deletetable droptable du exporttable importtable offline online renametable tables "
-        + "addsplits compact constraint flush getgropus getsplits merge setgroups " + "addauths createuser deleteuser dropuser getauths passwd setauths users "
-        + "delete deletemany deleterows egrep formatter interpreter grep importdirectory insert maxrow scan").split(" ")) {
+        + "addsplits compact constraint flush getgropus getsplits merge setgroups "
+        + "addauths createuser deleteuser dropuser getauths passwd setauths users "
+        + "delete deletemany deleterows egrep formatter interpreter grep importdirectory insert maxrow scan")
+            .split(" ")) {
       ts.exec("help " + c, true);
     }
   }
@@ -1341,9 +1376,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(errorsDir.mkdir());
     fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
-    FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder().forFile(even, fs, conf).withTableConfiguration(aconf).build();
+    FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
+        .forFile(even, fs, conf).withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
-    FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder().forFile(odd, fs, conf).withTableConfiguration(aconf).build();
+    FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder().forFile(odd, fs, conf)
+        .withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
@@ -1392,7 +1429,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = name.getMethodName();
 
     ts.exec("createtable " + table, true);
-    ts.exec("config -t " + table + " -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
+    ts.exec(
+        "config -t " + table
+            + " -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator",
+        true);
     ts.exec("config -t " + table + " -s table.iterator.minc.slow.opt.sleepTime=1000", true);
     ts.exec("insert a cf cq value", true);
     ts.exec("insert b cf cq value", true);
@@ -1543,9 +1583,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
         continue;
       }
       String parts[] = scan.split("\\|");
-      assertEquals("Expected 14 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 14, parts.length);
+      assertEquals("Expected 14 colums, but found " + parts.length + " instead for '"
+          + Arrays.toString(parts) + "'", 14, parts.length);
       String tserver = parts[0].trim();
-      // TODO: any way to tell if the client address is accurate? could be local IP, host, loopback...?
+      // TODO: any way to tell if the client address is accurate? could be local IP, host,
+      // loopback...?
       String hostPortPattern = ".+:\\d+";
       assertTrue(tserver.matches(hostPortPattern));
       assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
@@ -1564,15 +1606,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     File fooFilterJar = File.createTempFile("FooFilter", ".jar", new File(rootPath));
 
-    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooFilter.jar"), fooFilterJar);
+    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooFilter.jar"),
+        fooFilterJar);
     fooFilterJar.deleteOnExit();
 
     File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", new File(rootPath));
-    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooConstraint.jar"), fooConstraintJar);
+    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooConstraint.jar"),
+        fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + ","
-        + fooConstraintJar.toURI().toString(), true);
+    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1="
+        + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(), true);
 
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
@@ -1582,7 +1626,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
     // Instead, we can just manually set the property on the table.
-    ts.exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.foo=10,org.apache.accumulo.test.FooFilter");
+    ts.exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey()
+        + "scan.foo=10,org.apache.accumulo.test.FooFilter");
 
     ts.exec("insert foo f q v", true);
 
@@ -1633,7 +1678,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void namespaces() throws Exception {
-    ts.exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty string
+    ts.exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty
+                                               // string
     ts.exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
     ts.exec("createnamespace thing1", true);
     String namespaces = ts.exec("namespaces");
@@ -1665,7 +1711,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("namespaces", true, "testers3", true);
     ts.exec("deletenamespace testers3 -f", true);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -ns thing2 -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
+    ts.exec("setiter -ns thing2 -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name",
+        true);
     ts.exec("listiter -ns thing2 -scan", true, "Summing", true);
     ts.exec("deleteiter -ns thing2 -n name -scan", true);
     ts.exec("createuser dude");
@@ -1690,7 +1737,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("tables", true, "thing2.thingy", false);
 
     // put constraints on a namespace
-    ts.exec("constraint -ns thing3 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
+    ts.exec(
+        "constraint -ns thing3 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint",
+        true);
     ts.exec("createtable thing3.constrained", true);
     ts.exec("table thing3.constrained", true);
     ts.exec("constraint -d 1");
@@ -1738,21 +1787,27 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
     ts.exec("createtable t");
     // Assert that the TabletServer does not know anything about our class
-    String result = ts.exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
+    String result = ts
+        .exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
     // Add the context to the table so that setiter works.
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
+        + FAKE_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
+        + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
     result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    assertEquals("root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n", result);
+    assertEquals(
+        "root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n",
+        result);
 
     result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
 
-    // The implementation of ValueReversingIterator in the FAKE context does nothing, the value is not reversed.
+    // The implementation of ValueReversingIterator in the FAKE context does nothing, the value is
+    // not reversed.
     result = ts.exec("scan -pn baz -np -b row1 -e row1");
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("value"));
@@ -1773,9 +1828,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     setupRealContextPath();
     // Define a new classloader context, but don't set it on the table
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
-    // Override the table classloader context with the REAL implementation of ValueReversingIterator, which does reverse the value.
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
+        + REAL_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
+        + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+    // Override the table classloader context with the REAL implementation of
+    // ValueReversingIterator, which does reverse the value.
     result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
@@ -1802,9 +1860,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   /**
-   * The purpose of this test is to verify that you can successfully scan a table with a regular iterator. It was written to verify that the changes made while
-   * updating the setshelliter command did not break the existing setiter capabilities. It tests that a table can be scanned with an iterator both while within
-   * a table context and also while in the 'notable' context.
+   * The purpose of this test is to verify that you can successfully scan a table with a regular
+   * iterator. It was written to verify that the changes made while updating the setshelliter
+   * command did not break the existing setiter capabilities. It tests that a table can be scanned
+   * with an iterator both while within a table context and also while in the 'notable' context.
    */
   @Test
   public void testScanTableWithIterSetWithoutProfile() throws Exception {
@@ -1845,14 +1904,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private static final String FAKE_CONTEXT = "FAKE";
-  private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir") + "/target/" + ShellServerIT.class.getSimpleName()
-      + "-fake-iterators.jar";
+  private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
+      + "/target/" + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
   private static final String REAL_CONTEXT = "REAL";
-  private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir") + "/target/" + ShellServerIT.class.getSimpleName()
-      + "-real-iterators.jar";
+  private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
+      + "/target/" + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
   private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test.functional.ValueReversingIterator";
   private static final String SUMMING_COMBINER_ITERATOR = "org.apache.accumulo.core.iterators.user.SummingCombiner";
-  private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators" + ".ColumnFamilyCounter";
+  private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators"
+      + ".ColumnFamilyCounter";
 
   private void setupRealContextPath() throws Exception {
     // Copy the test iterators jar to tmp
@@ -1906,7 +1966,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private List<String> getFiles(String tableId) throws IOException {
     ts.output.clear();
 
-    ts.exec("scan -t " + MetadataTable.NAME + " -np -c file -b " + tableId + " -e " + tableId + "~");
+    ts.exec(
+        "scan -t " + MetadataTable.NAME + " -np -c file -b " + tableId + " -e " + tableId + "~");
 
     log.debug("countFiles(): " + ts.output.get());
 

@@ -34,8 +34,9 @@ public class ConfigSanityCheck {
   private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   /**
-   * Validates the given configuration entries. A valid configuration contains only valid properties (i.e., defined or otherwise valid) that are not prefixes
-   * and whose values are formatted correctly for their property types. A valid configuration also contains a value for property
+   * Validates the given configuration entries. A valid configuration contains only valid properties
+   * (i.e., defined or otherwise valid) that are not prefixes and whose values are formatted
+   * correctly for their property types. A valid configuration also contains a value for property
    * {@link Property#INSTANCE_ZK_TIMEOUT} within a valid range.
    *
    * @param entries
@@ -57,7 +58,8 @@ public class ConfigSanityCheck {
       else if (prop.getType() == PropertyType.PREFIX)
         fatal(PREFIX + "incomplete property key (" + key + ")");
       else if (!prop.getType().isValidFormat(value))
-        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ") : " + value);
+        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType()
+            + ") : " + value);
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;
@@ -69,11 +71,13 @@ public class ConfigSanityCheck {
     }
 
     if (instanceZkTimeoutValue != null) {
-      checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue, new CheckTimeDurationBetween(1000, 300000));
+      checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue,
+          new CheckTimeDurationBetween(1000, 300000));
     }
 
     if (!usingVolumes) {
-      log.warn("Use of " + INSTANCE_DFS_URI + " and " + INSTANCE_DFS_DIR + " are deprecated. Consider using " + Property.INSTANCE_VOLUMES + " instead.");
+      log.warn("Use of " + INSTANCE_DFS_URI + " and " + INSTANCE_DFS_DIR
+          + " are deprecated. Consider using " + Property.INSTANCE_VOLUMES + " instead.");
     }
   }
 
@@ -129,7 +133,8 @@ public class ConfigSanityCheck {
   }
 
   private static void fatal(String msg) {
-    // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j compatibility
+    // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j
+    // compatibility
     log.error("FATAL: {}", msg);
     throw new SanityCheckException(msg);
   }

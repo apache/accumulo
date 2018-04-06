@@ -44,7 +44,8 @@ public class IteratorTestRunner {
    * @param testCases
    *          The test cases to invoke
    */
-  public IteratorTestRunner(IteratorTestInput testInput, IteratorTestOutput testOutput, Collection<IteratorTestCase> testCases) {
+  public IteratorTestRunner(IteratorTestInput testInput, IteratorTestOutput testOutput,
+      Collection<IteratorTestCase> testCases) {
     this.testInput = testInput;
     this.testOutput = testOutput;
     this.testCases = testCases;
@@ -70,21 +71,24 @@ public class IteratorTestRunner {
   public List<IteratorTestReport> runTests() {
     List<IteratorTestReport> testReports = new ArrayList<>(testCases.size());
     for (IteratorTestCase testCase : testCases) {
-      log.info("Invoking {} on {}", testCase.getClass().getName(), testInput.getIteratorClass().getName());
+      log.info("Invoking {} on {}", testCase.getClass().getName(),
+          testInput.getIteratorClass().getName());
 
       IteratorTestOutput actualOutput;
 
       try {
         actualOutput = testCase.test(testInput);
       } catch (Exception e) {
-        log.error("Failed to invoke {} on {}", testCase.getClass().getName(), testInput.getIteratorClass().getName(), e);
+        log.error("Failed to invoke {} on {}", testCase.getClass().getName(),
+            testInput.getIteratorClass().getName(), e);
         actualOutput = new IteratorTestOutput(e);
       }
 
       // Sanity-check on the IteratorTestCase implementation.
       if (null == actualOutput) {
-        throw new IllegalStateException("IteratorTestCase implementations should always return a non-null IteratorTestOutput. " + testCase.getClass().getName()
-            + " did not!");
+        throw new IllegalStateException(
+            "IteratorTestCase implementations should always return a non-null IteratorTestOutput. "
+                + testCase.getClass().getName() + " did not!");
       }
 
       testReports.add(new IteratorTestReport(testInput, testOutput, actualOutput, testCase));

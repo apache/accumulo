@@ -34,7 +34,8 @@ public class SplitReportMessage implements MasterMessage {
   private Map<KeyExtent,Text> extents;
   private KeyExtent old_extent;
 
-  public SplitReportMessage(KeyExtent old_extent, KeyExtent ne1, Text np1, KeyExtent ne2, Text np2) {
+  public SplitReportMessage(KeyExtent old_extent, KeyExtent ne1, Text np1, KeyExtent ne2,
+      Text np2) {
     this.old_extent = old_extent;
     extents = new TreeMap<>();
     extents.put(ne1, np1);
@@ -42,7 +43,8 @@ public class SplitReportMessage implements MasterMessage {
   }
 
   @Override
-  public void send(TCredentials credentials, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException {
+  public void send(TCredentials credentials, String serverName, MasterClientService.Iface client)
+      throws TException, ThriftSecurityException {
     TabletSplit split = new TabletSplit();
     split.oldTablet = old_extent.toThrift();
     split.newTablets = Translator.translate(extents.keySet(), Translators.KET);

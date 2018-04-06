@@ -74,7 +74,8 @@ public class FunctionalTestUtils {
     return Iterators.size(scanner.iterator());
   }
 
-  static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {
+  static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets,
+      int minRFiles, int maxRFiles) throws Exception {
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
     scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
@@ -90,7 +91,8 @@ public class FunctionalTestUtils {
       Integer count = tabletFileCounts.get(row);
       if (count == null)
         count = 0;
-      if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+      if (entry.getKey().getColumnFamily()
+          .equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
         count = count + 1;
       }
 
@@ -109,7 +111,8 @@ public class FunctionalTestUtils {
     }
   }
 
-  static public void bulkImport(Connector c, FileSystem fs, String table, String dir) throws Exception {
+  static public void bulkImport(Connector c, FileSystem fs, String table, String dir)
+      throws Exception {
     String failDir = dir + "_failures";
     Path failPath = new Path(failDir);
     fs.delete(failPath, true);
@@ -127,11 +130,13 @@ public class FunctionalTestUtils {
   static public void checkSplits(Connector c, String table, int min, int max) throws Exception {
     Collection<Text> splits = c.tableOperations().listSplits(table);
     if (splits.size() < min || splits.size() > max) {
-      throw new Exception("# of table splits points out of range, #splits=" + splits.size() + " table=" + table + " min=" + min + " max=" + max);
+      throw new Exception("# of table splits points out of range, #splits=" + splits.size()
+          + " table=" + table + " min=" + min + " max=" + max);
     }
   }
 
-  static public void createRFiles(final Connector c, final FileSystem fs, String path, int rows, int splits, int threads) throws Exception {
+  static public void createRFiles(final Connector c, final FileSystem fs, String path, int rows,
+      int splits, int threads) throws Exception {
     fs.delete(new Path(path), true);
     ExecutorService threadPool = Executors.newFixedThreadPool(threads);
     final AtomicBoolean fail = new AtomicBoolean(false);
@@ -172,10 +177,12 @@ public class FunctionalTestUtils {
     return result.toString();
   }
 
-  public static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p) throws Exception {
+  public static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p)
+      throws Exception {
     for (LogWriter writer : c.getLogWriters())
       writer.flush();
-    return readAll(new FileInputStream(c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));
+    return readAll(new FileInputStream(
+        c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));
   }
 
   static Mutation nm(String row, String cf, String cq, Value value) {
@@ -197,17 +204,21 @@ public class FunctionalTestUtils {
 
   public static void assertNoDanglingFateLocks(Instance instance, AccumuloCluster cluster) {
     FateStatus fateStatus = getFateStatus(instance, cluster);
-    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0, fateStatus.getDanglingHeldLocks().size());
-    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0, fateStatus.getDanglingWaitingLocks().size());
+    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
+        fateStatus.getDanglingHeldLocks().size());
+    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
+        fateStatus.getDanglingWaitingLocks().size());
   }
 
   private static FateStatus getFateStatus(Instance instance, AccumuloCluster cluster) {
     try {
       AdminUtil<String> admin = new AdminUtil<>(false);
       String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-      FateStatus fateStatus = admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null, null);
+      FateStatus fateStatus = admin.getStatus(zs, zk,
+          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null, null);
       return fateStatus;
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);

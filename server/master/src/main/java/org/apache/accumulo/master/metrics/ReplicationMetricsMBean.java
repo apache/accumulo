@@ -22,24 +22,26 @@ package org.apache.accumulo.master.metrics;
 public interface ReplicationMetricsMBean {
 
   /**
-   * A system may have multiple Replication targets, each of which have a queue of files to be replicated. This returns the sum across all targets, not
-   * de-duplicating files.
+   * A system may have multiple Replication targets, each of which have a queue of files to be
+   * replicated. This returns the sum across all targets, not de-duplicating files.
    *
    * @return The number of files pending replication across all targets
    */
   public int getNumFilesPendingReplication();
 
   /**
-   * The total number of threads available to replicate data to peers. Each TabletServer has a number of threads devoted to replication, so this value is
-   * affected by the number of currently active TabletServers.
+   * The total number of threads available to replicate data to peers. Each TabletServer has a
+   * number of threads devoted to replication, so this value is affected by the number of currently
+   * active TabletServers.
    *
    * @return The number of threads available to replicate data across the instance
    */
   public int getMaxReplicationThreads();
 
   /**
-   * Peers are systems which data can be replicated to. This is the number of peers that are defined, but this is not necessarily the number of peers which are
-   * actively being replicated to.
+   * Peers are systems which data can be replicated to. This is the number of peers that are
+   * defined, but this is not necessarily the number of peers which are actively being replicated
+   * to.
    *
    * @return The number of peers/targets which are defined for data to be replicated to.
    */

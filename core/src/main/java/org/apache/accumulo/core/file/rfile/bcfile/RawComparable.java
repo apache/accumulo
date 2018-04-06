@@ -23,11 +23,13 @@ import java.util.Comparator;
 import org.apache.hadoop.io.RawComparator;
 
 /**
- * Interface for objects that can be compared through {@link RawComparator}. This is useful in places where we need a single object reference to specify a range
- * of bytes in a byte array, such as {@link Comparable} or {@link Collections#binarySearch(java.util.List, Object, Comparator)}
+ * Interface for objects that can be compared through {@link RawComparator}. This is useful in
+ * places where we need a single object reference to specify a range of bytes in a byte array, such
+ * as {@link Comparable} or {@link Collections#binarySearch(java.util.List, Object, Comparator)}
  *
- * The actual comparison among RawComparable's requires an external RawComparator and it is applications' responsibility to ensure two RawComparable are
- * supposed to be semantically comparable with the same RawComparator.
+ * The actual comparison among RawComparable's requires an external RawComparator and it is
+ * applications' responsibility to ensure two RawComparable are supposed to be semantically
+ * comparable with the same RawComparator.
  */
 public interface RawComparable {
   /**

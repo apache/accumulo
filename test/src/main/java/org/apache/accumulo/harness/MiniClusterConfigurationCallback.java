@@ -20,7 +20,8 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 
 /**
- * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml file used by the MiniAccumuloCluster
+ * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml
+ * file used by the MiniAccumuloCluster
  */
 public interface MiniClusterConfigurationCallback {
 

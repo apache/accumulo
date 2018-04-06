@@ -72,7 +72,8 @@ public class DumpZookeeper {
     }
   }
 
-  private static void dump(PrintStream out, String root, String child, int indent) throws KeeperException, InterruptedException, UnsupportedEncodingException {
+  private static void dump(PrintStream out, String root, String child, int indent)
+      throws KeeperException, InterruptedException, UnsupportedEncodingException {
     String path = root + "/" + child;
     if (root.endsWith("/"))
       path = root + child;
@@ -88,14 +89,16 @@ public class DumpZookeeper {
         write(out, indent, "<%s name='%s'/>", type, child);
       } else {
         Encoded value = value(path);
-        write(out, indent, "<%s name='%s' encoding='%s' value='%s'/>", type, child, value.encoding, value.value);
+        write(out, indent, "<%s name='%s' encoding='%s' value='%s'/>", type, child, value.encoding,
+            value.value);
       }
     } else {
       if (stat.getDataLength() == 0) {
         write(out, indent, "<%s name='%s'>", type, child);
       } else {
         Encoded value = value(path);
-        write(out, indent, "<%s name='%s' encoding='%s' value='%s'>", type, child, value.encoding, value.value);
+        write(out, indent, "<%s name='%s' encoding='%s' value='%s'>", type, child, value.encoding,
+            value.value);
       }
       for (String c : zk.getChildren(path, null)) {
         dump(out, path, c, indent + 1);
@@ -104,7 +107,8 @@ public class DumpZookeeper {
     }
   }
 
-  private static Encoded value(String path) throws KeeperException, InterruptedException, UnsupportedEncodingException {
+  private static Encoded value(String path)
+      throws KeeperException, InterruptedException, UnsupportedEncodingException {
     byte[] data = zk.getData(path, null);
     for (int i = 0; i < data.length; i++) {
       // does this look like simple ascii?

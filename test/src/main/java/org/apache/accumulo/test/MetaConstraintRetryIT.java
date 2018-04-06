@@ -40,10 +40,12 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
   @Test(expected = ConstraintViolationException.class)
   public void test() throws Exception {
 
-    getConnector().securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME, TablePermission.WRITE);
+    getConnector().securityOperations().grantTablePermission(getAdminPrincipal(),
+        MetadataTable.NAME, TablePermission.WRITE);
 
     Credentials credentials = new Credentials(getAdminPrincipal(), getAdminToken());
-    ClientContext context = new ClientContext(getConnector().getInstance(), credentials, cluster.getClientConfig());
+    ClientContext context = new ClientContext(getConnector().getInstance(), credentials,
+        cluster.getClientConfig());
     Writer w = new Writer(context, MetadataTable.ID);
     KeyExtent extent = new KeyExtent("5", null, null);
 

@@ -32,7 +32,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class ColumnFamilySkippingIterator extends SkippingIterator implements InterruptibleIterator {
+public class ColumnFamilySkippingIterator extends SkippingIterator
+    implements InterruptibleIterator {
 
   protected Set<ByteSequence> colFamSet = null;
   protected TreeSet<ByteSequence> sortedColFams = null;
@@ -44,7 +45,8 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
     this.setSource(source);
   }
 
-  protected ColumnFamilySkippingIterator(SortedKeyValueIterator<Key,Value> source, Set<ByteSequence> colFamSet, boolean inclusive) {
+  protected ColumnFamilySkippingIterator(SortedKeyValueIterator<Key,Value> source,
+      Set<ByteSequence> colFamSet, boolean inclusive) {
     this(source);
     this.colFamSet = colFamSet;
     this.inclusive = inclusive;
@@ -69,7 +71,8 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
             reseek(source.getTopKey().followingKey(PartialKey.ROW));
           } else {
             // seek to the next column family in the sorted list of column families
-            reseek(new Key(source.getTopKey().getRowData().toArray(), higherCF.toArray(), new byte[0], new byte[0], Long.MAX_VALUE));
+            reseek(new Key(source.getTopKey().getRowData().toArray(), higherCF.toArray(),
+                new byte[0], new byte[0], Long.MAX_VALUE));
           }
 
           count = 0;
@@ -104,7 +107,8 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
 
     if (columnFamilies instanceof Set<?>) {
       colFamSet = (Set<ByteSequence>) columnFamilies;

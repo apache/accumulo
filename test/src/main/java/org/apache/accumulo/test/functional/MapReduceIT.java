@@ -50,7 +50,8 @@ public class MapReduceIT extends ConfigurableMacBase {
     return 60;
   }
 
-  public static final String hadoopTmpDirArg = "-Dhadoop.tmp.dir=" + System.getProperty("user.dir") + "/target/hadoop-tmp";
+  public static final String hadoopTmpDirArg = "-Dhadoop.tmp.dir=" + System.getProperty("user.dir")
+      + "/target/hadoop-tmp";
 
   static final String tablename = "mapredf";
   static final String input_cf = "cf-HASHTYPE";
@@ -64,8 +65,9 @@ public class MapReduceIT extends ConfigurableMacBase {
     runTest(getConnector(), getCluster());
   }
 
-  static void runTest(Connector c, MiniAccumuloClusterImpl cluster) throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {
+  static void runTest(Connector c, MiniAccumuloClusterImpl cluster) throws AccumuloException,
+      AccumuloSecurityException, TableExistsException, TableNotFoundException,
+      MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {
     c.tableOperations().create(tablename);
     BatchWriter bw = c.createBatchWriter(tablename, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
@@ -74,8 +76,9 @@ public class MapReduceIT extends ConfigurableMacBase {
       bw.addMutation(m);
     }
     bw.close();
-    Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i", c.getInstance().getInstanceName(), "-z", c.getInstance()
-        .getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
+    Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i",
+        c.getInstance().getInstanceName(), "-z", c.getInstance().getZooKeepers(), "-u", "root",
+        "-p", ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
     assertEquals(0, hash.waitFor());
 
     Scanner s = c.createScanner(tablename, Authorizations.EMPTY);

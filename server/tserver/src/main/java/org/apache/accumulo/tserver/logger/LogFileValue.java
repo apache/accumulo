@@ -76,9 +76,11 @@ public class LogFileValue implements Writable {
       builder.append("  ").append(new String(m.getRow(), UTF_8)).append("\n");
       for (ColumnUpdate update : m.getUpdates()) {
         String value = new String(update.getValue());
-        builder.append("      ").append(new String(update.getColumnFamily(), UTF_8)).append(":").append(new String(update.getColumnQualifier(), UTF_8))
-            .append(" ").append(update.hasTimestamp() ? "[user]:" : "[system]:").append(update.getTimestamp()).append(" [")
-            .append(displayLabels(update.getColumnVisibility())).append("] ").append(update.isDeleted() ? "<deleted>" : value).append("\n");
+        builder.append("      ").append(new String(update.getColumnFamily(), UTF_8)).append(":")
+            .append(new String(update.getColumnQualifier(), UTF_8)).append(" ")
+            .append(update.hasTimestamp() ? "[user]:" : "[system]:").append(update.getTimestamp())
+            .append(" [").append(displayLabels(update.getColumnVisibility())).append("] ")
+            .append(update.isDeleted() ? "<deleted>" : value).append("\n");
       }
     }
     return builder.toString();

@@ -33,10 +33,12 @@ public class ZooKeeperMain implements KeywordExecutable {
 
   static class Opts extends Help {
 
-    @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
+    @Parameter(names = {"-z", "--keepers"},
+        description = "Comma separated list of zookeeper hosts (host:port,host:port)")
     String servers = null;
 
-    @Parameter(names = {"-t", "--timeout"}, description = "timeout, in seconds to timeout the zookeeper connection")
+    @Parameter(names = {"-t", "--timeout"},
+        description = "timeout, in seconds to timeout the zookeeper connection")
     long timeout = 30;
   }
 
@@ -55,7 +57,8 @@ public class ZooKeeperMain implements KeywordExecutable {
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
     FileSystem fs = VolumeManagerImpl.get().getDefaultVolume().getFileSystem();
     String baseDir = ServerConstants.getBaseUris()[0];
-    System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id")) + " to lookup accumulo instance");
+    System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id"))
+        + " to lookup accumulo instance");
     Instance instance = HdfsZooInstance.getInstance();
     if (opts.servers == null) {
       opts.servers = instance.getZooKeepers();
@@ -63,6 +66,7 @@ public class ZooKeeperMain implements KeywordExecutable {
     System.out.println("The accumulo instance id is " + instance.getInstanceID());
     if (!opts.servers.contains("/"))
       opts.servers += "/accumulo/" + instance.getInstanceID();
-    org.apache.zookeeper.ZooKeeperMain.main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
+    org.apache.zookeeper.ZooKeeperMain
+        .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
   }
 }

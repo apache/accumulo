@@ -40,8 +40,9 @@ import org.junit.Test;
 
 public class LogFileTest {
 
-  static private void readWrite(LogEvents event, long seq, int tid, String filename, KeyExtent tablet, Mutation[] mutations, LogFileKey keyResult,
-      LogFileValue valueResult) throws IOException {
+  static private void readWrite(LogEvents event, long seq, int tid, String filename,
+      KeyExtent tablet, Mutation[] mutations, LogFileKey keyResult, LogFileValue valueResult)
+      throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = event;
     key.seq = seq;
@@ -94,8 +95,10 @@ public class LogFileTest {
     assertEquals(key.tid, 8);
     assertEquals(value.mutations, Arrays.asList(m));
     m = new ServerMutation(new Text("row"));
-    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345, new Value("value".getBytes()));
-    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"), new Value("value".getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345,
+        new Value("value".getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"),
+        new Value("value".getBytes()));
     m.putDelete(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"));
     readWrite(MUTATION, 8, 9, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);

@@ -84,22 +84,26 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
 
     log.info("Generating RFile {}", rfile.toUri().toString());
 
-    GenerateSequentialRFile.main(new String[] {"-f", rfile.toUri().toString(), "-nr", Long.toString(NR), "-nv", Long.toString(NV)});
+    GenerateSequentialRFile.main(new String[] {"-f", rfile.toUri().toString(), "-nr",
+        Long.toString(NR), "-nv", Long.toString(NV)});
 
     assertTrue("Expected that " + rfile + " exists, but it does not", fs.exists(rfile));
 
     FsShell fsShell = new FsShell(fs.getConf());
-    assertEquals("Failed to chmod " + rootPath, 0, fsShell.run(new String[] {"-chmod", "-R", "777", rootPath.toString()}));
+    assertEquals("Failed to chmod " + rootPath, 0,
+        fsShell.run(new String[] {"-chmod", "-R", "777", rootPath.toString()}));
 
     // Add some splits
     to.addSplits(tableName, getSplits());
 
-    // Then import a single rfile to all the tablets, hoping that we get a failure to import because of the balancer moving tablets around
+    // Then import a single rfile to all the tablets, hoping that we get a failure to import because
+    // of the balancer moving tablets around
     // and then we get to verify that the bug is actually fixed.
     to.importDirectory(tableName, bulk.toString(), err.toString(), false);
 
     // The bug is that some tablets don't get imported into.
-    assertEquals(NR * NV, Iterables.size(getConnector().createScanner(tableName, Authorizations.EMPTY)));
+    assertEquals(NR * NV,
+        Iterables.size(getConnector().createScanner(tableName, Authorizations.EMPTY)));
   }
 
   private TreeSet<Text> getSplits() {

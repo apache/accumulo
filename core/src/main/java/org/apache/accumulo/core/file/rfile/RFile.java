@@ -90,28 +90,51 @@ public class RFile {
 
   private static final int RINDEX_MAGIC = 0x20637474;
 
-  static final int RINDEX_VER_8 = 8; // Added sample storage. There is a sample locality group for each locality group. Sample are built using a Sampler and
-                                     // sampler configuration. The Sampler and its configuration are stored in RFile. Persisting the method of producing the
-                                     // sample allows a user of RFile to determine if the sample is useful.
+  static final int RINDEX_VER_8 = 8; // Added sample storage. There is a sample locality group for
+                                     // each locality group. Sample are built using a Sampler and
+                                     // sampler configuration. The Sampler and its configuration are
+                                     // stored in RFile. Persisting the method of producing the
+                                     // sample allows a user of RFile to determine if the sample is
+                                     // useful.
                                      //
-                                     // Selected smaller keys for index by doing two things. First internal stats were used to look for keys that were below
-                                     // average in size for the index. Also keys that were statistically large were excluded from the index. Second shorter keys
+                                     // Selected smaller keys for index by doing two things. First
+                                     // internal stats were used to look for keys that were below
+                                     // average in size for the index. Also keys that were
+                                     // statistically large were excluded from the index. Second
+                                     // shorter keys
                                      // (that may not exist in data) were generated for the index.
-  static final int RINDEX_VER_7 = 7; // Added support for prefix encoding and encryption. Before this change only exact matches within a key field were deduped
-                                     // for consecutive keys. After this change, if consecutive key fields have the same prefix then the prefix is only stored
+  static final int RINDEX_VER_7 = 7; // Added support for prefix encoding and encryption. Before
+                                     // this change only exact matches within a key field were
+                                     // deduped
+                                     // for consecutive keys. After this change, if consecutive key
+                                     // fields have the same prefix then the prefix is only stored
                                      // once.
-  static final int RINDEX_VER_6 = 6; // Added support for multilevel indexes. Before this the index was one list with an entry for each data block. For large
-                                     // files, a large index needed to be read into memory before any seek could be done. After this change the index is a fat
-                                     // tree, and opening a large rfile is much faster. Like the previous version of Rfile, each index node in the tree is kept
+  static final int RINDEX_VER_6 = 6; // Added support for multilevel indexes. Before this the index
+                                     // was one list with an entry for each data block. For large
+                                     // files, a large index needed to be read into memory before
+                                     // any seek could be done. After this change the index is a fat
+                                     // tree, and opening a large rfile is much faster. Like the
+                                     // previous version of Rfile, each index node in the tree is
+                                     // kept
                                      // in memory serialized and used in its serialized form.
   // static final int RINDEX_VER_5 = 5; // unreleased
-  static final int RINDEX_VER_4 = 4; // Added support for seeking using serialized indexes. After this change index is no longer deserialized when rfile opened.
-                                     // Entire serialized index is read into memory as single byte array. For seeks, serialized index is used to find blocks
-                                     // (the binary search deserializes the specific entries its needs). This resulted in less memory usage (no object overhead)
+  static final int RINDEX_VER_4 = 4; // Added support for seeking using serialized indexes. After
+                                     // this change index is no longer deserialized when rfile
+                                     // opened.
+                                     // Entire serialized index is read into memory as single byte
+                                     // array. For seeks, serialized index is used to find blocks
+                                     // (the binary search deserializes the specific entries its
+                                     // needs). This resulted in less memory usage (no object
+                                     // overhead)
                                      // and faster open times for RFiles.
-  static final int RINDEX_VER_3 = 3; // Initial released version of RFile. R is for relative encoding. A keys is encoded relative to the previous key. The
-                                     // initial version deduped key fields that were the same for consecutive keys. For sorted data this is a common occurrence.
-                                     // This version supports locality groups. Each locality group has an index pointing to set of data blocks. Each data block
+  static final int RINDEX_VER_3 = 3; // Initial released version of RFile. R is for relative
+                                     // encoding. A keys is encoded relative to the previous key.
+                                     // The
+                                     // initial version deduped key fields that were the same for
+                                     // consecutive keys. For sorted data this is a common
+                                     // occurrence.
+                                     // This version supports locality groups. Each locality group
+                                     // has an index pointing to set of data blocks. Each data block
                                      // contains relatively encoded keys and values.
 
   // Buffer sample data so that many sample data blocks are stored contiguously.
@@ -147,10 +170,12 @@ public class RFile {
       columnFamilies = new HashMap<>();
       previousColumnFamilies = pcf;
 
-      indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
+      indexWriter = new MultiLevelIndex.BufferedWriter(
+          new MultiLevelIndex.Writer(bfw, indexBlockSize));
     }
 
-    public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int indexBlockSize, BlockFileWriter bfw) {
+    public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int indexBlockSize,
+        BlockFileWriter bfw) {
       this.name = name;
       isDefaultLG = false;
       columnFamilies = new HashMap<>();
@@ -158,7 +183,8 @@ public class RFile {
         columnFamilies.put(cf, new MutableLong(0));
       }
 
-      indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
+      indexWriter = new MultiLevelIndex.BufferedWriter(
+          new MultiLevelIndex.Writer(bfw, indexBlockSize));
     }
 
     private Key getFirstKey() {
@@ -178,7 +204,8 @@ public class RFile {
           // only do this check when there are previous column families
           ByteSequence cf = key.getColumnFamilyData();
           if (previousColumnFamilies.contains(cf)) {
-            throw new IllegalArgumentException("Added column family \"" + cf + "\" to default locality group that was in previous locality group");
+            throw new IllegalArgumentException("Added column family \"" + cf
+                + "\" to default locality group that was in previous locality group");
           }
         }
 
@@ -195,7 +222,8 @@ public class RFile {
         }
 
         if (previousColumnFamilies.contains(cf)) {
-          throw new IllegalArgumentException("Added column family \"" + cf + "\" to default locality group that was in previous locality group");
+          throw new IllegalArgumentException("Added column family \"" + cf
+              + "\" to default locality group that was in previous locality group");
         }
 
         if (columnFamilies.size() > Writer.MAX_CF_IN_DLG) {
@@ -204,7 +232,8 @@ public class RFile {
           return;
         }
         count = new MutableLong(0);
-        columnFamilies.put(new ArrayByteSequence(cf.getBackingArray(), cf.offset(), cf.length()), count);
+        columnFamilies.put(new ArrayByteSequence(cf.getBackingArray(), cf.offset(), cf.length()),
+            count);
 
       }
 
@@ -220,7 +249,8 @@ public class RFile {
         name = in.readUTF();
       }
 
-      if (version == RINDEX_VER_3 || version == RINDEX_VER_4 || version == RINDEX_VER_6 || version == RINDEX_VER_7) {
+      if (version == RINDEX_VER_3 || version == RINDEX_VER_4 || version == RINDEX_VER_6
+          || version == RINDEX_VER_7) {
         startBlock = in.readInt();
       }
 
@@ -228,7 +258,8 @@ public class RFile {
 
       if (size == -1) {
         if (!isDefaultLG)
-          throw new IllegalStateException("Non default LG " + name + " does not have column families");
+          throw new IllegalStateException(
+              "Non default LG " + name + " does not have column families");
 
         columnFamilies = null;
       } else {
@@ -273,7 +304,8 @@ public class RFile {
 
         for (Entry<ByteSequence,MutableLong> entry : columnFamilies.entrySet()) {
           out.writeInt(entry.getKey().length());
-          out.write(entry.getKey().getBackingArray(), entry.getKey().offset(), entry.getKey().length());
+          out.write(entry.getKey().getBackingArray(), entry.getKey().offset(),
+              entry.getKey().length());
           out.writeLong(entry.getValue().longValue());
         }
       }
@@ -287,8 +319,10 @@ public class RFile {
 
     public void printInfo(boolean isSample, boolean includeIndexDetails) throws IOException {
       PrintStream out = System.out;
-      out.printf("%-24s : %s\n", (isSample ? "Sample " : "") + "Locality group ", (isDefaultLG ? "<DEFAULT>" : name));
-      if (version == RINDEX_VER_3 || version == RINDEX_VER_4 || version == RINDEX_VER_6 || version == RINDEX_VER_7) {
+      out.printf("%-24s : %s\n", (isSample ? "Sample " : "") + "Locality group ",
+          (isDefaultLG ? "<DEFAULT>" : name));
+      if (version == RINDEX_VER_3 || version == RINDEX_VER_4 || version == RINDEX_VER_6
+          || version == RINDEX_VER_7) {
         out.printf("\t%-22s : %d\n", "Start block", startBlock);
       }
       out.printf("\t%-22s : %,d\n", "Num   blocks", indexReader.size());
@@ -296,7 +330,8 @@ public class RFile {
       TreeMap<Integer,Long> countsByLevel = new TreeMap<>();
       indexReader.getIndexInfo(sizesByLevel, countsByLevel);
       for (Entry<Integer,Long> entry : sizesByLevel.descendingMap().entrySet()) {
-        out.printf("\t%-22s : %,d bytes  %,d blocks\n", "Index level " + entry.getKey(), entry.getValue(), countsByLevel.get(entry.getKey()));
+        out.printf("\t%-22s : %,d bytes  %,d blocks\n", "Index level " + entry.getKey(),
+            entry.getValue(), countsByLevel.get(entry.getKey()));
       }
       out.printf("\t%-22s : %s\n", "First key", firstKey);
 
@@ -315,7 +350,8 @@ public class RFile {
       }
 
       out.printf("\t%-22s : %,d\n", "Num entries", numKeys);
-      out.printf("\t%-22s : %s\n", "Column families", (isDefaultLG && columnFamilies == null ? "<UNKNOWN>" : columnFamilies.keySet()));
+      out.printf("\t%-22s : %s\n", "Column families",
+          (isDefaultLG && columnFamilies == null ? "<UNKNOWN>" : columnFamilies.keySet()));
 
       if (includeIndexDetails) {
         out.printf("\t%-22s :\nIndex Entries", lastKey);
@@ -367,7 +403,8 @@ public class RFile {
 
     public void flushIfNeeded() throws IOException {
       if (dataSize > sampleBufferSize) {
-        // the reason to write out all but one key is so that closeBlock() can always eventually be called with true
+        // the reason to write out all but one key is so that closeBlock() can always eventually be
+        // called with true
         List<SampleEntry> subList = entries.subList(0, entries.size() - 1);
 
         if (subList.size() > 0) {
@@ -406,8 +443,8 @@ public class RFile {
     private RollingStats keyLenStats = new RollingStats(2017);
     private double avergageKeySize = 0;
 
-    LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize, LocalityGroupMetadata currentLocalityGroup,
-        SampleLocalityGroupWriter sample) {
+    LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize,
+        LocalityGroupMetadata currentLocalityGroup, SampleLocalityGroupWriter sample) {
       this.fileWriter = fileWriter;
       this.blockSize = blockSize;
       this.maxBlockSize = maxBlockSize;
@@ -424,7 +461,8 @@ public class RFile {
     public void append(Key key, Value value) throws IOException {
 
       if (key.compareTo(prevKey) < 0) {
-        throw new IllegalArgumentException("Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
+        throw new IllegalArgumentException(
+            "Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
       }
 
       currentLocalityGroup.updateColumnCount(key);
@@ -447,10 +485,12 @@ public class RFile {
           avergageKeySize = keyLenStats.getMean();
         }
 
-        // Possibly produce a shorter key that does not exist in data. Even if a key can be shortened, it may not be below average.
+        // Possibly produce a shorter key that does not exist in data. Even if a key can be
+        // shortened, it may not be below average.
         Key closeKey = KeyShortener.shorten(prevKey, key);
 
-        if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
+        if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize)
+            && !isGiantKey(closeKey)) {
           closeBlock(closeKey, false);
           blockWriter = fileWriter.prepareDataBlock();
           // set average to zero so its recomputed for the next block
@@ -475,9 +515,11 @@ public class RFile {
       blockWriter.close();
 
       if (lastBlock)
-        currentLocalityGroup.indexWriter.addLast(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
+        currentLocalityGroup.indexWriter.addLast(key, entries, blockWriter.getStartPos(),
+            blockWriter.getCompressedSize(), blockWriter.getRawSize());
       else
-        currentLocalityGroup.indexWriter.add(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
+        currentLocalityGroup.indexWriter.add(key, entries, blockWriter.getStartPos(),
+            blockWriter.getCompressedSize(), blockWriter.getRawSize());
 
       if (sample != null)
         sample.flushIfNeeded();
@@ -528,10 +570,12 @@ public class RFile {
     private Sampler sampler;
 
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
-      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
+      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration()
+          .getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
     }
 
-    public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
+    public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize,
+        SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
       this.blockSize = blockSize;
       this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
       this.indexBlockSize = indexBlockSize;
@@ -615,13 +659,15 @@ public class RFile {
       return (DataOutputStream) fileWriter.prepareMetaBlock(name);
     }
 
-    private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException {
+    private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
+        throws IOException {
       if (dataClosed) {
         throw new IllegalStateException("data closed");
       }
 
       if (startedDefaultLocalityGroup) {
-        throw new IllegalStateException("Can not start anymore new locality groups after default locality group started");
+        throw new IllegalStateException(
+            "Can not start anymore new locality groups after default locality group started");
       }
 
       if (lgWriter != null) {
@@ -635,28 +681,37 @@ public class RFile {
 
       if (columnFamilies == null) {
         startedDefaultLocalityGroup = true;
-        currentLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize, fileWriter);
-        sampleLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize, fileWriter);
+        currentLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize,
+            fileWriter);
+        sampleLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize,
+            fileWriter);
       } else {
         if (!Collections.disjoint(columnFamilies, previousColumnFamilies)) {
           HashSet<ByteSequence> overlap = new HashSet<>(columnFamilies);
           overlap.retainAll(previousColumnFamilies);
-          throw new IllegalArgumentException("Column families over lap with previous locality group : " + overlap);
+          throw new IllegalArgumentException(
+              "Column families over lap with previous locality group : " + overlap);
         }
-        currentLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize, fileWriter);
-        sampleLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize, fileWriter);
+        currentLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize,
+            fileWriter);
+        sampleLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize,
+            fileWriter);
         previousColumnFamilies.addAll(columnFamilies);
       }
 
       SampleLocalityGroupWriter sampleWriter = null;
       if (sampler != null) {
-        sampleWriter = new SampleLocalityGroupWriter(new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, sampleLocalityGroup, null), sampler);
+        sampleWriter = new SampleLocalityGroupWriter(
+            new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, sampleLocalityGroup, null),
+            sampler);
       }
-      lgWriter = new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, currentLocalityGroup, sampleWriter);
+      lgWriter = new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, currentLocalityGroup,
+          sampleWriter);
     }
 
     @Override
-    public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException {
+    public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
+        throws IOException {
       if (columnFamilies == null)
         throw new NullPointerException();
 
@@ -693,7 +748,8 @@ public class RFile {
     private int version;
     private boolean checkRange = true;
 
-    private LocalityGroupReader(BlockFileReader reader, LocalityGroupMetadata lgm, int version) throws IOException {
+    private LocalityGroupReader(BlockFileReader reader, LocalityGroupMetadata lgm, int version)
+        throws IOException {
       super(lgm.columnFamilies, lgm.isDefaultLG);
       this.firstKey = lgm.firstKey;
       this.index = lgm.indexReader;
@@ -809,12 +865,14 @@ public class RFile {
       if (version == RINDEX_VER_3 || version == RINDEX_VER_4)
         return reader.getDataBlock(startBlock + iiter.previousIndex());
       else
-        return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(), indexEntry.getRawSize());
+        return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(),
+            indexEntry.getRawSize());
 
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
 
       if (closed)
         throw new IllegalStateException("Locality group reader closed");
@@ -875,7 +933,8 @@ public class RFile {
 
       if (rk != null) {
         if (range.beforeStartKey(prevKey) && range.afterEndKey(getTopKey())) {
-          // range is between the two keys in the file where the last range seeked to stopped, so there is
+          // range is between the two keys in the file where the last range seeked to stopped, so
+          // there is
           // nothing to do
           reseek = false;
         }
@@ -885,7 +944,8 @@ public class RFile {
           reseek = false;
         }
 
-        if (entriesLeft > 0 && startKey.compareTo(getTopKey()) >= 0 && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
+        if (entriesLeft > 0 && startKey.compareTo(getTopKey()) >= 0
+            && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
           // start key is within the unconsumed portion of the current block
 
           // this code intentionally does not use the index associated with a cached block
@@ -895,7 +955,8 @@ public class RFile {
           // and speed up others.
 
           MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
-          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(),
+              entriesLeft);
           if (skippr.skipped > 0) {
             entriesLeft -= skippr.skipped;
             val = new Value(valbs.toArray());
@@ -906,15 +967,20 @@ public class RFile {
           reseek = false;
         }
 
-        if (entriesLeft == 0 && startKey.compareTo(getTopKey()) > 0 && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
-          // In the empty space at the end of a block. This can occur when keys are shortened in the index creating index entries that do not exist in the
-          // block. These shortened index entires fall between the last key in a block and first key in the next block, but may not exist in the data.
+        if (entriesLeft == 0 && startKey.compareTo(getTopKey()) > 0
+            && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
+          // In the empty space at the end of a block. This can occur when keys are shortened in the
+          // index creating index entries that do not exist in the
+          // block. These shortened index entires fall between the last key in a block and first key
+          // in the next block, but may not exist in the data.
           // Just proceed to the next block.
           reseek = false;
         }
 
-        if (iiter.previousIndex() == 0 && getTopKey().equals(firstKey) && startKey.compareTo(firstKey) <= 0) {
-          // seeking before the beginning of the file, and already positioned at the first key in the file
+        if (iiter.previousIndex() == 0 && getTopKey().equals(firstKey)
+            && startKey.compareTo(firstKey) <= 0) {
+          // seeking before the beginning of the file, and already positioned at the first key in
+          // the file
           // so there is nothing to do
           reseek = false;
         }
@@ -931,12 +997,14 @@ public class RFile {
 
           // if the index contains the same key multiple times, then go to the
           // earliest index entry containing the key
-          while (iiter.hasPrevious() && iiter.peekPrevious().getKey().equals(iiter.peek().getKey())) {
+          while (iiter.hasPrevious()
+              && iiter.peekPrevious().getKey().equals(iiter.peek().getKey())) {
             iiter.previous();
           }
 
           if (iiter.hasPrevious())
-            prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key of the prev block
+            prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key
+                                                              // of the prev block
           else
             prevKey = new Key(); // first block in the file, so set prev key to minimal key
 
@@ -975,7 +1043,8 @@ public class RFile {
             }
           }
 
-          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey, entriesLeft);
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey,
+              entriesLeft);
           prevKey = skippr.prevKey;
           entriesLeft -= skippr.skipped;
           val = new Value(valbs.toArray());
@@ -1020,7 +1089,8 @@ public class RFile {
     }
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }
 
@@ -1084,7 +1154,8 @@ public class RFile {
 
         if (magic != RINDEX_MAGIC)
           throw new IOException("Did not see expected magic number, saw " + magic);
-        if (ver != RINDEX_VER_8 && ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+        if (ver != RINDEX_VER_8 && ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4
+            && ver != RINDEX_VER_3)
           throw new IOException("Did not see expected version, saw " + ver);
 
         int size = mb.readInt();
@@ -1276,7 +1347,8 @@ public class RFile {
           throw new SampleNotPresentException();
         }
 
-        if (this.samplerConfig != null && this.samplerConfig.equals(new SamplerConfigurationImpl(sc))) {
+        if (this.samplerConfig != null
+            && this.samplerConfig.equals(new SamplerConfigurationImpl(sc))) {
           Reader copy = new Reader(this, true);
           copy.setInterruptFlagInternal(interruptFlag);
           deepCopies.add(copy);
@@ -1293,14 +1365,17 @@ public class RFile {
     }
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }
 
     /**
-     * @return map of locality group names to column families. The default locality group will have {@code null} for a name. RFile will only track up to
-     *         {@value Writer#MAX_CF_IN_DLG} families for the default locality group. After this it will stop tracking. For the case where the default group has
-     *         more thn {@value Writer#MAX_CF_IN_DLG} families an empty list of families is returned.
+     * @return map of locality group names to column families. The default locality group will have
+     *         {@code null} for a name. RFile will only track up to {@value Writer#MAX_CF_IN_DLG}
+     *         families for the default locality group. After this it will stop tracking. For the
+     *         case where the default group has more thn {@value Writer#MAX_CF_IN_DLG} families an
+     *         empty list of families is returned.
      * @see LocalityGroupUtil#seek(FileSKVIterator, Range, String, Map)
      */
     public Map<String,ArrayList<ByteSequence>> getLocalityGroupCF() {
@@ -1310,7 +1385,9 @@ public class RFile {
         ArrayList<ByteSequence> setCF;
 
         if (lcg.columnFamilies == null) {
-          Preconditions.checkState(lcg.isDefaultLG, " Group %s has null families. Only expect default locality group to have null families.", lcg.name);
+          Preconditions.checkState(lcg.isDefaultLG,
+              " Group %s has null families. Only expect default locality group to have null families.",
+              lcg.name);
           setCF = new ArrayList<>();
         } else {
           setCF = new ArrayList<>(lcg.columnFamilies.keySet());
@@ -1323,8 +1400,9 @@ public class RFile {
     }
 
     /**
-     * Method that registers the given MetricsGatherer. You can only register one as it will clobber any previously set. The MetricsGatherer should be
-     * registered before iterating through the LocalityGroups.
+     * Method that registers the given MetricsGatherer. You can only register one as it will clobber
+     * any previously set. The MetricsGatherer should be registered before iterating through the
+     * LocalityGroups.
      *
      * @param vmg
      *          MetricsGatherer to be registered with the LocalityGroupReaders
@@ -1343,8 +1421,10 @@ public class RFile {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      lgCache = LocalityGroupIterator.seek(this, lgContext, range, columnFamilies, inclusive, lgCache);
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
+      lgCache = LocalityGroupIterator.seek(this, lgContext, range, columnFamilies, inclusive,
+          lgCache);
     }
 
     int getNumLocalityGroupsSeeked() {

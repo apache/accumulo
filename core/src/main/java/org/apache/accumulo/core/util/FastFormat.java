@@ -23,11 +23,13 @@ public class FastFormat {
   public static byte[] toZeroPaddedString(long num, int width, int radix, byte[] prefix) {
     byte ret[] = new byte[width + prefix.length];
     if (toZeroPaddedString(ret, 0, num, width, radix, prefix) != ret.length)
-      throw new RuntimeException(" Did not format to expected width " + num + " " + width + " " + radix + " " + new String(prefix, UTF_8));
+      throw new RuntimeException(" Did not format to expected width " + num + " " + width + " "
+          + radix + " " + new String(prefix, UTF_8));
     return ret;
   }
 
-  public static int toZeroPaddedString(byte output[], int outputOffset, long num, int width, int radix, byte[] prefix) {
+  public static int toZeroPaddedString(byte output[], int outputOffset, long num, int width,
+      int radix, byte[] prefix) {
     if (num < 0)
       throw new IllegalArgumentException();
 

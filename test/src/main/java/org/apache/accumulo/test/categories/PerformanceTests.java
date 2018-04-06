@@ -17,9 +17,11 @@
 package org.apache.accumulo.test.categories;
 
 /**
- * Annotate integration tests which test performance-related aspects of Accumulo or are sensitive to timings and hardware capabilities.
+ * Annotate integration tests which test performance-related aspects of Accumulo or are sensitive to
+ * timings and hardware capabilities.
  * <p>
- * Intended to be used with the JUnit Category annotation on integration test classes. The Category annotation should be placed at the class-level. Test class
- * names should still be suffixed with 'IT' as the rest of the integration tests.
+ * Intended to be used with the JUnit Category annotation on integration test classes. The Category
+ * annotation should be placed at the class-level. Test class names should still be suffixed with
+ * 'IT' as the rest of the integration tests.
  */
 public interface PerformanceTests {}

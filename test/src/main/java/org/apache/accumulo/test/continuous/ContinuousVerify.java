@@ -51,7 +51,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
 
 /**
- * A map reduce job that verifies a table created by continuous ingest. It verifies that all referenced nodes are defined.
+ * A map reduce job that verifies a table created by continuous ingest. It verifies that all
+ * referenced nodes are defined.
  */
 
 public class ContinuousVerify extends Configured implements Tool {
@@ -108,7 +109,8 @@ public class ContinuousVerify extends Configured implements Tool {
     private ArrayList<Long> refs = new ArrayList<>();
 
     @Override
-    public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {
+    public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context)
+        throws IOException, InterruptedException {
 
       int defCount = 0;
 
@@ -143,16 +145,20 @@ public class ContinuousVerify extends Configured implements Tool {
   }
 
   static class Opts extends MapReduceClientOnDefaultTable {
-    @Parameter(names = "--output", description = "location in HDFS to store the results; must not exist")
+    @Parameter(names = "--output",
+        description = "location in HDFS to store the results; must not exist")
     String outputDir = "/tmp/continuousVerify";
 
-    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", validateWith = PositiveInteger.class)
+    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use",
+        validateWith = PositiveInteger.class)
     int maxMaps = 1;
 
-    @Parameter(names = "--reducers", description = "the number of reducers to use", validateWith = PositiveInteger.class)
+    @Parameter(names = "--reducers", description = "the number of reducers to use",
+        validateWith = PositiveInteger.class)
     int reducers = 1;
 
-    @Parameter(names = "--offline", description = "perform the verification directly on the files while the table is offline")
+    @Parameter(names = "--offline",
+        description = "perform the verification directly on the files while the table is offline")
     boolean scanOffline = false;
 
     public Opts() {
@@ -165,7 +171,8 @@ public class ContinuousVerify extends Configured implements Tool {
     Opts opts = new Opts();
     opts.parseArgs(this.getClass().getName(), args);
 
-    Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    Job job = Job.getInstance(getConf(),
+        this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
 
     job.setInputFormatClass(AccumuloInputFormat.class);
@@ -177,15 +184,19 @@ public class ContinuousVerify extends Configured implements Tool {
 
     if (opts.scanOffline) {
       Random random = new Random();
-      clone = opts.getTableName() + "_" + String.format("%016x", (random.nextLong() & 0x7fffffffffffffffl));
+      clone = opts.getTableName() + "_"
+          + String.format("%016x", (random.nextLong() & 0x7fffffffffffffffl));
       conn = opts.getConnector();
-      conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
-      ranges = conn.tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
+      conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(),
+          new HashSet<String>());
+      ranges = conn.tableOperations().splitRangeByTablets(opts.getTableName(), new Range(),
+          opts.maxMaps);
       conn.tableOperations().offline(clone);
       AccumuloInputFormat.setInputTableName(job, clone);
       AccumuloInputFormat.setOfflineTableScan(job, true);
     } else {
-      ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
+      ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(),
+          new Range(), opts.maxMaps);
     }
 
     AccumuloInputFormat.setRanges(job, ranges);

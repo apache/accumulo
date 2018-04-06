@@ -49,8 +49,10 @@ public class Log4jConfiguration {
   }
 
   public void resetLogger() {
-    // Force a reset on the logger's configuration, but only if the configured log4j file actually exists
-    // If we reset the configuration blindly, the ITs will not get any logging as they don't set it up on their own
+    // Force a reset on the logger's configuration, but only if the configured log4j file actually
+    // exists
+    // If we reset the configuration blindly, the ITs will not get any logging as they don't set it
+    // up on their own
     if (log4jFile.exists() && log4jFile.isFile() && log4jFile.canRead()) {
       LogManager.resetConfiguration();
       if (usingProperties) {
@@ -59,7 +61,8 @@ public class Log4jConfiguration {
         new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
       }
 
-      // Watch the auditLog.xml for the future updates. Because we reset the subsystem, we have to reconfigure auditing, too.
+      // Watch the auditLog.xml for the future updates. Because we reset the subsystem, we have to
+      // reconfigure auditing, too.
       DOMConfigurator.configureAndWatch(auditConfig, 5000l);
     }
 

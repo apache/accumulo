@@ -24,7 +24,8 @@ import java.util.Map.Entry;
 import com.google.common.base.Predicate;
 
 /**
- * An {@link AccumuloConfiguration} which holds a flat copy of properties defined in another configuration
+ * An {@link AccumuloConfiguration} which holds a flat copy of properties defined in another
+ * configuration
  */
 public class ConfigurationCopy extends AccumuloConfiguration {
   private long updateCount = 0;

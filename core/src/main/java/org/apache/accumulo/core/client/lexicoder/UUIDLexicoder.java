@@ -36,8 +36,8 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> {
   /**
    * {@inheritDoc}
    *
-   * @see <a href="http://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace, "Rules for Lexical Equivalence" in
-   *      Section 3.</a>
+   * @see <a href="http://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier
+   *      (UUID) URN Namespace, "Rules for Lexical Equivalence" in Section 3.</a>
    */
   @Override
   public byte[] encode(UUID uuid) {
@@ -58,7 +58,8 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> {
 
   @Override
   public UUID decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
+    // in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 

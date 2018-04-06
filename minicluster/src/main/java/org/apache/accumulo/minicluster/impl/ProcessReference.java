@@ -51,6 +51,7 @@ public class ProcessReference {
     if (obj instanceof ProcessReference) {
       return getProcess().equals(((ProcessReference) obj).getProcess());
     }
-    throw new IllegalArgumentException(String.valueOf(obj) + " is not of type " + this.getClass().getName());
+    throw new IllegalArgumentException(
+        String.valueOf(obj) + " is not of type " + this.getClass().getName());
   }
 }

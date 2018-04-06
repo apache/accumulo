@@ -37,8 +37,10 @@ public class CreateNamespaceCommand extends Command {
   private Option createNamespaceOptCopyConfig;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException, NamespaceNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException,
+      TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException,
+      NamespaceNotFoundException {
 
     if (createNamespaceOptCopyConfig == null) {
       getOptions();
@@ -59,7 +61,8 @@ public class CreateNamespaceCommand extends Command {
     if (configuration != null) {
       for (Entry<String,String> entry : configuration) {
         if (Property.isValidTablePropertyKey(entry.getKey())) {
-          shellState.getConnector().namespaceOperations().setProperty(namespace, entry.getKey(), entry.getValue());
+          shellState.getConnector().namespaceOperations().setProperty(namespace, entry.getKey(),
+              entry.getValue());
         }
       }
     }
@@ -81,7 +84,8 @@ public class CreateNamespaceCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    createNamespaceOptCopyConfig = new Option("cc", "copy-config", true, "namespace to copy configuration from");
+    createNamespaceOptCopyConfig = new Option("cc", "copy-config", true,
+        "namespace to copy configuration from");
     createNamespaceOptCopyConfig.setArgName("namespace");
 
     OptionGroup ogp = new OptionGroup();

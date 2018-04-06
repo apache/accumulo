@@ -62,7 +62,8 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       copy1.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
       copy2.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
 
-      TreeMap<Key,Value> output = consumeMany(new ArrayList<>(Arrays.asList(skvi, copy1, copy2)), seekRange, seekColumnFamilies, seekInclusive);
+      TreeMap<Key,Value> output = consumeMany(new ArrayList<>(Arrays.asList(skvi, copy1, copy2)),
+          seekRange, seekColumnFamilies, seekInclusive);
 
       return new IteratorTestOutput(output);
     } catch (IOException e) {
@@ -70,16 +71,20 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     }
   }
 
-  TreeMap<Key,Value> consumeMany(Collection<SortedKeyValueIterator<Key,Value>> iterators, Range range, Collection<ByteSequence> seekColumnFamilies,
-      boolean seekInclusive) throws IOException {
+  TreeMap<Key,Value> consumeMany(Collection<SortedKeyValueIterator<Key,Value>> iterators,
+      Range range, Collection<ByteSequence> seekColumnFamilies, boolean seekInclusive)
+      throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
     // All of the copies should have consistent results from concurrent use
     while (allHasTop(iterators)) {
       // occasionally deep copy one of the existing iterators
       if (random.nextInt(3) == 0) {
         log.debug("Deep-copying and re-seeking an iterator");
-        SortedKeyValueIterator<Key,Value> newcopy = getRandomElement(iterators).deepCopy(new SimpleIteratorEnvironment());
-        newcopy.seek(new Range(getTopKey(iterators), true, range.getEndKey(), range.isEndKeyInclusive()), seekColumnFamilies, seekInclusive);
+        SortedKeyValueIterator<Key,Value> newcopy = getRandomElement(iterators)
+            .deepCopy(new SimpleIteratorEnvironment());
+        newcopy.seek(
+            new Range(getTopKey(iterators), true, range.getEndKey(), range.isEndKeyInclusive()),
+            seekColumnFamilies, seekInclusive);
         // keep using the new one too, should act like the others
         iterators.add(newcopy);
       }
@@ -126,7 +131,8 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
         topKey = iter.getTopKey();
         first = false;
       } else if (!topKey.equals(iter.getTopKey())) {
-        throw new IllegalStateException("Inconsistent keys between two iterators: " + topKey + " " + iter.getTopKey());
+        throw new IllegalStateException(
+            "Inconsistent keys between two iterators: " + topKey + " " + iter.getTopKey());
       }
     }
 
@@ -142,13 +148,15 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
         topValue = iter.getTopValue();
         first = false;
       } else if (!topValue.equals(iter.getTopValue())) {
-        throw new IllegalStateException("Inconsistent values between two iterators: " + topValue + " " + iter.getTopValue());
+        throw new IllegalStateException(
+            "Inconsistent values between two iterators: " + topValue + " " + iter.getTopValue());
       }
     }
 
     // Copy the value
     if (null == topValue) {
-      throw new IllegalStateException("Should always find a non-null Value from the iterator being tested.");
+      throw new IllegalStateException(
+          "Should always find a non-null Value from the iterator being tested.");
     }
     return new Value(topValue);
   }

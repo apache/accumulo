@@ -41,13 +41,14 @@ public class ColumnToClassMapping<K> {
     objectsCol = new HashMap<>();
   }
 
-  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c) throws InstantiationException, IllegalAccessException,
-      ClassNotFoundException, IOException {
+  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c)
+      throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
     this(objectStrings, c, null);
   }
 
-  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c, String context) throws InstantiationException, IllegalAccessException,
-      ClassNotFoundException, IOException {
+  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c,
+      String context)
+      throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
     this();
 
     for (Entry<String,String> entry : objectStrings.entrySet()) {
@@ -58,7 +59,8 @@ public class ColumnToClassMapping<K> {
 
       Class<?> clazz;
       if (context != null && !context.equals(""))
-        clazz = AccumuloVFSClassLoader.getContextManager().getClassLoader(context).loadClass(className);
+        clazz = AccumuloVFSClassLoader.getContextManager().getClassLoader(context)
+            .loadClass(className);
       else
         clazz = AccumuloVFSClassLoader.loadClass(className, c);
 

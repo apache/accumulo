@@ -41,7 +41,8 @@ class MinorCompactionTask implements Runnable {
   private MinorCompactionReason mincReason;
   private double tracePercent;
 
-  MinorCompactionTask(Tablet tablet, FileRef mergeFile, CommitSession commitSession, long flushId, MinorCompactionReason mincReason, double tracePercent) {
+  MinorCompactionTask(Tablet tablet, FileRef mergeFile, CommitSession commitSession, long flushId,
+      MinorCompactionReason mincReason, double tracePercent) {
     this.tablet = tablet;
     queued = System.currentTimeMillis();
     tablet.minorCompactionWaitingToStart();
@@ -68,12 +69,17 @@ class MinorCompactionTask implements Runnable {
       span = Trace.start("start");
       while (true) {
         try {
-          // the purpose of the minor compaction start event is to keep track of the filename... in the case
-          // where the metadata table write for the minor compaction finishes and the process dies before
-          // writing the minor compaction finish event, then the start event+filename in metadata table will
-          // prevent recovery of duplicate data... the minor compaction start event could be written at any time
+          // the purpose of the minor compaction start event is to keep track of the filename... in
+          // the case
+          // where the metadata table write for the minor compaction finishes and the process dies
+          // before
+          // writing the minor compaction finish event, then the start event+filename in metadata
+          // table will
+          // prevent recovery of duplicate data... the minor compaction start event could be written
+          // at any time
           // before the metadata write for the minor compaction
-          tablet.getTabletServer().minorCompactionStarted(commitSession, commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
+          tablet.getTabletServer().minorCompactionStarted(commitSession,
+              commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
           break;
         } catch (IOException e) {
           log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
@@ -81,8 +87,9 @@ class MinorCompactionTask implements Runnable {
       }
       span.stop();
       span = Trace.start("compact");
-      this.stats = tablet.minorCompact(tablet.getTabletServer().getFileSystem(), tablet.getTabletMemory().getMinCMemTable(), tmpFileRef, newMapfileLocation,
-          mergeFile, true, queued, commitSession, flushId, mincReason);
+      this.stats = tablet.minorCompact(tablet.getTabletServer().getFileSystem(),
+          tablet.getTabletMemory().getMinCMemTable(), tmpFileRef, newMapfileLocation, mergeFile,
+          true, queued, commitSession, flushId, mincReason);
       span.stop();
 
       minorCompaction.data("extent", tablet.getExtent().toString());

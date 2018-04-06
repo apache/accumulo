@@ -34,7 +34,8 @@ class CloneZookeeper extends MasterRepo {
 
   public CloneZookeeper(CloneInfo cloneInfo) throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
-    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(), Tables.qualify(this.cloneInfo.tableName).getFirst());
+    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(),
+        Tables.qualify(this.cloneInfo.tableName).getFirst());
   }
 
   @Override
@@ -52,9 +53,11 @@ class CloneZookeeper extends MasterRepo {
     try {
       // write tableName & tableId to zookeeper
 
-      Utils.checkTableDoesNotExist(environment.getInstance(), cloneInfo.tableName, cloneInfo.tableId, TableOperation.CLONE);
+      Utils.checkTableDoesNotExist(environment.getInstance(), cloneInfo.tableName,
+          cloneInfo.tableId, TableOperation.CLONE);
 
-      TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
+      TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
+          cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
       Tables.clearCache(environment.getInstance());
 

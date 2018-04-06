@@ -33,7 +33,8 @@ public class DeleteNamespaceCommand extends Command {
   private Option forceOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     boolean force = false;
     boolean operate = true;
     if (cl.hasOption(forceOpt.getOpt())) {
@@ -43,7 +44,8 @@ public class DeleteNamespaceCommand extends Command {
 
     if (!force) {
       shellState.getReader().flush();
-      String line = shellState.getReader().readLine(getName() + " { " + namespace + " } (yes|no)? ");
+      String line = shellState.getReader()
+          .readLine(getName() + " { " + namespace + " } (yes|no)? ");
       operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }
     if (operate) {
@@ -57,7 +59,8 @@ public class DeleteNamespaceCommand extends Command {
     return "deletes a namespace";
   }
 
-  protected void doTableOp(final Shell shellState, final String namespace, boolean force) throws Exception {
+  protected void doTableOp(final Shell shellState, final String namespace, boolean force)
+      throws Exception {
     boolean resetContext = false;
     String currentTable = shellState.getTableName();
     if (!Namespaces.getNameToIdMap(shellState.getInstance()).containsKey(namespace)) {
@@ -94,7 +97,8 @@ public class DeleteNamespaceCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForNamespaces(root, special);
   }
 }

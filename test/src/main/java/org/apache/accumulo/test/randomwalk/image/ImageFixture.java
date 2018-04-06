@@ -64,7 +64,8 @@ public class ImageFixture extends Fixture {
     try {
       conn.tableOperations().create(imageTableName);
       conn.tableOperations().addSplits(imageTableName, splits);
-      log.debug("Created table " + imageTableName + " (id:" + Tables.getNameToIdMap(instance).get(imageTableName) + ")");
+      log.debug("Created table " + imageTableName + " (id:"
+          + Tables.getNameToIdMap(instance).get(imageTableName) + ")");
     } catch (TableExistsException e) {
       log.error("Table " + imageTableName + " already exists.");
       throw e;
@@ -72,7 +73,8 @@ public class ImageFixture extends Fixture {
 
     try {
       conn.tableOperations().create(indexTableName);
-      log.debug("Created table " + indexTableName + " (id:" + Tables.getNameToIdMap(instance).get(indexTableName) + ")");
+      log.debug("Created table " + indexTableName + " (id:"
+          + Tables.getNameToIdMap(instance).get(indexTableName) + ")");
     } catch (TableExistsException e) {
       log.error("Table " + imageTableName + " already exists.");
       throw e;

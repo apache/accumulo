@@ -47,8 +47,10 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
 
 /**
- * A map only job that reads a table created by continuous ingest and creates doubly linked list. This map reduce job tests the ability of a map only job to
- * read and write to accumulo at the same time. This map reduce job mutates the table in such a way that it should not create any undefined nodes.
+ * A map only job that reads a table created by continuous ingest and creates doubly linked list.
+ * This map reduce job tests the ability of a map only job to read and write to accumulo at the same
+ * time. This map reduce job mutates the table in such a way that it should not create any undefined
+ * nodes.
  *
  */
 public class ContinuousMoru extends Configured implements Tool {
@@ -104,8 +106,9 @@ public class ContinuousMoru extends Configured implements Tool {
         int offset = ContinuousWalk.getPrevRowOffset(val);
         if (offset > 0) {
           long rowLong = Long.parseLong(new String(val, offset, 16, UTF_8), 16);
-          Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), EMPTY_VIS, iiId, count++, key.getRowData()
-              .toArray(), random, true);
+          Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf),
+              random.nextInt(max_cq), EMPTY_VIS, iiId, count++, key.getRowData().toArray(), random,
+              true);
           context.write(null, m);
         }
 
@@ -116,24 +119,29 @@ public class ContinuousMoru extends Configured implements Tool {
   }
 
   static class Opts extends ContinuousOpts {
-    @Parameter(names = "--maxColF", description = "maximum column family value to use", converter = ShortConverter.class)
+    @Parameter(names = "--maxColF", description = "maximum column family value to use",
+        converter = ShortConverter.class)
     short maxColF = Short.MAX_VALUE;
 
-    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use", converter = ShortConverter.class)
+    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use",
+        converter = ShortConverter.class)
     short maxColQ = Short.MAX_VALUE;
 
-    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", required = true, validateWith = PositiveInteger.class)
+    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use",
+        required = true, validateWith = PositiveInteger.class)
     int maxMaps = 0;
   }
 
   @Override
-  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
+  public int run(String[] args)
+      throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     MapReduceClientOnDefaultTable clientOpts = new MapReduceClientOnDefaultTable("ci");
     clientOpts.parseArgs(ContinuousMoru.class.getName(), args, bwOpts, opts);
 
-    Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    Job job = Job.getInstance(getConf(),
+        this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
 
     job.setInputFormatClass(AccumuloInputFormat.class);
@@ -141,7 +149,8 @@ public class ContinuousMoru extends Configured implements Tool {
 
     // set up ranges
     try {
-      Set<Range> ranges = clientOpts.getConnector().tableOperations().splitRangeByTablets(clientOpts.getTableName(), new Range(), opts.maxMaps);
+      Set<Range> ranges = clientOpts.getConnector().tableOperations()
+          .splitRangeByTablets(clientOpts.getTableName(), new Range(), opts.maxMaps);
       AccumuloInputFormat.setRanges(job, ranges);
       AccumuloInputFormat.setAutoAdjustRanges(job, false);
     } catch (Exception e) {

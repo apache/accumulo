@@ -46,10 +46,13 @@ public class KerberosToken implements AuthenticationToken {
   private File keytab;
 
   /**
-   * Creates a token using the provided principal and the currently logged-in user via {@link UserGroupInformation}.
+   * Creates a token using the provided principal and the currently logged-in user via
+   * {@link UserGroupInformation}.
    *
-   * This method expects the current user (as defined by {@link UserGroupInformation#getCurrentUser()} to be authenticated via Kerberos or as a Proxy (on top of
-   * another user). An {@link IllegalArgumentException} will be thrown for all other cases.
+   * This method expects the current user (as defined by
+   * {@link UserGroupInformation#getCurrentUser()} to be authenticated via Kerberos or as a Proxy
+   * (on top of another user). An {@link IllegalArgumentException} will be thrown for all other
+   * cases.
    *
    * @param principal
    *          The user that is logged in
@@ -65,12 +68,15 @@ public class KerberosToken implements AuthenticationToken {
 
   static void validateAuthMethod(AuthenticationMethod authMethod) {
     // There is also KERBEROS_SSL but that appears to be deprecated/OBE
-    checkArgument(AuthenticationMethod.KERBEROS == authMethod || AuthenticationMethod.PROXY == authMethod,
-        "KerberosToken expects KERBEROS or PROXY authentication for the current UserGroupInformation user. Saw " + authMethod);
+    checkArgument(
+        AuthenticationMethod.KERBEROS == authMethod || AuthenticationMethod.PROXY == authMethod,
+        "KerberosToken expects KERBEROS or PROXY authentication for the current UserGroupInformation user. Saw "
+            + authMethod);
   }
 
   /**
-   * Creates a Kerberos token for the specified principal using the provided keytab. The principal and keytab combination are verified by attempting a log in.
+   * Creates a Kerberos token for the specified principal using the provided keytab. The principal
+   * and keytab combination are verified by attempting a log in.
    * <p>
    * This constructor does not have any side effects.
    *
@@ -84,8 +90,8 @@ public class KerberosToken implements AuthenticationToken {
   }
 
   /**
-   * Creates a token and logs in via {@link UserGroupInformation} using the provided principal and keytab. A key for the principal must exist in the keytab,
-   * otherwise login will fail.
+   * Creates a token and logs in via {@link UserGroupInformation} using the provided principal and
+   * keytab. A key for the principal must exist in the keytab, otherwise login will fail.
    *
    * @param principal
    *          The Kerberos principal
@@ -96,7 +102,8 @@ public class KerberosToken implements AuthenticationToken {
    * @deprecated since 1.8.0, @see #KerberosToken(String, File)
    */
   @Deprecated
-  public KerberosToken(String principal, File keytab, boolean replaceCurrentUser) throws IOException {
+  public KerberosToken(String principal, File keytab, boolean replaceCurrentUser)
+      throws IOException {
     this.principal = requireNonNull(principal, "Principal was null");
     this.keytab = requireNonNull(keytab, "Keytab was null");
     checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
@@ -106,7 +113,8 @@ public class KerberosToken implements AuthenticationToken {
   }
 
   /**
-   * Creates a token using the login user as returned by {@link UserGroupInformation#getCurrentUser()}
+   * Creates a token using the login user as returned by
+   * {@link UserGroupInformation#getCurrentUser()}
    *
    * @throws IOException
    *           If the current logged in user cannot be computed.

@@ -36,8 +36,9 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
- * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This {@link org.apache.hadoop.mapreduce.InputFormat} provides keys
- * and values of type {@link Key} and {@link Value} to the Map function.
+ * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This
+ * {@link org.apache.hadoop.mapreduce.InputFormat} provides keys and values of type {@link Key} and
+ * {@link Value} to the Map function.
  *
  * The user must specify the following via static configurator methods:
  *
@@ -67,7 +68,8 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
   }
 
   @Override
-  public RecordReader<Key,Value> createRecordReader(InputSplit inputSplit, TaskAttemptContext context) throws IOException, InterruptedException {
+  public RecordReader<Key,Value> createRecordReader(InputSplit inputSplit,
+      TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
     return new AbstractRecordReader<Key,Value>() {
       @Override
@@ -85,7 +87,8 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
       }
 
       @Override
-      protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
+      protected List<IteratorSetting> contextIterators(TaskAttemptContext context,
+          String tableName) {
         return getInputTableConfig(context, tableName).getIterators();
       }
     };

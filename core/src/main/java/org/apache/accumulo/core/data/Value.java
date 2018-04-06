@@ -34,9 +34,10 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
 /**
- * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
- * distinguish between the size of the sequence and the current capacity as {@link org.apache.hadoop.io.BytesWritable} does. Hence it is comparatively
- * 'immutable'.
+ * A byte sequence that is usable as a key or value. Based on
+ * {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
+ * distinguish between the size of the sequence and the current capacity as
+ * {@link org.apache.hadoop.io.BytesWritable} does. Hence it is comparatively 'immutable'.
  */
 public class Value implements WritableComparable<Object> {
   private static final byte[] EMPTY = new byte[0];
@@ -62,7 +63,8 @@ public class Value implements WritableComparable<Object> {
   }
 
   /**
-   * Creates a Value using the bytes of the Text. Makes a copy, does not use the byte array from the Text.
+   * Creates a Value using the bytes of the Text. Makes a copy, does not use the byte array from the
+   * Text.
    *
    * @param text
    *          may not be null
@@ -74,8 +76,8 @@ public class Value implements WritableComparable<Object> {
   }
 
   /**
-   * Creates a Value using a byte array as the initial value. The given byte array is used directly as the backing array, so later changes made to the array
-   * reflect into the new Value.
+   * Creates a Value using a byte array as the initial value. The given byte array is used directly
+   * as the backing array, so later changes made to the array reflect into the new Value.
    *
    * @param bytes
    *          May not be null
@@ -96,12 +98,14 @@ public class Value implements WritableComparable<Object> {
   }
 
   /**
-   * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)} instead.
+   * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)}
+   *             instead.
    *
    * @param bytes
    *          bytes of value (may not be null)
    * @param copy
-   *          false to use the backing array of the buffer directly as the backing array, true to force a copy
+   *          false to use the backing array of the buffer directly as the backing array, true to
+   *          force a copy
    */
   @Deprecated
   public Value(ByteBuffer bytes, boolean copy) {
@@ -167,7 +171,8 @@ public class Value implements WritableComparable<Object> {
   }
 
   /**
-   * Sets the byte data of this value. The given byte array is used directly as the backing array, so later changes made to the array reflect into this Value.
+   * Sets the byte data of this value. The given byte array is used directly as the backing array,
+   * so later changes made to the array reflect into this Value.
    *
    * @param b
    *          may not be null
@@ -223,7 +228,8 @@ public class Value implements WritableComparable<Object> {
    *
    * @param right_obj
    *          The other bytes writable
-   * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
+   * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is
+   *         smaller than right.
    */
   @Override
   public int compareTo(Object right_obj) {
@@ -233,11 +239,13 @@ public class Value implements WritableComparable<Object> {
   /**
    * Compares the bytes in this object to the specified byte array
    *
-   * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
+   * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is
+   *         smaller than right.
    */
   public int compareTo(final byte[] that) {
     int diff = this.value.length - that.length;
-    return (diff != 0) ? diff : WritableComparator.compareBytes(this.value, 0, this.value.length, that, 0, that.length);
+    return (diff != 0) ? diff
+        : WritableComparator.compareBytes(this.value, 0, this.value.length, that, 0, that.length);
   }
 
   @Override

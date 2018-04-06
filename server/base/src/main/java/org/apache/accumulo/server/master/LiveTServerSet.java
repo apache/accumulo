@@ -78,11 +78,14 @@ public class LiveTServerSet implements Watcher {
     }
 
     private String lockString(ZooLock mlock) {
-      return mlock.getLockID().serialize(ZooUtil.getRoot(context.getInstance()) + Constants.ZMASTER_LOCK);
+      return mlock.getLockID()
+          .serialize(ZooUtil.getRoot(context.getInstance()) + Constants.ZMASTER_LOCK);
     }
 
-    private void loadTablet(TabletClientService.Client client, ZooLock lock, KeyExtent extent) throws TException {
-      client.loadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
+    private void loadTablet(TabletClientService.Client client, ZooLock lock, KeyExtent extent)
+        throws TException {
+      client.loadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock),
+          extent.toThrift());
     }
 
     public void assignTablet(ZooLock lock, KeyExtent extent) throws TException {
@@ -90,13 +93,15 @@ public class LiveTServerSet implements Watcher {
         // see ACCUMULO-3597
         TTransport transport = ThriftUtil.createTransport(address, context);
         try {
-          TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
+          TabletClientService.Client client = ThriftUtil
+              .createClient(new TabletClientService.Client.Factory(), transport);
           loadTablet(client, lock, extent);
         } finally {
           transport.close();
         }
       } else {
-        TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+        TabletClientService.Client client = ThriftUtil
+            .getClient(new TabletClientService.Client.Factory(), address, context);
         try {
           loadTablet(client, lock, extent);
         } finally {
@@ -105,16 +110,20 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void unloadTablet(ZooLock lock, KeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws TException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+    public void unloadTablet(ZooLock lock, KeyExtent extent, TUnloadTabletGoal goal,
+        long requestTime) throws TException {
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        client.unloadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift(), goal, requestTime);
+        client.unloadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock),
+            extent.toThrift(), goal, requestTime);
       } finally {
         ThriftUtil.returnClient(client);
       }
     }
 
-    public TabletServerStatus getTableMap(boolean usePooledConnection) throws TException, ThriftSecurityException {
+    public TabletServerStatus getTableMap(boolean usePooledConnection)
+        throws TException, ThriftSecurityException {
 
       if (usePooledConnection == true)
         throw new UnsupportedOperationException();
@@ -124,8 +133,10 @@ public class LiveTServerSet implements Watcher {
       TTransport transport = ThriftUtil.createTransport(address, context);
 
       try {
-        TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
-        TabletServerStatus status = client.getTabletServerStatus(Tracer.traceInfo(), context.rpcCreds());
+        TabletClientService.Client client = ThriftUtil
+            .createClient(new TabletClientService.Client.Factory(), transport);
+        TabletServerStatus status = client.getTabletServerStatus(Tracer.traceInfo(),
+            context.rpcCreds());
         if (status != null) {
           status.setResponseTime(System.currentTimeMillis() - start);
         }
@@ -137,7 +148,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public void halt(ZooLock lock) throws TException, ThriftSecurityException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.halt(Tracer.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
@@ -146,7 +158,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public void fastHalt(ZooLock lock) throws TException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.fastHalt(Tracer.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
@@ -154,10 +167,13 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void flush(ZooLock lock, String tableId, byte[] startRow, byte[] endRow) throws TException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+    public void flush(ZooLock lock, String tableId, byte[] startRow, byte[] endRow)
+        throws TException {
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        client.flush(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), tableId, startRow == null ? null : ByteBuffer.wrap(startRow),
+        client.flush(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), tableId,
+            startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
       } finally {
         ThriftUtil.returnClient(client);
@@ -165,7 +181,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public void chop(ZooLock lock, KeyExtent extent) throws TException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         client.chop(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
       } finally {
@@ -173,19 +190,25 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void splitTablet(ZooLock lock, KeyExtent extent, Text splitPoint) throws TException, ThriftSecurityException, NotServingTabletException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+    public void splitTablet(ZooLock lock, KeyExtent extent, Text splitPoint)
+        throws TException, ThriftSecurityException, NotServingTabletException {
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        client.splitTablet(Tracer.traceInfo(), context.rpcCreds(), extent.toThrift(), ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
+        client.splitTablet(Tracer.traceInfo(), context.rpcCreds(), extent.toThrift(),
+            ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
       } finally {
         ThriftUtil.returnClient(client);
       }
     }
 
-    public void compact(ZooLock lock, String tableId, byte[] startRow, byte[] endRow) throws TException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+    public void compact(ZooLock lock, String tableId, byte[] startRow, byte[] endRow)
+        throws TException {
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        client.compact(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), tableId, startRow == null ? null : ByteBuffer.wrap(startRow),
+        client.compact(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), tableId,
+            startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
       } finally {
         ThriftUtil.returnClient(client);
@@ -193,7 +216,8 @@ public class LiveTServerSet implements Watcher {
     }
 
     public boolean isActive(long tid) throws TException {
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         return client.isActive(Tracer.traceInfo(), tid);
       } finally {
@@ -270,13 +294,15 @@ public class LiveTServerSet implements Watcher {
     try {
       ZooReaderWriter.getInstance().delete(serverNode, -1);
     } catch (NotEmptyException ex) {
-      // race condition: tserver created the lock after our last check; we'll see it at the next check
+      // race condition: tserver created the lock after our last check; we'll see it at the next
+      // check
     } catch (NoNodeException nne) {
       // someone else deleted it
     }
   }
 
-  private synchronized void checkServer(final Set<TServerInstance> updates, final Set<TServerInstance> doomed, final String path, final String zPath)
+  private synchronized void checkServer(final Set<TServerInstance> updates,
+      final Set<TServerInstance> doomed, final String path, final String zPath)
       throws TException, InterruptedException, KeeperException {
 
     TServerInfo info = current.get(zPath);
@@ -324,7 +350,8 @@ public class LiveTServerSet implements Watcher {
   @Override
   public void process(WatchedEvent event) {
 
-    // its important that these event are propagated by ZooCache, because this ensures when reading zoocache that is has already processed the event and cleared
+    // its important that these event are propagated by ZooCache, because this ensures when reading
+    // zoocache that is has already processed the event and cleared
     // relevant nodes before code below reads from zoocache
 
     if (event.getPath() != null) {

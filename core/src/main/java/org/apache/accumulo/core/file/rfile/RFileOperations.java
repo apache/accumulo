@@ -43,8 +43,9 @@ public class RFileOperations extends FileOperations {
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   private static RFile.Reader getReader(FileReaderOperation<?> options) throws IOException {
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(), new Path(options.getFilename()), options.getConfiguration(),
-        options.getDataCache(), options.getIndexCache(), options.getRateLimiter(), options.getTableConfiguration());
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
+        new Path(options.getFilename()), options.getConfiguration(), options.getDataCache(),
+        options.getIndexCache(), options.getRateLimiter(), options.getTableConfiguration());
     return new RFile.Reader(_cbr);
   }
 
@@ -92,7 +93,9 @@ public class RFileOperations extends FileOperations {
     }
 
     String compression = options.getCompression();
-    compression = compression == null ? options.getTableConfiguration().get(Property.TABLE_FILE_COMPRESSION_TYPE) : compression;
+    compression = compression == null
+        ? options.getTableConfiguration().get(Property.TABLE_FILE_COMPRESSION_TYPE)
+        : compression;
 
     FSDataOutputStream outputStream = options.getOutputStream();
 
@@ -118,10 +121,12 @@ public class RFileOperations extends FileOperations {
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
 
-    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(new RateLimitedOutputStream(outputStream, options.getRateLimiter()), compression, conf,
+    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(
+        new RateLimitedOutputStream(outputStream, options.getRateLimiter()), compression, conf,
         acuconf);
 
-    RFile.Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
+    RFile.Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize,
+        samplerConfig, sampler);
     return writer;
   }
 }

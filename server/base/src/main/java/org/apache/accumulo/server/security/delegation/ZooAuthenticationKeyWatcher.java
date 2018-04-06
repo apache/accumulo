@@ -30,7 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Watch ZooKeeper to notice changes in the published keys so that authenticate can properly occur using delegation tokens.
+ * Watch ZooKeeper to notice changes in the published keys so that authenticate can properly occur
+ * using delegation tokens.
  */
 public class ZooAuthenticationKeyWatcher implements Watcher {
   private static final Logger log = LoggerFactory.getLogger(ZooAuthenticationKeyWatcher.class);
@@ -39,7 +40,8 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
   private final ZooReader zk;
   private final String baseNode;
 
-  public ZooAuthenticationKeyWatcher(AuthenticationTokenSecretManager secretManager, ZooReader zk, String baseNode) {
+  public ZooAuthenticationKeyWatcher(AuthenticationTokenSecretManager secretManager, ZooReader zk,
+      String baseNode) {
     this.secretManager = secretManager;
     this.zk = zk;
     this.baseNode = baseNode;
@@ -50,7 +52,8 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
     if (EventType.None == event.getType()) {
       switch (event.getState()) {
         case Disconnected: // Intentional fall through of case
-        case Expired: // ZooReader is handling the Expiration of the original ZooKeeper object for us
+        case Expired: // ZooReader is handling the Expiration of the original ZooKeeper object for
+                      // us
           log.debug("ZooKeeper connection disconnected, clearing secret manager");
           secretManager.removeAllKeys();
           break;
@@ -92,7 +95,8 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
   }
 
   /**
-   * Process the {@link WatchedEvent} for the base znode that the {@link AuthenticationKey}s are stored in.
+   * Process the {@link WatchedEvent} for the base znode that the {@link AuthenticationKey}s are
+   * stored in.
    */
   void processBaseNode(WatchedEvent event) throws KeeperException, InterruptedException {
     switch (event.getType()) {
@@ -106,7 +110,8 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
         break;
       case NodeCreated: // intentional fall-through to NodeChildrenChanged
       case NodeChildrenChanged:
-        // Process each child, and reset the watcher on the parent node. We know that the node exists
+        // Process each child, and reset the watcher on the parent node. We know that the node
+        // exists
         updateAuthKeys(event.getPath());
         break;
       case NodeDataChanged:
@@ -119,12 +124,14 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
   }
 
   /**
-   * Entry point to seed the local {@link AuthenticationKey} cache from ZooKeeper and set the first watcher for future updates in ZooKeeper.
+   * Entry point to seed the local {@link AuthenticationKey} cache from ZooKeeper and set the first
+   * watcher for future updates in ZooKeeper.
    */
   public void updateAuthKeys() throws KeeperException, InterruptedException {
     // Might cause two watchers on baseNode, but only at startup for each tserver.
     if (zk.exists(baseNode, this)) {
-      log.info("Added {} existing AuthenticationKeys to local cache from ZooKeeper", updateAuthKeys(baseNode));
+      log.info("Added {} existing AuthenticationKeys to local cache from ZooKeeper",
+          updateAuthKeys(baseNode));
     }
   }
 
@@ -138,7 +145,8 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
         secretManager.addKey(key);
         keysAdded++;
       } catch (NoNodeException e) {
-        // The master expired(deleted) the key between when we saw it in getChildren() and when we went to add it to our secret manager.
+        // The master expired(deleted) the key between when we saw it in getChildren() and when we
+        // went to add it to our secret manager.
         log.trace("{} was deleted when we tried to access it", childPath);
       }
     }
