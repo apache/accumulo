@@ -17,12 +17,10 @@
 package org.apache.accumulo.server.cli;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
-
   {
     setPrincipal("root");
   }
@@ -34,6 +32,10 @@ public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
     if (instance == null) {
       return HdfsZooInstance.getInstance();
     }
-    return new ZooKeeperInstance(this.getClientConfiguration());
+    try {
+      return getConnector().getInstance();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }

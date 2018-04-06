@@ -19,47 +19,34 @@ package org.apache.accumulo.core.cli;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.UUID;
-import java.util.function.Predicate;
+import java.io.InputStream;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.DeprecationUtil;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
-
-import jline.console.ConsoleReader;
 
 public class ClientOpts extends Help {
 
@@ -95,20 +82,6 @@ public class ClientOpts extends Help {
     public String toString() {
       return new String(value, UTF_8);
     }
-
-    /**
-     * Prompts user for a password
-     *
-     * @return user entered Password object, null if no console exists
-     */
-    public static Password promptUser() throws IOException {
-      if (System.console() == null) {
-        throw new IOException("Attempted to prompt user on the console when System.console = null");
-      }
-      ConsoleReader reader = new ConsoleReader();
-      String enteredPass = reader.readLine("Enter password: ", '*');
-      return new Password(enteredPass);
-    }
   }
 
   public static class PasswordConverter implements IStringConverter<Password> {
@@ -135,47 +108,8 @@ public class ClientOpts extends Help {
       description = "Enter the connection password", password = true)
   private Password securePassword = null;
 
-  @Parameter(names = {"-tc", "--tokenClass"}, description = "Token class")
-  private String tokenClassName = null;
-
-  @DynamicParameter(names = "-l", description = "login properties in the format key=value. "
-      + "Reuse -l for each property (prompt for properties if this option is missing")
-  public Map<String,String> loginProps = new LinkedHashMap<>();
-
   public AuthenticationToken getToken() {
-    if (null != tokenClassName) {
-      final Properties props = new Properties();
-      if (!loginProps.isEmpty()) {
-        for (Entry<String,String> loginOption : loginProps.entrySet())
-          props.put(loginOption.getKey(), loginOption.getValue());
-      }
-
-      // It's expected that the user is already logged in via UserGroupInformation or external to
-      // this program (kinit).
-      try {
-        AuthenticationToken token = Class.forName(tokenClassName)
-            .asSubclass(AuthenticationToken.class).newInstance();
-        token.init(props);
-        return token;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    // other token types should have resolved by this point, so return PasswordToken
-    Password pass = null;
-    if (securePassword != null) {
-      pass = securePassword;
-    } else if (password != null) {
-      pass = password;
-    } else {
-      try {
-        pass = Password.promptUser();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    return new PasswordToken(pass.value);
+    return getConnectionInfo().getAuthenticationToken();
   }
 
   @Parameter(names = {"-z", "--keepers"},
@@ -195,10 +129,6 @@ public class ClientOpts extends Help {
   @Parameter(names = {"-fake", "--mock"}, description = "Use a mock Instance")
   public boolean mock = false;
 
-  @Parameter(names = "--site-file",
-      description = "Read the given accumulo site file to find the accumulo instance")
-  public String siteFile = null;
-
   @Parameter(names = "--ssl", description = "Connect to accumulo over SSL")
   public boolean sslEnabled = false;
 
@@ -206,8 +136,8 @@ public class ClientOpts extends Help {
   public boolean saslEnabled = false;
 
   @Parameter(names = "--config-file", description = "Read the given client config file. "
-      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, which "
-      + "defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+      + "If omitted, the following paths will be searched ~/.accumulo/accumulo-client.properties:"
+      + "$ACCUMULO_CONF_DIR/accumulo-client.properties:/etc/accumulo/accumulo-client.properties")
   public String clientConfigFile = null;
 
   public void startDebugLogging() {
@@ -252,8 +182,7 @@ public class ClientOpts extends Help {
    * overwrite the options if the user has provided something specifically.
    */
   public void updateKerberosCredentials(boolean clientSaslEnabled) {
-    if ((saslEnabled || clientSaslEnabled) && null == tokenClassName) {
-      tokenClassName = KerberosToken.CLASS_NAME;
+    if (saslEnabled || clientSaslEnabled) {
       // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce
       // Job is going to make a copy of the current user (UGI)
       // when it is instantiated.
@@ -282,15 +211,24 @@ public class ClientOpts extends Help {
     updateKerberosCredentials(clientConfigFile);
   }
 
+  private  ConnectionInfo cachedInfo = null;
+  private Connector cachedConnector = null;
   protected Instance cachedInstance = null;
-  protected ClientConfiguration cachedClientConfig = null;
+  private Properties cachedProps = null;
 
   synchronized public Instance getInstance() {
-    if (cachedInstance != null)
-      return cachedInstance;
-    if (mock)
-      return cachedInstance = DeprecationUtil.makeMockInstance(instance);
-    return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
+    if (cachedInstance == null) {
+      if (mock) {
+        cachedInstance = DeprecationUtil.makeMockInstance(instance);
+      } else {
+        try {
+          cachedInstance = getConnector().getInstance();
+        } catch (AccumuloSecurityException | AccumuloException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+    return cachedInstance;
   }
 
   public String getPrincipal() throws AccumuloSecurityException {
@@ -338,69 +276,66 @@ public class ClientOpts extends Help {
     this.securePassword = securePassword;
   }
 
-  public String getTokenClassName() {
-    return tokenClassName;
+  public ConnectionInfo getConnectionInfo() {
+    if (cachedInfo == null) {
+      cachedInfo = Connector.builder().usingProperties(getClientProperties()).info();
+    }
+    return cachedInfo;
   }
 
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(getPrincipal(), getToken());
+    if (cachedConnector == null) {
+      cachedConnector = Connector.builder().usingConnectionInfo(getConnectionInfo()).build();
+    }
+    return cachedConnector;
   }
 
-  public ClientConfiguration getClientConfiguration() throws IllegalArgumentException {
-    if (cachedClientConfig != null)
-      return cachedClientConfig;
-
-    ClientConfiguration clientConfig;
-    try {
-      if (clientConfigFile == null)
-        clientConfig = ClientConfiguration.loadDefault();
-      else
-        clientConfig = ClientConfiguration.fromFile(new File(clientConfigFile));
-    } catch (Exception e) {
-      throw new IllegalArgumentException(e);
+  public String getClientConfigFile() {
+    if (clientConfigFile == null) {
+      List<String> searchPaths = new LinkedList<>();
+      searchPaths.add(System.getProperty("user.home") + "/.accumulo/accumulo-client.properties");
+      if (System.getenv("ACCUMULO_CONF_DIR") != null) {
+        searchPaths.add(System.getenv("ACCUMULO_CONF_DIR") + "/accumulo-client.properties");
+      }
+      searchPaths.add("/etc/accumulo/accumulo-client.properties");
+      for (String path : searchPaths) {
+        File file = new File(path);
+        if (file.isFile() && file.canRead()) {
+          clientConfigFile = file.getAbsolutePath();
+          break;
+        }
+      }
     }
-    if (sslEnabled)
-      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
-
-    if (saslEnabled)
-      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
-
-    if (siteFile != null) {
-      AccumuloConfiguration config = new AccumuloConfiguration() {
-        Configuration xml = new Configuration();
-        {
-          xml.addResource(new Path(siteFile));
-        }
-
-        @Override
-        public void getProperties(Map<String,String> props, Predicate<String> filter) {
-          for (Entry<String,String> prop : DefaultConfiguration.getInstance())
-            if (filter.test(prop.getKey()))
-              props.put(prop.getKey(), prop.getValue());
-          for (Entry<String,String> prop : xml)
-            if (filter.test(prop.getKey()))
-              props.put(prop.getKey(), prop.getValue());
-        }
-
-        @Override
-        public String get(Property property) {
-          String value = xml.get(property.getKey());
-          if (value != null)
-            return value;
-          return DefaultConfiguration.getInstance().get(property);
-        }
-      };
-      this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
-
-      String volDir = VolumeConfiguration.getVolumeUris(config)[0];
-      Path instanceDir = new Path(volDir, "instance_id");
-      String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir, config);
-      if (config.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
-        clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
-      return cachedClientConfig = clientConfig.withInstance(UUID.fromString(instanceIDFromFile))
-          .withZkHosts(zookeepers);
-    }
-    return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
+    return clientConfigFile;
   }
 
+  public Properties getClientProperties() {
+    if (cachedProps == null) {
+      cachedProps = new Properties();
+      if (getClientConfigFile() != null) {
+        try (InputStream is = new FileInputStream(getClientConfigFile())) {
+          cachedProps.load(is);
+        } catch (IOException e) {
+          throw new IllegalArgumentException(
+              "Failed to load properties from " + getClientConfigFile());
+        }
+      }
+      if (saslEnabled) {
+        cachedProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+      }
+      if (sslEnabled) {
+        cachedProps.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
+      }
+      if (principal != null) {
+        cachedProps.setProperty(ClientProperty.AUTH_USERNAME.getKey(), principal);
+      }
+
+      if (securePassword != null) {
+        cachedProps.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), securePassword.toString());
+      } else if (password != null) {
+        cachedProps.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), password.toString());
+      }
+    }
+    return cachedProps;
+  }
 }

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
@@ -75,7 +76,8 @@ public class VerifyTabletAssignments {
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
 
     ClientContext context = new ClientContext(opts.getInstance(),
-        new Credentials(opts.getPrincipal(), opts.getToken()), opts.getClientConfiguration());
+        new Credentials(opts.getPrincipal(), opts.getToken()),
+        ClientConfConverter.toClientConf(opts.getClientProperties()));
     Connector conn = opts.getConnector();
     for (String table : conn.tableOperations().list())
       checkTable(context, opts, table, null);

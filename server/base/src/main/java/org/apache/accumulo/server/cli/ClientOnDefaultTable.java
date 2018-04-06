@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.cli;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 
@@ -36,7 +35,11 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
     if (instance == null) {
       return cachedInstance = HdfsZooInstance.getInstance();
     }
-    return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
+    try {
+      return cachedInstance = getConnector().getInstance();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public ClientOnDefaultTable(String table) {
