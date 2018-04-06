@@ -47,14 +47,10 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import jline.console.ConsoleReader;
 
 public class SetIterCommand extends Command {
-
-  private static final Logger log = LoggerFactory.getLogger(SetIterCommand.class);
 
   private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt;
   Option profileOpt, priorityOpt, nameOpt;
