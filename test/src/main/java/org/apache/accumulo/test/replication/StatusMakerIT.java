@@ -66,8 +66,10 @@ public class StatusMakerIT extends ConfigurableMacBase {
   public void setupInstance() throws Exception {
     conn = getConnector();
     ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
     fs = EasyMock.mock(VolumeManager.class);
   }
 
@@ -79,7 +81,8 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
+        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
@@ -88,7 +91,8 @@ public class StatusMakerIT extends ConfigurableMacBase {
     Map<String,Long> fileToTimeCreated = new HashMap<>();
     for (String file : files) {
       Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), StatusUtil.fileCreatedValue(timeCreated));
+      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)),
+          StatusUtil.fileCreatedValue(timeCreated));
       fileToTimeCreated.put(file, timeCreated);
       bw.addMutation(m);
       fileToTableId.put(file, index);
@@ -114,7 +118,8 @@ public class StatusMakerIT extends ConfigurableMacBase {
       Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId));
       timeCreated = fileToTimeCreated.get(file.toString());
       Assert.assertNotNull(timeCreated);
-      Assert.assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));
+      Assert.assertEquals(StatusUtil.fileCreated(timeCreated),
+          Status.parseFrom(entry.getValue().get()));
     }
   }
 
@@ -126,7 +131,8 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
+        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
@@ -134,7 +140,8 @@ public class StatusMakerIT extends ConfigurableMacBase {
     long timeCreated = 0;
     for (String file : files) {
       Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), StatusUtil.fileCreatedValue(timeCreated));
+      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)),
+          StatusUtil.fileCreatedValue(timeCreated));
       bw.addMutation(m);
       fileToTableId.put(file, index);
       index++;
@@ -162,11 +169,13 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
+        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
-    Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).setCreatedTime(System.currentTimeMillis()).build();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
+        .setCreatedTime(System.currentTimeMillis()).build();
 
     int index = 1;
     for (String file : files) {
@@ -205,18 +214,20 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID());
+    List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
-    Status.Builder statBuilder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true);
+    Status.Builder statBuilder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
+        .setClosed(true);
 
     int index = 1;
     long time = System.currentTimeMillis();
     for (String file : files) {
       statBuilder.setCreatedTime(time++);
       Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), ProtobufUtil.toValue(statBuilder.build()));
+      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)),
+          ProtobufUtil.toValue(statBuilder.build()));
       bw.addMutation(m);
       fileToTableId.put(file, index);
       index++;
@@ -262,17 +273,19 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID());
+    List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
     Map<String,Long> fileToTableId = new HashMap<>();
 
-    Status.Builder statBuilder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true);
+    Status.Builder statBuilder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
+        .setClosed(true);
 
     Map<String,Long> statuses = new HashMap<>();
     long index = 1;
     for (String file : files) {
       Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-      m.put(ReplicationSection.COLF, new Text(Long.toString(index)), ProtobufUtil.toValue(statBuilder.build()));
+      m.put(ReplicationSection.COLF, new Text(Long.toString(index)),
+          ProtobufUtil.toValue(statBuilder.build()));
       bw.addMutation(m);
       fileToTableId.put(file, index);
 

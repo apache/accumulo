@@ -31,7 +31,7 @@
   <edge id="ct.DeleteTable" weight="1000"/>
   <edge id="ct.RenameTable" weight="1000"/>
   <edge id="ct.ScanTable" weight="500"/>
-  <edge id="ct.Replication" weight="500"/>
+  <!-- edge id="ct.Replication" weight="500"/ -->
   <edge id="ct.IsolatedScan" weight="500"/>
   <edge id="ct.AddSplits" weight="1000"/>
   <edge id="ct.ListSplits" weight="1000"/>
@@ -90,9 +90,11 @@
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 
+<!--
 <node id="ct.Replication">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
+-->
 
 <node id="ct.IsolatedScan">
   <edge id="dummy.ToAll" weight="1"/>

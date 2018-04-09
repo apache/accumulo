@@ -47,15 +47,17 @@ public class Insert extends Test {
     BatchWriter dataWriter = env.getMultiTableBatchWriter().getBatchWriter(dataTableName);
     BatchWriter indexWriter = env.getMultiTableBatchWriter().getBatchWriter(indexTableName);
 
-    String docID = insertRandomDocument(nextDocID++, dataWriter, indexWriter, indexTableName, dataTableName, numPartitions, rand);
+    String docID = insertRandomDocument(nextDocID++, dataWriter, indexWriter, indexTableName,
+        dataTableName, numPartitions, rand);
 
     log.debug("Inserted document " + docID);
 
     state.set("nextDocID", Long.valueOf(nextDocID));
   }
 
-  static String insertRandomDocument(long did, BatchWriter dataWriter, BatchWriter indexWriter, String indexTableName, String dataTableName, int numPartitions,
-      Random rand) throws TableNotFoundException, Exception, AccumuloException, AccumuloSecurityException {
+  static String insertRandomDocument(long did, BatchWriter dataWriter, BatchWriter indexWriter,
+      String indexTableName, String dataTableName, int numPartitions, Random rand)
+      throws TableNotFoundException, Exception, AccumuloException, AccumuloSecurityException {
     String doc = createDocument(rand);
 
     String docID = new StringBuilder(String.format("%016x", did)).reverse().toString();
@@ -99,15 +101,18 @@ public class Insert extends Test {
     return String.format("%06x", Math.abs(partition));
   }
 
-  static void indexDocument(BatchWriter bw, String doc, String docId, int numPartitions) throws Exception {
+  static void indexDocument(BatchWriter bw, String doc, String docId, int numPartitions)
+      throws Exception {
     indexDocument(bw, doc, docId, numPartitions, false);
   }
 
-  static void unindexDocument(BatchWriter bw, String doc, String docId, int numPartitions) throws Exception {
+  static void unindexDocument(BatchWriter bw, String doc, String docId, int numPartitions)
+      throws Exception {
     indexDocument(bw, doc, docId, numPartitions, true);
   }
 
-  static void indexDocument(BatchWriter bw, String doc, String docId, int numPartitions, boolean delete) throws Exception {
+  static void indexDocument(BatchWriter bw, String doc, String docId, int numPartitions,
+      boolean delete) throws Exception {
 
     String[] tokens = doc.split("\\W+");
 

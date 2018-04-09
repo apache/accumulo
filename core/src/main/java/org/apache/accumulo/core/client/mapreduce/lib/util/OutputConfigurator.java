@@ -50,8 +50,8 @@ public class OutputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Sets the default table name to use if one emits a null in place of a table name for a given mutation. Table names can only be alpha-numeric and
-   * underscores.
+   * Sets the default table name to use if one emits a null in place of a table name for a given
+   * mutation. Table names can only be alpha-numeric and underscores.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -63,8 +63,10 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setDefaultTableName(Class<?> implementingClass, Configuration conf, String tableName) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setDefaultTableName(implementingClass, conf, tableName);
+  public static void setDefaultTableName(Class<?> implementingClass, Configuration conf,
+      String tableName) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .setDefaultTableName(implementingClass, conf, tableName);
   }
 
   /**
@@ -81,12 +83,14 @@ public class OutputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static String getDefaultTableName(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.getDefaultTableName(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .getDefaultTableName(implementingClass, conf);
   }
 
   /**
-   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
-   * used. Setting the configuration multiple times overwrites any previous configuration.
+   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new
+   * {@link BatchWriterConfig}, with sensible built-in defaults is used. Setting the configuration
+   * multiple times overwrites any previous configuration.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -98,8 +102,10 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setBatchWriterOptions(Class<?> implementingClass, Configuration conf, BatchWriterConfig bwConfig) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setBatchWriterOptions(implementingClass, conf, bwConfig);
+  public static void setBatchWriterOptions(Class<?> implementingClass, Configuration conf,
+      BatchWriterConfig bwConfig) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .setBatchWriterOptions(implementingClass, conf, bwConfig);
   }
 
   /**
@@ -115,12 +121,15 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @see #setBatchWriterOptions(Class, Configuration, BatchWriterConfig)
    */
   @Deprecated
-  public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.getBatchWriterOptions(implementingClass, conf);
+  public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass,
+      Configuration conf) {
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .getBatchWriterOptions(implementingClass, conf);
   }
 
   /**
-   * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric and underscores.
+   * Sets the directive to create new tables, as necessary. Table names can only be alpha-numeric
+   * and underscores.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -135,8 +144,10 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setCreateTables(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setCreateTables(implementingClass, conf, enableFeature);
+  public static void setCreateTables(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .setCreateTables(implementingClass, conf, enableFeature);
   }
 
   /**
@@ -153,11 +164,13 @@ public class OutputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static Boolean canCreateTables(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.canCreateTables(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .canCreateTables(implementingClass, conf);
   }
 
   /**
-   * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
+   * Sets the directive to use simulation mode for this job. In simulation mode, no output is
+   * produced. This is useful for testing.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -172,8 +185,10 @@ public class OutputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setSimulationMode(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.setSimulationMode(implementingClass, conf, enableFeature);
+  public static void setSimulationMode(Class<?> implementingClass, Configuration conf,
+      boolean enableFeature) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .setSimulationMode(implementingClass, conf, enableFeature);
   }
 
   /**
@@ -190,7 +205,8 @@ public class OutputConfigurator extends ConfiguratorBase {
    */
   @Deprecated
   public static Boolean getSimulationMode(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator.getSimulationMode(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator
+        .getSimulationMode(implementingClass, conf);
   }
 
 }

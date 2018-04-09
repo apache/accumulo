@@ -31,9 +31,11 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
  */
 public abstract class MetadataServicer {
 
-  public static MetadataServicer forTableName(ClientContext context, String tableName) throws AccumuloException, AccumuloSecurityException {
+  public static MetadataServicer forTableName(ClientContext context, String tableName)
+      throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    return forTableId(context, context.getConnector().tableOperations().tableIdMap().get(tableName));
+    return forTableId(context,
+        context.getConnector().tableOperations().tableIdMap().get(tableName));
   }
 
   public static MetadataServicer forTableId(ClientContext context, String tableId) {
@@ -58,6 +60,7 @@ public abstract class MetadataServicer {
    * @param tablets
    *          A mapping of all known tablets to their location (if available, null otherwise)
    */
-  public abstract void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  public abstract void getTabletLocations(SortedMap<KeyExtent,String> tablets)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
 }

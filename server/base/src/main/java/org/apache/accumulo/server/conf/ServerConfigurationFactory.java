@@ -36,8 +36,10 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 public class ServerConfigurationFactory extends ServerConfiguration {
 
   private static final Map<String,Map<String,TableConfiguration>> tableConfigs = new HashMap<>(1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(1);
+  private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(
+      1);
+  private static final Map<String,Map<String,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(
+      1);
 
   private static void addInstanceToCaches(String iid) {
     synchronized (tableConfigs) {
@@ -57,7 +59,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
-  private static final SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
+  private static final SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission(
+      "configurationPermission");
   private static final SecurityManager SM = System.getSecurityManager();
 
   private static void checkPermissions() {
@@ -138,7 +141,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public synchronized AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
       checkPermissions();
-      systemConfig = new ZooConfigurationFactory().getInstance(instance, zcf, getSiteConfiguration());
+      systemConfig = new ZooConfigurationFactory().getInstance(instance, zcf,
+          getSiteConfiguration());
     }
     return systemConfig;
   }
@@ -154,9 +158,12 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // Can't hold the lock during the construction and validation of the config,
     // which would result in creating multiple objects for the same id.
     //
-    // ACCUMULO-3859 We _cannot_ allow multiple instances to be created for a table. If the TableConfiguration
-    // instance a Tablet holds is not the same as the one cached here, any ConfigurationObservers that
-    // Tablet sets will never see updates from ZooKeeper which means that things like constraints and
+    // ACCUMULO-3859 We _cannot_ allow multiple instances to be created for a table. If the
+    // TableConfiguration
+    // instance a Tablet holds is not the same as the one cached here, any ConfigurationObservers
+    // that
+    // Tablet sets will never see updates from ZooKeeper which means that things like constraints
+    // and
     // default visibility labels will never be updated in a Tablet until it is reloaded.
     if (conf == null && Tables.exists(instance, tableId)) {
       conf = new TableConfiguration(instance, tableId, getNamespaceConfigurationForTable(tableId));

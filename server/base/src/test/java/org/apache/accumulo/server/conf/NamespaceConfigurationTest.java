@@ -77,7 +77,8 @@ public class NamespaceConfigurationTest {
     c.setZooCacheFactory(zcf);
 
     zc = createMock(ZooCache.class);
-    expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT), anyObject(NamespaceConfWatcher.class))).andReturn(zc);
+    expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT),
+        anyObject(NamespaceConfWatcher.class))).andReturn(zc);
     replay(zcf);
   }
 
@@ -90,8 +91,8 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGet_InZK() {
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
-        .andReturn("sekrit".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
+        + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn("sekrit".getBytes(UTF_8));
     replay(zc);
     assertEquals("sekrit", c.get(Property.INSTANCE_SECRET));
   }
@@ -99,7 +100,8 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGet_InParent() {
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(null);
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
+        + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(null);
     replay(zc);
     expect(parent.get(p)).andReturn("sekrit");
     replay(parent);
@@ -111,8 +113,9 @@ public class NamespaceConfigurationTest {
     c = new NamespaceConfiguration(Namespaces.ACCUMULO_NAMESPACE_ID, instance, parent);
     c.setZooCacheFactory(zcf);
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + Namespaces.ACCUMULO_NAMESPACE_ID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
-        .andReturn(null);
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/"
+        + Namespaces.ACCUMULO_NAMESPACE_ID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
+            .andReturn(null);
     replay(zc);
     assertNull(c.get(Property.INSTANCE_SECRET));
   }
@@ -126,9 +129,13 @@ public class NamespaceConfigurationTest {
     List<String> children = new java.util.ArrayList<>();
     children.add("foo");
     children.add("ding");
-    expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF)).andReturn(children);
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn("bar".getBytes(UTF_8));
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn("dong".getBytes(UTF_8));
+    expect(zc.getChildren(
+        ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF))
+            .andReturn(children);
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
+        + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn("bar".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
+        + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn("dong".getBytes(UTF_8));
     replay(zc);
     c.getProperties(props, all);
     assertEquals(2, props.size());
@@ -152,8 +159,8 @@ public class NamespaceConfigurationTest {
   public void testInvalidateCache() {
     // need to do a get so the accessor is created
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
-        .andReturn("sekrit".getBytes(UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
+        + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn("sekrit".getBytes(UTF_8));
     zc.clear();
     replay(zc);
     c.get(Property.INSTANCE_SECRET);

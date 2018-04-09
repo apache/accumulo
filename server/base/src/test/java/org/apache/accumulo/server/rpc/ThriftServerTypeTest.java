@@ -25,7 +25,8 @@ public class ThriftServerTypeTest {
 
   @Test
   public void testDefaultServer() {
-    assertEquals(ThriftServerType.CUSTOM_HS_HA, ThriftServerType.get(Property.GENERAL_RPC_SERVER_TYPE.getDefaultValue()));
+    assertEquals(ThriftServerType.CUSTOM_HS_HA,
+        ThriftServerType.get(Property.GENERAL_RPC_SERVER_TYPE.getDefaultValue()));
   }
 
   @Test

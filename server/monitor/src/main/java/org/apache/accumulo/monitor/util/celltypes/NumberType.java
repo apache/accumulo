@@ -45,14 +45,17 @@ public class NumberType<T extends Number> extends CellType<T> {
     String s = "-";
     if (number instanceof Double || number instanceof Float) {
       if (warnMin != null && warnMax != null && errMin != null && errMax != null)
-        s = commas(number.doubleValue(), warnMin.doubleValue(), warnMax.doubleValue(), errMin.doubleValue(), errMax.doubleValue());
+        s = commas(number.doubleValue(), warnMin.doubleValue(), warnMax.doubleValue(),
+            errMin.doubleValue(), errMax.doubleValue());
       else if (errMin != null && errMax != null)
         s = commas(number.doubleValue(), errMin.doubleValue(), errMax.doubleValue());
       else
         s = commas(number.doubleValue());
-    } else if (number instanceof Long || number instanceof Integer || number instanceof Short || number instanceof Byte) {
+    } else if (number instanceof Long || number instanceof Integer || number instanceof Short
+        || number instanceof Byte) {
       if (warnMin != null && warnMax != null && errMin != null && errMax != null)
-        s = commas(number.longValue(), warnMin.longValue(), warnMax.longValue(), errMin.longValue(), errMax.longValue());
+        s = commas(number.longValue(), warnMin.longValue(), warnMax.longValue(), errMin.longValue(),
+            errMax.longValue());
       else if (errMin != null && errMax != null)
         s = commas(number.longValue(), errMin.longValue(), errMax.longValue());
       else
@@ -104,7 +107,8 @@ public class NumberType<T extends Number> extends CellType<T> {
     return bigNumberForQuantity(i);
   }
 
-  public static String commas(double d, double warnMin, double warnMax, double errMin, double errMax) {
+  public static String commas(double d, double warnMin, double warnMax, double errMin,
+      double errMax) {
     if (d < errMin || d > errMax)
       return String.format("<span class='error'>%s</span>", bigNumberForQuantity(d));
     if (d < warnMin || d > warnMax)

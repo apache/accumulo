@@ -46,7 +46,8 @@ public class DateTimeType extends CellType<Long> {
       return "-";
     if (simple != null)
       return simple.format(new Date(millis)).replace(" ", "&nbsp;");
-    return DateFormat.getDateTimeInstance(dateFormat, timeFormat, Locale.getDefault()).format(new Date(millis)).replace(" ", "&nbsp;");
+    return DateFormat.getDateTimeInstance(dateFormat, timeFormat, Locale.getDefault())
+        .format(new Date(millis)).replace(" ", "&nbsp;");
   }
 
   @Override

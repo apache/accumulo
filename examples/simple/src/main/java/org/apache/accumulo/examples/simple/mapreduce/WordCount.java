@@ -38,7 +38,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 /**
- * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this.
+ * A simple map reduce job that inserts word counts into accumulo. See the README for instructions
+ * on how to run this.
  *
  */
 public class WordCount extends Configured implements Tool {

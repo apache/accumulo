@@ -36,7 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * CallbackHandler for SASL DIGEST-MD5 mechanism. Modified copy from Hadoop, uses our TokenIdentifier and SecretManager implementations
+ * CallbackHandler for SASL DIGEST-MD5 mechanism. Modified copy from Hadoop, uses our
+ * TokenIdentifier and SecretManager implementations
  */
 public class SaslServerDigestCallbackHandler extends SaslDigestCallbackHandler {
   private static final Logger log = LoggerFactory.getLogger(SaslServerDigestCallbackHandler.class);
@@ -48,7 +49,8 @@ public class SaslServerDigestCallbackHandler extends SaslDigestCallbackHandler {
     this.secretManager = secretManager;
   }
 
-  private AuthenticationTokenIdentifier getIdentifier(String id, AuthenticationTokenSecretManager secretManager) throws InvalidToken {
+  private AuthenticationTokenIdentifier getIdentifier(String id,
+      AuthenticationTokenSecretManager secretManager) throws InvalidToken {
     byte[] tokenId = decodeIdentifier(id);
     AuthenticationTokenIdentifier tokenIdentifier = secretManager.createIdentifier();
     try {
@@ -79,7 +81,8 @@ public class SaslServerDigestCallbackHandler extends SaslDigestCallbackHandler {
     }
 
     if (pc != null) {
-      AuthenticationTokenIdentifier tokenIdentifier = getIdentifier(nc.getDefaultName(), secretManager);
+      AuthenticationTokenIdentifier tokenIdentifier = getIdentifier(nc.getDefaultName(),
+          secretManager);
       char[] password = getPassword(secretManager, tokenIdentifier);
       UserGroupInformation user = null;
       user = tokenIdentifier.getUser();
@@ -87,7 +90,8 @@ public class SaslServerDigestCallbackHandler extends SaslDigestCallbackHandler {
       // Set the principal since we already deserialized the token identifier
       UGIAssumingProcessor.getRpcPrincipalThreadLocal().set(user.getUserName());
 
-      log.trace("SASL server DIGEST-MD5 callback: setting password for client: {}", tokenIdentifier.getUser());
+      log.trace("SASL server DIGEST-MD5 callback: setting password for client: {}",
+          tokenIdentifier.getUser());
       pc.setPassword(password);
     }
     if (ac != null) {

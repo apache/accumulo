@@ -49,7 +49,8 @@ public class ShardFixture extends Fixture {
     return splits;
   }
 
-  static void createIndexTable(Logger log, State state, Environment env, String suffix, Random rand) throws Exception {
+  static void createIndexTable(Logger log, State state, Environment env, String suffix, Random rand)
+      throws Exception {
     Connector conn = env.getConnector();
     String name = (String) state.get("indexTableName") + suffix;
     int numPartitions = (Integer) state.get("numPartitions");
@@ -81,8 +82,10 @@ public class ShardFixture extends Fixture {
 
     int numPartitions = rand.nextInt(90) + 10;
 
-    state.set("indexTableName", String.format("ST_index_%s_%s_%d", hostname, pid, System.currentTimeMillis()));
-    state.set("docTableName", String.format("ST_docs_%s_%s_%d", hostname, pid, System.currentTimeMillis()));
+    state.set("indexTableName",
+        String.format("ST_index_%s_%s_%d", hostname, pid, System.currentTimeMillis()));
+    state.set("docTableName",
+        String.format("ST_docs_%s_%s_%d", hostname, pid, System.currentTimeMillis()));
     state.set("numPartitions", Integer.valueOf(numPartitions));
     state.set("cacheIndex", rand.nextDouble() < .5);
     state.set("rand", rand);
@@ -104,7 +107,8 @@ public class ShardFixture extends Fixture {
     log.info("Added " + splits.size() + " splits to " + docTableName);
 
     if (rand.nextDouble() < .5) {
-      conn.tableOperations().setProperty((String) state.get("docTableName"), Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      conn.tableOperations().setProperty((String) state.get("docTableName"),
+          Property.TABLE_BLOOM_ENABLED.getKey(), "true");
       log.info("Enabled bloom filters for table " + (String) state.get("docTableName"));
     }
   }

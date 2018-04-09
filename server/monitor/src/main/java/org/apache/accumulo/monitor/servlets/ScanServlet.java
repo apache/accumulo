@@ -42,12 +42,15 @@ public class ScanServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb)
+      throws IOException {
     Map<HostAndPort,ScanStats> scans = Monitor.getScans();
     Table scanTable = new Table("scanStatus", "Scan&nbsp;Status");
     scanTable.addSortableColumn("Server", new TServerLinkType(), null);
-    scanTable.addSortableColumn("#", new PreciseNumberType(0, 20, 0, 100), "Number of scans presently running");
-    scanTable.addSortableColumn("Oldest&nbsp;Age", new DurationType(0l, 5 * 60 * 1000l), "The age of the oldest scan on this server.");
+    scanTable.addSortableColumn("#", new PreciseNumberType(0, 20, 0, 100),
+        "Number of scans presently running");
+    scanTable.addSortableColumn("Oldest&nbsp;Age", new DurationType(0l, 5 * 60 * 1000l),
+        "The age of the oldest scan on this server.");
     for (TabletServerStatus tserverInfo : Monitor.getMmi().getTServerInfo()) {
       ScanStats stats = scans.get(HostAndPort.fromString(tserverInfo.name));
       if (stats != null) {

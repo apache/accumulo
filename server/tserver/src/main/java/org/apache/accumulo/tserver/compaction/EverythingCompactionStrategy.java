@@ -20,7 +20,8 @@ package org.apache.accumulo.tserver.compaction;
 import java.io.IOException;
 
 /**
- * The default compaction strategy for user initiated compactions. This strategy will always select all files.
+ * The default compaction strategy for user initiated compactions. This strategy will always select
+ * all files.
  */
 
 public class EverythingCompactionStrategy extends CompactionStrategy {

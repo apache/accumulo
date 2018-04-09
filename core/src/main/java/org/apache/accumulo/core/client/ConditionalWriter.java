@@ -23,8 +23,8 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConditionalMutation;
 
 /**
- * ConditionalWriter provides the ability to do efficient, atomic read-modify-write operations on rows. These operations are performed on the tablet server
- * while a row lock is held.
+ * ConditionalWriter provides the ability to do efficient, atomic read-modify-write operations on
+ * rows. These operations are performed on the tablet server while a row lock is held.
  *
  * @since 1.6.0
  */
@@ -49,8 +49,9 @@ public interface ConditionalWriter extends AutoCloseable {
     }
 
     /**
-     * If this method throws an exception, then its possible the mutation is still being actively processed. Therefore if code chooses to continue after seeing
-     * an exception it should take this into consideration.
+     * If this method throws an exception, then its possible the mutation is still being actively
+     * processed. Therefore if code chooses to continue after seeing an exception it should take
+     * this into consideration.
      *
      * @return status of a conditional mutation
      */
@@ -61,7 +62,9 @@ public interface ConditionalWriter extends AutoCloseable {
           throw new AccumuloException(exception);
         if (exception instanceof AccumuloSecurityException) {
           AccumuloSecurityException ase = (AccumuloSecurityException) exception;
-          throw new AccumuloSecurityException(ase.getUser(), SecurityErrorCode.valueOf(ase.getSecurityErrorCode().name()), ase.getTableInfo(), ase);
+          throw new AccumuloSecurityException(ase.getUser(),
+              SecurityErrorCode.valueOf(ase.getSecurityErrorCode().name()), ase.getTableInfo(),
+              ase);
         } else
           throw new AccumuloException(exception);
       }
@@ -71,7 +74,8 @@ public interface ConditionalWriter extends AutoCloseable {
 
     /**
      *
-     * @return A copy of the mutation previously submitted by a user. The mutation will reference the same data, but the object may be different.
+     * @return A copy of the mutation previously submitted by a user. The mutation will reference
+     *         the same data, but the object may be different.
      */
     public ConditionalMutation getMutation() {
       return mutation;
@@ -100,8 +104,9 @@ public interface ConditionalWriter extends AutoCloseable {
      */
     VIOLATED,
     /**
-     * error occurred after mutation was sent to server, its unknown if the mutation was written. Although the status of the mutation is unknown, Accumulo
-     * guarantees the mutation will not be written at a later point in time.
+     * error occurred after mutation was sent to server, its unknown if the mutation was written.
+     * Although the status of the mutation is unknown, Accumulo guarantees the mutation will not be
+     * written at a later point in time.
      */
     UNKNOWN,
     /**
@@ -112,11 +117,12 @@ public interface ConditionalWriter extends AutoCloseable {
   }
 
   /**
-   * This method returns one result for each mutation passed to it. This method is thread safe. Multiple threads can safely use a single conditional writer.
-   * Sharing a conditional writer between multiple threads may result in batching of request to tablet servers.
+   * This method returns one result for each mutation passed to it. This method is thread safe.
+   * Multiple threads can safely use a single conditional writer. Sharing a conditional writer
+   * between multiple threads may result in batching of request to tablet servers.
    *
-   * @return Result for each mutation submitted. The mutations may still be processing in the background when this method returns, if so the iterator will
-   *         block.
+   * @return Result for each mutation submitted. The mutations may still be processing in the
+   *         background when this method returns, if so the iterator will block.
    */
   Iterator<Result> write(Iterator<ConditionalMutation> mutations);
 

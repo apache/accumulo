@@ -130,7 +130,8 @@ public class Compactor implements Callable<CompactionStats> {
     entriesWritten.set(0);
   }
 
-  protected static final Set<Compactor> runningCompactions = Collections.synchronizedSet(new HashSet<Compactor>());
+  protected static final Set<Compactor> runningCompactions = Collections
+      .synchronizedSet(new HashSet<Compactor>());
 
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
@@ -144,8 +145,9 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(AccumuloServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile,
-      boolean propogateDeletes, CompactionEnv env, List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+  public Compactor(AccumuloServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
+      InMemoryMap imm, FileRef outputFile, boolean propogateDeletes, CompactionEnv env,
+      List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;
     this.extent = tablet.getExtent();
     this.fs = tablet.getTabletServer().getFileSystem();
@@ -191,14 +193,15 @@ public class Compactor implements Callable<CompactionStats> {
     final Path outputFilePath = outputFile.path();
     final String outputFilePathName = outputFilePath.toString();
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName = "MajC compacting " + extent.toString() + " started " + dateFormatter.format(new Date()) + " file: " + outputFile;
+    String newThreadName = "MajC compacting " + extent.toString() + " started "
+        + dateFormatter.format(new Date()) + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
     thread = Thread.currentThread();
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
-      mfw = fileFactory.newWriterBuilder().forFile(outputFilePathName, ns, ns.getConf()).withTableConfiguration(acuTableConf)
-          .withRateLimiter(env.getWriteLimiter()).build();
+      mfw = fileFactory.newWriterBuilder().forFile(outputFilePathName, ns, ns.getConf())
+          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -225,7 +228,8 @@ public class Compactor implements Callable<CompactionStats> {
       long t2 = System.currentTimeMillis();
 
       FileSKVWriter mfwTmp = mfw;
-      mfw = null; // set this to null so we do not try to close it again in finally if the close fails
+      mfw = null; // set this to null so we do not try to close it again in finally if the close
+                  // fails
       try {
         mfwTmp.close(); // if the close fails it will cause the compaction to fail
       } catch (IOException ex) {
@@ -237,8 +241,11 @@ public class Compactor implements Callable<CompactionStats> {
         throw ex;
       }
 
-      log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec", extent,
-          majCStats.getEntriesRead(), majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
+      log.debug(String.format(
+          "Compaction %s %,d read | %,d written | %,6d entries/sec"
+              + " | %,6.3f secs | %,12d bytes | %9.3f byte/sec",
+          extent, majCStats.getEntriesRead(), majCStats.getEntriesWritten(),
+          (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
           mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0)));
 
       majCStats.setFileSize(mfwTmp.getLength());
@@ -275,7 +282,8 @@ public class Compactor implements Callable<CompactionStats> {
     }
   }
 
-  private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(String lgName, ArrayList<FileSKVIterator> readers) throws IOException {
+  private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(String lgName,
+      ArrayList<FileSKVIterator> readers) throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
@@ -286,12 +294,13 @@ public class Compactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getVolumeByPath(mapFile.path()).getFileSystem();
         FileSKVIterator reader;
 
-        reader = fileFactory.newReaderBuilder().forFile(mapFile.path().toString(), fs, fs.getConf()).withTableConfiguration(acuTableConf)
-            .withRateLimiter(env.getReadLimiter()).build();
+        reader = fileFactory.newReaderBuilder().forFile(mapFile.path().toString(), fs, fs.getConf())
+            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
 
         readers.add(reader);
 
-        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context, extent.getTableId(), mapFile.path().toString(), false, reader);
+        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context,
+            extent.getTableId(), mapFile.path().toString(), false, reader);
 
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -301,7 +310,8 @@ public class Compactor implements Callable<CompactionStats> {
 
       } catch (Throwable e) {
 
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(), ProblemType.FILE_READ, mapFile.path().toString(), e));
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(),
+            ProblemType.FILE_READ, mapFile.path().toString(), e));
 
         log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
@@ -324,7 +334,8 @@ public class Compactor implements Callable<CompactionStats> {
     return iters;
   }
 
-  private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies, boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
+  private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
+      boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span span = Trace.start("compact");
@@ -336,7 +347,8 @@ public class Compactor implements Callable<CompactionStats> {
         iters.add(imm.compactionIterator());
       }
 
-      CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()), entriesRead);
+      CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()),
+          entriesRead);
       DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
@@ -344,14 +356,15 @@ public class Compactor implements Callable<CompactionStats> {
 
       TabletIteratorEnvironment iterEnv;
       if (env.getIteratorScope() == IteratorScope.majc)
-        iterEnv = new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes, acuTableConf);
+        iterEnv = new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes,
+            acuTableConf);
       else if (env.getIteratorScope() == IteratorScope.minc)
         iterEnv = new TabletIteratorEnvironment(IteratorScope.minc, acuTableConf);
       else
         throw new IllegalArgumentException();
 
-      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf,
-          iterators, iterEnv));
+      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil
+          .loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf, iterators, iterEnv));
 
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 

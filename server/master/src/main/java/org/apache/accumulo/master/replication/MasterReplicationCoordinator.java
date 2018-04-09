@@ -53,7 +53,8 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   private final SecurityOperation security;
 
   public MasterReplicationCoordinator(Master master) {
-    this(master, new ZooReader(master.getInstance().getZooKeepers(), master.getInstance().getZooKeepersSessionTimeOut()));
+    this(master, new ZooReader(master.getInstance().getZooKeepers(),
+        master.getInstance().getZooKeepersSessionTimeOut()));
   }
 
   protected MasterReplicationCoordinator(Master master, ZooReader reader) {
@@ -65,26 +66,34 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   }
 
   @Override
-  public String getServicerAddress(String remoteTableId, TCredentials creds) throws ReplicationCoordinatorException, TException {
+  public String getServicerAddress(String remoteTableId, TCredentials creds)
+      throws ReplicationCoordinatorException, TException {
     try {
       security.authenticateUser(master.rpcCreds(), creds);
     } catch (ThriftSecurityException e) {
-      log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(), remoteTableId);
-      throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.CANNOT_AUTHENTICATE, "Could not authenticate " + creds.getPrincipal());
+      log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(),
+          remoteTableId);
+      throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.CANNOT_AUTHENTICATE,
+          "Could not authenticate " + creds.getPrincipal());
     }
 
     Set<TServerInstance> tservers = master.onlineTabletServers();
     if (tservers.isEmpty()) {
-      throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.NO_AVAILABLE_SERVERS, "No tservers are available for replication");
+      throw new ReplicationCoordinatorException(
+          ReplicationCoordinatorErrorCode.NO_AVAILABLE_SERVERS,
+          "No tservers are available for replication");
     }
 
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
     String replServiceAddr;
     try {
-      replServiceAddr = new String(reader.getData(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(), null), UTF_8);
+      replServiceAddr = new String(reader.getData(
+          ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(),
+          null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
-      throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE,
+      throw new ReplicationCoordinatorException(
+          ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE,
           "Could not determine port for replication service running at " + tserver.hostPort());
     }
 

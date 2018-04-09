@@ -33,12 +33,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Base class for filters that can skip over key-value pairs which do not match their filter predicate. In addition to returning true/false to accept or reject
- * a kv pair, subclasses can return an extra field which indicates how far the source iterator should be advanced.
+ * Base class for filters that can skip over key-value pairs which do not match their filter
+ * predicate. In addition to returning true/false to accept or reject a kv pair, subclasses can
+ * return an extra field which indicates how far the source iterator should be advanced.
  *
- * Note that the behaviour of the negate option is different from the Filter class. If a KV pair fails the subclass' filter predicate and negate is true, then
- * the KV pair will pass the filter. However if the subclass advances the source past a bunch of KV pairs, all those pairs will be implicitly rejected and
- * negate will have no effect.
+ * Note that the behaviour of the negate option is different from the Filter class. If a KV pair
+ * fails the subclass' filter predicate and negate is true, then the KV pair will pass the filter.
+ * However if the subclass advances the source past a bunch of KV pairs, all those pairs will be
+ * implicitly rejected and negate will have no effect.
  *
  * @see org.apache.accumulo.core.iterators.Filter
  */
@@ -52,8 +54,10 @@ public abstract class SeekingFilter extends WrappingIterator {
   }
 
   public static class FilterResult {
-    private static final EnumMap<AdvanceResult,FilterResult> PASSES = new EnumMap<>(AdvanceResult.class);
-    private static final EnumMap<AdvanceResult,FilterResult> FAILS = new EnumMap<>(AdvanceResult.class);
+    private static final EnumMap<AdvanceResult,FilterResult> PASSES = new EnumMap<>(
+        AdvanceResult.class);
+    private static final EnumMap<AdvanceResult,FilterResult> FAILS = new EnumMap<>(
+        AdvanceResult.class);
     static {
       for (AdvanceResult ar : AdvanceResult.values()) {
         PASSES.put(ar, new FilterResult(true, ar));
@@ -79,21 +83,23 @@ public abstract class SeekingFilter extends WrappingIterator {
   }
 
   /**
-   * Subclasses must provide an implementation which examines the given key and value and determines (1) whether to accept the KV pair and (2) how far to
-   * advance the source iterator past the key.
+   * Subclasses must provide an implementation which examines the given key and value and determines
+   * (1) whether to accept the KV pair and (2) how far to advance the source iterator past the key.
    *
    * @param k
    *          a key
    * @param v
    *          a value
-   * @return indicating whether to pass or block the key, and how far the source iterator should be advanced.
+   * @return indicating whether to pass or block the key, and how far the source iterator should be
+   *         advanced.
    */
   public abstract FilterResult filter(Key k, Value v);
 
   /**
-   * Whenever the subclass returns AdvanceResult.USE_HINT from its filter predicate, this method will be called to see how far to advance the source iterator.
-   * The return value must be a key which is greater than (sorts after) the input key. If the subclass never returns USE_HINT, this method will never be called
-   * and may safely return null.
+   * Whenever the subclass returns AdvanceResult.USE_HINT from its filter predicate, this method
+   * will be called to see how far to advance the source iterator. The return value must be a key
+   * which is greater than (sorts after) the input key. If the subclass never returns USE_HINT, this
+   * method will never be called and may safely return null.
    *
    * @param k
    *          a key
@@ -124,7 +130,8 @@ public abstract class SeekingFilter extends WrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     super.seek(range, columnFamilies, inclusive);
     advance = null;
     this.columnFamilies = columnFamilies;
@@ -135,7 +142,8 @@ public abstract class SeekingFilter extends WrappingIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     negate = Boolean.parseBoolean(options.get(NEGATE));
   }
@@ -166,7 +174,8 @@ public abstract class SeekingFilter extends WrappingIterator {
       FilterResult f = filter(src.getTopKey(), src.getTopValue());
       if (log.isTraceEnabled()) {
         log.trace("Filtered: {} result == {} hint == {}", src.getTopKey(), f,
-            f.advance == AdvanceResult.USE_HINT ? getNextKeyHint(src.getTopKey(), src.getTopValue()) : " (none)");
+            f.advance == AdvanceResult.USE_HINT ? getNextKeyHint(src.getTopKey(), src.getTopValue())
+                : " (none)");
       }
       if (f.accept != negate) {
         // advance will be processed when next is called
@@ -178,7 +187,8 @@ public abstract class SeekingFilter extends WrappingIterator {
     }
   }
 
-  private void advanceSource(SortedKeyValueIterator<Key,Value> src, AdvanceResult adv) throws IOException {
+  private void advanceSource(SortedKeyValueIterator<Key,Value> src, AdvanceResult adv)
+      throws IOException {
     Key topKey = src.getTopKey();
     Range advRange = null;
     switch (adv) {
@@ -206,7 +216,8 @@ public abstract class SeekingFilter extends WrappingIterator {
         break;
     }
     if (advRange == null) {
-      // Should never get here. Just a safeguard in case somebody adds a new type of AdvanceRange and forgets to handle it here.
+      // Should never get here. Just a safeguard in case somebody adds a new type of AdvanceRange
+      // and forgets to handle it here.
       throw new IOException("Unable to determine range to advance to for AdvanceResult " + adv);
     }
     advRange = advRange.clip(seekRange, true);

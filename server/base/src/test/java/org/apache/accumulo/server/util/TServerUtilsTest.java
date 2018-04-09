@@ -90,19 +90,22 @@ public class TServerUtilsTest {
 
     @Deprecated
     @Override
-    public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String user, byte[] pass)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
     @Deprecated
     @Override
-    public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String user, ByteBuffer pass)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
     @Deprecated
     @Override
-    public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String user, CharSequence pass)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
@@ -117,7 +120,8 @@ public class TServerUtilsTest {
     public void setConfiguration(AccumuloConfiguration conf) {}
 
     @Override
-    public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String principal, AuthenticationToken token)
+        throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
@@ -191,12 +195,15 @@ public class TServerUtilsTest {
   }
 
   private static final TestInstance instance = new TestInstance();
-  private static final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(instance);
+  private static final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
+      instance);
 
   @After
   public void resetProperty() {
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Property.TSERV_CLIENTPORT.getDefaultValue());
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_PORTSEARCH, Property.TSERV_PORTSEARCH.getDefaultValue());
+    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT,
+        Property.TSERV_CLIENTPORT.getDefaultValue());
+    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_PORTSEARCH,
+        Property.TSERV_PORTSEARCH.getDefaultValue());
   }
 
   @Test
@@ -220,7 +227,8 @@ public class TServerUtilsTest {
   public void testStartServerFreePort() throws Exception {
     TServer server = null;
     int port = getFreePort(1024);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT,
+        Integer.toString(port));
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -240,7 +248,8 @@ public class TServerUtilsTest {
     InetAddress addr = InetAddress.getByName("localhost");
     // Bind to the port
     ServerSocket s = new ServerSocket(port, 50, addr);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT,
+        Integer.toString(port));
     try {
       startServer();
     } finally {
@@ -255,7 +264,8 @@ public class TServerUtilsTest {
     // Bind to the port
     InetAddress addr = InetAddress.getByName("localhost");
     ServerSocket s = new ServerSocket(port[0], 50, addr);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
+    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT,
+        Integer.toString(port[0]));
     ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
     try {
       ServerAddress address = startServer();
@@ -282,7 +292,8 @@ public class TServerUtilsTest {
       assertNotNull(address);
       server = address.getServer();
       assertNotNull(server);
-      assertTrue(port[0] == address.getAddress().getPort() || port[1] == address.getAddress().getPort());
+      assertTrue(
+          port[0] == address.getAddress().getPort() || port[1] == address.getAddress().getPort());
     } finally {
       if (null != server) {
         TServerUtils.stopTServer(server);
@@ -345,11 +356,13 @@ public class TServerUtilsTest {
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = RpcWrapper.service(clientHandler, new Processor<Iface>(clientHandler));
     Processor<Iface> processor = new Processor<>(rpcProxy);
-    // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS misconfiguration)
+    // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS
+    // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(ctx, hostname, Property.TSERV_CLIENTPORT, processor, "TServerUtilsTest", "TServerUtilsTestThread",
-        Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    return TServerUtils.startServer(ctx, hostname, Property.TSERV_CLIENTPORT, processor,
+        "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
+        Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
   }
 }

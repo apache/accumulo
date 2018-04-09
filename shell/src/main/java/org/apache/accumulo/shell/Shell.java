@@ -185,7 +185,8 @@ import jline.console.UserInterruptException;
 import jline.console.history.FileHistory;
 
 /**
- * A convenient console interface to perform basic accumulo functions Includes auto-complete, help, and quoted strings with escape sequences
+ * A convenient console interface to perform basic accumulo functions Includes auto-complete, help,
+ * and quoted strings with escape sequences
  */
 @AutoService(KeywordExecutable.class)
 public class Shell extends ShellOptions implements KeywordExecutable {
@@ -231,7 +232,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   {
     // set the JLine output encoding to some reasonable default if it isn't already set
-    // despite the misleading property name, "input.encoding" is the property jline uses for the encoding of the output stream writer
+    // despite the misleading property name, "input.encoding" is the property jline uses for the
+    // encoding of the output stream writer
     String prop = "input.encoding";
     if (System.getProperty(prop) == null) {
       String value = System.getProperty("jline.WindowsTerminal.output.encoding");
@@ -348,9 +350,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
       if (hasToken) { // implied hasTokenOptions
         // Fully qualified name so we don't shadow java.util.Properties
-        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props;
-        // and line wrap it because the package name is so long
-        props = new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
+        // @formatter:off
+        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props =
+          new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
+        // @formatter:on
 
         if (!loginOptions.isEmpty()) {
           props.putAllStrings(loginOptions);
@@ -398,27 +401,38 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     rootToken = new Token();
 
-    Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
-        new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
-    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
-        new PingCommand(), new ListBulkCommand()};
-    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
+    Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(),
+        new EGrepCommand(), new FormatterCommand(), new InterpreterCommand(), new GrepCommand(),
+        new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
+    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(),
+        new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(), new PingCommand(),
+        new ListBulkCommand()};
+    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(),
+        new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
-    Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
-    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
+    Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(),
+        new QuestionCommand()};
+    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(),
+        new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
         new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
-    Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
-        new UserPermissionsCommand(), new NamespacePermissionsCommand()};
-    Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new FateCommand(), new NoTableCommand(), new SleepCommand(),
-        new TableCommand(), new UserCommand(), new WhoAmICommand()};
-    Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
-        new DUCommand(), new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(),
-        new TablesCommand(), new NamespacesCommand(), new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand()};
-    Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
-        new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
-    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(),
-        new PasswdCommand(), new SetAuthsCommand(), new UsersCommand(), new DeleteAuthsCommand()};
+    Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
+        new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
+        new NamespacePermissionsCommand()};
+    Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(),
+        new FateCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
+        new UserCommand(), new WhoAmICommand()};
+    Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(),
+        new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(), new DUCommand(),
+        new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
+        new OnlineCommand(), new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
+        new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand()};
+    Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
+        new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
+        new MergeCommand(), new SetGroupsCommand()};
+    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(),
+        new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
+        new SetAuthsCommand(), new UsersCommand(), new DeleteAuthsCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
     commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);
     commandGrouping.put("-- Shell Execution Commands -------------", execCommands);
@@ -468,14 +482,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       try {
         clientConf = options.getClientConfiguration();
       } catch (ConfigurationException | FileNotFoundException e) {
-        throw new IllegalArgumentException("Unable to load client config from " + options.getClientConfigFile(), e);
+        throw new IllegalArgumentException(
+            "Unable to load client config from " + options.getClientConfigFile(), e);
       }
       instance = getZooInstance(instanceName, hosts, clientConf);
     }
   }
 
   /**
-   * Get the ZooKeepers. Use the value passed in (if there was one), then fall back to the ClientConf, finally trying the accumulo-site.xml.
+   * Get the ZooKeepers. Use the value passed in (if there was one), then fall back to the
+   * ClientConf, finally trying the accumulo-site.xml.
    *
    * @param keepers
    *          ZooKeepers passed to the shell
@@ -496,10 +512,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   /*
-   * Takes instanceName and keepers as separate arguments, rather than just packaged into the clientConfig, so that we can fail over to accumulo-site.xml or
-   * HDFS config if they're unspecified.
+   * Takes instanceName and keepers as separate arguments, rather than just packaged into the
+   * clientConfig, so that we can fail over to accumulo-site.xml or HDFS config if they're
+   * unspecified.
    */
-  private static Instance getZooInstance(String instanceName, String keepersOption, ClientConfiguration clientConfig) {
+  private static Instance getZooInstance(String instanceName, String keepersOption,
+      ClientConfiguration clientConfig) {
     UUID instanceId = null;
     if (instanceName == null) {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
@@ -526,10 +544,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return instance;
   }
 
-  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      IOException, FileSystemException {
+  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException,
+      FileSystemException {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
+        || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     String classpath = null;
@@ -537,12 +557,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     if (namespaces) {
       try {
-        tableProps = shellState.getConnector().namespaceOperations().getProperties(OptUtil.getNamespaceOpt(cl, shellState));
+        tableProps = shellState.getConnector().namespaceOperations()
+            .getProperties(OptUtil.getNamespaceOpt(cl, shellState));
       } catch (NamespaceNotFoundException e) {
         throw new IllegalArgumentException(e);
       }
     } else if (tables) {
-      tableProps = shellState.getConnector().tableOperations().getProperties(OptUtil.getTableOpt(cl, shellState));
+      tableProps = shellState.getConnector().tableOperations()
+          .getProperties(OptUtil.getTableOpt(cl, shellState));
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }
@@ -555,24 +577,27 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     ClassLoader classloader;
 
     if (classpath != null && !classpath.equals("")) {
-      shellState.getConnector().instanceOperations().getSystemConfiguration().get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
+      shellState.getConnector().instanceOperations().getSystemConfiguration()
+          .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
 
       try {
 
-        final Map<String,String> systemConfig = shellState.getConnector().instanceOperations().getSystemConfiguration();
+        final Map<String,String> systemConfig = shellState.getConnector().instanceOperations()
+            .getSystemConfiguration();
 
-        AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
-          @Override
-          public Map<String,String> getVfsContextClasspathProperties() {
-            Map<String,String> filteredMap = new HashMap<>();
-            for (Entry<String,String> entry : systemConfig.entrySet()) {
-              if (entry.getKey().startsWith(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())) {
-                filteredMap.put(entry.getKey(), entry.getValue());
+        AccumuloVFSClassLoader.getContextManager()
+            .setContextConfig(new ContextManager.DefaultContextsConfig() {
+              @Override
+              public Map<String,String> getVfsContextClasspathProperties() {
+                Map<String,String> filteredMap = new HashMap<>();
+                for (Entry<String,String> entry : systemConfig.entrySet()) {
+                  if (entry.getKey().startsWith(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())) {
+                    filteredMap.put(entry.getKey(), entry.getValue());
+                  }
+                }
+                return filteredMap;
               }
-            }
-            return filteredMap;
-          }
-        });
+            });
       } catch (IllegalStateException ise) {}
 
       classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);
@@ -701,8 +726,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public void printInfo() throws IOException {
-    reader.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n" + "- instance name: "
-        + connector.getInstance().getInstanceName() + "\n" + "- instance id: " + connector.getInstance().getInstanceID() + "\n" + "- \n"
+    reader.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
+        + "- instance name: " + connector.getInstance().getInstanceName() + "\n" + "- instance id: "
+        + connector.getInstance().getInstanceID() + "\n" + "- \n"
         + "- type 'help' for a list of available commands\n" + "- \n");
     reader.flush();
   }
@@ -715,17 +741,21 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (disableAuthTimeout)
       sb.append("- Authorization timeout: disabled\n");
     else
-      sb.append("- Authorization timeout: ").append(String.format("%ds%n", TimeUnit.NANOSECONDS.toSeconds(authTimeout)));
+      sb.append("- Authorization timeout: ")
+          .append(String.format("%ds%n", TimeUnit.NANOSECONDS.toSeconds(authTimeout)));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
         sb.append("- Session scan iterators for table ").append(entry.getKey()).append(":\n");
         for (IteratorSetting setting : entry.getValue()) {
           sb.append("-    Iterator ").append(setting.getName()).append(" options:\n");
-          sb.append("-        ").append("iteratorPriority").append(" = ").append(setting.getPriority()).append("\n");
-          sb.append("-        ").append("iteratorClassName").append(" = ").append(setting.getIteratorClass()).append("\n");
+          sb.append("-        ").append("iteratorPriority").append(" = ")
+              .append(setting.getPriority()).append("\n");
+          sb.append("-        ").append("iteratorClassName").append(" = ")
+              .append(setting.getIteratorClass()).append("\n");
           for (Entry<String,String> optEntry : setting.getOptions().entrySet()) {
-            sb.append("-        ").append(optEntry.getKey()).append(" = ").append(optEntry.getValue()).append("\n");
+            sb.append("-        ").append(optEntry.getKey()).append(" = ")
+                .append(optEntry.getValue()).append("\n");
           }
         }
       }
@@ -735,10 +765,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public String getDefaultPrompt() {
-    return connector.whoami() + "@" + connector.getInstance().getInstanceName() + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
+    return connector.whoami() + "@" + connector.getInstance().getInstanceName()
+        + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
 
-  public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt) throws IOException {
+  public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt)
+      throws IOException {
     audit.log(Level.INFO, getDefaultPrompt() + input);
     if (echoPrompt) {
       reader.print(getDefaultPrompt());
@@ -769,24 +801,28 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         // Obtain the command from the command table
         sc = commandFactory.get(command);
         if (sc == null) {
-          reader.println(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.", command));
+          reader.println(String.format(
+              "Unknown command \"%s\".  Enter \"help\" for a list possible commands.", command));
           reader.flush();
           return;
         }
 
         long duration = System.nanoTime() - lastUserActivity;
-        if (!(sc instanceof ExitCommand) && !ignoreAuthTimeout && (duration < 0 || duration > authTimeout)) {
+        if (!(sc instanceof ExitCommand) && !ignoreAuthTimeout
+            && (duration < 0 || duration > authTimeout)) {
           reader.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
-            String pwd = readMaskedLine("Enter current password for '" + connector.whoami() + "': ", '*');
+            String pwd = readMaskedLine("Enter current password for '" + connector.whoami() + "': ",
+                '*');
             if (pwd == null) {
               reader.println();
               return;
             } // user canceled
 
             try {
-              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), new PasswordToken(pwd));
+              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(),
+                  new PasswordToken(pwd));
             } catch (Exception e) {
               ++exitCode;
               printException(e);
@@ -814,8 +850,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           // Check for valid number of fixed arguments (if not
           // negative; negative means it is not checked, for
           // vararg-like commands)
-          printException(new IllegalArgumentException(String.format("Expected %d argument%s. There %s %d.", expectedArgLen, expectedArgLen == 1 ? "" : "s",
-              actualArgLen == 1 ? "was" : "were", actualArgLen)));
+          printException(new IllegalArgumentException(String.format(
+              "Expected %d argument%s. There %s %d.", expectedArgLen,
+              expectedArgLen == 1 ? "" : "s", actualArgLen == 1 ? "was" : "were", actualArgLen)));
           sc.printHelp(this);
         } else {
           int tmpCode = sc.execute(input, cl, this);
@@ -834,7 +871,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       } catch (ParseException e) {
         // not really an error if the exception is a missing required
         // option when the user is asking for help
-        if (!(e instanceof MissingOptionException && (Arrays.asList(fields).contains("-" + helpOption) || Arrays.asList(fields).contains("--" + helpLongOption)))) {
+        if (!(e instanceof MissingOptionException
+            && (Arrays.asList(fields).contains("-" + helpOption)
+                || Arrays.asList(fields).contains("--" + helpLongOption)))) {
           ++exitCode;
           printException(e);
         }
@@ -854,8 +893,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   /**
-   * The command tree is built in reverse so that the references are more easily linked up. There is some code in token to allow forward building of the command
-   * tree.
+   * The command tree is built in reverse so that the references are more easily linked up. There is
+   * some code in token to allow forward building of the command tree.
    */
   private ShellCompletor setupCompletion() {
     rootToken = new Token();
@@ -920,8 +959,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   /**
-   * The Command class represents a command to be run in the shell. It contains the methods to execute along with some methods to help tab completion, and
-   * return the command name, help, and usage.
+   * The Command class represents a command to be run in the shell. It contains the methods to
+   * execute along with some methods to help tab completion, and return the command name, help, and
+   * usage.
    */
   public static abstract class Command {
     // Helper methods for completion
@@ -939,30 +979,36 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       root.addSubcommand(command);
     }
 
-    public void registerCompletionForTables(Token root, Map<CompletionSet,Set<String>> completionSet) {
+    public void registerCompletionForTables(Token root,
+        Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.TABLENAMES), true);
     }
 
-    public void registerCompletionForUsers(Token root, Map<CompletionSet,Set<String>> completionSet) {
+    public void registerCompletionForUsers(Token root,
+        Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.USERNAMES), true);
     }
 
-    public void registerCompletionForCommands(Token root, Map<CompletionSet,Set<String>> completionSet) {
+    public void registerCompletionForCommands(Token root,
+        Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.COMMANDS), false);
     }
 
-    public void registerCompletionForNamespaces(Token root, Map<CompletionSet,Set<String>> completionSet) {
+    public void registerCompletionForNamespaces(Token root,
+        Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.NAMESPACES), true);
     }
 
     // abstract methods to override
-    public abstract int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception;
+    public abstract int execute(String fullCommand, CommandLine cl, Shell shellState)
+        throws Exception;
 
     public abstract String description();
 
     /**
-     * If the number of arguments is not always zero (not including those arguments handled through Options), make sure to override the {@link #usage()} method.
-     * Otherwise, {@link #usage()} does need to be overridden.
+     * If the number of arguments is not always zero (not including those arguments handled through
+     * Options), make sure to override the {@link #usage()} method. Otherwise, {@link #usage()} does
+     * need to be overridden.
      */
     public abstract int numArgs();
 
@@ -990,7 +1036,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
 
     public final void printHelp(Shell shellState, int width) throws IOException {
-      shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(), width);
+      shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(),
+          width);
     }
 
     // Get options with help
@@ -1042,7 +1089,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     PrintWriter writer;
 
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
+      writer = new PrintWriter(
+          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
     }
 
     @Override
@@ -1060,7 +1108,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     printLines(lines, paginate, null);
   }
 
-  public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out) throws IOException {
+  public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out)
+      throws IOException {
     int linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
     int lastPromptLength = prompt.length();
@@ -1081,7 +1130,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
               // check if displaying the next line would result in
               // scrolling off the screen
-              if (linesPrinted + Math.ceil(lastPromptLength * 1.0 / termWidth) + Math.ceil(prompt.length() * 1.0 / termWidth)
+              if (linesPrinted + Math.ceil(lastPromptLength * 1.0 / termWidth)
+                  + Math.ceil(prompt.length() * 1.0 / termWidth)
                   + Math.ceil(line.length() * 1.0 / termWidth) > maxLines) {
                 linesPrinted = 0;
                 int numdashes = (termWidth - prompt.length()) / 2;
@@ -1111,13 +1161,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public final void printRecords(Iterable<Entry<Key,Value>> scanner, FormatterConfig config, boolean paginate, Class<? extends Formatter> formatterClass,
-      PrintLine outFile) throws IOException {
+  public final void printRecords(Iterable<Entry<Key,Value>> scanner, FormatterConfig config,
+      boolean paginate, Class<? extends Formatter> formatterClass, PrintLine outFile)
+      throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, config), paginate, outFile);
   }
 
-  public final void printRecords(Iterable<Entry<Key,Value>> scanner, FormatterConfig config, boolean paginate, Class<? extends Formatter> formatterClass)
-      throws IOException {
+  public final void printRecords(Iterable<Entry<Key,Value>> scanner, FormatterConfig config,
+      boolean paginate, Class<? extends Formatter> formatterClass) throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, config), paginate);
   }
 
@@ -1130,20 +1181,27 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void checkTableState() {
     if (getTableName().isEmpty())
-      throw new IllegalStateException(
-          "Not in a table context. Please use 'table <tableName>' to switch to a table, or use '-t' to specify a table if option is available.");
+      throw new IllegalStateException("Not in a table context. Please use"
+          + " 'table <tableName>' to switch to a table, or use '-t' to specify a"
+          + " table if option is available.");
   }
 
   private final void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
-    int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
-    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s%n", "Constraint class", "Violation code", "Violation Description"));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    int col3 = Math.max(1,
+        Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
+        repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s%n",
+        "Constraint class", "Violation code", "Violation Description"));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
+        repeat("-", COL2), repeat("-", col3)));
     for (TConstraintViolationSummary cvs : cve.violationSummaries)
-      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n",
+          cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
+        repeat("-", COL2), repeat("-", col3)));
   }
 
   public final void printException(Exception e) {
@@ -1156,8 +1214,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static final void setDebugging(boolean debuggingEnabled) {
-    Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
-    Logger.getLogger(Shell.class.getPackage().getName()).setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
+    Logger.getLogger(Constants.CORE_PACKAGE_NAME)
+        .setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
+    Logger.getLogger(Shell.class.getPackage().getName())
+        .setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
   }
 
   public static final boolean isDebuggingEnabled() {
@@ -1168,8 +1228,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     printHelp(usage, description, opts, Integer.MAX_VALUE);
   }
 
-  private final void printHelp(String usage, String description, Options opts, int width) throws IOException {
-    new HelpFormatter().printHelp(new PrintWriter(reader.getOutput()), width, usage, description, opts, 2, 5, null, true);
+  private final void printHelp(String usage, String description, Options opts, int width)
+      throws IOException {
+    new HelpFormatter().printHelp(new PrintWriter(reader.getOutput()), width, usage, description,
+        opts, 2, 5, null, true);
     reader.getOutput().flush();
   }
 
@@ -1205,7 +1267,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return reader;
   }
 
-  public void updateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+  public void updateUser(String principal, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
     connector = instance.getConnector(principal, token);
     this.token = token;
   }

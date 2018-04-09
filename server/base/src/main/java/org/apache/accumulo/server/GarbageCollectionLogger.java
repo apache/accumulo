@@ -63,7 +63,8 @@ public class GarbageCollectionLogger {
       }
 
       long increaseInCollectionTime = time - pt;
-      sb.append(String.format(" %s=%,.2f(+%,.2f) secs", gcBean.getName(), time / 1000.0, increaseInCollectionTime / 1000.0));
+      sb.append(String.format(" %s=%,.2f(+%,.2f) secs", gcBean.getName(), time / 1000.0,
+          increaseInCollectionTime / 1000.0));
       maxIncreaseInCollectionTime = Math.max(increaseInCollectionTime, maxIncreaseInCollectionTime);
       prevGcTime.put(gcBean.getName(), time);
     }
@@ -88,7 +89,8 @@ public class GarbageCollectionLogger {
       sign = "";
     }
 
-    sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", mem, sign, (mem - lastMemorySize), rt.totalMemory()));
+    sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", mem, sign, (mem - lastMemorySize),
+        rt.totalMemory()));
 
     if (sawChange) {
       log.debug(sb.toString());
@@ -98,7 +100,8 @@ public class GarbageCollectionLogger {
     if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
       final long diff = now - lastMemoryCheckTime;
       if (diff > keepAliveTimeout + 1000) {
-        log.warn(String.format("GC pause checker not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
+        log.warn(String.format("GC pause checker not called in a timely"
+            + " fashion. Expected every %.1f seconds but was %.1f seconds since" + " last check",
             keepAliveTimeout / 1000., diff / 1000.));
       }
       lastMemoryCheckTime = now;

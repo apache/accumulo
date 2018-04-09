@@ -23,13 +23,15 @@ import org.apache.zookeeper.KeeperException;
 /**
  * We don't want to introduce an upgrade path to 1.7 only for some new nodes within ZooKeeper
  * <p>
- * We can take the penalty of embedding this logic into the server processes, but alleviate users/developers from having to worry about the zookeeper state.
+ * We can take the penalty of embedding this logic into the server processes, but alleviate
+ * users/developers from having to worry about the zookeeper state.
  */
 public class ZooKeeperInitialization {
   /**
    * Ensure that the full path to ZooKeeper nodes that will be used exist
    */
-  public static void ensureZooKeeperInitialized(final ZooReaderWriter zooReaderWriter, final String zRoot) throws KeeperException, InterruptedException {
+  public static void ensureZooKeeperInitialized(final ZooReaderWriter zooReaderWriter,
+      final String zRoot) throws KeeperException, InterruptedException {
     if (!zooReaderWriter.exists(zRoot + ReplicationConstants.ZOO_TSERVERS, null)) {
       zooReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_TSERVERS);
     }

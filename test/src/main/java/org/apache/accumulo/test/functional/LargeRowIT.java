@@ -54,7 +54,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2, MemoryUnit.BYTE);
+    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2,
+        MemoryUnit.BYTE);
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
     cfg.setSiteConfig(siteConfig);
@@ -81,7 +82,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
     } catch (NumberFormatException e) {
-      log.warn("Could not parse property value for 'timeout.factor' as integer: " + System.getProperty("timeout.factor"));
+      log.warn("Could not parse property value for 'timeout.factor' as integer: "
+          + System.getProperty("timeout.factor"));
     }
 
     Assert.assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);
@@ -91,7 +93,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     PRE_SPLIT_TABLE_NAME = names[1];
 
     Connector c = getConnector();
-    tservMajcDelay = c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
+    tservMajcDelay = c.instanceOperations().getSystemConfiguration()
+        .get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
   }
 
@@ -117,7 +120,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     c.tableOperations().create(REG_TABLE_NAME);
     c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
-    c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME, Property.TABLE_MAX_END_ROW_SIZE.getKey(), "256K");
+    c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
+        "256K");
     sleepUninterruptibly(3, TimeUnit.SECONDS);
     c.tableOperations().addSplits(PRE_SPLIT_TABLE_NAME, splitPoints);
     test1(c);
@@ -128,7 +132,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
 
     basicTest(c, REG_TABLE_NAME, 0);
 
-    c.tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
+    c.tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+        "" + SPLIT_THRESH);
 
     sleepUninterruptibly(timeoutFactor * 12, TimeUnit.SECONDS);
     log.info("checking splits");
@@ -204,7 +209,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
           throw new Exception("verification failed, unexpected row i =" + i);
         }
         if (!entry.getValue().equals(new Value(Integer.toString(i).getBytes(UTF_8)))) {
-          throw new Exception("verification failed, unexpected value i =" + i + " value = " + entry.getValue());
+          throw new Exception(
+              "verification failed, unexpected value i =" + i + " value = " + entry.getValue());
         }
         count++;
       }

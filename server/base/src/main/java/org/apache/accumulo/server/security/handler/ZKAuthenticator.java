@@ -62,7 +62,8 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token)
+      throws AccumuloSecurityException {
     try {
       // remove old settings from zookeeper first, if any
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -91,9 +92,11 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   /**
-   * Sets up the user in ZK for the provided user. No checking for existence is done here, it should be done before calling.
+   * Sets up the user in ZK for the provided user. No checking for existence is done here, it should
+   * be done before calling.
    */
-  private void constructUser(String user, byte[] pass) throws KeeperException, InterruptedException {
+  private void constructUser(String user, byte[] pass)
+      throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -107,7 +110,8 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public void createUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     try {
       if (!(token instanceof PasswordToken))
         throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
@@ -131,7 +135,8 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       synchronized (zooCache) {
         zooCache.clear();
-        ZooReaderWriter.getInstance().recursiveDelete(ZKUserPath + "/" + user, NodeMissingPolicy.FAIL);
+        ZooReaderWriter.getInstance().recursiveDelete(ZKUserPath + "/" + user,
+            NodeMissingPolicy.FAIL);
       }
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
@@ -146,7 +151,8 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public void changePassword(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;
@@ -154,8 +160,8 @@ public final class ZKAuthenticator implements Authenticator {
       try {
         synchronized (zooCache) {
           zooCache.clear(ZKUserPath + "/" + principal);
-          ZooReaderWriter.getInstance().putPrivatePersistentData(ZKUserPath + "/" + principal, ZKSecurityTool.createPass(pt.getPassword()),
-              NodeExistsPolicy.OVERWRITE);
+          ZooReaderWriter.getInstance().putPrivatePersistentData(ZKUserPath + "/" + principal,
+              ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
         }
       } catch (KeeperException e) {
         log.error("{}", e.getMessage(), e);
@@ -168,7 +174,8 @@ public final class ZKAuthenticator implements Authenticator {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
       }
     } else
-      throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+      // user doesn't exist
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
 
   @Override
@@ -182,7 +189,8 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public boolean authenticateUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;

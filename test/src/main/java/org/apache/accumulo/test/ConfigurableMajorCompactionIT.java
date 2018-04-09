@@ -84,7 +84,8 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
-    conn.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(), TestCompactionStrategy.class.getName());
+    conn.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+        TestCompactionStrategy.class.getName());
     writeFile(conn, tableName);
     writeFile(conn, tableName);
     writeFile(conn, tableName);

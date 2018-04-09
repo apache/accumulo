@@ -86,31 +86,40 @@ public final class Compression {
   public static final String COMPRESSION_NONE = "none";
 
   /**
-   * Compression algorithms. There is a static initializer, below the values defined in the enumeration, that calls the initializer of all defined codecs within
-   * the Algorithm enum. This promotes a model of the following call graph of initialization by the static initializer, followed by calls to getCodec() and
-   * createCompressionStream/DecompressionStream. In some cases, the compression and decompression call methods will include a different buffer size for the
-   * stream. Note that if the compressed buffer size requested in these calls is zero, we will not set the buffer size for that algorithm. Instead, we will use
-   * the default within the codec.
+   * Compression algorithms. There is a static initializer, below the values defined in the
+   * enumeration, that calls the initializer of all defined codecs within the Algorithm enum. This
+   * promotes a model of the following call graph of initialization by the static initializer,
+   * followed by calls to getCodec() and createCompressionStream/DecompressionStream. In some cases,
+   * the compression and decompression call methods will include a different buffer size for the
+   * stream. Note that if the compressed buffer size requested in these calls is zero, we will not
+   * set the buffer size for that algorithm. Instead, we will use the default within the codec.
    *
-   * The buffer size is configured in the Codec by way of a Hadoop Configuration reference. One approach may be to use the same Configuration object, but when
-   * calls are made to createCompressionStream and DecompressionStream, with non default buffer sizes, the configuration object must be changed. In this case,
-   * concurrent calls to createCompressionStream and DecompressionStream would mutate the configuration object beneath each other, requiring synchronization to
-   * avoid undesirable activity via co-modification. To avoid synchronization entirely, we will create Codecs with their own Configuration object and cache them
-   * for re-use. A default codec will be statically created, as mentioned above to ensure we always have a codec available at loader initialization.
+   * The buffer size is configured in the Codec by way of a Hadoop Configuration reference. One
+   * approach may be to use the same Configuration object, but when calls are made to
+   * createCompressionStream and DecompressionStream, with non default buffer sizes, the
+   * configuration object must be changed. In this case, concurrent calls to createCompressionStream
+   * and DecompressionStream would mutate the configuration object beneath each other, requiring
+   * synchronization to avoid undesirable activity via co-modification. To avoid synchronization
+   * entirely, we will create Codecs with their own Configuration object and cache them for re-use.
+   * A default codec will be statically created, as mentioned above to ensure we always have a codec
+   * available at loader initialization.
    *
-   * There is a Guava cache defined within Algorithm that allows us to cache Codecs for re-use. Since they will have their own configuration object and thus do
-   * not need to be mutable, there is no concern for using them concurrently; however, the Guava cache exists to ensure a maximal size of the cache and
-   * efficient and concurrent read/write access to the cache itself.
+   * There is a Guava cache defined within Algorithm that allows us to cache Codecs for re-use.
+   * Since they will have their own configuration object and thus do not need to be mutable, there
+   * is no concern for using them concurrently; however, the Guava cache exists to ensure a maximal
+   * size of the cache and efficient and concurrent read/write access to the cache itself.
    *
    * To provide Algorithm specific details and to describe what is in code:
    *
-   * LZO will always have the default LZO codec because the buffer size is never overridden within it.
+   * LZO will always have the default LZO codec because the buffer size is never overridden within
+   * it.
    *
-   * GZ will use the default GZ codec for the compression stream, but can potentially use a different codec instance for the decompression stream if the
-   * requested buffer size does not match the default GZ buffer size of 32k.
+   * GZ will use the default GZ codec for the compression stream, but can potentially use a
+   * different codec instance for the decompression stream if the requested buffer size does not
+   * match the default GZ buffer size of 32k.
    *
-   * Snappy will use the default Snappy codec with the default buffer size of 64k for the compression stream, but will use a cached codec if the buffer size
-   * differs from the default.
+   * Snappy will use the default Snappy codec with the default buffer size of 64k for the
+   * compression stream, but will use a cached codec if the buffer size differs from the default.
    */
   public static enum Algorithm {
 
@@ -147,7 +156,8 @@ public final class Compression {
 
       @Override
       CompressionCodec createNewCodec(int bufferSize) {
-        String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
+        String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS)
+            : null);
         String clazz = (extClazz != null) ? extClazz : defaultClazz;
         try {
           LOG.info("Trying to load Lzo codec class: " + clazz);
@@ -169,9 +179,11 @@ public final class Compression {
       }
 
       @Override
-      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public InputStream createDecompressionStream(InputStream downStream,
+          Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
-          throw new IOException("LZO codec class not specified. Did you forget to set property " + CONF_LZO_CLASS + "?");
+          throw new IOException("LZO codec class not specified. Did you forget to set property "
+              + CONF_LZO_CLASS + "?");
         }
         InputStream bis1 = null;
         if (downStreamBufferSize > 0) {
@@ -185,9 +197,11 @@ public final class Compression {
       }
 
       @Override
-      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
+          int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
-          throw new IOException("LZO codec class not specified. Did you forget to set property " + CONF_LZO_CLASS + "?");
+          throw new IOException("LZO codec class not specified. Did you forget to set property "
+              + CONF_LZO_CLASS + "?");
         }
         OutputStream bos1 = null;
         if (downStreamBufferSize > 0) {
@@ -196,7 +210,8 @@ public final class Compression {
           bos1 = downStream;
         }
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        BufferedOutputStream bos2 = new BufferedOutputStream(
+            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
 
@@ -246,7 +261,8 @@ public final class Compression {
       }
 
       @Override
-      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public InputStream createDecompressionStream(InputStream downStream,
+          Decompressor decompressor, int downStreamBufferSize) throws IOException {
         // Set the internal buffer size to read from down stream.
         CompressionCodec decomCodec = codec;
         // if we're not using the default, let's pull from the loading cache
@@ -264,7 +280,8 @@ public final class Compression {
       }
 
       @Override
-      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
+          int downStreamBufferSize) throws IOException {
         OutputStream bos1 = null;
         if (downStreamBufferSize > 0) {
           bos1 = new BufferedOutputStream(downStream, downStreamBufferSize);
@@ -273,7 +290,8 @@ public final class Compression {
         }
         // always uses the default buffer size
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        BufferedOutputStream bos2 = new BufferedOutputStream(
+            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
 
@@ -290,7 +308,8 @@ public final class Compression {
       }
 
       @Override
-      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public InputStream createDecompressionStream(InputStream downStream,
+          Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (downStreamBufferSize > 0) {
           return new BufferedInputStream(downStream, downStreamBufferSize);
         }
@@ -300,7 +319,7 @@ public final class Compression {
       @Override
       public void initializeDefaultCodec() {
 
-      }
+    }
 
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
@@ -308,7 +327,8 @@ public final class Compression {
       }
 
       @Override
-      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
+          int downStreamBufferSize) throws IOException {
         if (downStreamBufferSize > 0) {
           return new BufferedOutputStream(downStream, downStreamBufferSize);
         }
@@ -364,7 +384,9 @@ public final class Compression {
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
 
-        String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
+        String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null
+            ? System.getProperty(CONF_SNAPPY_CLASS)
+            : null);
         String clazz = (extClazz != null) ? extClazz : defaultClazz;
         try {
           LOG.info("Trying to load snappy codec class: " + clazz);
@@ -385,10 +407,12 @@ public final class Compression {
       }
 
       @Override
-      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
+          int downStreamBufferSize) throws IOException {
 
         if (!isSupported()) {
-          throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
+          throw new IOException("SNAPPY codec class not specified. Did you forget to set property "
+              + CONF_SNAPPY_CLASS + "?");
         }
         OutputStream bos1 = null;
         if (downStreamBufferSize > 0) {
@@ -398,14 +422,17 @@ public final class Compression {
         }
         // use the default codec
         CompressionOutputStream cos = snappyCodec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        BufferedOutputStream bos2 = new BufferedOutputStream(
+            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
 
       @Override
-      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public InputStream createDecompressionStream(InputStream downStream,
+          Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
-          throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
+          throw new IOException("SNAPPY codec class not specified. Did you forget to set property "
+              + CONF_SNAPPY_CLASS + "?");
         }
 
         CompressionCodec decomCodec = snappyCodec;
@@ -432,14 +459,19 @@ public final class Compression {
     };
 
     /**
-     * The model defined by the static block, below, creates a singleton for each defined codec in the Algorithm enumeration. By creating the codecs, each call
-     * to isSupported shall return true/false depending on if the codec singleton is defined. The static initializer, below, will ensure this occurs when the
-     * Enumeration is loaded. Furthermore, calls to getCodec will return the singleton, whether it is null or not.
+     * The model defined by the static block, below, creates a singleton for each defined codec in
+     * the Algorithm enumeration. By creating the codecs, each call to isSupported shall return
+     * true/false depending on if the codec singleton is defined. The static initializer, below,
+     * will ensure this occurs when the Enumeration is loaded. Furthermore, calls to getCodec will
+     * return the singleton, whether it is null or not.
      *
-     * Calls to createCompressionStream and createDecompressionStream may return a different codec than getCodec, if the incoming downStreamBufferSize is
-     * different than the default. In such a case, we will place the resulting codec into the codecCache, defined below, to ensure we have cache codecs.
+     * Calls to createCompressionStream and createDecompressionStream may return a different codec
+     * than getCodec, if the incoming downStreamBufferSize is different than the default. In such a
+     * case, we will place the resulting codec into the codecCache, defined below, to ensure we have
+     * cache codecs.
      *
-     * Since codecs are immutable, there is no concern about concurrent access to the CompressionCodec objects within the guava cache.
+     * Since codecs are immutable, there is no concern about concurrent access to the
+     * CompressionCodec objects within the guava cache.
      */
     static {
       conf = new Configuration();
@@ -451,7 +483,8 @@ public final class Compression {
     /**
      * Guava cache to have a limited factory pattern defined in the Algorithm enum.
      */
-    private static LoadingCache<Entry<Algorithm,Integer>,CompressionCodec> codecCache = CacheBuilder.newBuilder().maximumSize(25)
+    private static LoadingCache<Entry<Algorithm,Integer>,CompressionCodec> codecCache = CacheBuilder
+        .newBuilder().maximumSize(25)
         .build(new CacheLoader<Entry<Algorithm,Integer>,CompressionCodec>() {
           @Override
           public CompressionCodec load(Entry<Algorithm,Integer> key) {
@@ -482,7 +515,8 @@ public final class Compression {
     abstract void initializeDefaultCodec();
 
     /**
-     * Shared function to create new codec objects. It is expected that if buffersize is invalid, a codec will be created with the default buffer size
+     * Shared function to create new codec objects. It is expected that if buffersize is invalid, a
+     * codec will be created with the default buffer size
      *
      * @param bufferSize
      *          configured buffer size.
@@ -490,9 +524,11 @@ public final class Compression {
      */
     abstract CompressionCodec createNewCodec(int bufferSize);
 
-    public abstract InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException;
+    public abstract InputStream createDecompressionStream(InputStream downStream,
+        Decompressor decompressor, int downStreamBufferSize) throws IOException;
 
-    public abstract OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException;
+    public abstract OutputStream createCompressionStream(OutputStream downStream,
+        Compressor compressor, int downStreamBufferSize) throws IOException;
 
     public abstract boolean isSupported();
 
@@ -509,7 +545,8 @@ public final class Compression {
             LOG.debug("Got a compressor: " + compressor.hashCode());
           }
           /**
-           * Following statement is necessary to get around bugs in 0.18 where a compressor is referenced after returned back to the codec pool.
+           * Following statement is necessary to get around bugs in 0.18 where a compressor is
+           * referenced after returned back to the codec pool.
            */
           compressor.reset();
         }
@@ -538,7 +575,8 @@ public final class Compression {
             LOG.debug("Got a decompressor: " + decompressor.hashCode());
           }
           /**
-           * Following statement is necessary to get around bugs in 0.18 where a decompressor is referenced after returned back to the codec pool.
+           * Following statement is necessary to get around bugs in 0.18 where a decompressor is
+           * referenced after returned back to the codec pool.
            */
           decompressor.reset();
         }

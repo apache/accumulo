@@ -45,7 +45,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
 public class ThriftTransportPool {
-  private static SecurityPermission TRANSPORT_POOL_PERMISSION = new SecurityPermission("transportPoolPermission");
+  private static SecurityPermission TRANSPORT_POOL_PERMISSION = new SecurityPermission(
+      "transportPoolPermission");
 
   private static final Random random = new Random();
   private long killTime = 1000 * 3;
@@ -199,8 +200,8 @@ public class ThriftTransportPool {
       } else {
         if ((ioCount & 1) == 1) {
           // connection unreserved, but it seems io may still be happening
-          log.warn("Connection returned to thrift connection pool that may still be in use {} {}", ioThreadName, Thread.currentThread().getName(),
-              new Exception());
+          log.warn("Connection returned to thrift connection pool that may still be in use {} {}",
+              ioThreadName, Thread.currentThread().getName(), new Exception());
         }
 
         ioCount = 0;
@@ -213,7 +214,8 @@ public class ThriftTransportPool {
     final void checkForStuckIO(long threshold) {
       // checking for stuck io needs to be light weight.
 
-      // Tried to call System.currentTimeMillis() and Thread.currentThread() before every io operation.... this dramatically slowed things down. So switched to
+      // Tried to call System.currentTimeMillis() and Thread.currentThread() before every io
+      // operation.... this dramatically slowed things down. So switched to
       // incrementing a counter before and after each io operation.
 
       if ((ioCount & 1) == 1) {
@@ -224,7 +226,8 @@ public class ThriftTransportPool {
           long delta = System.currentTimeMillis() - ioStartTime;
           if (delta >= threshold && stuckThreadName == null) {
             stuckThreadName = ioThreadName;
-            log.warn("Thread \"{}\" stuck on IO to {} for at least {} ms", ioThreadName, cacheKey, delta);
+            log.warn("Thread \"{}\" stuck on IO to {} for at least {} ms", ioThreadName, cacheKey,
+                delta);
           }
         } else {
           // remember this ioCount and the time we saw it, need to see
@@ -234,7 +237,8 @@ public class ThriftTransportPool {
 
           if (stuckThreadName != null) {
             // doing I/O, but ioCount changed so no longer stuck
-            log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName, cacheKey, sawError);
+            log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName,
+                cacheKey, sawError);
             stuckThreadName = null;
           }
         }
@@ -242,7 +246,8 @@ public class ThriftTransportPool {
         // I/O is not currently happening
         if (stuckThreadName != null) {
           // no longer stuck, and was stuck in the past
-          log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName, cacheKey, sawError);
+          log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName,
+              cacheKey, sawError);
           stuckThreadName = null;
         }
       }
@@ -405,7 +410,8 @@ public class ThriftTransportPool {
 
   private ThriftTransportPool() {}
 
-  public TTransport getTransport(HostAndPort location, long milliseconds, ClientContext context) throws TTransportException {
+  public TTransport getTransport(HostAndPort location, long milliseconds, ClientContext context)
+      throws TTransportException {
     return getTransport(new ThriftTransportKey(location, milliseconds, context));
   }
 
@@ -432,7 +438,8 @@ public class ThriftTransportPool {
   }
 
   @VisibleForTesting
-  public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
+  public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers,
+      boolean preferCachedConnection) throws TTransportException {
 
     servers = new ArrayList<>(servers);
 
@@ -491,8 +498,8 @@ public class ThriftTransportPool {
   }
 
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
-    TTransport transport = ThriftUtil.createClientTransport(cacheKey.getServer(), (int) cacheKey.getTimeout(), cacheKey.getSslParams(),
-        cacheKey.getSaslParams());
+    TTransport transport = ThriftUtil.createClientTransport(cacheKey.getServer(),
+        (int) cacheKey.getTimeout(), cacheKey.getSslParams(), cacheKey.getSaslParams());
 
     log.trace("Creating new connection to connection to {}", cacheKey.getServer());
 
@@ -551,23 +558,29 @@ public class ThriftTransportPool {
             }
 
             if (ecount >= ERROR_THRESHOLD && !serversWarnedAbout.contains(ctsc.getCacheKey())) {
-              log.warn("Server {} had {} failures in a short time period, will not complain anymore", ctsc.getCacheKey(), ecount);
+              log.warn(
+                  "Server {} had {} failures in a short time period, will not complain anymore",
+                  ctsc.getCacheKey(), ecount);
               serversWarnedAbout.add(ctsc.getCacheKey());
             }
 
             cachedConnection.unreserve();
 
-            // remove all unreserved cached connection when a sever has an error, not just the connection that was returned
+            // remove all unreserved cached connection when a sever has an error, not just the
+            // connection that was returned
             closeList.addAll(cachedConns.unreserved);
             cachedConns.unreserved.clear();
 
           } else {
-            log.trace("Returned connection {} ioCount: {}", ctsc.getCacheKey(), cachedConnection.transport.ioCount);
+            log.trace("Returned connection {} ioCount: {}", ctsc.getCacheKey(),
+                cachedConnection.transport.ioCount);
 
             cachedConnection.lastReturnTime = System.currentTimeMillis();
             cachedConnection.unreserve();
-            // Calling addFirst to use unreserved as LIFO queue. Using LIFO ensures that when the # of pooled connections exceeds the working set size that the
-            // idle times at the end of the list grow. The connections with large idle times will be cleaned up. Using a FIFO could continually reset the idle
+            // Calling addFirst to use unreserved as LIFO queue. Using LIFO ensures that when the #
+            // of pooled connections exceeds the working set size that the
+            // idle times at the end of the list grow. The connections with large idle times will be
+            // cleaned up. Using a FIFO could continually reset the idle
             // times of all connections, even when there are more than the working set size.
             cachedConns.unreserved.addFirst(cachedConnection);
           }
@@ -628,7 +641,8 @@ public class ThriftTransportPool {
 
       // close any connections in the pool... even ones that are in use
       for (CachedConnections cachedConn : getCache().values()) {
-        for (CachedConnection cc : Iterables.concat(cachedConn.reserved.values(), cachedConn.unreserved)) {
+        for (CachedConnection cc : Iterables.concat(cachedConn.reserved.values(),
+            cachedConn.unreserved)) {
           try {
             cc.transport.close();
           } catch (Exception e) {

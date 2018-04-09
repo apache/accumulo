@@ -96,7 +96,8 @@ public class SortedLogRecovery {
     }
   }
 
-  public void recover(KeyExtent extent, List<Path> recoveryLogs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
+  public void recover(KeyExtent extent, List<Path> recoveryLogs, Set<String> tabletFiles,
+      MutationReceiver mr) throws IOException {
     int[] tids = new int[recoveryLogs.size()];
     LastStartToFinish lastStartToFinish = new LastStartToFinish();
     for (int i = 0; i < recoveryLogs.size(); i++) {
@@ -124,7 +125,8 @@ public class SortedLogRecovery {
     }
 
     if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
-      throw new RuntimeException("COMPACTION_FINISH (without preceding COMPACTION_START) not followed by successful minor compaction");
+      throw new RuntimeException("COMPACTION_FINISH (without preceding"
+          + " COMPACTION_START) not followed by successful minor compaction");
 
     for (int i = 0; i < recoveryLogs.size(); i++) {
       Path logfile = recoveryLogs.get(i);
@@ -149,8 +151,9 @@ public class SortedLogRecovery {
     return path.getParent().getName() + "/" + path.getName();
   }
 
-  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException,
-      EmptyMapFileException, UnusedException {
+  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent,
+      Set<String> tabletFiles, LastStartToFinish lastStartToFinish)
+      throws IOException, EmptyMapFileException, UnusedException {
 
     HashSet<String> suffixes = new HashSet<>();
     for (String path : tabletFiles)
@@ -167,7 +170,8 @@ public class SortedLogRecovery {
 
     if (key.tserverSession.compareTo(lastStartToFinish.tserverSession) != 0) {
       if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
-        throw new RuntimeException("COMPACTION_FINISH (without preceding COMPACTION_START) is not followed by a successful minor compaction.");
+        throw new RuntimeException("COMPACTION_FINISH (without preceding"
+            + " COMPACTION_START) is not followed by a successful minor compaction.");
       lastStartToFinish.update(key.tserverSession);
     }
     KeyExtent alternative = extent;
@@ -177,8 +181,10 @@ public class SortedLogRecovery {
 
     LogFileKey defineKey = null;
 
-    // find the maximum tablet id... because a tablet may leave a tserver and then come back, in which case it would have a different tablet id
-    // for the maximum tablet id, find the minimum sequence #... may be ok to find the max seq, but just want to make the code behave like it used to
+    // find the maximum tablet id... because a tablet may leave a tserver and then come back, in
+    // which case it would have a different tablet id
+    // for the maximum tablet id, find the minimum sequence #... may be ok to find the max seq, but
+    // just want to make the code behave like it used to
     while (reader.next(key, value)) {
       // log.debug("Event " + key.event + " tablet " + key.tablet);
       if (key.event != DEFINE_TABLET)
@@ -209,20 +215,25 @@ public class SortedLogRecovery {
         if (lastStartToFinish.compactionStatus == Status.INITIAL)
           lastStartToFinish.compactionStatus = Status.COMPLETE;
         if (key.seq <= lastStartToFinish.lastStart)
-          throw new RuntimeException("Sequence numbers are not increasing for start/stop events: " + key.seq + " vs " + lastStartToFinish.lastStart);
+          throw new RuntimeException("Sequence numbers are not increasing for start/stop events: "
+              + key.seq + " vs " + lastStartToFinish.lastStart);
         lastStartToFinish.update(fileno, key.seq);
 
-        // Tablet server finished the minor compaction, but didn't remove the entry from the METADATA table.
-        log.debug("minor compaction into " + key.filename + " finished, but was still in the METADATA");
+        // Tablet server finished the minor compaction, but didn't remove the entry from the
+        // METADATA table.
+        log.debug(
+            "minor compaction into " + key.filename + " finished, but was still in the METADATA");
         if (suffixes.contains(getPathSuffix(key.filename)))
           lastStartToFinish.update(-1);
       } else if (key.event == COMPACTION_FINISH) {
         if (key.seq <= lastStartToFinish.lastStart)
-          throw new RuntimeException("Sequence numbers are not increasing for start/stop events: " + key.seq + " vs " + lastStartToFinish.lastStart);
+          throw new RuntimeException("Sequence numbers are not increasing for start/stop events: "
+              + key.seq + " vs " + lastStartToFinish.lastStart);
         if (lastStartToFinish.compactionStatus == Status.INITIAL)
           lastStartToFinish.compactionStatus = Status.LOOKING_FOR_FINISH;
         else if (lastStartToFinish.lastFinish > lastStartToFinish.lastStart)
-          throw new RuntimeException("COMPACTION_FINISH does not have preceding COMPACTION_START event.");
+          throw new RuntimeException(
+              "COMPACTION_FINISH does not have preceding COMPACTION_START event.");
         else
           lastStartToFinish.compactionStatus = Status.COMPLETE;
         lastStartToFinish.update(key.seq);
@@ -232,12 +243,14 @@ public class SortedLogRecovery {
     return tid;
   }
 
-  private void playbackMutations(MultiReader reader, int tid, LastStartToFinish lastStartToFinish, MutationReceiver mr) throws IOException {
+  private void playbackMutations(MultiReader reader, int tid, LastStartToFinish lastStartToFinish,
+      MutationReceiver mr) throws IOException {
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
     // Playback mutations after the last stop to finish
-    log.info("Scanning for mutations starting at sequence number " + lastStartToFinish.seq + " for tid " + tid);
+    log.info("Scanning for mutations starting at sequence number " + lastStartToFinish.seq
+        + " for tid " + tid);
     key.event = MUTATION;
     key.tid = tid;
     // the seq number for the minor compaction start is now the same as the

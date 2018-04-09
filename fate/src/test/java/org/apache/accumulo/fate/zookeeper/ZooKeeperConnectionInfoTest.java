@@ -24,8 +24,9 @@ public class ZooKeeperConnectionInfoTest {
 
   @Test
   public void testEquality() {
-    Assert.assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null), new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null));
-    Assert.assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null).hashCode(), new ZooKeeperConnectionInfo("localhost:2181", 60000, null,
-        null).hashCode());
+    Assert.assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null),
+        new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null));
+    Assert.assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null).hashCode(),
+        new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null).hashCode());
   }
 }

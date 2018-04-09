@@ -45,7 +45,8 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link org.apache.accumulo.core.client.mock.MockInstance}.
+   * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and
+   * {@link org.apache.accumulo.core.client.mock.MockInstance}.
    *
    * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
    * @since 1.5.0
@@ -79,15 +80,17 @@ public class ConfiguratorBase {
    */
   @Deprecated
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
-    return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
+    return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "."
+        + StringUtils.camelize(e.name().toLowerCase());
   }
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
-   * conversion to a string, and is not intended to be secure.
+   * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all
+   * MapReduce tasks. It is BASE64 encoded to provide a charset safe conversion to a string, and is
+   * not intended to be secure.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -101,9 +104,10 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, AuthenticationToken token)
-      throws AccumuloSecurityException {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setConnectorInfo(implementingClass, conf, principal, token);
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
+      String principal, AuthenticationToken token) throws AccumuloSecurityException {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .setConnectorInfo(implementingClass, conf, principal, token);
   }
 
   /**
@@ -120,7 +124,8 @@ public class ConfiguratorBase {
    */
   @Deprecated
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.isConnectorInfoSet(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .isConnectorInfoSet(implementingClass, conf);
   }
 
   /**
@@ -137,13 +142,15 @@ public class ConfiguratorBase {
    */
   @Deprecated
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getPrincipal(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .getPrincipal(implementingClass, conf);
   }
 
   /**
-   * DON'T USE THIS. No, really, don't use this. You already have an {@link AuthenticationToken} with
-   * {@link org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase#getAuthenticationToken(Class, Configuration)}. You don't need to construct it
-   * yourself.
+   * DON'T USE THIS. No, really, don't use this. You already have an {@link AuthenticationToken}
+   * with
+   * {@link org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase#getAuthenticationToken(Class, Configuration)}.
+   * You don't need to construct it yourself.
    * <p>
    * Gets the serialized token class from the configuration.
    *
@@ -158,16 +165,19 @@ public class ConfiguratorBase {
    */
   @Deprecated
   public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getAuthenticationToken(implementingClass, conf).getClass().getName();
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .getAuthenticationToken(implementingClass, conf).getClass().getName();
   }
 
   /**
-   * DON'T USE THIS. No, really, don't use this. You already have an {@link AuthenticationToken} with
-   * {@link org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase#getAuthenticationToken(Class, Configuration)}. You don't need to construct it
-   * yourself.
+   * DON'T USE THIS. No, really, don't use this. You already have an {@link AuthenticationToken}
+   * with
+   * {@link org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase#getAuthenticationToken(Class, Configuration)}.
+   * You don't need to construct it yourself.
    * <p>
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * Gets the password from the configuration. WARNING: The password is stored in the Configuration
+   * and shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion
+   * to a string, and is not intended to be secure.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -180,8 +190,9 @@ public class ConfiguratorBase {
    */
   @Deprecated
   public static byte[] getToken(Class<?> implementingClass, Configuration conf) {
-    return AuthenticationTokenSerializer.serialize(org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getAuthenticationToken(
-        implementingClass, conf));
+    return AuthenticationTokenSerializer
+        .serialize(org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+            .getAuthenticationToken(implementingClass, conf));
   }
 
   /**
@@ -199,8 +210,10 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, String instanceName, String zooKeepers) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setZooKeeperInstance(implementingClass, conf,
+  public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
+      String instanceName, String zooKeepers) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setZooKeeperInstance(
+        implementingClass, conf,
         new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
@@ -217,8 +230,10 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   @Deprecated
-  public static void setMockInstance(Class<?> implementingClass, Configuration conf, String instanceName) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setMockInstance(implementingClass, conf, instanceName);
+  public static void setMockInstance(Class<?> implementingClass, Configuration conf,
+      String instanceName) {
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .setMockInstance(implementingClass, conf, instanceName);
   }
 
   /**
@@ -235,7 +250,8 @@ public class ConfiguratorBase {
    */
   @Deprecated
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getInstance(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .getInstance(implementingClass, conf);
   }
 
   /**
@@ -252,7 +268,8 @@ public class ConfiguratorBase {
    */
   @Deprecated
   public static void setLogLevel(Class<?> implementingClass, Configuration conf, Level level) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.setLogLevel(implementingClass, conf, level);
+    org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .setLogLevel(implementingClass, conf, level);
   }
 
   /**
@@ -269,7 +286,8 @@ public class ConfiguratorBase {
    */
   @Deprecated
   public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.getLogLevel(implementingClass, conf);
+    return org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase
+        .getLogLevel(implementingClass, conf);
   }
 
 }

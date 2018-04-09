@@ -50,9 +50,11 @@ import com.beust.jcommander.Parameter;
 public class ChangeSecret {
 
   static class Opts extends ClientOpts {
-    @Parameter(names = "--old", description = "old zookeeper password", password = true, hidden = true)
+    @Parameter(names = "--old", description = "old zookeeper password", password = true,
+        hidden = true)
     String oldPass;
-    @Parameter(names = "--new", description = "new zookeeper password", password = true, hidden = true)
+    @Parameter(names = "--new", description = "new zookeeper password", password = true,
+        hidden = true)
     String newPass;
   }
 
@@ -96,7 +98,8 @@ public class ChangeSecret {
   }
 
   private static void verifyAccumuloIsDown(Instance inst, String oldPassword) throws Exception {
-    ZooReader zooReader = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPassword);
+    ZooReader zooReader = new ZooReaderWriter(inst.getZooKeepers(),
+        inst.getZooKeepersSessionTimeOut(), oldPassword);
     String root = ZooUtil.getRoot(inst);
     final List<String> ephemerals = new ArrayList<>();
     recurse(zooReader, root, new Visitor() {
@@ -116,9 +119,12 @@ public class ChangeSecret {
     }
   }
 
-  private static void rewriteZooKeeperInstance(final Instance inst, final String newInstanceId, String oldPass, String newPass) throws Exception {
-    final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPass);
-    final IZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
+  private static void rewriteZooKeeperInstance(final Instance inst, final String newInstanceId,
+      String oldPass, String newPass) throws Exception {
+    final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(),
+        inst.getZooKeepersSessionTimeOut(), oldPass);
+    final IZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(),
+        inst.getZooKeepersSessionTimeOut(), newPass);
 
     String root = ZooUtil.getRoot(inst);
     recurse(orig, root, new Visitor() {
@@ -151,7 +157,8 @@ public class ChangeSecret {
     new_.putPersistentData(path, newInstanceId.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
   }
 
-  private static void updateHdfs(VolumeManager fs, Instance inst, String newInstanceId) throws IOException {
+  private static void updateHdfs(VolumeManager fs, Instance inst, String newInstanceId)
+      throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
       final Path instanceId = ServerConstants.getInstanceIdLocation(v);
@@ -193,12 +200,13 @@ public class ChangeSecret {
         return;
       }
     }
-    throw new Exception(String.format("Permission denied: user=%s, path=\"%s\":%s:%s:%s%s", user, stat.getPath(), stat.getOwner(), stat.getGroup(),
-        stat.isDirectory() ? "d" : "-", perm));
+    throw new Exception(String.format("Permission denied: user=%s, path=\"%s\":%s:%s:%s%s", user,
+        stat.getPath(), stat.getOwner(), stat.getGroup(), stat.isDirectory() ? "d" : "-", perm));
   }
 
   private static void deleteInstance(Instance origInstance, String oldPass) throws Exception {
-    IZooReaderWriter orig = new ZooReaderWriter(origInstance.getZooKeepers(), origInstance.getZooKeepersSessionTimeOut(), oldPass);
+    IZooReaderWriter orig = new ZooReaderWriter(origInstance.getZooKeepers(),
+        origInstance.getZooKeepersSessionTimeOut(), oldPass);
     orig.recursiveDelete("/accumulo/" + origInstance.getInstanceID(), NodeMissingPolicy.SKIP);
   }
 }

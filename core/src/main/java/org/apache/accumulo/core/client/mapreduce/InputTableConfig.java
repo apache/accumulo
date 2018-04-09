@@ -33,7 +33,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 /**
- * This class to holds a batch scan configuration for a table. It contains all the properties needed to specify how rows should be returned from the table.
+ * This class to holds a batch scan configuration for a table. It contains all the properties needed
+ * to specify how rows should be returned from the table.
  */
 public class InputTableConfig implements Writable {
 
@@ -60,7 +61,8 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Sets the input ranges to scan for all tables associated with this job. This will be added to any per-table ranges that have been set using
+   * Sets the input ranges to scan for all tables associated with this job. This will be added to
+   * any per-table ranges that have been set using
    *
    * @param ranges
    *          the ranges that will be mapped over
@@ -82,8 +84,9 @@ public class InputTableConfig implements Writable {
    * Restricts the columns that will be mapped over for this job for the default input table.
    *
    * @param columns
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If the column qualifier is null, the entire column family is
-   *          selected. An empty set is the default and is equivalent to scanning the all columns.
+   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
+   *          the column qualifier is null, the entire column family is selected. An empty set is
+   *          the default and is equivalent to scanning the all columns.
    * @since 1.6.0
    */
   public InputTableConfig fetchColumns(Collection<Pair<Text,Text>> columns) {
@@ -118,8 +121,9 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
-   * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
+   * Controls the automatic adjustment of ranges for this job. This feature merges overlapping
+   * ranges, then splits them to align with tablet boundaries. Disabling this feature will cause
+   * exactly one Map task to be created for each specified range. The default setting is enabled. *
    *
    * <p>
    * By default, this feature is <b>enabled</b>.
@@ -146,9 +150,10 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack
-   * to be constructed within the Map task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be
-   * available on the classpath for the task.
+   * Controls the use of the {@link org.apache.accumulo.core.client.ClientSideIteratorScanner} in
+   * this job. Enabling this feature will cause the iterator stack to be constructed within the Map
+   * task, rather than within the Accumulo TServer. To use this feature, all classes needed for
+   * those iterators must be available on the classpath for the task.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -174,25 +179,32 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
-   * table's files. If the table is not offline, then the job will fail. If the table comes online during the map reduce job, it is likely that the job will
-   * fail.
+   * Enable reading offline tables. By default, this feature is disabled and only online tables are
+   * scanned. This will make the map reduce job directly read the table's files. If the table is not
+   * offline, then the job will fail. If the table comes online during the map reduce job, it is
+   * likely that the job will fail.
    *
    * <p>
-   * To use this option, the map reduce user will need access to read the Accumulo directory in HDFS.
+   * To use this option, the map reduce user will need access to read the Accumulo directory in
+   * HDFS.
    *
    * <p>
-   * Reading the offline table will create the scan time iterator stack in the map process. So any iterators that are configured for the table will need to be
-   * on the mapper's classpath. The accumulo-site.xml may need to be on the mapper's classpath if HDFS or the Accumulo directory in HDFS are non-standard.
+   * Reading the offline table will create the scan time iterator stack in the map process. So any
+   * iterators that are configured for the table will need to be on the mapper's classpath. The
+   * accumulo-site.xml may need to be on the mapper's classpath if HDFS or the Accumulo directory in
+   * HDFS are non-standard.
    *
    * <p>
-   * One way to use this feature is to clone a table, take the clone offline, and use the clone as the input table for a map reduce job. If you plan to map
-   * reduce over the data many times, it may be better to the compact the table, clone it, take it offline, and use the clone for all map reduce jobs. The
-   * reason to do this is that compaction will reduce each tablet in the table to one file, and it is faster to read from one file.
+   * One way to use this feature is to clone a table, take the clone offline, and use the clone as
+   * the input table for a map reduce job. If you plan to map reduce over the data many times, it
+   * may be better to the compact the table, clone it, take it offline, and use the clone for all
+   * map reduce jobs. The reason to do this is that compaction will reduce each tablet in the table
+   * to one file, and it is faster to read from one file.
    *
    * <p>
-   * There are two possible advantages to reading a tables file directly out of HDFS. First, you may see better read performance. Second, it will support
-   * speculative execution better. When reading an online table speculative execution can put more load on an already slow tablet server.
+   * There are two possible advantages to reading a tables file directly out of HDFS. First, you may
+   * see better read performance. Second, it will support speculative execution better. When reading
+   * an online table speculative execution can put more load on an already slow tablet server.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -247,7 +259,8 @@ public class InputTableConfig implements Writable {
    * Set the sampler configuration to use when reading from the data.
    *
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
-   * @see InputFormatBase#setSamplerConfiguration(org.apache.hadoop.mapreduce.Job, SamplerConfiguration)
+   * @see InputFormatBase#setSamplerConfiguration(org.apache.hadoop.mapreduce.Job,
+   *      SamplerConfiguration)
    *
    * @since 1.8.0
    */
@@ -362,7 +375,8 @@ public class InputTableConfig implements Writable {
       return false;
     if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
       return false;
-    if (samplerConfig != null ? !samplerConfig.equals(that.samplerConfig) : that.samplerConfig != null)
+    if (samplerConfig != null ? !samplerConfig.equals(that.samplerConfig)
+        : that.samplerConfig != null)
       return false;
     return true;
   }

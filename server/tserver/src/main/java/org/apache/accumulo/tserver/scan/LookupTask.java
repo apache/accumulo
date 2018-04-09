@@ -71,7 +71,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       long maxResultsSize = acuTableConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
 
       runState.set(ScanRunState.RUNNING);
-      Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser() + " Start: " + session.startTime + " Table: ");
+      Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
+          + " Start: " + session.startTime + " Table: ");
 
       long bytesAdded = 0;
       long maxScanTime = 4000;
@@ -88,7 +89,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       Iterator<Entry<KeyExtent,List<Range>>> iter = session.queries.entrySet().iterator();
 
       // check the time so that the read ahead thread is not monopolized
-      while (iter.hasNext() && bytesAdded < maxResultsSize && (System.currentTimeMillis() - startTime) < maxScanTime) {
+      while (iter.hasNext() && bytesAdded < maxResultsSize
+          && (System.currentTimeMillis() - startTime) < maxScanTime) {
         Entry<KeyExtent,List<Range>> entry = iter.next();
 
         iter.remove();
@@ -99,8 +101,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           failures.put(entry.getKey(), entry.getValue());
           continue;
         }
-        Thread.currentThread().setName(
-            "Client: " + session.client + " User: " + session.getUser() + " Start: " + session.startTime + " Tablet: " + entry.getKey().toString());
+        Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
+            + " Start: " + session.startTime + " Tablet: " + entry.getKey().toString());
 
         LookupResult lookupResult;
         try {
@@ -111,8 +113,9 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
-          lookupResult = tablet.lookup(entry.getValue(), session.columnSet, session.auths, results, maxResultsSize - bytesAdded, session.ssiList, session.ssio,
-              interruptFlag, session.samplerConfig, session.batchTimeOut, session.context);
+          lookupResult = tablet.lookup(entry.getValue(), session.columnSet, session.auths, results,
+              maxResultsSize - bytesAdded, session.ssiList, session.ssio, interruptFlag,
+              session.samplerConfig, session.batchTimeOut, session.context);
 
           // if the tablet was closed it it possible that the
           // interrupt flag was set.... do not want it set for
@@ -148,8 +151,10 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       // convert everything to thrift before adding result
       List<TKeyValue> retResults = new ArrayList<>();
       for (KVEntry entry : results)
-        retResults.add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
-      Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET, new Translator.ListTranslator<>(Translators.RT));
+        retResults
+            .add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
+      Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET,
+          new Translator.ListTranslator<>(Translators.RT));
       List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
       TKeyExtent retPartScan = null;
       TKey retPartNextKey = null;
@@ -158,7 +163,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         retPartNextKey = partNextKey.toThrift();
       }
       // add results to queue
-      addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan, retPartNextKey, partNextKeyInclusive, session.queries.size() != 0));
+      addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan,
+          retPartNextKey, partNextKeyInclusive, session.queries.size() != 0));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);

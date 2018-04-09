@@ -88,7 +88,8 @@ public class ShellSetInstanceTest {
     String javaVer = System.getProperty("java.version", "");
     if (javaVer.matches("^1[.]7[.]0_(\\d+)$")) {
       int v = Integer.parseInt(javaVer.substring(6));
-      Assume.assumeTrue("Skipping test due to incompatible Java version; See ACCUMULO-3031", v <= 60 || v >= 72);
+      Assume.assumeTrue("Skipping test due to incompatible Java version; See ACCUMULO-3031",
+          v <= 60 || v >= 72);
     }
   }
 
@@ -129,7 +130,8 @@ public class ShellSetInstanceTest {
     replay(opts);
 
     shell.setInstance(opts);
-    Assert.assertTrue(shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
+    Assert.assertTrue(
+        shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
   }
 
   @Test
@@ -152,7 +154,8 @@ public class ShellSetInstanceTest {
     testSetInstance_HdfsZooInstance(false, false, false);
   }
 
-  private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts) throws Exception {
+  private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance,
+      boolean onlyHosts) throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
@@ -185,12 +188,15 @@ public class ShellSetInstanceTest {
     replay(ConfigSanityCheck.class);
 
     if (!onlyHosts) {
-      expect(clientConf.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn(true).atLeastOnce();
-      expect(clientConf.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("host1,host2").atLeastOnce();
+      expect(clientConf.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn(true)
+          .atLeastOnce();
+      expect(clientConf.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("host1,host2")
+          .atLeastOnce();
       expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
     }
     if (!onlyInstance) {
-      expect(clientConf.containsKey(Property.INSTANCE_VOLUMES.getKey())).andReturn(false).atLeastOnce();
+      expect(clientConf.containsKey(Property.INSTANCE_VOLUMES.getKey())).andReturn(false)
+          .atLeastOnce();
       @SuppressWarnings("deprecation")
       String INSTANCE_DFS_DIR_KEY = Property.INSTANCE_DFS_DIR.getKey();
       @SuppressWarnings("deprecation")
@@ -205,7 +211,8 @@ public class ShellSetInstanceTest {
     if (!onlyInstance) {
       mockStatic(ZooUtil.class);
       randomUUID = UUID.randomUUID();
-      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class), anyObject(AccumuloConfiguration.class))).andReturn(randomUUID.toString());
+      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class),
+          anyObject(AccumuloConfiguration.class))).andReturn(randomUUID.toString());
       replay(ZooUtil.class);
       expect(clientConf.withInstance(randomUUID)).andReturn(clientConf);
     }
@@ -213,7 +220,8 @@ public class ShellSetInstanceTest {
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
 
-    expectNew(ZooKeeperInstance.class, new Class<?>[] {ClientConfiguration.class}, clientConf).andReturn(theInstance);
+    expectNew(ZooKeeperInstance.class, new Class<?>[] {ClientConfiguration.class}, clientConf)
+        .andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
     shell.setInstance(opts);
@@ -236,13 +244,17 @@ public class ShellSetInstanceTest {
     expect(opts.isFake()).andReturn(false);
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(false);
-    expect(clientConf.getKeys()).andReturn(Arrays.asList(ClientProperty.INSTANCE_NAME.getKey(), ClientProperty.INSTANCE_ZK_HOST.getKey()).iterator());
-    expect(clientConf.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey())).andReturn(null);
+    expect(clientConf.getKeys()).andReturn(Arrays
+        .asList(ClientProperty.INSTANCE_NAME.getKey(), ClientProperty.INSTANCE_ZK_HOST.getKey())
+        .iterator());
+    expect(clientConf.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey()))
+        .andReturn(null);
     if (dashZ) {
       expect(clientConf.withInstance("foo")).andReturn(clientConf);
       expect(clientConf.getString(ClientProperty.INSTANCE_NAME.getKey())).andReturn("foo");
       expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
-      expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn("host1,host2");
+      expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey()))
+          .andReturn("host1,host2");
       List<String> zl = new java.util.ArrayList<>();
       zl.add("foo");
       zl.add("host1,host2");
@@ -252,7 +264,8 @@ public class ShellSetInstanceTest {
       expect(clientConf.withInstance("bar")).andReturn(clientConf);
       expect(clientConf.getString(ClientProperty.INSTANCE_NAME.getKey())).andReturn("bar");
       expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
-      expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn("host3,host4");
+      expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey()))
+          .andReturn("host3,host4");
       expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
@@ -261,7 +274,8 @@ public class ShellSetInstanceTest {
     replay(opts);
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
-    expectNew(ZooKeeperInstance.class, new Class<?>[] {ClientConfiguration.class}, clientConf).andReturn(theInstance);
+    expectNew(ZooKeeperInstance.class, new Class<?>[] {ClientConfiguration.class}, clientConf)
+        .andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
     shell.setInstance(opts);

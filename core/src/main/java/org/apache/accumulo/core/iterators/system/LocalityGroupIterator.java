@@ -51,12 +51,14 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       this.iterator = (InterruptibleIterator) localityGroup.iterator.deepCopy(env);
     }
 
-    public LocalityGroup(InterruptibleIterator iterator, Map<ByteSequence,MutableLong> columnFamilies, boolean isDefaultLocalityGroup) {
+    public LocalityGroup(InterruptibleIterator iterator,
+        Map<ByteSequence,MutableLong> columnFamilies, boolean isDefaultLocalityGroup) {
       this(columnFamilies, isDefaultLocalityGroup);
       this.iterator = iterator;
     }
 
-    public LocalityGroup(Map<ByteSequence,MutableLong> columnFamilies, boolean isDefaultLocalityGroup) {
+    public LocalityGroup(Map<ByteSequence,MutableLong> columnFamilies,
+        boolean isDefaultLocalityGroup) {
       this.isDefaultLocalityGroup = isDefaultLocalityGroup;
       this.columnFamilies = columnFamilies;
     }
@@ -136,13 +138,15 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
 
   /**
-   * This is the seek work horse for a HeapIterator with locality groups (uses by the InMemory and RFile mechanisms). This method will find the locality groups
-   * to use in the LocalityGroupContext, and will seek those groups.
+   * This is the seek work horse for a HeapIterator with locality groups (uses by the InMemory and
+   * RFile mechanisms). This method will find the locality groups to use in the
+   * LocalityGroupContext, and will seek those groups.
    *
    * @param hiter
    *          The heap iterator
@@ -158,8 +162,8 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
    * @throws IOException
    *           thrown if an locality group seek fails
    */
-  static final Collection<LocalityGroup> _seek(HeapIterator hiter, LocalityGroupContext lgContext, Range range, Collection<ByteSequence> columnFamilies,
-      boolean inclusive) throws IOException {
+  static final Collection<LocalityGroup> _seek(HeapIterator hiter, LocalityGroupContext lgContext,
+      Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     hiter.clear();
 
     Set<ByteSequence> cfSet;
@@ -191,7 +195,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
           if (!lgContext.groupByCf.keySet().containsAll(cfSet)) {
             // default LG may contain wanted and unwanted column families
             groups.add(lgContext.defaultGroup);
-          }// else - everything wanted is in other locality groups, so nothing to do
+          } // else - everything wanted is in other locality groups, so nothing to do
         } else {
           // must include the default group as it may include cfs not in our cfSet
           groups.add(lgContext.defaultGroup);
@@ -199,8 +203,10 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       }
 
       /*
-       * Need to consider the following cases for inclusive and exclusive (lgcf:locality group column family set, cf:column family set) lgcf and cf are disjoint
-       * lgcf and cf are the same cf contains lgcf lgcf contains cf lgccf and cf intersect but neither is a subset of the other
+       * Need to consider the following cases for inclusive and exclusive (lgcf:locality group
+       * column family set, cf:column family set) lgcf and cf are disjoint lgcf and cf are the same
+       * cf contains lgcf lgcf contains cf lgccf and cf intersect but neither is a subset of the
+       * other
        */
       if (!inclusive) {
         for (Entry<ByteSequence,LocalityGroup> entry : lgContext.groupByCf.entrySet()) {
@@ -233,7 +239,8 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   }
 
   /**
-   * This seek method will reuse the supplied LocalityGroupSeekCache if it can. Otherwise it will delegate to the _seek method.
+   * This seek method will reuse the supplied LocalityGroupSeekCache if it can. Otherwise it will
+   * delegate to the _seek method.
    *
    * @param hiter
    *          The heap iterator
@@ -251,8 +258,9 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
    * @throws IOException
    *           thrown if an locality group seek fails
    */
-  public static LocalityGroupSeekCache seek(HeapIterator hiter, LocalityGroupContext lgContext, Range range, Collection<ByteSequence> columnFamilies,
-      boolean inclusive, LocalityGroupSeekCache lgSeekCache) throws IOException {
+  public static LocalityGroupSeekCache seek(HeapIterator hiter, LocalityGroupContext lgContext,
+      Range range, Collection<ByteSequence> columnFamilies, boolean inclusive,
+      LocalityGroupSeekCache lgSeekCache) throws IOException {
     if (lgSeekCache == null)
       lgSeekCache = new LocalityGroupSeekCache();
 
@@ -276,8 +284,10 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
         lgr.getIterator().seek(range, EMPTY_CF_SET, false);
         hiter.addSource(lgr.getIterator());
       }
-    } else { // otherwise capture the parameters, and use the static seek method to locate the locality groups to use.
-      lgSeekCache.lastColumnFamilies = (cfSet == null ? ImmutableSet.copyOf(columnFamilies) : cfSet);
+    } else { // otherwise capture the parameters, and use the static seek method to locate the
+             // locality groups to use.
+      lgSeekCache.lastColumnFamilies = (cfSet == null ? ImmutableSet.copyOf(columnFamilies)
+          : cfSet);
       lgSeekCache.lastInclusive = inclusive;
       lgSeekCache.lastUsed = _seek(hiter, lgContext, range, columnFamilies, inclusive);
     }
@@ -286,7 +296,8 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     lgCache = seek(this, lgContext, range, columnFamilies, inclusive, lgCache);
   }
 

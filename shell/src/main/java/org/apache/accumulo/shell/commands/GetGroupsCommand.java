@@ -30,13 +30,16 @@ import org.apache.hadoop.io.Text;
 public class GetGroupsCommand extends Command {
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    final Map<String,Set<Text>> groups = shellState.getConnector().tableOperations().getLocalityGroups(tableName);
+    final Map<String,Set<Text>> groups = shellState.getConnector().tableOperations()
+        .getLocalityGroups(tableName);
 
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-      shellState.getReader().println(entry.getKey() + "=" + LocalityGroupUtil.encodeColumnFamilies(entry.getValue()));
+      shellState.getReader()
+          .println(entry.getKey() + "=" + LocalityGroupUtil.encodeColumnFamilies(entry.getValue()));
     }
     return 0;
   }

@@ -38,7 +38,8 @@ public class VerifyIndex extends Test {
     String tmpIndexTableName = indexTableName + "_tmp";
 
     // scan new and old index and verify identical
-    Scanner indexScanner1 = env.getConnector().createScanner(tmpIndexTableName, Authorizations.EMPTY);
+    Scanner indexScanner1 = env.getConnector().createScanner(tmpIndexTableName,
+        Authorizations.EMPTY);
     Scanner indexScanner2 = env.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
 
     Iterator<Entry<Key,Value>> iter = indexScanner2.iterator();
@@ -53,14 +54,16 @@ public class VerifyIndex extends Test {
       Key key2 = iter.next().getKey();
 
       if (!key1.equals(key2, PartialKey.ROW_COLFAM_COLQUAL))
-        throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName + " " + tmpIndexTableName);
+        throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName
+            + " " + tmpIndexTableName);
       count++;
       if (count % 1000 == 0)
         makingProgress();
     }
 
     if (iter.hasNext())
-      throw new Exception("index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
+      throw new Exception(
+          "index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
 
     log.debug("Verified " + count + " index entries ");
 

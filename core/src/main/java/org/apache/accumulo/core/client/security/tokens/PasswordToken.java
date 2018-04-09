@@ -52,8 +52,9 @@ public class PasswordToken implements AuthenticationToken {
   }
 
   /**
-   * Constructs a token from a copy of the password. Destroying the argument after construction will not destroy the copy in this token, and destroying this
-   * token will only destroy the copy held inside this token, not the argument.
+   * Constructs a token from a copy of the password. Destroying the argument after construction will
+   * not destroy the copy in this token, and destroying this token will only destroy the copy held
+   * inside this token, not the argument.
    *
    * Password tokens created with this constructor will store the password as UTF-8 bytes.
    */
@@ -62,16 +63,18 @@ public class PasswordToken implements AuthenticationToken {
   }
 
   /**
-   * Constructs a token from a copy of the password. Destroying the argument after construction will not destroy the copy in this token, and destroying this
-   * token will only destroy the copy held inside this token, not the argument.
+   * Constructs a token from a copy of the password. Destroying the argument after construction will
+   * not destroy the copy in this token, and destroying this token will only destroy the copy held
+   * inside this token, not the argument.
    */
   public PasswordToken(byte[] password) {
     this.password = Arrays.copyOf(password, password.length);
   }
 
   /**
-   * Constructs a token from a copy of the password. Destroying the argument after construction will not destroy the copy in this token, and destroying this
-   * token will only destroy the copy held inside this token, not the argument.
+   * Constructs a token from a copy of the password. Destroying the argument after construction will
+   * not destroy the copy in this token, and destroying this token will only destroy the copy held
+   * inside this token, not the argument.
    */
   public PasswordToken(ByteBuffer password) {
     this.password = ByteBufferUtil.toBytes(password);
@@ -106,8 +109,10 @@ public class PasswordToken implements AuthenticationToken {
   @Override
   public boolean equals(Object obj) {
     // Instances of PasswordToken should only be considered equal if they are of the same type.
-    // This check is done here to ensure that this class is equal to the class of the object being checked.
-    return this == obj || (obj != null && getClass().equals(obj.getClass()) && Arrays.equals(password, ((PasswordToken) obj).password));
+    // This check is done here to ensure that this class is equal to the class of the object being
+    // checked.
+    return this == obj || (obj != null && getClass().equals(obj.getClass())
+        && Arrays.equals(password, ((PasswordToken) obj).password));
   }
 
   @Override

@@ -48,7 +48,8 @@ public class Fate<T> {
   private T environment;
   private ExecutorService executor;
 
-  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
+  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED,
+      TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
   private AtomicBoolean keepRunning = new AtomicBoolean(true);
 
@@ -91,7 +92,8 @@ public class Fate<T> {
               try {
                 store.push(tid, op);
               } catch (StackOverflowException e) {
-                // the op that failed to push onto the stack was never executed, so no need to undo it
+                // the op that failed to push onto the stack was never executed, so no need to undo
+                // it
                 // just transition to failed and undo the ops that executed
                 transitionToFailed(tid, op, e);
                 continue;
@@ -161,7 +163,8 @@ public class Fate<T> {
   /**
    * Creates a Fault-tolerant executor.
    * <p>
-   * Note: Users of this class should call {@link #startTransactionRunners(int)} to launch the worker threads after creating a Fate object.
+   * Note: Users of this class should call {@link #startTransactionRunners(int)} to launch the
+   * worker threads after creating a Fate object.
    */
   public Fate(T environment, TStore<T> store) {
     this.store = store;
@@ -177,7 +180,8 @@ public class Fate<T> {
 
       @Override
       public Thread newThread(Runnable r) {
-        Thread t = new Thread(new LoggingRunnable(log, r), "Repo runner " + runnerCount.getAndIncrement());
+        Thread t = new Thread(new LoggingRunnable(log, r),
+            "Repo runner " + runnerCount.getAndIncrement());
         t.setDaemon(true);
         return t;
       }
@@ -239,7 +243,8 @@ public class Fate<T> {
           break;
         case FAILED_IN_PROGRESS:
         case IN_PROGRESS:
-          throw new IllegalStateException("Can not delete in progress transaction " + String.format("%016x", tid));
+          throw new IllegalStateException(
+              "Can not delete in progress transaction " + String.format("%016x", tid));
         case UNKNOWN:
           // nothing to do, it does not exist
           break;
@@ -253,7 +258,8 @@ public class Fate<T> {
     store.reserve(tid);
     try {
       if (store.getStatus(tid) != TStatus.SUCCESSFUL)
-        throw new IllegalStateException("Tried to get exception when transaction " + String.format("%016x", tid) + " not in successful state");
+        throw new IllegalStateException("Tried to get exception when transaction "
+            + String.format("%016x", tid) + " not in successful state");
       return (String) store.getProperty(tid, RETURN_PROP);
     } finally {
       store.unreserve(tid, 0);
@@ -265,7 +271,8 @@ public class Fate<T> {
     store.reserve(tid);
     try {
       if (store.getStatus(tid) != TStatus.FAILED)
-        throw new IllegalStateException("Tried to get exception when transaction " + String.format("%016x", tid) + " not in failed state");
+        throw new IllegalStateException("Tried to get exception when transaction "
+            + String.format("%016x", tid) + " not in failed state");
       return (Exception) store.getProperty(tid, EXCEPTION_PROP);
     } finally {
       store.unreserve(tid, 0);

@@ -37,8 +37,9 @@ public class TableExistsException extends Exception {
    *          the specific reason why it failed
    */
   public TableExistsException(String tableId, String tableName, String description) {
-    super("Table" + (tableName != null && !tableName.isEmpty() ? " " + tableName : "") + (tableId != null && !tableId.isEmpty() ? " (Id=" + tableId + ")" : "")
-        + " exists" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super("Table" + (tableName != null && !tableName.isEmpty() ? " " + tableName : "")
+        + (tableId != null && !tableId.isEmpty() ? " (Id=" + tableId + ")" : "") + " exists"
+        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
   }
 
   /**
@@ -51,7 +52,8 @@ public class TableExistsException extends Exception {
    * @param cause
    *          the exception that caused this failure
    */
-  public TableExistsException(String tableId, String tableName, String description, Throwable cause) {
+  public TableExistsException(String tableId, String tableName, String description,
+      Throwable cause) {
     this(tableId, tableName, description);
     super.initCause(cause);
   }

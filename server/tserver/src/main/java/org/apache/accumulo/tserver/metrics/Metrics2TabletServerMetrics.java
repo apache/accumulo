@@ -31,15 +31,17 @@ import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 /**
  *
  */
-public class Metrics2TabletServerMetrics implements Metrics, MetricsSource, TabletServerMetricsKeys {
-  public static final String NAME = TSERVER_NAME + ",sub=General", DESCRIPTION = "General TabletServer Metrics", CONTEXT = "tserver", RECORD = "general";
+public class Metrics2TabletServerMetrics
+    implements Metrics, MetricsSource, TabletServerMetricsKeys {
+  public static final String NAME = TSERVER_NAME + ",sub=General",
+      DESCRIPTION = "General TabletServer Metrics", CONTEXT = "tserver", RECORD = "general";
 
   private final TabletServerMetricsUtil util;
   private final MetricsSystem system;
   private final MetricsRegistry registry;
 
-  private final MutableGaugeLong entries, entriesInMemory, activeMajcs, queuedMajcs, activeMincs, queuedMincs, onlineTablets, openingTablets, unopenedTablets,
-      queries, totalMincs;
+  private final MutableGaugeLong entries, entriesInMemory, activeMajcs, queuedMajcs, activeMincs,
+      queuedMincs, onlineTablets, openingTablets, unopenedTablets, queries, totalMincs;
 
   // Use TabletServerMetricsFactory
   Metrics2TabletServerMetrics(TabletServer tserver, MetricsSystem system) {
@@ -49,16 +51,24 @@ public class Metrics2TabletServerMetrics implements Metrics, MetricsSource, Tabl
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
 
     entries = registry.newGauge(Interns.info(ENTRIES, "Number of entries"), 0l);
-    entriesInMemory = registry.newGauge(Interns.info(ENTRIES_IN_MEM, "Number of entries in memory"), 0l);
-    activeMajcs = registry.newGauge(Interns.info(ACTIVE_MAJCS, "Number of active major compactions"), 0l);
-    queuedMajcs = registry.newGauge(Interns.info(QUEUED_MAJCS, "Number of queued major compactions"), 0l);
-    activeMincs = registry.newGauge(Interns.info(ACTIVE_MINCS, "Number of active minor compactions"), 0l);
-    queuedMincs = registry.newGauge(Interns.info(QUEUED_MINCS, "Number of queued minor compactions"), 0l);
+    entriesInMemory = registry.newGauge(Interns.info(ENTRIES_IN_MEM, "Number of entries in memory"),
+        0l);
+    activeMajcs = registry
+        .newGauge(Interns.info(ACTIVE_MAJCS, "Number of active major compactions"), 0l);
+    queuedMajcs = registry
+        .newGauge(Interns.info(QUEUED_MAJCS, "Number of queued major compactions"), 0l);
+    activeMincs = registry
+        .newGauge(Interns.info(ACTIVE_MINCS, "Number of active minor compactions"), 0l);
+    queuedMincs = registry
+        .newGauge(Interns.info(QUEUED_MINCS, "Number of queued minor compactions"), 0l);
     onlineTablets = registry.newGauge(Interns.info(ONLINE_TABLETS, "Number of online tablets"), 0l);
-    openingTablets = registry.newGauge(Interns.info(OPENING_TABLETS, "Number of opening tablets"), 0l);
-    unopenedTablets = registry.newGauge(Interns.info(UNOPENED_TABLETS, "Number of unopened tablets"), 0l);
+    openingTablets = registry.newGauge(Interns.info(OPENING_TABLETS, "Number of opening tablets"),
+        0l);
+    unopenedTablets = registry
+        .newGauge(Interns.info(UNOPENED_TABLETS, "Number of unopened tablets"), 0l);
     queries = registry.newGauge(Interns.info(QUERIES, "Number of queries"), 0l);
-    totalMincs = registry.newGauge(Interns.info(TOTAL_MINCS, "Total number of minor compactions performed"), 0l);
+    totalMincs = registry
+        .newGauge(Interns.info(TOTAL_MINCS, "Total number of minor compactions performed"), 0l);
   }
 
   @Override
@@ -101,9 +111,17 @@ public class Metrics2TabletServerMetrics implements Metrics, MetricsSource, Tabl
     // Add then all to the builder
     registry.snapshot(builder, all);
 
-    // TODO Some day, MetricsRegistry will also support the MetricsGaugeDouble or allow us to instantiate it directly
-    builder.addGauge(Interns.info(FILES_PER_TABLET, "Number of files per tablet"), util.getAverageFilesPerTablet());
+    // TODO Some day, MetricsRegistry will also support the MetricsGaugeDouble or allow us to
+    // instantiate it directly
+    builder.addGauge(Interns.info(FILES_PER_TABLET, "Number of files per tablet"),
+        util.getAverageFilesPerTablet());
     builder.addGauge(Interns.info(HOLD_TIME, "Time commits held"), util.getHoldTime());
+    builder.addGauge(Interns.info(INGEST_RATE, "Ingest rate (entries/sec)"), util.getIngest());
+    builder.addGauge(Interns.info(INGEST_BYTE_RATE, "Ingest rate (bytes/sec)"),
+        util.getIngestByteRate());
+    builder.addGauge(Interns.info(QUERY_RATE, "Query rate (entries/sec)"), util.getQueryRate());
+    builder.addGauge(Interns.info(QUERY_BYTE_RATE, "Query rate (bytes/sec)"),
+        util.getQueryByteRate());
+    builder.addGauge(Interns.info(SCANNED_RATE, "Scanned rate"), util.getScannedRate());
   }
-
 }

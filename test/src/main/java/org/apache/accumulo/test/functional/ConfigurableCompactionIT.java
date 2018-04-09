@@ -91,9 +91,11 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(), SimpleCompactionStrategy.class.getName());
+    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+        SimpleCompactionStrategy.class.getName());
     runTest(c, tableName, 3);
-    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
+    c.tableOperations().setProperty(tableName,
+        Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
     runTest(c, tableName, 5);
   }
 
@@ -101,13 +103,17 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
   public void testPerTableClasspath() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
-    File destFile = installJar(getCluster().getConfig().getAccumuloDir(), "/TestCompactionStrat.jar");
+    File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
+        "/TestCompactionStrat.jar");
     c.tableOperations().create(tableName);
-    c.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
+    c.instanceOperations().setProperty(
+        Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
     c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
-    // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are compacted.
-    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(), "org.apache.accumulo.test.EfgCompactionStrat");
+    // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
+    // compacted.
+    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+        "org.apache.accumulo.test.EfgCompactionStrat");
 
     c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
 
@@ -121,7 +127,8 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   private static File installJar(File destDir, String jarFile) throws IOException {
     File destName = new File(destDir, new File(jarFile).getName());
-    FileUtils.copyInputStreamToFile(ConfigurableCompactionIT.class.getResourceAsStream(jarFile), destName);
+    FileUtils.copyInputStreamToFile(ConfigurableCompactionIT.class.getResourceAsStream(jarFile),
+        destName);
     return destName;
   }
 

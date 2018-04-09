@@ -62,7 +62,8 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     resultSet3.add(new Key("part2", "", "DOC2"));
   }
 
-  private void checkResults(final Iterable<Entry<Key,Value>> scanner, final List<Key> results, final PartialKey pk) {
+  private void checkResults(final Iterable<Entry<Key,Value>> scanner, final List<Key> results,
+      final PartialKey pk) {
     int i = 0;
     for (Entry<Key,Value> entry : scanner) {
       assertTrue(entry.getKey().equals(results.get(i++), pk));
@@ -99,7 +100,8 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(conn.createScanner(tableName, new Authorizations()));
+    final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(
+        conn.createScanner(tableName, new Authorizations()));
     final IteratorSetting si = new IteratorSetting(10, tableName, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
     csis.addScanIterator(si);

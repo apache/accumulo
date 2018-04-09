@@ -29,14 +29,16 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- * An implementation of {@link IteratorEnvironment} that throws {@link UnsupportedOperationException} for each operation. This is useful for situations that
- * need to extend {@link IteratorEnvironment} and implement a subset of the methods.
+ * An implementation of {@link IteratorEnvironment} that throws
+ * {@link UnsupportedOperationException} for each operation. This is useful for situations that need
+ * to extend {@link IteratorEnvironment} and implement a subset of the methods.
  */
 
 public class BaseIteratorEnvironment implements IteratorEnvironment {
 
   @Override
-  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+      throws IOException {
     throw new UnsupportedOperationException();
   }
 

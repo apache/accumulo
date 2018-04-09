@@ -51,8 +51,8 @@ public class RowOperations {
   private static String tableName = "example";
   private static BatchWriter bw;
 
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
-      MutationsRejectedException {
+  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException, MutationsRejectedException {
 
     ClientOpts opts = new ClientOpts();
     ScannerOpts scanOpts = new ScannerOpts();
@@ -82,20 +82,32 @@ public class RowOperations {
     Text col4 = new Text("4");
 
     // Now we'll add them to the mutations
-    mut1.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut1.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut1.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut1.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut1.put(new Text("column"), col1, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut1.put(new Text("column"), col2, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut1.put(new Text("column"), col3, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut1.put(new Text("column"), col4, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
 
-    mut2.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut2.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut2.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut2.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut2.put(new Text("column"), col1, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut2.put(new Text("column"), col2, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut2.put(new Text("column"), col3, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut2.put(new Text("column"), col4, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
 
-    mut3.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut3.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut3.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
-    mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
+    mut3.put(new Text("column"), col1, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut3.put(new Text("column"), col2, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut3.put(new Text("column"), col3, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
+    mut3.put(new Text("column"), col4, System.currentTimeMillis(),
+        new Value("This is the value for this key".getBytes(UTF_8)));
 
     // Now we'll make a Batch Writer
     bw = connector.createBatchWriter(tableName, bwOpts.getBatchWriterConfig());
@@ -169,7 +181,8 @@ public class RowOperations {
   /**
    * Deletes a row given a text object
    */
-  private static void deleteRow(ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private static void deleteRow(ScannerOpts scanOpts, Text row)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     deleteRow(getRow(scanOpts, row));
   }
 
@@ -202,7 +215,8 @@ public class RowOperations {
   /**
    * Gets a scanner over one row
    */
-  private static Scanner getRow(ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private static Scanner getRow(ScannerOpts scanOpts, Text row)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Create a scanner
     Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
     scanner.setBatchSize(scanOpts.scanBatchSize);

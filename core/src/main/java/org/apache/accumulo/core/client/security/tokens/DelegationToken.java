@@ -20,13 +20,16 @@ package org.apache.accumulo.core.client.security.tokens;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 
 /**
- * An {@link AuthenticationToken} that wraps a "Hadoop style" delegation token created by Accumulo. The intended scope of this token is when a KerberosToken
- * cannot be used instead. The most common reason for this is within YARN jobs. The Kerberos credentials of the user are not passed over the wire to the job
- * itself. The delegation token serves as a mechanism to obtain a transient shared secret with Accumulo using a {@link KerberosToken} and then run some task
- * authenticating with that shared secret.
+ * An {@link AuthenticationToken} that wraps a "Hadoop style" delegation token created by Accumulo.
+ * The intended scope of this token is when a KerberosToken cannot be used instead. The most common
+ * reason for this is within YARN jobs. The Kerberos credentials of the user are not passed over the
+ * wire to the job itself. The delegation token serves as a mechanism to obtain a transient shared
+ * secret with Accumulo using a {@link KerberosToken} and then run some task authenticating with
+ * that shared secret.
  *
  * <p>
- * Obtain a delegation token by calling {@link SecurityOperations#getDelegationToken(org.apache.accumulo.core.client.admin.DelegationTokenConfig)}
+ * Obtain a delegation token by calling
+ * {@link SecurityOperations#getDelegationToken(org.apache.accumulo.core.client.admin.DelegationTokenConfig)}
  *
  * @since 1.7.0
  */

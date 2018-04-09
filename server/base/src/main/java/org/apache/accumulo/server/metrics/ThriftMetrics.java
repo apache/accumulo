@@ -30,7 +30,8 @@ public class ThriftMetrics extends AbstractMetricsImpl implements ThriftMetricsM
     super();
     reset();
     try {
-      OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=" + serverName + ",name=ThriftMetricsMBean,instance=" + threadName);
+      OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=" + serverName
+          + ",name=ThriftMetricsMBean,instance=" + threadName);
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }

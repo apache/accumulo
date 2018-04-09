@@ -27,8 +27,8 @@ import org.apache.accumulo.server.fs.FileRef;
 import com.google.common.collect.Sets;
 
 /**
- * A plan for a compaction: the input files, the files that are *not* inputs to a compaction that should simply be deleted, and the optional parameters used to
- * create the resulting output file.
+ * A plan for a compaction: the input files, the files that are *not* inputs to a compaction that
+ * should simply be deleted, and the optional parameters used to create the resulting output file.
  */
 public class CompactionPlan {
   public final List<FileRef> inputFiles = new ArrayList<>();
@@ -81,7 +81,8 @@ public class CompactionPlan {
     }
 
     if (!Collections.disjoint(inputSet, deleteSet)) {
-      throw new IllegalStateException("plan contains overlap in inputFiles and deleteFiles " + Sets.intersection(inputSet, deleteSet));
+      throw new IllegalStateException("plan contains overlap in inputFiles and deleteFiles "
+          + Sets.intersection(inputSet, deleteSet));
     }
   }
 }

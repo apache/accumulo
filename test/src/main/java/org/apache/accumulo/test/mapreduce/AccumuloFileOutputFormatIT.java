@@ -63,8 +63,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private String TEST_TABLE;
   private String EMPTY_TABLE;
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption(
-      "modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
+      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -72,7 +72,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setup() throws Exception {
@@ -114,7 +115,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       int index = 0;
 
       @Override
-      protected void map(Key key, Value value, Context context) throws IOException, InterruptedException {
+      protected void map(Key key, Value value, Context context)
+          throws IOException, InterruptedException {
         String table = context.getConfiguration().get("MRTester_tableName");
         assertNotNull(table);
         try {
@@ -147,14 +149,16 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 2) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table> <outputfile>");
+        throw new IllegalArgumentException(
+            "Usage : " + MRTester.class.getName() + " <table> <outputfile>");
       }
 
       String table = args[0];
       assertionErrors.put(table + "_map", new AssertionError("Dummy_map"));
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
-      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(),
+          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloInputFormat.class);
@@ -165,7 +169,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[1]));
       AccumuloFileOutputFormat.setSampler(job, SAMPLER_CONFIG);
 
-      job.setMapperClass(table.endsWith("_mapreduce_bad_table") ? BadKeyMapper.class : Mapper.class);
+      job.setMapperClass(
+          table.endsWith("_mapreduce_bad_table") ? BadKeyMapper.class : Mapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
       job.setOutputFormatClass(AccumuloFileOutputFormat.class);
@@ -181,7 +186,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
@@ -205,16 +211,19 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       Configuration conf = CachedConfiguration.getInstance();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
-      FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder().forFile(files[0].toString(), FileSystem.get(conf), conf)
-          .withTableConfiguration(acuconf).build().getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
+      FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
+          .forFile(files[0].toString(), FileSystem.get(conf), conf).withTableConfiguration(acuconf)
+          .build().getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);
     } else {
       assertEquals(0, files.length);
     }
   }
 
-  // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to ensure test correctness),
-  // so error tests should check to see if there is at least one error (could be more depending on the test) rather than zero
+  // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to
+  // ensure test correctness),
+  // so error tests should check to see if there is at least one error (could be more depending on
+  // the test) rather than zero
   private static Multimap<String,AssertionError> assertionErrors = ArrayListMultimap.create();
 
   @Test

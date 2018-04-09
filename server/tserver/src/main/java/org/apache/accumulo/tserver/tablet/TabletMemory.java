@@ -81,7 +81,8 @@ class TabletMemory implements Closeable {
     commitSession = new CommitSession(tablet, nextSeq, memTable);
     nextSeq += 2;
 
-    tablet.updateMemoryUsageStats(memTable.estimatedSizeInBytes(), otherMemTable.estimatedSizeInBytes());
+    tablet.updateMemoryUsageStats(memTable.estimatedSizeInBytes(),
+        otherMemTable.estimatedSizeInBytes());
 
     return oldCommitSession;
   }

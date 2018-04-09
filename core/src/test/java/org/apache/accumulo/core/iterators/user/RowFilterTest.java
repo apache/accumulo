@@ -65,13 +65,15 @@ public class RowFilterTest {
       }
 
       // ensure that seeks are confined to the row
-      rowIterator.seek(new Range(null, false, firstKey == null ? null : firstKey.getRow(), false), new HashSet<ByteSequence>(), false);
+      rowIterator.seek(new Range(null, false, firstKey == null ? null : firstKey.getRow(), false),
+          new HashSet<ByteSequence>(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
       }
 
-      rowIterator.seek(new Range(firstKey == null ? null : firstKey.getRow(), false, null, true), new HashSet<ByteSequence>(), false);
+      rowIterator.seek(new Range(firstKey == null ? null : firstKey.getRow(), false, null, true),
+          new HashSet<ByteSequence>(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
@@ -178,7 +180,8 @@ public class RowFilterTest {
 
   @Test
   public void test1() throws Exception {
-    ColumnFamilySkippingIterator source = new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
+    ColumnFamilySkippingIterator source = new ColumnFamilySkippingIterator(
+        new SortedMapIterator(createKeyValues()));
 
     RowFilter filter = new SummingRowFilter();
     filter.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
@@ -280,7 +283,8 @@ public class RowFilterTest {
     Key finalKeyRead = filter.getTopKey();
 
     // Make sure we got a Key that was greater than the last Key we read from the original RowFilter
-    assertTrue("Expected next key read to be greater than the previous after deepCopy", lastKeyRead.compareTo(finalKeyRead) < 0);
+    assertTrue("Expected next key read to be greater than the previous after deepCopy",
+        lastKeyRead.compareTo(finalKeyRead) < 0);
   }
 
   private HashSet<String> getRows(RowFilter filter) throws IOException {

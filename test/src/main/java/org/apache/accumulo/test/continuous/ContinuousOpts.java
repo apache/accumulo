@@ -39,7 +39,8 @@ public class ContinuousOpts {
       logger.setLevel(Level.TRACE);
       logger.setAdditivity(false);
       try {
-        logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
+        logger.addAppender(new FileAppender(
+            new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
@@ -60,21 +61,25 @@ public class ContinuousOpts {
   @Parameter(names = "--max", description = "maximum random row number to use")
   long max = Long.MAX_VALUE;
 
-  @Parameter(names = "--debugLog", description = "file to write debugging output", converter = DebugConverter.class)
+  @Parameter(names = "--debugLog", description = "file to write debugging output",
+      converter = DebugConverter.class)
   String debugLog = null;
 
   @Parameter(names = "--num", description = "the number of entries to ingest")
   long num = Long.MAX_VALUE;
 
-  @Parameter(names = "--maxColF", description = "maximum column family value to use", converter = ShortConverter.class)
+  @Parameter(names = "--maxColF", description = "maximum column family value to use",
+      converter = ShortConverter.class)
   short maxColF = Short.MAX_VALUE;
 
-  @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use", converter = ShortConverter.class)
+  @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use",
+      converter = ShortConverter.class)
   short maxColQ = Short.MAX_VALUE;
 
   @Parameter(names = "--addCheckSum", description = "turn on checksums")
   boolean checksum = false;
 
-  @Parameter(names = "--visibilities", description = "read the visibilities to ingest with from a file")
+  @Parameter(names = "--visibilities",
+      description = "read the visibilities to ingest with from a file")
   String visFile = null;
 }

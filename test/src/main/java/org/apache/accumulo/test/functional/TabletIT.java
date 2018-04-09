@@ -75,14 +75,16 @@ public class TabletIT extends AccumuloClusterHarness {
 
       // presplit
       connector.tableOperations().create(tableName);
-      connector.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
+      connector.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "200");
       connector.tableOperations().addSplits(tableName, keys);
       BatchWriter b = connector.createBatchWriter(tableName, new BatchWriterConfig());
 
       // populate
       for (int i = 0; i < N; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(UTF_8)));
+        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
+            new Value("junk".getBytes(UTF_8)));
         b.addMutation(m);
       }
       b.close();

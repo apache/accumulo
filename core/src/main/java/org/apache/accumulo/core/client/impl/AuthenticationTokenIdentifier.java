@@ -56,7 +56,8 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     this.cfg = cfg;
   }
 
-  public AuthenticationTokenIdentifier(String principal, int keyId, long issueDate, long expirationDate, String instanceId) {
+  public AuthenticationTokenIdentifier(String principal, int keyId, long issueDate,
+      long expirationDate, String instanceId) {
     requireNonNull(principal);
     impl = new TAuthenticationTokenIdentifier(principal);
     impl.setKeyId(keyId);

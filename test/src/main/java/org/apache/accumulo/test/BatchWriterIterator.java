@@ -51,9 +51,11 @@ import org.slf4j.LoggerFactory;
 /**
  * Iterator that opens a BatchWriter and writes to another table.
  * <p>
- * For each entry passed to this iterator, this writes a certain number of entries with the same key to another table and passes the entry downstream of this
- * iterator with its value replaced by either "{@value #SUCCESS_STRING}" or a description of what failed. Success counts as all entries writing to the result
- * table within a timeout period. Failure counts as one of the entries taking longer than the timeout period.
+ * For each entry passed to this iterator, this writes a certain number of entries with the same key
+ * to another table and passes the entry downstream of this iterator with its value replaced by
+ * either "{@value #SUCCESS_STRING}" or a description of what failed. Success counts as all entries
+ * writing to the result table within a timeout period. Failure counts as one of the entries taking
+ * longer than the timeout period.
  * <p>
  * Configure this iterator by calling the static {@link #iteratorSetting} method.
  */
@@ -69,9 +71,12 @@ public class BatchWriterIterator extends WrappingIterator {
   private boolean clearCacheAfterFirstWrite = false;
   private boolean splitAfterFirstWrite = false;
 
-  public static final String OPT_sleepAfterFirstWrite = "sleepAfterFirstWrite", OPT_numEntriesToWritePerEntry = "numEntriesToWritePerEntry",
-      OPT_batchWriterTimeout = "batchWriterTimeout", OPT_batchWriterMaxMemory = "batchWriterMaxMemory",
-      OPT_clearCacheAfterFirstWrite = "clearCacheAfterFirstWrite", OPT_splitAfterFirstWrite = "splitAfterFirstWrite";
+  public static final String OPT_sleepAfterFirstWrite = "sleepAfterFirstWrite",
+      OPT_numEntriesToWritePerEntry = "numEntriesToWritePerEntry",
+      OPT_batchWriterTimeout = "batchWriterTimeout",
+      OPT_batchWriterMaxMemory = "batchWriterMaxMemory",
+      OPT_clearCacheAfterFirstWrite = "clearCacheAfterFirstWrite",
+      OPT_splitAfterFirstWrite = "splitAfterFirstWrite";
 
   private String instanceName;
   private String tableName;
@@ -80,8 +85,9 @@ public class BatchWriterIterator extends WrappingIterator {
   private String username;
   private AuthenticationToken auth = null;
 
-  public static final String ZOOKEEPERHOST = "zookeeperHost", INSTANCENAME = "instanceName", TABLENAME = "tableName", USERNAME = "username",
-      ZOOKEEPERTIMEOUT = "zookeeperTimeout", AUTHENTICATION_TOKEN = "authenticationToken", // base64 encoding of token
+  public static final String ZOOKEEPERHOST = "zookeeperHost", INSTANCENAME = "instanceName",
+      TABLENAME = "tableName", USERNAME = "username", ZOOKEEPERTIMEOUT = "zookeeperTimeout",
+      AUTHENTICATION_TOKEN = "authenticationToken", // base64 encoding of token
       AUTHENTICATION_TOKEN_CLASS = "authenticationTokenClass"; // class of token
 
   private BatchWriter batchWriter;
@@ -92,16 +98,21 @@ public class BatchWriterIterator extends WrappingIterator {
   public static final String SUCCESS_STRING = "success";
   public static final Value SUCCESS_VALUE = new Value(SUCCESS_STRING.getBytes());
 
-  public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite, long batchWriterTimeout, long batchWriterMaxMemory,
-      int numEntriesToWrite, String tableName, Connector connector, AuthenticationToken token, boolean clearCacheAfterFirstWrite, boolean splitAfterFirstWrite) {
-    return iteratorSetting(priority, sleepAfterFirstWrite, batchWriterTimeout, batchWriterMaxMemory, numEntriesToWrite, tableName, connector.getInstance()
-        .getZooKeepers(), connector.getInstance().getInstanceName(), connector.getInstance().getZooKeepersSessionTimeOut(), connector.whoami(), token,
+  public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite,
+      long batchWriterTimeout, long batchWriterMaxMemory, int numEntriesToWrite, String tableName,
+      Connector connector, AuthenticationToken token, boolean clearCacheAfterFirstWrite,
+      boolean splitAfterFirstWrite) {
+    return iteratorSetting(priority, sleepAfterFirstWrite, batchWriterTimeout, batchWriterMaxMemory,
+        numEntriesToWrite, tableName, connector.getInstance().getZooKeepers(),
+        connector.getInstance().getInstanceName(),
+        connector.getInstance().getZooKeepersSessionTimeOut(), connector.whoami(), token,
         clearCacheAfterFirstWrite, splitAfterFirstWrite);
   }
 
-  public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite, long batchWriterTimeout, long batchWriterMaxMemory,
-      int numEntriesToWrite, String tableName, String zookeeperHost, String instanceName, int zookeeperTimeout, String username, AuthenticationToken token,
-      boolean clearCacheAfterFirstWrite, boolean splitAfterFirstWrite) {
+  public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite,
+      long batchWriterTimeout, long batchWriterMaxMemory, int numEntriesToWrite, String tableName,
+      String zookeeperHost, String instanceName, int zookeeperTimeout, String username,
+      AuthenticationToken token, boolean clearCacheAfterFirstWrite, boolean splitAfterFirstWrite) {
     IteratorSetting itset = new IteratorSetting(priority, BatchWriterIterator.class);
     itset.addOption(OPT_sleepAfterFirstWrite, Integer.toString(sleepAfterFirstWrite));
     itset.addOption(OPT_numEntriesToWritePerEntry, Integer.toString(numEntriesToWrite));
@@ -122,7 +133,8 @@ public class BatchWriterIterator extends WrappingIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     parseOptions(options);
     initBatchWriter();
@@ -156,7 +168,8 @@ public class BatchWriterIterator extends WrappingIterator {
   }
 
   private void initBatchWriter() {
-    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost).withZkTimeout(zookeeperTimeout);
+    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName)
+        .withZkHosts(zookeeperHost).withZkTimeout(zookeeperTimeout);
     Instance instance = new ZooKeeperInstance(cc);
     try {
       connector = instance.getConnector(username, auth);
@@ -236,7 +249,8 @@ public class BatchWriterIterator extends WrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     super.seek(range, columnFamilies, inclusive);
     if (hasTop())
       processNext();

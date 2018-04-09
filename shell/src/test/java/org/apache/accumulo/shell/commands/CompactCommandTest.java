@@ -24,7 +24,8 @@ public class CompactCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is exclusive", new CompactCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
+    assertTrue("-b should say it is exclusive",
+        new CompactCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
   }
 
 }

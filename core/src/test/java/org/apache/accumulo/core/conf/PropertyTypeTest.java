@@ -46,14 +46,17 @@ public class PropertyTypeTest {
       try {
         type = PropertyType.valueOf(tn.substring(8));
       } catch (IllegalArgumentException e) {
-        throw new AssertionError("Unexpected test method for non-existent " + PropertyType.class.getSimpleName() + "." + tn.substring(8));
+        throw new AssertionError("Unexpected test method for non-existent "
+            + PropertyType.class.getSimpleName() + "." + tn.substring(8));
       }
     }
   }
 
   @Test
   public void testGetFormatDescription() {
-    assertEquals("An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies.",
+    assertEquals(
+        "An arbitrary string of characters whose format is unspecified"
+            + " and interpreted based on the context of the property to which it" + " applies.",
         PropertyType.STRING.getFormatDescription());
   }
 
@@ -64,15 +67,17 @@ public class PropertyTypeTest {
 
   @Test
   public void testFullCoverage() {
-    // This test checks the remainder of the methods in this class to ensure each property type has a corresponding test
-    Iterable<String> types = Iterables.transform(Arrays.asList(PropertyType.values()), new Function<PropertyType,String>() {
-      @Override
-      public String apply(final PropertyType input) {
-        return input.name();
-      }
-    });
-    Iterable<String> typesTested = Iterables.transform(
-        Iterables.filter(Iterables.transform(Arrays.asList(this.getClass().getMethods()), new Function<Method,String>() {
+    // This test checks the remainder of the methods in this class to ensure each property type has
+    // a corresponding test
+    Iterable<String> types = Iterables.transform(Arrays.asList(PropertyType.values()),
+        new Function<PropertyType,String>() {
+          @Override
+          public String apply(final PropertyType input) {
+            return input.name();
+          }
+        });
+    Iterable<String> typesTested = Iterables.transform(Iterables.filter(Iterables
+        .transform(Arrays.asList(this.getClass().getMethods()), new Function<Method,String>() {
           @Override
           public String apply(final Method input) {
             return input.getName();
@@ -89,20 +94,25 @@ public class PropertyTypeTest {
           }
         });
     for (String t : types) {
-      assertTrue(PropertyType.class.getSimpleName() + "." + t + " does not have a test.", Iterables.contains(typesTested, t));
+      assertTrue(PropertyType.class.getSimpleName() + "." + t + " does not have a test.",
+          Iterables.contains(typesTested, t));
     }
     assertEquals(Iterables.size(types), Iterables.size(typesTested));
   }
 
   private void valid(final String... args) {
     for (String s : args) {
-      assertTrue(s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name(), type.isValidFormat(s));
+      assertTrue(
+          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name(),
+          type.isValidFormat(s));
     }
   }
 
   private void invalid(final String... args) {
     for (String s : args) {
-      assertFalse(s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name(), type.isValidFormat(s));
+      assertFalse(
+          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name(),
+          type.isValidFormat(s));
     }
   }
 
@@ -125,14 +135,16 @@ public class PropertyTypeTest {
 
   @Test
   public void testTypeCLASSNAME() {
-    valid(null, "", String.class.getName(), String.class.getName() + "$1", String.class.getName() + "$TestClass");
+    valid(null, "", String.class.getName(), String.class.getName() + "$1",
+        String.class.getName() + "$TestClass");
     invalid("abc-def", "-", "!@#$%");
   }
 
   @Test
   public void testTypeCLASSNAMELIST() {
     testTypeCLASSNAME(); // test single class name
-    valid(null, Joiner.on(",").join(String.class.getName(), String.class.getName() + "$1", String.class.getName() + "$TestClass"));
+    valid(null, Joiner.on(",").join(String.class.getName(), String.class.getName() + "$1",
+        String.class.getName() + "$TestClass"));
   }
 
   @Test
@@ -155,8 +167,9 @@ public class PropertyTypeTest {
 
   @Test
   public void testTypeHOSTLIST() {
-    valid(null, "localhost", "server1,server2,server3", "server1:1111,server2:3333", "localhost:1111", "server2:1111", "www.server", "www.server:1111",
-        "www.server.com", "www.server.com:111");
+    valid(null, "localhost", "server1,server2,server3", "server1:1111,server2:3333",
+        "localhost:1111", "server2:1111", "www.server", "www.server:1111", "www.server.com",
+        "www.server.com:111");
     invalid(":111", "local host");
   }
 
@@ -168,7 +181,8 @@ public class PropertyTypeTest {
 
   @Test
   public void testTypePATH() {
-    valid(null, "", "/absolute/path", "relative/path", "/with/trailing/slash/", "with/trailing/slash/");
+    valid(null, "", "/absolute/path", "relative/path", "/with/trailing/slash/",
+        "with/trailing/slash/");
   }
 
   @Test

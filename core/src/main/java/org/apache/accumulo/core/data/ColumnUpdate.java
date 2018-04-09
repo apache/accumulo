@@ -50,7 +50,8 @@ public class ColumnUpdate {
    * @param val
    *          cell value
    */
-  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted,
+      byte[] val) {
     this.columnFamily = cf;
     this.columnQualifier = cq;
     this.columnVisibility = cv;
@@ -125,8 +126,9 @@ public class ColumnUpdate {
 
   @Override
   public String toString() {
-    return Arrays.toString(columnFamily) + ":" + Arrays.toString(columnQualifier) + " [" + Arrays.toString(columnVisibility) + "] "
-        + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
+    return Arrays.toString(columnFamily) + ":" + Arrays.toString(columnQualifier) + " ["
+        + Arrays.toString(columnVisibility) + "] " + (hasTimestamp ? timestamp : "NO_TIME_STAMP")
+        + " " + Arrays.toString(val) + " " + deleted;
   }
 
   @Override
@@ -134,15 +136,19 @@ public class ColumnUpdate {
     if (!(obj instanceof ColumnUpdate))
       return false;
     ColumnUpdate upd = (ColumnUpdate) obj;
-    return Arrays.equals(getColumnFamily(), upd.getColumnFamily()) && Arrays.equals(getColumnQualifier(), upd.getColumnQualifier())
-        && Arrays.equals(getColumnVisibility(), upd.getColumnVisibility()) && isDeleted() == upd.isDeleted() && Arrays.equals(getValue(), upd.getValue())
+    return Arrays.equals(getColumnFamily(), upd.getColumnFamily())
+        && Arrays.equals(getColumnQualifier(), upd.getColumnQualifier())
+        && Arrays.equals(getColumnVisibility(), upd.getColumnVisibility())
+        && isDeleted() == upd.isDeleted() && Arrays.equals(getValue(), upd.getValue())
         && hasTimestamp() == upd.hasTimestamp() && getTimestamp() == upd.getTimestamp();
   }
 
   @Override
   public int hashCode() {
-    return Arrays.hashCode(columnFamily) + Arrays.hashCode(columnQualifier) + Arrays.hashCode(columnVisibility)
-        + (hasTimestamp ? (Boolean.TRUE.hashCode() + Long.valueOf(timestamp).hashCode()) : Boolean.FALSE.hashCode())
+    return Arrays.hashCode(columnFamily) + Arrays.hashCode(columnQualifier)
+        + Arrays.hashCode(columnVisibility)
+        + (hasTimestamp ? (Boolean.TRUE.hashCode() + Long.valueOf(timestamp).hashCode())
+            : Boolean.FALSE.hashCode())
         + (deleted ? Boolean.TRUE.hashCode() : (Boolean.FALSE.hashCode() + Arrays.hashCode(val)));
   }
 }

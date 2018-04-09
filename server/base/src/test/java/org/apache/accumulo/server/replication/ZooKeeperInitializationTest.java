@@ -36,11 +36,13 @@ public class ZooKeeperInitializationTest {
     ZooReaderWriter zReaderWriter = createMock(ZooReaderWriter.class);
     String zRoot = "/accumulo";
 
-    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_TSERVERS, null)).andReturn(false).once();
+    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_TSERVERS, null)).andReturn(false)
+        .once();
     zReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_TSERVERS);
     expectLastCall().once();
 
-    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_WORK_QUEUE, null)).andReturn(false).once();
+    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_WORK_QUEUE, null)).andReturn(false)
+        .once();
     zReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_WORK_QUEUE);
     expectLastCall().once();
 
@@ -56,9 +58,11 @@ public class ZooKeeperInitializationTest {
     ZooReaderWriter zReaderWriter = createMock(ZooReaderWriter.class);
     String zRoot = "/accumulo";
 
-    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_TSERVERS, null)).andReturn(true).once();
+    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_TSERVERS, null)).andReturn(true)
+        .once();
 
-    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_WORK_QUEUE, null)).andReturn(true).once();
+    expect(zReaderWriter.exists(zRoot + ReplicationConstants.ZOO_WORK_QUEUE, null)).andReturn(true)
+        .once();
 
     replay(zReaderWriter);
 

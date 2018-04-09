@@ -49,7 +49,8 @@ public class IsolatedScan extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
 
     try {
-      RowIterator iter = new RowIterator(new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY)));
+      RowIterator iter = new RowIterator(
+          new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY)));
 
       while (iter.hasNext()) {
         PeekingIterator<Entry<Key,Value>> row = new PeekingIterator<>(iter.next());

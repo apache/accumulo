@@ -68,13 +68,15 @@ public class RangeTest extends TestCase {
   }
 
   public void testMergeOverlapping3() {
-    List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"), newRange("g", "j"), newRange("t", "x"));
+    List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"),
+        newRange("g", "j"), newRange("t", "x"));
     List<Range> expected = newRangeList(newRange("a", "r"), newRange("t", "x"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping4() {
-    List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"), newRange("g", "j"));
+    List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"),
+        newRange("g", "j"));
     List<Range> expected = newRangeList(newRange("a", "r"));
     check(Range.mergeOverlapping(rl), expected);
   }
@@ -152,38 +154,46 @@ public class RangeTest extends TestCase {
   }
 
   public void testMergeOverlapping17() {
-    List<Range> rl = newRangeList(newRange("b", "d"), newRange("r", null), newRange("c", "e"), newRange("g", "t"));
+    List<Range> rl = newRangeList(newRange("b", "d"), newRange("r", null), newRange("c", "e"),
+        newRange("g", "t"));
     List<Range> expected = newRangeList(newRange("b", "e"), newRange("g", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping18() {
-    List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"), newRange("g", "t"));
+    List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"),
+        newRange("g", "t"));
     List<Range> expected = newRangeList(newRange(null, "e"), newRange("g", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping19() {
-    List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"), newRange("g", "t"), newRange("d", "h"));
+    List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"),
+        newRange("g", "t"), newRange("d", "h"));
     List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping20() {
 
-    List<Range> rl = newRangeList(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), false, new Text("c"), false));
-    List<Range> expected = newRangeList(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), false, new Text("c"), false));
+    List<Range> rl = newRangeList(new Range(new Text("a"), true, new Text("b"), false),
+        new Range(new Text("b"), false, new Text("c"), false));
+    List<Range> expected = newRangeList(new Range(new Text("a"), true, new Text("b"), false),
+        new Range(new Text("b"), false, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), true, new Text("c"), false));
+    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), false),
+        new Range(new Text("b"), true, new Text("c"), false));
     expected = newRangeList(new Range(new Text("a"), true, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), true), new Range(new Text("b"), false, new Text("c"), false));
+    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), true),
+        new Range(new Text("b"), false, new Text("c"), false));
     expected = newRangeList(new Range(new Text("a"), true, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), true), new Range(new Text("b"), true, new Text("c"), false));
+    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), true),
+        new Range(new Text("b"), true, new Text("c"), false));
     expected = newRangeList(new Range(new Text("a"), true, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
@@ -202,7 +212,8 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke1, ke2, ke4, ke5);
-    expected = newRangeList(new KeyExtent("tab1", new Text("Fails"), null).toMetadataRange(), new KeyExtent("tab1", null, new Text("Sam")).toMetadataRange());
+    expected = newRangeList(new KeyExtent("tab1", new Text("Fails"), null).toMetadataRange(),
+        new KeyExtent("tab1", null, new Text("Sam")).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4, ke5);
@@ -214,7 +225,8 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4);
-    expected = newRangeList(new KeyExtent("tab1", new Text("bails"), new Text("Bank")).toMetadataRange());
+    expected = newRangeList(
+        new KeyExtent("tab1", new Text("bails"), new Text("Bank")).toMetadataRange());
 
     check(Range.mergeOverlapping(rl), expected);
   }
@@ -227,24 +239,29 @@ public class RangeTest extends TestCase {
 
             // System.out.println("b1:"+b1+" b2:"+b2+" b3:"+b3+" b4:"+b4);
 
-            List<Range> rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2), new Range(new Key(new Text("b")), b3, new Key(
-                new Text("n")), b4));
-            List<Range> expected = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b4));
+            List<Range> rl = newRangeList(
+                new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2),
+                new Range(new Key(new Text("b")), b3, new Key(new Text("n")), b4));
+            List<Range> expected = newRangeList(
+                new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b4));
             check(Range.mergeOverlapping(rl), expected);
 
-            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2), new Range(new Key(new Text("a")), b3, new Key(new Text("n")),
-                b4));
-            expected = newRangeList(new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b4));
+            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2),
+                new Range(new Key(new Text("a")), b3, new Key(new Text("n")), b4));
+            expected = newRangeList(
+                new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b4));
             check(Range.mergeOverlapping(rl), expected);
 
-            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2), new Range(new Key(new Text("b")), b3, new Key(new Text("n")),
-                b4));
-            expected = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2 || b4));
+            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2),
+                new Range(new Key(new Text("b")), b3, new Key(new Text("n")), b4));
+            expected = newRangeList(
+                new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2 || b4));
             check(Range.mergeOverlapping(rl), expected);
 
-            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2), new Range(new Key(new Text("a")), b3, new Key(new Text("n")),
-                b4));
-            expected = newRangeList(new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b2 || b4));
+            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2),
+                new Range(new Key(new Text("a")), b3, new Key(new Text("n")), b4));
+            expected = newRangeList(
+                new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b2 || b4));
             check(Range.mergeOverlapping(rl), expected);
           }
 
@@ -513,9 +530,11 @@ public class RangeTest extends TestCase {
     fence = new Range(newKey("c"), true, newKey("n"), true);
 
     runClipTest(fence, new Range(newKey("a"), false, newKey("c"), false));
-    runClipTest(fence, new Range(newKey("a"), false, newKey("c"), true), new Range(newKey("c"), true, newKey("c"), true));
+    runClipTest(fence, new Range(newKey("a"), false, newKey("c"), true),
+        new Range(newKey("c"), true, newKey("c"), true));
     runClipTest(fence, new Range(newKey("n"), false, newKey("r"), false));
-    runClipTest(fence, new Range(newKey("n"), true, newKey("r"), false), new Range(newKey("n"), true, newKey("n"), true));
+    runClipTest(fence, new Range(newKey("n"), true, newKey("r"), false),
+        new Range(newKey("n"), true, newKey("n"), true));
     runClipTest(fence, new Range(newKey("q"), false, newKey("r"), false));
     runClipTest(fence, new Range(newKey("q"), true, newKey("r"), false));
 
@@ -530,7 +549,8 @@ public class RangeTest extends TestCase {
 
   public void testBug1() {
 
-    // unit test related to a bug that was observed (bug was not in range, but want to ensure the following works)
+    // unit test related to a bug that was observed (bug was not in range, but want to ensure the
+    // following works)
 
     // clip caught the scanner going to a tablet passed the end of the scan range
     Range fence = new Range(new Text("10<"), false, new Text("~"), true);
@@ -541,8 +561,9 @@ public class RangeTest extends TestCase {
     runClipTest(fence, range);
 
     // scanner was not handling edge case properly...
-    Range scanRange = new Range(new Key("10;007cdc5b0".getBytes(), "~tab".getBytes(), "~pr".getBytes(), "".getBytes(), 130962, false), false, new Key(new Text(
-        "10<")).followingKey(PartialKey.ROW), false);
+    Range scanRange = new Range(new Key("10;007cdc5b0".getBytes(), "~tab".getBytes(),
+        "~pr".getBytes(), "".getBytes(), 130962, false), false,
+        new Key(new Text("10<")).followingKey(PartialKey.ROW), false);
     // below is the proper check the scanner now does instead of just comparing the row bytes
     scanRange.afterEndKey(new Key(new Text("10<")).followingKey(PartialKey.ROW));
   }
@@ -627,7 +648,8 @@ public class RangeTest extends TestCase {
     assertTrue(range4.contains(newKey("row1", "d", "z", "")));
     assertTrue(range4.contains(newKey("row1", "d", "z", "a")));
     assertFalse(range4.contains(newKey("row1", "d", "{", "")));
-    assertFalse(range4.contains(newKey("row1", "d", "z", "a").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
+    assertFalse(
+        range4.contains(newKey("row1", "d", "z", "a").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
     assertFalse(range4.contains(newKey("row1", "f", "x")));
 
     Range range5 = range1.bound(newColumn("b", "w"), newColumn("f", "z"));
@@ -642,7 +664,8 @@ public class RangeTest extends TestCase {
     assertTrue(range6.contains(newKey("row1", "b", "y")));
     assertTrue(range6.contains(newKey("row1", "f", "w")));
     assertTrue(range6.contains(newKey("row1", "f", "w", "a")));
-    assertFalse(range6.contains(newKey("row1", "f", "w").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
+    assertFalse(
+        range6.contains(newKey("row1", "f", "w").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
     assertFalse(range6.contains(newKey("row1", "f", "x")));
 
     Range range7 = range1.bound(newColumn("a", "y"), newColumn("g", "w"));
@@ -749,13 +772,16 @@ public class RangeTest extends TestCase {
 
     r = Range.prefix(new Text("abc"), new Text("def"), makeText((byte) 0xff));
     assertTrue(r.contains(new Key(new Text("abc"), new Text("def"), makeText((byte) 0xff))));
-    assertTrue(r.contains(new Key(new Text("abc"), new Text("def"), makeText((byte) 0xff, (byte) 0x07))));
+    assertTrue(
+        r.contains(new Key(new Text("abc"), new Text("def"), makeText((byte) 0xff, (byte) 0x07))));
     assertFalse(r.contains(new Key(new Text("abc"), new Text("defg"))));
     assertFalse(r.contains(new Key(new Text("abc"), new Text("deg"))));
 
     r = Range.prefix(new Text("abc"), new Text("def"), new Text("ghi"), makeText((byte) 0xff));
-    assertTrue(r.contains(new Key(new Text("abc"), new Text("def"), new Text("ghi"), makeText((byte) 0xff))));
-    assertTrue(r.contains(new Key(new Text("abc"), new Text("def"), new Text("ghi"), makeText((byte) 0xff, (byte) 0x07))));
+    assertTrue(r.contains(
+        new Key(new Text("abc"), new Text("def"), new Text("ghi"), makeText((byte) 0xff))));
+    assertTrue(r.contains(new Key(new Text("abc"), new Text("def"), new Text("ghi"),
+        makeText((byte) 0xff, (byte) 0x07))));
     assertFalse(r.contains(new Key(new Text("abc"), new Text("def"), new Text("ghij"))));
     assertFalse(r.contains(new Key(new Text("abc"), new Text("def"), new Text("ghj"))));
   }
@@ -769,7 +795,8 @@ public class RangeTest extends TestCase {
     assertEquals(Range.followingPrefix(makeText((byte) 0xfe)), new Text(makeText((byte) 0xff)));
     assertNull(Range.followingPrefix(makeText((byte) 0xff)));
     assertNull(Range.followingPrefix(makeText((byte) 0xff, (byte) 0xff)));
-    assertEquals(Range.followingPrefix(makeText((byte) 0x07, (byte) 0xff)), new Text(makeText((byte) 0x08)));
+    assertEquals(Range.followingPrefix(makeText((byte) 0x07, (byte) 0xff)),
+        new Text(makeText((byte) 0x08)));
   }
 
   public void testReadFields() throws Exception {
@@ -788,7 +815,8 @@ public class RangeTest extends TestCase {
   }
 
   public void testReadFields_Check() throws Exception {
-    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
+    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true,
+        false);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     r.write(dos);
@@ -814,7 +842,8 @@ public class RangeTest extends TestCase {
   }
 
   public void testThrift_Check() {
-    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
+    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true,
+        false);
     TRange tr = r.toThrift();
     try {
       @SuppressWarnings("unused")

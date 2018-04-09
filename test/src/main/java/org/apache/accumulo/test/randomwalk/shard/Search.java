@@ -69,7 +69,8 @@ public class Search extends Test {
 
     log.debug("Looking up terms " + searchTerms + " expect to find " + docID);
 
-    BatchScanner bs = env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 10);
+    BatchScanner bs = env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY,
+        10);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(ii, columns);
     bs.addScanIterator(ii);
@@ -87,10 +88,12 @@ public class Search extends Test {
     bs.close();
 
     if (!sawDocID)
-      throw new Exception("Did not see doc " + docID + " in index.  terms:" + searchTerms + " " + indexTableName + " " + dataTableName);
+      throw new Exception("Did not see doc " + docID + " in index.  terms:" + searchTerms + " "
+          + indexTableName + " " + dataTableName);
   }
 
-  static Entry<Key,Value> findRandomDocument(State state, Environment env, String dataTableName, Random rand) throws Exception {
+  static Entry<Key,Value> findRandomDocument(State state, Environment env, String dataTableName,
+      Random rand) throws Exception {
     Scanner scanner = env.getConnector().createScanner(dataTableName, Authorizations.EMPTY);
     scanner.setBatchSize(1);
     scanner.setRange(new Range(Integer.toString(rand.nextInt(0xfffffff), 16), null));

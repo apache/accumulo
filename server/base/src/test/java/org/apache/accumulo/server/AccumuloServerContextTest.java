@@ -90,30 +90,36 @@ public class AccumuloServerContextTest {
         EasyMock.expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
         EasyMock.expect(factory.getInstance()).andReturn(instance).anyTimes();
 
-        AccumuloServerContext context = EasyMock.createMockBuilder(AccumuloServerContext.class).addMockedMethod("enforceKerberosLogin")
-            .addMockedMethod("getConfiguration").addMockedMethod("getServerConfigurationFactory").addMockedMethod("getCredentials").createMock();
+        AccumuloServerContext context = EasyMock.createMockBuilder(AccumuloServerContext.class)
+            .addMockedMethod("enforceKerberosLogin").addMockedMethod("getConfiguration")
+            .addMockedMethod("getServerConfigurationFactory").addMockedMethod("getCredentials")
+            .createMock();
         context.enforceKerberosLogin();
         EasyMock.expectLastCall().anyTimes();
         EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
         EasyMock.expect(context.getServerConfigurationFactory()).andReturn(factory).anyTimes();
-        EasyMock.expect(context.getCredentials()).andReturn(new Credentials("accumulo/hostname@FAKE.COM", token)).once();
+        EasyMock.expect(context.getCredentials())
+            .andReturn(new Credentials("accumulo/hostname@FAKE.COM", token)).once();
 
-        // Just make the SiteConfiguration delegate to our ClientConfiguration (by way of the AccumuloConfiguration)
+        // Just make the SiteConfiguration delegate to our ClientConfiguration (by way of the
+        // AccumuloConfiguration)
         // Presently, we only need get(Property) and iterator().
-        EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<String>() {
-          @Override
-          public String answer() {
-            Object[] args = EasyMock.getCurrentArguments();
-            return conf.get((Property) args[0]);
-          }
-        }).anyTimes();
+        EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
+            .andAnswer(new IAnswer<String>() {
+              @Override
+              public String answer() {
+                Object[] args = EasyMock.getCurrentArguments();
+                return conf.get((Property) args[0]);
+              }
+            }).anyTimes();
 
-        EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
-          @Override
-          public Iterator<Entry<String,String>> answer() {
-            return conf.iterator();
-          }
-        }).anyTimes();
+        EasyMock.expect(siteConfig.iterator())
+            .andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
+              @Override
+              public Iterator<Entry<String,String>> answer() {
+                return conf.iterator();
+              }
+            }).anyTimes();
 
         EasyMock.replay(factory, context, siteConfig);
 

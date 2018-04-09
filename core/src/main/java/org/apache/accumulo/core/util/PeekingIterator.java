@@ -34,7 +34,8 @@ public class PeekingIterator<E> implements Iterator<E> {
   }
 
   /**
-   * Creates an uninitialized instance. This should be used in conjunction with {@link #initialize(Iterator)}.
+   * Creates an uninitialized instance. This should be used in conjunction with
+   * {@link #initialize(Iterator)}.
    */
   public PeekingIterator() {
     isInitialized = false;

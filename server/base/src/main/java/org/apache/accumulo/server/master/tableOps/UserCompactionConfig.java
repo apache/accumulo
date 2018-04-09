@@ -35,7 +35,8 @@ public class UserCompactionConfig implements Writable {
   List<IteratorSetting> iterators;
   private CompactionStrategyConfig compactionStrategy;
 
-  public UserCompactionConfig(byte[] startRow, byte[] endRow, List<IteratorSetting> iterators, CompactionStrategyConfig csc) {
+  public UserCompactionConfig(byte[] startRow, byte[] endRow, List<IteratorSetting> iterators,
+      CompactionStrategyConfig csc) {
     this.startRow = startRow;
     this.endRow = endRow;
     this.iterators = iterators;

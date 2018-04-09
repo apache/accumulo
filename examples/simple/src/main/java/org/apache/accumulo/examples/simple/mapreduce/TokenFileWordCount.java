@@ -35,8 +35,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this. This version does not use the ClientOpts
- * class to parse arguments as an example of using AccumuloInputFormat and AccumuloOutputFormat directly. See README.mapred for more details.
+ * A simple map reduce job that inserts word counts into accumulo. See the README for instructions
+ * on how to run this. This version does not use the ClientOpts class to parse arguments as an
+ * example of using AccumuloInputFormat and AccumuloOutputFormat directly. See README.mapred for
+ * more details.
  *
  */
 public class TokenFileWordCount extends Configured implements Tool {
@@ -88,7 +90,8 @@ public class TokenFileWordCount extends Configured implements Tool {
     job.setOutputValueClass(Mutation.class);
 
     // AccumuloInputFormat not used here, but it uses the same functions.
-    AccumuloOutputFormat.setZooKeeperInstance(job, ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(zookeepers));
+    AccumuloOutputFormat.setZooKeeperInstance(job,
+        ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(zookeepers));
     AccumuloOutputFormat.setConnectorInfo(job, user, tokenFile);
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, tableName);

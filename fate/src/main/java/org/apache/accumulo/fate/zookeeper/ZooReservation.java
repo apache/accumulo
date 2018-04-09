@@ -28,13 +28,15 @@ import org.slf4j.LoggerFactory;
 
 public class ZooReservation {
 
-  public static boolean attempt(IZooReaderWriter zk, String path, String reservationID, String debugInfo) throws KeeperException, InterruptedException {
+  public static boolean attempt(IZooReaderWriter zk, String path, String reservationID,
+      String debugInfo) throws KeeperException, InterruptedException {
     if (reservationID.contains(":"))
       throw new IllegalArgumentException();
 
     while (true) {
       try {
-        zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(UTF_8), NodeExistsPolicy.FAIL);
+        zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(UTF_8),
+            NodeExistsPolicy.FAIL);
         return true;
       } catch (NodeExistsException nee) {
         Stat stat = new Stat();
@@ -53,7 +55,8 @@ public class ZooReservation {
 
   }
 
-  public static void release(IZooReaderWriter zk, String path, String reservationID) throws KeeperException, InterruptedException {
+  public static void release(IZooReaderWriter zk, String path, String reservationID)
+      throws KeeperException, InterruptedException {
     byte[] zooData;
 
     try {
@@ -68,7 +71,8 @@ public class ZooReservation {
     String idInZoo = zooDataStr.split(":")[0];
 
     if (!idInZoo.equals(reservationID)) {
-      throw new IllegalStateException("Tried to release reservation " + path + " with data mismatch " + reservationID + " " + zooDataStr);
+      throw new IllegalStateException("Tried to release reservation " + path
+          + " with data mismatch " + reservationID + " " + zooDataStr);
     }
 
     zk.recursiveDelete(path, NodeMissingPolicy.SKIP);

@@ -130,7 +130,8 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       }));
     }
     es.shutdown();
-    while (!es.isTerminated() && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
+    while (!es.isTerminated()
+        && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
       es.awaitTermination(10, TimeUnit.MILLISECONDS);
       stats = getCluster().getMasterMonitorInfo();
     }
@@ -142,6 +143,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
     }
     es.awaitTermination(2, TimeUnit.MINUTES);
     assertTrue(es.isTerminated());
-    log.info(String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
+    log.info(
+        String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
   }
 }

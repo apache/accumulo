@@ -51,9 +51,10 @@ import com.google.common.collect.Sets;
 public class KerberosAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(KerberosAuthenticator.class);
 
-  private static final Set<Class<? extends AuthenticationToken>> SUPPORTED_TOKENS = Sets.newHashSet(Arrays.<Class<? extends AuthenticationToken>> asList(
-      KerberosToken.class, SystemToken.class));
-  private static final Set<String> SUPPORTED_TOKEN_NAMES = Sets.newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
+  private static final Set<Class<? extends AuthenticationToken>> SUPPORTED_TOKENS = Sets.newHashSet(
+      Arrays.<Class<? extends AuthenticationToken>> asList(KerberosToken.class, SystemToken.class));
+  private static final Set<String> SUPPORTED_TOKEN_NAMES = Sets
+      .newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
   private String zkUserPath;
@@ -84,12 +85,14 @@ public class KerberosAuthenticator implements Authenticator {
     synchronized (zooCache) {
       zooCache.clear();
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-      zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0], NodeExistsPolicy.FAIL);
+      zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
+          NodeExistsPolicy.FAIL);
     }
   }
 
   @Override
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException {
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token)
+      throws AccumuloSecurityException, ThriftSecurityException {
     try {
       // remove old settings from zookeeper first, if any
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -105,7 +108,8 @@ public class KerberosAuthenticator implements Authenticator {
         byte[] principalData = principal.getBytes(UTF_8);
         zoo.putPersistentData(zkUserPath, principalData, NodeExistsPolicy.FAIL);
 
-        // Create the root user in ZK using base64 encoded name (since the name is included in the znode)
+        // Create the root user in ZK using base64 encoded name (since the name is included in the
+        // znode)
         createUserNodeInZk(Base64.encodeBase64String(principalData));
       }
     } catch (KeeperException | InterruptedException e) {
@@ -115,11 +119,13 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   @Override
-  public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public boolean authenticateUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     final String rpcPrincipal = UGIAssumingProcessor.rpcPrincipal();
 
     if (!rpcPrincipal.equals(principal)) {
-      // KerberosAuthenticator can't do perform this because KerberosToken is just a shim and doesn't contain the actual credentials
+      // KerberosAuthenticator can't do perform this because KerberosToken is just a shim and
+      // doesn't contain the actual credentials
       // Double check that the rpc user can impersonate as the requested user.
       UsersWithHosts usersWithHosts = impersonation.get(rpcPrincipal);
       if (null == usersWithHosts) {
@@ -150,9 +156,11 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   @Override
-  public synchronized void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public synchronized void createUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     if (!(token instanceof KerberosToken)) {
-      throw new UnsupportedOperationException("Expected a KerberosToken but got a " + token.getClass().getSimpleName());
+      throw new UnsupportedOperationException(
+          "Expected a KerberosToken but got a " + token.getClass().getSimpleName());
     }
 
     try {
@@ -180,7 +188,8 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   @Override
-  public void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException {
+  public void changePassword(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     throw new UnsupportedOperationException("Cannot change password with Kerberos authenticaton");
   }
 

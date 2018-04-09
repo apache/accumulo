@@ -25,8 +25,9 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.log.DfsLogger;
 
-/*
- * A partial interface of Tablet to allow for testing of CommitSession without needing a real Tablet.
+/**
+ * A partial interface of Tablet to allow for testing of CommitSession without needing a real
+ * Tablet.
  */
 public interface TabletCommitter {
 

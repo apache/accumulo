@@ -24,7 +24,8 @@ import org.apache.accumulo.core.security.SystemPermission;
 public interface ClusterUsers {
 
   /**
-   * The "root" user. A user which has administrative permissions {@link SystemPermission#SYSTEM} and the like.
+   * The "root" user. A user which has administrative permissions {@link SystemPermission#SYSTEM}
+   * and the like.
    */
   ClusterUser getAdminUser();
 

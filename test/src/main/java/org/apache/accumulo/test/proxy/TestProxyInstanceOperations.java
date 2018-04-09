@@ -50,7 +50,8 @@ public class TestProxyInstanceOperations {
     prop.setProperty("useMockInstance", "true");
     prop.put("tokenClass", PasswordToken.class.getName());
 
-    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port), new TCompactProtocol.Factory(), prop).server;
+    proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
+        new TCompactProtocol.Factory(), prop).server;
     log.info("Waiting for proxy to start");
     while (!proxy.isServing()) {
       Thread.sleep(500);
@@ -69,7 +70,8 @@ public class TestProxyInstanceOperations {
   public void properties() throws TException {
     tpc.proxy().setProperty(userpass, "test.systemprop", "whistletips");
 
-    assertEquals(tpc.proxy().getSystemConfiguration(userpass).get("test.systemprop"), "whistletips");
+    assertEquals(tpc.proxy().getSystemConfiguration(userpass).get("test.systemprop"),
+        "whistletips");
     tpc.proxy().removeProperty(userpass, "test.systemprop");
     assertNull(tpc.proxy().getSystemConfiguration(userpass).get("test.systemprop"));
 
@@ -77,7 +79,9 @@ public class TestProxyInstanceOperations {
 
   @Test
   public void testClassLoad() throws TException {
-    assertTrue(tpc.proxy().testClassLoad(userpass, "org.apache.accumulo.core.iterators.user.RegExFilter", "org.apache.accumulo.core.iterators.Filter"));
+    assertTrue(
+        tpc.proxy().testClassLoad(userpass, "org.apache.accumulo.core.iterators.user.RegExFilter",
+            "org.apache.accumulo.core.iterators.Filter"));
   }
 
 }

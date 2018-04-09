@@ -33,7 +33,8 @@ public class SetGroupsCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     final HashMap<String,Set<Text>> groups = new HashMap<>();

@@ -54,8 +54,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
 
-    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, inst,
-        AccumuloConfiguration.getDefaultConfiguration());
+    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(
+        Namespaces.DEFAULT_NAMESPACE_ID, inst, AccumuloConfiguration.getDefaultConfiguration());
 
     // Cache invalidates 25% of the time
     int randomMax = 4;
@@ -85,7 +85,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     }
 
     long end = System.currentTimeMillis();
-    log.debug(tableConf + " with " + iterations + " iterations and " + numThreads + " threads and cache invalidates " + ((1. / randomMax) * 100.) + "% took "
+    log.debug(tableConf + " with " + iterations + " iterations and " + numThreads
+        + " threads and cache invalidates " + ((1. / randomMax) * 100.) + "% took "
         + (end - start) / 1000 + " second(s)");
   }
 
@@ -95,7 +96,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     private CountDownLatch countDown;
     private int iterations, randMax;
 
-    public TableConfRunner(int randMax, int iterations, AccumuloConfiguration tableConf, CountDownLatch countDown) {
+    public TableConfRunner(int randMax, int iterations, AccumuloConfiguration tableConf,
+        CountDownLatch countDown) {
       this.randMax = randMax;
       this.iterations = iterations;
       this.tableConf = tableConf;

@@ -39,9 +39,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Predicate;
 
 /**
- * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset of those options preferred for a particular table. Defaults
- * to selecting from all of the options presented. Can be customized via the table property {@value #PREFERRED_VOLUMES_CUSTOM_KEY}, which should contain a comma
- * separated list of {@link Volume} URIs. Note that both the property name and the format of its value are specific to this particular implementation.
+ * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset
+ * of those options preferred for a particular table. Defaults to selecting from all of the options
+ * presented. Can be customized via the table property {@value #PREFERRED_VOLUMES_CUSTOM_KEY}, which
+ * should contain a comma separated list of {@link Volume} URIs. Note that both the property name
+ * and the format of its value are specific to this particular implementation.
  */
 public class PreferredVolumeChooser extends RandomVolumeChooser {
   private static final Logger log = LoggerFactory.getLogger(PreferredVolumeChooser.class);
@@ -59,8 +61,10 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
   };
 
   @SuppressWarnings("unchecked")
-  private final Map<String,Set<String>> parsedPreferredVolumes = Collections.synchronizedMap(new LRUMap(1000));
-  // TODO has to be lazily initialized currently because of the reliance on HdfsZooInstance. see ACCUMULO-3411
+  private final Map<String,Set<String>> parsedPreferredVolumes = Collections
+      .synchronizedMap(new LRUMap(1000));
+  // TODO has to be lazily initialized currently because of the reliance on HdfsZooInstance. see
+  // ACCUMULO-3411
   private volatile ServerConfigurationFactory serverConfs;
 
   @Override
@@ -80,7 +84,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     final Map<String,String> props = new HashMap<>();
     tableConf.getProperties(props, PREFERRED_VOLUMES_FILTER);
     if (props.isEmpty()) {
-      log.warn("No preferred volumes specified. Defaulting to randomly choosing from instance volumes");
+      log.warn(
+          "No preferred volumes specified. Defaulting to randomly choosing from instance volumes");
       return super.choose(env, options);
     }
     String volumes = props.get(PREFERRED_VOLUMES_CUSTOM_KEY);
@@ -90,7 +95,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       log.trace("Volumes: " + volumes);
       log.trace("TableID: " + env.getTableId());
     }
-    // If the preferred volumes property was specified, split the returned string by the comma and add use it to filter the given options.
+    // If the preferred volumes property was specified, split the returned string by the comma and
+    // add use it to filter the given options.
     Set<String> preferred = parsedPreferredVolumes.get(volumes);
     if (preferred == null) {
       preferred = new HashSet<>(Arrays.asList(StringUtils.split(volumes, ',')));
@@ -101,9 +107,11 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     final ArrayList<String> filteredOptions = new ArrayList<>(Arrays.asList(options));
     filteredOptions.retainAll(preferred);
 
-    // If there are no preferred volumes left, then warn the user and choose randomly from the instance volumes
+    // If there are no preferred volumes left, then warn the user and choose randomly from the
+    // instance volumes
     if (filteredOptions.isEmpty()) {
-      log.warn("Preferred volumes are not instance volumes. Defaulting to randomly choosing from instance volumes");
+      log.warn("Preferred volumes are not instance volumes. Defaulting to"
+          + " randomly choosing from instance volumes");
       return super.choose(env, options);
     }
 

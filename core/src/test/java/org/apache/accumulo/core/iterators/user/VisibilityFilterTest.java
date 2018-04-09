@@ -76,8 +76,9 @@ public class VisibilityFilterTest {
     return source;
   }
 
-  private void verify(TreeMap<Key,Value> source, int expectedSourceSize, Map<String,String> options, Text expectedCF, Text expectedCQ, Text expectedCV,
-      int expectedFinalCount) throws IOException {
+  private void verify(TreeMap<Key,Value> source, int expectedSourceSize, Map<String,String> options,
+      Text expectedCF, Text expectedCQ, Text expectedCV, int expectedFinalCount)
+      throws IOException {
     assertEquals(expectedSourceSize, source.size());
 
     Filter filter = new VisibilityFilter();
@@ -87,7 +88,9 @@ public class VisibilityFilterTest {
     int count = 0;
     while (filter.hasTop()) {
       count++;
-      // System.out.println(DefaultFormatter.formatEntry(Collections.singletonMap(filter.getTopKey(), filter.getTopValue()).entrySet().iterator().next(),
+      // System.out.println(DefaultFormatter.formatEntry(
+      // Collections.singletonMap(filter.getTopKey(),
+      // filter.getTopValue()).entrySet().iterator().next(),
       // false));
       assertEquals(expectedCF, filter.getTopKey().getColumnFamily());
       assertEquals(expectedCQ, filter.getTopKey().getColumnQualifier());
@@ -175,7 +178,8 @@ public class VisibilityFilterTest {
   @Test
   public void testFilterUnauthorizedAndBad() throws IOException {
     /*
-     * if not explicitly filtering bad labels, they will still be filtered while validating against authorizations, but it will be very verbose in the logs
+     * if not explicitly filtering bad labels, they will still be filtered while validating against
+     * authorizations, but it will be very verbose in the logs
      */
     IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
     VisibilityFilter.setAuthorizations(is, new Authorizations("def"));
@@ -203,7 +207,8 @@ public class VisibilityFilterTest {
 
   @Test
   public void testSerializedAuthorizations() throws IOException {
-    Map<String,String> options = Collections.singletonMap("auths", new Authorizations("x", "def", "y").serialize());
+    Map<String,String> options = Collections.singletonMap("auths",
+        new Authorizations("x", "def", "y").serialize());
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, options, GOOD, GOOD, GOOD_VIS, 1);

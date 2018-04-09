@@ -18,12 +18,15 @@ import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.FastMath;
 
 /**
- * This class supports efficient window statistics. Apache commons math3 has a class called DescriptiveStatistics that supports windows. DescriptiveStatistics
- * recomputes the statistics over the entire window each time its requested. In a test over 1,000,000 entries with a window size of 1019 that requested stats
- * for each entry this class took ~50ms and DescriptiveStatistics took ~6,000ms.
+ * This class supports efficient window statistics. Apache commons math3 has a class called
+ * DescriptiveStatistics that supports windows. DescriptiveStatistics recomputes the statistics over
+ * the entire window each time its requested. In a test over 1,000,000 entries with a window size of
+ * 1019 that requested stats for each entry this class took ~50ms and DescriptiveStatistics took
+ * ~6,000ms.
  *
  * <p>
- * This class may not be as accurate as DescriptiveStatistics. In unit test its within 1/1000 of DescriptiveStatistics.
+ * This class may not be as accurate as DescriptiveStatistics. In unit test its within 1/1000 of
+ * DescriptiveStatistics.
  */
 class RollingStats {
   private int position;
@@ -45,7 +48,9 @@ class RollingStats {
   }
 
   /**
-   * @see <a href= "http://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/">Efficient and accurate rolling standard deviation</a>
+   * @see <a href=
+   *      "http://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/">Efficient
+   *      and accurate rolling standard deviation</a>
    */
   private void update(double newValue, double oldValue, int windowSize) {
     double delta = newValue - oldValue;

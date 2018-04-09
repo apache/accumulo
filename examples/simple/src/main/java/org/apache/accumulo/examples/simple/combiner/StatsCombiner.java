@@ -28,9 +28,11 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * This combiner calculates the max, min, sum, and count of long integers represented as strings in values. It stores the result in a comma-separated value of
- * the form min,max,sum,count. If such a value is encountered while combining, its information is incorporated into the running calculations of min, max, sum,
- * and count. See {@link Combiner} for more information on which values are combined together. See docs/examples/README.combiner for instructions.
+ * This combiner calculates the max, min, sum, and count of long integers represented as strings in
+ * values. It stores the result in a comma-separated value of the form min,max,sum,count. If such a
+ * value is encountered while combining, its information is incorporated into the running
+ * calculations of min, max, sum, and count. See {@link Combiner} for more information on which
+ * values are combined together. See docs/examples/README.combiner for instructions.
  */
 public class StatsCombiner extends Combiner {
 
@@ -63,12 +65,14 @@ public class StatsCombiner extends Combiner {
       }
     }
 
-    String ret = Long.toString(min, radix) + "," + Long.toString(max, radix) + "," + Long.toString(sum, radix) + "," + Long.toString(count, radix);
+    String ret = Long.toString(min, radix) + "," + Long.toString(max, radix) + ","
+        + Long.toString(sum, radix) + "," + Long.toString(count, radix);
     return new Value(ret.getBytes());
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
 
     if (options.containsKey(RADIX_OPTION))
@@ -92,7 +96,8 @@ public class StatsCombiner extends Combiner {
       return false;
 
     if (options.containsKey(RADIX_OPTION) && !options.get(RADIX_OPTION).matches("\\d+"))
-      throw new IllegalArgumentException("invalid option " + RADIX_OPTION + ":" + options.get(RADIX_OPTION));
+      throw new IllegalArgumentException(
+          "invalid option " + RADIX_OPTION + ":" + options.get(RADIX_OPTION));
 
     return true;
   }

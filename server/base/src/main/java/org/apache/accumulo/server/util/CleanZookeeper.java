@@ -37,13 +37,16 @@ public class CleanZookeeper {
   private static final Logger log = LoggerFactory.getLogger(CleanZookeeper.class);
 
   static class Opts extends Help {
-    @Parameter(names = {"--password"}, description = "The system secret, if different than instance.secret in accumulo-site.xml", password = true)
+    @Parameter(names = {"--password"},
+        description = "The system secret, if different than instance.secret in accumulo-site.xml",
+        password = true)
     String auth;
   }
 
   /**
    * @param args
-   *          must contain one element: the address of a zookeeper node a second parameter provides an additional authentication value
+   *          must contain one element: the address of a zookeeper node a second parameter provides
+   *          an additional authentication value
    * @throws IOException
    *           error connecting to accumulo or zookeeper
    */
@@ -63,7 +66,8 @@ public class CleanZookeeper {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES)) {
             String instanceNamePath = root + Constants.ZINSTANCES + "/" + instanceName;
             byte[] id = zk.getData(instanceNamePath, null);
-            if (id != null && !new String(id, UTF_8).equals(HdfsZooInstance.getInstance().getInstanceID())) {
+            if (id != null
+                && !new String(id, UTF_8).equals(HdfsZooInstance.getInstance().getInstanceID())) {
               try {
                 zk.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
               } catch (KeeperException.NoAuthException ex) {

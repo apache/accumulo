@@ -71,10 +71,12 @@ public class ContinuousStatsCollector {
       this.opts = opts;
       this.scanBatchSize = scanBatchSize;
       this.tableId = Tables.getNameToIdMap(opts.getInstance()).get(opts.getTableName());
-      System.out
-          .println("TIME TABLET_SERVERS TOTAL_ENTRIES TOTAL_INGEST TOTAL_QUERY TABLE_RECS TABLE_RECS_IN_MEM TABLE_INGEST TABLE_QUERY TABLE_TABLETS TABLE_TABLETS_ONLINE"
-              + " ACCUMULO_DU ACCUMULO_DIRS ACCUMULO_FILES TABLE_DU TABLE_DIRS TABLE_FILES"
-              + " MAP_TASK MAX_MAP_TASK REDUCE_TASK MAX_REDUCE_TASK TASK_TRACKERS BLACK_LISTED MIN_FILES/TABLET MAX_FILES/TABLET AVG_FILES/TABLET STDDEV_FILES/TABLET");
+      System.out.println("TIME TABLET_SERVERS TOTAL_ENTRIES TOTAL_INGEST"
+          + " TOTAL_QUERY TABLE_RECS TABLE_RECS_IN_MEM TABLE_INGEST TABLE_QUERY"
+          + " TABLE_TABLETS TABLE_TABLETS_ONLINE ACCUMULO_DU ACCUMULO_DIRS"
+          + " ACCUMULO_FILES TABLE_DU TABLE_DIRS TABLE_FILES MAP_TASK MAX_MAP_TASK"
+          + " REDUCE_TASK MAX_REDUCE_TASK TASK_TRACKERS BLACK_LISTED"
+          + " MIN_FILES/TABLET MAX_FILES/TABLET AVG_FILES/TABLET" + " STDDEV_FILES/TABLET");
     }
 
     @Override
@@ -85,7 +87,8 @@ public class ContinuousStatsCollector {
         String mrStats = getMRStats();
         String tabletStats = getTabletStats();
 
-        System.out.println(System.currentTimeMillis() + " " + acuStats + " " + fsStats + " " + mrStats + " " + tabletStats);
+        System.out.println(System.currentTimeMillis() + " " + acuStats + " " + fsStats + " "
+            + mrStats + " " + tabletStats);
       } catch (Exception e) {
         log.error(System.currentTimeMillis() + " - Failed to collect stats", e);
       }
@@ -97,7 +100,8 @@ public class ContinuousStatsCollector {
       Scanner scanner = conn.createScanner(MetadataTable.NAME, opts.auths);
       scanner.setBatchSize(scanBatchSize);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
+      scanner
+          .addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
       scanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
       Stat s = new Stat();
@@ -109,7 +113,8 @@ public class ContinuousStatsCollector {
       }
 
       if (count > 0)
-        return String.format("%d %d %.3f %.3f", s.getMin(), s.getMax(), s.getAverage(), s.getStdDev());
+        return String.format("%d %d %.3f %.3f", s.getMin(), s.getMax(), s.getAverage(),
+            s.getStdDev());
       else
         return "0 0 0 0";
 
@@ -130,15 +135,17 @@ public class ContinuousStatsCollector {
         fcount2 += contentSummary.getFileCount();
       }
 
-      return "" + length1 + " " + dcount1 + " " + fcount1 + " " + length2 + " " + dcount2 + " " + fcount2;
+      return "" + length1 + " " + dcount1 + " " + fcount1 + " " + length2 + " " + dcount2 + " "
+          + fcount2;
     }
 
     private String getACUStats() throws Exception {
 
       MasterClientService.Iface client = null;
       try {
-        ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), new ServerConfigurationFactory(
-            opts.getInstance()).getConfiguration());
+        ClientContext context = new ClientContext(opts.getInstance(),
+            new Credentials(opts.getPrincipal(), opts.getToken()),
+            new ServerConfigurationFactory(opts.getInstance()).getConfiguration());
         client = MasterClient.getConnectionWithRetry(context);
         MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
 
@@ -159,8 +166,10 @@ public class ContinuousStatsCollector {
 
         TableInfo ti = tableSummaries.get(tableId);
 
-        return "" + stats.tServerInfo.size() + " " + all.recs + " " + (long) all.ingestRate + " " + (long) all.queryRate + " " + ti.recs + " "
-            + ti.recsInMemory + " " + (long) ti.ingestRate + " " + (long) ti.queryRate + " " + ti.tablets + " " + ti.onlineTablets;
+        return "" + stats.tServerInfo.size() + " " + all.recs + " " + (long) all.ingestRate + " "
+            + (long) all.queryRate + " " + ti.recs + " " + ti.recsInMemory + " "
+            + (long) ti.ingestRate + " " + (long) ti.queryRate + " " + ti.tablets + " "
+            + ti.onlineTablets;
 
       } finally {
         if (client != null)
@@ -178,8 +187,8 @@ public class ContinuousStatsCollector {
 
     ClusterStatus cs = jc.getClusterStatus(false);
 
-    return "" + cs.getMapTasks() + " " + cs.getMaxMapTasks() + " " + cs.getReduceTasks() + " " + cs.getMaxReduceTasks() + " " + cs.getTaskTrackers() + " "
-        + cs.getBlacklistedTrackers();
+    return "" + cs.getMapTasks() + " " + cs.getMaxMapTasks() + " " + cs.getReduceTasks() + " "
+        + cs.getMaxReduceTasks() + " " + cs.getTaskTrackers() + " " + cs.getBlacklistedTrackers();
 
   }
 

@@ -58,7 +58,8 @@ public class RandomizeVolumes {
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     Connector c;
     if (opts.getToken() == null) {
-      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(opts.getInstance()));
+      AccumuloServerContext context = new AccumuloServerContext(
+          new ServerConfigurationFactory(opts.getInstance()));
       c = context.getConnector();
     } else {
       c = opts.getConnector();
@@ -72,7 +73,8 @@ public class RandomizeVolumes {
     }
   }
 
-  public static int randomize(Connector c, String tableName) throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public static int randomize(Connector c, String tableName)
+      throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
     final VolumeManager vm = VolumeManagerImpl.get();
     if (vm.getVolumes().size() < 2) {
       log.error("There are not enough volumes configured");
@@ -103,7 +105,8 @@ public class RandomizeVolumes {
         String[] parts = oldLocation.split(Path.SEPARATOR);
         String tableIdEntry = parts[parts.length - 2];
         if (!tableIdEntry.equals(tableId)) {
-          log.error("Unexpected table id found: " + tableIdEntry + ", expected " + tableId + "; skipping");
+          log.error("Unexpected table id found: " + tableIdEntry + ", expected " + tableId
+              + "; skipping");
           continue;
         }
         directory = parts[parts.length - 1];
@@ -113,9 +116,11 @@ public class RandomizeVolumes {
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
 
-      final String newLocation = vm.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
-          + tableId + Path.SEPARATOR + directory;
-      m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(UTF_8)));
+      final String newLocation = vm.choose(Optional.of(tableId), ServerConstants.getBaseUris())
+          + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+          + directory;
+      m.put(key.getColumnFamily(), key.getColumnQualifier(),
+          new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {
         log.trace("Replacing " + oldLocation + " with " + newLocation);
       }

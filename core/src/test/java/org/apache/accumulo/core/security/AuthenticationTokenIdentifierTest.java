@@ -36,7 +36,8 @@ public class AuthenticationTokenIdentifierTest {
   public void testUgi() {
     String principal = "user";
     AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
-    UserGroupInformation actual = token.getUser(), expected = UserGroupInformation.createRemoteUser(principal);
+    UserGroupInformation actual = token.getUser(),
+        expected = UserGroupInformation.createRemoteUser(principal);
     assertEquals(expected.getAuthenticationMethod(), actual.getAuthenticationMethod());
     assertEquals(expected.getUserName(), expected.getUserName());
   }
@@ -56,7 +57,8 @@ public class AuthenticationTokenIdentifierTest {
     String principal = "user";
     AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
     assertEquals(token, token);
-    AuthenticationTokenIdentifier newToken = new AuthenticationTokenIdentifier(principal, 1, 5l, 10l, "uuid");
+    AuthenticationTokenIdentifier newToken = new AuthenticationTokenIdentifier(principal, 1, 5l,
+        10l, "uuid");
     assertNotEquals(token, newToken);
     assertNotEquals(token.hashCode(), newToken.hashCode());
     AuthenticationTokenIdentifier dblNewToken = new AuthenticationTokenIdentifier(principal);

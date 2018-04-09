@@ -114,7 +114,8 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
    * Initialize the DistributedWorkQueue using the proper ZK location
    */
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
-    workQueue = new DistributedWorkQueue(ZooUtil.getRoot(conn.getInstance()) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
+    workQueue = new DistributedWorkQueue(
+        ZooUtil.getRoot(conn.getInstance()) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
   }
 
   @Override
@@ -146,7 +147,8 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   }
 
   /**
-   * Scan over the {@link WorkSection} of the replication table adding work for entries that have data to replicate and have not already been queued.
+   * Scan over the {@link WorkSection} of the replication table adding work for entries that have
+   * data to replicate and have not already been queued.
    */
   protected void createWork() {
     // Create a scanner over the replication table's order entries
@@ -162,10 +164,12 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
 
     Text buffer = new Text();
     for (Entry<Key,Value> orderEntry : s) {
-      // If we're not working off the entries, we need to not shoot ourselves in the foot by continuing
+      // If we're not working off the entries, we need to not shoot ourselves in the foot by
+      // continuing
       // to add more work entries
       if (getQueueSize() > maxQueueSize) {
-        log.warn("Queued replication work exceeds configured maximum ({}), sleeping to allow work to occur", maxQueueSize);
+        log.warn("Queued replication work exceeds configured maximum ({}),"
+            + " sleeping to allow work to occur", maxQueueSize);
         return;
       }
 
@@ -203,7 +207,8 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
         // Get the ReplicationTarget for this Work record
         ReplicationTarget target = WorkSection.getTarget(workEntry.getKey(), buffer);
 
-        // Get the file (if any) currently being replicated to the given peer for the given source table
+        // Get the file (if any) currently being replicated to the given peer for the given source
+        // table
         Collection<String> keysBeingReplicated = getQueuedWork(target);
 
         Path p = new Path(file);
@@ -212,7 +217,8 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
 
         if (!shouldQueueWork(target)) {
           if (!isWorkRequired(status) && keysBeingReplicated.contains(key)) {
-            log.debug("Removing {} from replication state to {} because replication is complete", key, target.getPeerName());
+            log.debug("Removing {} from replication state to {} because replication is complete",
+                key, target.getPeerName());
             this.removeQueuedWork(target, key);
           }
 
@@ -225,21 +231,25 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
             newReplicationTasksSubmitted++;
           }
         } else {
-          log.debug("Not queueing work for {} to {} because {} doesn't need replication", file, target, ProtobufUtil.toString(status));
+          log.debug("Not queueing work for {} to {} because {} doesn't need replication", file,
+              target, ProtobufUtil.toString(status));
           if (keysBeingReplicated.contains(key)) {
-            log.debug("Removing {} from replication state to {} because replication is complete", key, target.getPeerName());
+            log.debug("Removing {} from replication state to {} because replication is complete",
+                key, target.getPeerName());
             this.removeQueuedWork(target, key);
           }
         }
       }
 
-      log.debug("Read {} replication entries from the WorkSection of the replication table", workEntriesRead);
+      log.debug("Read {} replication entries from the WorkSection of the replication table",
+          workEntriesRead);
       log.info("Assigned {} replication work entries for {}", newReplicationTasksSubmitted, file);
     }
   }
 
   /**
-   * @return Can replication work for the given {@link ReplicationTarget} be submitted to be worked on.
+   * @return Can replication work for the given {@link ReplicationTarget} be submitted to be worked
+   *         on.
    */
   protected abstract boolean shouldQueueWork(ReplicationTarget target);
 

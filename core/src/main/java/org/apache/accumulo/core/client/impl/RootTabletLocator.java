@@ -57,7 +57,8 @@ public class RootTabletLocator extends TabletLocator {
   }
 
   @Override
-  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
@@ -72,13 +73,15 @@ public class RootTabletLocator extends TabletLocator {
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
-        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation.tablet_location, RootTable.EXTENT, range);
+        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation.tablet_location,
+            RootTable.EXTENT, range);
       }
       return Collections.emptyList();
     }
@@ -93,7 +96,8 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public void invalidateCache(Instance instance, String server) {
-    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
     String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     zooCache.clear(root + "/" + server);
   }
@@ -104,14 +108,16 @@ public class RootTabletLocator extends TabletLocator {
   protected TabletLocation getRootTabletLocation(ClientContext context) {
     Instance instance = context.getInstance();
     String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
-    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up root tablet location in zookeeper.", Thread.currentThread().getId());
+      log.trace("tid={} Looking up root tablet location in zookeeper.",
+          Thread.currentThread().getId());
       timer = new OpTimer().start();
     }
 
@@ -119,7 +125,8 @@ public class RootTabletLocator extends TabletLocator {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), (loc == null ? "null" : new String(loc)),
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc)),
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
@@ -136,8 +143,8 @@ public class RootTabletLocator extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (retry && location == null) {

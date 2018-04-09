@@ -68,7 +68,8 @@ public class RecoveryManager {
     zooCache = new ZooCache();
     try {
       AccumuloConfiguration aconf = master.getConfiguration();
-      List<String> workIDs = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
+      List<String> workIDs = new DistributedWorkQueue(
+          ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -116,10 +117,11 @@ public class RecoveryManager {
 
   }
 
-  private void initiateSort(String sortId, String source, final String destination, AccumuloConfiguration aconf) throws KeeperException, InterruptedException,
-      IOException {
+  private void initiateSort(String sortId, String source, final String destination,
+      AccumuloConfiguration aconf) throws KeeperException, InterruptedException, IOException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).addWork(sortId, work.getBytes(UTF_8));
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf)
+        .addWork(sortId, work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
@@ -129,15 +131,18 @@ public class RecoveryManager {
     log.info("Created zookeeper entry " + path + " with data " + work);
   }
 
-  public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs) throws IOException {
+  public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs)
+      throws IOException {
     boolean recoveryNeeded = false;
 
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 
-        String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants.getVolumeReplacements());
+        String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL,
+            ServerConstants.getVolumeReplacements());
         if (switchedWalog != null) {
-          // replaces the volume used for sorting, but do not change entry in metadata table. When the tablet loads it will change the metadata table entry. If
+          // replaces the volume used for sorting, but do not change entry in metadata table. When
+          // the tablet loads it will change the metadata table entry. If
           // the tablet has the same replacement config, then it will find the sorted log.
           log.info("Volume replaced " + walog + " -> " + switchedWalog);
           walog = switchedWalog;
@@ -146,7 +151,8 @@ public class RecoveryManager {
         String parts[] = walog.split("/");
         String sortId = parts[parts.length - 1];
         String filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
-        String dest = RecoveryPath.getRecoveryPath(master.getFileSystem(), new Path(filename)).toString();
+        String dest = RecoveryPath.getRecoveryPath(master.getFileSystem(), new Path(filename))
+            .toString();
         log.debug("Recovering " + filename + " to " + dest);
 
         boolean sortQueued;
@@ -154,7 +160,8 @@ public class RecoveryManager {
           sortQueued = sortsQueued.contains(sortId);
         }
 
-        if (sortQueued && zooCache.get(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + sortId) == null) {
+        if (sortQueued && zooCache.get(
+            ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + sortId) == null) {
           synchronized (this) {
             sortsQueued.remove(sortId);
           }
@@ -173,7 +180,8 @@ public class RecoveryManager {
         synchronized (this) {
           if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
             AccumuloConfiguration aconf = master.getConfiguration();
-            LogCloser closer = aconf.instantiateClassProperty(Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class, new HadoopLogCloser());
+            LogCloser closer = aconf.instantiateClassProperty(
+                Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class, new HadoopLogCloser());
             Long delay = recoveryDelay.get(sortId);
             if (delay == null) {
               delay = aconf.getTimeInMillis(Property.MASTER_RECOVERY_DELAY);
@@ -181,9 +189,11 @@ public class RecoveryManager {
               delay = Math.min(2 * delay, 1000 * 60 * 5l);
             }
 
-            log.info("Starting recovery of " + filename + " (in : " + (delay / 1000) + "s), tablet " + extent + " holds a reference");
+            log.info("Starting recovery of " + filename + " (in : " + (delay / 1000) + "s), tablet "
+                + extent + " holds a reference");
 
-            executor.schedule(new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
+            executor.schedule(new LogSortTask(closer, filename, dest, sortId), delay,
+                TimeUnit.MILLISECONDS);
             closeTasksQueued.add(sortId);
             recoveryDelay.put(sortId, delay);
           }

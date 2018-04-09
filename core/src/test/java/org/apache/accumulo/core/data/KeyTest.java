@@ -111,7 +111,8 @@ public class KeyTest {
   @Test
   public void testVisibilityFollowingKey() {
     Key k = new Key("r", "f", "q", "v");
-    assertEquals(k.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS).toString(), "r f:q [v%00;] " + Long.MAX_VALUE + " false");
+    assertEquals(k.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS).toString(),
+        "r f:q [v%00;] " + Long.MAX_VALUE + " false");
   }
 
   public void testVisibilityGetters() {
@@ -186,12 +187,14 @@ public class KeyTest {
 
     byte[] colVisibility = new byte[] {0, 0, 0, 1};
     Key bytesColVisibilityKey = new Key(row, colFamily, colQualifier, colVisibility);
-    Key textColVisibilityKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier), new Text(colVisibility));
+    Key textColVisibilityKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier),
+        new Text(colVisibility));
     assertEquals(bytesColVisibilityKey, textColVisibilityKey);
 
     long ts = 0L;
     Key bytesTSKey = new Key(row, colFamily, colQualifier, colVisibility, ts);
-    Key textTSKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier), new Text(colVisibility), ts);
+    Key textTSKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier),
+        new Text(colVisibility), ts);
     assertEquals(bytesTSKey, textTSKey);
 
     Key bytesTSKey2 = new Key(row, ts);
@@ -204,7 +207,8 @@ public class KeyTest {
 
     ColumnVisibility colVisibility2 = new ColumnVisibility("v1");
     Key bytesColVisibilityKey2 = new Key(row, colFamily, colQualifier, colVisibility2, ts);
-    Key textColVisibilityKey2 = new Key(new Text(row), new Text(colFamily), new Text(colQualifier), colVisibility2, ts);
+    Key textColVisibilityKey2 = new Key(new Text(row), new Text(colFamily), new Text(colQualifier),
+        colVisibility2, ts);
     assertEquals(bytesColVisibilityKey2, textColVisibilityKey2);
   }
 }

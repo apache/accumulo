@@ -76,7 +76,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
     row3.add(new KeyValue(new Key(ROW3, COLF1, "colq5"), "v5".getBytes()));
   }
 
-  private static void checkLists(final List<Entry<Key,Value>> first, final Iterator<Entry<Key,Value>> second) {
+  private static void checkLists(final List<Entry<Key,Value>> first,
+      final Iterator<Entry<Key,Value>> second) {
     int entryIndex = 0;
     while (second.hasNext()) {
       final Entry<Key,Value> entry = second.next();
@@ -86,22 +87,26 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  private static void insertList(final BatchWriter writer, final List<Entry<Key,Value>> list) throws MutationsRejectedException {
+  private static void insertList(final BatchWriter writer, final List<Entry<Key,Value>> list)
+      throws MutationsRejectedException {
     for (Entry<Key,Value> e : list) {
       final Key key = e.getKey();
       final Mutation mutation = new Mutation(key.getRow());
       ColumnVisibility colVisibility = new ColumnVisibility(key.getColumnVisibility());
-      mutation.put(key.getColumnFamily(), key.getColumnQualifier(), colVisibility, key.getTimestamp(), e.getValue());
+      mutation.put(key.getColumnFamily(), key.getColumnQualifier(), colVisibility,
+          key.getTimestamp(), e.getValue());
       writer.addMutation(mutation);
     }
   }
 
   private static class MRTester extends Configured implements Tool {
-    private static class TestMapper extends Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
+    private static class TestMapper
+        extends Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
       int count = 0;
 
       @Override
-      protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context) throws IOException, InterruptedException {
+      protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context)
+          throws IOException, InterruptedException {
         try {
           switch (count) {
             case 0:
@@ -146,7 +151,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       AuthenticationToken pass = getAdminToken();
       String table = args[0];
 
-      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(),
+          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
       job.setInputFormatClass(AccumuloRowInputFormat.class);
@@ -170,7 +176,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

@@ -60,7 +60,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Joiner;
 
 /**
- * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
+ * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet
+ * location.
  *
  */
 public class HdfsZooInstance implements Instance {
@@ -68,7 +69,8 @@ public class HdfsZooInstance implements Instance {
   private final AccumuloConfiguration site = SiteConfiguration.getInstance();
 
   private HdfsZooInstance() {
-    zooCache = new ZooCacheFactory().getZooCache(site.get(Property.INSTANCE_ZK_HOST), (int) site.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+    zooCache = new ZooCacheFactory().getZooCache(site.get(Property.INSTANCE_ZK_HOST),
+        (int) site.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
   }
 
   private static final HdfsZooInstance cachedHdfsZooInstance = new HdfsZooInstance();
@@ -88,7 +90,8 @@ public class HdfsZooInstance implements Instance {
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up root tablet location in zoocache.", Thread.currentThread().getId());
+      log.trace("tid={} Looking up root tablet location in zoocache.",
+          Thread.currentThread().getId());
       timer = new OpTimer().start();
     }
 
@@ -96,7 +99,8 @@ public class HdfsZooInstance implements Instance {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), (loc == null ? "null" : new String(loc, UTF_8)),
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
@@ -123,7 +127,8 @@ public class HdfsZooInstance implements Instance {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(), (loc == null ? "null" : new String(loc, UTF_8)),
+      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
@@ -174,25 +179,29 @@ public class HdfsZooInstance implements Instance {
   }
 
   @Override
-  public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String principal, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), site));
   }
 
   @Deprecated
   @Override
-  public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String user, byte[] pass)
+      throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
   }
 
   @Deprecated
   @Override
-  public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String user, ByteBuffer pass)
+      throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
 
   @Deprecated
   @Override
-  public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String user, CharSequence pass)
+      throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
 

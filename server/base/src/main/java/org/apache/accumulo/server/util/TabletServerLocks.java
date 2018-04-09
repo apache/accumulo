@@ -67,7 +67,8 @@ public class TabletServerLocks {
     } else if (opts.delete != null) {
       ZooLock.deleteLock(tserverPath + "/" + args[1]);
     } else {
-      System.out.println("Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");
+      System.out.println(
+          "Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");
     }
 
   }

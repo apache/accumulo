@@ -41,7 +41,8 @@ import org.apache.hadoop.io.Text;
 public abstract class TabletLocator {
 
   /**
-   * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache Locators.
+   * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache
+   * Locators.
    */
   private volatile boolean isValid = true;
 
@@ -49,13 +50,15 @@ public abstract class TabletLocator {
     return isValid;
   }
 
-  public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException;
+  public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
-      List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  public abstract List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  public abstract List<Range> binRanges(ClientContext context, List<Range> ranges,
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   public abstract void invalidateCache(KeyExtent failedExtent);
@@ -118,9 +121,11 @@ public abstract class TabletLocator {
       if (RootTable.ID.equals(tableId)) {
         tl = new RootTabletLocator(new ZookeeperLockChecker(instance));
       } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo, new ZookeeperLockChecker(instance));
+        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
+            new ZookeeperLockChecker(instance));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo, new ZookeeperLockChecker(instance));
+        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
+            new ZookeeperLockChecker(instance));
       }
       locators.put(key, tl);
     }
@@ -182,14 +187,17 @@ public abstract class TabletLocator {
     public boolean equals(Object o) {
       if (o instanceof TabletLocation) {
         TabletLocation otl = (TabletLocation) o;
-        return tablet_extent.equals(otl.tablet_extent) && tablet_location.equals(otl.tablet_location) && tablet_session.equals(otl.tablet_session);
+        return tablet_extent.equals(otl.tablet_extent)
+            && tablet_location.equals(otl.tablet_location)
+            && tablet_session.equals(otl.tablet_session);
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      throw new UnsupportedOperationException("hashcode is not implemented for class " + this.getClass().toString());
+      throw new UnsupportedOperationException(
+          "hashcode is not implemented for class " + this.getClass().toString());
     }
 
     @Override

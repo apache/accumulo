@@ -59,8 +59,9 @@ public class TraceTableStats {
 
     @Override
     public String toString() {
-      return "{" + "type='" + type + '\'' + ", nonzeroCount=" + nonzeroCount + ", zeroCount=" + zeroCount + ", numTraces=" + traceIds.size()
-          + ", log10SpanLength=" + log10SpanLength + '}';
+      return "{" + "type='" + type + '\'' + ", nonzeroCount=" + nonzeroCount + ", zeroCount="
+          + zeroCount + ", numTraces=" + traceIds.size() + ", log10SpanLength=" + log10SpanLength
+          + '}';
     }
   }
 
@@ -71,7 +72,8 @@ public class TraceTableStats {
     stats.count(opts);
   }
 
-  public void count(Opts opts) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public void count(Opts opts)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), Authorizations.EMPTY);
     scanner.setRange(new Range(null, true, "idx:", false));
@@ -91,8 +93,10 @@ public class TraceTableStats {
       if (stc == null) {
         stc = new SpanTypeCount();
         counts.put(id, stc);
-        if (span.description.startsWith("org.apache.hadoop") || span.svc.equals("NameNode") || span.svc.equals("DataNode")
-            || span.description.contains("DFSOutputStream") || span.description.contains("DFSInputStream") || span.description.contains("BlockReader")) {
+        if (span.description.startsWith("org.apache.hadoop") || span.svc.equals("NameNode")
+            || span.svc.equals("DataNode") || span.description.contains("DFSOutputStream")
+            || span.description.contains("DFSInputStream")
+            || span.description.contains("BlockReader")) {
           stc.type = hdfs.type;
         } else {
           stc.type = accumulo.type;
@@ -110,7 +114,8 @@ public class TraceTableStats {
     System.out.println();
     System.out.println("log10 max span length " + maxSpanLength + " " + maxSpanLengthMS);
     System.out.println("Total spans " + numSpans);
-    System.out.println("Percentage Accumulo nonzero of total " + accumulo.nonzeroCount + "/" + numSpans + " = " + (accumulo.nonzeroCount * 1.0 / numSpans));
+    System.out.println("Percentage Accumulo nonzero of total " + accumulo.nonzeroCount + "/"
+        + numSpans + " = " + (accumulo.nonzeroCount * 1.0 / numSpans));
     System.out.println(hdfs + ", total " + (hdfs.nonzeroCount + hdfs.zeroCount));
     System.out.println(accumulo + ", total " + (accumulo.nonzeroCount + accumulo.zeroCount));
     System.out.println();

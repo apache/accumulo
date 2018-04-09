@@ -40,7 +40,9 @@ public class MaxCombiner extends LongCombiner {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("max");
-    io.setDescription("MaxCombiner interprets Values as Longs and finds their maximum.  A variety of encodings (variable length, fixed length, or string) are available");
+    io.setDescription("MaxCombiner interprets Values as Longs and finds their"
+        + " maximum.  A variety of encodings (variable length, fixed length, or"
+        + " string) are available");
     return io;
   }
 }

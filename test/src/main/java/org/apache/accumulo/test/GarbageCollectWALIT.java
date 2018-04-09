@@ -68,7 +68,8 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
 
   private int countWALsInFS(MiniAccumuloClusterImpl cluster) throws Exception {
     FileSystem fs = cluster.getFileSystem();
-    RemoteIterator<LocatedFileStatus> iterator = fs.listFiles(new Path(cluster.getConfig().getAccumuloDir() + "/wal"), true);
+    RemoteIterator<LocatedFileStatus> iterator = fs
+        .listFiles(new Path(cluster.getConfig().getAccumuloDir() + "/wal"), true);
     int result = 0;
     while (iterator.hasNext()) {
       LocatedFileStatus next = iterator.next();

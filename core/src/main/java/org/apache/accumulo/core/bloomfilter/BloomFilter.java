@@ -1,6 +1,7 @@
 /*
  *
- * Copyright (c) 2005, European Commission project OneLab under contract 034819 (http://www.one-lab.org)
+ * Copyright (c) 2005, European Commission project OneLab under contract 034819
+ * (http://www.one-lab.org)
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or
  * without modification, are permitted provided that the following
@@ -65,23 +66,29 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements a <i>Bloom filter</i>, as defined by Bloom in 1970.
  * <p>
- * The Bloom filter is a data structure that was introduced in 1970 and that has been adopted by the networking research community in the past decade thanks to
- * the bandwidth efficiencies that it offers for the transmission of set membership information between networked hosts. A sender encodes the information into a
- * bit vector, the Bloom filter, that is more compact than a conventional representation. Computation and space costs for construction are linear in the number
- * of elements. The receiver uses the filter to test whether various elements are members of the set. Though the filter will occasionally return a false
- * positive, it will never return a false negative. When creating the filter, the sender can choose its desired point in a trade-off between the false positive
- * rate and the size.
+ * The Bloom filter is a data structure that was introduced in 1970 and that has been adopted by the
+ * networking research community in the past decade thanks to the bandwidth efficiencies that it
+ * offers for the transmission of set membership information between networked hosts. A sender
+ * encodes the information into a bit vector, the Bloom filter, that is more compact than a
+ * conventional representation. Computation and space costs for construction are linear in the
+ * number of elements. The receiver uses the filter to test whether various elements are members of
+ * the set. Though the filter will occasionally return a false positive, it will never return a
+ * false negative. When creating the filter, the sender can choose its desired point in a trade-off
+ * between the false positive rate and the size.
  *
  * <p>
- * Originally created by <a href="http://www.one-lab.org">European Commission One-Lab Project 034819</a>.
+ * Originally created by <a href="http://www.one-lab.org">European Commission One-Lab Project
+ * 034819</a>.
  *
  * @see Filter The general behavior of a filter
  *
- * @see <a href="http://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time Trade-Offs in Hash Coding with Allowable Errors</a>
+ * @see <a href="http://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time
+ *      Trade-Offs in Hash Coding with Allowable Errors</a>
  */
 public class BloomFilter extends Filter {
   private static final Logger log = LoggerFactory.getLogger(BloomFilter.class);
-  private static final byte[] bitvalues = new byte[] {(byte) 0x01, (byte) 0x02, (byte) 0x04, (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80};
+  private static final byte[] bitvalues = new byte[] {(byte) 0x01, (byte) 0x02, (byte) 0x04,
+      (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80};
 
   /** The bit vector. */
   BitSet bits;
@@ -128,7 +135,8 @@ public class BloomFilter extends Filter {
 
   @Override
   public void and(final Filter filter) {
-    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize
+        || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be and-ed");
     }
 
@@ -158,7 +166,8 @@ public class BloomFilter extends Filter {
 
   @Override
   public void or(final Filter filter) {
-    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize
+        || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be or-ed");
     }
     bits.or(((BloomFilter) filter).bits);
@@ -166,7 +175,8 @@ public class BloomFilter extends Filter {
 
   @Override
   public void xor(final Filter filter) {
-    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize
+        || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be xor-ed");
     }
     bits.xor(((BloomFilter) filter).bits);

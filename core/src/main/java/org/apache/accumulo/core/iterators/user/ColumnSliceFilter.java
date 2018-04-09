@@ -40,12 +40,15 @@ public class ColumnSliceFilter extends Filter {
   @Override
   public boolean accept(Key key, Value value) {
     String colQ = key.getColumnQualifier().toString();
-    return (startBound == null || (startInclusive ? (colQ.compareTo(startBound) >= 0) : (colQ.compareTo(startBound) > 0)))
-        && (endBound == null || (endInclusive ? (colQ.compareTo(endBound) <= 0) : (colQ.compareTo(endBound) < 0)));
+    return (startBound == null
+        || (startInclusive ? (colQ.compareTo(startBound) >= 0) : (colQ.compareTo(startBound) > 0)))
+        && (endBound == null
+            || (endInclusive ? (colQ.compareTo(endBound) <= 0) : (colQ.compareTo(endBound) < 0)));
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(START_BOUND)) {
       startBound = options.get(START_BOUND);
@@ -76,7 +79,8 @@ public class ColumnSliceFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("columnSlice");
-    io.setDescription("The ColumnSliceFilter/Iterator allows you to filter for key/value pairs based on a lexicographic range of column qualifier names");
+    io.setDescription("The ColumnSliceFilter/Iterator allows you to filter for"
+        + " key/value pairs based on a lexicographic range of column qualifier" + " names");
     io.addNamedOption(START_BOUND, "start string in slice");
     io.addNamedOption(END_BOUND, "end string in slice");
     io.addNamedOption(START_INCLUSIVE, "include the start bound in the result set");
@@ -88,9 +92,13 @@ public class ColumnSliceFilter extends Filter {
     setSlice(si, start, true, end, false);
   }
 
-  public static void setSlice(IteratorSetting si, String start, boolean startInclusive, String end, boolean endInclusive) {
-    if (start != null && end != null && (start.compareTo(end) > 0 || (start.compareTo(end) == 0 && (!startInclusive || !endInclusive)))) {
-      throw new IllegalArgumentException("Start key must be less than end key or equal with both sides inclusive in range (" + start + ", " + end + ")");
+  public static void setSlice(IteratorSetting si, String start, boolean startInclusive, String end,
+      boolean endInclusive) {
+    if (start != null && end != null && (start.compareTo(end) > 0
+        || (start.compareTo(end) == 0 && (!startInclusive || !endInclusive)))) {
+      throw new IllegalArgumentException(
+          "Start key must be less than end key or equal with both sides inclusive in range ("
+              + start + ", " + end + ")");
     }
 
     if (start != null) {

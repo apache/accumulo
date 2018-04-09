@@ -36,7 +36,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 /**
- * Reads all data between two rows; all data after a given row; or all data in a table, depending on the number of arguments given.
+ * Reads all data between two rows; all data after a given row; or all data in a table, depending on
+ * the number of arguments given.
  */
 public class ReadData {
 
@@ -49,7 +50,8 @@ public class ReadData {
     String endKey;
   }
 
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void main(String[] args)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(ReadData.class.getName(), args, scanOpts);

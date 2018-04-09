@@ -68,7 +68,8 @@ public class ZooLock implements Watcher {
   private String asyncLock;
 
   public ZooLock(String zookeepers, int timeInMillis, String scheme, byte[] auth, String path) {
-    this(new ZooCacheFactory().getZooCache(zookeepers, timeInMillis), ZooReaderWriter.getInstance(zookeepers, timeInMillis, scheme, auth), path);
+    this(new ZooCacheFactory().getZooCache(zookeepers, timeInMillis),
+        ZooReaderWriter.getInstance(zookeepers, timeInMillis, scheme, auth), path);
   }
 
   protected ZooLock(ZooCache zc, IZooReaderWriter zrw, String path) {
@@ -113,7 +114,8 @@ public class ZooLock implements Watcher {
 
   }
 
-  public synchronized boolean tryLock(LockWatcher lw, byte data[]) throws KeeperException, InterruptedException {
+  public synchronized boolean tryLock(LockWatcher lw, byte data[])
+      throws KeeperException, InterruptedException {
 
     TryLockAsyncLockWatcher tlalw = new TryLockAsyncLockWatcher(lw);
 
@@ -131,7 +133,8 @@ public class ZooLock implements Watcher {
     return false;
   }
 
-  private synchronized void lockAsync(final String myLock, final AsyncLockWatcher lw) throws KeeperException, InterruptedException {
+  private synchronized void lockAsync(final String myLock, final AsyncLockWatcher lw)
+      throws KeeperException, InterruptedException {
 
     if (asyncLock == null) {
       throw new IllegalStateException("Called lockAsync() when asyncLock == null");
@@ -154,7 +157,8 @@ public class ZooLock implements Watcher {
     if (children.get(0).equals(myLock)) {
       log.trace("First candidate is my lock, acquiring");
       if (!watchingParent) {
-        throw new IllegalStateException("Can not acquire lock, no longer watching parent : " + path);
+        throw new IllegalStateException(
+            "Can not acquire lock, no longer watching parent : " + path);
       }
       this.lockWatcher = lw;
       this.lock = myLock;
@@ -192,7 +196,8 @@ public class ZooLock implements Watcher {
               if (asyncLock != null) {
                 lockAsync(myLock, lw);
               } else if (log.isTraceEnabled()) {
-                log.trace("While waiting for another lock " + lockToWatch + " " + myLock + " was deleted");
+                log.trace("While waiting for another lock " + lockToWatch + " " + myLock
+                    + " was deleted");
               }
             } catch (Exception e) {
               if (lock == null) {
@@ -204,7 +209,8 @@ public class ZooLock implements Watcher {
           renew = false;
         }
 
-        if (event.getState() == KeeperState.Expired || event.getState() == KeeperState.Disconnected) {
+        if (event.getState() == KeeperState.Expired
+            || event.getState() == KeeperState.Disconnected) {
           synchronized (ZooLock.this) {
             if (lock == null) {
               lw.failedToAcquireLock(new Exception("Zookeeper Session expired / disconnected"));
@@ -262,11 +268,14 @@ public class ZooLock implements Watcher {
         @Override
         public void process(WatchedEvent event) {
           synchronized (ZooLock.this) {
-            if (lock != null && event.getType() == EventType.NodeDeleted && event.getPath().equals(path + "/" + lock)) {
+            if (lock != null && event.getType() == EventType.NodeDeleted
+                && event.getPath().equals(path + "/" + lock)) {
               lostLock(LockLossReason.LOCK_DELETED);
-            } else if (asyncLock != null && event.getType() == EventType.NodeDeleted && event.getPath().equals(path + "/" + asyncLock)) {
+            } else if (asyncLock != null && event.getType() == EventType.NodeDeleted
+                && event.getPath().equals(path + "/" + asyncLock)) {
               failedToAcquireLock();
-            } else if (event.getState() != KeeperState.Disconnected && event.getState() != KeeperState.Expired && (lock != null || asyncLock != null)) {
+            } else if (event.getState() != KeeperState.Disconnected
+                && event.getState() != KeeperState.Expired && (lock != null || asyncLock != null)) {
               log.debug("Unexpected event watching lock node " + event + " " + asyncLockPath);
               try {
                 Stat stat2 = zooKeeper.getStatus(asyncLockPath, this);
@@ -302,7 +311,8 @@ public class ZooLock implements Watcher {
     }
   }
 
-  public synchronized boolean tryToCancelAsyncLockOrUnlock() throws InterruptedException, KeeperException {
+  public synchronized boolean tryToCancelAsyncLockOrUnlock()
+      throws InterruptedException, KeeperException {
     boolean del = false;
 
     if (asyncLock != null) {
@@ -353,7 +363,8 @@ public class ZooLock implements Watcher {
   }
 
   /**
-   * indicates if the lock was acquired in the past.... helps discriminate between the case where the lock was never held, or held and lost....
+   * indicates if the lock was acquired in the past.... helps discriminate between the case where
+   * the lock was never held, or held and lost....
    *
    * @return true if the lock was aquired, otherwise false.
    */
@@ -389,7 +400,9 @@ public class ZooLock implements Watcher {
       } catch (Exception ex) {
         if (lock != null || asyncLock != null) {
           lockWatcher.unableToMonitorLockNode(ex);
-          log.error("Error resetting watch on ZooLock " + lock == null ? asyncLock : lock + " " + event, ex);
+          log.error(
+              "Error resetting watch on ZooLock " + lock == null ? asyncLock : lock + " " + event,
+              ex);
         }
       }
 
@@ -416,7 +429,8 @@ public class ZooLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static byte[] getLockData(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
+  public static byte[] getLockData(ZooKeeper zk, String path)
+      throws KeeperException, InterruptedException {
     List<String> children = zk.getChildren(path, false);
 
     if (children == null || children.size() == 0) {
@@ -430,7 +444,8 @@ public class ZooLock implements Watcher {
     return zk.getData(path + "/" + lockNode, false, null);
   }
 
-  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc, String path, ZcStat stat) {
+  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc, String path,
+      ZcStat stat) {
 
     List<String> children = zc.getChildren(path);
 
@@ -450,7 +465,8 @@ public class ZooLock implements Watcher {
     return zc.get(path + "/" + lockNode, stat);
   }
 
-  public static long getSessionId(ZooCache zc, String path) throws KeeperException, InterruptedException {
+  public static long getSessionId(ZooCache zc, String path)
+      throws KeeperException, InterruptedException {
     List<String> children = zc.getChildren(path);
 
     if (children == null || children.size() == 0) {
@@ -474,7 +490,8 @@ public class ZooLock implements Watcher {
     return getSessionId(getLockDataZooCache, path);
   }
 
-  public static void deleteLock(IZooReaderWriter zk, String path) throws InterruptedException, KeeperException {
+  public static void deleteLock(IZooReaderWriter zk, String path)
+      throws InterruptedException, KeeperException {
     List<String> children;
 
     children = zk.getChildren(path);
@@ -495,7 +512,8 @@ public class ZooLock implements Watcher {
 
   }
 
-  public static boolean deleteLock(IZooReaderWriter zk, String path, String lockData) throws InterruptedException, KeeperException {
+  public static boolean deleteLock(IZooReaderWriter zk, String path, String lockData)
+      throws InterruptedException, KeeperException {
     List<String> children;
 
     children = zk.getChildren(path);

@@ -81,7 +81,8 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
+        TablePermission.WRITE);
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
 
@@ -106,13 +107,15 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
     bw = c.createBatchWriter(MetadataTable.NAME, null);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
-      assertTrue("Expected " + entry.getValue() + " to contain " + v1, entry.getValue().toString().contains(v1.toString()));
+      assertTrue("Expected " + entry.getValue() + " to contain " + v1,
+          entry.getValue().toString().contains(v1.toString()));
       count++;
       if (count % 2 == 0) {
         String parts[] = entry.getValue().toString().split("/");
         Key key = entry.getKey();
         Mutation m = new Mutation(key.getRow());
-        m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value((Path.SEPARATOR + parts[parts.length - 1]).getBytes()));
+        m.put(key.getColumnFamily(), key.getColumnQualifier(),
+            new Value((Path.SEPARATOR + parts[parts.length - 1]).getBytes()));
         bw.addMutation(m);
       }
     }
@@ -120,15 +123,18 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
     assertEquals(splits.size() + 1, count);
 
     // This should fail: only one volume
-    assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i", c.getInstance().getInstanceName(), "-t", tableName).waitFor());
+    assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i",
+        c.getInstance().getInstanceName(), "-t", tableName).waitFor());
 
     cluster.stop();
 
     // add the 2nd volume
     Configuration conf = new Configuration(false);
-    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+    conf.addResource(
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v1.toString() + "," + v2.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    BufferedOutputStream fos = new BufferedOutputStream(
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
     fos.close();
 
@@ -156,11 +162,13 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
     assertEquals(splits.size() + 1, v1Count + v2Count);
     // a fair chooser will differ by less than count(volumes)
-    assertTrue("Expected the number of files to differ between volumes by less than 10. " + v1Count + " " + v2Count, Math.abs(v1Count - v2Count) < 2);
+    assertTrue("Expected the number of files to differ between volumes by less than 10. " + v1Count
+        + " " + v2Count, Math.abs(v1Count - v2Count) < 2);
     // verify we can read the old data
     count = 0;
     for (Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {
-      assertTrue("Found unexpected entry in table: " + entry, splits.contains(entry.getKey().getRow()));
+      assertTrue("Found unexpected entry in table: " + entry,
+          splits.contains(entry.getKey().getRow()));
       count++;
     }
     assertEquals(splits.size(), count);

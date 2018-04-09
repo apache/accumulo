@@ -72,7 +72,8 @@ public class ClusterUser {
   }
 
   /**
-   * Computes the appropriate {@link AuthenticationToken} for the user represented by this object. May not yet be created in Accumulo.
+   * Computes the appropriate {@link AuthenticationToken} for the user represented by this object.
+   * May not yet be created in Accumulo.
    *
    * @return the correct {@link AuthenticationToken} to use with Accumulo for this user
    * @throws IOException
@@ -91,7 +92,8 @@ public class ClusterUser {
 
   @Override
   public String toString() {
-    return "KerberosPrincipal [principal=" + principal + ", keytab=" + keytab + ", password=" + password + "]";
+    return "KerberosPrincipal [principal=" + principal + ", keytab=" + keytab + ", password="
+        + password + "]";
   }
 
   @Override

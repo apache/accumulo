@@ -45,8 +45,10 @@ public class ChangeTableState extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    // reserve the table so that this op does not run concurrently with create, clone, or delete table
-    return Utils.reserveNamespace(getNamespaceId(env), tid, false, true, top) + Utils.reserveTable(tableId, tid, true, true, top);
+    // reserve the table so that this op does not run concurrently with create, clone, or delete
+    // table
+    return Utils.reserveNamespace(getNamespaceId(env), tid, false, true, top)
+        + Utils.reserveTable(tableId, tid, true, true, top);
   }
 
   @Override
@@ -58,7 +60,8 @@ public class ChangeTableState extends MasterRepo {
     TableManager.getInstance().transitionTableState(tableId, ts);
     Utils.unreserveNamespace(getNamespaceId(env), tid, false);
     Utils.unreserveTable(tableId, tid, true);
-    LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state " + tableId + " " + ts);
+    LoggerFactory.getLogger(ChangeTableState.class)
+        .debug("Changed table state " + tableId + " " + ts);
     env.getEventCoordinator().event("Set table state of %s to %s", tableId, ts);
     return null;
   }

@@ -40,14 +40,17 @@ import org.apache.hadoop.io.Text;
 
 /**
  *
- * The WholeColumnFamilyIterator is designed to provide row/cf-isolation so that queries see mutations as atomic. It does so by grouping row/Column family (as
- * key) and rest of data as Value into a single key/value pair, which is returned through the client as an atomic operation.
+ * The WholeColumnFamilyIterator is designed to provide row/cf-isolation so that queries see
+ * mutations as atomic. It does so by grouping row/Column family (as key) and rest of data as Value
+ * into a single key/value pair, which is returned through the client as an atomic operation.
  *
- * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
+ * To regain the original key/value pairs of the row, call the decodeRow function on the key/value
+ * pair that this iterator returned.
  *
  * @since 1.6.0
  */
-public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
+public class WholeColumnFamilyIterator
+    implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
   private SortedKeyValueIterator<Key,Value> sourceIter;
   private Key topKey = null;
@@ -62,7 +65,8 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
   }
 
   /**
-   * Decode whole row/cf out of value. decode key value pairs that have been encoded into a single // value
+   * Decode whole row/cf out of value. decode key value pairs that have been encoded into a single
+   * // value
    *
    * @param rowKey
    *          the row key to decode
@@ -72,7 +76,8 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
    * @throws IOException
    *           Signals that an I/O exception has occurred.
    */
-  public static final SortedMap<Key,Value> decodeColumnFamily(Key rowKey, Value rowValue) throws IOException {
+  public static final SortedMap<Key,Value> decodeColumnFamily(Key rowKey, Value rowValue)
+      throws IOException {
     SortedMap<Key,Value> map = new TreeMap<>();
     ByteArrayInputStream in = new ByteArrayInputStream(rowValue.get());
     DataInputStream din = new DataInputStream(in);
@@ -101,14 +106,15 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
         valBytes = new byte[len];
         din.readFully(valBytes);
       }
-      map.put(new Key(rowKey.getRowData().toArray(), rowKey.getColumnFamilyData().toArray(), cq, cv, timestamp, false, false), new Value(valBytes, false));
+      map.put(new Key(rowKey.getRowData().toArray(), rowKey.getColumnFamilyData().toArray(), cq, cv,
+          timestamp, false, false), new Value(valBytes, false));
     }
     return map;
   }
 
   /**
-   * Encode row/cf. Take a stream of keys and values and output a value that encodes everything but their row and column families keys and values must be paired
-   * one for one
+   * Encode row/cf. Take a stream of keys and values and output a value that encodes everything but
+   * their row and column families keys and values must be paired one for one
    *
    * @param keys
    *          the row keys to encode into value
@@ -118,7 +124,8 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
    * @throws IOException
    *           Signals that an I/O exception has occurred.
    */
-  public static final Value encodeColumnFamily(List<Key> keys, List<Value> values) throws IOException {
+  public static final Value encodeColumnFamily(List<Key> keys, List<Value> values)
+      throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dout = new DataOutputStream(out);
     dout.writeInt(keys.size());
@@ -165,7 +172,8 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
 
       keys.clear();
       values.clear();
-      while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow) && sourceIter.getTopKey().getColumnFamily().equals(currentCf)) {
+      while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)
+          && sourceIter.getTopKey().getColumnFamily().equals(currentCf)) {
         keys.add(new Key(sourceIter.getTopKey()));
         values.add(new Value(sourceIter.getTopValue()));
         sourceIter.next();
@@ -182,9 +190,11 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
    * @param currentRow
    *          All keys and cf have this in their row portion (do not modify!).
    * @param keys
-   *          One key for each key and cf group in the row, ordered as they are given by the source iterator (do not modify!).
+   *          One key for each key and cf group in the row, ordered as they are given by the source
+   *          iterator (do not modify!).
    * @param values
-   *          One value for each key in keys, ordered to correspond to the ordering in keys (do not modify!).
+   *          One value for each key in keys, ordered to correspond to the ordering in keys (do not
+   *          modify!).
    * @return true if we want to keep the row, false if we want to skip it
    */
   protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
@@ -214,7 +224,8 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     sourceIter = source;
   }
 
@@ -226,13 +237,15 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     topKey = null;
     topValue = null;
 
     Key sk = range.getStartKey();
 
-    if (sk != null && sk.getColumnQualifierData().length() == 0 && sk.getColumnVisibilityData().length() == 0 && sk.getTimestamp() == Long.MAX_VALUE
+    if (sk != null && sk.getColumnQualifierData().length() == 0
+        && sk.getColumnVisibilityData().length() == 0 && sk.getTimestamp() == Long.MAX_VALUE
         && !range.isStartKeyInclusive()) {
       // assuming that we are seeking using a key previously returned by
       // this iterator
@@ -241,7 +254,8 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
       if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
         return;
 
-      range = new Range(sk.followingKey(PartialKey.ROW_COLFAM), true, range.getEndKey(), range.isEndKeyInclusive());
+      range = new Range(sk.followingKey(PartialKey.ROW_COLFAM), true, range.getEndKey(),
+          range.isEndKeyInclusive());
     }
 
     sourceIter.seek(range, columnFamilies, inclusive);
@@ -250,7 +264,9 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions("wholecolumnfamilyiterator", "WholeColumnFamilyIterator. Group equal row & column family into single row entry.", null, null);
+    return new IteratorOptions("wholecolumnfamilyiterator",
+        "WholeColumnFamilyIterator. Group equal row & column family into single row entry.", null,
+        null);
   }
 
   @Override

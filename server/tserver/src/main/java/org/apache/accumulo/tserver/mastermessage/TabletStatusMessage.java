@@ -35,7 +35,8 @@ public class TabletStatusMessage implements MasterMessage {
   }
 
   @Override
-  public void send(TCredentials auth, String serverName, Iface client) throws TException, ThriftSecurityException {
+  public void send(TCredentials auth, String serverName, Iface client)
+      throws TException, ThriftSecurityException {
     client.reportTabletStatus(Tracer.traceInfo(), auth, serverName, status, extent.toThrift());
   }
 }

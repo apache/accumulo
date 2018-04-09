@@ -47,13 +47,15 @@ import org.apache.commons.cli.Options;
 import jline.console.ConsoleReader;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt, namespaceOpt;
+  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt,
+      namespaceOpt;
 
   private int COL1 = 10, COL2 = 7;
   private ConsoleReader reader;
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     final Token cmd = new Token(getName());
     final Token sub = new Token("-" + setOpt.getOpt());
     for (Property p : Property.values()) {
@@ -66,8 +68,9 @@ public class ConfigCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, IOException, ClassNotFoundException, NamespaceNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
+      ClassNotFoundException, NamespaceNotFoundException {
     reader = shellState.getReader();
 
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
@@ -82,23 +85,27 @@ public class ConfigCommand extends Command {
       // delete property from table
       String property = cl.getOptionValue(deleteOpt.getOpt());
       if (property.contains("=")) {
-        throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand, fullCommand.indexOf('='));
+        throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand,
+            fullCommand.indexOf('='));
       }
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
+          Shell.log.warn("Invalid per-table property : " + property
+              + ", still removing from zookeeper if it's there.");
         }
         shellState.getConnector().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else if (namespace != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
+          Shell.log.warn("Invalid per-table property : " + property
+              + ", still removing from zookeeper if it's there.");
         }
         shellState.getConnector().namespaceOperations().removeProperty(namespace, property);
         Shell.log.debug("Successfully deleted namespace configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
+          Shell.log.warn("Invalid per-table property : " + property
+              + ", still removing from zookeeper if it's there.");
         }
         shellState.getConnector().instanceOperations().removeProperty(property);
         Shell.log.debug("Successfully deleted system configuration option");
@@ -107,7 +114,8 @@ public class ConfigCommand extends Command {
       // set property on table
       String property = cl.getOptionValue(setOpt.getOpt()), value = null;
       if (!property.contains("=")) {
-        throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand, fullCommand.indexOf(property));
+        throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand,
+            fullCommand.indexOf(property));
       }
       final String pair[] = property.split("=", 2);
       property = pair[0];
@@ -115,7 +123,8 @@ public class ConfigCommand extends Command {
 
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          throw new BadArgumentException("Invalid per-table property.", fullCommand, fullCommand.indexOf(property));
+          throw new BadArgumentException("Invalid per-table property.", fullCommand,
+              fullCommand.indexOf(property));
         }
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
@@ -124,7 +133,8 @@ public class ConfigCommand extends Command {
         Shell.log.debug("Successfully set table configuration option.");
       } else if (namespace != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          throw new BadArgumentException("Invalid per-table property.", fullCommand, fullCommand.indexOf(property));
+          throw new BadArgumentException("Invalid per-table property.", fullCommand,
+              fullCommand.indexOf(property));
         }
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
@@ -133,7 +143,8 @@ public class ConfigCommand extends Command {
         Shell.log.debug("Successfully set table configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
-          throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand, fullCommand.indexOf(property));
+          throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
+              fullCommand.indexOf(property));
         }
         shellState.getConnector().instanceOperations().setProperty(property, value);
         Shell.log.debug("Successfully set system configuration option");
@@ -156,14 +167,16 @@ public class ConfigCommand extends Command {
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = Namespaces.getNamespaceName(shellState.getInstance(),
-            Tables.getNamespaceId(shellState.getInstance(), Tables.getTableId(shellState.getInstance(), tableName)));
-        for (Entry<String,String> e : shellState.getConnector().namespaceOperations().getProperties(n)) {
+        String n = Namespaces.getNamespaceName(shellState.getInstance(), Tables.getNamespaceId(
+            shellState.getInstance(), Tables.getTableId(shellState.getInstance(), tableName)));
+        for (Entry<String,String> e : shellState.getConnector().namespaceOperations()
+            .getProperties(n)) {
           namespaceConfig.put(e.getKey(), e.getValue());
         }
       }
 
-      Iterable<Entry<String,String>> acuconf = shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet();
+      Iterable<Entry<String,String>> acuconf = shellState.getConnector().instanceOperations()
+          .getSystemConfiguration().entrySet();
       if (tableName != null) {
         acuconf = shellState.getConnector().tableOperations().getProperties(tableName);
       } else if (namespace != null) {
@@ -178,7 +191,8 @@ public class ConfigCommand extends Command {
         final String key = propEntry.getKey();
         // only show properties with similar names to that
         // specified, or all of them if none specified
-        if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
+        if (cl.hasOption(filterOpt.getOpt())
+            && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
           continue;
         }
         if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
@@ -195,7 +209,8 @@ public class ConfigCommand extends Command {
 
         // only show properties with similar names to that
         // specified, or all of them if none specified
-        if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
+        if (cl.hasOption(filterOpt.getOpt())
+            && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
           continue;
         }
         if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
@@ -217,7 +232,8 @@ public class ConfigCommand extends Command {
             printed = true;
           }
           if (!defaults.containsKey(key) || !defaults.get(key).equals(siteVal)) {
-            printConfLine(output, "site", printed ? "   @override" : key, siteVal == null ? "" : siteVal);
+            printConfLine(output, "site", printed ? "   @override" : key,
+                siteVal == null ? "" : siteVal);
             printed = true;
           }
           if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
@@ -241,7 +257,8 @@ public class ConfigCommand extends Command {
         }
       }
       printConfFooter(output);
-      shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()), printFile);
+      shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()),
+          printFile);
       if (printFile != null) {
         printFile.close();
       }
@@ -259,13 +276,15 @@ public class ConfigCommand extends Command {
     if (s2.length() < COL2) {
       s2 += " " + Shell.repeat(".", COL2 - s2.length() - 1);
     }
-    output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", s1, s2,
-        s3.replace("\n", "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "|" + " ")));
+    output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", s1, s2, s3.replace("\n",
+        "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "|" + " ")));
   }
 
   private void printConfFooter(List<String> output) {
-    int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
-    output.add(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%-" + col3 + "s", Shell.repeat("-", COL1), Shell.repeat("-", COL2), Shell.repeat("-", col3)));
+    int col3 = Math.max(1,
+        Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
+    output.add(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%-" + col3 + "s",
+        Shell.repeat("-", COL1), Shell.repeat("-", COL2), Shell.repeat("-", col3)));
   }
 
   @Override
@@ -279,13 +298,16 @@ public class ConfigCommand extends Command {
     final OptionGroup og = new OptionGroup();
     final OptionGroup tgroup = new OptionGroup();
 
-    tableOpt = new Option(ShellOptions.tableOption, "table", true, "table to display/set/delete properties for");
+    tableOpt = new Option(ShellOptions.tableOption, "table", true,
+        "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
     setOpt = new Option("s", "set", true, "set a per-table property");
     filterOpt = new Option("f", "filter", true, "show only properties that contain this string");
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    disablePaginationOpt = new Option("np", "no-pagination", false,
+        "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
-    namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true, "namespace to display/set/delete properties for");
+    namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
+        "namespace to display/set/delete properties for");
 
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");

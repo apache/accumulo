@@ -37,7 +37,8 @@ import org.apache.hadoop.io.Text;
 public class TraceCommand extends DebugCommand {
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
         Trace.on("shell:" + shellState.getPrincipal());
@@ -50,10 +51,12 @@ public class TraceCommand extends DebugCommand {
           for (int i = 0; i < 30; i++) {
             sb = new StringBuilder();
             try {
-              final Map<String,String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
+              final Map<String,String> properties = shellState.getConnector().instanceOperations()
+                  .getSystemConfiguration();
               final String table = properties.get(Property.TRACE_TABLE.getKey());
               final String user = shellState.getConnector().whoami();
-              final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
+              final Authorizations auths = shellState.getConnector().securityOperations()
+                  .getUserAuthorizations(user);
               final Scanner scanner = shellState.getConnector().createScanner(table, auths);
               scanner.setRange(new Range(new Text(Long.toHexString(trace))));
               final StringBuilder finalSB = sb;
@@ -86,11 +89,13 @@ public class TraceCommand extends DebugCommand {
           shellState.getReader().println("Not tracing");
         }
       } else
-        throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+        throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand,
+            fullCommand.indexOf(cl.getArgs()[0]));
     } else if (cl.getArgs().length == 0) {
       shellState.getReader().println(Trace.isTracing() ? "on" : "off");
     } else {
-      shellState.printException(new IllegalArgumentException("Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
+      shellState.printException(new IllegalArgumentException(
+          "Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
       printHelp(shellState);
       return 1;
     }

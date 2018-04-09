@@ -46,7 +46,8 @@ public class LargeRowFilterTest extends TestCase {
 
   private void genRow(TreeMap<Key,Value> testData, int row, int startCQ, int stopCQ) {
     for (int cq = startCQ; cq < stopCQ; cq++) {
-      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5), new Value(("v" + row + "_" + cq).getBytes()));
+      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5),
+          new Value(("v" + row + "_" + cq).getBytes()));
     }
   }
 
@@ -56,12 +57,14 @@ public class LargeRowFilterTest extends TestCase {
     }
   }
 
-  private LargeRowFilter setupIterator(TreeMap<Key,Value> testData, int maxColumns, IteratorScope scope) throws IOException {
+  private LargeRowFilter setupIterator(TreeMap<Key,Value> testData, int maxColumns,
+      IteratorScope scope) throws IOException {
     SortedMapIterator smi = new SortedMapIterator(testData);
     LargeRowFilter lrfi = new LargeRowFilter();
     IteratorSetting is = new IteratorSetting(1, LargeRowFilter.class);
     LargeRowFilter.setMaxColumns(is, maxColumns);
-    lrfi.init(new ColumnFamilySkippingIterator(smi), is.getOptions(), new RowDeletingIteratorTest.TestIE(scope, false));
+    lrfi.init(new ColumnFamilySkippingIterator(smi), is.getOptions(),
+        new RowDeletingIteratorTest.TestIE(scope, false));
     return lrfi;
   }
 
@@ -124,11 +127,15 @@ public class LargeRowFilterTest extends TestCase {
     LargeRowFilter lrfi = setupIterator(testData, 13, IteratorScope.scan);
 
     // test seeking to the middle of a row
-    lrfi.seek(new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true, new Key(genRow(15)).followingKey(PartialKey.ROW), false),
+    lrfi.seek(
+        new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true,
+            new Key(genRow(15)).followingKey(PartialKey.ROW), false),
         LocalityGroupUtil.EMPTY_CF_SET, false);
     assertFalse(lrfi.hasTop());
 
-    lrfi.seek(new Range(new Key(genRow(10), "cf001", genCQ(4), 5), true, new Key(genRow(10)).followingKey(PartialKey.ROW), false),
+    lrfi.seek(
+        new Range(new Key(genRow(10), "cf001", genCQ(4), 5), true,
+            new Key(genRow(10)).followingKey(PartialKey.ROW), false),
         LocalityGroupUtil.EMPTY_CF_SET, false);
     TreeMap<Key,Value> expectedData = new TreeMap<>();
     genRow(expectedData, 10, 4, 10);
@@ -179,15 +186,19 @@ public class LargeRowFilterTest extends TestCase {
     assertEquals(expectedData.size() + 8, compactedData.size());
     assertEquals(expectedData, filteredData);
 
-    // try seeking to the middle of row 15... row has data and suppression marker... this seeks past the marker but before the column
-    lrfi.seek(new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true, new Key(genRow(15)).followingKey(PartialKey.ROW), false),
+    // try seeking to the middle of row 15... row has data and suppression marker... this seeks past
+    // the marker but before the column
+    lrfi.seek(
+        new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true,
+            new Key(genRow(15)).followingKey(PartialKey.ROW), false),
         LocalityGroupUtil.EMPTY_CF_SET, false);
     assertFalse(lrfi.hasTop());
 
     // test seeking w/ column families
     HashSet<ByteSequence> colfams = new HashSet<>();
     colfams.add(new ArrayByteSequence("cf001"));
-    lrfi.seek(new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true, new Key(genRow(15)).followingKey(PartialKey.ROW), false), colfams, true);
+    lrfi.seek(new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true,
+        new Key(genRow(15)).followingKey(PartialKey.ROW), false), colfams, true);
     assertFalse(lrfi.hasTop());
   }
 

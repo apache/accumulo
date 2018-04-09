@@ -77,20 +77,22 @@ public class SimpleGarbageCollectorTest {
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
-    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<String>() {
-      @Override
-      public String answer() {
-        Object[] args = EasyMock.getCurrentArguments();
-        return systemConfig.get((Property) args[0]);
-      }
-    }).anyTimes();
-    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class))).andAnswer(new IAnswer<Boolean>() {
-      @Override
-      public Boolean answer() {
-        Object[] args = EasyMock.getCurrentArguments();
-        return systemConfig.getBoolean((Property) args[0]);
-      }
-    }).anyTimes();
+    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
+        .andAnswer(new IAnswer<String>() {
+          @Override
+          public String answer() {
+            Object[] args = EasyMock.getCurrentArguments();
+            return systemConfig.get((Property) args[0]);
+          }
+        }).anyTimes();
+    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class)))
+        .andAnswer(new IAnswer<Boolean>() {
+          @Override
+          public Boolean answer() {
+            Object[] args = EasyMock.getCurrentArguments();
+            return systemConfig.getBoolean((Property) args[0]);
+          }
+        }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
       @Override

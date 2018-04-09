@@ -62,8 +62,10 @@ public class CountIT extends ConfigurableMacBase {
     bw.addMutation(Ingest.buildMutation(cv, "/local/user2", true, false, true, 272, 12345, null));
     bw.addMutation(Ingest.buildMutation(cv, "/local/file", false, false, false, 1024, 12345, null));
     bw.addMutation(Ingest.buildMutation(cv, "/local/file", false, false, false, 1024, 23456, null));
-    bw.addMutation(Ingest.buildMutation(cv, "/local/user1/file1", false, false, false, 2024, 12345, null));
-    bw.addMutation(Ingest.buildMutation(cv, "/local/user1/file2", false, false, false, 1028, 23456, null));
+    bw.addMutation(
+        Ingest.buildMutation(cv, "/local/user1/file1", false, false, false, 2024, 12345, null));
+    bw.addMutation(
+        Ingest.buildMutation(cv, "/local/user1/file2", false, false, false, 1028, 23456, null));
     bw.close();
   }
 

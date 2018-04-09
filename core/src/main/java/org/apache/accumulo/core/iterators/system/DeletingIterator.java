@@ -46,7 +46,8 @@ public class DeletingIterator extends WrappingIterator {
 
   public DeletingIterator() {}
 
-  public DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes) throws IOException {
+  public DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes)
+      throws IOException {
     this.setSource(iterator);
     this.propogateDeletes = propogateDeletes;
   }
@@ -62,7 +63,8 @@ public class DeletingIterator extends WrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     // do not want to seek to the middle of a row
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
 
@@ -71,7 +73,8 @@ public class DeletingIterator extends WrappingIterator {
     findTop(source);
 
     if (range.getStartKey() != null) {
-      while (source.hasTop() && source.getTopKey().compareTo(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
+      while (source.hasTop() && source.getTopKey().compareTo(range.getStartKey(),
+          PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
         next();
       }
 
@@ -95,13 +98,15 @@ public class DeletingIterator extends WrappingIterator {
     Key keyToSkip = workKey;
     source.next();
 
-    while (source.hasTop() && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
+    while (source.hasTop()
+        && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       source.next();
     }
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
 }

@@ -43,8 +43,12 @@ public class MonitorLoggingIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
     File confDir = cfg.getConfDir();
     try {
-      FileUtils.copyInputStreamToFile(MonitorLoggingIT.class.getResourceAsStream("/conf/generic_logger.xml"), new File(confDir, "generic_logger.xml"));
-      FileUtils.copyInputStreamToFile(MonitorLoggingIT.class.getResourceAsStream("/conf/monitor_logger.xml"), new File(confDir, "monitor_logger.xml"));
+      FileUtils.copyInputStreamToFile(
+          MonitorLoggingIT.class.getResourceAsStream("/conf/generic_logger.xml"),
+          new File(confDir, "generic_logger.xml"));
+      FileUtils.copyInputStreamToFile(
+          MonitorLoggingIT.class.getResourceAsStream("/conf/monitor_logger.xml"),
+          new File(confDir, "monitor_logger.xml"));
     } catch (Exception e) {
       log.error("Failed to copy Log4J XML files to conf dir", e);
     }
@@ -75,7 +79,9 @@ public class MonitorLoggingIT extends ConfigurableMacBase {
         log.debug("Monitor not up yet, trying again in " + LOCATION_DELAY_SECS + " secs");
       }
     }
-    assertNotNull("Monitor failed to start within " + (LOCATION_DELAY_SECS * NUM_LOCATION_PASSES) + " secs", monitorLocation);
+    assertNotNull(
+        "Monitor failed to start within " + (LOCATION_DELAY_SECS * NUM_LOCATION_PASSES) + " secs",
+        monitorLocation);
     log.debug("Monitor running at " + monitorLocation);
 
     // The tserver has to observe that the log-forwarding address
@@ -96,7 +102,8 @@ public class MonitorLoggingIT extends ConfigurableMacBase {
 
     String result = "";
     while (true) {
-      Thread.sleep(LOCATION_DELAY_SECS * 1000); // extra precaution to ensure monitor has opportunity to log
+      Thread.sleep(LOCATION_DELAY_SECS * 1000); // extra precaution to ensure monitor has
+                                                // opportunity to log
 
       // Verify messages were received at the monitor.
       URL url = new URL("http://" + monitorLocation + "/log");

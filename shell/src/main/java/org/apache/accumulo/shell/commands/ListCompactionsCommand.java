@@ -32,11 +32,14 @@ public class ListCompactionsCommand extends Command {
 
   @Override
   public String description() {
-    return "lists what compactions are currently running in accumulo. See the accumulo.core.client.admin.ActiveCompaciton javadoc for more information about columns.";
+    return "lists what compactions are currently running in accumulo. See the"
+        + " accumulo.core.client.admin.ActiveCompaciton javadoc for more information"
+        + " about columns.";
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
 
     List<String> tservers;
 

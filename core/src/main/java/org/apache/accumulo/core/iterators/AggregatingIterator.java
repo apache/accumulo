@@ -43,7 +43,10 @@ import org.slf4j.LoggerFactory;
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
   private SortedKeyValueIterator<Key,Value> iterator;
-  private ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> aggregators;
+  // @formatter:off
+  private ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator>
+    aggregators;
+  // @formatter:on
 
   private Key workKey = new Key();
 
@@ -64,7 +67,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
 
   public AggregatingIterator() {}
 
-  private void aggregateRowColumn(org.apache.accumulo.core.iterators.aggregation.Aggregator aggr) throws IOException {
+  private void aggregateRowColumn(org.apache.accumulo.core.iterators.aggregation.Aggregator aggr)
+      throws IOException {
     // this function assumes that first value is not delete
 
     if (iterator.getTopKey().isDeleted())
@@ -79,7 +83,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     aggr.collect(iterator.getTopValue());
     iterator.next();
 
-    while (iterator.hasTop() && !iterator.getTopKey().isDeleted() && iterator.getTopKey().equals(keyToAggregate, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
+    while (iterator.hasTop() && !iterator.getTopKey().isDeleted()
+        && iterator.getTopKey().equals(keyToAggregate, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       aggr.collect(iterator.getTopValue());
       iterator.next();
     }
@@ -92,7 +97,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   private void findTop() throws IOException {
     // check if aggregation is needed
     if (iterator.hasTop()) {
-      org.apache.accumulo.core.iterators.aggregation.Aggregator aggr = aggregators.getObject(iterator.getTopKey());
+      org.apache.accumulo.core.iterators.aggregation.Aggregator aggr = aggregators
+          .getObject(iterator.getTopKey());
       if (aggr != null) {
         aggregateRowColumn(aggr);
       }
@@ -100,7 +106,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   }
 
   public AggregatingIterator(SortedKeyValueIterator<Key,Value> iterator,
-      ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> aggregators) throws IOException {
+      ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> aggregators)
+      throws IOException {
     this.iterator = iterator;
     this.aggregators = aggregators;
   }
@@ -139,7 +146,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     // do not want to seek to the middle of a value that should be
     // aggregated...
 
@@ -149,7 +157,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     findTop();
 
     if (range.getStartKey() != null) {
-      while (hasTop() && getTopKey().equals(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
+      while (hasTop()
+          && getTopKey().equals(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
           && getTopKey().getTimestamp() > range.getStartKey().getTimestamp()) {
         // the value has a more recent time stamp, so
         // pass it up
@@ -165,7 +174,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
 
     this.iterator = source;
 
@@ -173,7 +183,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
       String context = null;
       if (null != env)
         context = env.getConfig().get(Property.TABLE_CLASSPATH);
-      this.aggregators = new ColumnToClassMapping<>(options, org.apache.accumulo.core.iterators.aggregation.Aggregator.class, context);
+      this.aggregators = new ColumnToClassMapping<>(options,
+          org.apache.accumulo.core.iterators.aggregation.Aggregator.class, context);
     } catch (ClassNotFoundException e) {
       log.error(e.toString());
       throw new IllegalArgumentException(e);
@@ -188,7 +199,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
 
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions("agg", "Aggregators apply aggregating functions to values with identical keys", null,
+    return new IteratorOptions("agg",
+        "Aggregators apply aggregating functions to values with identical keys", null,
         Collections.singletonList("<columnName> <aggregatorClass>"));
   }
 
@@ -200,7 +212,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
         throw new IllegalArgumentException("classname null");
       Class<? extends org.apache.accumulo.core.iterators.aggregation.Aggregator> clazz;
       try {
-        clazz = AccumuloVFSClassLoader.loadClass(classname, org.apache.accumulo.core.iterators.aggregation.Aggregator.class);
+        clazz = AccumuloVFSClassLoader.loadClass(classname,
+            org.apache.accumulo.core.iterators.aggregation.Aggregator.class);
         clazz.newInstance();
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException("class not found: " + classname);

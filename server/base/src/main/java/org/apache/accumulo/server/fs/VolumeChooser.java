@@ -19,8 +19,8 @@ package org.apache.accumulo.server.fs;
 import org.apache.accumulo.core.volume.Volume;
 
 /**
- * Helper used by {@link VolumeManager}s to select from a set of {@link Volume} URIs. N.B. implemenations must be threadsafe. VolumeChooser.equals will be used
- * for internal caching.
+ * Helper used by {@link VolumeManager}s to select from a set of {@link Volume} URIs. N.B.
+ * implemenations must be threadsafe. VolumeChooser.equals will be used for internal caching.
  */
 public interface VolumeChooser {
   String choose(VolumeChooserEnvironment env, String[] options);

@@ -21,7 +21,8 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * An Accumulo Exception for security violations, authentication failures, authorization failures, etc.
+ * An Accumulo Exception for security violations, authentication failures, authorization failures,
+ * etc.
  *
  */
 public class AccumuloSecurityException extends Exception {
@@ -56,7 +57,8 @@ public class AccumuloSecurityException extends Exception {
       case TOKEN_EXPIRED:
         return "The supplied token expired, please update and try again";
       case INSUFFICIENT_PROPERTIES:
-        return "The login properties supplied are not sufficient for authentication. Please check the requested properties and try again";
+        return "The login properties supplied are not sufficient for authentication. "
+            + "Please check the requested properties and try again";
       case DEFAULT_SECURITY_ERROR:
       default:
         return "Unknown security exception";
@@ -92,7 +94,8 @@ public class AccumuloSecurityException extends Exception {
    * @param cause
    *          the exception that caused this violation
    */
-  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode, final Throwable cause) {
+  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode,
+      final Throwable cause) {
     super(getDefaultErrorMessage(errorcode), cause);
     this.user = user;
     this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;
@@ -108,7 +111,8 @@ public class AccumuloSecurityException extends Exception {
    * @param cause
    *          the exception that caused this violation
    */
-  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode, final String tableInfo, final Throwable cause) {
+  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode,
+      final String tableInfo, final Throwable cause) {
     super(getDefaultErrorMessage(errorcode), cause);
     this.user = user;
     this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;
@@ -135,7 +139,8 @@ public class AccumuloSecurityException extends Exception {
    * @param tableInfo
    *          the relevant tableInfo for the security violation
    */
-  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode, final String tableInfo) {
+  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode,
+      final String tableInfo) {
     super(getDefaultErrorMessage(errorcode));
     this.user = user;
     this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;

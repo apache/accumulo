@@ -106,7 +106,8 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   }
 
   /**
-   * Read the host and port information for the Monitor's log4j socket and update the system properties so that, on logger refresh, it sees the new information.
+   * Read the host and port information for the Monitor's log4j socket and update the system
+   * properties so that, on logger refresh, it sees the new information.
    */
   protected void updateMonitorLog4jLocation() {
     try {

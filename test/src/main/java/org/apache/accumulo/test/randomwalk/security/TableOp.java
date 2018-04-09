@@ -56,7 +56,9 @@ public class TableOp extends Test {
 
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state, env).getTabUserName(), WalkingSecurity.get(state, env).getTabToken());
+    Connector conn = env.getInstance().getConnector(
+        WalkingSecurity.get(state, env).getTabUserName(),
+        WalkingSecurity.get(state, env).getTabToken());
 
     String action = props.getProperty("action", "_random");
     TablePermission tp;
@@ -73,14 +75,18 @@ public class TableOp extends Test {
 
     switch (tp) {
       case READ: {
-        boolean canRead = WalkingSecurity.get(state, env).canScan(WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName);
-        Authorizations auths = WalkingSecurity.get(state, env).getUserAuthorizations(WalkingSecurity.get(state, env).getTabCredentials());
+        boolean canRead = WalkingSecurity.get(state, env)
+            .canScan(WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName);
+        Authorizations auths = WalkingSecurity.get(state, env)
+            .getUserAuthorizations(WalkingSecurity.get(state, env).getTabCredentials());
         boolean ambiguousZone = WalkingSecurity.get(state, env).inAmbiguousZone(conn.whoami(), tp);
-        boolean ambiguousAuths = WalkingSecurity.get(state, env).ambiguousAuthorizations(conn.whoami());
+        boolean ambiguousAuths = WalkingSecurity.get(state, env)
+            .ambiguousAuthorizations(conn.whoami());
 
         Scanner scan = null;
         try {
-          scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
+          scan = conn.createScanner(tableName,
+              conn.securityOperations().getUserAuthorizations(conn.whoami()));
           int seen = 0;
           Iterator<Entry<Key,Value>> iter = scan.iterator();
           while (iter.hasNext()) {
@@ -88,11 +94,15 @@ public class TableOp extends Test {
             Key k = entry.getKey();
             seen++;
             if (!auths.contains(k.getColumnVisibilityData()) && !ambiguousAuths)
-              throw new AccumuloException("Got data I should not be capable of seeing: " + k + " table " + tableName);
+              throw new AccumuloException(
+                  "Got data I should not be capable of seeing: " + k + " table " + tableName);
           }
           if (!canRead && !ambiguousZone)
-            throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami() + " table " + tableName);
-          for (Entry<String,Integer> entry : WalkingSecurity.get(state, env).getAuthsMap().entrySet()) {
+            throw new AccumuloException(
+                "Was able to read when I shouldn't have had the perm with connection user "
+                    + conn.whoami() + " table " + tableName);
+          for (Entry<String,Integer> entry : WalkingSecurity.get(state, env).getAuthsMap()
+              .entrySet()) {
             if (auths.contains(entry.getKey().getBytes(UTF_8)))
               seen = seen - entry.getValue();
           }
@@ -100,12 +110,14 @@ public class TableOp extends Test {
             throw new AccumuloException("Got mismatched amounts of data");
         } catch (TableNotFoundException tnfe) {
           if (tableExists)
-            throw new AccumuloException("Accumulo and test suite out of sync: table " + tableName, tnfe);
+            throw new AccumuloException("Accumulo and test suite out of sync: table " + tableName,
+                tnfe);
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (canRead && !ambiguousZone)
-              throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, ae);
+              throw new AccumuloException(
+                  "Table read permission out of sync with Accumulo: table " + tableName, ae);
             else
               return;
           }
@@ -118,14 +130,18 @@ public class TableOp extends Test {
           throw new AccumuloException("Unexpected exception!", ae);
         } catch (RuntimeException re) {
           if (re.getCause() instanceof AccumuloSecurityException
-              && ((AccumuloSecurityException) re.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
+              && ((AccumuloSecurityException) re.getCause()).getSecurityErrorCode()
+                  .equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (canRead && !ambiguousZone)
-              throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, re.getCause());
+              throw new AccumuloException(
+                  "Table read permission out of sync with Accumulo: table " + tableName,
+                  re.getCause());
             else
               return;
           }
           if (re.getCause() instanceof AccumuloSecurityException
-              && ((AccumuloSecurityException) re.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
+              && ((AccumuloSecurityException) re.getCause()).getSecurityErrorCode()
+                  .equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
             if (ambiguousAuths)
               return;
             else
@@ -144,18 +160,21 @@ public class TableOp extends Test {
         break;
       }
       case WRITE:
-        boolean canWrite = WalkingSecurity.get(state, env).canWrite(WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName);
+        boolean canWrite = WalkingSecurity.get(state, env).canWrite(
+            WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName);
         boolean ambiguousZone = WalkingSecurity.get(state, env).inAmbiguousZone(conn.whoami(), tp);
 
         String key = WalkingSecurity.get(state, env).getLastKey() + "1";
         Mutation m = new Mutation(new Text(key));
         for (String s : WalkingSecurity.get(state, env).getAuthsArray()) {
-          m.put(new Text(), new Text(), new ColumnVisibility(s), new Value("value".getBytes(UTF_8)));
+          m.put(new Text(), new Text(), new ColumnVisibility(s),
+              new Value("value".getBytes(UTF_8)));
         }
         BatchWriter writer = null;
         try {
           try {
-            writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(9000l).setMaxWriteThreads(1));
+            writer = conn.createBatchWriter(tableName,
+                new BatchWriterConfig().setMaxMemory(9000l).setMaxWriteThreads(1));
           } catch (TableNotFoundException tnfe) {
             if (tableExists)
               throw new AccumuloException("Table didn't exist when it should have: " + tableName);
@@ -174,7 +193,8 @@ public class TableOp extends Test {
             if (ambiguousZone) {
               Thread.sleep(1000);
               try {
-                writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxWriteThreads(1));
+                writer = conn.createBatchWriter(tableName,
+                    new BatchWriterConfig().setMaxWriteThreads(1));
                 writer.addMutation(m);
                 writer.close();
                 writer = null;
@@ -203,7 +223,8 @@ public class TableOp extends Test {
         Path dir = new Path("/tmp", "bulk_" + UUID.randomUUID().toString());
         Path fail = new Path(dir.toString() + "_fail");
         FileSystem fs = WalkingSecurity.get(state, env).getFs();
-        FileSKVWriter f = FileOperations.getInstance().newWriterBuilder().forFile(dir + "/securityBulk." + RFile.EXTENSION, fs, fs.getConf())
+        FileSKVWriter f = FileOperations.getInstance().newWriterBuilder()
+            .forFile(dir + "/securityBulk." + RFile.EXTENSION, fs, fs.getConf())
             .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
         f.startDefaultLocalityGroup();
         fs.mkdirs(fail);
@@ -218,8 +239,10 @@ public class TableOp extends Test {
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (WalkingSecurity.get(state, env).canBulkImport(WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName))
-              throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
+            if (WalkingSecurity.get(state, env).canBulkImport(
+                WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName))
+              throw new AccumuloException(
+                  "Bulk Import failed when it should have worked: " + tableName);
             return;
           } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
             if (WalkingSecurity.get(state, env).userPassTransient(conn.whoami()))
@@ -232,12 +255,16 @@ public class TableOp extends Test {
         fs.delete(dir, true);
         fs.delete(fail, true);
 
-        if (!WalkingSecurity.get(state, env).canBulkImport(WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName))
-          throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
+        if (!WalkingSecurity.get(state, env).canBulkImport(
+            WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName))
+          throw new AccumuloException(
+              "Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;
       case ALTER_TABLE:
         AlterTable.renameTable(conn, state, env, tableName, tableName + "plus",
-            WalkingSecurity.get(state, env).canAlterTable(WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName), tableExists);
+            WalkingSecurity.get(state, env).canAlterTable(
+                WalkingSecurity.get(state, env).getTabCredentials(), tableName, namespaceName),
+            tableExists);
         break;
 
       case GRANT:

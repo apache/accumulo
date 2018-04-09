@@ -50,7 +50,8 @@ public class LogServlet extends BasicServlet {
     try {
       fmt = new SimpleDateFormat(dateFormatStr);
     } catch (IllegalArgumentException e) {
-      log.warn("Could not instantiate SimpleDateFormat with format string of '" + dateFormatStr + "', using default format string");
+      log.warn("Could not instantiate SimpleDateFormat with format string of '" + dateFormatStr
+          + "', using default format string");
       fmt = new SimpleDateFormat(Property.MONITOR_LOG_DATE_FORMAT.getDefaultValue());
     }
 
@@ -71,8 +72,8 @@ public class LogServlet extends BasicServlet {
       for (int i = 0; i < msg.length(); i++) {
         char c = msg.charAt(i);
         int type = Character.getType(c);
-        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR || type == Character.NON_SPACING_MARK
-            || type == Character.PRIVATE_USE;
+        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR
+            || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
         text.append(notPrintable ? '?' : c);
       }
       StringBuilder builder = new StringBuilder(text.toString());
@@ -84,10 +85,12 @@ public class LogServlet extends BasicServlet {
       logTable.addRow(ev.getTimeStamp(), application, dev.getCount(), ev.getLevel(), msg);
     }
     if (!clear)
-      logTable.setSubCaption("<a href='/op?action=clearLog&redir=" + currentPage(req) + "'>Clear&nbsp;All&nbsp;Events</a>");
+      logTable.setSubCaption("<a href='/op?action=clearLog&redir=" + currentPage(req)
+          + "'>Clear&nbsp;All&nbsp;Events</a>");
     logTable.generate(req, sb);
     if (!clear)
-      sb.append("<div class='center'><a href='/op?action=clearLog&redir=").append(currentPage(req)).append("'>Clear&nbsp;All&nbsp;Events</a></div>\n");
+      sb.append("<div class='center'><a href='/op?action=clearLog&redir=").append(currentPage(req))
+          .append("'>Clear&nbsp;All&nbsp;Events</a></div>\n");
   }
 
   private static class LogLevelType extends StringType<Level> {

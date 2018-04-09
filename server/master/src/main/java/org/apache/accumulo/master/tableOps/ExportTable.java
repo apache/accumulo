@@ -26,7 +26,8 @@ public class ExportTable extends MasterRepo {
 
   private final ExportInfo tableInfo;
 
-  public ExportTable(String namespaceId, String tableName, String tableId, String exportDir) throws ThriftTableOperationException {
+  public ExportTable(String namespaceId, String tableName, String tableId, String exportDir)
+      throws ThriftTableOperationException {
     tableInfo = new ExportInfo();
     tableInfo.tableName = tableName;
     tableInfo.exportDir = exportDir;

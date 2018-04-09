@@ -23,13 +23,15 @@ import java.util.Objects;
  * Represents an entry in the {@link LruBlockCache}.
  *
  * <p>
- * Makes the block memory-aware with {@link HeapSize} and Comparable to sort by access time for the LRU. It also takes care of priority by either instantiating
- * as in-memory or handling the transition from single to multiple access.
+ * Makes the block memory-aware with {@link HeapSize} and Comparable to sort by access time for the
+ * LRU. It also takes care of priority by either instantiating as in-memory or handling the
+ * transition from single to multiple access.
  */
 public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntry {
 
-  public final static long PER_BLOCK_OVERHEAD = ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
-      + ClassSize.STRING + ClassSize.BYTE_BUFFER);
+  public final static long PER_BLOCK_OVERHEAD = ClassSize
+      .align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
+          + ClassSize.STRING + ClassSize.BYTE_BUFFER);
 
   static enum BlockPriority {
     /**
@@ -57,7 +59,8 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
     this.blockName = blockName;
     this.buf = buf;
     this.accessTime = accessTime;
-    this.size = ClassSize.align(blockName.length()) + ClassSize.align(buf.length) + PER_BLOCK_OVERHEAD;
+    this.size = ClassSize.align(blockName.length()) + ClassSize.align(buf.length)
+        + PER_BLOCK_OVERHEAD;
     if (inMemory) {
       this.priority = BlockPriority.MEMORY;
     } else {
@@ -87,7 +90,8 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
 
   @Override
   public boolean equals(Object obj) {
-    return this == obj || (obj != null && obj instanceof CachedBlock && 0 == compareTo((CachedBlock) obj));
+    return this == obj
+        || (obj != null && obj instanceof CachedBlock && 0 == compareTo((CachedBlock) obj));
   }
 
   @Override

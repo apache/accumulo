@@ -40,7 +40,8 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
   private static final Logger log = LoggerFactory.getLogger(ReSeekTestCase.class);
 
   /**
-   * Let N be a random number between [0, RESEEK_INTERVAL). After every Nth entry "returned" to the client, recreate and reseek the iterator.
+   * Let N be a random number between [0, RESEEK_INTERVAL). After every Nth entry "returned" to the
+   * client, recreate and reseek the iterator.
    */
   private static final int RESEEK_INTERVAL = 4;
 
@@ -64,7 +65,8 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
     }
   }
 
-  TreeMap<Key,Value> consume(SortedKeyValueIterator<Key,Value> skvi, IteratorTestInput testInput) throws IOException {
+  TreeMap<Key,Value> consume(SortedKeyValueIterator<Key,Value> skvi, IteratorTestInput testInput)
+      throws IOException {
     final TreeMap<Key,Value> data = new TreeMap<>();
     final Range origRange = testInput.getRange();
     final Collection<ByteSequence> origFamilies = testInput.getFamilies();
@@ -76,9 +78,11 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
       data.put(new Key(skvi.getTopKey()), new Value(skvi.getTopValue()));
 
       /*
-       * One of the trickiest cases in writing iterators: After any result is returned from a TabletServer to the client, the Iterator in the TabletServer's
-       * memory may be torn down. To preserve the state and guarantee that all records are received, the TabletServer does remember the last Key it returned to
-       * the client. It will recreate the Iterator (stack), and seek it using an updated Range. This range's start key is set to the last Key returned,
+       * One of the trickiest cases in writing iterators: After any result is returned from a
+       * TabletServer to the client, the Iterator in the TabletServer's memory may be torn down. To
+       * preserve the state and guarantee that all records are received, the TabletServer does
+       * remember the last Key it returned to the client. It will recreate the Iterator (stack), and
+       * seek it using an updated Range. This range's start key is set to the last Key returned,
        * non-inclusive.
        */
       if (i % RESEEK_INTERVAL == reseekCount) {
@@ -87,12 +91,14 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
 
         // Make a new instance of the iterator
         skvi = IteratorTestUtil.instantiateIterator(testInput);
-        final SortedKeyValueIterator<Key,Value> sourceCopy = IteratorTestUtil.createSource(testInput);
+        final SortedKeyValueIterator<Key,Value> sourceCopy = IteratorTestUtil
+            .createSource(testInput);
 
         skvi.init(sourceCopy, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
 
         // The new range, resume where we left off (non-inclusive), with same families filter
-        final Range newRange = new Range(reSeekStartKey, false, origRange.getEndKey(), origRange.isEndKeyInclusive());
+        final Range newRange = new Range(reSeekStartKey, false, origRange.getEndKey(),
+            origRange.isEndKeyInclusive());
         log.debug("Re-seeking to {}", newRange);
 
         // Seek there

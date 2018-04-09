@@ -26,7 +26,8 @@ class FinishCancelCompaction extends MasterRepo {
   private String namespaceId;
 
   private String getNamespaceId(Master env) throws Exception {
-    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT_CANCEL, this.namespaceId);
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT_CANCEL,
+        this.namespaceId);
   }
 
   public FinishCancelCompaction(String namespaceId, String tableId) {

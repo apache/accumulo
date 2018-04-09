@@ -40,8 +40,9 @@ import org.apache.hadoop.util.ToolRunner;
 import com.beust.jcommander.Parameter;
 
 /**
- * A MapReduce that computes a histogram of byte frequency for each file and stores the histogram alongside the file data. The {@link ChunkInputFormat} is used
- * to read the file data from Accumulo. See docs/examples/README.filedata for instructions.
+ * A MapReduce that computes a histogram of byte frequency for each file and stores the histogram
+ * alongside the file data. The {@link ChunkInputFormat} is used to read the file data from
+ * Accumulo. See docs/examples/README.filedata for instructions.
  */
 public class CharacterHistogram extends Configured implements Tool {
   public static final String VIS = "vis";
@@ -54,7 +55,8 @@ public class CharacterHistogram extends Configured implements Tool {
     private ColumnVisibility cv;
 
     @Override
-    public void map(List<Entry<Key,Value>> k, InputStream v, Context context) throws IOException, InterruptedException {
+    public void map(List<Entry<Key,Value>> k, InputStream v, Context context)
+        throws IOException, InterruptedException {
       Long[] hist = new Long[256];
       for (int i = 0; i < hist.length; i++)
         hist[i] = 0l;
@@ -65,7 +67,8 @@ public class CharacterHistogram extends Configured implements Tool {
       }
       v.close();
       Mutation m = new Mutation(k.get(0).getKey().getRow());
-      m.put("info", "hist", cv, new Value(SummingArrayCombiner.STRING_ARRAY_ENCODER.encode(Arrays.asList(hist))));
+      m.put("info", "hist", cv,
+          new Value(SummingArrayCombiner.STRING_ARRAY_ENCODER.encode(Arrays.asList(hist))));
       context.write(new Text(), m);
     }
 

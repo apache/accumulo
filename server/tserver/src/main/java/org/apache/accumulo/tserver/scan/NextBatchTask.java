@@ -57,13 +57,15 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
 
       runState.set(ScanRunState.RUNNING);
 
-      Thread.currentThread().setName(
-          "User: " + scanSession.getUser() + " Start: " + scanSession.startTime + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
+      Thread.currentThread()
+          .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime
+              + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
       Tablet tablet = server.getOnlineTablet(scanSession.extent);
 
       if (tablet == null) {
-        addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(scanSession.extent.toThrift()));
+        addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
+            scanSession.extent.toThrift()));
         return;
       }
 
@@ -79,7 +81,8 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       // problem somewhere
       addResult(batch);
     } catch (TabletClosedException e) {
-      addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(scanSession.extent.toThrift()));
+      addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
+          scanSession.extent.toThrift()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);
@@ -88,10 +91,12 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     } catch (TooManyFilesException | SampleNotPresentException e) {
       addResult(e);
     } catch (OutOfMemoryError ome) {
-      Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client, 1);
+      Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client,
+          1);
       addResult(ome);
     } catch (Throwable e) {
-      log.warn("exception while scanning tablet " + (scanSession == null ? "(unknown)" : scanSession.extent), e);
+      log.warn("exception while scanning tablet "
+          + (scanSession == null ? "(unknown)" : scanSession.extent), e);
       addResult(e);
     } finally {
       runState.set(ScanRunState.FINISHED);

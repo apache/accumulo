@@ -65,7 +65,8 @@ public class BulkFileIT extends AccumuloClusterHarness {
       splits.add(new Text(split));
     c.tableOperations().addSplits(tableName, splits);
     Configuration conf = new Configuration();
-    AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance()).getConfiguration();
+    AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance())
+        .getConfiguration();
     FileSystem fs = getCluster().getFileSystem();
 
     String rootPath = cluster.getTemporaryPath().toString();
@@ -74,20 +75,20 @@ public class BulkFileIT extends AccumuloClusterHarness {
 
     fs.delete(new Path(dir), true);
 
-    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder().forFile(dir + "/f1." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf)
-        .build();
+    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/f1." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
     writer1.startDefaultLocalityGroup();
     writeData(writer1, 0, 333);
     writer1.close();
 
-    FileSKVWriter writer2 = FileOperations.getInstance().newWriterBuilder().forFile(dir + "/f2." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf)
-        .build();
+    FileSKVWriter writer2 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/f2." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
     writer2.startDefaultLocalityGroup();
     writeData(writer2, 334, 999);
     writer2.close();
 
-    FileSKVWriter writer3 = FileOperations.getInstance().newWriterBuilder().forFile(dir + "/f3." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf)
-        .build();
+    FileSKVWriter writer3 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/f3." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
     writer3.startDefaultLocalityGroup();
     writeData(writer3, 1000, 1999);
     writer3.close();
@@ -126,7 +127,8 @@ public class BulkFileIT extends AccumuloClusterHarness {
 
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {
     for (int i = s; i <= e; i++) {
-      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(UTF_8)));
+      w.append(new Key(new Text(String.format("%04d", i))),
+          new Value(Integer.toString(i).getBytes(UTF_8)));
     }
   }
 

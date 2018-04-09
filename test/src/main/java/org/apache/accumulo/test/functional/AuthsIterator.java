@@ -36,7 +36,8 @@ public class AuthsIterator extends WrappingIterator {
   private IteratorEnvironment env;
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.env = env;
   }

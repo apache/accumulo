@@ -97,7 +97,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Tests several different paths through the getSplits() method by setting different properties and verifying the results.
+   * Tests several different paths through the getSplits() method by setting different properties
+   * and verifying the results.
    */
   @Test
   public void testGetSplits() throws Exception {
@@ -109,16 +110,20 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     ClientConfiguration clientConf = cluster.getClientConfig();
     AccumuloConfiguration clusterClientConf = new ConfigurationCopy(new DefaultConfiguration());
 
-    // Pass SSL and CredentialProvider options into the ClientConfiguration given to AccumuloInputFormat
+    // Pass SSL and CredentialProvider options into the ClientConfiguration given to
+    // AccumuloInputFormat
     boolean sslEnabled = Boolean.valueOf(clusterClientConf.get(Property.INSTANCE_RPC_SSL_ENABLED));
     if (sslEnabled) {
-      ClientProperty[] sslProperties = new ClientProperty[] {ClientProperty.INSTANCE_RPC_SSL_ENABLED, ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH,
-          ClientProperty.RPC_SSL_KEYSTORE_PATH, ClientProperty.RPC_SSL_KEYSTORE_TYPE, ClientProperty.RPC_SSL_KEYSTORE_PASSWORD,
-          ClientProperty.RPC_SSL_TRUSTSTORE_PATH, ClientProperty.RPC_SSL_TRUSTSTORE_TYPE, ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD,
+      ClientProperty[] sslProperties = new ClientProperty[] {
+          ClientProperty.INSTANCE_RPC_SSL_ENABLED, ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH,
+          ClientProperty.RPC_SSL_KEYSTORE_PATH, ClientProperty.RPC_SSL_KEYSTORE_TYPE,
+          ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, ClientProperty.RPC_SSL_TRUSTSTORE_PATH,
+          ClientProperty.RPC_SSL_TRUSTSTORE_TYPE, ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD,
           ClientProperty.RPC_USE_JSSE, ClientProperty.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS};
 
       for (ClientProperty prop : sslProperties) {
-        // The default property is returned if it's not in the ClientConfiguration so we don't have to check if the value is actually defined
+        // The default property is returned if it's not in the ClientConfiguration so we don't have
+        // to check if the value is actually defined
         clientConf.setProperty(prop, clusterClientConf.get(prop.getKey()));
       }
     }
@@ -138,7 +143,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     // get splits without setting any range
     Collection<Text> actualSplits = conn.tableOperations().listSplits(table);
     List<InputSplit> splits = inputFormat.getSplits(job);
-    assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll start with -inf
+    assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll start
+                                                          // with -inf
 
     // set ranges and get splits
     List<Range> ranges = new ArrayList<>();
@@ -216,11 +222,13 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     for (InputSplit split : splits)
       assert (split instanceof BatchInputSplit);
 
-    // We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job, true)`
+    // We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job,
+    // true)`
     assertEquals(2, splits.size());
   }
 
-  private void insertData(String tableName, long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private void insertData(String tableName, long ts)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     BatchWriter bw = getConnector().createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {
@@ -233,8 +241,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     bw.close();
   }
 
-  // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to ensure test correctness),
-  // so error tests should check to see if there is at least one error (could be more depending on the test) rather than zero
+  // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to
+  // ensure test correctness),
+  // so error tests should check to see if there is at least one error (could be more depending on
+  // the test) rather than zero
   private static Multimap<String,AssertionError> assertionErrors = ArrayListMultimap.create();
 
   private static class MRTester extends Configured implements Tool {
@@ -274,7 +284,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 2 && args.length != 4) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table> <inputFormatClass> [<batchScan> <scan sample>]");
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName()
+            + " <table> <inputFormatClass> [<batchScan> <scan sample>]");
       }
 
       String table = args[0];
@@ -290,9 +301,11 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
       @SuppressWarnings("unchecked")
-      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
+      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class
+          .forName(inputFormatClassName);
 
-      Job job = Job.getInstance(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = Job.getInstance(getConf(),
+          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
       job.getConfiguration().set("MRTester_tableName", table);
 
@@ -321,7 +334,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     public static int main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       return ToolRunner.run(conf, new MRTester(), args);
     }
   }
@@ -340,20 +354,22 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_1, AccumuloInputFormat.class.getName()}));
+    Assert.assertEquals(0,
+        MRTester.main(new String[] {TEST_TABLE_1, AccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption(
-      "modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
+      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
     Connector c = getConnector();
-    c.tableOperations().create(TEST_TABLE_3, new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
+    c.tableOperations().create(TEST_TABLE_3,
+        new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
@@ -362,17 +378,20 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "True"}));
+    Assert.assertEquals(0, MRTester
+        .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "True"}));
     assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
 
     assertionErrors.clear();
-    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "False"}));
+    Assert.assertEquals(0, MRTester
+        .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "False"}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
 
     assertionErrors.clear();
-    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "True", "True"}));
+    Assert.assertEquals(0, MRTester
+        .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "True", "True"}));
     assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
   }
@@ -391,7 +410,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True", "False"}));
+    Assert.assertEquals(0, MRTester
+        .main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True", "False"}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_cleanup").size());
   }
@@ -402,7 +422,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns = Collections
+        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -455,7 +476,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
+    Assert.assertEquals(0,
+        MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(table + "_map").size());
     assertEquals(1, assertionErrors.get(table + "_cleanup").size());
   }
@@ -473,9 +495,11 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(1, MRTester.main(new String[] {table, BadPasswordSplitsAccumuloInputFormat.class.getName()}));
+    Assert.assertEquals(1,
+        MRTester.main(new String[] {table, BadPasswordSplitsAccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(table + "_map").size());
-    // We should fail when the RecordReader fails to get the next key/value pair, because the record reader is set up with a clientcontext, rather than a
+    // We should fail when the RecordReader fails to get the next key/value pair, because the record
+    // reader is set up with a clientcontext, rather than a
     // connector, so it doesn't do fast-fail on bad credentials
     assertEquals(2, assertionErrors.get(table + "_cleanup").size());
   }
@@ -490,7 +514,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       List<InputSplit> splits = super.getSplits(context);
 
       for (InputSplit split : splits) {
-        org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+        // @formatter:off
+        org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit =
+          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+        // @formatter:on
         rangeSplit.setToken(new PasswordToken("anythingelse"));
       }
 
@@ -510,8 +537,11 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
-        org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit = new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
+        // @formatter:off
+        org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit =
+          new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
             (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
+        // @formatter:on
         newSplits.add(newSplit);
       }
 

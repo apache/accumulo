@@ -42,7 +42,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   public void readFields(DataInput in) throws IOException {
     int value = in.readByte();
     if (value >= LogEvents.values().length) {
-      throw new IOException("Invalid LogEvent type, got ordinal " + value + ", but only know about " + LogEvents.values().length + " possible types.");
+      throw new IOException("Invalid LogEvent type, got ordinal " + value + ", but only know about "
+          + LogEvents.values().length + " possible types.");
     }
     event = LogEvents.values()[value];
     switch (event) {
@@ -50,7 +51,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
         tid = in.readInt();
         tserverSession = in.readUTF();
         if (tid != VERSION) {
-          throw new RuntimeException(String.format("Bad version number for log file: expected %d, but saw %d", VERSION, tid));
+          throw new RuntimeException(String
+              .format("Bad version number for log file: expected %d, but saw %d", VERSION, tid));
         }
         break;
       case COMPACTION_FINISH:

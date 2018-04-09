@@ -61,8 +61,10 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// This test verifies the default permissions so a clean instance must be used. A shared instance might
-// not be representative of a fresh installation.
+/**
+ * This test verifies the default permissions so a clean instance must be used. A shared instance
+ * might not be representative of a fresh installation.
+ */
 @Category(MiniClusterOnlyTests.class)
 public class PermissionsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(PermissionsIT.class);
@@ -135,11 +137,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
     return result;
   }
 
-  private void testMissingSystemPermission(String tableNamePrefix, Connector root_conn, ClusterUser rootUser, Connector test_user_conn, ClusterUser testUser,
-      SystemPermission perm) throws Exception {
+  private void testMissingSystemPermission(String tableNamePrefix, Connector root_conn,
+      ClusterUser rootUser, Connector test_user_conn, ClusterUser testUser, SystemPermission perm)
+      throws Exception {
     String tableName, user, password = "password", namespace;
     boolean passwordBased = testUser.getPassword() != null;
-    log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
+    log.debug(
+        "Confirming that the lack of the " + perm + " permission properly restricts the user");
 
     // test permission prior to granting it
     switch (perm) {
@@ -151,7 +155,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should NOT be able to create a table");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.tableOperations().list().contains(tableName))
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_conn.tableOperations().list().contains(tableName))
             throw e;
         }
         break;
@@ -165,7 +170,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should NOT be able to delete a table");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName))
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_conn.tableOperations().list().contains(tableName))
             throw e;
         }
         break;
@@ -175,24 +181,29 @@ public class PermissionsIT extends AccumuloClusterHarness {
         root_conn.tableOperations().create(tableName);
         try {
           loginAs(testUser);
-          test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+          test_user_conn.tableOperations().setProperty(tableName,
+              Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
           throw new IllegalStateException("Should NOT be able to set a table property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || map(root_conn.tableOperations().getProperties(tableName)).get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+              || map(root_conn.tableOperations().getProperties(tableName))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
         loginAs(rootUser);
-        root_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        root_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(),
+            "003.14159%");
         try {
           loginAs(testUser);
-          test_user_conn.tableOperations().removeProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey());
+          test_user_conn.tableOperations().removeProperty(tableName,
+              Property.TABLE_BLOOM_ERRORRATE.getKey());
           throw new IllegalStateException("Should NOT be able to remove a table property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || !map(root_conn.tableOperations().getProperties(tableName)).get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+              || !map(root_conn.tableOperations().getProperties(tableName))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
         String table2 = tableName + "2";
@@ -202,7 +213,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should NOT be able to rename a table");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_conn.tableOperations().list().contains(tableName)
               || root_conn.tableOperations().list().contains(table2))
             throw e;
         }
@@ -211,27 +223,31 @@ public class PermissionsIT extends AccumuloClusterHarness {
         user = "__CREATE_USER_WITHOUT_PERM_TEST__";
         try {
           loginAs(testUser);
-          test_user_conn.securityOperations().createLocalUser(user, (passwordBased ? new PasswordToken(password) : null));
+          test_user_conn.securityOperations().createLocalUser(user,
+              (passwordBased ? new PasswordToken(password) : null));
           throw new IllegalStateException("Should NOT be able to create a user");
         } catch (AccumuloSecurityException e) {
           AuthenticationToken userToken = testUser.getToken();
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || (userToken instanceof PasswordToken && root_conn.securityOperations().authenticateUser(user, userToken)))
+              || (userToken instanceof PasswordToken
+                  && root_conn.securityOperations().authenticateUser(user, userToken)))
             throw e;
         }
         break;
       case DROP_USER:
         user = "__DROP_USER_WITHOUT_PERM_TEST__";
         loginAs(rootUser);
-        root_conn.securityOperations().createLocalUser(user, (passwordBased ? new PasswordToken(password) : null));
+        root_conn.securityOperations().createLocalUser(user,
+            (passwordBased ? new PasswordToken(password) : null));
         try {
           loginAs(testUser);
           test_user_conn.securityOperations().dropLocalUser(user);
           throw new IllegalStateException("Should NOT be able to delete a user");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().listLocalUsers().contains(user)) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_conn.securityOperations().listLocalUsers().contains(user)) {
             log.info("Failed to authenticate as " + user);
             throw e;
           }
@@ -240,14 +256,17 @@ public class PermissionsIT extends AccumuloClusterHarness {
       case ALTER_USER:
         user = "__ALTER_USER_WITHOUT_PERM_TEST__";
         loginAs(rootUser);
-        root_conn.securityOperations().createLocalUser(user, (passwordBased ? new PasswordToken(password) : null));
+        root_conn.securityOperations().createLocalUser(user,
+            (passwordBased ? new PasswordToken(password) : null));
         try {
           loginAs(testUser);
-          test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
+          test_user_conn.securityOperations().changeUserAuthorizations(user,
+              new Authorizations("A", "B"));
           throw new IllegalStateException("Should NOT be able to alter a user");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
             throw e;
         }
         break;
@@ -262,7 +281,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should NOT be able to create a namespace");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.namespaceOperations().list().contains(namespace))
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || root_conn.namespaceOperations().list().contains(namespace))
             throw e;
         }
         break;
@@ -276,7 +296,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should NOT be able to delete a namespace");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.namespaceOperations().list().contains(namespace))
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_conn.namespaceOperations().list().contains(namespace))
             throw e;
         }
         break;
@@ -286,24 +307,29 @@ public class PermissionsIT extends AccumuloClusterHarness {
         root_conn.namespaceOperations().create(namespace);
         try {
           loginAs(testUser);
-          test_user_conn.namespaceOperations().setProperty(namespace, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+          test_user_conn.namespaceOperations().setProperty(namespace,
+              Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
           throw new IllegalStateException("Should NOT be able to set a namespace property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || map(root_conn.namespaceOperations().getProperties(namespace)).get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+              || map(root_conn.namespaceOperations().getProperties(namespace))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
         loginAs(rootUser);
-        root_conn.namespaceOperations().setProperty(namespace, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        root_conn.namespaceOperations().setProperty(namespace,
+            Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         try {
           loginAs(testUser);
-          test_user_conn.namespaceOperations().removeProperty(namespace, Property.TABLE_BLOOM_ERRORRATE.getKey());
+          test_user_conn.namespaceOperations().removeProperty(namespace,
+              Property.TABLE_BLOOM_ERRORRATE.getKey());
           throw new IllegalStateException("Should NOT be able to remove a namespace property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || !map(root_conn.namespaceOperations().getProperties(namespace)).get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+              || !map(root_conn.namespaceOperations().getProperties(namespace))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
         String namespace2 = namespace + "2";
@@ -313,7 +339,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
           throw new IllegalStateException("Should NOT be able to rename a namespace");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.namespaceOperations().list().contains(namespace)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !root_conn.namespaceOperations().list().contains(namespace)
               || root_conn.namespaceOperations().list().contains(namespace2))
             throw e;
         }
@@ -327,12 +354,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
       case GRANT:
         loginAs(testUser);
         try {
-          test_user_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT);
+          test_user_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(),
+              SystemPermission.GRANT);
           throw new IllegalStateException("Should NOT be able to grant System.GRANT to yourself");
         } catch (AccumuloSecurityException e) {
           // Expected
           loginAs(rootUser);
-          assertFalse(root_conn.securityOperations().hasSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT));
+          assertFalse(root_conn.securityOperations().hasSystemPermission(testUser.getPrincipal(),
+              SystemPermission.GRANT));
         }
         break;
       default:
@@ -340,11 +369,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testGrantedSystemPermission(String tableNamePrefix, Connector root_conn, ClusterUser rootUser, Connector test_user_conn, ClusterUser testUser,
-      SystemPermission perm) throws Exception {
+  private void testGrantedSystemPermission(String tableNamePrefix, Connector root_conn,
+      ClusterUser rootUser, Connector test_user_conn, ClusterUser testUser, SystemPermission perm)
+      throws Exception {
     String tableName, user, password = "password", namespace;
     boolean passwordBased = testUser.getPassword() != null;
-    log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
+    log.debug(
+        "Confirming that the presence of the " + perm + " permission properly permits the user");
 
     // test permission after granting it
     switch (perm) {
@@ -372,13 +403,15 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(rootUser);
         root_conn.tableOperations().create(tableName);
         loginAs(testUser);
-        test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        test_user_conn.tableOperations().setProperty(tableName,
+            Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
         Map<String,String> properties = map(root_conn.tableOperations().getProperties(tableName));
         if (!properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to set a table property");
         loginAs(testUser);
-        test_user_conn.tableOperations().removeProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey());
+        test_user_conn.tableOperations().removeProperty(tableName,
+            Property.TABLE_BLOOM_ERRORRATE.getKey());
         loginAs(rootUser);
         properties = map(root_conn.tableOperations().getProperties(tableName));
         if (properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
@@ -386,33 +419,40 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(testUser);
         test_user_conn.tableOperations().rename(tableName, table2);
         loginAs(rootUser);
-        if (root_conn.tableOperations().list().contains(tableName) || !root_conn.tableOperations().list().contains(table2))
+        if (root_conn.tableOperations().list().contains(tableName)
+            || !root_conn.tableOperations().list().contains(table2))
           throw new IllegalStateException("Should be able to rename a table");
         break;
       case CREATE_USER:
         user = "__CREATE_USER_WITH_PERM_TEST__";
         loginAs(testUser);
-        test_user_conn.securityOperations().createLocalUser(user, (passwordBased ? new PasswordToken(password) : null));
+        test_user_conn.securityOperations().createLocalUser(user,
+            (passwordBased ? new PasswordToken(password) : null));
         loginAs(rootUser);
-        if (passwordBased && !root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
+        if (passwordBased
+            && !root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
           throw new IllegalStateException("Should be able to create a user");
         break;
       case DROP_USER:
         user = "__DROP_USER_WITH_PERM_TEST__";
         loginAs(rootUser);
-        root_conn.securityOperations().createLocalUser(user, (passwordBased ? new PasswordToken(password) : null));
+        root_conn.securityOperations().createLocalUser(user,
+            (passwordBased ? new PasswordToken(password) : null));
         loginAs(testUser);
         test_user_conn.securityOperations().dropLocalUser(user);
         loginAs(rootUser);
-        if (passwordBased && root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
+        if (passwordBased
+            && root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
           throw new IllegalStateException("Should be able to delete a user");
         break;
       case ALTER_USER:
         user = "__ALTER_USER_WITH_PERM_TEST__";
         loginAs(rootUser);
-        root_conn.securityOperations().createLocalUser(user, (passwordBased ? new PasswordToken(password) : null));
+        root_conn.securityOperations().createLocalUser(user,
+            (passwordBased ? new PasswordToken(password) : null));
         loginAs(testUser);
-        test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
+        test_user_conn.securityOperations().changeUserAuthorizations(user,
+            new Authorizations("A", "B"));
         loginAs(rootUser);
         if (root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
           throw new IllegalStateException("Should be able to alter a user");
@@ -444,13 +484,15 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(rootUser);
         root_conn.namespaceOperations().create(namespace);
         loginAs(testUser);
-        test_user_conn.namespaceOperations().setProperty(namespace, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        test_user_conn.namespaceOperations().setProperty(namespace,
+            Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
         Map<String,String> propies = map(root_conn.namespaceOperations().getProperties(namespace));
         if (!propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to set a table property");
         loginAs(testUser);
-        test_user_conn.namespaceOperations().removeProperty(namespace, Property.TABLE_BLOOM_ERRORRATE.getKey());
+        test_user_conn.namespaceOperations().removeProperty(namespace,
+            Property.TABLE_BLOOM_ERRORRATE.getKey());
         loginAs(rootUser);
         propies = map(root_conn.namespaceOperations().getProperties(namespace));
         if (propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
@@ -458,7 +500,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(testUser);
         test_user_conn.namespaceOperations().rename(namespace, namespace2);
         loginAs(rootUser);
-        if (root_conn.namespaceOperations().list().contains(namespace) || !root_conn.namespaceOperations().list().contains(namespace2))
+        if (root_conn.namespaceOperations().list().contains(namespace)
+            || !root_conn.namespaceOperations().list().contains(namespace2))
           throw new IllegalStateException("Should be able to rename a table");
         break;
       case OBTAIN_DELEGATION_TOKEN:
@@ -469,22 +512,26 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case GRANT:
         loginAs(rootUser);
-        root_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT);
+        root_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(),
+            SystemPermission.GRANT);
         loginAs(testUser);
-        test_user_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE);
+        test_user_conn.securityOperations().grantSystemPermission(testUser.getPrincipal(),
+            SystemPermission.CREATE_TABLE);
         loginAs(rootUser);
-        assertTrue("Test user should have CREATE_TABLE",
-            root_conn.securityOperations().hasSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE));
-        assertTrue("Test user should have GRANT", root_conn.securityOperations().hasSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT));
-        root_conn.securityOperations().revokeSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE);
+        assertTrue("Test user should have CREATE_TABLE", root_conn.securityOperations()
+            .hasSystemPermission(testUser.getPrincipal(), SystemPermission.CREATE_TABLE));
+        assertTrue("Test user should have GRANT", root_conn.securityOperations()
+            .hasSystemPermission(testUser.getPrincipal(), SystemPermission.GRANT));
+        root_conn.securityOperations().revokeSystemPermission(testUser.getPrincipal(),
+            SystemPermission.CREATE_TABLE);
         break;
       default:
         throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
     }
   }
 
-  private void verifyHasOnlyTheseSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
-      AccumuloSecurityException {
+  private void verifyHasOnlyTheseSystemPermissions(Connector root_conn, String user,
+      SystemPermission... perms) throws AccumuloException, AccumuloSecurityException {
     List<SystemPermission> permList = Arrays.asList(perms);
     for (SystemPermission p : SystemPermission.values()) {
       if (permList.contains(p)) {
@@ -499,7 +546,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyHasNoSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException, AccumuloSecurityException {
+  private void verifyHasNoSystemPermissions(Connector root_conn, String user,
+      SystemPermission... perms) throws AccumuloException, AccumuloSecurityException {
     for (SystemPermission p : perms)
       if (root_conn.securityOperations().hasSystemPermission(user, p))
         throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
@@ -524,7 +572,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
     // check for read-only access to metadata table
     loginAs(rootUser);
-    verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ, TablePermission.ALTER_TABLE);
+    verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ,
+        TablePermission.ALTER_TABLE);
     verifyHasOnlyTheseTablePermissions(c, principal, MetadataTable.NAME, TablePermission.READ);
     String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
 
@@ -549,7 +598,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void createTestTable(Connector c, String testUser, String tableName) throws Exception, MutationsRejectedException {
+  private void createTestTable(Connector c, String testUser, String tableName)
+      throws Exception, MutationsRejectedException {
     if (!c.tableOperations().exists(tableName)) {
       // create the test table
       c.tableOperations().create(tableName);
@@ -567,11 +617,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testMissingTablePermission(Connector test_user_conn, ClusterUser testUser, TablePermission perm, String tableName) throws Exception {
+  private void testMissingTablePermission(Connector test_user_conn, ClusterUser testUser,
+      TablePermission perm, String tableName) throws Exception {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
-    log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
+    log.debug(
+        "Confirming that the lack of the " + perm + " permission properly restricts the user");
 
     // test permission prior to granting it
     switch (perm) {
@@ -599,7 +651,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
             writer.close();
           } catch (MutationsRejectedException e1) {
             if (e1.getSecurityErrorCodes().size() > 0)
-              throw new AccumuloSecurityException(test_user_conn.whoami(), org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.PERMISSION_DENIED, e1);
+              throw new AccumuloSecurityException(test_user_conn.whoami(),
+                  org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.PERMISSION_DENIED,
+                  e1);
           }
           throw new IllegalStateException("Should NOT be able to write to a table");
         } catch (AccumuloSecurityException e) {
@@ -632,7 +686,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case GRANT:
         try {
-          test_user_conn.securityOperations().grantTablePermission(getAdminPrincipal(), tableName, TablePermission.GRANT);
+          test_user_conn.securityOperations().grantTablePermission(getAdminPrincipal(), tableName,
+              TablePermission.GRANT);
           throw new IllegalStateException("User should not be able grant permissions");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
@@ -644,12 +699,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testGrantedTablePermission(Connector test_user_conn, ClusterUser normalUser, TablePermission perm, String tableName) throws AccumuloException,
-      TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
+  private void testGrantedTablePermission(Connector test_user_conn, ClusterUser normalUser,
+      TablePermission perm, String tableName) throws AccumuloException, TableExistsException,
+      AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
-    log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
+    log.debug(
+        "Confirming that the presence of the " + perm + " permission properly permits the user");
 
     // test permission after granting it
     switch (perm) {
@@ -677,33 +734,37 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_conn.tableOperations().delete(tableName);
         break;
       case GRANT:
-        test_user_conn.securityOperations().grantTablePermission(getAdminPrincipal(), tableName, TablePermission.GRANT);
+        test_user_conn.securityOperations().grantTablePermission(getAdminPrincipal(), tableName,
+            TablePermission.GRANT);
         break;
       default:
         throw new IllegalArgumentException("Unrecognized table Permission: " + perm);
     }
   }
 
-  private void verifyHasOnlyTheseTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
-      AccumuloSecurityException {
+  private void verifyHasOnlyTheseTablePermissions(Connector root_conn, String user, String table,
+      TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
     List<TablePermission> permList = Arrays.asList(perms);
     for (TablePermission p : TablePermission.values()) {
       if (permList.contains(p)) {
         // should have these
         if (!root_conn.securityOperations().hasTablePermission(user, table, p))
-          throw new IllegalStateException(user + " SHOULD have table permission " + p + " for table " + table);
+          throw new IllegalStateException(
+              user + " SHOULD have table permission " + p + " for table " + table);
       } else {
         // should not have these
         if (root_conn.securityOperations().hasTablePermission(user, table, p))
-          throw new IllegalStateException(user + " SHOULD NOT have table permission " + p + " for table " + table);
+          throw new IllegalStateException(
+              user + " SHOULD NOT have table permission " + p + " for table " + table);
       }
     }
   }
 
-  private void verifyHasNoTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
-      AccumuloSecurityException {
+  private void verifyHasNoTablePermissions(Connector root_conn, String user, String table,
+      TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
     for (TablePermission p : perms)
       if (root_conn.securityOperations().hasTablePermission(user, table, p))
-        throw new IllegalStateException(user + " SHOULD NOT have table permission " + p + " for table " + table);
+        throw new IllegalStateException(
+            user + " SHOULD NOT have table permission " + p + " for table " + table);
   }
 }

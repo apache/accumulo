@@ -72,8 +72,10 @@ public class RelativeKeyTest {
     assertEquals(-1, commonPrefixHelper("aa", "aa"));
     assertEquals(-1, commonPrefixHelper("aaa", "aaa"));
     assertEquals(-1, commonPrefixHelper("abab", "abab"));
-    assertEquals(-1, commonPrefixHelper(new String("aaa"), new ArrayByteSequence("aaa").toString()));
-    assertEquals(-1, commonPrefixHelper("abababababab".substring(3, 6), "ccababababcc".substring(3, 6)));
+    assertEquals(-1,
+        commonPrefixHelper(new String("aaa"), new ArrayByteSequence("aaa").toString()));
+    assertEquals(-1,
+        commonPrefixHelper("abababababab".substring(3, 6), "ccababababcc".substring(3, 6)));
 
     // no common prefix
     assertEquals(0, commonPrefixHelper("", "a"));
@@ -179,7 +181,8 @@ public class RelativeKeyTest {
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
+    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey,
+        expectedKeys.size());
     assertEquals(1, skippr.skipped);
     assertEquals(new Key(), skippr.prevKey);
     assertEquals(expectedKeys.get(0), skippr.rk.getKey());
@@ -231,7 +234,8 @@ public class RelativeKeyTest {
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
+    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey,
+        expectedKeys.size());
 
     assertEquals(seekIndex + 1, skippr.skipped);
     assertEquals(expectedKeys.get(seekIndex - 1), skippr.prevKey);
@@ -249,7 +253,8 @@ public class RelativeKeyTest {
 
     int left = expectedKeys.size();
 
-    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, prevKey, currKey, expectedKeys.size());
+    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, prevKey, currKey,
+        expectedKeys.size());
     assertEquals(i + 1, skippr.skipped);
     left -= skippr.skipped;
     assertEquals(expectedKeys.get(i - 1), skippr.prevKey);
@@ -257,17 +262,20 @@ public class RelativeKeyTest {
     assertEquals(expectedValues.get(i).toString(), value.toString());
 
     // try fast skipping to our current location
-    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, expectedKeys.get(i - 1), expectedKeys.get(i), left);
+    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, expectedKeys.get(i - 1),
+        expectedKeys.get(i), left);
     assertEquals(0, skippr.skipped);
     assertEquals(expectedKeys.get(i - 1), skippr.prevKey);
     assertEquals(expectedKeys.get(i), skippr.rk.getKey());
     assertEquals(expectedValues.get(i).toString(), value.toString());
 
-    // try fast skipping 1 column family ahead from our current location, testing fastskip from middle of block as opposed to stating at beginning of block
+    // try fast skipping 1 column family ahead from our current location, testing fastskip from
+    // middle of block as opposed to stating at beginning of block
     fKey = expectedKeys.get(i).followingKey(PartialKey.ROW_COLFAM);
     int j;
     for (j = i; expectedKeys.get(j).compareTo(fKey) < 0; j++) {}
-    skippr = RelativeKey.fastSkip(in, fKey, value, expectedKeys.get(i - 1), expectedKeys.get(i), left);
+    skippr = RelativeKey.fastSkip(in, fKey, value, expectedKeys.get(i - 1), expectedKeys.get(i),
+        left);
     assertEquals(j - i, skippr.skipped);
     assertEquals(expectedKeys.get(j - 1), skippr.prevKey);
     assertEquals(expectedKeys.get(j), skippr.rk.getKey());

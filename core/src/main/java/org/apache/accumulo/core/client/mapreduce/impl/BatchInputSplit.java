@@ -30,7 +30,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 
 /**
- * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in Map Reduce jobs. Can contain several Ranges per split.
+ * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in
+ * Map Reduce jobs. Can contain several Ranges per split.
  */
 public class BatchInputSplit extends RangeInputSplit {
   private Collection<Range> ranges;
@@ -45,13 +46,15 @@ public class BatchInputSplit extends RangeInputSplit {
     this.setRanges(split.getRanges());
   }
 
-  public BatchInputSplit(String table, String tableId, Collection<Range> ranges, String[] locations) {
+  public BatchInputSplit(String table, String tableId, Collection<Range> ranges,
+      String[] locations) {
     super(table, tableId, new Range(), locations);
     this.ranges = ranges;
   }
 
   /**
-   * Save progress on each call to this function, implied by value of currentKey, and return average ranges in the split
+   * Save progress on each call to this function, implied by value of currentKey, and return average
+   * ranges in the split
    */
   @Override
   public float getProgress(Key currentKey) {
@@ -71,15 +74,19 @@ public class BatchInputSplit extends RangeInputSplit {
           if (range.getStartKey() != null && range.getEndKey() != null) {
             if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
               // just look at the row progress
-              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
-            } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
+              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getRowData(),
+                  range.getEndKey().getRowData(), currentKey.getRowData());
+            } else if (range.getStartKey().compareTo(range.getEndKey(),
+                PartialKey.ROW_COLFAM) != 0) {
               // just look at the column family progress
-              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(),
-                  currentKey.getColumnFamilyData());
-            } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnFamilyData(),
+                  range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+            } else if (range.getStartKey().compareTo(range.getEndKey(),
+                PartialKey.ROW_COLFAM_COLQUAL) != 0) {
               // just look at the column qualifier progress
-              rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(),
-                  currentKey.getColumnQualifierData());
+              rangeProgress[i] = SplitUtils.getProgress(
+                  range.getStartKey().getColumnQualifierData(),
+                  range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
             }
           }
           total += rangeProgress[i];
@@ -92,7 +99,8 @@ public class BatchInputSplit extends RangeInputSplit {
   }
 
   /**
-   * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
+   * This implementation of length is only an estimate, it does not provide exact values. Do not
+   * have your code rely on this return value.
    */
   @Override
   public long getLength() throws IOException {

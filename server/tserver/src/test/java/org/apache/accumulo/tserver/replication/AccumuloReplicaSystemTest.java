@@ -73,8 +73,9 @@ public class AccumuloReplicaSystemTest {
     key.seq = 1l;
 
     /*
-     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing whatsoever in reality regarding what these entries would actually
-     * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
+     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
+     * whatsoever in reality regarding what these entries would actually look like in a WAL. They
+     * are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent("1", null, null);
@@ -155,9 +156,11 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
+    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
+        .build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
@@ -179,8 +182,9 @@ public class AccumuloReplicaSystemTest {
     key.seq = 1l;
 
     /*
-     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing whatsoever in reality regarding what these entries would actually
-     * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
+     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
+     * whatsoever in reality regarding what these entries would actually look like in a WAL. They
+     * are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent("1", null, null);
@@ -261,11 +265,14 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    // Setting the file to be closed with the infinite end implies that we need to bump the begin up to Long.MAX_VALUE
+    // Setting the file to be closed with the infinite end implies that we need to bump the begin up
+    // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
+    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
+        .build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
@@ -315,7 +322,8 @@ public class AccumuloReplicaSystemTest {
 
     Assert.assertEquals("row", new String(m.getRow()));
     Assert.assertEquals(1, m.getReplicationSources().size());
-    Assert.assertTrue("Expected source cluster to be listed in mutation replication source", m.getReplicationSources().contains("source"));
+    Assert.assertTrue("Expected source cluster to be listed in mutation replication source",
+        m.getReplicationSources().contains("source"));
   }
 
   @Test
@@ -327,11 +335,14 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    // Setting the file to be closed with the infinite end implies that we need to bump the begin up to Long.MAX_VALUE
+    // Setting the file to be closed with the infinite end implies that we need to bump the begin up
+    // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
+    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true)
+        .build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
@@ -350,11 +361,14 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    // Setting the file to be closed with the infinite end implies that we need to bump the begin up to Long.MAX_VALUE
+    // Setting the file to be closed with the infinite end implies that we need to bump the begin up
+    // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
+    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true)
+        .setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
         new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
@@ -376,8 +390,9 @@ public class AccumuloReplicaSystemTest {
     key.seq = 1l;
 
     /*
-     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing whatsoever in reality regarding what these entries would actually
-     * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
+     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
+     * whatsoever in reality regarding what these entries would actually look like in a WAL. They
+     * are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent("1", null, null);
@@ -412,13 +427,15 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
+    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
+        .build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
 
     HashSet<Integer> tids = new HashSet<>();
 
     // Only consume the first mutation, not the second
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(2, repl.entriesConsumed);
@@ -429,7 +446,8 @@ public class AccumuloReplicaSystemTest {
     status = Status.newBuilder(status).setBegin(2).build();
 
     // Consume the rest of the mutations
-    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(1, repl.entriesConsumed);
@@ -454,7 +472,8 @@ public class AccumuloReplicaSystemTest {
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status, sizeLimit, remoteTableId, tcreds, tids);
+    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+        sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
 
@@ -483,7 +502,8 @@ public class AccumuloReplicaSystemTest {
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status, sizeLimit, remoteTableId, tcreds, tids);
+    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+        sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
 

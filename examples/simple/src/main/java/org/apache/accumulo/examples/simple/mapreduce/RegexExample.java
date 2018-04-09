@@ -69,7 +69,8 @@ public class RegexExample extends Configured implements Tool {
     opts.setAccumuloConfigs(job);
 
     IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
-    RegExFilter.setRegexs(regex, opts.rowRegex, opts.columnFamilyRegex, opts.columnQualifierRegex, opts.valueRegex, false);
+    RegExFilter.setRegexs(regex, opts.rowRegex, opts.columnFamilyRegex, opts.columnQualifierRegex,
+        opts.valueRegex, false);
     AccumuloInputFormat.addIterator(job, regex);
 
     job.setMapperClass(RegexMapper.class);

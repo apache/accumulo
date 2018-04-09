@@ -113,7 +113,8 @@ public class SplitIT extends AccumuloClusterHarness {
     }
     if (null != tservMajcDelay) {
       log.info("Resetting {}={}", Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
-      getConnector().instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
+      getConnector().instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(),
+          tservMajcDelay);
       tservMajcDelay = null;
     }
   }
@@ -124,7 +125,8 @@ public class SplitIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     c.tableOperations().create(table);
     c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
-    c.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
+    c.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(),
+        "1K");
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     opts.rows = 100000;
@@ -166,11 +168,12 @@ public class SplitIT extends AccumuloClusterHarness {
     String[] args;
     if (clientConfig.hasSasl()) {
       ClusterUser rootUser = getAdminUser();
-      args = new String[] {"-i", cluster.getInstanceName(), "-u", rootUser.getPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-z",
-          cluster.getZooKeepers()};
+      args = new String[] {"-i", cluster.getInstanceName(), "-u", rootUser.getPrincipal(),
+          "--keytab", rootUser.getKeytab().getAbsolutePath(), "-z", cluster.getZooKeepers()};
     } else {
       PasswordToken token = (PasswordToken) getAdminToken();
-      args = new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p", new String(token.getPassword(), UTF_8), "-z", cluster.getZooKeepers()};
+      args = new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p",
+          new String(token.getPassword(), UTF_8), "-z", cluster.getZooKeepers()};
     }
 
     assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class, args));
@@ -182,7 +185,8 @@ public class SplitIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    c.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
+    c.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
+        "none");
     sleepUninterruptibly(5, TimeUnit.SECONDS);
     ReadWriteIT.interleaveTest(c, tableName);
     sleepUninterruptibly(5, TimeUnit.SECONDS);

@@ -29,12 +29,15 @@ public class DropUser extends Test {
 
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state, env).getSysUserName(), WalkingSecurity.get(state, env).getSysToken());
+    Connector conn = env.getInstance().getConnector(
+        WalkingSecurity.get(state, env).getSysUserName(),
+        WalkingSecurity.get(state, env).getSysToken());
 
     String tableUserName = WalkingSecurity.get(state, env).getTabUserName();
 
     boolean exists = WalkingSecurity.get(state, env).userExists(tableUserName);
-    boolean hasPermission = WalkingSecurity.get(state, env).canDropUser(WalkingSecurity.get(state, env).getSysCredentials(), tableUserName);
+    boolean hasPermission = WalkingSecurity.get(state, env)
+        .canDropUser(WalkingSecurity.get(state, env).getSysCredentials(), tableUserName);
 
     try {
       conn.securityOperations().dropLocalUser(tableUserName);
@@ -42,7 +45,8 @@ public class DropUser extends Test {
       switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (hasPermission)
-            throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+            throw new AccumuloException(
+                "Got a security exception when I should have had permission.", ae);
           else {
             if (exists) {
               env.getConnector().securityOperations().dropLocalUser(tableUserName);

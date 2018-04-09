@@ -45,7 +45,8 @@ public class Namespaces {
     public String invalidMessage(String namespace) {
       if (namespace == null)
         return "Namespace cannot be null";
-      return "Namespaces must only contain word characters (letters, digits, and underscores): " + namespace;
+      return "Namespaces must only contain word characters (letters, digits, and underscores): "
+          + namespace;
     }
   };
 
@@ -85,7 +86,8 @@ public class Namespaces {
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
     }
-    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
   }
 
   private static SortedMap<String,String> getMap(Instance instance, boolean nameAsKey) {
@@ -96,7 +98,8 @@ public class Namespaces {
     TreeMap<String,String> namespaceMap = new TreeMap<>();
 
     for (String id : namespaceIds) {
-      byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
+      byte[] path = zc.get(
+          ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
       if (path != null) {
         if (nameAsKey)
           namespaceMap.put(new String(path, UTF_8), id);
@@ -113,17 +116,21 @@ public class Namespaces {
     return namespaceIds.contains(namespaceId);
   }
 
-  public static String getNamespaceId(Instance instance, String namespace) throws NamespaceNotFoundException {
+  public static String getNamespaceId(Instance instance, String namespace)
+      throws NamespaceNotFoundException {
     String id = getNameToIdMap(instance).get(namespace);
     if (id == null)
-      throw new NamespaceNotFoundException(null, namespace, "getNamespaceId() failed to find namespace");
+      throw new NamespaceNotFoundException(null, namespace,
+          "getNamespaceId() failed to find namespace");
     return id;
   }
 
-  public static String getNamespaceName(Instance instance, String namespaceId) throws NamespaceNotFoundException {
+  public static String getNamespaceName(Instance instance, String namespaceId)
+      throws NamespaceNotFoundException {
     String namespaceName = getIdToNameMap(instance).get(namespaceId);
     if (namespaceName == null)
-      throw new NamespaceNotFoundException(namespaceId, null, "getNamespaceName() failed to find namespace");
+      throw new NamespaceNotFoundException(namespaceId, null,
+          "getNamespaceName() failed to find namespace");
     return namespaceName;
   }
 
@@ -135,7 +142,8 @@ public class Namespaces {
     return getMap(instance, false);
   }
 
-  public static List<String> getTableIds(Instance instance, String namespaceId) throws NamespaceNotFoundException {
+  public static List<String> getTableIds(Instance instance, String namespaceId)
+      throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
     List<String> names = new LinkedList<>();
     for (Entry<String,String> nameToId : Tables.getNameToIdMap(instance).entrySet())
@@ -144,7 +152,8 @@ public class Namespaces {
     return names;
   }
 
-  public static List<String> getTableNames(Instance instance, String namespaceId) throws NamespaceNotFoundException {
+  public static List<String> getTableNames(Instance instance, String namespaceId)
+      throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
     List<String> names = new LinkedList<>();
     for (String name : Tables.getNameToIdMap(instance).keySet())

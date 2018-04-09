@@ -26,8 +26,10 @@ import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
  * @deprecated since 1.4
  */
 @Deprecated
-public class AggregatorSet extends ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> {
-  public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
+public class AggregatorSet
+    extends ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator> {
+  public AggregatorSet(Map<String,String> opts)
+      throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
     super(opts, org.apache.accumulo.core.iterators.aggregation.Aggregator.class);
   }
 

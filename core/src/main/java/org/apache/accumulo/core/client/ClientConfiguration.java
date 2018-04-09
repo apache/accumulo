@@ -53,7 +53,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
+ * Contains a list of property keys recognized by the Accumulo client and convenience methods for
+ * setting them.
  *
  * @since 1.6.0
  */
@@ -82,8 +83,10 @@ public class ClientConfiguration extends CompositeConfiguration {
     INSTANCE_ZK_TIMEOUT(Property.INSTANCE_ZK_TIMEOUT),
 
     // Instance information
-    INSTANCE_NAME("instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
-    INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
+    INSTANCE_NAME("instance.name", null, PropertyType.STRING,
+        "Name of Accumulo instance to connect to"),
+    INSTANCE_ID("instance.id", null, PropertyType.STRING,
+        "UUID of Accumulo instance to connect to"),
 
     // Tracing
     TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),
@@ -103,7 +106,8 @@ public class ClientConfiguration extends CompositeConfiguration {
      * @since 1.7.0
      */
     KERBEROS_SERVER_PRIMARY("kerberos.server.primary", "accumulo", PropertyType.STRING,
-        "The first component of the Kerberos principal, the 'primary', that Accumulo servers use to login");
+        "The first component of the Kerberos principal, the 'primary', "
+            + "that Accumulo servers use to login");
 
     private String key;
     private String defaultValue;
@@ -133,7 +137,8 @@ public class ClientConfiguration extends CompositeConfiguration {
     }
 
     /**
-     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and not guaranteed to be stable.
+     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and not
+     *             guaranteed to be stable.
      */
     @Deprecated
     public PropertyType getType() {
@@ -145,7 +150,8 @@ public class ClientConfiguration extends CompositeConfiguration {
     }
 
     /**
-     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and not guaranteed to be stable.
+     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and not
+     *             guaranteed to be stable.
      */
     @Deprecated
     public Property getAccumuloProperty() {
@@ -177,7 +183,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API; use {@link #fromFile(File)} instead.
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API; use {@link #fromFile(File)} instead.
    */
   @Deprecated
   public ClientConfiguration(String configFile) throws ConfigurationException {
@@ -189,7 +196,8 @@ public class ClientConfiguration extends CompositeConfiguration {
    *
    * @param configFile
    *          the path to the properties file
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API; use {@link #fromFile(File)} instead.
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API; use {@link #fromFile(File)} instead.
    */
   @Deprecated
   public ClientConfiguration(File configFile) throws ConfigurationException {
@@ -197,7 +205,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   public ClientConfiguration(List<? extends Configuration> configs) {
@@ -207,8 +216,10 @@ public class ClientConfiguration extends CompositeConfiguration {
     for (Configuration c : configs) {
       if (c instanceof AbstractConfiguration) {
         AbstractConfiguration abstractConfiguration = (AbstractConfiguration) c;
-        if (!abstractConfiguration.isDelimiterParsingDisabled() && abstractConfiguration.getListDelimiter() != '\0') {
-          log.warn("Client configuration constructed with a Configuration that did not have list delimiter disabled or overridden, multi-valued config "
+        if (!abstractConfiguration.isDelimiterParsingDisabled()
+            && abstractConfiguration.getListDelimiter() != '\0') {
+          log.warn("Client configuration constructed with a Configuration that did not have "
+              + "list delimiter disabled or overridden, multi-valued config "
               + "properties may be unavailable");
           abstractConfiguration.setListDelimiter('\0');
         }
@@ -221,7 +232,8 @@ public class ClientConfiguration extends CompositeConfiguration {
    *
    * @see PropertiesConfiguration
    * @see #loadDefault()
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   public ClientConfiguration(Configuration... configs) {
@@ -229,8 +241,9 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Attempts to load a configuration file from the system using the default search paths. Uses the <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable,
-   * split on <em>File.pathSeparator</em>, for a list of target files.
+   * Attempts to load a configuration file from the system using the default search paths. Uses the
+   * <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable, split on <em>File.pathSeparator</em>,
+   * for a list of target files.
    * <p>
    * If <em>ACCUMULO_CLIENT_CONF_PATH</em> is not set, uses the following in this order:
    * <ul>
@@ -240,8 +253,9 @@ public class ClientConfiguration extends CompositeConfiguration {
    * <li>/etc/accumulo/conf/client.conf
    * </ul>
    * <p>
-   * A client configuration will then be read from each location using <em>PropertiesConfiguration</em> to construct a configuration. That means the latest item
-   * will be the one in the configuration.
+   * A client configuration will then be read from each location using
+   * <em>PropertiesConfiguration</em> to construct a configuration. That means the latest item will
+   * be the one in the configuration.
    *
    * @see PropertiesConfiguration
    * @see File#pathSeparator
@@ -251,7 +265,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Initializes an empty configuration object to be further configured with other methods on the class.
+   * Initializes an empty configuration object to be further configured with other methods on the
+   * class.
    *
    * @since 1.9.0
    */
@@ -260,8 +275,9 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Initializes a configuration object from the contents of a configuration file. Currently supports Java "properties" files. The returned object can be
-   * further configured with subsequent calls to other methods on this class.
+   * Initializes a configuration object from the contents of a configuration file. Currently
+   * supports Java "properties" files. The returned object can be further configured with subsequent
+   * calls to other methods on this class.
    *
    * @param file
    *          the path to the configuration file
@@ -276,8 +292,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Initializes a configuration object from the contents of a map. The returned object can be further configured with subsequent calls to other methods on this
-   * class.
+   * Initializes a configuration object from the contents of a map. The returned object can be
+   * further configured with subsequent calls to other methods on this class.
    *
    * @param properties
    *          a map containing the configuration properties to use
@@ -318,14 +334,16 @@ public class ClientConfiguration extends CompositeConfiguration {
     try {
       propConfig.load(new StringReader(serializedConfig));
     } catch (ConfigurationException e) {
-      throw new IllegalArgumentException("Error deserializing client configuration: " + serializedConfig, e);
+      throw new IllegalArgumentException(
+          "Error deserializing client configuration: " + serializedConfig, e);
     }
     return new ClientConfiguration(propConfig);
   }
 
   /**
-   * Muck the value of {@code clientConfPath} if it points to a directory by appending {@code client.conf} to the end of the file path. This is a no-op if the
-   * value is not a directory on the filesystem.
+   * Muck the value of {@code clientConfPath} if it points to a directory by appending
+   * {@code client.conf} to the end of the file path. This is a no-op if the value is not a
+   * directory on the filesystem.
    *
    * @param clientConfPath
    *          The value of ACCUMULO_CLIENT_CONF_PATH.
@@ -350,14 +368,18 @@ public class ClientConfiguration extends CompositeConfiguration {
     } else {
       // if $ACCUMULO_CLIENT_CONF_PATH env isn't set, priority from top to bottom is:
       // ~/.accumulo/config
-      // $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf (depending on whether $ACCUMULO_CONF_DIR is set)
+      // $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf (depending on whether
+      // $ACCUMULO_CONF_DIR is set)
       // /etc/accumulo/client.conf
       clientConfPaths = new LinkedList<>();
-      clientConfPaths.add(System.getProperty("user.home") + File.separator + USER_ACCUMULO_DIR_NAME + File.separator + USER_CONF_FILENAME);
+      clientConfPaths.add(System.getProperty("user.home") + File.separator + USER_ACCUMULO_DIR_NAME
+          + File.separator + USER_CONF_FILENAME);
       if (System.getenv("ACCUMULO_CONF_DIR") != null) {
-        clientConfPaths.add(System.getenv("ACCUMULO_CONF_DIR") + File.separator + GLOBAL_CONF_FILENAME);
+        clientConfPaths
+            .add(System.getenv("ACCUMULO_CONF_DIR") + File.separator + GLOBAL_CONF_FILENAME);
       } else if (System.getenv("ACCUMULO_HOME") != null) {
-        clientConfPaths.add(System.getenv("ACCUMULO_HOME") + File.separator + "conf" + File.separator + GLOBAL_CONF_FILENAME);
+        clientConfPaths.add(System.getenv("ACCUMULO_HOME") + File.separator + "conf"
+            + File.separator + GLOBAL_CONF_FILENAME);
       }
       clientConfPaths.add("/etc/accumulo/" + GLOBAL_CONF_FILENAME);
       clientConfPaths.add("/etc/accumulo/conf/" + GLOBAL_CONF_FILENAME);
@@ -391,7 +413,8 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   private void checkType(ClientProperty property, PropertyType type) {
     if (!property.getType().equals(type)) {
-      String msg = "Configuration method intended for type " + type + " called with a " + property.getType() + " argument (" + property.getKey() + ")";
+      String msg = "Configuration method intended for type " + type + " called with a "
+          + property.getType() + " argument (" + property.getKey() + ")";
       throw new IllegalArgumentException(msg);
     }
   }
@@ -430,7 +453,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Same as {@link #setProperty(ClientProperty, String)} but returns the ClientConfiguration for chaining purposes
+   * Same as {@link #setProperty(ClientProperty, String)} but returns the ClientConfiguration for
+   * chaining purposes
    */
   public ClientConfiguration with(ClientProperty prop, String value) {
     return with(prop.getKey(), value);
@@ -446,7 +470,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Same as {@link #setProperty(String, String)} but returns the ClientConfiguration for chaining purposes
+   * Same as {@link #setProperty(String, String)} but returns the ClientConfiguration for chaining
+   * purposes
    *
    * @since 1.9.0
    */
@@ -499,11 +524,13 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_ENABLED and ClientProperty.RPC_USE_JSSE
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_ENABLED and
+   * ClientProperty.RPC_USE_JSSE
    *
    */
   public ClientConfiguration withSsl(boolean sslEnabled, boolean useJsseConfig) {
-    return with(ClientProperty.INSTANCE_RPC_SSL_ENABLED, String.valueOf(sslEnabled)).with(ClientProperty.RPC_USE_JSSE, String.valueOf(useJsseConfig));
+    return with(ClientProperty.INSTANCE_RPC_SSL_ENABLED, String.valueOf(sslEnabled))
+        .with(ClientProperty.RPC_USE_JSSE, String.valueOf(useJsseConfig));
   }
 
   /**
@@ -515,8 +542,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.RPC_SSL_TRUSTORE_PATH, ClientProperty.RPC_SSL_TRUSTORE_PASSWORD, and
-   * ClientProperty.RPC_SSL_TRUSTORE_TYPE
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.RPC_SSL_TRUSTORE_PATH,
+   * ClientProperty.RPC_SSL_TRUSTORE_PASSWORD, and ClientProperty.RPC_SSL_TRUSTORE_TYPE
    *
    */
   public ClientConfiguration withTruststore(String path, String password, String type) {
@@ -538,8 +565,9 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, ClientProperty.RPC_SSL_KEYSTORE_PATH,
-   * ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, and ClientProperty.RPC_SSL_KEYSTORE_TYPE
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH,
+   * ClientProperty.RPC_SSL_KEYSTORE_PATH, ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, and
+   * ClientProperty.RPC_SSL_KEYSTORE_TYPE
    *
    */
   public ClientConfiguration withKeystore(String path, String password, String type) {
@@ -568,24 +596,29 @@ public class ClientConfiguration extends CompositeConfiguration {
    * @since 1.9.0
    */
   public boolean hasSasl() {
-    return getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), Boolean.parseBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getDefaultValue()));
+    return getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(),
+        Boolean.parseBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getDefaultValue()));
   }
 
   /**
-   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and
+   * ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
    *
    * @param saslEnabled
    *          Should SASL(kerberos) be enabled
    * @param kerberosServerPrimary
-   *          The 'primary' component of the Kerberos principal Accumulo servers use to login (e.g. 'accumulo' in 'accumulo/_HOST@REALM')
+   *          The 'primary' component of the Kerberos principal Accumulo servers use to login (e.g.
+   *          'accumulo' in 'accumulo/_HOST@REALM')
    * @since 1.7.0
    */
   public ClientConfiguration withSasl(boolean saslEnabled, String kerberosServerPrimary) {
-    return withSasl(saslEnabled).with(ClientProperty.KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
+    return withSasl(saslEnabled).with(ClientProperty.KERBEROS_SERVER_PRIMARY,
+        kerberosServerPrimary);
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -594,7 +627,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -603,7 +637,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -612,7 +647,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -621,7 +657,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -630,7 +667,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -639,7 +677,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -648,7 +687,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -657,7 +697,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -666,7 +707,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -675,7 +717,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -684,7 +727,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -693,7 +737,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -702,7 +747,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -711,7 +757,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -720,7 +767,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -729,7 +777,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -738,7 +787,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -747,7 +797,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -756,7 +807,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -765,7 +817,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -774,7 +827,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -783,7 +837,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -792,7 +847,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -801,7 +857,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -815,25 +872,30 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
-  protected ConfigurationErrorEvent createErrorEvent(int type, String propName, Object propValue, Throwable ex) {
+  protected ConfigurationErrorEvent createErrorEvent(int type, String propName, Object propValue,
+      Throwable ex) {
     return super.createErrorEvent(type, propName, propValue, ex);
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
-  protected ConfigurationEvent createEvent(int type, String propName, Object propValue, boolean before) {
+  protected ConfigurationEvent createEvent(int type, String propName, Object propValue,
+      boolean before) {
     return super.createEvent(type, propName, propValue, before);
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -842,7 +904,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -851,7 +914,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -860,7 +924,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -869,7 +934,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -878,7 +944,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -887,7 +954,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -896,7 +964,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -905,7 +974,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -914,7 +984,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -923,7 +994,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -932,7 +1004,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -941,7 +1014,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -950,7 +1024,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @SuppressWarnings("rawtypes")
@@ -960,7 +1035,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -969,7 +1045,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -978,7 +1055,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -987,7 +1065,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @SuppressWarnings("rawtypes")
@@ -997,7 +1076,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1006,7 +1086,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1015,7 +1096,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1024,7 +1106,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1033,7 +1116,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1042,7 +1126,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1057,7 +1142,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @SuppressWarnings("unchecked")
@@ -1067,7 +1153,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @SuppressWarnings("rawtypes")
@@ -1077,7 +1164,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @SuppressWarnings("rawtypes")
@@ -1087,7 +1175,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1096,7 +1185,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1105,7 +1195,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1114,7 +1205,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1123,7 +1215,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1132,7 +1225,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1141,7 +1235,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1150,7 +1245,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1159,7 +1255,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1168,7 +1265,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1177,7 +1275,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1191,7 +1290,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1200,7 +1300,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1209,7 +1310,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1218,7 +1320,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1227,7 +1330,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @SuppressWarnings("rawtypes")
@@ -1237,7 +1341,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1246,7 +1351,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1255,7 +1361,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1264,7 +1371,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1273,7 +1381,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1282,7 +1391,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1291,7 +1401,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1300,7 +1411,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1309,7 +1421,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override
@@ -1318,7 +1431,8 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
+   *             Accumulo API
    */
   @Deprecated
   @Override

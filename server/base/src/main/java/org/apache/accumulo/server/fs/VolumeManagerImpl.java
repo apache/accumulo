@@ -72,7 +72,8 @@ public class VolumeManagerImpl implements VolumeManager {
   private final Volume defaultVolume;
   private final VolumeChooser chooser;
 
-  protected VolumeManagerImpl(Map<String,Volume> volumes, Volume defaultVolume, AccumuloConfiguration conf) {
+  protected VolumeManagerImpl(Map<String,Volume> volumes, Volume defaultVolume,
+      AccumuloConfiguration conf) {
     this.volumesByName = volumes;
     this.defaultVolume = defaultVolume;
     // We may have multiple directories used in a single FileSystem (e.g. testing)
@@ -80,21 +81,27 @@ public class VolumeManagerImpl implements VolumeManager {
     invertVolumesByFileSystem(volumesByName, volumesByFileSystemUri);
     ensureSyncIsEnabled();
     // Keep in sync with default type in the property definition.
-    chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new PerTableVolumeChooser());
+    chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER,
+        VolumeChooser.class, new PerTableVolumeChooser());
   }
 
-  private void invertVolumesByFileSystem(Map<String,Volume> forward, Multimap<URI,Volume> inverted) {
+  private void invertVolumesByFileSystem(Map<String,Volume> forward,
+      Multimap<URI,Volume> inverted) {
     for (Volume volume : forward.values()) {
       inverted.put(volume.getFileSystem().getUri(), volume);
     }
   }
 
-  public static org.apache.accumulo.server.fs.VolumeManager getLocal(String localBasePath) throws IOException {
+  public static org.apache.accumulo.server.fs.VolumeManager getLocal(String localBasePath)
+      throws IOException {
     AccumuloConfiguration accConf = DefaultConfiguration.getDefaultConfiguration();
-    Volume defaultLocalVolume = VolumeConfiguration.create(FileSystem.getLocal(CachedConfiguration.getInstance()), localBasePath);
+    Volume defaultLocalVolume = VolumeConfiguration
+        .create(FileSystem.getLocal(CachedConfiguration.getInstance()), localBasePath);
 
-    // The default volume gets placed in the map, but local filesystem is only used for testing purposes
-    return new VolumeManagerImpl(Collections.singletonMap(DEFAULT, defaultLocalVolume), defaultLocalVolume, accConf);
+    // The default volume gets placed in the map, but local filesystem is only used for testing
+    // purposes
+    return new VolumeManagerImpl(Collections.singletonMap(DEFAULT, defaultLocalVolume),
+        defaultLocalVolume, accConf);
   }
 
   @Override
@@ -147,7 +154,8 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public FSDataOutputStream create(Path path, boolean overwrite, int bufferSize, short replication, long blockSize) throws IOException {
+  public FSDataOutputStream create(Path path, boolean overwrite, int bufferSize, short replication,
+      long blockSize) throws IOException {
     requireNonNull(path);
 
     Volume v = getVolumeByPath(path);
@@ -166,7 +174,8 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public FSDataOutputStream createSyncable(Path logPath, int bufferSize, short replication, long blockSize) throws IOException {
+  public FSDataOutputStream createSyncable(Path logPath, int bufferSize, short replication,
+      long blockSize) throws IOException {
     Volume v = getVolumeByPath(logPath);
     FileSystem fs = v.getFileSystem();
     blockSize = correctBlockSize(fs.getConf(), blockSize);
@@ -174,7 +183,8 @@ public class VolumeManagerImpl implements VolumeManager {
     EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
     log.debug("creating " + logPath + " with CreateFlag set: " + set);
     try {
-      return fs.create(logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
+      return fs.create(logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize,
+          null);
     } catch (Exception ex) {
       log.debug("Exception", ex);
       return fs.create(logPath, true, bufferSize, replication, blockSize);
@@ -197,13 +207,15 @@ public class VolumeManagerImpl implements VolumeManager {
 
       if (fs instanceof DistributedFileSystem) {
         // Avoid use of DFSConfigKeys since it's private
-        final String DFS_SUPPORT_APPEND = "dfs.support.append", DFS_DATANODE_SYNCONCLOSE = "dfs.datanode.synconclose";
+        final String DFS_SUPPORT_APPEND = "dfs.support.append",
+            DFS_DATANODE_SYNCONCLOSE = "dfs.datanode.synconclose";
         final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
 
         // If either of these parameters are configured to be false, fail.
         // This is a sign that someone is writing bad configuration.
         if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true)) {
-          String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND + " not be configured as false. " + ticketMessage;
+          String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND
+              + " not be configured as false. " + ticketMessage;
           // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
           log.error("FATAL {}", msg);
           throw new RuntimeException(msg);
@@ -215,7 +227,9 @@ public class VolumeManagerImpl implements VolumeManager {
           synchronized (WARNED_ABOUT_SYNCONCLOSE) {
             if (!WARNED_ABOUT_SYNCONCLOSE.contains(entry.getKey())) {
               WARNED_ABOUT_SYNCONCLOSE.add(entry.getKey());
-              log.warn(DFS_DATANODE_SYNCONCLOSE + " set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss");
+              log.warn(DFS_DATANODE_SYNCONCLOSE + " set to false in"
+                  + " hdfs-site.xml: data loss is possible on hard system reset or"
+                  + " power loss");
             }
           }
         }
@@ -290,7 +304,8 @@ public class VolumeManagerImpl implements VolumeManager {
     FileSystem source = srcVolume.getFileSystem();
     FileSystem dest = destVolume.getFileSystem();
     if (source != dest) {
-      throw new NotImplementedException("Cannot rename files across volumes: " + path + " -> " + newPath);
+      throw new NotImplementedException(
+          "Cannot rename files across volumes: " + path + " -> " + newPath);
     }
     return source.rename(path, newPath);
   }
@@ -324,7 +339,8 @@ public class VolumeManagerImpl implements VolumeManager {
     return get(conf, CachedConfiguration.getInstance());
   }
 
-  public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf) throws IOException {
+  public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf)
+      throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();
 
     // The "default" Volume for Accumulo (in case no volumes are specified)
@@ -337,13 +353,16 @@ public class VolumeManagerImpl implements VolumeManager {
 
       // We require a URI here, fail if it doesn't look like one
       if (volumeUriOrDir.contains(":")) {
-        volumes.put(volumeUriOrDir, VolumeConfiguration.create(new Path(volumeUriOrDir), hadoopConf));
+        volumes.put(volumeUriOrDir,
+            VolumeConfiguration.create(new Path(volumeUriOrDir), hadoopConf));
       } else {
-        throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + volumeUriOrDir);
+        throw new IllegalArgumentException("Expected fully qualified URI for "
+            + Property.INSTANCE_VOLUMES.getKey() + " got " + volumeUriOrDir);
       }
     }
 
-    return new VolumeManagerImpl(volumes, VolumeConfiguration.getDefaultVolume(hadoopConf, conf), conf);
+    return new VolumeManagerImpl(volumes, VolumeConfiguration.getDefaultVolume(hadoopConf, conf),
+        conf);
   }
 
   @Override
@@ -432,7 +451,8 @@ public class VolumeManagerImpl implements VolumeManager {
     if (path.startsWith("/"))
       path = path.substring(1);
 
-    // ACCUMULO-2974 To ensure that a proper absolute path is created, the caller needs to include the table ID
+    // ACCUMULO-2974 To ensure that a proper absolute path is created, the caller needs to include
+    // the table ID
     // in the relative path. Fail when this doesn't appear to happen.
     if (FileType.TABLE == fileType) {
       // Trailing slash doesn't create an additional element
@@ -472,8 +492,10 @@ public class VolumeManagerImpl implements VolumeManager {
     final VolumeChooserEnvironment env = new VolumeChooserEnvironment(tableId);
     final String choice = chooser.choose(env, options);
     if (!(ArrayUtils.contains(options, choice))) {
-      log.error("The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided; "
-          + "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.");
+      log.error("The configured volume chooser, '" + chooser.getClass()
+          + "', or one of its delegates returned a volume not in the set of"
+          + " options provided; will continue by relying on a RandomVolumeChooser."
+          + " You should investigate and correct the named chooser.");
       return failsafeChooser.choose(env, options);
     }
     return choice;

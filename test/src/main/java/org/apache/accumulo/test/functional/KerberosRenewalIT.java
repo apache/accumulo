@@ -62,7 +62,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 
 /**
- * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity check for Kerberos/SASL testing.
+ * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity
+ * check for Kerberos/SASL testing.
  */
 @Category(MiniClusterOnlyTests.class)
 public class KerberosRenewalIT extends AccumuloITBase {
@@ -72,14 +73,16 @@ public class KerberosRenewalIT extends AccumuloITBase {
   private static String krbEnabledForITs = null;
   private static ClusterUser rootUser;
 
-  private static final long TICKET_LIFETIME = 6 * 60 * 1000; // Anything less seems to fail when generating the ticket
+  private static final long TICKET_LIFETIME = 6 * 60 * 1000; // Anything less seems to fail when
+                                                             // generating the ticket
   private static final long TICKET_TEST_LIFETIME = 8 * 60 * 1000; // Run a test for 8 mins
   private static final long TEST_DURATION = 9 * 60 * 1000; // The test should finish within 9 mins
 
   @BeforeClass
   public static void startKdc() throws Exception {
     // 30s renewal time window
-    kdc = new TestingKdc(TestingKdc.computeKdcDir(), TestingKdc.computeKeytabDir(), TICKET_LIFETIME);
+    kdc = new TestingKdc(TestingKdc.computeKdcDir(), TestingKdc.computeKeytabDir(),
+        TICKET_LIFETIME);
     kdc.start();
     krbEnabledForITs = System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION);
     if (null == krbEnabledForITs || !Boolean.parseBoolean(krbEnabledForITs)) {
@@ -108,18 +111,19 @@ public class KerberosRenewalIT extends AccumuloITBase {
   @Before
   public void startMac() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
-    mac = harness.create(this, new PasswordToken("unused"), kdc, new MiniClusterConfigurationCallback() {
+    mac = harness.create(this, new PasswordToken("unused"), kdc,
+        new MiniClusterConfigurationCallback() {
 
-      @Override
-      public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-        Map<String,String> site = cfg.getSiteConfig();
-        site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
-        // Reduce the period just to make sure we trigger renewal fast
-        site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
-        cfg.setSiteConfig(site);
-      }
+          @Override
+          public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+            Map<String,String> site = cfg.getSiteConfig();
+            site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
+            // Reduce the period just to make sure we trigger renewal fast
+            site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
+            cfg.setSiteConfig(site);
+          }
 
-    });
+        });
 
     mac.getConfig().setNumTservers(1);
     mac.start();
@@ -146,7 +150,8 @@ public class KerberosRenewalIT extends AccumuloITBase {
     // should exit gracefully on its own.
 
     // Login as the "root" user
-    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
+        rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
     Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
@@ -170,10 +175,12 @@ public class KerberosRenewalIT extends AccumuloITBase {
   }
 
   /**
-   * Creates a table, adds a record to it, and then compacts the table. A simple way to make sure that the system user exists (since the master does an RPC to
-   * the tserver which will create the system user if it doesn't already exist).
+   * Creates a table, adds a record to it, and then compacts the table. A simple way to make sure
+   * that the system user exists (since the master does an RPC to the tserver which will create the
+   * system user if it doesn't already exist).
    */
-  private void createReadWriteDrop(Connector conn) throws TableNotFoundException, AccumuloSecurityException, AccumuloException, TableExistsException {
+  private void createReadWriteDrop(Connector conn) throws TableNotFoundException,
+      AccumuloSecurityException, AccumuloException, TableExistsException {
     final String table = testName.getMethodName() + "_table";
     conn.tableOperations().create(table);
     BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
@@ -184,7 +191,8 @@ public class KerberosRenewalIT extends AccumuloITBase {
     conn.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
     Scanner s = conn.createScanner(table, Authorizations.EMPTY);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    assertEquals("Did not find the expected key", 0, new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
+    assertEquals("Did not find the expected key", 0,
+        new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
     assertEquals("d", entry.getValue().toString());
     conn.tableOperations().delete(table);
   }

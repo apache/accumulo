@@ -42,14 +42,18 @@ import org.slf4j.LoggerFactory;
 import jline.console.ConsoleReader;
 
 /**
- * Accumulo Reservation System : An example reservation system using Accumulo. Supports atomic reservations of a resource at a date. Wait list are also
- * supported. In order to keep the example simple, no checking is done of the date. Also the code is inefficient, if interested in improving it take a look at
- * the EXCERCISE comments.
+ * Accumulo Reservation System : An example reservation system using Accumulo. Supports atomic
+ * reservations of a resource at a date. Wait list are also supported. In order to keep the example
+ * simple, no checking is done of the date. Also the code is inefficient, if interested in improving
+ * it take a look at the EXCERCISE comments.
  */
 
-// EXCERCISE create a test that verifies correctness under concurrency. For example, have M threads making reservations against N resources. Each thread could
-// randomly reserve and cancel resources for a single user. When each thread finishes, it knows what the state of its single user should be. When all threads
-// finish, collect their expected state and verify the status of all users and resources. For extra credit run the test on a IAAS provider using 10 nodes and
+// EXCERCISE create a test that verifies correctness under concurrency. For example, have M threads
+// making reservations against N resources. Each thread could
+// randomly reserve and cancel resources for a single user. When each thread finishes, it knows what
+// the state of its single user should be. When all threads
+// finish, collect their expected state and verify the status of all users and resources. For extra
+// credit run the test on a IAAS provider using 10 nodes and
 // 10 threads per node.
 
 public class ARS {
@@ -69,7 +73,8 @@ public class ARS {
   }
 
   public List<String> setCapacity(String what, String when, int count) {
-    // EXCERCISE implement this method which atomically sets a capacity and returns anyone who was moved to the wait list if the capacity was decreased
+    // EXCERCISE implement this method which atomically sets a capacity and returns anyone who was
+    // moved to the wait list if the capacity was decreased
 
     throw new UnsupportedOperationException();
   }
@@ -78,10 +83,12 @@ public class ARS {
 
     String row = what + ":" + when;
 
-    // EXCERCISE This code assumes there is no reservation and tries to create one. If a reservation exist then the update will fail. This is a good strategy
+    // EXCERCISE This code assumes there is no reservation and tries to create one. If a reservation
+    // exist then the update will fail. This is a good strategy
     // when it is expected there are usually no reservations. Could modify the code to scan first.
 
-    // The following mutation requires that the column tx:seq does not exist and will fail if it does.
+    // The following mutation requires that the column tx:seq does not exist and will fail if it
+    // does.
     ConditionalMutation update = new ConditionalMutation(row, new Condition("tx", "seq"));
     update.put("tx", "seq", "0");
     update.put("res", String.format("%04d", 0), who);
@@ -89,7 +96,9 @@ public class ARS {
     ReservationResult result = ReservationResult.RESERVED;
 
     // it is important to use an isolated scanner so that only whole mutations are seen
-    try (ConditionalWriter cwriter = conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
+    try (
+        ConditionalWriter cwriter = conn.createConditionalWriter(rTable,
+            new ConditionalWriterConfig());
         Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY))) {
       while (true) {
         Status status = cwriter.write(update).getStatus();
@@ -104,10 +113,14 @@ public class ARS {
             throw new RuntimeException("Unexpected status " + status);
         }
 
-        // EXCERCISE in the case of many threads trying to reserve a slot, this approach of immediately retrying is inefficient. Exponential back-off is good
-        // general solution to solve contention problems like this. However in this particular case, exponential back-off could penalize the earliest threads
-        // that attempted to make a reservation by putting them later in the list. A more complex solution could involve having independent sub-queues within
-        // the row that approximately maintain arrival order and use exponential back off to fairly merge the sub-queues into the main queue.
+        // EXCERCISE in the case of many threads trying to reserve a slot, this approach of
+        // immediately retrying is inefficient. Exponential back-off is good
+        // general solution to solve contention problems like this. However in this particular case,
+        // exponential back-off could penalize the earliest threads
+        // that attempted to make a reservation by putting them later in the list. A more complex
+        // solution could involve having independent sub-queues within
+        // the row that approximately maintain arrival order and use exponential back off to fairly
+        // merge the sub-queues into the main queue.
 
         scanner.setRange(new Range(row));
 
@@ -122,7 +135,8 @@ public class ARS {
           if (cf.equals("tx") && cq.equals("seq")) {
             seq = Integer.parseInt(val);
           } else if (cf.equals("res")) {
-            // EXCERCISE scanning the entire list to find if reserver is already in the list is inefficient. One possible way to solve this would be to sort the
+            // EXCERCISE scanning the entire list to find if reserver is already in the list is
+            // inefficient. One possible way to solve this would be to sort the
             // data differently in Accumulo so that finding the reserver could be done quickly.
             if (val.equals(who))
               if (maxReservation == -1)
@@ -130,8 +144,10 @@ public class ARS {
               else
                 return ReservationResult.WAIT_LISTED; // already on wait list
 
-            // EXCERCISE the way this code finds the max reservation is very inefficient.... it would be better if it did not have to scan the entire row.
-            // One possibility is to just use the sequence number. Could also consider sorting the data in another way and/or using an iterator.
+            // EXCERCISE the way this code finds the max reservation is very inefficient.... it
+            // would be better if it did not have to scan the entire row.
+            // One possibility is to just use the sequence number. Could also consider sorting the
+            // data in another way and/or using an iterator.
             maxReservation = Integer.parseInt(cq);
           }
         }
@@ -157,12 +173,16 @@ public class ARS {
 
     String row = what + ":" + when;
 
-    // Even though this method is only deleting a column, its important to use a conditional writer. By updating the seq # when deleting a reservation, it
-    // will cause any concurrent reservations to retry. If this delete were done using a batch writer, then a concurrent reservation could report WAIT_LISTED
+    // Even though this method is only deleting a column, its important to use a conditional writer.
+    // By updating the seq # when deleting a reservation, it
+    // will cause any concurrent reservations to retry. If this delete were done using a batch
+    // writer, then a concurrent reservation could report WAIT_LISTED
     // when it actually got the reservation.
 
     // its important to use an isolated scanner so that only whole mutations are seen
-    try (ConditionalWriter cwriter = conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
+    try (
+        ConditionalWriter cwriter = conn.createConditionalWriter(rTable,
+            new ConditionalWriterConfig());
         Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY))) {
       while (true) {
         scanner.setRange(new Range(row));
@@ -185,7 +205,8 @@ public class ARS {
         }
 
         if (reservation != null) {
-          ConditionalMutation update = new ConditionalMutation(row, new Condition("tx", "seq").setValue(seq + ""));
+          ConditionalMutation update = new ConditionalMutation(row,
+              new Condition("tx", "seq").setValue(seq + ""));
           update.putDelete("res", reservation);
           update.put("tx", "seq", (seq + 1) + "");
 
@@ -243,7 +264,8 @@ public class ARS {
       final String[] tokens = line.split("\\s+");
 
       if (tokens[0].equals("reserve") && tokens.length >= 4 && ars != null) {
-        // start up multiple threads all trying to reserve the same resource, no more than one should succeed
+        // start up multiple threads all trying to reserve the same resource, no more than one
+        // should succeed
 
         final ARS fars = ars;
         ArrayList<Thread> threads = new ArrayList<>();
@@ -253,7 +275,8 @@ public class ARS {
             @Override
             public void run() {
               try {
-                reader.println("  " + String.format("%20s", tokens[whoIndex]) + " : " + fars.reserve(tokens[1], tokens[2], tokens[whoIndex]));
+                reader.println("  " + String.format("%20s", tokens[whoIndex]) + " : "
+                    + fars.reserve(tokens[1], tokens[2], tokens[whoIndex]));
               } catch (Exception e) {
                 log.warn("Could not write to the ConsoleReader.", e);
               }
@@ -281,7 +304,8 @@ public class ARS {
       } else if (tokens[0].equals("quit") && tokens.length == 1) {
         break;
       } else if (tokens[0].equals("connect") && tokens.length == 6 && ars == null) {
-        ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.create().withInstance(tokens[1]).withZkHosts(tokens[2]));
+        ZooKeeperInstance zki = new ZooKeeperInstance(
+            ClientConfiguration.create().withInstance(tokens[1]).withZkHosts(tokens[2]));
         Connector conn = zki.getConnector(tokens[3], new PasswordToken(tokens[4]));
         if (conn.tableOperations().exists(tokens[5])) {
           ars = new ARS(conn, tokens[5]);

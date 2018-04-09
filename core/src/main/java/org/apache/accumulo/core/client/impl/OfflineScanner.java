@@ -41,7 +41,8 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Authorizations authorizations;
   private Text tableId;
 
-  public OfflineScanner(Instance instance, Credentials credentials, String tableId, Authorizations authorizations) {
+  public OfflineScanner(Instance instance, Credentials credentials, String tableId,
+      Authorizations authorizations) {
     checkArgument(instance != null, "instance is null");
     checkArgument(credentials != null, "credentials is null");
     checkArgument(tableId != null, "tableId is null");

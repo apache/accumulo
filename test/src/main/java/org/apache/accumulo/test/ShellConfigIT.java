@@ -47,10 +47,14 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   @Before
   public void checkProperty() throws Exception {
     Connector conn = getConnector();
-    // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto properties are not.
-    // This lets us run this test more generically rather than forcibly needing to update some property in accumulo-site.xml
-    origPropValue = conn.instanceOperations().getSystemConfiguration().get(Property.TABLE_VOLUME_CHOOSER.getKey());
-    conn.instanceOperations().setProperty(Property.TABLE_VOLUME_CHOOSER.getKey(), FairVolumeChooser.class.getName());
+    // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto
+    // properties are not.
+    // This lets us run this test more generically rather than forcibly needing to update some
+    // property in accumulo-site.xml
+    origPropValue = conn.instanceOperations().getSystemConfiguration()
+        .get(Property.TABLE_VOLUME_CHOOSER.getKey());
+    conn.instanceOperations().setProperty(Property.TABLE_VOLUME_CHOOSER.getKey(),
+        FairVolumeChooser.class.getName());
   }
 
   @After
@@ -73,7 +77,10 @@ public class ShellConfigIT extends AccumuloClusterHarness {
         clientConfFile = mac.getConfig().getClientConfFile();
         break;
       case STANDALONE:
-        StandaloneAccumuloClusterConfiguration standaloneConf = (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
+        // @formatter:off
+        StandaloneAccumuloClusterConfiguration standaloneConf =
+          (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
+        // @formatter:on
         clientConfFile = standaloneConf.getClientConfFile();
         break;
       default:
@@ -85,9 +92,11 @@ public class ShellConfigIT extends AccumuloClusterHarness {
     TestShell ts = null;
     if (token instanceof PasswordToken) {
       String passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
-      ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
+      ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(),
+          getCluster().getZooKeepers(), clientConfFile);
     } else if (token instanceof KerberosToken) {
-      ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
+      ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(),
+          getCluster().getZooKeepers(), clientConfFile);
     } else {
       Assert.fail("Unknown token type");
     }

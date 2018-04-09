@@ -21,8 +21,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
- * This lexicoder encodes/decodes a given String to/from bytes without further processing. It can be combined with other encoders like the
- * {@link ReverseLexicoder} to flip the default sort order.
+ * This lexicoder encodes/decodes a given String to/from bytes without further processing. It can be
+ * combined with other encoders like the {@link ReverseLexicoder} to flip the default sort order.
  *
  * @since 1.6.0
  */
@@ -36,7 +36,8 @@ public class StringLexicoder extends AbstractLexicoder<String> {
 
   @Override
   public String decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
+    // in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 

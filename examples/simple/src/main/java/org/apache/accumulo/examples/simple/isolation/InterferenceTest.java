@@ -37,8 +37,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 /**
- * This example shows how a concurrent reader and writer can interfere with each other. It creates two threads that run forever reading and writing to the same
- * table.
+ * This example shows how a concurrent reader and writer can interfere with each other. It creates
+ * two threads that run forever reading and writing to the same table.
  *
  * When the example is run with isolation enabled, no interference will be observed.
  *
@@ -49,7 +49,8 @@ import com.beust.jcommander.Parameter;
 public class InterferenceTest {
 
   private static final int NUM_ROWS = 500;
-  private static final int NUM_COLUMNS = 113; // scanner batches 1000 by default, so make num columns not a multiple of 10
+  private static final int NUM_COLUMNS = 113; // scanner batches 1000 by default, so make num
+                                              // columns not a multiple of 10
   private static final Logger log = LoggerFactory.getLogger(InterferenceTest.class);
 
   static class Writer implements Runnable {
@@ -72,7 +73,8 @@ public class InterferenceTest {
         row = (row + 1) % NUM_ROWS;
 
         for (int cq = 0; cq < NUM_COLUMNS; cq++)
-          m.put(new Text("000"), new Text(String.format("%04d", cq)), new Value(("" + value).getBytes()));
+          m.put(new Text("000"), new Text(String.format("%04d", cq)),
+              new Value(("" + value).getBytes()));
 
         value++;
 
@@ -163,7 +165,9 @@ public class InterferenceTest {
     if (!conn.tableOperations().exists(opts.getTableName()))
       conn.tableOperations().create(opts.getTableName());
 
-    Thread writer = new Thread(new Writer(conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig()), opts.iterations));
+    Thread writer = new Thread(
+        new Writer(conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig()),
+            opts.iterations));
     writer.start();
     Reader r;
     if (opts.isolated)

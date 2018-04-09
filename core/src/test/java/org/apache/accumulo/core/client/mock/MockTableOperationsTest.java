@@ -81,11 +81,13 @@ public class MockTableOperationsTest {
   }
 
   @Test
-  public void testCreateUseVersions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+  public void testCreateUseVersions() throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException {
     String t = "tableName1";
 
     {
-      conn.tableOperations().create(t, new NewTableConfiguration().withoutDefaultIterators().setTimeType(TimeType.LOGICAL));
+      conn.tableOperations().create(t,
+          new NewTableConfiguration().withoutDefaultIterators().setTimeType(TimeType.LOGICAL));
 
       writeVersionable(conn, t, 3);
       assertVersionable(conn, t, 3);
@@ -114,7 +116,8 @@ public class MockTableOperationsTest {
     }
   }
 
-  protected void writeVersionable(Connector c, String tableName, int size) throws TableNotFoundException, MutationsRejectedException {
+  protected void writeVersionable(Connector c, String tableName, int size)
+      throws TableNotFoundException, MutationsRejectedException {
     for (int i = 0; i < size; i++) {
       BatchWriter w = c.createBatchWriter(tableName, new BatchWriterConfig());
       Mutation m = new Mutation("row1");
@@ -124,7 +127,8 @@ public class MockTableOperationsTest {
     }
   }
 
-  protected void assertVersionable(Connector c, String tableName, int size) throws TableNotFoundException {
+  protected void assertVersionable(Connector c, String tableName, int size)
+      throws TableNotFoundException {
     BatchScanner s = c.createBatchScanner(tableName, Authorizations.EMPTY, 1);
     s.setRanges(Collections.singleton(Range.exact("row1", "cf", "cq")));
     int count = 0;
@@ -140,7 +144,8 @@ public class MockTableOperationsTest {
   }
 
   @Test
-  public void testTableNotFound() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+  public void testTableNotFound() throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException {
     IteratorSetting setting = new IteratorSetting(100, "myvers", VersioningIterator.class);
     String t = "tableName";
     try {
@@ -201,7 +206,8 @@ public class MockTableOperationsTest {
     ImportTestFilesAndData dataAndFiles = prepareTestFiles();
     TableOperations tableOperations = conn.tableOperations();
     tableOperations.create("a_table");
-    tableOperations.importDirectory("a_table", dataAndFiles.importPath.toString(), dataAndFiles.failurePath.toString(), false);
+    tableOperations.importDirectory("a_table", dataAndFiles.importPath.toString(),
+        dataAndFiles.failurePath.toString(), false);
     Scanner scanner = conn.createScanner("a_table", new Authorizations());
     Iterator<Entry<Key,Value>> iterator = scanner.iterator();
     for (int i = 0; i < 5; i++) {
@@ -225,12 +231,15 @@ public class MockTableOperationsTest {
     fs.delete(tempFile, true);
     fs.mkdirs(failures);
     fs.mkdirs(tempFile.getParent());
-    FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder().forFile(tempFile.toString(), fs, defaultConf)
+    FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
+        .forFile(tempFile.toString(), fs, defaultConf)
         .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
     writer.startDefaultLocalityGroup();
     List<Pair<Key,Value>> keyVals = new ArrayList<>();
     for (int i = 0; i < 5; i++) {
-      keyVals.add(new Pair<>(new Key("a" + i, "b" + i, "c" + i, new ColumnVisibility(""), 1000l + i), new Value(Integer.toString(i).getBytes())));
+      keyVals
+          .add(new Pair<>(new Key("a" + i, "b" + i, "c" + i, new ColumnVisibility(""), 1000l + i),
+              new Value(Integer.toString(i).getBytes())));
     }
     for (Pair<Key,Value> keyVal : keyVals) {
       writer.append(keyVal.getFirst(), keyVal.getSecond());
@@ -247,7 +256,8 @@ public class MockTableOperationsTest {
   public void testFailsWithNoTable() throws Throwable {
     TableOperations tableOperations = conn.tableOperations();
     ImportTestFilesAndData testFiles = prepareTestFiles();
-    tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(), testFiles.failurePath.toString(), false);
+    tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(),
+        testFiles.failurePath.toString(), false);
   }
 
   @Test(expected = IOException.class)
@@ -256,7 +266,8 @@ public class MockTableOperationsTest {
     ImportTestFilesAndData testFiles = prepareTestFiles();
     FileSystem fs = testFiles.failurePath.getFileSystem(new Configuration());
     fs.open(testFiles.failurePath.suffix("/something")).close();
-    tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(), testFiles.failurePath.toString(), false);
+    tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(),
+        testFiles.failurePath.toString(), false);
   }
 
   @Test
@@ -291,7 +302,8 @@ public class MockTableOperationsTest {
     for (int r = 0; r < 30; r++) {
       Mutation m = new Mutation(Integer.toString(r));
       for (int c = 0; c < 5; c++) {
-        m.put(new Text("cf"), new Text(Integer.toString(c)), new Value(Integer.toString(c).getBytes()));
+        m.put(new Text("cf"), new Text(Integer.toString(c)),
+            new Value(Integer.toString(c).getBytes()));
       }
       bw.addMutation(m);
     }

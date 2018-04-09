@@ -29,7 +29,8 @@ public class TConstraintViolationException extends Exception {
   private final List<Mutation> nonViolators;
   private final CommitSession commitSession;
 
-  public TConstraintViolationException(Violations violations, List<Mutation> violators, List<Mutation> nonViolators, CommitSession commitSession) {
+  public TConstraintViolationException(Violations violations, List<Mutation> violators,
+      List<Mutation> nonViolators, CommitSession commitSession) {
     this.violations = violations;
     this.violators = violators;
     this.nonViolators = nonViolators;

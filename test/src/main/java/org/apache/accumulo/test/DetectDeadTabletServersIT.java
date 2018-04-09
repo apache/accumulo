@@ -56,7 +56,8 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
     assertEquals(0, stats.badTServers.size());
     assertEquals(0, stats.deadTabletServers.size());
     log.info("Killing a tablet server");
-    getCluster().killProcess(TABLET_SERVER, getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
+    getCluster().killProcess(TABLET_SERVER,
+        getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
 
     while (true) {
       stats = getStats(c);

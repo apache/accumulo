@@ -21,10 +21,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * A filter converting a {@link PositionedOutput} {@code OutputStream} to a {@code PositionedOutput} {@code DataOutputStream}
+ * A filter converting a {@link PositionedOutput} {@code OutputStream} to a {@code PositionedOutput}
+ * {@code DataOutputStream}
  */
 public class PositionedDataOutputStream extends DataOutputStream implements PositionedOutput {
-  public <StreamType extends OutputStream & PositionedOutput> PositionedDataOutputStream(StreamType type) {
+  public <StreamType extends OutputStream & PositionedOutput> PositionedDataOutputStream(
+      StreamType type) {
     super(type);
   }
 

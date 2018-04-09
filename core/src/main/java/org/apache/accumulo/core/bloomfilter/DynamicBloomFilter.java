@@ -1,6 +1,7 @@
 /*
  *
- * Copyright (c) 2005, European Commission project OneLab under contract 034819 (http://www.one-lab.org)
+ * Copyright (c) 2005, European Commission project OneLab under contract 034819
+ * (http://www.one-lab.org)
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or
  * without modification, are permitted provided that the following
@@ -58,25 +59,33 @@ import org.apache.hadoop.util.bloom.Key;
 /**
  * Implements a <i>dynamic Bloom filter</i>, as defined in the INFOCOM 2006 paper.
  * <p>
- * A dynamic Bloom filter (DBF) makes use of a <code>s * m</code> bit matrix but each of the <code>s</code> rows is a standard Bloom filter. The creation
- * process of a DBF is iterative. At the start, the DBF is a <code>1 * m</code> bit matrix, i.e., it is composed of a single standard Bloom filter. It assumes
- * that <code>n<sub>r</sub></code> elements are recorded in the initial bit vector, where <code>n<sub>r</sub> &lt;= n</code> (<code>n</code> is the cardinality
- * of the set <code>A</code> to record in the filter).
+ * A dynamic Bloom filter (DBF) makes use of a <code>s * m</code> bit matrix but each of the
+ * <code>s</code> rows is a standard Bloom filter. The creation process of a DBF is iterative. At
+ * the start, the DBF is a <code>1 * m</code> bit matrix, i.e., it is composed of a single standard
+ * Bloom filter. It assumes that <code>n<sub>r</sub></code> elements are recorded in the initial bit
+ * vector, where <code>n<sub>r</sub> &lt;= n</code> (<code>n</code> is the cardinality of the set
+ * <code>A</code> to record in the filter).
  * <p>
- * As the size of <code>A</code> grows during the execution of the application, several keys must be inserted in the DBF. When inserting a key into the DBF, one
- * must first get an active Bloom filter in the matrix. A Bloom filter is active when the number of recorded keys, <code>n<sub>r</sub></code>, is strictly less
- * than the current cardinality of <code>A</code>, <code>n</code>. If an active Bloom filter is found, the key is inserted and <code>n<sub>r</sub></code> is
- * incremented by one. On the other hand, if there is no active Bloom filter, a new one is created (i.e., a new row is added to the matrix) according to the
- * current size of <code>A</code> and the element is added in this new Bloom filter and the <code>n<sub>r</sub></code> value of this new Bloom filter is set to
- * one. A given key is said to belong to the DBF if the <code>k</code> positions are set to one in one of the matrix rows.
+ * As the size of <code>A</code> grows during the execution of the application, several keys must be
+ * inserted in the DBF. When inserting a key into the DBF, one must first get an active Bloom filter
+ * in the matrix. A Bloom filter is active when the number of recorded keys,
+ * <code>n<sub>r</sub></code>, is strictly less than the current cardinality of <code>A</code>,
+ * <code>n</code>. If an active Bloom filter is found, the key is inserted and
+ * <code>n<sub>r</sub></code> is incremented by one. On the other hand, if there is no active Bloom
+ * filter, a new one is created (i.e., a new row is added to the matrix) according to the current
+ * size of <code>A</code> and the element is added in this new Bloom filter and the
+ * <code>n<sub>r</sub></code> value of this new Bloom filter is set to one. A given key is said to
+ * belong to the DBF if the <code>k</code> positions are set to one in one of the matrix rows.
  * <p>
- * Originally created by <a href="http://www.one-lab.org">European Commission One-Lab Project 034819</a>.
+ * Originally created by <a href="http://www.one-lab.org">European Commission One-Lab Project
+ * 034819</a>.
  *
  * @see Filter The general behavior of a filter
  * @see BloomFilter A Bloom filter
  *
- * @see <a href="http://www.cse.fau.edu/~jie/research/publications/Publication_files/infocom2006.pdf">Theory and Network Applications of Dynamic Bloom
- *      Filters</a>
+ * @see <a href=
+ *      "http://www.cse.fau.edu/~jie/research/publications/Publication_files/infocom2006.pdf">Theory
+ *      and Network Applications of Dynamic Bloom Filters</a>
  */
 public class DynamicBloomFilter extends Filter {
   /**
@@ -113,7 +122,8 @@ public class DynamicBloomFilter extends Filter {
    * @param nr
    *          The threshold for the maximum number of keys to record in a dynamic Bloom filter row.
    */
-  public DynamicBloomFilter(final int vectorSize, final int nbHash, final int hashType, final int nr) {
+  public DynamicBloomFilter(final int vectorSize, final int nbHash, final int hashType,
+      final int nr) {
     super(vectorSize, nbHash, hashType);
 
     this.nr = nr;
@@ -147,7 +157,8 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void and(final Filter filter) {
-    if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+    if (filter == null || !(filter instanceof DynamicBloomFilter)
+        || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be and-ed");
     }
 
@@ -186,7 +197,8 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void or(final Filter filter) {
-    if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+    if (filter == null || !(filter instanceof DynamicBloomFilter)
+        || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be or-ed");
     }
 
@@ -202,7 +214,8 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void xor(final Filter filter) {
-    if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+    if (filter == null || !(filter instanceof DynamicBloomFilter)
+        || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be xor-ed");
     }
     DynamicBloomFilter dbf = (DynamicBloomFilter) filter;

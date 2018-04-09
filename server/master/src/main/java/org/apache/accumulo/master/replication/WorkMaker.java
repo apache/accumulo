@@ -49,7 +49,8 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * Reads replication records from the replication table and creates work records which include target replication system information.
+ * Reads replication records from the replication table and creates work records which include
+ * target replication system information.
  */
 public class WorkMaker {
   private static final Logger log = LoggerFactory.getLogger(WorkMaker.class);
@@ -147,7 +148,8 @@ public class WorkMaker {
   }
 
   protected Map<String,String> getReplicationTargets(TableConfiguration tableConf) {
-    final Map<String,String> props = tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET);
+    final Map<String,String> props = tableConf
+        .getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET);
     final Map<String,String> targets = new HashMap<>();
     final int propKeyLength = Property.TABLE_REPLICATION_TARGET.getKey().length();
 
@@ -168,7 +170,8 @@ public class WorkMaker {
     return StatusUtil.isWorkRequired(status);
   }
 
-  protected void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
+  protected void addWorkRecord(Text file, Value v, Map<String,String> targets,
+      String sourceTableId) {
     log.info("Adding work records for " + file + " to targets " + targets);
     try {
       Mutation m = new Mutation(file);

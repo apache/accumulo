@@ -70,7 +70,8 @@ public class Replication extends Test {
 
     // Replicate to ourselves
     iOps.setProperty(REPLICATION_NAME.getKey(), instName);
-    iOps.setProperty(REPLICATION_PEERS.getKey() + instName, getPeerConfigurationValue(AccumuloReplicaSystem.class, instName + "," + inst.getZooKeepers()));
+    iOps.setProperty(REPLICATION_PEERS.getKey() + instName, getPeerConfigurationValue(
+        AccumuloReplicaSystem.class, instName + "," + inst.getZooKeepers()));
     iOps.setProperty(REPLICATION_PEER_USER.getKey() + instName, env.getUserName());
     iOps.setProperty(REPLICATION_PEER_PASSWORD.getKey() + instName, env.getPassword());
     // Tweak some replication parameters to make the replication go faster
@@ -178,7 +179,8 @@ public class Replication extends Test {
   // junit isn't a dependency
   private void assertEquals(int expected, int actual) {
     if (expected != actual)
-      throw new RuntimeException(String.format("%d fails to match expected value %d", actual, expected));
+      throw new RuntimeException(
+          String.format("%d fails to match expected value %d", actual, expected));
   }
 
   // junit isn't a dependency

@@ -17,9 +17,10 @@
 package org.apache.accumulo.core.file.rfile;
 
 /**
- * Class that holds the components of a visibility metric. The String visibility, the number of times that is seen in a locality group, the percentage of keys
- * that contain that visibility in the locality group, the number of blocks in the locality group that contain the visibility, and the percentage of blocks in
- * the locality group that contain the visibility.
+ * Class that holds the components of a visibility metric. The String visibility, the number of
+ * times that is seen in a locality group, the percentage of keys that contain that visibility in
+ * the locality group, the number of blocks in the locality group that contain the visibility, and
+ * the percentage of blocks in the locality group that contain the visibility.
  */
 public class VisibilityMetric {
 
@@ -27,7 +28,8 @@ public class VisibilityMetric {
   private double visLGPer, visBlockPer;
   private String visibility;
 
-  public VisibilityMetric(String visibility, long visLG, double visLGPer, long visBlock, double visBlockPer) {
+  public VisibilityMetric(String visibility, long visLG, double visLGPer, long visBlock,
+      double visBlockPer) {
     this.visibility = visibility;
     this.visLG = visLG;
     this.visLGPer = visLGPer;

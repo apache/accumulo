@@ -117,13 +117,15 @@ public class RestartIT extends AccumuloClusterHarness {
     final String[] args;
     if (token instanceof PasswordToken) {
       byte[] password = ((PasswordToken) token).getPassword();
-      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
-          "--rows", "" + OPTS.rows, "--table", tableName};
+      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
+          cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + OPTS.rows,
+          "--table", tableName};
       OPTS.setPrincipal(getAdminPrincipal());
       VOPTS.setPrincipal(getAdminPrincipal());
     } else if (token instanceof KerberosToken) {
       ClusterUser rootUser = getAdminUser();
-      args = new String[] {"-u", getAdminPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+      args = new String[] {"-u", getAdminPrincipal(), "--keytab",
+          rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
       ClientConfiguration clientConfig = cluster.getClientConfig();
       OPTS.updateKerberosCredentials(clientConfig);
@@ -176,11 +178,13 @@ public class RestartIT extends AccumuloClusterHarness {
     control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
     control.stopAllServers(ServerType.MONITOR);
 
-    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
+    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(),
+        c.getInstance().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
     byte[] masterLockData;
     do {
-      masterLockData = ZooLock.getLockData(zcache, ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+      masterLockData = ZooLock.getLockData(zcache,
+          ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);
@@ -193,7 +197,8 @@ public class RestartIT extends AccumuloClusterHarness {
 
     masterLockData = new byte[0];
     do {
-      masterLockData = ZooLock.getLockData(zcache, ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+      masterLockData = ZooLock.getLockData(zcache,
+          ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);
@@ -216,13 +221,15 @@ public class RestartIT extends AccumuloClusterHarness {
     final String[] args;
     if (token instanceof PasswordToken) {
       byte[] password = ((PasswordToken) token).getPassword();
-      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
-          "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
+      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
+          cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows",
+          Integer.toString(VOPTS.rows), "--table", tableName};
       OPTS.setPrincipal(getAdminPrincipal());
       VOPTS.setPrincipal(getAdminPrincipal());
     } else if (token instanceof KerberosToken) {
       ClusterUser rootUser = getAdminUser();
-      args = new String[] {"-u", getAdminPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+      args = new String[] {"-u", getAdminPrincipal(), "--keytab",
+          rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
       ClientConfiguration clientConfig = cluster.getClientConfig();
       OPTS.updateKerberosCredentials(clientConfig);
@@ -245,11 +252,13 @@ public class RestartIT extends AccumuloClusterHarness {
 
     control.stopAllServers(ServerType.MASTER);
 
-    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
+    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(),
+        c.getInstance().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
     byte[] masterLockData;
     do {
-      masterLockData = ZooLock.getLockData(zcache, ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+      masterLockData = ZooLock.getLockData(zcache,
+          ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);
@@ -343,7 +352,8 @@ public class RestartIT extends AccumuloClusterHarness {
     }
     Assert.assertNotNull(splitThreshold);
     try {
-      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
+      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "20K");
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(tableName);
       if (clientConfig.hasSasl()) {
@@ -358,7 +368,8 @@ public class RestartIT extends AccumuloClusterHarness {
     } finally {
       if (getClusterType() == ClusterType.STANDALONE) {
         getCluster().start();
-        c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), splitThreshold);
+        c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+            splitThreshold);
       }
     }
   }

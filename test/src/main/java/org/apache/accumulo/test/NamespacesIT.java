@@ -86,8 +86,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-// Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
-// Punt on this for now and just let it use a minicluster.
+// Testing default namespace configuration with inheritance requires altering
+// the system state and restoring it back to normal. Punt on this for now and
+// just let it use a minicluster.
 @Category(MiniClusterOnlyTests.class)
 public class NamespacesIT extends AccumuloClusterHarness {
 
@@ -331,16 +332,19 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
 
     // verify entry is filtered out (also, verify conflict checking API)
-    c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
+    c.namespaceOperations().checkIteratorConflicts(namespace, setting,
+        EnumSet.allOf(IteratorScope.class));
     c.namespaceOperations().attachIterator(namespace, setting);
     sleepUninterruptibly(2, TimeUnit.SECONDS);
     try {
-      c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
+      c.namespaceOperations().checkIteratorConflicts(namespace, setting,
+          EnumSet.allOf(IteratorScope.class));
       fail();
     } catch (AccumuloException e) {
       assertEquals(IllegalArgumentException.class.getName(), e.getCause().getClass().getName());
     }
-    IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace, setting.getName(), IteratorScope.scan);
+    IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace,
+        setting.getName(), IteratorScope.scan);
     assertEquals(setting, setting2);
     assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
     assertTrue(c.tableOperations().listIterators(t1).containsKey(iterName));
@@ -348,7 +352,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(s.iterator().hasNext());
 
     // verify can see inserted entry again
-    c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
+    c.namespaceOperations().removeIterator(namespace, setting.getName(),
+        EnumSet.allOf(IteratorScope.class));
     sleepUninterruptibly(2, TimeUnit.SECONDS);
     assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
     assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
@@ -402,7 +407,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(c.tableOperations().exists(t2));
     assertFalse(c.tableOperations().exists(t3));
 
-    // set property with different values in two namespaces and a separate property with different values on the table and both namespaces
+    // set property with different values in two namespaces and a separate property with different
+    // values on the table and both namespaces
     assertFalse(checkNamespaceHasProp(namespace, k1, k1v1));
     assertFalse(checkNamespaceHasProp(namespace2, k1, k1v2));
     assertFalse(checkTableHasProp(t1, k1, k1v1));
@@ -480,7 +486,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaultIterators());
     String constraintClassName = NumericValueConstraint.class.getName();
 
-    assertFalse(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
+    assertFalse(
+        c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
     assertFalse(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
 
     c.namespaceOperations().addConstraint(namespace, constraintClassName);
@@ -599,9 +606,11 @@ public class NamespacesIT extends AccumuloClusterHarness {
       fail();
     } catch (AccumuloException e) {
       // this is expected, because we don't allow renames across namespaces
-      assertEquals(ThriftTableOperationException.class.getName(), e.getCause().getClass().getName());
+      assertEquals(ThriftTableOperationException.class.getName(),
+          e.getCause().getClass().getName());
       assertEquals(TableOperation.RENAME, ((ThriftTableOperationException) e.getCause()).getOp());
-      assertEquals(TableOperationExceptionType.INVALID_NAME, ((ThriftTableOperationException) e.getCause()).getType());
+      assertEquals(TableOperationExceptionType.INVALID_NAME,
+          ((ThriftTableOperationException) e.getCause()).getType());
     }
 
     try {
@@ -609,9 +618,11 @@ public class NamespacesIT extends AccumuloClusterHarness {
       fail();
     } catch (AccumuloException e) {
       // this is expected, because we don't allow renames across namespaces
-      assertEquals(ThriftTableOperationException.class.getName(), e.getCause().getClass().getName());
+      assertEquals(ThriftTableOperationException.class.getName(),
+          e.getCause().getClass().getName());
       assertEquals(TableOperation.RENAME, ((ThriftTableOperationException) e.getCause()).getOp());
-      assertEquals(TableOperationExceptionType.INVALID_NAME, ((ThriftTableOperationException) e.getCause()).getType());
+      assertEquals(TableOperationExceptionType.INVALID_NAME,
+          ((ThriftTableOperationException) e.getCause()).getType());
     }
 
     assertTrue(c.tableOperations().exists(t1));
@@ -634,15 +645,18 @@ public class NamespacesIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Tests new Namespace permissions as well as modifications to Table permissions because of namespaces. Checks each permission to first make sure the user
-   * doesn't have permission to perform the action, then root grants them the permission and we check to make sure they could perform the action.
+   * Tests new Namespace permissions as well as modifications to Table permissions because of
+   * namespaces. Checks each permission to first make sure the user doesn't have permission to
+   * perform the action, then root grants them the permission and we check to make sure they could
+   * perform the action.
    */
   @Test
   public void testPermissions() throws Exception {
     ClusterUser user1 = getUser(0), user2 = getUser(1), root = getAdminUser();
     String u1 = user1.getPrincipal();
     String u2 = user2.getPrincipal();
-    PasswordToken pass = (null != user1.getPassword() ? new PasswordToken(user1.getPassword()) : null);
+    PasswordToken pass = (null != user1.getPassword() ? new PasswordToken(user1.getPassword())
+        : null);
 
     String n1 = namespace;
     String t1 = n1 + ".1";
@@ -778,10 +792,12 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
 
     loginAs(root);
-    c.securityOperations().createLocalUser(u2, (root.getPassword() == null ? null : new PasswordToken(user2.getPassword())));
+    c.securityOperations().createLocalUser(u2,
+        (root.getPassword() == null ? null : new PasswordToken(user2.getPassword())));
     loginAs(user1);
     try {
-      user1Con.securityOperations().grantNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
+      user1Con.securityOperations().grantNamespacePermission(u2, n1,
+          NamespacePermission.ALTER_NAMESPACE);
       fail();
     } catch (AccumuloSecurityException e) {
       expectPermissionDenied(e);
@@ -790,8 +806,10 @@ public class NamespacesIT extends AccumuloClusterHarness {
     loginAs(root);
     c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.GRANT);
     loginAs(user1);
-    user1Con.securityOperations().grantNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
-    user1Con.securityOperations().revokeNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
+    user1Con.securityOperations().grantNamespacePermission(u2, n1,
+        NamespacePermission.ALTER_NAMESPACE);
+    user1Con.securityOperations().revokeNamespacePermission(u2, n1,
+        NamespacePermission.ALTER_NAMESPACE);
     loginAs(root);
     c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.GRANT);
 
@@ -852,17 +870,20 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.tableOperations().create(t2);
 
     // verify iterator inheritance
-    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.sum", "20," + SimpleFilter.class.getName(), false);
+    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.sum",
+        "20," + SimpleFilter.class.getName(), false);
 
     // verify constraint inheritance
-    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_CONSTRAINT_PREFIX.getKey() + "42", NumericValueConstraint.class.getName(), false);
+    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_CONSTRAINT_PREFIX.getKey() + "42",
+        NumericValueConstraint.class.getName(), false);
 
     // verify other inheritance
-    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "dummy", "dummy", true);
+    _verifySystemPropertyInheritance(t1, t2,
+        Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "dummy", "dummy", true);
   }
 
-  private void _verifySystemPropertyInheritance(String defaultNamespaceTable, String namespaceTable, String k, String v, boolean systemNamespaceShouldInherit)
-      throws Exception {
+  private void _verifySystemPropertyInheritance(String defaultNamespaceTable, String namespaceTable,
+      String k, String v, boolean systemNamespaceShouldInherit) throws Exception {
     // nobody should have any of these properties yet
     assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
     assertFalse(checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
@@ -878,7 +899,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
     sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertEquals(systemNamespaceShouldInherit, checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
+    assertEquals(systemNamespaceShouldInherit,
+        checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
     assertEquals(systemNamespaceShouldInherit, checkTableHasProp(RootTable.NAME, k, v));
     assertEquals(systemNamespaceShouldInherit, checkTableHasProp(MetadataTable.NAME, k, v));
     assertTrue(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
@@ -940,8 +962,10 @@ public class NamespacesIT extends AccumuloClusterHarness {
 
   @Test
   public void loadClass() throws Exception {
-    assertTrue(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
-    assertFalse(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE, "dummy", SortedKeyValueIterator.class.getName()));
+    assertTrue(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE,
+        VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
+    assertFalse(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE, "dummy",
+        SortedKeyValueIterator.class.getName()));
     try {
       c.namespaceOperations().testClassLoad(namespace, "dummy", "dummy");
       fail();
@@ -955,18 +979,22 @@ public class NamespacesIT extends AccumuloClusterHarness {
     String tableName = namespace + ".modify";
     c.namespaceOperations().create(namespace);
     c.tableOperations().create(tableName);
-    assertTrue(c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
+    assertTrue(
+        c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
     c.securityOperations().revokeTablePermission(c.whoami(), tableName, TablePermission.READ);
-    assertFalse(c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
+    assertFalse(
+        c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
     c.securityOperations().grantTablePermission(c.whoami(), tableName, TablePermission.READ);
-    assertTrue(c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
+    assertTrue(
+        c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
     c.tableOperations().delete(tableName);
 
     try {
       c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
@@ -974,7 +1002,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
       c.securityOperations().grantTablePermission(c.whoami(), tableName, TablePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
@@ -982,15 +1011,21 @@ public class NamespacesIT extends AccumuloClusterHarness {
       c.securityOperations().revokeTablePermission(c.whoami(), tableName, TablePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
-    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
-    c.securityOperations().revokeNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
-    assertFalse(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
-    c.securityOperations().grantNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
-    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+    c.securityOperations().revokeNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ);
+    assertFalse(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+    c.securityOperations().grantNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ);
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
 
     c.namespaceOperations().delete(namespace);
 
@@ -998,7 +1033,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
       c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
@@ -1006,7 +1042,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
       c.securityOperations().grantTablePermission(c.whoami(), tableName, TablePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
@@ -1014,31 +1051,38 @@ public class NamespacesIT extends AccumuloClusterHarness {
       c.securityOperations().revokeTablePermission(c.whoami(), tableName, TablePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
     try {
-      c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+      c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+          NamespacePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
     try {
-      c.securityOperations().grantNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+      c.securityOperations().grantNamespacePermission(c.whoami(), namespace,
+          NamespacePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
     try {
-      c.securityOperations().revokeNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+      c.securityOperations().revokeNamespacePermission(c.whoami(), namespace,
+          NamespacePermission.READ);
       fail();
     } catch (Exception e) {
-      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e)
+          .getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
         throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
     }
 
@@ -1066,7 +1110,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
             break;
           case 1:
             ops.create("a");
-            ops.clone("a", tableName, true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
+            ops.clone("a", tableName, true, Collections.<String,String> emptyMap(),
+                Collections.<String> emptySet());
             fail();
             break;
           case 2:
@@ -1081,11 +1126,13 @@ public class NamespacesIT extends AccumuloClusterHarness {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof AccumuloException) || !(e.getCause() instanceof NamespaceNotFoundException))
+        if (!(e instanceof AccumuloException)
+            || !(e.getCause() instanceof NamespaceNotFoundException))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
 
-    // table operations that should throw an AccumuloException caused by a TableNotFoundException caused by a NamespaceNotFoundException
+    // table operations that should throw an AccumuloException caused by a TableNotFoundException
+    // caused by a NamespaceNotFoundException
     // these are here because we didn't declare TableNotFoundException in the API :(
     numRun = 0;
     ACCUMULOEXCEPTIONS_TABLENOTFOUND: for (int i = 0;; ++i)
@@ -1116,7 +1163,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
 
-    // table operations that should throw a TableNotFoundException caused by NamespaceNotFoundException
+    // table operations that should throw a TableNotFoundException caused by
+    // NamespaceNotFoundException
     numRun = 0;
     TABLENOTFOUNDEXCEPTIONS: for (int i = 0;; ++i)
       try {
@@ -1146,7 +1194,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 6:
-            ops.clone(tableName, "2", true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
+            ops.clone(tableName, "2", true, Collections.<String,String> emptyMap(),
+                Collections.<String> emptySet());
             fail();
             break;
           case 7:
@@ -1198,7 +1247,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 19:
-            ops.testClassLoad(tableName, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
+            ops.testClassLoad(tableName, VersioningIterator.class.getName(),
+                SortedKeyValueIterator.class.getName());
             fail();
             break;
           case 20:
@@ -1245,7 +1295,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof TableNotFoundException) || !(e.getCause() instanceof NamespaceNotFoundException))
+        if (!(e instanceof TableNotFoundException)
+            || !(e.getCause() instanceof NamespaceNotFoundException))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
   }
@@ -1316,7 +1367,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 13:
-            ops.testClassLoad(namespace, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
+            ops.testClassLoad(namespace, VersioningIterator.class.getName(),
+                SortedKeyValueIterator.class.getName());
             fail();
             break;
           default:
@@ -1386,9 +1438,12 @@ public class NamespacesIT extends AccumuloClusterHarness {
     return checkHasProperty(n, propKey, propVal, false);
   }
 
-  private boolean checkHasProperty(String name, String propKey, String propVal, boolean nameIsTable) {
+  private boolean checkHasProperty(String name, String propKey, String propVal,
+      boolean nameIsTable) {
     try {
-      Iterable<Entry<String,String>> iterable = nameIsTable ? c.tableOperations().getProperties(name) : c.namespaceOperations().getProperties(name);
+      Iterable<Entry<String,String>> iterable = nameIsTable
+          ? c.tableOperations().getProperties(name)
+          : c.namespaceOperations().getProperties(name);
       for (Entry<String,String> e : iterable)
         if (propKey.equals(e.getKey()))
           return propVal.equals(e.getValue());

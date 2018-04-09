@@ -132,7 +132,8 @@ public class SecurityHelper {
   }
 
   public static void setTabPerm(State state, String userName, TablePermission tp, boolean value) {
-    log.debug((value ? "Gave" : "Took") + " the table permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug((value ? "Gave" : "Took") + " the table permission " + tp.name()
+        + (value ? " to" : " from") + " user " + userName);
     state.set("Tab" + userName + tp.name(), Boolean.toString(value));
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE))
       state.set("Tab" + userName + tp.name() + "time", System.currentTimeMillis());
@@ -144,7 +145,8 @@ public class SecurityHelper {
   }
 
   public static void setSysPerm(State state, String userName, SystemPermission tp, boolean value) {
-    log.debug((value ? "Gave" : "Took") + " the system permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug((value ? "Gave" : "Took") + " the system permission " + tp.name()
+        + (value ? " to" : " from") + " user " + userName);
     state.set("Sys" + userName + tp.name(), Boolean.toString(value));
   }
 
@@ -166,7 +168,8 @@ public class SecurityHelper {
   }
 
   public static String[] getAuthsArray() {
-    return new String[] {"Fishsticks", "PotatoSkins", "Ribs", "Asparagus", "Paper", "Towels", "Lint", "Brush", "Celery"};
+    return new String[] {"Fishsticks", "PotatoSkins", "Ribs", "Asparagus", "Paper", "Towels",
+        "Lint", "Brush", "Celery"};
   }
 
   public static String getLastKey(State state) {

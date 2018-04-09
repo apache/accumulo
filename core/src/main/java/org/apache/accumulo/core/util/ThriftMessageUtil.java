@@ -29,8 +29,8 @@ import org.apache.thrift.transport.AutoExpandingBufferWriteTransport;
 import org.apache.thrift.transport.TMemoryInputTransport;
 
 /**
- * Serializes and deserializes Thrift messages to and from byte arrays. This class is not thread-safe, external synchronization is necessary if it is used
- * concurrently.
+ * Serializes and deserializes Thrift messages to and from byte arrays. This class is not
+ * thread-safe, external synchronization is necessary if it is used concurrently.
  */
 public class ThriftMessageUtil {
 
@@ -42,7 +42,8 @@ public class ThriftMessageUtil {
   }
 
   public ThriftMessageUtil(int initialCapacity, double growthCoefficient) {
-    // TODO does this make sense? better to push this down to the serialize method (accept the transport as an argument)?
+    // TODO does this make sense? better to push this down to the serialize method (accept the
+    // transport as an argument)?
     this.transport = new AutoExpandingBufferWriteTransport(initialCapacity, growthCoefficient);
     this.protocol = new TCompactProtocol(transport);
   }
@@ -88,9 +89,11 @@ public class ThriftMessageUtil {
    * @throws IOException
    *           When deserialization fails
    */
-  public <T extends TBase<?,?>> T deserialize(byte[] serialized, int offset, int length, T instance) throws IOException {
+  public <T extends TBase<?,?>> T deserialize(byte[] serialized, int offset, int length, T instance)
+      throws IOException {
     requireNonNull(instance);
-    TCompactProtocol proto = new TCompactProtocol(new TMemoryInputTransport(serialized, offset, length));
+    TCompactProtocol proto = new TCompactProtocol(
+        new TMemoryInputTransport(serialized, offset, length));
     try {
       instance.read(proto);
     } catch (TException e) {

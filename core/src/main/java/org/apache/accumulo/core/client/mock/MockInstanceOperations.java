@@ -42,7 +42,8 @@ class MockInstanceOperations implements InstanceOperations {
   }
 
   @Override
-  public void setProperty(String property, String value) throws AccumuloException, AccumuloSecurityException {
+  public void setProperty(String property, String value)
+      throws AccumuloException, AccumuloSecurityException {
     acu.setProperty(property, value);
   }
 
@@ -52,12 +53,14 @@ class MockInstanceOperations implements InstanceOperations {
   }
 
   @Override
-  public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
+  public Map<String,String> getSystemConfiguration()
+      throws AccumuloException, AccumuloSecurityException {
     return acu.systemProperties;
   }
 
   @Override
-  public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
+  public Map<String,String> getSiteConfiguration()
+      throws AccumuloException, AccumuloSecurityException {
     return acu.systemProperties;
   }
 
@@ -67,12 +70,14 @@ class MockInstanceOperations implements InstanceOperations {
   }
 
   @Override
-  public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
+  public List<ActiveScan> getActiveScans(String tserver)
+      throws AccumuloException, AccumuloSecurityException {
     return new ArrayList<>();
   }
 
   @Override
-  public boolean testClassLoad(String className, String asTypeName) throws AccumuloException, AccumuloSecurityException {
+  public boolean testClassLoad(String className, String asTypeName)
+      throws AccumuloException, AccumuloSecurityException {
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
@@ -83,7 +88,8 @@ class MockInstanceOperations implements InstanceOperations {
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
+  public List<ActiveCompaction> getActiveCompactions(String tserver)
+      throws AccumuloException, AccumuloSecurityException {
     return new ArrayList<>();
   }
 

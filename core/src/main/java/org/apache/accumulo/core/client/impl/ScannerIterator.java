@@ -66,7 +66,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private static final List<KeyValue> EMPTY_LIST = Collections.emptyList();
 
-  private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3l, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
+  private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3l,
+      TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
       new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
   private class Reader implements Runnable {
@@ -89,7 +90,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
           synchQ.add(currentBatch);
           return;
         }
-      } catch (IsolationException | ScanTimedOutException | AccumuloException | AccumuloSecurityException | TableDeletedException | TableOfflineException
+      } catch (IsolationException | ScanTimedOutException | AccumuloException
+          | AccumuloSecurityException | TableDeletedException | TableOfflineException
           | SampleNotPresentException e) {
         log.trace("{}", e.getMessage(), e);
         synchQ.add(e);
@@ -104,8 +106,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   }
 
-  ScannerIterator(ClientContext context, String tableId, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
-      boolean isolated, long readaheadThreshold) {
+  ScannerIterator(ClientContext context, String tableId, Authorizations authorizations, Range range,
+      int size, int timeOut, ScannerOptions options, boolean isolated, long readaheadThreshold) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
 
@@ -117,8 +119,10 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
-    scanState = new ScanState(context, tableId, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
-        options.serverSideIteratorOptions, isolated, readaheadThreshold, options.getSamplerConfiguration(), options.batchTimeOut, options.classLoaderContext);
+    scanState = new ScanState(context, tableId, authorizations, new Range(range),
+        options.fetchedColumns, size, options.serverSideIteratorList,
+        options.serverSideIteratorOptions, isolated, readaheadThreshold,
+        options.getSamplerConfiguration(), options.batchTimeOut, options.classLoaderContext);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
     if (0l == readaheadThreshold) {

@@ -56,26 +56,36 @@ public class CreateCompatTestFile {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs, new Path(args[0]), "gz", null, conf, AccumuloConfiguration.getDefaultConfiguration());
+    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs, new Path(args[0]), "gz", null,
+        conf, AccumuloConfiguration.getDefaultConfiguration());
     RFile.Writer writer = new RFile.Writer(_cbw, 1000);
 
-    writer.startNewLocalityGroup("lg1", newColFamSequence(formatStr("cf_", 1), formatStr("cf_", 2)));
+    writer.startNewLocalityGroup("lg1",
+        newColFamSequence(formatStr("cf_", 1), formatStr("cf_", 2)));
 
     for (int i = 0; i < 1000; i++) {
-      writer.append(newKey(formatStr("r_", i), formatStr("cf_", 1), formatStr("cq_", 0), "", 1000 - i), newValue(i + ""));
-      writer.append(newKey(formatStr("r_", i), formatStr("cf_", 2), formatStr("cq_", 0), "", 1000 - i), newValue(i + ""));
+      writer.append(
+          newKey(formatStr("r_", i), formatStr("cf_", 1), formatStr("cq_", 0), "", 1000 - i),
+          newValue(i + ""));
+      writer.append(
+          newKey(formatStr("r_", i), formatStr("cf_", 2), formatStr("cq_", 0), "", 1000 - i),
+          newValue(i + ""));
     }
 
     writer.startNewLocalityGroup("lg2", newColFamSequence(formatStr("cf_", 3)));
 
     for (int i = 0; i < 1000; i++) {
-      writer.append(newKey(formatStr("r_", i), formatStr("cf_", 3), formatStr("cq_", 0), "", 1000 - i), newValue(i + ""));
+      writer.append(
+          newKey(formatStr("r_", i), formatStr("cf_", 3), formatStr("cq_", 0), "", 1000 - i),
+          newValue(i + ""));
     }
 
     writer.startDefaultLocalityGroup();
 
     for (int i = 0; i < 1000; i++) {
-      writer.append(newKey(formatStr("r_", i), formatStr("cf_", 4), formatStr("cq_", 0), "", 1000 - i), newValue(i + ""));
+      writer.append(
+          newKey(formatStr("r_", i), formatStr("cf_", 4), formatStr("cq_", 0), "", 1000 - i),
+          newValue(i + ""));
     }
 
     writer.close();

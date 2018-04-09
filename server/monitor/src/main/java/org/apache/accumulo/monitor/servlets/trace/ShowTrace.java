@@ -68,7 +68,8 @@ public class ShowTrace extends Basic {
   }
 
   @Override
-  public void pageBody(HttpServletRequest req, HttpServletResponse resp, final StringBuilder sb) throws Exception {
+  public void pageBody(HttpServletRequest req, HttpServletResponse resp, final StringBuilder sb)
+      throws Exception {
     String id = getTraceId(req);
     if (id == null) {
       return;
@@ -111,7 +112,8 @@ public class ShowTrace extends Basic {
     sb.append("  var checkboxes = document.getElementsByTagName('input');\n");
     sb.append("  for (var i = 0; i < checkboxes.length; i++) {\n");
     sb.append("    if (checkboxes[i].checked) {\n");
-    sb.append("      var idSuffixOffset = checkboxes[i].id.indexOf('").append(checkboxIdSuffix).append("');\n");
+    sb.append("      var idSuffixOffset = checkboxes[i].id.indexOf('").append(checkboxIdSuffix)
+        .append("');\n");
     sb.append("      var id = checkboxes[i].id.substring(0, idSuffixOffset);\n");
     sb.append("      document.getElementById(id).style.display='table-row';\n");
     sb.append("    }\n");
@@ -121,19 +123,24 @@ public class ShowTrace extends Basic {
     sb.append("</script>\n");
     sb.append("<div>");
     sb.append("<table><caption>");
-    sb.append(String.format("<span class='table-caption'>Trace %s started at<br>%s</span></caption>", id, dateString(start)));
-    sb.append("<tr><th>Time</th><th>Start</th><th>Service@Location</th><th>Name</th><th>Addl Data</th></tr>");
+    sb.append(
+        String.format("<span class='table-caption'>Trace %s started at<br>%s</span></caption>", id,
+            dateString(start)));
+    sb.append("<tr><th>Time</th><th>Start</th><th>Service@Location</th>"
+        + "<th>Name</th><th>Addl Data</th></tr>");
 
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
       @Override
-      public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
+      public void visit(int level, RemoteSpan parent, RemoteSpan node,
+          Collection<RemoteSpan> children) {
         appendRow(sb, level, node, finalStart);
       }
     });
     tree.nodes.keySet().removeAll(visited);
     if (!tree.nodes.isEmpty()) {
-      sb.append("<tr><td colspan=10>The following spans are not rooted (probably due to a parent span of length 0ms):<td></tr>\n");
+      sb.append("<tr><td colspan=10>The following spans are not rooted"
+          + " (probably due to a parent span of length 0ms):<td></tr>\n");
       for (RemoteSpan span : TraceDump.sortByStart(tree.nodes.values())) {
         appendRow(sb, 0, span, finalStart);
       }
@@ -144,8 +151,10 @@ public class ShowTrace extends Basic {
 
   private static void appendRow(StringBuilder sb, int level, RemoteSpan node, long finalStart) {
     sb.append("<tr>\n");
-    sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>%n", node.stop - node.start, node.start - finalStart));
-    sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 10, node.svc, node.sender));
+    sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>%n",
+        node.stop - node.start, node.start - finalStart));
+    sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 10, node.svc,
+        node.sender));
     sb.append("<td>" + node.description + "</td>");
     boolean hasData = node.data != null && !node.data.isEmpty();
     boolean hasAnnotations = node.annotations != null && !node.annotations.isEmpty();

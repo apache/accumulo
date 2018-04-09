@@ -71,9 +71,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     conn = getConnector();
     inst = conn.getInstance();
     ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
+        TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.READ);
+    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+        TablePermission.WRITE);
   }
 
   /**
@@ -87,7 +90,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {
       @Override
-      protected String getTableId(Instance inst, String tableName) throws ThriftTableOperationException {
+      protected String getTableId(Instance inst, String tableName)
+          throws ThriftTableOperationException {
         try {
           return conn.tableOperations().tableIdMap().get(tableName);
         } catch (Exception e) {
@@ -96,10 +100,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       }
     };
 
-    ClientContext context = new ClientContext(inst, new Credentials("root", new PasswordToken(ROOT_PASSWORD)), getClientConfig());
+    ClientContext context = new ClientContext(inst,
+        new Credentials("root", new PasswordToken(ROOT_PASSWORD)), getClientConfig());
     return new ReplicationOperationsImpl(context) {
       @Override
-      protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds, final String tableName, final Set<String> wals)
+      protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
+          final String tableName, final Set<String> wals)
           throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
         try {
           return mcsh.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
@@ -115,8 +121,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     conn.tableOperations().create("foo");
     String tableId = conn.tableOperations().tableIdMap().get("foo");
 
-    String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(), file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
+    String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(),
+        file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
+        .setClosed(false).build();
 
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
 
@@ -212,8 +220,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     String tableId1 = conn.tableOperations().tableIdMap().get("foo");
     String tableId2 = conn.tableOperations().tableIdMap().get("bar");
 
-    String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(), file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
+    String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(),
+        file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
+        .setClosed(false).build();
 
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
 
@@ -295,7 +305,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     String tableId1 = conn.tableOperations().tableIdMap().get("foo");
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
+        .setClosed(false).build();
 
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
 
@@ -304,7 +315,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.close();
 
-    LogEntry logEntry = new LogEntry(new KeyExtent(tableId1, null, null), System.currentTimeMillis(), "tserver", file1);
+    LogEntry logEntry = new LogEntry(new KeyExtent(tableId1, null, null),
+        System.currentTimeMillis(), "tserver", file1);
 
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
@@ -338,7 +350,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // With the records, we shouldn't be drained
     Assert.assertFalse(done.get());
 
-    Status newStatus = Status.newBuilder().setBegin(1000).setEnd(2000).setInfiniteEnd(false).setClosed(true).build();
+    Status newStatus = Status.newBuilder().setBegin(1000).setEnd(2000).setInfiniteEnd(false)
+        .setClosed(true).build();
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1), ProtobufUtil.toValue(newStatus));
@@ -373,7 +386,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     String tableId1 = conn.tableOperations().tableIdMap().get("foo");
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
+        .setClosed(false).build();
 
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     Mutation m = new Mutation(file1);
@@ -416,7 +430,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     // Write another file, but also delete the old files
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    m = new Mutation(ReplicationSection.getRowPrefix() + "/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    m = new Mutation(
+        ReplicationSection.getRowPrefix() + "/accumulo/wals/tserver+port/" + UUID.randomUUID());
     m.put(ReplicationSection.COLF, new Text(tableId1), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
@@ -441,7 +456,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       Assert.fail("ReplicationOperations.drain did not complete");
     }
 
-    // We should pass immediately because we aren't waiting on both files to be deleted (just the one that we did)
+    // We should pass immediately because we aren't waiting on both files to be deleted (just the
+    // one that we did)
     Assert.assertTrue("Drain didn't finish", done.get());
   }
 }

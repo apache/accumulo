@@ -109,7 +109,8 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
-    return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
+    return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "."
+        + StringUtils.camelize(e.name().toLowerCase());
   }
 
   /**
@@ -120,15 +121,17 @@ public class ConfiguratorBase {
    * @return the configuration key
    */
   protected static String enumToConfKey(Enum<?> e) {
-    return e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
+    return e.getDeclaringClass().getSimpleName() + "."
+        + StringUtils.camelize(e.name().toLowerCase());
   }
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
-   * conversion to a string, and is not intended to be secure.
+   * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all
+   * MapReduce tasks. It is BASE64 encoded to provide a charset safe conversion to a string, and is
+   * not intended to be secure.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -140,23 +143,26 @@ public class ConfiguratorBase {
    *          the user's password
    * @since 1.6.0
    */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, AuthenticationToken token)
-      throws AccumuloSecurityException {
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
+      String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
-      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
+      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
+          + " can only be set once per job");
 
     checkArgument(principal != null, "principal is null");
     checkArgument(token != null, "token is null");
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
     if (token instanceof DelegationTokenImpl) {
-      // Avoid serializing the DelegationToken secret in the configuration -- the Job will do that work for us securely
+      // Avoid serializing the DelegationToken secret in the configuration -- the Job will do that
+      // work for us securely
       DelegationTokenImpl delToken = (DelegationTokenImpl) token;
-      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.JOB.prefix() + token.getClass().getName() + ":"
-          + delToken.getServiceName().toString());
+      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.JOB.prefix()
+          + token.getClass().getName() + ":" + delToken.getServiceName().toString());
     } else {
       conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
-          TokenSource.INLINE.prefix() + token.getClass().getName() + ":" + Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+          TokenSource.INLINE.prefix() + token.getClass().getName() + ":"
+              + Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
     }
   }
 
@@ -164,8 +170,9 @@ public class ConfiguratorBase {
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
-   * Pulls a token file into the Distributed Cache that contains the authentication token in an attempt to be more secure than storing the password in the
-   * Configuration. Token file created with "bin/accumulo create-token".
+   * Pulls a token file into the Distributed Cache that contains the authentication token in an
+   * attempt to be more secure than storing the password in the Configuration. Token file created
+   * with "bin/accumulo create-token".
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -177,9 +184,11 @@ public class ConfiguratorBase {
    *          the path to the token file in DFS
    * @since 1.6.0
    */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, String tokenFile) throws AccumuloSecurityException {
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
+      String principal, String tokenFile) throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
-      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
+      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
+          + " can only be set once per job");
 
     checkArgument(principal != null, "principal is null");
     checkArgument(tokenFile != null, "tokenFile is null");
@@ -187,12 +196,14 @@ public class ConfiguratorBase {
     try {
       DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
     } catch (URISyntaxException e) {
-      throw new IllegalStateException("Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
+      throw new IllegalStateException(
+          "Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
     }
 
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.FILE.prefix() + tokenFile);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
+        TokenSource.FILE.prefix() + tokenFile);
   }
 
   /**
@@ -226,7 +237,8 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
+   * Gets the authenticated token from either the specified token file or directly from the
+   * configuration, whichever was used when the job was configured.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -237,14 +249,16 @@ public class ConfiguratorBase {
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    * @see #setConnectorInfo(Class, Configuration, String, String)
    */
-  public static AuthenticationToken getAuthenticationToken(Class<?> implementingClass, Configuration conf) {
+  public static AuthenticationToken getAuthenticationToken(Class<?> implementingClass,
+      Configuration conf) {
     String token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
     if (token == null || token.isEmpty())
       return null;
     if (token.startsWith(TokenSource.INLINE.prefix())) {
       String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
       if (args.length == 2)
-        return AuthenticationTokenSerializer.deserialize(args[0], Base64.decodeBase64(args[1].getBytes(UTF_8)));
+        return AuthenticationTokenSerializer.deserialize(args[0],
+            Base64.decodeBase64(args[1].getBytes(UTF_8)));
     } else if (token.startsWith(TokenSource.FILE.prefix())) {
       String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
       return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);
@@ -262,7 +276,8 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Reads from the token file in distributed cache. Currently, the token file stores data separated by colons e.g. principal:token_class:token
+   * Reads from the token file in distributed cache. Currently, the token file stores data separated
+   * by colons e.g. principal:token_class:token
    *
    * @param conf
    *          the Hadoop context for the configured job
@@ -270,7 +285,8 @@ public class ConfiguratorBase {
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
-  public static AuthenticationToken getTokenFromFile(Configuration conf, String principal, String tokenFile) {
+  public static AuthenticationToken getTokenFromFile(Configuration conf, String principal,
+      String tokenFile) {
     FSDataInputStream in = null;
     try {
       URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
@@ -281,12 +297,14 @@ public class ConfiguratorBase {
         }
       }
       if (path == null) {
-        throw new IllegalArgumentException("Couldn't find password file called \"" + tokenFile + "\" in cache.");
+        throw new IllegalArgumentException(
+            "Couldn't find password file called \"" + tokenFile + "\" in cache.");
       }
       FileSystem fs = FileSystem.get(conf);
       in = fs.open(path);
     } catch (IOException e) {
-      throw new IllegalArgumentException("Couldn't open password file called \"" + tokenFile + "\".");
+      throw new IllegalArgumentException(
+          "Couldn't open password file called \"" + tokenFile + "\".");
     }
     try (java.util.Scanner fileScanner = new java.util.Scanner(in)) {
       while (fileScanner.hasNextLine()) {
@@ -295,7 +313,8 @@ public class ConfiguratorBase {
           return creds.getToken();
         }
       }
-      throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
+      throw new IllegalArgumentException(
+          "Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
     }
   }
 
@@ -310,13 +329,17 @@ public class ConfiguratorBase {
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
    */
-  public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
+      ClientConfiguration clientConfig) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
     if (!conf.get(key, "").isEmpty())
-      throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
+      throw new IllegalStateException(
+          "Instance info can only be set once per job; it has already been configured with "
+              + conf.get(key));
     conf.set(key, "ZooKeeperInstance");
     if (clientConfig != null) {
-      conf.set(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG), clientConfig.serialize());
+      conf.set(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG),
+          clientConfig.serialize());
     }
   }
 
@@ -333,10 +356,13 @@ public class ConfiguratorBase {
    * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
    */
   @Deprecated
-  public static void setMockInstance(Class<?> implementingClass, Configuration conf, String instanceName) {
+  public static void setMockInstance(Class<?> implementingClass, Configuration conf,
+      String instanceName) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
     if (!conf.get(key, "").isEmpty())
-      throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
+      throw new IllegalStateException(
+          "Instance info can only be set once per job; it has already been configured with "
+              + conf.get(key));
     conf.set(key, "MockInstance");
 
     checkArgument(instanceName != null, "instanceName is null");
@@ -357,11 +383,13 @@ public class ConfiguratorBase {
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
     if ("MockInstance".equals(instanceType))
-      return DeprecationUtil.makeMockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
+      return DeprecationUtil
+          .makeMockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
     else if ("ZooKeeperInstance".equals(instanceType)) {
       return new ZooKeeperInstance(getClientConfiguration(implementingClass, conf));
     } else if (instanceType.isEmpty())
-      throw new IllegalStateException("Instance has not been configured for " + implementingClass.getSimpleName());
+      throw new IllegalStateException(
+          "Instance has not been configured for " + implementingClass.getSimpleName());
     else
       throw new IllegalStateException("Unrecognized instance type " + instanceType);
   }
@@ -377,8 +405,10 @@ public class ConfiguratorBase {
    * @return A {@link ClientConfiguration}
    * @since 1.7.0
    */
-  public static ClientConfiguration getClientConfiguration(Class<?> implementingClass, Configuration conf) {
-    String clientConfigString = conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
+  public static ClientConfiguration getClientConfiguration(Class<?> implementingClass,
+      Configuration conf) {
+    String clientConfigString = conf
+        .get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
     if (null != clientConfigString) {
       return ClientConfiguration.deserialize(clientConfigString);
     }
@@ -424,7 +454,8 @@ public class ConfiguratorBase {
    * @see #setLogLevel(Class, Configuration, Level)
    */
   public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {
-    return Level.toLevel(conf.getInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), Level.INFO.toInt()));
+    return Level.toLevel(
+        conf.getInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), Level.INFO.toInt()));
   }
 
   /**
@@ -447,54 +478,65 @@ public class ConfiguratorBase {
    * @return the valid visibility count
    */
   public static int getVisibilityCacheSize(Configuration conf) {
-    return conf.getInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE), Constants.DEFAULT_VISIBILITY_CACHE_SIZE);
+    return conf.getInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE),
+        Constants.DEFAULT_VISIBILITY_CACHE_SIZE);
   }
 
   /**
-   * Unwraps the provided {@link AuthenticationToken} if it is an instance of {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
+   * Unwraps the provided {@link AuthenticationToken} if it is an instance of
+   * {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
    *
    * @param job
    *          The job
    * @param token
    *          The authentication token
    */
-  public static AuthenticationToken unwrapAuthenticationToken(JobConf job, AuthenticationToken token) {
+  public static AuthenticationToken unwrapAuthenticationToken(JobConf job,
+      AuthenticationToken token) {
     requireNonNull(job);
     requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
+      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
+          .getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
-        identifier.readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
+        identifier
+            .readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
         return new DelegationTokenImpl(hadoopToken.getPassword(), identifier);
       } catch (IOException e) {
-        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials", e);
+        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials",
+            e);
       }
     }
     return token;
   }
 
   /**
-   * Unwraps the provided {@link AuthenticationToken} if it is an instance of {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
+   * Unwraps the provided {@link AuthenticationToken} if it is an instance of
+   * {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
    *
    * @param job
    *          The job
    * @param token
    *          The authentication token
    */
-  public static AuthenticationToken unwrapAuthenticationToken(JobContext job, AuthenticationToken token) {
+  public static AuthenticationToken unwrapAuthenticationToken(JobContext job,
+      AuthenticationToken token) {
     requireNonNull(job);
     requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
+      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
+          .getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
-        identifier.readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
+        identifier
+            .readFields(new DataInputStream(new ByteArrayInputStream(hadoopToken.getIdentifier())));
         return new DelegationTokenImpl(hadoopToken.getPassword(), identifier);
       } catch (IOException e) {
-        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials", e);
+        throw new RuntimeException("Could not construct DelegationToken from JobConf Credentials",
+            e);
       }
     }
     return token;

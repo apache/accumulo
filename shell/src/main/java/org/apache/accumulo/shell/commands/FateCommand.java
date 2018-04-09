@@ -112,8 +112,8 @@ public class FateCommand extends Command {
   private Option disablePaginationOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ParseException, KeeperException, InterruptedException,
-      IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws ParseException, KeeperException, InterruptedException, IOException {
     Instance instance = shellState.getInstance();
     String[] args = cl.getArgs();
     if (args.length <= 0) {
@@ -126,7 +126,8 @@ public class FateCommand extends Command {
 
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = getZooReaderWriter(shellState.getInstance(), cl.getOptionValue(secretOption.getOpt()));
+    IZooReaderWriter zk = getZooReaderWriter(shellState.getInstance(),
+        cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
@@ -161,7 +162,8 @@ public class FateCommand extends Command {
             Long val = Long.parseLong(args[i], 16);
             filterTxid.add(val);
           } catch (NumberFormatException nfe) {
-            // Failed to parse, will exit instead of displaying everything since the intention was to potentially filter some data
+            // Failed to parse, will exit instead of displaying everything since the intention was
+            // to potentially filter some data
             System.out.printf("Invalid transaction ID format: %s%n", args[i]);
             return 1;
           }
@@ -185,8 +187,10 @@ public class FateCommand extends Command {
 
       StringBuilder buf = new StringBuilder(8096);
       Formatter fmt = new Formatter(buf);
-      admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, fmt, filterTxid, filterStatus);
-      shellState.printLines(Collections.singletonList(buf.toString()).iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
+      admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, fmt, filterTxid,
+          filterStatus);
+      shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
+          !cl.hasOption(disablePaginationOpt.getOpt()));
     } else if ("dump".equals(cmd)) {
       List<Long> txids;
 
@@ -199,8 +203,10 @@ public class FateCommand extends Command {
         }
       }
 
-      Gson gson = new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-          .registerTypeAdapter(Repo.class, new InterfaceSerializer<>()).registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
+      Gson gson = new GsonBuilder()
+          .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+          .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+          .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
           .create();
 
       List<FateStack> txStacks = new ArrayList<>();
@@ -225,7 +231,8 @@ public class FateCommand extends Command {
       secret = conf.get(Property.INSTANCE_SECRET);
     }
 
-    return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), SCHEME, (USER + ":" + secret).getBytes());
+    return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(),
+        SCHEME, (USER + ":" + secret).getBytes());
   }
 
   @Override
@@ -245,11 +252,13 @@ public class FateCommand extends Command {
     secretOption.setOptionalArg(false);
     o.addOption(secretOption);
     statusOption = new Option("t", "status-type", true,
-        "filter 'print' on the transaction status type(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");
+        "filter 'print' on the transaction status type(s) {NEW, IN_PROGRESS,"
+            + " FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");
     statusOption.setArgs(Option.UNLIMITED_VALUES);
     statusOption.setOptionalArg(false);
     o.addOption(statusOption);
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    disablePaginationOpt = new Option("np", "no-pagination", false,
+        "disables pagination of output");
     o.addOption(disablePaginationOpt);
     return o;
   }

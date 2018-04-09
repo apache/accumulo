@@ -29,8 +29,9 @@ public class VisibilityEvaluator {
   private AuthorizationContainer auths;
 
   /**
-   * Authorizations in column visibility expression are in escaped form. Column visibility parsing does not unescape. This class wraps an AuthorizationContainer
-   * and unescapes auths before checking the wrapped container.
+   * Authorizations in column visibility expression are in escaped form. Column visibility parsing
+   * does not unescape. This class wraps an AuthorizationContainer and unescapes auths before
+   * checking the wrapped container.
    */
   private static class UnescapingAuthorizationContainer implements AuthorizationContainer {
 
@@ -85,7 +86,8 @@ public class VisibilityEvaluator {
   }
 
   /**
-   * Creates a new {@link Authorizations} object with escaped forms of the authorizations in the given object.
+   * Creates a new {@link Authorizations} object with escaped forms of the authorizations in the
+   * given object.
    *
    * @param auths
    *          original authorizations
@@ -146,8 +148,8 @@ public class VisibilityEvaluator {
   }
 
   /**
-   * Creates a new evaluator for the given collection of authorizations. Each authorization string is escaped before handling, and the original strings are
-   * unchanged.
+   * Creates a new evaluator for the given collection of authorizations. Each authorization string
+   * is escaped before handling, and the original strings are unchanged.
    *
    * @param authorizations
    *          authorizations object
@@ -157,21 +159,25 @@ public class VisibilityEvaluator {
   }
 
   /**
-   * Evaluates the given column visibility against the authorizations provided to this evaluator. A visibility passes evaluation if all authorizations in it are
-   * contained in those known to the evaluator, and all AND and OR subexpressions have at least two children.
+   * Evaluates the given column visibility against the authorizations provided to this evaluator. A
+   * visibility passes evaluation if all authorizations in it are contained in those known to the
+   * evaluator, and all AND and OR subexpressions have at least two children.
    *
    * @param visibility
    *          column visibility to evaluate
    * @return true if visibility passes evaluation
    * @throws VisibilityParseException
-   *           if an AND or OR subexpression has less than two children, or a subexpression is of an unknown type
+   *           if an AND or OR subexpression has less than two children, or a subexpression is of an
+   *           unknown type
    */
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
-    // The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility expressions can be evaluated against.
+    // The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility
+    // expressions can be evaluated against.
     return evaluate(visibility.getExpression(), visibility.getParseTree());
   }
 
-  private final boolean evaluate(final byte[] expression, final Node root) throws VisibilityParseException {
+  private final boolean evaluate(final byte[] expression, final Node root)
+      throws VisibilityParseException {
     if (expression.length == 0)
       return true;
     switch (root.type) {
@@ -179,7 +185,8 @@ public class VisibilityEvaluator {
         return auths.contains(root.getTerm(expression));
       case AND:
         if (root.children == null || root.children.size() < 2)
-          throw new VisibilityParseException("AND has less than 2 children", expression, root.start);
+          throw new VisibilityParseException("AND has less than 2 children", expression,
+              root.start);
         for (Node child : root.children) {
           if (!evaluate(expression, child))
             return false;

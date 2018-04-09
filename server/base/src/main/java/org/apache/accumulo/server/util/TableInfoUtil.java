@@ -77,7 +77,8 @@ public class TableInfoUtil {
         if (status != null && status.tableMap != null) {
           for (String table : status.tableMap.keySet()) {
             Double holdTime = compactingByTable.get(table);
-            compactingByTable.put(table, Math.max(holdTime == null ? 0. : holdTime.doubleValue(), status.holdTime));
+            compactingByTable.put(table,
+                Math.max(holdTime == null ? 0. : holdTime.doubleValue(), status.holdTime));
           }
         }
       }

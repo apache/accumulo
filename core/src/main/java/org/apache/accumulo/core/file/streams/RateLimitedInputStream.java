@@ -30,7 +30,8 @@ import org.apache.hadoop.fs.Seekable;
 public class RateLimitedInputStream extends FilterInputStream implements Seekable {
   private final RateLimiter rateLimiter;
 
-  public <StreamType extends InputStream & Seekable> RateLimitedInputStream(StreamType stream, RateLimiter rateLimiter) {
+  public <StreamType extends InputStream & Seekable> RateLimitedInputStream(StreamType stream,
+      RateLimiter rateLimiter) {
     super(stream);
     this.rateLimiter = rateLimiter == null ? NullRateLimiter.INSTANCE : rateLimiter;
   }

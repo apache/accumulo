@@ -83,7 +83,8 @@ public class ShellTest {
   private Shell shell;
   private File config;
 
-  void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings) throws IOException {
+  void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
+      throws IOException {
     exec(cmd);
     if (expecteGoodExit) {
       assertGoodExit("", true);
@@ -92,7 +93,8 @@ public class ShellTest {
     }
 
     for (String expectedString : expectedStrings) {
-      assertTrue(expectedString + " was not present in " + output.get(), output.get().contains(expectedString));
+      assertTrue(expectedString + " was not present in " + output.get(),
+          output.get().contains(expectedString));
     }
   }
 
@@ -113,7 +115,8 @@ public class ShellTest {
     exec(cmd, expectGoodExit, expectString, true);
   }
 
-  void exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent) throws IOException {
+  void exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent)
+      throws IOException {
     exec(cmd);
     if (expectGoodExit)
       assertGoodExit(expectString, stringPresent);
@@ -147,14 +150,16 @@ public class ShellTest {
     Shell.log.debug(output.get());
     assertEquals(shell.getExitCode(), 0);
     if (s.length() > 0)
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
+      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
+          output.get().contains(s));
   }
 
   void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);
     if (s.length() > 0)
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
+      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
+          output.get().contains(s));
     shell.resetExitCode();
   }
 
@@ -227,7 +232,8 @@ public class ShellTest {
     exec("deletemany -r 1 -f -st", true, "[DELETED] 1 1:1 [] 1");
 
     // DeleteManyCommand has its own Formatter (DeleterFormatter), so it does not honor the -fm flag
-    exec("deletemany -r 2 -f -st -fm org.apache.accumulo.core.util.format.DateStringFormatter", true, "[DELETED] 2 2:2 [] 2");
+    exec("deletemany -r 2 -f -st -fm org.apache.accumulo.core.util.format.DateStringFormatter",
+        true, "[DELETED] 2 2:2 [] 2");
 
     exec("setauths -c ", true);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
@@ -305,7 +311,8 @@ public class ShellTest {
     exec("scan -st -f 5", true, expectedFew);
     // also prove that BinaryFormatter behaves same as the default
     exec("scan -st -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expected);
-    exec("scan -st -f 5 -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expectedFew);
+    exec("scan -st -f 5 -fm org.apache.accumulo.core.util.format.BinaryFormatter", true,
+        expectedFew);
     exec("setauths -c", true);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
@@ -316,15 +323,19 @@ public class ShellTest {
     exec("createtable t", true);
     exec("insert r f q v -ts 0", true);
     @SuppressWarnings("deprecation")
-    DateFormat dateFormat = new SimpleDateFormat(org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
+    DateFormat dateFormat = new SimpleDateFormat(
+        org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
     String expected = String.format("r f:q [] %s    v", dateFormat.format(new Date(0)));
     // historically, showing few did not pertain to ColVis or Timestamp
     String expectedFew = expected;
     String expectedNoTimestamp = String.format("r f:q []    v");
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
-    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 1000", true, expected);
-    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 5", true, expectedFew);
-    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter", true, expectedNoTimestamp);
+    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 1000", true,
+        expected);
+    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 5", true,
+        expectedFew);
+    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter", true,
+        expectedNoTimestamp);
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 
@@ -360,7 +371,8 @@ public class ShellTest {
   @Test
   public void execFileTest() throws IOException {
     Shell.log.debug("Starting exec file test --------------------------");
-    shell.config("--config-file", config.toString(), "--fake", "-u", "test", "-p", "secret", "-f", "src/test/resources/shelltest.txt");
+    shell.config("--config-file", config.toString(), "--fake", "-u", "test", "-p", "secret", "-f",
+        "src/test/resources/shelltest.txt");
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }
@@ -379,10 +391,14 @@ public class ShellTest {
     exec(cmdFullPackage, false, "class not found", true);
 
     String cmdNoOption = "setiter -class java.lang.String -p 1";
-    exec(cmdNoOption, false, "loaded successfully but does not implement SortedKeyValueIterator", true);
+    exec(cmdNoOption, false, "loaded successfully but does not implement SortedKeyValueIterator",
+        true);
 
     input.set("\n\n");
-    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo", true);
+    exec(
+        "setiter -scan"
+            + " -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo",
+        true);
 
     input.set("bar\nname value\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 31", true);

@@ -37,7 +37,8 @@ public class SecurityFixture extends Fixture {
     // A best-effort sanity check to guard against not password-based auth
     ClientConfiguration clientConf = ClientConfiguration.loadDefault();
     if (clientConf.hasSasl()) {
-      throw new IllegalStateException("Security module currently cannot support Kerberos/SASL instances");
+      throw new IllegalStateException(
+          "Security module currently cannot support Kerberos/SASL instances");
     }
 
     Connector conn = env.getConnector();
@@ -102,7 +103,8 @@ public class SecurityFixture extends Fixture {
       conn.namespaceOperations().delete(secNamespaceName);
     }
 
-    if (WalkingSecurity.get(state, env).userExists(WalkingSecurity.get(state, env).getTabUserName())) {
+    if (WalkingSecurity.get(state, env)
+        .userExists(WalkingSecurity.get(state, env).getTabUserName())) {
       String tableUserName = WalkingSecurity.get(state, env).getTabUserName();
       log.debug("Dropping user: " + tableUserName);
 

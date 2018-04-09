@@ -78,8 +78,8 @@ public class Ingest extends ScaleTest {
     // create batch writer
     BatchWriter bw = null;
     try {
-      bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
-          .setMaxWriteThreads(maxWriteThreads));
+      bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(maxMemory)
+          .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
     } catch (TableNotFoundException e) {
       log.error("Table '" + tableName + "' not found.", e);
       System.exit(-1);
@@ -105,7 +105,8 @@ public class Ingest extends ScaleTest {
     while (count < numIngestEntries) {
       count++;
       long rowId = ContinuousIngest.genLong(minRow, maxRow, r);
-      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId.getBytes(UTF_8), count, null, r, false);
+      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), cv,
+          ingestInstanceId.getBytes(UTF_8), count, null, r, false);
       totalBytes += m.numBytes();
       try {
         bw.addMutation(m);

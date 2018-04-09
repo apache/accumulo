@@ -80,7 +80,8 @@ public class ChunkCombinerTest extends TestCase {
       entry = null;
       while (iter.hasNext()) {
         entry = iter.next();
-        if (columnFamilies.size() > 0 && !columnFamilies.contains(entry.getKey().getColumnFamilyData())) {
+        if (columnFamilies.size() > 0
+            && !columnFamilies.contains(entry.getKey().getColumnFamilyData())) {
           entry = null;
           continue;
         }
@@ -91,7 +92,8 @@ public class ChunkCombinerTest extends TestCase {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
       if (!inclusive) {
         throw new IllegalArgumentException("can only do inclusive colf filtering");
       }
@@ -111,7 +113,8 @@ public class ChunkCombinerTest extends TestCase {
     }
 
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }
   }
@@ -198,9 +201,11 @@ public class ChunkCombinerTest extends TestCase {
     cRow3.put(new Key("row3", refs, "hash1\0x", "A&B"), new Value("".getBytes()));
     cRow3.put(new Key("row3", refs, "hash1\0y", "(A&B)"), new Value("".getBytes()));
     cRow3.put(new Key("row3", refs, "hash1\0z", "(F|G)&(D|E)"), new Value("".getBytes()));
-    cRow3.put(new Key("row3", chunk_cf, "0000", "((F|G)&(D|E))|(A&B)|(C&(D|E))", 20), new Value("V1".getBytes()));
+    cRow3.put(new Key("row3", chunk_cf, "0000", "((F|G)&(D|E))|(A&B)|(C&(D|E))", 20),
+        new Value("V1".getBytes()));
 
-    cOnlyRow3.put(new Key("row3", chunk_cf, "0000", "((F|G)&(D|E))|(A&B)|(C&(D|E))", 20), new Value("V1".getBytes()));
+    cOnlyRow3.put(new Key("row3", chunk_cf, "0000", "((F|G)&(D|E))|(A&B)|(C&(D|E))", 20),
+        new Value("V1".getBytes()));
 
     badrow.put(new Key("row1", chunk_cf, "0000", "A"), new Value("V1".getBytes()));
     badrow.put(new Key("row1", chunk_cf, "0000", "B"), new Value("V2".getBytes()));
@@ -234,7 +239,8 @@ public class ChunkCombinerTest extends TestCase {
     }
   }
 
-  private void runTest(boolean reseek, TreeMap<Key,Value> source, TreeMap<Key,Value> result, Collection<ByteSequence> cols) throws IOException {
+  private void runTest(boolean reseek, TreeMap<Key,Value> source, TreeMap<Key,Value> result,
+      Collection<ByteSequence> cols) throws IOException {
     MapIterator src = new MapIterator(source);
     SortedKeyValueIterator<Key,Value> iter = new ChunkCombiner();
     iter.init(src, null, null);
@@ -248,7 +254,8 @@ public class ChunkCombinerTest extends TestCase {
       seen.put(new Key(iter.getTopKey()), new Value(iter.getTopValue()));
 
       if (reseek)
-        iter.seek(new Range(iter.getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL), true, null, true), cols, true);
+        iter.seek(new Range(iter.getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL), true,
+            null, true), cols, true);
       else
         iter.next();
     }

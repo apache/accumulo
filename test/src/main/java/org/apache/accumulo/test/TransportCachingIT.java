@@ -56,21 +56,25 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     Connector conn = getConnector();
     Instance instance = conn.getInstance();
     ClientConfiguration clientConf = cluster.getClientConfig();
-    ClientContext context = new ClientContext(instance, new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
-    long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
+    ClientContext context = new ClientContext(instance,
+        new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
+    long rpcTimeout = DefaultConfiguration
+        .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
-    ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);
         if (!strData.equals("master"))
-          servers.add(new ThriftTransportKey(new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
+          servers.add(new ThriftTransportKey(
+              new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
       }
     }
 

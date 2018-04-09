@@ -33,7 +33,8 @@ public class ShowTraceLinkType extends StringType<RemoteSpan> {
     if (obj == null)
       return "-";
     RemoteSpan span = (RemoteSpan) obj;
-    return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId), TraceFormatter.formatDate(new Date(span.start)));
+    return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId),
+        TraceFormatter.formatDate(new Date(span.start)));
   }
 
   @Override

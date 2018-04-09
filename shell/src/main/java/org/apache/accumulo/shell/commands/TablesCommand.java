@@ -47,10 +47,12 @@ public class TablesCommand extends Command {
 
   @SuppressWarnings("unchecked")
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException,
-      NamespaceNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, IOException, NamespaceNotFoundException {
 
-    final String namespace = cl.hasOption(OptUtil.namespaceOpt().getOpt()) ? OptUtil.getNamespaceOpt(cl, shellState) : null;
+    final String namespace = cl.hasOption(OptUtil.namespaceOpt().getOpt())
+        ? OptUtil.getNamespaceOpt(cl, shellState)
+        : null;
     Map<String,String> tables = shellState.getConnector().tableOperations().tableIdMap();
 
     // filter only specified namespace
@@ -64,19 +66,20 @@ public class TablesCommand extends Command {
     final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
     tables = new TreeMap<>((sortByTableId ? MapUtils.invertMap(tables) : tables));
 
-    Iterator<String> it = Iterators.transform(tables.entrySet().iterator(), new Function<Entry<String,String>,String>() {
-      @Override
-      public String apply(Map.Entry<String,String> entry) {
-        String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
-        String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
-        if (namespace != null)
-          tableName = Tables.qualify(tableName).getSecond();
-        if (cl.hasOption(tableIdOption.getOpt()))
-          return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
-        else
-          return tableName;
-      }
-    });
+    Iterator<String> it = Iterators.transform(tables.entrySet().iterator(),
+        new Function<Entry<String,String>,String>() {
+          @Override
+          public String apply(Map.Entry<String,String> entry) {
+            String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
+            String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
+            if (namespace != null)
+              tableName = Tables.qualify(tableName).getSecond();
+            if (cl.hasOption(tableIdOption.getOpt()))
+              return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
+            else
+              return tableName;
+          }
+        });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
     return 0;
@@ -90,7 +93,8 @@ public class TablesCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    tableIdOption = new Option("l", "list-ids", false, "display internal table ids along with the table name");
+    tableIdOption = new Option("l", "list-ids", false,
+        "display internal table ids along with the table name");
     o.addOption(tableIdOption);
     sortByTableIdOption = new Option("s", "sort-ids", false, "with -l: sort output by table ids");
     o.addOption(sortByTableIdOption);

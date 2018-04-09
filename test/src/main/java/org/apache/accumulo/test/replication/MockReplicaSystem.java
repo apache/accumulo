@@ -30,7 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Fake ReplicaSystem which returns that the data was fully replicated after some sleep period (in milliseconds)
+ * Fake ReplicaSystem which returns that the data was fully replicated after some sleep period (in
+ * milliseconds)
  * <p>
  * Default sleep amount is 0ms
  */
@@ -40,7 +41,8 @@ public class MockReplicaSystem implements ReplicaSystem {
   private long sleep = 0;
 
   @Override
-  public Status replicate(Path p, Status status, ReplicationTarget target, ReplicaSystemHelper helper) {
+  public Status replicate(Path p, Status status, ReplicationTarget target,
+      ReplicaSystemHelper helper) {
     Status newStatus;
     if (status.getClosed() && status.getInfiniteEnd()) {
       Status.Builder builder = Status.newBuilder(status);
@@ -64,14 +66,18 @@ public class MockReplicaSystem implements ReplicaSystem {
       return status;
     }
 
-    log.info("For {}, received {}, returned {}", p, ProtobufUtil.toString(status), ProtobufUtil.toString(newStatus));
+    log.info("For {}, received {}, returned {}", p, ProtobufUtil.toString(status),
+        ProtobufUtil.toString(newStatus));
     try {
       helper.recordNewStatus(p, newStatus, target);
     } catch (TableNotFoundException e) {
-      log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(newStatus), e);
+      log.error(
+          "Tried to update status in replication table for {} as {}, but the table did not exist",
+          p, ProtobufUtil.toString(newStatus), e);
       return status;
     } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("Tried to record new status in replication table for {} as {}, but got an error", p, ProtobufUtil.toString(newStatus), e);
+      log.error("Tried to record new status in replication table for {} as {}, but got an error", p,
+          ProtobufUtil.toString(newStatus), e);
       return status;
     }
 
@@ -88,7 +94,8 @@ public class MockReplicaSystem implements ReplicaSystem {
     try {
       sleep = Long.parseLong(configuration);
     } catch (NumberFormatException e) {
-      log.warn("Could not parse {} as an integer, using default sleep of {}", configuration, sleep, e);
+      log.warn("Could not parse {} as an integer, using default sleep of {}", configuration, sleep,
+          e);
     }
   }
 }

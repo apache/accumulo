@@ -28,7 +28,8 @@ public class Commit extends Test {
   public void visit(State state, Environment env, Properties props) throws Exception {
     env.getMultiTableBatchWriter().flush();
 
-    log.debug("Committed " + state.getLong("numWrites") + " writes.  Total writes: " + state.getLong("totalWrites"));
+    log.debug("Committed " + state.getLong("numWrites") + " writes.  Total writes: "
+        + state.getLong("totalWrites"));
     state.set("numWrites", Long.valueOf(0));
   }
 

@@ -56,7 +56,8 @@ public class MerkleTreeNode {
     hash = v.get();
   }
 
-  public MerkleTreeNode(List<MerkleTreeNode> children, String digestAlgorithm) throws NoSuchAlgorithmException {
+  public MerkleTreeNode(List<MerkleTreeNode> children, String digestAlgorithm)
+      throws NoSuchAlgorithmException {
     level = 0;
     this.children = new ArrayList<>(children.size());
     MessageDigest digest = MessageDigest.getInstance(digestAlgorithm);
@@ -70,10 +71,12 @@ public class MerkleTreeNode {
       if (null == childrenRange) {
         childrenRange = child.getRange();
       } else {
-        List<Range> overlappingRanges = Range.mergeOverlapping(Arrays.asList(childrenRange, child.getRange()));
+        List<Range> overlappingRanges = Range
+            .mergeOverlapping(Arrays.asList(childrenRange, child.getRange()));
         if (1 != overlappingRanges.size()) {
           log.error("Tried to merge non-contiguous ranges: {} {}", childrenRange, child.getRange());
-          throw new IllegalArgumentException("Ranges must be contiguous: " + childrenRange + ", " + child.getRange());
+          throw new IllegalArgumentException(
+              "Ranges must be contiguous: " + childrenRange + ", " + child.getRange());
         }
 
         childrenRange = overlappingRanges.get(0);
@@ -109,7 +112,8 @@ public class MerkleTreeNode {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(32);
-    sb.append("range=").append(range).append(" level=").append(level).append(" hash=").append(Hex.encodeHexString(hash)).append(" children=").append(children);
+    sb.append("range=").append(range).append(" level=").append(level).append(" hash=")
+        .append(Hex.encodeHexString(hash)).append(" children=").append(children);
     return sb.toString();
   }
 
@@ -117,7 +121,8 @@ public class MerkleTreeNode {
   public boolean equals(Object o) {
     if (o instanceof MerkleTreeNode) {
       MerkleTreeNode other = (MerkleTreeNode) o;
-      return range.equals(other.getRange()) && level == other.getLevel() && children.equals(other.getChildren()) && Arrays.equals(hash, other.getHash());
+      return range.equals(other.getRange()) && level == other.getLevel()
+          && children.equals(other.getChildren()) && Arrays.equals(hash, other.getHash());
     }
 
     return false;

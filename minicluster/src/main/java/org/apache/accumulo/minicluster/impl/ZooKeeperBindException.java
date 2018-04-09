@@ -17,7 +17,8 @@
 package org.apache.accumulo.minicluster.impl;
 
 /**
- * Thrown when we fail to connect to ZooKeeper (assuming the root cause is that ZooKeeper failed to bind to its port)
+ * Thrown when we fail to connect to ZooKeeper (assuming the root cause is that ZooKeeper failed to
+ * bind to its port)
  */
 public class ZooKeeperBindException extends RuntimeException {
 

@@ -38,8 +38,8 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private String tableId;
   private final AccumuloServerContext context;
 
-  public ProblemReportingIterator(AccumuloServerContext context, String tableId, String resource, boolean continueOnError,
-      SortedKeyValueIterator<Key,Value> source) {
+  public ProblemReportingIterator(AccumuloServerContext context, String tableId, String resource,
+      boolean continueOnError, SortedKeyValueIterator<Key,Value> source) {
     this.context = context;
     this.tableId = tableId;
     this.resource = resource;
@@ -49,7 +49,8 @@ public class ProblemReportingIterator implements InterruptibleIterator {
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new ProblemReportingIterator(context, tableId, resource, continueOnError, source.deepCopy(env));
+    return new ProblemReportingIterator(context, tableId, resource, continueOnError,
+        source.deepCopy(env));
   }
 
   @Override
@@ -71,7 +72,8 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
 
@@ -81,7 +83,8 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       source.next();
     } catch (IOException ioe) {
       sawError = true;
-      ProblemReports.getInstance(context).report(new ProblemReport(tableId, ProblemType.FILE_READ, resource, ioe));
+      ProblemReports.getInstance(context)
+          .report(new ProblemReport(tableId, ProblemType.FILE_READ, resource, ioe));
       if (!continueOnError) {
         throw ioe;
       }
@@ -89,7 +92,8 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     if (continueOnError && sawError) {
       return;
     }
@@ -98,7 +102,8 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       source.seek(range, columnFamilies, inclusive);
     } catch (IOException ioe) {
       sawError = true;
-      ProblemReports.getInstance(context).report(new ProblemReport(tableId, ProblemType.FILE_READ, resource, ioe));
+      ProblemReports.getInstance(context)
+          .report(new ProblemReport(tableId, ProblemType.FILE_READ, resource, ioe));
       if (!continueOnError) {
         throw ioe;
       }

@@ -31,7 +31,8 @@ public class DeleteShellIterCommand extends Command {
   private Option nameOpt, allOpt, profileOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
 
     String profile = cl.getOptionValue(profileOpt.getOpt());
     if (shellState.iteratorProfiles.containsKey(profile)) {
@@ -52,7 +53,8 @@ public class DeleteShellIterCommand extends Command {
         if (!found) {
           Shell.log.info("No iterator named " + name + " found");
         } else {
-          Shell.log.info("Removed iterator " + name + " from profile " + profile + " (" + iterSettings.size() + " left)");
+          Shell.log.info("Removed iterator " + name + " from profile " + profile + " ("
+              + iterSettings.size() + " left)");
         }
       }
 

@@ -63,7 +63,8 @@ public class Write extends Test {
     m.put(CONTENT_COLUMN_FAMILY, IMAGE_COLUMN_QUALIFIER, new Value(imageBytes));
 
     // store size
-    m.put(META_COLUMN_FAMILY, new Text("size"), new Value(String.format("%d", numBytes).getBytes(UTF_8)));
+    m.put(META_COLUMN_FAMILY, new Text("size"),
+        new Value(String.format("%d", numBytes).getBytes(UTF_8)));
 
     // store hash
     MessageDigest alg = MessageDigest.getInstance("SHA-1");
@@ -77,7 +78,8 @@ public class Write extends Test {
     state.set("totalWrites", totalWrites);
 
     // set count
-    m.put(META_COLUMN_FAMILY, COUNT_COLUMN_QUALIFIER, new Value(String.format("%d", totalWrites).getBytes(UTF_8)));
+    m.put(META_COLUMN_FAMILY, COUNT_COLUMN_QUALIFIER,
+        new Value(String.format("%d", totalWrites).getBytes(UTF_8)));
 
     // add mutation
     imagesBW.addMutation(m);

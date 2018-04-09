@@ -96,11 +96,13 @@ public class IteratorSettingTest {
   @Test
   public void testEquivalentConstructor() {
     IteratorSetting setting1 = new IteratorSetting(100, Combiner.class);
-    IteratorSetting setting2 = new IteratorSetting(100, "Combiner", Combiner.class, new HashMap<String,String>());
+    IteratorSetting setting2 = new IteratorSetting(100, "Combiner", Combiner.class,
+        new HashMap<String,String>());
 
     assertEquals(setting1, setting2);
 
-    IteratorSetting notEqual1 = new IteratorSetting(100, "FooCombiner", Combiner.class, new HashMap<String,String>());
+    IteratorSetting notEqual1 = new IteratorSetting(100, "FooCombiner", Combiner.class,
+        new HashMap<String,String>());
 
     assertNotEquals(setting1, notEqual1);
 
@@ -110,4 +112,13 @@ public class IteratorSettingTest {
 
     assertNotEquals(setting1, notEquals2);
   }
+
+  /**
+   * Iterator names cannot contain dots. Throw IllegalArgumentException is invalid name is used.
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testIteratorNameCannotContainDot() {
+    new IteratorSetting(500, "iterator.name.with.dots", Combiner.class.getName());
+  }
+
 }

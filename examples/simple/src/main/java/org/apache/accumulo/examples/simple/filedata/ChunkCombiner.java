@@ -31,7 +31,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * This iterator dedupes chunks and sets their visibilities to the combined visibility of the refs columns. For example, it would combine
+ * This iterator dedupes chunks and sets their visibilities to the combined visibility of the refs
+ * columns. For example, it would combine
  *
  * <pre>
  *    row1 refs uid1\0a A&amp;B V0
@@ -57,7 +58,8 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
 
   private SortedKeyValueIterator<Key,Value> source;
   private SortedKeyValueIterator<Key,Value> refsSource;
-  private static final Collection<ByteSequence> refsColf = Collections.singleton(FileDataIngest.REFS_CF_BS);
+  private static final Collection<ByteSequence> refsColf = Collections
+      .singleton(FileDataIngest.REFS_CF_BS);
   private Map<Text,byte[]> lastRowVC = Collections.emptyMap();
 
   private Key topKey = null;
@@ -66,7 +68,8 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
   public ChunkCombiner() {}
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     this.source = source;
     this.refsSource = source.deepCopy(env);
   }
@@ -82,7 +85,8 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     source.seek(range, columnFamilies, inclusive);
     findTop();
   }
@@ -111,14 +115,16 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
         maxTS = source.getTopKey().getTimestamp();
 
       if (!topValue.equals(source.getTopValue()))
-        throw new RuntimeException("values not equals " + topKey + " " + source.getTopKey() + " : " + diffInfo(topValue, source.getTopValue()));
+        throw new RuntimeException("values not equals " + topKey + " " + source.getTopKey() + " : "
+            + diffInfo(topValue, source.getTopValue()));
 
       source.next();
     }
 
     byte[] vis = getVisFromRefs();
     if (vis != null) {
-      topKey = new Key(topKey.getRowData().toArray(), topKey.getColumnFamilyData().toArray(), topKey.getColumnQualifierData().toArray(), vis, maxTS);
+      topKey = new Key(topKey.getRowData().toArray(), topKey.getColumnFamilyData().toArray(),
+          topKey.getColumnQualifierData().toArray(), vis, maxTS);
     }
     return vis;
   }
@@ -154,7 +160,8 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
 
     for (int i = 0; i < vb1.length; i++) {
       if (vb1[i] != vb2[i]) {
-        return String.format("first diff at offset %,d 0x%02x != 0x%02x", i, 0xff & vb1[i], 0xff & vb2[i]);
+        return String.format("first diff at offset %,d 0x%02x != 0x%02x", i, 0xff & vb1[i],
+            0xff & vb2[i]);
       }
     }
 

@@ -43,7 +43,8 @@ public class ChangeAuthorizations extends Test {
 
     String userName = userNames.get(rand.nextInt(userNames.size()));
     try {
-      List<byte[]> auths = new ArrayList<>(conn.securityOperations().getUserAuthorizations(userName).getAuthorizations());
+      List<byte[]> auths = new ArrayList<>(
+          conn.securityOperations().getUserAuthorizations(userName).getAuthorizations());
 
       if (rand.nextBoolean()) {
         String authorization = String.format("a%d", rand.nextInt(5000));

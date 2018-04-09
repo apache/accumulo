@@ -63,7 +63,8 @@ public class TestThrift1474 {
     serverTransport.listen();
     int port = serverTransport.getServerSocket().getLocalPort();
     TestServer handler = new TestServer();
-    ThriftTest.Processor<ThriftTest.Iface> processor = new ThriftTest.Processor<ThriftTest.Iface>(handler);
+    ThriftTest.Processor<ThriftTest.Iface> processor = new ThriftTest.Processor<ThriftTest.Iface>(
+        handler);
 
     TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport);
     args.stopTimeoutVal = 10;

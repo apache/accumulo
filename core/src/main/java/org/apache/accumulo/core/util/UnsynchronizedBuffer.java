@@ -115,8 +115,8 @@ public class UnsynchronizedBuffer {
     }
 
     /**
-     * Adds an integer value to this writer's buffer. The integer is encoded as a variable-length list of bytes. See {@link #writeVLong(long)} for a description
-     * of the encoding.
+     * Adds an integer value to this writer's buffer. The integer is encoded as a variable-length
+     * list of bytes. See {@link #writeVLong(long)} for a description of the encoding.
      *
      * @param i
      *          integer value
@@ -126,9 +126,10 @@ public class UnsynchronizedBuffer {
     }
 
     /**
-     * Adds a long value to this writer's buffer. The long is encoded as a variable-length list of bytes. For a description of the encoding scheme, see
-     * <code>WritableUtils.writeVLong()</code> in the Hadoop API. [<a
-     * href="http://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
+     * Adds a long value to this writer's buffer. The long is encoded as a variable-length list of
+     * bytes. For a description of the encoding scheme, see <code>WritableUtils.writeVLong()</code>
+     * in the Hadoop API. [<a href=
+     * "http://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
      *
      * @param i
      *          long value
@@ -203,7 +204,8 @@ public class UnsynchronizedBuffer {
      * @return integer value
      */
     public int readInt() {
-      return (data[offset++] << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0);
+      return (data[offset++] << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8)
+          + ((data[offset++] & 255) << 0);
     }
 
     /**
@@ -212,8 +214,10 @@ public class UnsynchronizedBuffer {
      * @return long value
      */
     public long readLong() {
-      return (((long) data[offset++] << 56) + ((long) (data[offset++] & 255) << 48) + ((long) (data[offset++] & 255) << 40)
-          + ((long) (data[offset++] & 255) << 32) + ((long) (data[offset++] & 255) << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0));
+      return (((long) data[offset++] << 56) + ((long) (data[offset++] & 255) << 48)
+          + ((long) (data[offset++] & 255) << 40) + ((long) (data[offset++] & 255) << 32)
+          + ((long) (data[offset++] & 255) << 24) + ((data[offset++] & 255) << 16)
+          + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0));
     }
 
     /**
@@ -237,7 +241,8 @@ public class UnsynchronizedBuffer {
     }
 
     /**
-     * Reads an integer value from this reader's buffer, assuming the integer was encoded as a variable-length list of bytes.
+     * Reads an integer value from this reader's buffer, assuming the integer was encoded as a
+     * variable-length list of bytes.
      *
      * @return integer value
      */
@@ -246,7 +251,8 @@ public class UnsynchronizedBuffer {
     }
 
     /**
-     * Reads a long value from this reader's buffer, assuming the long was encoded as a variable-length list of bytes.
+     * Reads a long value from this reader's buffer, assuming the long was encoded as a
+     * variable-length list of bytes.
      *
      * @return long value
      */

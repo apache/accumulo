@@ -41,7 +41,8 @@ public class NativeMapPerformanceTest {
   private static final byte COL_PREFIX[] = new byte[] {'c'};
 
   static Key newKey(int r, int c) {
-    return new Key(new Text(FastFormat.toZeroPaddedString(r, 9, 10, ROW_PREFIX)), new Text(FastFormat.toZeroPaddedString(c, 6, 10, COL_PREFIX)));
+    return new Key(new Text(FastFormat.toZeroPaddedString(r, 9, 10, ROW_PREFIX)),
+        new Text(FastFormat.toZeroPaddedString(c, 6, 10, COL_PREFIX)));
   }
 
   static Mutation newMutation(int r) {
@@ -135,14 +136,16 @@ public class NativeMapPerformanceTest {
       for (int i = 0; i < numLookups; i++) {
         Key key = newKey(rowsToLookup[i], colsToLookup[i]);
         if (nm.get(key) == null) {
-          throw new RuntimeException("Did not find " + rowsToLookup[i] + " " + colsToLookup[i] + " " + i);
+          throw new RuntimeException(
+              "Did not find " + rowsToLookup[i] + " " + colsToLookup[i] + " " + i);
         }
       }
     } else {
       for (int i = 0; i < numLookups; i++) {
         Key key = newKey(rowsToLookup[i], colsToLookup[i]);
         if (tm.get(key) == null) {
-          throw new RuntimeException("Did not find " + rowsToLookup[i] + " " + colsToLookup[i] + " " + i);
+          throw new RuntimeException(
+              "Did not find " + rowsToLookup[i] + " " + colsToLookup[i] + " " + i);
         }
       }
     }
@@ -173,15 +176,19 @@ public class NativeMapPerformanceTest {
 
     sleepUninterruptibly(3, TimeUnit.SECONDS);
 
-    System.out.printf("mapType:%10s   put rate:%,6.2f  scan rate:%,6.2f  get rate:%,6.2f  delete time : %6.2f  mem : %,d%n", "" + mapType, (numRows * numCols)
-        / ((tpe - tps) / 1000.0), (size) / ((tie - tis) / 1000.0), numLookups / ((tge - tgs) / 1000.0), (tde - tds) / 1000.0, memUsed);
+    System.out.printf(
+        "mapType:%10s   put rate:%,6.2f  scan rate:%,6.2f  get"
+            + " rate:%,6.2f  delete time : %6.2f  mem : %,d%n",
+        "" + mapType, (numRows * numCols) / ((tpe - tps) / 1000.0), (size) / ((tie - tis) / 1000.0),
+        numLookups / ((tge - tgs) / 1000.0), (tde - tds) / 1000.0, memUsed);
 
   }
 
   public static void main(String[] args) {
 
     if (args.length != 3) {
-      throw new IllegalArgumentException("Usage : " + NativeMapPerformanceTest.class.getName() + " <map type> <rows> <columns>");
+      throw new IllegalArgumentException(
+          "Usage : " + NativeMapPerformanceTest.class.getName() + " <map type> <rows> <columns>");
     }
 
     String mapType = args[0];

@@ -59,7 +59,8 @@ public class ColumnQualifierFilter extends Filter {
     scanColumns = this.columnsQualifiers.size() > 0;
   }
 
-  private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, HashSet<ByteSequence> columnFamilies,
+  private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator,
+      HashSet<ByteSequence> columnFamilies,
       HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers, boolean scanColumns) {
     setSource(iterator);
     this.columnFamilies = columnFamilies;
@@ -84,10 +85,12 @@ public class ColumnQualifierFilter extends Filter {
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new ColumnQualifierFilter(getSource().deepCopy(env), columnFamilies, columnsQualifiers, scanColumns);
+    return new ColumnQualifierFilter(getSource().deepCopy(env), columnFamilies, columnsQualifiers,
+        scanColumns);
   }
 
-  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source, Set<Column> cols) {
+  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source,
+      Set<Column> cols) {
     boolean sawNonNullQual = false;
     for (Column col : cols) {
       if (col.getColumnQualifier() != null) {

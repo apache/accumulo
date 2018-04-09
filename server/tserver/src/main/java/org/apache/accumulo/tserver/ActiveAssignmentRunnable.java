@@ -34,10 +34,12 @@ public class ActiveAssignmentRunnable implements Runnable {
   private final KeyExtent extent;
   private final Runnable delegate;
 
-  // Make sure that the other thread calling getException will see the assignment by the thread calling run()
+  // Make sure that the other thread calling getException will see the assignment by the thread
+  // calling run()
   private volatile Thread executingThread;
 
-  public ActiveAssignmentRunnable(ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments, KeyExtent extent, Runnable delegate) {
+  public ActiveAssignmentRunnable(ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments,
+      KeyExtent extent, Runnable delegate) {
     requireNonNull(activeAssignments);
     requireNonNull(extent);
     requireNonNull(delegate);
@@ -55,7 +57,8 @@ public class ActiveAssignmentRunnable implements Runnable {
     executingThread = Thread.currentThread();
 
     try {
-      RunnableStartedAt runnableWithStartTime = new RunnableStartedAt(this, System.currentTimeMillis());
+      RunnableStartedAt runnableWithStartTime = new RunnableStartedAt(this,
+          System.currentTimeMillis());
       log.trace("Started assignment for {} at {}", extent, runnableWithStartTime.getStartTime());
       activeAssignments.put(extent, runnableWithStartTime);
       delegate.run();

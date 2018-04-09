@@ -63,7 +63,8 @@ public class TimeoutIT extends AccumuloClusterHarness {
     // give constraint time to propagate through zookeeper
     sleepUninterruptibly(1, TimeUnit.SECONDS);
 
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+    BatchWriter bw = conn.createBatchWriter(tableName,
+        new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
 
     Mutation mut = new Mutation("r1");
     mut.put("cf1", "cq1", "v1");

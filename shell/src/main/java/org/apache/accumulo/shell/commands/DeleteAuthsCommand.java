@@ -38,7 +38,8 @@ public class DeleteAuthsCommand extends Command {
   private Option scanOptAuths;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException {
     final Connector connector = shellState.getConnector();
     final String user = cl.getOptionValue(userOpt.getOpt(), connector.whoami());
     final String scanOpts = cl.getOptionValue(scanOptAuths.getOpt());
@@ -58,7 +59,8 @@ public class DeleteAuthsCommand extends Command {
       }
     }
     if (userAuths.length() > 0) {
-      connector.securityOperations().changeUserAuthorizations(user, ScanCommand.parseAuthorizations(userAuths.substring(0, userAuths.length() - 1)));
+      connector.securityOperations().changeUserAuthorizations(user,
+          ScanCommand.parseAuthorizations(userAuths.substring(0, userAuths.length() - 1)));
     } else {
       connector.securityOperations().changeUserAuthorizations(user, new Authorizations());
     }
@@ -73,7 +75,8 @@ public class DeleteAuthsCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
 

@@ -23,15 +23,19 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * This class is <strong>not</strong> recommended because {@link #initialize(Iterable, FormatterConfig)} replaces parameters in {@link FormatterConfig}, which
- * could surprise users.
+ * This class is <strong>not</strong> recommended because
+ * {@link #initialize(Iterable, FormatterConfig)} replaces parameters in {@link FormatterConfig},
+ * which could surprise users.
  *
- * This class can be replaced by {@link DefaultFormatter} where FormatterConfig is initialized with a DateFormat set to {@link #DATE_FORMAT}. See
+ * This class can be replaced by {@link DefaultFormatter} where FormatterConfig is initialized with
+ * a DateFormat set to {@link #DATE_FORMAT}. See
  * {@link DateFormatSupplier#createSimpleFormatSupplier(String, java.util.TimeZone)}.
  *
  * <pre>
- * final DateFormatSupplier dfSupplier = DateFormatSupplier.createSimpleFormatSupplier(DateFormatSupplier.HUMAN_READABLE_FORMAT, TimeZone.getTimeZone(&quot;UTC&quot;));
- * final FormatterConfig config = new FormatterConfig().setPrintTimestamps(true).setDateFormatSupplier(dfSupplier);
+ * final DateFormatSupplier dfSupplier = DateFormatSupplier.createSimpleFormatSupplier(
+ *     DateFormatSupplier.HUMAN_READABLE_FORMAT, TimeZone.getTimeZone(&quot;UTC&quot;));
+ * final FormatterConfig config = new FormatterConfig().setPrintTimestamps(true)
+ *     .setDateFormatSupplier(dfSupplier);
  * </pre>
  */
 @Deprecated
@@ -54,7 +58,8 @@ public class DateStringFormatter implements Formatter {
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
     FormatterConfig newConfig = new FormatterConfig(config);
-    newConfig.setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier(DATE_FORMAT, timeZone));
+    newConfig.setDateFormatSupplier(
+        DateFormatSupplier.createSimpleFormatSupplier(DATE_FORMAT, timeZone));
     defaultFormatter.initialize(scanner, newConfig);
   }
 

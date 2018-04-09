@@ -64,7 +64,8 @@ public class SetIterCommandTest {
     EasyMock.expect(cli.getOptionValue("t")).andReturn("foo");
     EasyMock.expect(cli.hasOption("ns")).andReturn(false);
     EasyMock.expect(cli.getOptionValue("p")).andReturn("21");
-    EasyMock.expect(cli.getOptionValue("class")).andReturn("org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter");
+    EasyMock.expect(cli.getOptionValue("class"))
+        .andReturn("org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter");
     EasyMock.expect(cli.hasOption("ageoff")).andReturn(false);
     EasyMock.expect(cli.hasOption("agg")).andReturn(false);
     EasyMock.expect(cli.hasOption("regex")).andReturn(false);
@@ -73,7 +74,8 @@ public class SetIterCommandTest {
     EasyMock.expect(cli.getOptionValue("n", null)).andReturn(null);
 
     // Loading the class
-    EasyMock.expect(shellState.getClassLoader(cli, shellState)).andReturn(AccumuloVFSClassLoader.getClassLoader());
+    EasyMock.expect(shellState.getClassLoader(cli, shellState))
+        .andReturn(AccumuloVFSClassLoader.getClassLoader());
 
     // Set the output object
     Field field = reader.getClass().getSuperclass().getDeclaredField("out");
@@ -86,13 +88,15 @@ public class SetIterCommandTest {
 
     EasyMock.expect(shellState.getReader()).andReturn(reader);
 
-    // Shell asking for negate option, we pass in an empty string to pickup the default value of 'false'
+    // Shell asking for negate option, we pass in an empty string to pickup the default value of
+    // 'false'
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("");
 
     // Shell asking for the unnamed option for the column (a:a) and the TTL (1)
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("a:a 1");
 
-    // Shell asking for another unnamed option; we pass in an empty string to signal that we are done adding options
+    // Shell asking for another unnamed option; we pass in an empty string to signal that we are
+    // done adding options
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("");
     EasyMock.expect(shellState.getConnector()).andReturn(conn);
 
@@ -103,18 +107,23 @@ public class SetIterCommandTest {
     // Testing class load
     EasyMock.expect(shellState.getConnector()).andReturn(conn);
     EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
-    EasyMock.expect(tableOperations.testClassLoad("foo", "org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter", SortedKeyValueIterator.class.getName()))
-        .andReturn(true);
+    EasyMock.expect(tableOperations.testClassLoad("foo",
+        "org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
+        SortedKeyValueIterator.class.getName())).andReturn(true);
 
     // Attach iterator
     EasyMock.expect(shellState.getConnector()).andReturn(conn);
     EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
-    tableOperations.attachIterator(EasyMock.eq("foo"), EasyMock.anyObject(IteratorSetting.class), EasyMock.eq(EnumSet.allOf(IteratorScope.class)));
+    tableOperations.attachIterator(EasyMock.eq("foo"), EasyMock.anyObject(IteratorSetting.class),
+        EasyMock.eq(EnumSet.allOf(IteratorScope.class)));
     EasyMock.expectLastCall().once();
 
     EasyMock.replay(conn, cli, shellState, reader, tableOperations);
 
-    cmd.execute("setiter -all -p 21 -t foo -class org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter", cli, shellState);
+    cmd.execute(
+        "setiter -all -p 21 -t foo"
+            + " -class org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
+        cli, shellState);
 
     EasyMock.verify(conn, cli, shellState, reader, tableOperations);
   }

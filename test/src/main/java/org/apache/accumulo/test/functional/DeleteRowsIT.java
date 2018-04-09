@@ -52,8 +52,8 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsIT.class);
 
   private static final int ROWS_PER_TABLET = 10;
-  private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
-      "u", "v", "w", "x", "y", "z"};
+  private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i",
+      "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
   static final SortedSet<Text> SPLITS = new TreeSet<>();
   static {
     for (String alpha : LETTERS) {
@@ -112,7 +112,8 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     testSplit(tableName + i++, null, null, "", 0);
   }
 
-  private void testSplit(String table, String start, String end, String result, int entries) throws Exception {
+  private void testSplit(String table, String start, String end, String result, int entries)
+      throws Exception {
     // Put a bunch of rows on each tablet
     Connector c = getConnector();
     c.tableOperations().create(table);
@@ -143,7 +144,8 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       Text row = entry.getKey().getRow();
-      assertTrue((startText == null || row.compareTo(startText) <= 0) || (endText == null || row.compareTo(endText) > 0));
+      assertTrue((startText == null || row.compareTo(startText) <= 0)
+          || (endText == null || row.compareTo(endText) > 0));
       assertTrue(startText != null || endText != null);
       count++;
     }

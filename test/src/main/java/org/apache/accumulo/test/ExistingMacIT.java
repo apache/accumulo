@@ -97,7 +97,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
 
-    Set<Entry<ServerType,Collection<ProcessReference>>> procs = getCluster().getProcesses().entrySet();
+    Set<Entry<ServerType,Collection<ProcessReference>>> procs = getCluster().getProcesses()
+        .entrySet();
     for (Entry<ServerType,Collection<ProcessReference>> entry : procs) {
       if (entry.getKey() == ServerType.ZOOKEEPER)
         continue;
@@ -106,9 +107,10 @@ public class ExistingMacIT extends ConfigurableMacBase {
     }
 
     final DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-    final long zkTimeout = AccumuloConfiguration.getTimeInMillis(getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
-    IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(getCluster().getZooKeepers(), (int) zkTimeout,
-        defaultConfig.get(Property.INSTANCE_SECRET));
+    final long zkTimeout = AccumuloConfiguration.getTimeInMillis(
+        getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
+    IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
+        getCluster().getZooKeepers(), (int) zkTimeout, defaultConfig.get(Property.INSTANCE_SECRET));
     final String zInstanceRoot = Constants.ZROOT + "/" + conn.getInstance().getInstanceID();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
@@ -125,7 +127,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     FileUtils.deleteQuietly(testDir2);
 
     MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
-    macConfig2.useExistingInstance(new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
+    macConfig2.useExistingInstance(
+        new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
 
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
@@ -166,9 +169,11 @@ public class ExistingMacIT extends ConfigurableMacBase {
     FileUtils.deleteQuietly(testDir2);
 
     MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
-    macConfig2.useExistingInstance(new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
+    macConfig2.useExistingInstance(
+        new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
 
-    System.out.println("conf " + new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"));
+    System.out
+        .println("conf " + new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"));
 
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     try {

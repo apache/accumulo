@@ -37,7 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed to constructor(s) and all other configurations are optional.
+ * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed
+ * to constructor(s) and all other configurations are optional.
  *
  * @since 1.6.0
  */
@@ -92,8 +93,9 @@ public class MiniAccumuloConfigImpl {
 
   /**
    * @param dir
-   *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava, and
-   *          Junit provide methods for creating temporary directories.
+   *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in.
+   *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
+   *          for creating temporary directories.
    * @param rootPassword
    *          The initial password for the Accumulo root user
    */
@@ -142,10 +144,12 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_MAXMEM.getKey(), "50M");
       mergeProp(Property.TSERV_WALOG_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
+      // since there is a small amount of memory, check more frequently for majc... setting may not
+      // be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GENERAL_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
-      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
+      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(),
+          libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
@@ -182,13 +186,15 @@ public class MiniAccumuloConfigImpl {
 
   private void updateConfigForCredentialProvider() {
     String cpPaths = siteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
-    if (null != cpPaths && !Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getDefaultValue().equals(cpPaths)) {
+    if (null != cpPaths
+        && !Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getDefaultValue().equals(cpPaths)) {
       // Already configured
       return;
     }
 
     if (!CredentialProviderFactoryShim.isHadoopCredentialProviderAvailable()) {
-      throw new RuntimeException("Cannot use CredentialProvider when implementation is not available. Be sure to use >=Hadoop-2.6.0");
+      throw new RuntimeException("Cannot use CredentialProvider when"
+          + " implementation is not available. Be sure to use >=Hadoop-2.6.0");
     }
 
     File keystoreFile = new File(getConfDir(), "credential-provider.jks");
@@ -209,7 +215,8 @@ public class MiniAccumuloConfigImpl {
 
       // Add the @Sensitive Property to the CredentialProvider
       try {
-        CredentialProviderFactoryShim.createEntry(conf, entry.getKey(), entry.getValue().toCharArray());
+        CredentialProviderFactoryShim.createEntry(conf, entry.getKey(),
+            entry.getValue().toCharArray());
       } catch (IOException e) {
         log.warn("Attempted to add " + entry.getKey() + " to CredentialProvider but failed", e);
         continue;
@@ -236,7 +243,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Sets a given key with a random port for the value on the site config if it doesn't already exist.
+   * Sets a given key with a random port for the value on the site config if it doesn't already
+   * exist.
    */
   private void mergePropWithRandomPort(String key) {
     if (!siteConfig.containsKey(key)) {
@@ -275,7 +283,8 @@ public class MiniAccumuloConfigImpl {
    */
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
     if (existingInstance != null && existingInstance.booleanValue())
-      throw new UnsupportedOperationException("Cannot set set config info when using an existing instance.");
+      throw new UnsupportedOperationException(
+          "Cannot set set config info when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
 
@@ -298,7 +307,8 @@ public class MiniAccumuloConfigImpl {
    */
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
     if (existingInstance != null && existingInstance.booleanValue())
-      throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
+      throw new UnsupportedOperationException(
+          "Cannot set zookeeper info when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
 
@@ -308,7 +318,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds
+   * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The
+   * default is 20000 milliseconds
    *
    * @param zooKeeperStartupTime
    *          Time to wait for ZooKeeper to startup, in milliseconds
@@ -317,7 +328,8 @@ public class MiniAccumuloConfigImpl {
    */
   public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
     if (existingInstance != null && existingInstance.booleanValue())
-      throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
+      throw new UnsupportedOperationException(
+          "Cannot set zookeeper info when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
 
@@ -326,10 +338,12 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Configure an existing ZooKeeper instance to use. Calling this method is optional. If not set, a new ZooKeeper instance is created.
+   * Configure an existing ZooKeeper instance to use. Calling this method is optional. If not set, a
+   * new ZooKeeper instance is created.
    *
    * @param existingZooKeepers
-   *          Connection string for a already-running ZooKeeper instance. A null value will turn off this feature.
+   *          Connection string for a already-running ZooKeeper instance. A null value will turn off
+   *          this feature.
    *
    * @since 1.8.0
    */
@@ -339,7 +353,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Sets the amount of memory to use in the master process. Calling this method is optional. Default memory is 128M
+   * Sets the amount of memory to use in the master process. Calling this method is optional.
+   * Default memory is 128M
    *
    * @param serverType
    *          the type of server to apply the memory settings
@@ -351,14 +366,15 @@ public class MiniAccumuloConfigImpl {
    *
    * @since 1.6.0
    */
-  public MiniAccumuloConfigImpl setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
+  public MiniAccumuloConfigImpl setMemory(ServerType serverType, long memory,
+      MemoryUnit memoryUnit) {
     this.memoryConfig.put(serverType, memoryUnit.toBytes(memory));
     return this;
   }
 
   /**
-   * Sets the default memory size to use. This value is also used when a ServerType has not been configured explicitly. Calling this method is optional. Default
-   * memory is 128M
+   * Sets the default memory size to use. This value is also used when a ServerType has not been
+   * configured explicitly. Calling this method is optional. Default memory is 128M
    *
    * @param memory
    *          amount of memory to set
@@ -523,16 +539,18 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Configures this cluster to use miniDFS instead of the local {@link FileSystem}. Using this feature will not allow you to re-start
-   * {@link MiniAccumuloCluster} by calling {@link MiniAccumuloCluster#start()} after {@link MiniAccumuloCluster#stop()}, because the underlying miniDFS cannot
-   * be restarted.
+   * Configures this cluster to use miniDFS instead of the local {@link FileSystem}. Using this
+   * feature will not allow you to re-start {@link MiniAccumuloCluster} by calling
+   * {@link MiniAccumuloCluster#start()} after {@link MiniAccumuloCluster#stop()}, because the
+   * underlying miniDFS cannot be restarted.
    */
   public void useMiniDFS(boolean useMiniDFS) {
     this.useMiniDFS = useMiniDFS;
   }
 
   /**
-   * @return location of client conf file containing connection parameters for connecting to this minicluster
+   * @return location of client conf file containing connection parameters for connecting to this
+   *         minicluster
    *
    * @since 1.6.0
    */
@@ -626,12 +644,14 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Informs MAC that it's running against an existing accumulo instance. It is assumed that it's already initialized and hdfs/zookeeper are already running.
+   * Informs MAC that it's running against an existing accumulo instance. It is assumed that it's
+   * already initialized and hdfs/zookeeper are already running.
    *
    * @param accumuloSite
    *          a File representation of the accumulo-site.xml file for the instance being run
    * @param hadoopConfDir
-   *          a File representation of the hadoop configuration directory containing core-site.xml and hdfs-site.xml
+   *          a File representation of the hadoop configuration directory containing core-site.xml
+   *          and hdfs-site.xml
    *
    * @return MiniAccumuloConfigImpl which uses an existing accumulo configuration
    *
@@ -640,9 +660,11 @@ public class MiniAccumuloConfigImpl {
    * @throws IOException
    *           when there are issues converting the provided Files to URLs
    */
-  public MiniAccumuloConfigImpl useExistingInstance(File accumuloSite, File hadoopConfDir) throws IOException {
+  public MiniAccumuloConfigImpl useExistingInstance(File accumuloSite, File hadoopConfDir)
+      throws IOException {
     if (existingInstance != null && !existingInstance.booleanValue())
-      throw new UnsupportedOperationException("Cannot set to useExistingInstance after specifying config/zookeeper");
+      throw new UnsupportedOperationException(
+          "Cannot set to useExistingInstance after specifying config/zookeeper");
 
     this.existingInstance = Boolean.TRUE;
 

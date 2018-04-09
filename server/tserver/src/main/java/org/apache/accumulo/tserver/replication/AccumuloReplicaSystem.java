@@ -160,11 +160,14 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   @Override
-  public Status replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper) {
+  public Status replicate(final Path p, final Status status, final ReplicationTarget target,
+      final ReplicaSystemHelper helper) {
     final Instance localInstance = HdfsZooInstance.getInstance();
-    final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance).getConfiguration();
+    final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance)
+        .getConfiguration();
 
-    log.debug("Replication RPC timeout is {}", localConf.get(Property.REPLICATION_RPC_TIMEOUT.getKey()));
+    log.debug("Replication RPC timeout is {}",
+        localConf.get(Property.REPLICATION_RPC_TIMEOUT.getKey()));
 
     final String principal = getPrincipal(localConf, target);
     final File keytab;
@@ -186,7 +189,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       try {
         final UserGroupInformation accumuloUgi = UserGroupInformation.getCurrentUser();
         // Get a UGI with the principal + keytab
-        UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab.getAbsolutePath());
+        UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal,
+            keytab.getAbsolutePath());
 
         // Run inside a doAs to avoid nuking the Tserver's user
         return ugi.doAs(new PrivilegedAction<Status>() {
@@ -234,8 +238,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
    *          The ClientContext to connect to the peer
    * @return The new (or unchanged) Status for the WAL
    */
-  private Status _replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper,
-      final AccumuloConfiguration localConf, final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
+  private Status _replicate(final Path p, final Status status, final ReplicationTarget target,
+      final ReplicaSystemHelper helper, final AccumuloConfiguration localConf,
+      final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
     try {
       double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
       ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
@@ -254,17 +259,20 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         Span span = Trace.start("Fetch peer tserver");
         try {
           // Ask the master on the remote what TServer we should talk with to replicate the data
-          peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
+          peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
+              new ClientExecReturn<String,ReplicationCoordinator.Client>() {
 
-            @Override
-            public String execute(ReplicationCoordinator.Client client) throws Exception {
-              return client.getServicerAddress(remoteTableId, peerContext.rpcCreds());
-            }
+                @Override
+                public String execute(ReplicationCoordinator.Client client) throws Exception {
+                  return client.getServicerAddress(remoteTableId, peerContext.rpcCreds());
+                }
 
-          });
+              });
         } catch (AccumuloException | AccumuloSecurityException e) {
           // No progress is made
-          log.error("Could not connect to master at {}, cannot proceed with replication. Will retry", target, e);
+          log.error(
+              "Could not connect to master at {}, cannot proceed with replication. Will retry",
+              target, e);
           continue;
         } finally {
           span.stop();
@@ -272,7 +280,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
         if (null == peerTserverStr) {
           // Something went wrong, and we didn't get a valid tserver from the remote for some reason
-          log.warn("Did not receive tserver from master at {}, cannot proceed with replication. Will retry.", target);
+          log.warn("Did not receive tserver from master at {}, cannot proceed"
+              + " with replication. Will retry.", target);
           continue;
         }
 
@@ -287,21 +296,23 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           if (p.getName().endsWith(RFILE_SUFFIX)) {
             span = Trace.start("RFile replication");
             try {
-              finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper, timeout);
+              finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, sizeLimit,
+                  remoteTableId, peerContext.rpcCreds(), helper, timeout);
             } finally {
               span.stop();
             }
           } else {
             span = Trace.start("WAL replication");
             try {
-              finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi,
-                  timeout);
+              finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit,
+                  remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi, timeout);
             } finally {
               span.stop();
             }
           }
 
-          log.debug("New status for {} after replicating to {} is {}", p, peerContext.getInstance(), ProtobufUtil.toString(finalStatus));
+          log.debug("New status for {} after replicating to {} is {}", p, peerContext.getInstance(),
+              ProtobufUtil.toString(finalStatus));
 
           return finalStatus;
         } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
@@ -310,7 +321,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         }
       }
 
-      log.info("No progress was made after {} attempts to replicate {}, returning so file can be re-queued", numAttempts, p);
+      log.info("No progress was made after {} attempts to replicate {},"
+          + " returning so file can be re-queued", numAttempts, p);
 
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
@@ -319,15 +331,18 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, long timeout) throws TTransportException,
-      AccumuloException, AccumuloSecurityException {
+  protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver,
+      final ReplicationTarget target, final Path p, final Status status, final long sizeLimit,
+      final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper,
+      long timeout) throws TTransportException, AccumuloException, AccumuloSecurityException {
     try (final DataInputStream input = getRFileInputStream(p)) {
       Status lastStatus = status, currentStatus = status;
       while (true) {
         // Read and send a batch of mutations
-        ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new RFileClientExecReturn(target, input, p,
-            currentStatus, sizeLimit, remoteTableId, tcreds), timeout);
+        ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext,
+            peerTserver, new RFileClientExecReturn(target, input, p, currentStatus, sizeLimit,
+                remoteTableId, tcreds),
+            timeout);
 
         // Catch the overflow
         long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
@@ -337,7 +352,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
         currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
 
-        log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
+        log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target,
+            ProtobufUtil.toString(currentStatus));
 
         // If we got a different status
         if (!currentStatus.equals(lastStatus)) {
@@ -349,9 +365,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             lastStatus = currentStatus;
           }
         } else {
-          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
+          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
+              ProtobufUtil.toString(lastStatus));
 
-          // otherwise, we didn't actually replicate (likely because there was error sending the data)
+          // otherwise, we didn't actually replicate (likely because there was error sending the
+          // data)
           // we can just not record any updates, and it will be picked up again by the work assigner
           return status;
         }
@@ -362,19 +380,24 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateLogs(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, final UserGroupInformation accumuloUgi,
-      long timeout) throws TTransportException, AccumuloException, AccumuloSecurityException {
+  protected Status replicateLogs(ClientContext peerContext, final HostAndPort peerTserver,
+      final ReplicationTarget target, final Path p, final Status status, final long sizeLimit,
+      final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper,
+      final UserGroupInformation accumuloUgi, long timeout)
+      throws TTransportException, AccumuloException, AccumuloSecurityException {
 
     log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
-    try (final FSDataInputStream fsinput = fs.open(p); final DataInputStream input = getWalStream(p, fsinput)) {
+    try (final FSDataInputStream fsinput = fs.open(p);
+        final DataInputStream input = getWalStream(p, fsinput)) {
       log.debug("Skipping unwanted data in WAL");
       Span span = Trace.start("Consume WAL prefix");
       span.data("file", p.toString());
       try {
-        // We want to read all records in the WAL up to the "begin" offset contained in the Status message,
-        // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future mutations
+        // We want to read all records in the WAL up to the "begin" offset contained in the Status
+        // message,
+        // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future
+        // mutations
         tids = consumeWalPrefix(target, input, p, status, sizeLimit);
       } catch (IOException e) {
         log.warn("Unexpected error consuming file.");
@@ -399,10 +422,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         ReplicationStats replResult;
         try {
           // Read and send a batch of mutations
-          replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new WalClientExecReturn(target, input, p, currentStatus,
-              sizeLimit, remoteTableId, tcreds, tids), timeout);
+          replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver,
+              new WalClientExecReturn(target, input, p, currentStatus, sizeLimit, remoteTableId,
+                  tcreds, tids),
+              timeout);
         } catch (Exception e) {
-          log.error("Caught exception replicating data to {} at {}", peerContext.getInstance().getInstanceName(), peerTserver, e);
+          log.error("Caught exception replicating data to {} at {}",
+              peerContext.getInstance().getInstanceName(), peerTserver, e);
           throw e;
         } finally {
           span.stop();
@@ -416,7 +442,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
         currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
 
-        log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
+        log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target,
+            ProtobufUtil.toString(currentStatus));
 
         // If we got a different status
         if (!currentStatus.equals(lastStatus)) {
@@ -451,7 +478,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               helper.recordNewStatus(p, currentStatus, target);
             }
           } catch (TableNotFoundException e) {
-            log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(currentStatus), e);
+            log.error(
+                "Tried to update status in replication table for {} as"
+                    + " {}, but the table did not exist",
+                p, ProtobufUtil.toString(currentStatus), e);
             throw new RuntimeException("Replication table did not exist, will retry", e);
           } finally {
             span.stop();
@@ -467,15 +497,18 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             lastStatus = currentStatus;
           }
         } else {
-          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
+          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target,
+              ProtobufUtil.toString(lastStatus));
 
-          // otherwise, we didn't actually replicate (likely because there was error sending the data)
+          // otherwise, we didn't actually replicate (likely because there was error sending the
+          // data)
           // we can just not record any updates, and it will be picked up again by the work assigner
           return status;
         }
       }
     } catch (LogHeaderIncompleteException e) {
-      log.warn("Could not read header from {}, assuming that there is no data present in the WAL, therefore replication is complete", p);
+      log.warn("Could not read header from {}, assuming that there is no data"
+          + " present in the WAL, therefore replication is complete", p);
       Status newStatus;
       // Bump up the begin to the (infinite) end, trying to be accurate
       if (status.getInfiniteEnd()) {
@@ -487,7 +520,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       try {
         helper.recordNewStatus(p, newStatus, target);
       } catch (TableNotFoundException tnfe) {
-        log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(newStatus), e);
+        log.error(
+            "Tried to update status in replication table for {} as {}, but the table did not exist",
+            p, ProtobufUtil.toString(newStatus), e);
         throw new RuntimeException("Replication table did not exist, will retry", e);
       } finally {
         span.stop();
@@ -500,7 +535,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected class WalClientExecReturn implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
+  protected class WalClientExecReturn
+      implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
 
     private ReplicationTarget target;
     private DataInputStream input;
@@ -511,8 +547,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private TCredentials tcreds;
     private Set<Integer> tids;
 
-    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId,
-        TCredentials tcreds, Set<Integer> tids) {
+    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p,
+        Status status, long sizeLimit, String remoteTableId, TCredentials tcreds,
+        Set<Integer> tids) {
       this.target = target;
       this.input = input;
       this.p = p;
@@ -527,24 +564,29 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     public ReplicationStats execute(Client client) throws Exception {
       WalReplication edits = getWalEdits(target, input, p, status, sizeLimit, tids);
 
-      log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'",
-          (Long.MAX_VALUE == edits.entriesConsumed) ? "all remaining" : edits.entriesConsumed, edits.sizeInBytes, p);
+      log.debug(
+          "Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'",
+          (Long.MAX_VALUE == edits.entriesConsumed) ? "all remaining" : edits.entriesConsumed,
+          edits.sizeInBytes, p);
 
       // If we have some edits to send
       if (0 < edits.walEdits.getEditsSize()) {
         log.debug("Sending {} edits", edits.walEdits.getEditsSize());
         long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
         if (entriesReplicated != edits.numUpdates) {
-          log.warn("Sent {} WAL entries for replication but {} were reported as replicated", edits.numUpdates, entriesReplicated);
+          log.warn("Sent {} WAL entries for replication but {} were reported as replicated",
+              edits.numUpdates, entriesReplicated);
         } else {
           log.debug("Replicated {} edits", entriesReplicated);
         }
 
         // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
-        // want to track progress in the file relative to all LogEvents (to avoid duplicative processing/replication)
+        // want to track progress in the file relative to all LogEvents (to avoid duplicative
+        // processing/replication)
         return edits;
       } else if (edits.entriesConsumed > 0) {
-        // Even if we send no data, we want to record a non-zero new begin value to avoid checking the same
+        // Even if we send no data, we want to record a non-zero new begin value to avoid checking
+        // the same
         // log entries multiple times to determine if they should be sent
         return edits;
       }
@@ -554,7 +596,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected class RFileClientExecReturn implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
+  protected class RFileClientExecReturn
+      implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
 
     private ReplicationTarget target;
     private DataInputStream input;
@@ -564,8 +607,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private String remoteTableId;
     private TCredentials tcreds;
 
-    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId,
-        TCredentials tcreds) {
+    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p,
+        Status status, long sizeLimit, String remoteTableId, TCredentials tcreds) {
       this.target = target;
       this.input = input;
       this.p = p;
@@ -581,7 +624,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       if (0 < kvs.keyValues.getKeyValuesSize()) {
         long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues, tcreds);
         if (entriesReplicated != kvs.keyValues.getKeyValuesSize()) {
-          log.warn("Sent {} KeyValue entries for replication but only {} were reported as replicated", kvs.keyValues.getKeyValuesSize(), entriesReplicated);
+          log.warn(
+              "Sent {} KeyValue entries for replication but only {} were reported as replicated",
+              kvs.keyValues.getKeyValuesSize(), entriesReplicated);
         }
 
         // Not as important to track as WALs because we don't skip any KVs in an RFile
@@ -597,8 +642,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(localConf);
     requireNonNull(target);
 
-    Map<String,String> peerPasswords = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
-    String password = peerPasswords.get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
+    Map<String,String> peerPasswords = localConf
+        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
+    String password = peerPasswords
+        .get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
     if (null == password) {
       throw new IllegalArgumentException("Cannot get password for " + target.getPeerName());
     }
@@ -609,8 +656,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(localConf);
     requireNonNull(target);
 
-    Map<String,String> peerKeytabs = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
-    String keytab = peerKeytabs.get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
+    Map<String,String> peerKeytabs = localConf
+        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
+    String keytab = peerKeytabs
+        .get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
     if (null == keytab) {
       throw new IllegalArgumentException("Cannot get keytab for " + target.getPeerName());
     }
@@ -623,7 +672,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     String peerName = target.getPeerName();
     String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName;
-    Map<String,String> peerUsers = localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
+    Map<String,String> peerUsers = localConf
+        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
 
     String user = peerUsers.get(userKey);
     if (null == user) {
@@ -632,7 +682,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return user;
   }
 
-  protected ClientContext getContextForPeer(AccumuloConfiguration localConf, ReplicationTarget target, String principal, AuthenticationToken token) {
+  protected ClientContext getContextForPeer(AccumuloConfiguration localConf,
+      ReplicationTarget target, String principal, AuthenticationToken token) {
     requireNonNull(localConf);
     requireNonNull(target);
     requireNonNull(principal);
@@ -645,12 +696,14 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return new ZooKeeperInstance(instanceName, zookeepers);
   }
 
-  protected RFileReplication getKeyValues(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit) {
+  protected RFileReplication getKeyValues(ReplicationTarget target, DataInputStream input, Path p,
+      Status status, long sizeLimit) {
     // TODO ACCUMULO-2580 Implement me
     throw new UnsupportedOperationException();
   }
 
-  protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit) throws IOException {
+  protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal, Path p,
+      Status status, long sizeLimit) throws IOException {
     Set<Integer> tids = new HashSet<>();
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
@@ -689,8 +742,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit, Set<Integer> desiredTids)
-      throws IOException {
+  protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p,
+      Status status, long sizeLimit, Set<Integer> desiredTids) throws IOException {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<>();
     long size = 0l;
@@ -706,7 +759,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       } catch (EOFException e) {
         log.debug("Caught EOFException reading {}", p);
         if (status.getInfiniteEnd() && status.getClosed()) {
-          log.debug("{} is closed and has unknown length, assuming entire file has been consumed", p);
+          log.debug("{} is closed and has unknown length, assuming entire file has been consumed",
+              p);
           entriesConsumed = Long.MAX_VALUE;
         }
         break;
@@ -741,7 +795,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           }
           break;
         default:
-          log.trace("Ignorning WAL entry which doesn't contain mutations, should not have received such entries");
+          log.trace("Ignorning WAL entry which doesn't contain mutations,"
+              + " should not have received such entries");
           break;
       }
     }
@@ -750,11 +805,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   /**
-   * Wrapper around {@link LogFileValue#write(java.io.DataOutput)} which does not serialize {@link Mutation}s that do not need to be replicate to the given
-   * {@link ReplicationTarget}
+   * Wrapper around {@link LogFileValue#write(java.io.DataOutput)} which does not serialize
+   * {@link Mutation}s that do not need to be replicate to the given {@link ReplicationTarget}
    */
-  protected long writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
-    // TODO This works like LogFileValue, and needs to be parsable by it, which makes this serialization brittle.
+  protected long writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value,
+      ReplicationTarget target) throws IOException {
+    // TODO This works like LogFileValue, and needs to be parsable by it, which makes this
+    // serialization brittle.
     // see matching TODO in BatchWriterReplicationReplayer
 
     int mutationsToSend = 0;
@@ -766,7 +823,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     int mutationsRemoved = value.mutations.size() - mutationsToSend;
     if (mutationsRemoved > 0) {
-      log.debug("Removing {} mutations from WAL entry as they have already been replicated to {}", mutationsRemoved, target.getPeerName());
+      log.debug("Removing {} mutations from WAL entry as they have already been replicated to {}",
+          mutationsRemoved, target.getPeerName());
     }
 
     // Add our name, and send it
@@ -824,7 +882,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       if (o != null) {
         if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
           ReplicationStats other = (ReplicationStats) o;
-          return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords && entriesConsumed == other.entriesConsumed;
+          return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords
+              && entriesConsumed == other.entriesConsumed;
         }
       }
       return false;
@@ -844,7 +903,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   /**
-   * A "struct" to avoid a nested Entry. Contains the resultant information from collecting data for replication
+   * A "struct" to avoid a nested Entry. Contains the resultant information from collecting data for
+   * replication
    */
   public static class WalReplication extends ReplicationStats {
     /**
@@ -873,7 +933,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       if (o instanceof WalReplication) {
         WalReplication other = (WalReplication) o;
 
-        return super.equals(other) && walEdits.equals(other.walEdits) && numUpdates == other.numUpdates;
+        return super.equals(other) && walEdits.equals(other.walEdits)
+            && numUpdates == other.numUpdates;
       }
 
       return false;

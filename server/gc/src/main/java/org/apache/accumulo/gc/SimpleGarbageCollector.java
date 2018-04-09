@@ -124,14 +124,16 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    * Options for the garbage collector.
    */
   static class Opts extends ServerOpts {
-    @Parameter(names = {"-v", "--verbose"}, description = "extra information will get printed to stdout also")
+    @Parameter(names = {"-v", "--verbose"},
+        description = "extra information will get printed to stdout also")
     boolean verbose = false;
     @Parameter(names = {"-s", "--safemode"}, description = "safe mode will not delete files")
     boolean safeMode = false;
   }
 
   /**
-   * A fraction representing how much of the JVM's available memory should be used for gathering candidates.
+   * A fraction representing how much of the JVM's available memory should be used for gathering
+   * candidates.
    */
   static final float CANDIDATE_MEMORY_PERCENTAGE = 0.50f;
 
@@ -141,7 +143,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   private Opts opts = new Opts();
   private ZooLock lock;
 
-  private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
+  private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(),
+      new GcCycleStats());
 
   public static void main(String[] args) throws UnknownHostException, IOException {
     final String app = "gc";
@@ -172,7 +175,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    * @param opts
    *          options
    */
-  public SimpleGarbageCollector(Opts opts, VolumeManager fs, ServerConfigurationFactory confFactory) {
+  public SimpleGarbageCollector(Opts opts, VolumeManager fs,
+      ServerConfigurationFactory confFactory) {
     super(confFactory);
     this.opts = opts;
     this.fs = fs;
@@ -182,7 +186,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("time delay: " + gcDelay + " milliseconds");
     log.info("safemode: " + opts.safeMode);
     log.info("verbose: " + opts.verbose);
-    log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
+    log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of "
+        + Runtime.getRuntime().maxMemory() + " bytes");
     log.info("delete threads: " + getNumDeleteThreads());
   }
 
@@ -247,13 +252,16 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
 
     @Override
-    public boolean getCandidates(String continuePoint, List<String> result) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them,
+    public boolean getCandidates(String continuePoint, List<String> result)
+        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing
+      // them,
       // then will never inspect deletes after N
       Range range = MetadataSchema.DeletesSection.getRange();
       if (continuePoint != null && !continuePoint.isEmpty()) {
         String continueRow = MetadataSchema.DeletesSection.getRowPrefix() + continuePoint;
-        range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true, range.getEndKey(), range.isEndKeyInclusive());
+        range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true,
+            range.getEndKey(), range.isEndKeyInclusive());
       }
 
       Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
@@ -261,10 +269,12 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       result.clear();
       // find candidates for deletion; chop off the prefix
       for (Entry<Key,Value> entry : scanner) {
-        String cand = entry.getKey().getRow().toString().substring(MetadataSchema.DeletesSection.getRowPrefix().length());
+        String cand = entry.getKey().getRow().toString()
+            .substring(MetadataSchema.DeletesSection.getRowPrefix().length());
         result.add(cand);
         if (almostOutOfMemory(Runtime.getRuntime())) {
-          log.info("List of delete candidates has exceeded the memory threshold. Attempting to delete what has been gathered so far.");
+          log.info("List of delete candidates has exceeded the memory"
+              + " threshold. Attempting to delete what has been gathered so far.");
           return true;
         }
       }
@@ -273,34 +283,41 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
 
     @Override
-    public Iterator<String> getBlipIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public Iterator<String> getBlipIterator()
+        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       @SuppressWarnings("resource")
-      IsolatedScanner scanner = new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
+      IsolatedScanner scanner = new IsolatedScanner(
+          getConnector().createScanner(tableName, Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
       return Iterators.transform(scanner.iterator(), new Function<Entry<Key,Value>,String>() {
         @Override
         public String apply(Entry<Key,Value> entry) {
-          return entry.getKey().getRow().toString().substring(MetadataSchema.BlipSection.getRowPrefix().length());
+          return entry.getKey().getRow().toString()
+              .substring(MetadataSchema.BlipSection.getRowPrefix().length());
         }
       });
     }
 
     @Override
-    public Iterator<Entry<Key,Value>> getReferenceIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      IsolatedScanner scanner = new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
+    public Iterator<Entry<Key,Value>> getReferenceIterator()
+        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      IsolatedScanner scanner = new IsolatedScanner(
+          getConnector().createScanner(tableName, Authorizations.EMPTY));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(ScanFileColumnFamily.NAME);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-      TabletIterator tabletIterator = new TabletIterator(scanner, MetadataSchema.TabletsSection.getRange(), false, true);
+      TabletIterator tabletIterator = new TabletIterator(scanner,
+          MetadataSchema.TabletsSection.getRange(), false, true);
 
-      return Iterators.concat(Iterators.transform(tabletIterator, new Function<Map<Key,Value>,Iterator<Entry<Key,Value>>>() {
-        @Override
-        public Iterator<Entry<Key,Value>> apply(Map<Key,Value> input) {
-          return input.entrySet().iterator();
-        }
-      }));
+      return Iterators.concat(Iterators.transform(tabletIterator,
+          new Function<Map<Key,Value>,Iterator<Entry<Key,Value>>>() {
+            @Override
+            public Iterator<Entry<Key,Value>> apply(Map<Key,Value> input) {
+              return input.entrySet().iterator();
+            }
+          }));
     }
 
     @Override
@@ -309,11 +326,13 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
 
     @Override
-    public void delete(SortedMap<String,String> confirmedDeletes) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public void delete(SortedMap<String,String> confirmedDeletes)
+        throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
       if (opts.safeMode) {
         if (opts.verbose)
-          System.out.println("SAFEMODE: There are " + confirmedDeletes.size() + " data file candidates marked for deletion.%n"
+          System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
+              + " data file candidates marked for deletion.%n"
               + "          Examine the log files to identify them.%n");
         log.info("SAFEMODE: Listing all data file candidates for deletion");
         for (String s : confirmedDeletes.values())
@@ -355,7 +374,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       final BatchWriter finalWriter = writer;
 
-      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
+      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(),
+          new NamingThreadFactory("deleting"));
 
       final List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
 
@@ -370,10 +390,14 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
               Path fullPath;
               String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
               if (switchedDelete != null) {
-                // actually replacing the volumes in the metadata table would be tricky because the entries would be different rows. So it could not be
-                // atomically in one mutation and extreme care would need to be taken that delete entry was not lost. Instead of doing that, just deal with
-                // volume switching when something needs to be deleted. Since the rest of the code uses suffixes to compare delete entries, there is no danger
-                // of deleting something that should not be deleted. Must not change value of delete variable because thats whats stored in metadata table.
+                // actually replacing the volumes in the metadata table would be tricky because the
+                // entries would be different rows. So it could not be
+                // atomically in one mutation and extreme care would need to be taken that delete
+                // entry was not lost. Instead of doing that, just deal with
+                // volume switching when something needs to be deleted. Since the rest of the code
+                // uses suffixes to compare delete entries, there is no danger
+                // of deleting something that should not be deleted. Must not change value of delete
+                // variable because thats whats stored in metadata table.
                 log.debug("Volume replaced " + delete + " -> " + switchedDelete);
                 fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
               } else {
@@ -482,27 +506,29 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
 
     @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException {
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator()
+        throws AccumuloException, AccumuloSecurityException {
       Connector conn = getConnector();
       try {
         Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
-        return Iterators.transform(s.iterator(), new Function<Entry<Key,Value>,Entry<String,Status>>() {
+        return Iterators.transform(s.iterator(),
+            new Function<Entry<Key,Value>,Entry<String,Status>>() {
 
-          @Override
-          public Entry<String,Status> apply(Entry<Key,Value> input) {
-            String file = input.getKey().getRow().toString();
-            Status stat;
-            try {
-              stat = Status.parseFrom(input.getValue().get());
-            } catch (InvalidProtocolBufferException e) {
-              log.warn("Could not deserialize protobuf for: " + input.getKey());
-              stat = null;
-            }
-            return Maps.immutableEntry(file, stat);
-          }
+              @Override
+              public Entry<String,Status> apply(Entry<Key,Value> input) {
+                String file = input.getKey().getRow().toString();
+                Status stat;
+                try {
+                  stat = Status.parseFrom(input.getValue().get());
+                } catch (InvalidProtocolBufferException e) {
+                  log.warn("Could not deserialize protobuf for: " + input.getKey());
+                  stat = null;
+                }
+                return Maps.immutableEntry(file, stat);
+              }
 
-        });
+            });
       } catch (ReplicationTableOfflineException e) {
         // No elements that we need to preclude
         return Collections.emptyIterator();
@@ -527,14 +553,16 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     try {
       long delay = getStartDelay();
-      log.debug("Sleeping for " + delay + " milliseconds before beginning garbage collection cycles");
+      log.debug(
+          "Sleeping for " + delay + " milliseconds before beginning garbage collection cycles");
       Thread.sleep(delay);
     } catch (InterruptedException e) {
       log.warn("{}", e.getMessage(), e);
       return;
     }
 
-    ProbabilitySampler sampler = new ProbabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
+    ProbabilitySampler sampler = new ProbabilitySampler(
+        getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     while (true) {
       Trace.on("gc", sampler);
@@ -565,7 +593,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       tStop = System.currentTimeMillis();
       log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
 
-      // We want to prune references to fully-replicated WALs from the replication table which are no longer referenced in the metadata table
+      // We want to prune references to fully-replicated WALs from the replication table which are
+      // no longer referenced in the metadata table
       // before running GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
       Span replSpan = Trace.start("replicationClose");
       try {
@@ -579,7 +608,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs, isUsingTrash());
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs,
+            isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
@@ -611,8 +641,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   }
 
   /**
-   * Moves a file to trash. If this garbage collector is not using trash, this method returns false and leaves the file alone. If the file is missing, this
-   * method returns false as opposed to throwing an exception.
+   * Moves a file to trash. If this garbage collector is not using trash, this method returns false
+   * and leaves the file alone. If the file is missing, this method returns false as opposed to
+   * throwing an exception.
    *
    * @return true if the file was moved to trash
    * @throws IOException
@@ -671,7 +702,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     // Preserve the path beneath the Volume's base directory (e.g. tables/1/A_0000001.rf)
     Path fileArchivePath = new Path(archivePath, relativeVolumePath);
 
-    log.debug("Create full path of " + fileArchivePath + " from " + archivePath + " and " + relativeVolumePath);
+    log.debug("Create full path of " + fileArchivePath + " from " + archivePath + " and "
+        + relativeVolumePath);
 
     // Make sure that it doesn't already exist, something is wrong.
     if (fs.exists(fileArchivePath)) {
@@ -708,7 +740,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     while (true) {
       lock = new ZooLock(path);
-      if (lock.tryLock(lockWatcher, new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
+      if (lock.tryLock(lockWatcher,
+          new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");
         return;
       }
@@ -730,9 +763,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server = TServerUtils.startTServer(getConfiguration(), getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2, getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, getServerSslParams(),
-          getSaslParams(), 0, addresses);
+      ServerAddress server = TServerUtils.startTServer(getConfiguration(), getThriftServerType(),
+          processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
+          getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
+          maxMessageSize, getServerSslParams(), getSaslParams(), 0, addresses);
       log.debug("Starting garbage collector listening on " + server.address);
       return server.address;
     } catch (Exception ex) {
@@ -751,10 +785,12 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    * @see #CANDIDATE_MEMORY_PERCENTAGE
    */
   static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
+    return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE
+        * runtime.maxMemory();
   }
 
-  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer) throws MutationsRejectedException {
+  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer)
+      throws MutationsRejectedException {
     Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + delete);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
     writer.addMutation(m);

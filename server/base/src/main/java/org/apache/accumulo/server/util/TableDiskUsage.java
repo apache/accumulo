@@ -138,7 +138,8 @@ public class TableDiskUsage {
       externalUsage.put(externalKey, entry.getValue());
     }
 
-    // mapping of all enumerations of files being referenced by tables and total size of files who share the same reference
+    // mapping of all enumerations of files being referenced by tables and total size of files who
+    // share the same reference
     return externalUsage;
   }
 
@@ -146,7 +147,8 @@ public class TableDiskUsage {
     void print(String line);
   }
 
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, VolumeManager fs, Connector conn, boolean humanReadable)
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables,
+      VolumeManager fs, Connector conn, boolean humanReadable)
       throws TableNotFoundException, IOException {
     printDiskUsage(acuConf, tables, fs, conn, new Printer() {
       @Override
@@ -156,8 +158,8 @@ public class TableDiskUsage {
     }, humanReadable);
   }
 
-  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Set<String> tableIds, VolumeManager fs, Connector conn)
-      throws IOException {
+  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf,
+      Set<String> tableIds, VolumeManager fs, Connector conn) throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
 
     // Add each tableID
@@ -277,8 +279,9 @@ public class TableDiskUsage {
     return usage;
   }
 
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, VolumeManager fs, Connector conn, Printer printer,
-      boolean humanReadable) throws TableNotFoundException, IOException {
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables,
+      VolumeManager fs, Connector conn, Printer printer, boolean humanReadable)
+      throws TableNotFoundException, IOException {
 
     HashSet<String> tableIds = new HashSet<>();
 
@@ -310,7 +313,8 @@ public class TableDiskUsage {
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
     Connector conn = opts.getConnector();
-    org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(DefaultConfiguration.getInstance(), opts.tables, fs, conn, false);
+    org.apache.accumulo.server.util.TableDiskUsage
+        .printDiskUsage(DefaultConfiguration.getInstance(), opts.tables, fs, conn, false);
   }
 
 }

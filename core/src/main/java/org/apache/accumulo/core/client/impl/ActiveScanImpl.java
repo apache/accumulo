@@ -55,7 +55,9 @@ public class ActiveScanImpl extends ActiveScan {
   private String user;
   private Authorizations authorizations;
 
-  ActiveScanImpl(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan) throws TableNotFoundException {
+  ActiveScanImpl(Instance instance,
+      org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan)
+      throws TableNotFoundException {
     this.scanId = activeScan.scanId;
     this.client = activeScan.client;
     this.user = activeScan.user;
@@ -122,7 +124,8 @@ public class ActiveScanImpl extends ActiveScan {
   @Override
   @Deprecated
   public org.apache.accumulo.core.data.KeyExtent getExtent() {
-    return new org.apache.accumulo.core.data.KeyExtent(new Text(extent.getTableId()), extent.getEndRow(), extent.getPrevEndRow());
+    return new org.apache.accumulo.core.data.KeyExtent(new Text(extent.getTableId()),
+        extent.getEndRow(), extent.getPrevEndRow());
   }
 
   @Override

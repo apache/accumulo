@@ -38,10 +38,12 @@ public class LiveTServerSetTest {
     Map<String,TServerInfo> servers = new HashMap<>();
     TServerConnection mockConn = EasyMock.createMock(TServerConnection.class);
 
-    TServerInfo server1 = new TServerInfo(new TServerInstance(HostAndPort.fromParts("localhost", 1234), "5555"), mockConn);
+    TServerInfo server1 = new TServerInfo(
+        new TServerInstance(HostAndPort.fromParts("localhost", 1234), "5555"), mockConn);
     servers.put("server1", server1);
 
-    LiveTServerSet tservers = new LiveTServerSet(EasyMock.createMock(ClientContext.class), EasyMock.createMock(Listener.class));
+    LiveTServerSet tservers = new LiveTServerSet(EasyMock.createMock(ClientContext.class),
+        EasyMock.createMock(Listener.class));
 
     assertEquals(server1.instance, tservers.find(servers, "localhost:1234"));
     assertNull(tservers.find(servers, "localhost:4321"));

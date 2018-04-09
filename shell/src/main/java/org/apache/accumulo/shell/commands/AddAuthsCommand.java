@@ -36,17 +36,20 @@ public class AddAuthsCommand extends Command {
   private Option scanOptAuths;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
     final String scanOpts = cl.getOptionValue(scanOptAuths.getOpt());
-    Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
+    Authorizations auths = shellState.getConnector().securityOperations()
+        .getUserAuthorizations(user);
     StringBuilder userAuths = new StringBuilder();
     if (!auths.isEmpty()) {
       userAuths.append(auths.toString());
       userAuths.append(",");
     }
     userAuths.append(scanOpts);
-    shellState.getConnector().securityOperations().changeUserAuthorizations(user, ScanCommand.parseAuthorizations(userAuths.toString()));
+    shellState.getConnector().securityOperations().changeUserAuthorizations(user,
+        ScanCommand.parseAuthorizations(userAuths.toString()));
     Shell.log.debug("Changed record-level authorizations for user " + user);
     return 0;
   }
@@ -57,7 +60,8 @@ public class AddAuthsCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
 

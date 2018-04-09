@@ -19,8 +19,9 @@ package org.apache.accumulo.core.client.lexicoder;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
- * Unsigned long lexicoder. The lexicographic encoding sorts first 0l and -1l last. This encoding does not correspond to the sort of Long because it does not
- * consider the sign bit. If Java had an unsigned long type, this encoder would correspond to its sort order.
+ * Unsigned long lexicoder. The lexicographic encoding sorts first 0l and -1l last. This encoding
+ * does not correspond to the sort of Long because it does not consider the sign bit. If Java had an
+ * unsigned long type, this encoder would correspond to its sort order.
  *
  * @since 1.6.0
  */
@@ -76,7 +77,8 @@ public class ULongLexicoder extends AbstractLexicoder<Long> {
 
   @Override
   public Long decode(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed
+    // in 2.0. See ACCUMULO-3789.
     return super.decode(b);
   }
 }

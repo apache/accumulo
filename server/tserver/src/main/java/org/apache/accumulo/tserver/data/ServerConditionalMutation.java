@@ -28,7 +28,8 @@ import org.apache.accumulo.server.data.ServerMutation;
  */
 public class ServerConditionalMutation extends ServerMutation {
 
-  public static class TCMTranslator extends Translator<TConditionalMutation,ServerConditionalMutation> {
+  public static class TCMTranslator
+      extends Translator<TConditionalMutation,ServerConditionalMutation> {
     @Override
     public ServerConditionalMutation translate(TConditionalMutation input) {
       return new ServerConditionalMutation(input);

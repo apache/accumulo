@@ -97,7 +97,8 @@ public class Metrics2ReplicationMetricsTest {
     EasyMock.verify(master, system, fileSystem, util, stat, quantiles);
   }
 
-  private void replaceField(Object instance, String fieldName, Object target) throws NoSuchFieldException, IllegalAccessException {
+  private void replaceField(Object instance, String fieldName, Object target)
+      throws NoSuchFieldException, IllegalAccessException {
     Field field = instance.getClass().getSuperclass().getDeclaredField(fieldName);
     field.setAccessible(true);
     field.set(instance, target);

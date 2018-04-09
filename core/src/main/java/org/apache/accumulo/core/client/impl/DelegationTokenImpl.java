@@ -46,33 +46,39 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
     super();
   }
 
-  public DelegationTokenImpl(byte[] delegationTokenPassword, AuthenticationTokenIdentifier identifier) {
+  public DelegationTokenImpl(byte[] delegationTokenPassword,
+      AuthenticationTokenIdentifier identifier) {
     requireNonNull(delegationTokenPassword);
     requireNonNull(identifier);
     setPassword(delegationTokenPassword);
     this.identifier = identifier;
   }
 
-  public DelegationTokenImpl(Instance instance, UserGroupInformation user, AuthenticationTokenIdentifier identifier) {
+  public DelegationTokenImpl(Instance instance, UserGroupInformation user,
+      AuthenticationTokenIdentifier identifier) {
     requireNonNull(instance);
     requireNonNull(user);
     requireNonNull(identifier);
 
     Credentials creds = user.getCredentials();
-    Token<? extends TokenIdentifier> token = creds.getToken(new Text(SERVICE_NAME + "-" + instance.getInstanceID()));
+    Token<? extends TokenIdentifier> token = creds
+        .getToken(new Text(SERVICE_NAME + "-" + instance.getInstanceID()));
     if (null == token) {
-      throw new IllegalArgumentException("Did not find Accumulo delegation token in provided UserGroupInformation");
+      throw new IllegalArgumentException(
+          "Did not find Accumulo delegation token in provided UserGroupInformation");
     }
     setPasswordFromToken(token, identifier);
   }
 
-  public DelegationTokenImpl(Token<? extends TokenIdentifier> token, AuthenticationTokenIdentifier identifier) {
+  public DelegationTokenImpl(Token<? extends TokenIdentifier> token,
+      AuthenticationTokenIdentifier identifier) {
     requireNonNull(token);
     requireNonNull(identifier);
     setPasswordFromToken(token, identifier);
   }
 
-  private void setPasswordFromToken(Token<? extends TokenIdentifier> token, AuthenticationTokenIdentifier identifier) {
+  private void setPasswordFromToken(Token<? extends TokenIdentifier> token,
+      AuthenticationTokenIdentifier identifier) {
     if (!AuthenticationTokenIdentifier.TOKEN_KIND.equals(token.getKind())) {
       String msg = "Expected an AuthenticationTokenIdentifier but got a " + token.getKind();
       log.error(msg);
@@ -137,7 +143,8 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
 
   @Override
   public boolean equals(Object obj) {
-    // We assume we can cast obj to DelegationToken because the super.equals(obj) check ensures obj is of the same type as this
+    // We assume we can cast obj to DelegationToken because the super.equals(obj) check ensures obj
+    // is of the same type as this
     return super.equals(obj) && identifier.equals(((DelegationTokenImpl) obj).identifier);
   }
 

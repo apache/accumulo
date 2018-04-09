@@ -40,8 +40,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The test environment that is available for randomwalk tests. This includes configuration properties that are available to any randomwalk test and facilities
- * for creating client-side objects. This class is not thread-safe.
+ * The test environment that is available for randomwalk tests. This includes configuration
+ * properties that are available to any randomwalk test and facilities for creating client-side
+ * objects. This class is not thread-safe.
  */
 public class Environment {
   /**
@@ -69,11 +70,13 @@ public class Environment {
    */
   public static final String KEY_MAX_MEM = "MAX_MEM";
   /**
-   * The configuration property key for the maximum latency, in milliseconds, for the multi-table batch writer.
+   * The configuration property key for the maximum latency, in milliseconds, for the multi-table
+   * batch writer.
    */
   public static final String KEY_MAX_LATENCY = "MAX_LATENCY";
   /**
-   * The configuration property key for the number of write threads for the multi-table batch writer.
+   * The configuration property key for the number of write threads for the multi-table batch
+   * writer.
    */
   public static final String KEY_NUM_THREADS = "NUM_THREADS";
 
@@ -188,7 +191,8 @@ public class Environment {
     if (instance == null) {
       String instance = p.getProperty(KEY_INSTANCE);
       String zookeepers = p.getProperty(KEY_ZOOKEEPERS);
-      this.instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(zookeepers));
+      this.instance = new ZooKeeperInstance(
+          ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(zookeepers));
     }
     return instance;
   }
@@ -206,7 +210,8 @@ public class Environment {
   }
 
   /**
-   * Gets a multitable batch writer. The same object is reused after the first call unless it is reset.
+   * Gets a multitable batch writer. The same object is reused after the first call unless it is
+   * reset.
    *
    * @return multitable batch writer
    * @throws NumberFormatException
@@ -214,13 +219,14 @@ public class Environment {
    * @throws NumberFormatException
    *           if any configuration property cannot be parsed
    */
-  public MultiTableBatchWriter getMultiTableBatchWriter() throws AccumuloException, AccumuloSecurityException {
+  public MultiTableBatchWriter getMultiTableBatchWriter()
+      throws AccumuloException, AccumuloSecurityException {
     if (mtbw == null) {
       long maxMem = Long.parseLong(p.getProperty(KEY_MAX_MEM));
       long maxLatency = Long.parseLong(p.getProperty(KEY_MAX_LATENCY));
       int numThreads = Integer.parseInt(p.getProperty(KEY_NUM_THREADS));
-      mtbw = getConnector().createMultiTableBatchWriter(
-          new BatchWriterConfig().setMaxMemory(maxMem).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(numThreads));
+      mtbw = getConnector().createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(maxMem)
+          .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(numThreads));
     }
     return mtbw;
   }

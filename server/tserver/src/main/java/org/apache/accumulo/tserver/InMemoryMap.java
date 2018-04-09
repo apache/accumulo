@@ -110,11 +110,15 @@ public class InMemoryMap {
   public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
   public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
-  private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef = new AtomicReference<>(null);
+  // @formatter:off
+  private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
+    new AtomicReference<>(null);
+  // @formatter:on
 
   private AccumuloConfiguration config;
 
-  // defer creating sampler until first write. This was done because an empty sample map configured with no sampler will not flush after a user changes sample
+  // defer creating sampler until first write. This was done because an empty sample map configured
+  // with no sampler will not flush after a user changes sample
   // config.
   private Sampler getOrCreateSampler() {
     Pair<SamplerConfigurationImpl,Sampler> pair = samplerRef.get();
@@ -168,9 +172,10 @@ public class InMemoryMap {
   /**
    * Description of the type of SimpleMap that is created.
    * <p>
-   * If no locality groups are present, the SimpleMap is either TYPE_DEFAULT_MAP or TYPE_NATIVE_MAP_WRAPPER. If there is one more locality groups, then the
-   * InMemoryMap has an array for simple maps that either contain either TYPE_LOCALITY_GROUP_MAP which contains DefaultMaps or TYPE_LOCALITY_GROUP_MAP_NATIVE
-   * which contains NativeMapWrappers.
+   * If no locality groups are present, the SimpleMap is either TYPE_DEFAULT_MAP or
+   * TYPE_NATIVE_MAP_WRAPPER. If there is one more locality groups, then the InMemoryMap has an
+   * array for simple maps that either contain either TYPE_LOCALITY_GROUP_MAP which contains
+   * DefaultMaps or TYPE_LOCALITY_GROUP_MAP_NATIVE which contains NativeMapWrappers.
    *
    * @return String that describes the Map type
    */
@@ -227,7 +232,8 @@ public class InMemoryMap {
         Pair<SamplerConfigurationImpl,Sampler> samplerAndConf = samplerRef.get();
         if (samplerAndConf == null) {
           return EmptyIterator.EMPTY_ITERATOR;
-        } else if (samplerAndConf.getFirst() != null && samplerAndConf.getFirst().equals(samplerConfig)) {
+        } else if (samplerAndConf.getFirst() != null
+            && samplerAndConf.getFirst().equals(samplerConfig)) {
           return sample.skvIterator(null);
         } else {
           throw new SampleNotPresentException();
@@ -258,7 +264,8 @@ public class InMemoryMap {
           List<ColumnUpdate> colUpdates = m.getUpdates();
           List<ColumnUpdate> sampleColUpdates = null;
           for (ColumnUpdate cvp : colUpdates) {
-            Key k = new Key(m.getRow(), cvp.getColumnFamily(), cvp.getColumnQualifier(), cvp.getColumnVisibility(), cvp.getTimestamp(), cvp.isDeleted(), false);
+            Key k = new Key(m.getRow(), cvp.getColumnFamily(), cvp.getColumnQualifier(),
+                cvp.getColumnVisibility(), cvp.getTimestamp(), cvp.isDeleted(), false);
             if (sampler.accept(k)) {
               if (sampleColUpdates == null) {
                 sampleColUpdates = new ArrayList<>();
@@ -272,7 +279,8 @@ public class InMemoryMap {
               sampleMutations = new ArrayList<>();
             }
 
-            sampleMutations.add(new LocalityGroupUtil.PartitionedMutation(m.getRow(), sampleColUpdates));
+            sampleMutations
+                .add(new LocalityGroupUtil.PartitionedMutation(m.getRow(), sampleColUpdates));
           }
         }
 
@@ -391,7 +399,8 @@ public class InMemoryMap {
   }
 
   private static class DefaultMap implements SimpleMap {
-    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<>(new MemKeyComparator());
+    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<>(
+        new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
     private AtomicInteger size = new AtomicInteger();
 
@@ -449,8 +458,8 @@ public class InMemoryMap {
     public void mutate(List<Mutation> mutations, int kvCount) {
       for (Mutation m : mutations) {
         for (ColumnUpdate cvp : m.getUpdates()) {
-          Key newKey = new MemKey(m.getRow(), cvp.getColumnFamily(), cvp.getColumnQualifier(), cvp.getColumnVisibility(), cvp.getTimestamp(), cvp.isDeleted(),
-              false, kvCount++);
+          Key newKey = new MemKey(m.getRow(), cvp.getColumnFamily(), cvp.getColumnQualifier(),
+              cvp.getColumnVisibility(), cvp.getTimestamp(), cvp.isDeleted(), false, kvCount++);
           Value value = new Value(cvp.getValue());
           put(newKey, value);
         }
@@ -561,7 +570,8 @@ public class InMemoryMap {
     return map.size();
   }
 
-  private final Set<MemoryIterator> activeIters = Collections.synchronizedSet(new HashSet<MemoryIterator>());
+  private final Set<MemoryIterator> activeIters = Collections
+      .synchronizedSet(new HashSet<MemoryIterator>());
 
   class MemoryDataSource implements DataSource {
 
@@ -589,7 +599,8 @@ public class InMemoryMap {
       this(null, false, null, null, samplerConfig);
     }
 
-    public MemoryDataSource(MemoryDataSource parent, boolean switched, IteratorEnvironment env, AtomicBoolean iflag, SamplerConfigurationImpl samplerConfig) {
+    public MemoryDataSource(MemoryDataSource parent, boolean switched, IteratorEnvironment env,
+        AtomicBoolean iflag, SamplerConfigurationImpl samplerConfig) {
       this.parent = parent;
       this.switched = switched;
       this.env = env;
@@ -629,8 +640,8 @@ public class InMemoryMap {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = FileSystem.getLocal(conf);
 
-        reader = new RFileOperations().newReaderBuilder().forFile(memDumpFile, fs, conf).withTableConfiguration(SiteConfiguration.getInstance())
-            .seekToBeginning().build();
+        reader = new RFileOperations().newReaderBuilder().forFile(memDumpFile, fs, conf)
+            .withTableConfiguration(SiteConfiguration.getInstance()).seekToBeginning().build();
         if (iflag != null)
           reader.setInterruptFlag(iflag);
 
@@ -654,8 +665,10 @@ public class InMemoryMap {
             iter = new MemKeyConversionIterator(getReader());
           else
             synchronized (parent) {
-              // synchronize deep copy operation on parent, this prevents multiple threads from deep copying the rfile shared from parent its possible that the
-              // thread deleting an InMemoryMap and scan thread could be switching different deep copies
+              // synchronize deep copy operation on parent, this prevents multiple threads from deep
+              // copying the rfile shared from parent its possible that the
+              // thread deleting an InMemoryMap and scan thread could be switching different deep
+              // copies
               iter = new MemKeyConversionIterator(parent.getReader().deepCopy(env));
             }
         }
@@ -665,7 +678,8 @@ public class InMemoryMap {
 
     @Override
     public DataSource getDeepCopyDataSource(IteratorEnvironment env) {
-      return new MemoryDataSource(parent == null ? this : parent, switched, env, iflag, iteratorSamplerConfig);
+      return new MemoryDataSource(parent == null ? this : parent, switched, env, iflag,
+          iteratorSamplerConfig);
     }
 
     @Override
@@ -744,7 +758,8 @@ public class InMemoryMap {
 
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource(iteratorSamplerConfig);
-    // TODO seems like a bug that two MemoryDataSources are created... may need to fix in older branches
+    // TODO seems like a bug that two MemoryDataSources are created... may need to fix in older
+    // branches
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(mds);
     MemoryIterator mi = new MemoryIterator(new PartialMutationSkippingIterator(ssi, mc));
     mi.setSSI(ssi);
@@ -756,7 +771,8 @@ public class InMemoryMap {
   public SortedKeyValueIterator<Key,Value> compactionIterator() {
 
     if (nextKVCount.get() - 1 != kvCount.get())
-      throw new IllegalStateException("Memory map in unexpected state : nextKVCount = " + nextKVCount.get() + " kvCount = " + kvCount.get());
+      throw new IllegalStateException("Memory map in unexpected state : nextKVCount = "
+          + nextKVCount.get() + " kvCount = " + kvCount.get());
 
     return map.skvIterator(null);
   }
@@ -795,7 +811,8 @@ public class InMemoryMap {
           siteConf = createSampleConfig(siteConf);
         }
 
-        FileSKVWriter out = new RFileOperations().newWriterBuilder().forFile(tmpFile, fs, newConf).withTableConfiguration(siteConf).build();
+        FileSKVWriter out = new RFileOperations().newWriterBuilder().forFile(tmpFile, fs, newConf)
+            .withTableConfiguration(siteConf).build();
 
         InterruptibleIterator iter = map.skvIterator(null);
 
@@ -849,14 +866,16 @@ public class InMemoryMap {
   }
 
   private AccumuloConfiguration createSampleConfig(AccumuloConfiguration siteConf) {
-    ConfigurationCopy confCopy = new ConfigurationCopy(Iterables.filter(siteConf, new Predicate<Entry<String,String>>() {
-      @Override
-      public boolean apply(Entry<String,String> input) {
-        return !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey());
-      }
-    }));
+    ConfigurationCopy confCopy = new ConfigurationCopy(
+        Iterables.filter(siteConf, new Predicate<Entry<String,String>>() {
+          @Override
+          public boolean apply(Entry<String,String> input) {
+            return !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey());
+          }
+        }));
 
-    for (Entry<String,String> entry : samplerRef.get().getFirst().toTablePropertiesMap().entrySet()) {
+    for (Entry<String,String> entry : samplerRef.get().getFirst().toTablePropertiesMap()
+        .entrySet()) {
       confCopy.set(entry.getKey(), entry.getValue());
     }
 
@@ -867,8 +886,10 @@ public class InMemoryMap {
   private void dumpLocalityGroup(FileSKVWriter out, InterruptibleIterator iter) throws IOException {
     while (iter.hasTop() && activeIters.size() > 0) {
       // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
-      // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
-      out.append(iter.getTopKey(), MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).getKVCount()));
+      // There is no need to change the MemKey to a normal key because the kvCount info gets lost
+      // when it is written
+      out.append(iter.getTopKey(),
+          MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).getKVCount()));
       iter.next();
     }
   }

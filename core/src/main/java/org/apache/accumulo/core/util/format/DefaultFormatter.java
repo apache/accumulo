@@ -31,7 +31,8 @@ public class DefaultFormatter implements Formatter {
   protected FormatterConfig config;
 
   /** Used as default DateFormat for some static methods */
-  private static final ThreadLocal<DateFormat> formatter = DateFormatSupplier.createDefaultFormatSupplier();
+  private static final ThreadLocal<DateFormat> formatter = DateFormatSupplier
+      .createDefaultFormatSupplier();
 
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
@@ -67,7 +68,8 @@ public class DefaultFormatter implements Formatter {
 
   /**
    * if showTimestamps, will use {@link FormatterConfig.DefaultDateFormat}.<br>
-   * Preferably, use {@link DefaultFormatter#formatEntry(java.util.Map.Entry, org.apache.accumulo.core.util.format.FormatterConfig)}
+   * Preferably, use
+   * {@link DefaultFormatter#formatEntry(java.util.Map.Entry, org.apache.accumulo.core.util.format.FormatterConfig)}
    */
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
     DateFormat timestampFormat = null;
@@ -184,7 +186,8 @@ public class DefaultFormatter implements Formatter {
     return sb;
   }
 
-  static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len, int shownLength) {
+  static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len,
+      int shownLength) {
     int length = Math.min(len, shownLength);
     return DefaultFormatter.appendBytes(sb, ba, offset, length);
   }

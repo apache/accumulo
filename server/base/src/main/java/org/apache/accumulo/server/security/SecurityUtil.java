@@ -36,17 +36,20 @@ public class SecurityUtil {
   public static boolean usingKerberos = false;
 
   /**
-   * This method is for logging a server in kerberos. If this is used in client code, it will fail unless run as the accumulo keytab's owner. Instead, use
-   * {@link #login(String, String)}
+   * This method is for logging a server in kerberos. If this is used in client code, it will fail
+   * unless run as the accumulo keytab's owner. Instead, use {@link #login(String, String)}
    */
   public static void serverLogin(AccumuloConfiguration acuConf) {
-    serverLogin(acuConf, acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB), acuConf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+    serverLogin(acuConf, acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB),
+        acuConf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
   }
 
   /**
-   * Performs a Kerberos login using the given Kerberos principal and keytab if they are non-null and positive length Strings. This method automaticallys spawns
-   * a thread to renew the given ticket upon successful login using {@link Property#GENERAL_KERBEROS_RENEWAL_PERIOD} as the renewal period. This method does
-   * nothing if either {@code keyTab} or {@code principal} are null or of zero length.
+   * Performs a Kerberos login using the given Kerberos principal and keytab if they are non-null
+   * and positive length Strings. This method automaticallys spawns a thread to renew the given
+   * ticket upon successful login using {@link Property#GENERAL_KERBEROS_RENEWAL_PERIOD} as the
+   * renewal period. This method does nothing if either {@code keyTab} or {@code principal} are null
+   * or of zero length.
    *
    * @param acuConf
    *          The Accumulo configuration
@@ -66,28 +69,32 @@ public class SecurityUtil {
 
     if (login(principal, keyTab)) {
       try {
-        startTicketRenewalThread(UserGroupInformation.getCurrentUser(), acuConf.getTimeInMillis(Property.GENERAL_KERBEROS_RENEWAL_PERIOD));
+        startTicketRenewalThread(UserGroupInformation.getCurrentUser(),
+            acuConf.getTimeInMillis(Property.GENERAL_KERBEROS_RENEWAL_PERIOD));
         return;
       } catch (IOException e) {
         log.error("Failed to obtain Kerberos user after successfully logging in", e);
       }
     }
 
-    throw new RuntimeException("Failed to perform Kerberos login for " + principal + " using  " + keyTab);
+    throw new RuntimeException(
+        "Failed to perform Kerberos login for " + principal + " using  " + keyTab);
   }
 
   /**
    * This will log in the given user in kerberos.
    *
    * @param principalConfig
-   *          This is the principals name in the format NAME/HOST@REALM. {@link org.apache.hadoop.security.SecurityUtil#HOSTNAME_PATTERN} will automatically be
+   *          This is the principals name in the format NAME/HOST@REALM.
+   *          {@link org.apache.hadoop.security.SecurityUtil#HOSTNAME_PATTERN} will automatically be
    *          replaced by the systems host name.
    * @return true if login succeeded, otherwise false
    */
   static boolean login(String principalConfig, String keyTabPath) {
     try {
       String principalName = getServerPrincipal(principalConfig);
-      if (keyTabPath != null && principalName != null && keyTabPath.length() != 0 && principalName.length() != 0) {
+      if (keyTabPath != null && principalName != null && keyTabPath.length() != 0
+          && principalName.length() != 0) {
         log.info("Attempting to login with keytab as " + principalName);
         UserGroupInformation.loginUserFromKeytab(principalName, keyTabPath);
         log.info("Succesfully logged in as user " + principalName);
@@ -104,9 +111,11 @@ public class SecurityUtil {
    */
   public static String getServerPrincipal(String configuredPrincipal) {
     try {
-      return org.apache.hadoop.security.SecurityUtil.getServerPrincipal(configuredPrincipal, InetAddress.getLocalHost().getCanonicalHostName());
+      return org.apache.hadoop.security.SecurityUtil.getServerPrincipal(configuredPrincipal,
+          InetAddress.getLocalHost().getCanonicalHostName());
     } catch (IOException e) {
-      throw new RuntimeException("Could not convert configured server principal: " + configuredPrincipal, e);
+      throw new RuntimeException(
+          "Could not convert configured server principal: " + configuredPrincipal, e);
     }
   }
 
@@ -125,7 +134,8 @@ public class SecurityUtil {
         while (true) {
           try {
             renewalLog.debug("Invoking renewal attempt for Kerberos ticket");
-            // While we run this "frequently", the Hadoop implementation will only perform the login at 80% of ticket lifetime.
+            // While we run this "frequently", the Hadoop implementation will only perform the login
+            // at 80% of ticket lifetime.
             ugi.checkTGTAndReloginFromKeytab();
           } catch (IOException e) {
             // Should failures to renew the ticket be retried more quickly?

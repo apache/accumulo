@@ -25,7 +25,8 @@ import java.util.List;
  */
 public enum SystemPermission {
   /*
-   * One may add new permissions, but new permissions must use new numbers. Current numbers in use must not be changed.
+   * One may add new permissions, but new permissions must use new numbers. Current numbers in use
+   * must not be changed.
    */
   GRANT((byte) 0),
   CREATE_TABLE((byte) 1),

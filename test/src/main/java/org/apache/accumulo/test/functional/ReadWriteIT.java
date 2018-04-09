@@ -133,8 +133,10 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
-    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0,
+        tableName);
+    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0,
+        tableName);
     String monitorLocation = null;
     while (null == monitorLocation) {
       monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
@@ -146,13 +148,16 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     String scheme = "http://";
     if (getCluster() instanceof StandaloneAccumuloCluster) {
       StandaloneAccumuloCluster standaloneCluster = (StandaloneAccumuloCluster) getCluster();
-      File accumuloSite = new File(standaloneCluster.getServerAccumuloConfDir(), "accumulo-site.xml");
+      File accumuloSite = new File(standaloneCluster.getServerAccumuloConfDir(),
+          "accumulo-site.xml");
       if (accumuloSite.isFile()) {
         Configuration conf = new Configuration(false);
         conf.addResource(new Path(accumuloSite.toURI()));
         String monitorSslKeystore = conf.get(Property.MONITOR_SSL_KEYSTORE.getKey());
         if (null != monitorSslKeystore) {
-          log.info("Setting scheme to HTTPS since monitor ssl keystore configuration was observed in {}", accumuloSite);
+          log.info(
+              "Setting scheme to HTTPS since monitor ssl keystore configuration was observed in {}",
+              accumuloSite);
           scheme = "https://";
           SSLContext ctx = SSLContext.getInstance("SSL");
           TrustManager[] tm = new TrustManager[] {new TestTrustManager()};
@@ -162,7 +167,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       } else {
-        log.info("{} is not a normal file, not checking for monitor running with SSL", accumuloSite);
+        log.info("{} is not a normal file, not checking for monitor running with SSL",
+            accumuloSite);
       }
     }
     URL url = new URL(scheme + monitorLocation);
@@ -172,11 +178,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     log.debug("Stopping accumulo cluster");
     ClusterControl control = cluster.getClusterControl();
     control.adminStopAll();
-    ZooReader zreader = new ZooReader(connector.getInstance().getZooKeepers(), connector.getInstance().getZooKeepersSessionTimeOut());
+    ZooReader zreader = new ZooReader(connector.getInstance().getZooKeepers(),
+        connector.getInstance().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
     byte[] masterLockData;
     do {
-      masterLockData = ZooLock.getLockData(zcache, ZooUtil.getRoot(connector.getInstance()) + Constants.ZMASTER_LOCK, null);
+      masterLockData = ZooLock.getLockData(zcache,
+          ZooUtil.getRoot(connector.getInstance()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);
@@ -191,13 +199,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.start();
   }
 
-  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String tableName)
-      throws Exception {
+  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal,
+      int rows, int cols, int width, int offset, String tableName) throws Exception {
     ingest(connector, clientConfig, principal, rows, cols, width, offset, COLF, tableName);
   }
 
-  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String colf,
-      String tableName) throws Exception {
+  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal,
+      int rows, int cols, int width, int offset, String colf, String tableName) throws Exception {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = rows;
     opts.cols = cols;
@@ -215,13 +223,14 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
   }
 
-  public static void verify(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String tableName)
-      throws Exception {
+  public static void verify(Connector connector, ClientConfiguration clientConfig, String principal,
+      int rows, int cols, int width, int offset, String tableName) throws Exception {
     verify(connector, clientConfig, principal, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String colf,
-      String tableName) throws Exception {
+  private static void verify(Connector connector, ClientConfiguration clientConfig,
+      String principal, int rows, int cols, int width, int offset, String colf, String tableName)
+      throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
@@ -256,24 +265,27 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       public Integer call() {
         try {
           ClientConfiguration clientConf = cluster.getClientConfig();
-          // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
+          // Invocation is different for SASL. We're only logged in via this processes memory (not
+          // via some credentials cache on disk)
           // Need to pass along the keytab because of that.
           if (clientConf.hasSasl()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
-            assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
+            assertTrue("Expected KerberosToken, but was " + token.getClass(),
+                token instanceof KerberosToken);
             KerberosToken kt = (KerberosToken) token;
             assertNotNull("Expected keytab in token", kt.getKeytab());
-            return control.exec(
-                TestMultiTableIngest.class,
-                args("--count", Integer.toString(ROWS), "-i", instance, "-z", keepers, "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(),
-                    "-u", principal));
+            return control.exec(TestMultiTableIngest.class,
+                args("--count", Integer.toString(ROWS), "-i", instance, "-z", keepers,
+                    "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
+                    principal));
           }
 
-          return control.exec(
-              TestMultiTableIngest.class,
-              args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance, "-z", keepers, "-p", new String(
-                  ((PasswordToken) getAdminToken()).getPassword(), UTF_8), "--tablePrefix", prefix));
+          return control.exec(TestMultiTableIngest.class,
+              args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance,
+                  "-z", keepers, "-p",
+                  new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
+                  "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;
@@ -285,24 +297,27 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       public Integer call() {
         try {
           ClientConfiguration clientConf = cluster.getClientConfig();
-          // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
+          // Invocation is different for SASL. We're only logged in via this processes memory (not
+          // via some credentials cache on disk)
           // Need to pass along the keytab because of that.
           if (clientConf.hasSasl()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
-            assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
+            assertTrue("Expected KerberosToken, but was " + token.getClass(),
+                token instanceof KerberosToken);
             KerberosToken kt = (KerberosToken) token;
             assertNotNull("Expected keytab in token", kt.getKeytab());
-            return control.exec(
-                TestMultiTableIngest.class,
-                args("--count", Integer.toString(ROWS), "--readonly", "-i", instance, "-z", keepers, "--tablePrefix", prefix, "--keytab", kt.getKeytab()
-                    .getAbsolutePath(), "-u", principal));
+            return control.exec(TestMultiTableIngest.class,
+                args("--count", Integer.toString(ROWS), "--readonly", "-i", instance, "-z", keepers,
+                    "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
+                    principal));
           }
 
-          return control.exec(
-              TestMultiTableIngest.class,
-              args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i", instance, "-z", keepers, "-p", new String(
-                  ((PasswordToken) getAdminToken()).getPassword(), UTF_8), "--tablePrefix", prefix));
+          return control.exec(TestMultiTableIngest.class,
+              args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i",
+                  instance, "-z", keepers, "-p",
+                  new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
+                  "--tablePrefix", prefix));
         } catch (IOException e) {
           log.error("Error running MultiTableIngest", e);
           return -1;
@@ -337,7 +352,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   static void interleaveTest(final Connector connector, final String tableName) throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, 0,
+        tableName);
     int i;
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
@@ -345,18 +361,21 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         @Override
         public void run() {
           try {
-            verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, start, tableName);
+            verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50,
+                start, tableName);
           } catch (Exception ex) {
             fail.set(true);
           }
         }
       };
       verify.start();
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50,
+          i + CHUNKSIZE, tableName);
       verify.join();
       assertFalse(fail.get());
     }
-    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, i, tableName);
+    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, i,
+        tableName);
   }
 
   public static Text t(String s) {
@@ -377,7 +396,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     connector.tableOperations().create(tableName);
     connector.tableOperations().setProperty(tableName, "table.group.g1", "colf");
     connector.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0,
+        tableName);
     connector.tableOperations().compact(tableName, null, null, true, true);
     BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
@@ -405,12 +425,16 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     Map<String,Set<Text>> groups = new TreeMap<>();
     groups.put("g1", Collections.singleton(t("colf")));
     connector.tableOperations().setLocalityGroups(tableName, groups);
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
-    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
+    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0,
+        tableName);
+    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0,
+        tableName);
     connector.tableOperations().flush(tableName, null, null, true);
-    try (BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME,
+        Authorizations.EMPTY, 1)) {
       String tableId = connector.tableOperations().tableIdMap().get(tableName);
-      bscanner.setRanges(Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
+      bscanner.setRanges(
+          Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
       bscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       boolean foundFile = false;
       for (Entry<Key,Value> entry : bscanner) {
@@ -455,9 +479,11 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     int i = 0;
     for (String cfg : config) {
       to.setLocalityGroups(table, getGroups(cfg));
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * (i + 1), 1, 50, ROWS * i, table);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * (i + 1), 1, 50,
+          ROWS * i, table);
       to.flush(table, null, null, true);
-      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 0, 1, 50, ROWS * (i + 1), table);
+      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 0, 1, 50,
+          ROWS * (i + 1), table);
       i++;
     }
     to.delete(table);
@@ -465,12 +491,16 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
     i = 1;
     for (String cfg : config) {
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0,
+          table);
+      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0,
+          "xyz", table);
       to.setLocalityGroups(table, getGroups(cfg));
       to.flush(table, null, null, true);
-      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
-      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
+      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0,
+          table);
+      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0,
+          "xyz", table);
       i++;
     }
   }
@@ -492,10 +522,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   private static class TestTrustManager implements X509TrustManager {
     @Override
-    public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+    public void checkClientTrusted(X509Certificate[] arg0, String arg1)
+        throws CertificateException {}
 
     @Override
-    public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+    public void checkServerTrusted(X509Certificate[] arg0, String arg1)
+        throws CertificateException {}
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {

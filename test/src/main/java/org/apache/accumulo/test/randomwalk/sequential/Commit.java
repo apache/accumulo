@@ -29,7 +29,8 @@ public class Commit extends Test {
 
     env.getMultiTableBatchWriter().flush();
 
-    log.debug("Committed " + state.getLong("numWrites") + " writes.  Total writes: " + state.getLong("totalWrites"));
+    log.debug("Committed " + state.getLong("numWrites") + " writes.  Total writes: "
+        + state.getLong("totalWrites"));
     state.set("numWrites", Long.valueOf(0));
   }
 

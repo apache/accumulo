@@ -33,8 +33,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.log4j.Level;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides keys and values of type {@link Key} and
- * {@link Value} to the Map function.
+ * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat}
+ * provides keys and values of type {@link Key} and {@link Value} to the Map function.
  *
  * The user must specify the following via static configurator methods:
  *
@@ -50,12 +50,17 @@ import org.apache.log4j.Level;
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
 
   @Override
-  public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
+  public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
+      throws IOException {
     log.setLevel(getLogLevel(job));
 
-    // Override the log level from the configuration as if the RangeInputSplit has one it's the more correct one to use.
+    // Override the log level from the configuration as if the RangeInputSplit has one it's the more
+    // correct one to use.
     if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
-      org.apache.accumulo.core.client.mapreduce.RangeInputSplit accSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+      // @formatter:off
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit accSplit =
+        (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+      // @formatter:on
       Level level = accSplit.getLogLevel();
       if (null != level) {
         log.setLevel(level);

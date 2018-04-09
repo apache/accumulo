@@ -44,16 +44,19 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   }
 
   @Override
-  public void attachIterator(String namespace, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
+  public void attachIterator(String namespace, IteratorSetting setting)
+      throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     attachIterator(namespace, setting, EnumSet.allOf(IteratorScope.class));
   }
 
   @Override
-  public void attachIterator(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
-      NamespaceNotFoundException {
+  public void attachIterator(String namespace, IteratorSetting setting,
+      EnumSet<IteratorScope> scopes)
+      throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     checkIteratorConflicts(namespace, setting, scopes);
     for (IteratorScope scope : scopes) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
+          scope.name().toLowerCase(), setting.getName());
       for (Entry<String,String> prop : setting.getOptions().entrySet()) {
         this.setProperty(namespace, root + ".opt." + prop.getKey(), prop.getValue());
       }
@@ -62,8 +65,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   }
 
   @Override
-  public void removeIterator(String namespace, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
-      NamespaceNotFoundException {
+  public void removeIterator(String namespace, String name, EnumSet<IteratorScope> scopes)
+      throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
     Map<String,String> copy = new TreeMap<>();
@@ -71,7 +74,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       copy.put(property.getKey(), property.getValue());
     }
     for (IteratorScope scope : scopes) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
+          scope.name().toLowerCase(), name);
       for (Entry<String,String> property : copy.entrySet()) {
         if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
           this.removeProperty(namespace, property.getKey());
@@ -80,15 +84,16 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   }
 
   @Override
-  public IteratorSetting getIteratorSetting(String namespace, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
-      NamespaceNotFoundException {
+  public IteratorSetting getIteratorSetting(String namespace, String name, IteratorScope scope)
+      throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
     int priority = -1;
     String classname = null;
     Map<String,String> settings = new HashMap<>();
 
-    String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
+    String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
+        scope.name().toLowerCase(), name);
     String opt = root + ".opt.";
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().equals(root)) {
@@ -109,7 +114,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   }
 
   @Override
-  public Map<String,EnumSet<IteratorScope>> listIterators(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
+  public Map<String,EnumSet<IteratorScope>> listIterators(String namespace)
+      throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
@@ -129,49 +135,57 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   }
 
   @Override
-  public void checkIteratorConflicts(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException,
-      NamespaceNotFoundException, AccumuloSecurityException {
+  public void checkIteratorConflicts(String namespace, IteratorSetting setting,
+      EnumSet<IteratorScope> scopes)
+      throws AccumuloException, NamespaceNotFoundException, AccumuloSecurityException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
     for (IteratorScope scope : scopes) {
-      String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
+      String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX,
+          scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);
       Map<String,String> optionConflicts = new TreeMap<>();
       for (Entry<String,String> property : this.getProperties(namespace)) {
         if (property.getKey().startsWith(scopeStr)) {
           if (property.getKey().equals(nameStr))
-            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "="
-                + property.getValue()));
+            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
+                + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
           if (property.getKey().startsWith(optStr))
             optionConflicts.put(property.getKey(), property.getValue());
           if (property.getKey().contains(".opt."))
             continue;
           String parts[] = property.getValue().split(",");
           if (parts.length != 2)
-            throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
+            throw new AccumuloException("Bad value for existing iterator setting: "
+                + property.getKey() + "=" + property.getValue());
           try {
             if (Integer.parseInt(parts[0]) == setting.getPriority())
-              throw new AccumuloException(new IllegalArgumentException("iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
+              throw new AccumuloException(new IllegalArgumentException(
+                  "iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
           } catch (NumberFormatException e) {
-            throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
+            throw new AccumuloException("Bad value for existing iterator setting: "
+                + property.getKey() + "=" + property.getValue());
           }
         }
       }
       if (optionConflicts.size() > 0)
-        throw new AccumuloException(new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts));
+        throw new AccumuloException(new IllegalArgumentException(
+            "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
     }
   }
 
   @Override
-  public int addConstraint(String namespace, String constraintClassName) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+  public int addConstraint(String namespace, String constraintClassName)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     TreeSet<Integer> constraintNumbers = new TreeSet<>();
     TreeMap<String,Integer> constraintClasses = new TreeMap<>();
     int i;
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
         try {
-          i = Integer.parseInt(property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length()));
+          i = Integer.parseInt(
+              property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length()));
         } catch (NumberFormatException e) {
           throw new AccumuloException("Bad key for existing constraint: " + property.toString());
         }
@@ -183,27 +197,33 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     while (constraintNumbers.contains(i))
       i++;
     if (constraintClasses.containsKey(constraintClassName))
-      throw new AccumuloException("Constraint " + constraintClassName + " already exists for namespace " + namespace + " with number "
-          + constraintClasses.get(constraintClassName));
-    this.setProperty(namespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + i, constraintClassName);
+      throw new AccumuloException(
+          "Constraint " + constraintClassName + " already exists for namespace " + namespace
+              + " with number " + constraintClasses.get(constraintClassName));
+    this.setProperty(namespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + i,
+        constraintClassName);
     return i;
   }
 
   @Override
-  public void removeConstraint(String namespace, int number) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+  public void removeConstraint(String namespace, int number)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     this.removeProperty(namespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
   }
 
   @Override
-  public Map<String,Integer> listConstraints(String namespace) throws AccumuloException, NamespaceNotFoundException, AccumuloSecurityException {
+  public Map<String,Integer> listConstraints(String namespace)
+      throws AccumuloException, NamespaceNotFoundException, AccumuloSecurityException {
     Map<String,Integer> constraints = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
         if (constraints.containsKey(property.getValue()))
-          throw new AccumuloException("Same constraint configured twice: " + property.getKey() + "=" + Property.TABLE_CONSTRAINT_PREFIX
-              + constraints.get(property.getValue()) + "=" + property.getKey());
+          throw new AccumuloException("Same constraint configured twice: " + property.getKey() + "="
+              + Property.TABLE_CONSTRAINT_PREFIX + constraints.get(property.getValue()) + "="
+              + property.getKey());
         try {
-          constraints.put(property.getValue(), Integer.parseInt(property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length())));
+          constraints.put(property.getValue(), Integer.parseInt(
+              property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length())));
         } catch (NumberFormatException e) {
           throw new AccumuloException("Bad key for existing constraint: " + property.toString());
         }

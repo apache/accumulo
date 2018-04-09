@@ -71,11 +71,14 @@ class ScanDataSource implements DataSource {
 
   private static final Set<Column> EMPTY_COLS = Collections.emptySet();
 
-  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut, String context) {
+  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels,
+      HashSet<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut,
+      String context) {
     this.tablet = tablet;
     expectedDeletionCount = tablet.getDataSourceDeletions();
-    this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false, samplerConfig, batchTimeOut, context);
+    this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio,
+        interruptFlag, false, samplerConfig, batchTimeOut, context);
     this.interruptFlag = interruptFlag;
     this.loadIters = true;
   }
@@ -88,10 +91,12 @@ class ScanDataSource implements DataSource {
     this.loadIters = true;
   }
 
-  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, AtomicBoolean iFlag) {
+  ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels,
+      AtomicBoolean iFlag) {
     this.tablet = tablet;
     expectedDeletionCount = tablet.getDataSourceDeletions();
-    this.options = new ScanOptions(-1, authorizations, defaultLabels, EMPTY_COLS, null, null, iFlag, false, null, -1, null);
+    this.options = new ScanOptions(-1, authorizations, defaultLabels, EMPTY_COLS, null, null, iFlag,
+        false, null, -1, null);
     this.interruptFlag = iFlag;
     this.loadIters = false;
   }
@@ -145,7 +150,8 @@ class ScanDataSource implements DataSource {
         throw new TabletClosedException();
 
       if (interruptFlag.get())
-        throw new IterationInterruptedException(tablet.getExtent().toString() + " " + interruptFlag.hashCode());
+        throw new IterationInterruptedException(
+            tablet.getExtent().toString() + " " + interruptFlag.hashCode());
 
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
@@ -161,29 +167,35 @@ class ScanDataSource implements DataSource {
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
       memIters = tablet.getTabletMemory().getIterators(samplerConfig);
-      Pair<Long,Map<FileRef,DataFileValue>> reservation = tablet.getDatafileManager().reserveFilesForScan();
+      Pair<Long,Map<FileRef,DataFileValue>> reservation = tablet.getDatafileManager()
+          .reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isIsolated(), samplerConfig);
+    Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isIsolated(),
+        samplerConfig);
 
     for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
       ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
 
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(mapfiles.size() + memIters.size());
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(
+        mapfiles.size() + memIters.size());
 
     iters.addAll(mapfiles);
     iters.addAll(memIters);
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(IteratorScope.scan, tablet.getTableConfiguration(), fileManager, files,
-        options.getAuthorizations(), samplerConfig);
+    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(IteratorScope.scan,
+        tablet.getTableConfiguration(), fileManager, files, options.getAuthorizations(),
+        samplerConfig);
 
-    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter());
+    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount,
+        tablet.getScannedCounter());
 
-    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(statsIterator, options.getColumnSet(), options.getAuthorizations(),
+    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(
+        statsIterator, options.getColumnSet(), options.getAuthorizations(),
         options.getDefaultLabels());
 
     if (!loadIters) {
@@ -192,16 +204,20 @@ class ScanDataSource implements DataSource {
       List<IterInfo> iterInfos;
       Map<String,Map<String,String>> iterOpts;
 
-      ParsedIteratorConfig pic = tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
+      ParsedIteratorConfig pic = tablet.getTableConfiguration()
+          .getParsedIteratorConfig(IteratorScope.scan);
       if (options.getSsiList().size() == 0 && options.getSsio().size() == 0) {
-        // No scan time iterator options were set, so can just use the pre-parsed table iterator options.
+        // No scan time iterator options were set, so can just use the pre-parsed table iterator
+        // options.
         iterInfos = pic.getIterInfo();
         iterOpts = pic.getOpts();
       } else {
-        // Scan time iterator options were set, so need to merge those with pre-parsed table iterator options.
+        // Scan time iterator options were set, so need to merge those with pre-parsed table
+        // iterator options.
         iterOpts = new HashMap<>(pic.getOpts().size() + options.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + options.getSsiList().size());
-        IteratorUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(), options.getSsiList(), options.getSsio());
+        IteratorUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(),
+            options.getSsiList(), options.getSsio());
       }
 
       String context;
@@ -211,7 +227,8 @@ class ScanDataSource implements DataSource {
         context = pic.getContext();
       }
 
-      return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(visFilter, iterInfos, iterOpts, iterEnv, true, context));
+      return iterEnv.getTopLevelIterator(
+          IteratorUtil.loadIterators(visFilter, iterInfos, iterOpts, iterEnv, true, context));
     }
   }
 

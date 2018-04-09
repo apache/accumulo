@@ -34,7 +34,9 @@ public class InterpreterCommand extends ShellPluginConfigurationCommand {
     return "specifies a scan interpreter to interpret scan range and column arguments";
   }
 
-  public static Class<? extends ScanInterpreter> getCurrentInterpreter(final String tableName, final Shell shellState) {
-    return ShellPluginConfigurationCommand.getPluginClass(tableName, shellState, ScanInterpreter.class, Property.TABLE_INTERPRETER_CLASS);
+  public static Class<? extends ScanInterpreter> getCurrentInterpreter(final String tableName,
+      final Shell shellState) {
+    return ShellPluginConfigurationCommand.getPluginClass(tableName, shellState,
+        ScanInterpreter.class, Property.TABLE_INTERPRETER_CLASS);
   }
 }

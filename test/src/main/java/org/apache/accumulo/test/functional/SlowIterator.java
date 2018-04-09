@@ -60,13 +60,15 @@ public class SlowIterator extends WrappingIterator {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     sleepUninterruptibly(seekSleepTime, TimeUnit.MILLISECONDS);
     super.seek(range, columnFamilies, inclusive);
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(SLEEP_TIME))
       sleepTime = Long.parseLong(options.get(SLEEP_TIME));

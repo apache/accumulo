@@ -53,10 +53,12 @@ public class RetryTest {
 
   @Before
   public void setup() {
-    retry = Retry.builder().maxRetries(MAX_RETRIES).retryAfter(INITIAL_WAIT, MS).incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS)
-        .logInterval(LOG_INTERVAL, MS).createRetry();
-    unlimitedRetry = Retry.builder().infiniteRetries().retryAfter(INITIAL_WAIT, MS).incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS)
-        .logInterval(LOG_INTERVAL, MS).createRetry();
+    retry = Retry.builder().maxRetries(MAX_RETRIES).retryAfter(INITIAL_WAIT, MS)
+        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).logInterval(LOG_INTERVAL, MS)
+        .createRetry();
+    unlimitedRetry = Retry.builder().infiniteRetries().retryAfter(INITIAL_WAIT, MS)
+        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).logInterval(LOG_INTERVAL, MS)
+        .createRetry();
   }
 
   @Test
@@ -239,7 +241,8 @@ public class RetryTest {
 
   @Test
   public void testMaxWait() {
-    NeedsMaxWait builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS).incrementBy(10, MILLISECONDS);
+    NeedsMaxWait builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS)
+        .incrementBy(10, MILLISECONDS);
     builder.maxWait(15, MILLISECONDS);
     builder.maxWait(16, MILLISECONDS);
 
@@ -250,7 +253,8 @@ public class RetryTest {
 
   @Test
   public void testLogInterval() {
-    NeedsLogInterval builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS).incrementBy(10, MILLISECONDS).maxWait(16, MINUTES);
+    NeedsLogInterval builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS)
+        .incrementBy(10, MILLISECONDS).maxWait(16, MINUTES);
     builder.logInterval(10, DAYS);
     builder.logInterval(10, HOURS);
     builder.logInterval(10, NANOSECONDS);
@@ -265,9 +269,11 @@ public class RetryTest {
 
   @Test
   public void properArgumentsInRetry() {
-    long maxRetries = 10, startWait = 50L, maxWait = 5000L, waitIncrement = 500L, logInterval = 10000L;
-    RetryFactory factory = Retry.builder().maxRetries(maxRetries).retryAfter(startWait, MS).incrementBy(waitIncrement, MS).maxWait(maxWait, MS)
-        .logInterval(logInterval, MS).createFactory();
+    long maxRetries = 10, startWait = 50L, maxWait = 5000L, waitIncrement = 500L,
+        logInterval = 10000L;
+    RetryFactory factory = Retry.builder().maxRetries(maxRetries).retryAfter(startWait, MS)
+        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).logInterval(logInterval, MS)
+        .createFactory();
     Retry retry = factory.createRetry();
 
     Assert.assertEquals(maxRetries, retry.getMaxRetries());
@@ -280,8 +286,9 @@ public class RetryTest {
   @Test
   public void properArgumentsInUnlimitedRetry() {
     long startWait = 50L, maxWait = 5000L, waitIncrement = 500L, logInterval = 10000L;
-    RetryFactory factory = Retry.builder().infiniteRetries().retryAfter(startWait, MS).incrementBy(waitIncrement, MS).maxWait(maxWait, MS)
-        .logInterval(logInterval, MS).createFactory();
+    RetryFactory factory = Retry.builder().infiniteRetries().retryAfter(startWait, MS)
+        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).logInterval(logInterval, MS)
+        .createFactory();
     Retry retry = factory.createRetry();
 
     Assert.assertEquals(-1, retry.getMaxRetries());

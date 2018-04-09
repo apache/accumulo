@@ -47,7 +47,8 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.<String,Volume> of("foo", new VolumeImpl(fs, "/")));
+    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(
+        ImmutableMap.<String,Volume> of("foo", new VolumeImpl(fs, "/")));
 
     vm.ensureSyncIsEnabled();
   }
@@ -69,7 +70,8 @@ public class TabletServerSyncCheckTest {
   private class TestVolumeManagerImpl extends VolumeManagerImpl {
 
     public TestVolumeManagerImpl(Map<String,Volume> volumes) {
-      super(volumes, volumes.values().iterator().next(), new ConfigurationCopy(Collections.<String,String> emptyMap()));
+      super(volumes, volumes.values().iterator().next(),
+          new ConfigurationCopy(Collections.<String,String> emptyMap()));
     }
 
     @Override
@@ -93,7 +95,8 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1) throws IOException {
+    public FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1)
+        throws IOException {
       return null;
     }
 
@@ -103,7 +106,8 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public FSDataOutputStream createSyncable(Path logPath, int buffersize, short replication, long blockSize) throws IOException {
+    public FSDataOutputStream createSyncable(Path logPath, int buffersize, short replication,
+        long blockSize) throws IOException {
       return null;
     }
 

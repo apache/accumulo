@@ -34,16 +34,19 @@ public class DropUserCommand extends Command {
   private Option forceOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getArgs()[0];
     if (shellState.getConnector().whoami().equals(user)) {
-      throw new BadArgumentException("You cannot delete yourself", fullCommand, fullCommand.indexOf(user));
+      throw new BadArgumentException("You cannot delete yourself", fullCommand,
+          fullCommand.indexOf(user));
     }
     doDropUser(shellState, user, cl.hasOption(forceOpt.getOpt()));
     return 0;
   }
 
-  private void doDropUser(final Shell shellState, final String user, final boolean force) throws AccumuloException, AccumuloSecurityException {
+  private void doDropUser(final Shell shellState, final String user, final boolean force)
+      throws AccumuloException, AccumuloSecurityException {
     boolean operate = true;
 
     try {
@@ -72,7 +75,8 @@ public class DropUserCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
 

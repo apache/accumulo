@@ -29,7 +29,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.htrace.wrappers.TraceRunnable;
 
 /**
- * {@link TraceRunnable} objects placed in this queue <b>must</a> wrap a {@link Runnable} which is also {@link Comparable}
+ * {@link TraceRunnable} objects placed in this queue <b>must</a> wrap a {@link Runnable} which is
+ * also {@link Comparable}
  */
 class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQueue<TraceRunnable> {
 
@@ -82,7 +83,8 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
   }
 
   @Override
-  public synchronized boolean offer(TraceRunnable e, long timeout, TimeUnit unit) throws InterruptedException {
+  public synchronized boolean offer(TraceRunnable e, long timeout, TimeUnit unit)
+      throws InterruptedException {
     task.add(e);
     notify();
     return true;

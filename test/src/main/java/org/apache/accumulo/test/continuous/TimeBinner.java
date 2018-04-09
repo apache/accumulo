@@ -35,7 +35,13 @@ import com.beust.jcommander.Parameter;
 public class TimeBinner {
 
   enum Operation {
-    AVG, SUM, MIN, MAX, COUNT, CUMULATIVE, AMM, // avg,min,max
+    AVG,
+    SUM,
+    MIN,
+    MAX,
+    COUNT,
+    CUMULATIVE,
+    AMM, // avg,min,max
     AMM_HACK1 // special case
   }
 
@@ -54,15 +60,18 @@ public class TimeBinner {
   }
 
   static class Opts extends Help {
-    @Parameter(names = "--period", description = "period", converter = TimeConverter.class, required = true)
+    @Parameter(names = "--period", description = "period", converter = TimeConverter.class,
+        required = true)
     long period = 0;
     @Parameter(names = "--timeColumn", description = "time column", required = true)
     int timeColumn = 0;
     @Parameter(names = "--dataColumn", description = "data column", required = true)
     int dataColumn = 0;
-    @Parameter(names = "--operation", description = "one of: AVG, SUM, MIN, MAX, COUNT", required = true)
+    @Parameter(names = "--operation", description = "one of: AVG, SUM, MIN, MAX, COUNT",
+        required = true)
     String operation;
-    @Parameter(names = "--dateFormat", description = "a SimpleDataFormat string that describes the data format")
+    @Parameter(names = "--dateFormat",
+        description = "a SimpleDataFormat string that describes the data format")
     String dateFormat = "MM/dd/yy-HH:mm:ss";
   }
 
@@ -156,7 +165,8 @@ public class TimeBinner {
         case AMM_HACK1:
         case AMM: {
           DoubleWrapper countdw = aggregation2.get(entry.getKey());
-          value = "" + (entry.getValue().d / countdw.d) + " " + aggregation3.get(entry.getKey()).d + " " + aggregation4.get(entry.getKey()).d;
+          value = "" + (entry.getValue().d / countdw.d) + " " + aggregation3.get(entry.getKey()).d
+              + " " + aggregation4.get(entry.getKey()).d;
           break;
         }
         case AVG: {
@@ -182,13 +192,15 @@ public class TimeBinner {
     get(time, aggregation, 0).d += amount;
   }
 
-  private static void updateMax(long time, HashMap<Long,DoubleWrapper> aggregation, double data, double new_max) {
+  private static void updateMax(long time, HashMap<Long,DoubleWrapper> aggregation, double data,
+      double new_max) {
     DoubleWrapper maxdw = get(time, aggregation, Double.NEGATIVE_INFINITY);
     if (data > maxdw.d)
       maxdw.d = new_max;
   }
 
-  private static void updateMin(long time, HashMap<Long,DoubleWrapper> aggregation, double data, double new_min) {
+  private static void updateMin(long time, HashMap<Long,DoubleWrapper> aggregation, double data,
+      double new_min) {
     DoubleWrapper mindw = get(time, aggregation, Double.POSITIVE_INFINITY);
     if (data < mindw.d)
       mindw.d = new_min;

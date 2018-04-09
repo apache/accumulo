@@ -75,7 +75,8 @@ public class NativeMapStressTest {
           AtomicLong nextOpid = new AtomicLong();
 
           if (log.isInfoEnabled()) {
-            log.info("tid={} oid={} Creating map of size {}", Thread.currentThread().getId(), nextOpid.get(), mapSizePerThread);
+            log.info("tid={} oid={} Creating map of size {}", Thread.currentThread().getId(),
+                nextOpid.get(), mapSizePerThread);
             timer = new OpTimer().start();
           }
 
@@ -89,11 +90,13 @@ public class NativeMapStressTest {
 
             // stop and log created elapsed time
             timer.stop();
-            log.info("tid={} oid={} Created map of size {} in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(), nm.size(),
+            log.info("tid={} oid={} Created map of size {} in {}", Thread.currentThread().getId(),
+                nextOpid.getAndIncrement(), nm.size(),
                 String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
 
             // start timer for gets
-            log.info("tid={} oid={} Doing {} gets()", Thread.currentThread().getId(), nextOpid.get(), getsPerThread);
+            log.info("tid={} oid={} Doing {} gets()", Thread.currentThread().getId(),
+                nextOpid.get(), getsPerThread);
             timer.reset().start();
           }
 
@@ -111,11 +114,13 @@ public class NativeMapStressTest {
 
             // stop and log created elapsed time
             timer.stop();
-            log.info("tid={} oid={} Finished {} gets in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(), getsPerThread,
+            log.info("tid={} oid={} Finished {} gets in {}", Thread.currentThread().getId(),
+                nextOpid.getAndIncrement(), getsPerThread,
                 String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
 
             // start timer for random iterations
-            log.info("tid={} oid={} Doing {} random iterations", Thread.currentThread().getId(), nextOpid.get(), getsPerThread);
+            log.info("tid={} oid={} Doing {} random iterations", Thread.currentThread().getId(),
+                nextOpid.get(), getsPerThread);
             timer.reset().start();
           }
 
@@ -134,8 +139,10 @@ public class NativeMapStressTest {
               String val2 = row2 + "v";
 
               Entry<Key,Value> entry = iter.next();
-              if (!entry.getValue().toString().equals(val2) || !entry.getKey().equals(new Key(new Text(row2)))) {
-                log.error("nm.iter({}) failed row = {} count = {} row2 = {} val2 = {}", row2, row, count, row, val2);
+              if (!entry.getValue().toString().equals(val2)
+                  || !entry.getKey().equals(new Key(new Text(row2)))) {
+                log.error("nm.iter({}) failed row = {} count = {} row2 = {} val2 = {}", row2, row,
+                    count, row, val2);
               }
 
               count++;
@@ -148,8 +155,9 @@ public class NativeMapStressTest {
 
             // stop and log created elapsed time
             timer.stop();
-            log.info("tid={} oid={} Finished {}  random iterations (scanned = {}) in {}", Thread.currentThread().getId(), nextOpid.getAndIncrement(),
-                getsPerThread, scanned, String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+            log.info("tid={} oid={} Finished {}  random iterations (scanned = {}) in {}",
+                Thread.currentThread().getId(), nextOpid.getAndIncrement(), getsPerThread, scanned,
+                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
 
           }
 
@@ -215,7 +223,8 @@ public class NativeMapStressTest {
             nm.delete();
           }
 
-          System.out.println("inserts " + inserts + " removes " + removes + " " + Thread.currentThread().getName());
+          System.out.println("inserts " + inserts + " removes " + removes + " "
+              + Thread.currentThread().getName());
         }
       };
 

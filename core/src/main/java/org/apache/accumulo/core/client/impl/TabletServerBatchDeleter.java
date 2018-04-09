@@ -38,13 +38,15 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   private String tableId;
   private BatchWriterConfig bwConfig;
 
-  public TabletServerBatchDeleter(ClientContext context, String tableId, Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig)
+  public TabletServerBatchDeleter(ClientContext context, String tableId,
+      Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig)
       throws TableNotFoundException {
     super(context, tableId, authorizations, numQueryThreads);
     this.context = context;
     this.tableId = tableId;
     this.bwConfig = bwConfig;
-    super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName() + ".NOVALUE", SortedKeyIterator.class));
+    super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE,
+        BatchDeleter.class.getName().replaceAll("[.]", "_") + "_NOVALUE", SortedKeyIterator.class));
   }
 
   @Override
@@ -57,7 +59,8 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
         Entry<Key,Value> next = iter.next();
         Key k = next.getKey();
         Mutation m = new Mutation(k.getRow());
-        m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp());
+        m.putDelete(k.getColumnFamily(), k.getColumnQualifier(),
+            new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp());
         bw.addMutation(m);
       }
     } finally {

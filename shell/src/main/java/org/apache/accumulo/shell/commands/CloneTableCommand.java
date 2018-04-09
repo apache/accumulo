@@ -39,8 +39,9 @@ public class CloneTableCommand extends Command {
   private Option noFlushOption;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, TableExistsException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException {
 
     final HashMap<String,String> props = new HashMap<>();
     final HashSet<String> exclude = new HashSet<>();
@@ -65,7 +66,8 @@ public class CloneTableCommand extends Command {
       flush = false;
     }
 
-    shellState.getConnector().tableOperations().clone(cl.getArgs()[0], cl.getArgs()[1], flush, props, exclude);
+    shellState.getConnector().tableOperations().clone(cl.getArgs()[0], cl.getArgs()[1], flush,
+        props, exclude);
     return 0;
   }
 
@@ -80,18 +82,22 @@ public class CloneTableCommand extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }
 
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    setPropsOption = new Option("s", "set", true, "set initial properties before the table comes online. Expects <prop>=<value>{,<prop>=<value>}");
+    setPropsOption = new Option("s", "set", true, "set initial properties"
+        + " before the table comes online. Expects <prop>=<value>{,<prop>=<value>}");
     o.addOption(setPropsOption);
-    excludePropsOption = new Option("e", "exclude", true, "exclude properties that should not be copied from source table. Expects <prop>{,<prop>}");
+    excludePropsOption = new Option("e", "exclude", true,
+        "exclude properties that should not be copied from source table. Expects <prop>{,<prop>}");
     o.addOption(excludePropsOption);
-    noFlushOption = new Option("nf", "noFlush", false, "do not flush table data in memory before cloning.");
+    noFlushOption = new Option("nf", "noFlush", false,
+        "do not flush table data in memory before cloning.");
     o.addOption(noFlushOption);
     return o;
   }

@@ -56,11 +56,13 @@ public class MasterServlet extends BasicServlet {
   @Override
   protected String getTitle(HttpServletRequest req) {
     List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
-    return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHost());
+    return "Master Server" + (masters.size() == 0 ? ""
+        : ":" + AddressUtil.parseAddress(masters.get(0), false).getHost());
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb)
+      throws IOException {
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(Monitor.getContext().getInstance());
 
     doLogEventBanner(sb);
@@ -85,8 +87,9 @@ public class MasterServlet extends BasicServlet {
         }
         total++;
       }
-      banner(sb, error > 0 ? "error" : "warning", String.format("<a href='/log'>Log Events: %d Error%s, %d Warning%s, %d Total</a>", error, error == 1 ? ""
-          : "s", warning, warning == 1 ? "" : "s", total));
+      banner(sb, error > 0 ? "error" : "warning",
+          String.format("<a href='/log'>Log Events: %d Error%s, %d Warning%s, %d Total</a>", error,
+              error == 1 ? "" : "s", warning, warning == 1 ? "" : "s", total));
     }
   }
 
@@ -97,8 +100,10 @@ public class MasterServlet extends BasicServlet {
       if (Monitor.getGcStatus() != null) {
         long start = 0;
         String label = "";
-        if (Monitor.getGcStatus().current.started != 0 || Monitor.getGcStatus().currentLog.started != 0) {
-          start = Math.max(Monitor.getGcStatus().current.started, Monitor.getGcStatus().currentLog.started);
+        if (Monitor.getGcStatus().current.started != 0
+            || Monitor.getGcStatus().currentLog.started != 0) {
+          start = Math.max(Monitor.getGcStatus().current.started,
+              Monitor.getGcStatus().currentLog.started);
           label = "Running";
         } else if (Monitor.getGcStatus().lastLog.finished != 0) {
           start = Monitor.getGcStatus().lastLog.finished;
@@ -107,7 +112,8 @@ public class MasterServlet extends BasicServlet {
           long diff = System.currentTimeMillis() - start;
           gcStatus = label + " " + DateFormat.getInstance().format(new Date(start));
           gcStatus = gcStatus.replace(" ", "&nbsp;");
-          long normalDelay = Monitor.getContext().getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+          long normalDelay = Monitor.getContext().getConfiguration()
+              .getTimeInMillis(Property.GC_CYCLE_DELAY);
           if (diff > normalDelay * 2)
             gcStatus = "<span class='warning'>" + gcStatus + "</span>";
         }
@@ -115,10 +121,14 @@ public class MasterServlet extends BasicServlet {
         gcStatus = "<span class='error'>Down</span>";
       }
       if (Monitor.getMmi().state != MasterState.NORMAL) {
-        sb.append("<span class='warning'>Master State: " + Monitor.getMmi().state.name() + " Goal: " + Monitor.getMmi().goalState.name() + "</span>\n");
+        sb.append("<span class='warning'>Master State: " + Monitor.getMmi().state.name() + " Goal: "
+            + Monitor.getMmi().goalState.name() + "</span>\n");
       }
-      if (Monitor.getMmi().serversShuttingDown != null && Monitor.getMmi().serversShuttingDown.size() > 0 && Monitor.getMmi().state == MasterState.NORMAL) {
-        sb.append("<span class='warning'>Servers being stopped: " + Joiner.on(", ").join(Monitor.getMmi().serversShuttingDown) + "</span>\n");
+      if (Monitor.getMmi().serversShuttingDown != null
+          && Monitor.getMmi().serversShuttingDown.size() > 0
+          && Monitor.getMmi().state == MasterState.NORMAL) {
+        sb.append("<span class='warning'>Servers being stopped: "
+            + Joiner.on(", ").join(Monitor.getMmi().serversShuttingDown) + "</span>\n");
       }
 
       int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
@@ -132,25 +142,40 @@ public class MasterServlet extends BasicServlet {
       List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
       Table masterStatus = new Table("masterStatus", "Master&nbsp;Status");
-      masterStatus.addSortableColumn("Master", new StringType<String>(), "The hostname of the master server");
-      masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new PreciseNumberType((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
-          (int) (slaves.size() * 0.6 + 1.0), slaves.size()), "Number of tablet servers currently available");
-      masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers", new PreciseNumberType(), "The total number of tablet servers configured");
-      masterStatus.addSortableColumn("Last&nbsp;GC", null, "The last time files were cleaned-up from HDFS.");
-      masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
-      masterStatus.addSortableColumn("#&nbsp;Unassigned<br />Tablets", new NumberType<>(0, 0), null);
-      masterStatus.addSortableColumn("Entries", new NumberType<Long>(), "The total number of key/value pairs in Accumulo");
-      masterStatus.addSortableColumn("Ingest", new NumberType<Long>(), "The number of Key/Value pairs inserted, per second. "
-          + " Note that deleted records are \"inserted\" and will make the ingest " + "rate increase in the near-term.");
+      masterStatus.addSortableColumn("Master", new StringType<String>(),
+          "The hostname of the master server");
+      masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers",
+          new PreciseNumberType((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
+              (int) (slaves.size() * 0.6 + 1.0), slaves.size()),
+          "Number of tablet servers currently available");
+      masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers",
+          new PreciseNumberType(), "The total number of tablet servers configured");
+      masterStatus.addSortableColumn("Last&nbsp;GC", null,
+          "The last time files were cleaned-up from HDFS.");
+      masterStatus.addSortableColumn("#&nbsp;Tablets",
+          new NumberType<>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
+      masterStatus.addSortableColumn("#&nbsp;Unassigned<br />Tablets", new NumberType<>(0, 0),
+          null);
+      masterStatus.addSortableColumn("Entries", new NumberType<Long>(),
+          "The total number of key/value pairs in Accumulo");
+      masterStatus.addSortableColumn("Ingest", new NumberType<Long>(),
+          "The number of Key/Value pairs inserted, per second. "
+              + " Note that deleted records are \"inserted\" and will make the ingest "
+              + "rate increase in the near-term.");
       masterStatus.addSortableColumn("Entries<br />Read", new NumberType<Long>(),
-          "The total number of Key/Value pairs read on the server side.  Not all may be returned because of filtering.");
-      masterStatus.addSortableColumn("Entries<br />Returned", new NumberType<Long>(), "The total number of Key/Value pairs returned as a result of scans.");
-      masterStatus.addSortableColumn("Hold&nbsp;Time", new DurationType(0l, 0l), "The maximum amount of time that ingest has been held "
-          + "across all servers due to a lack of memory to store the records");
-      masterStatus.addSortableColumn("OS&nbsp;Load", new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
+          "The total number of Key/Value pairs read on the server side. Not"
+              + " all may be returned because of filtering.");
+      masterStatus.addSortableColumn("Entries<br />Returned", new NumberType<Long>(),
+          "The total number of Key/Value pairs returned as a result of scans.");
+      masterStatus.addSortableColumn("Hold&nbsp;Time", new DurationType(0l, 0l),
+          "The maximum amount of time that ingest has been held "
+              + "across all servers due to a lack of memory to store the records");
+      masterStatus.addSortableColumn("OS&nbsp;Load",
+          new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
           "The one-minute load average on the computer that runs the monitor web server.");
       TableRow row = masterStatus.prepareRow();
-      row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), false).getHost());
+      row.add(masters.size() == 0 ? "<div class='error'>Down</div>"
+          : AddressUtil.parseAddress(masters.get(0), false).getHost());
       row.add(Monitor.getMmi().tServerInfo.size());
       row.add(slaves.size());
       row.add("<a href='/gc'>" + gcStatus + "</a>");
@@ -173,7 +198,8 @@ public class MasterServlet extends BasicServlet {
     MasterMonitorInfo mmi = Monitor.getMmi();
     if (mmi != null) {
       Table recoveryTable = new Table("logRecovery", "Log&nbsp;Recovery");
-      recoveryTable.setSubCaption("Some tablets were unloaded in an unsafe manner. Write-ahead logs are being recovered.");
+      recoveryTable.setSubCaption(
+          "Some tablets were unloaded in an unsafe manner. Write-ahead logs are being recovered.");
       recoveryTable.addSortableColumn("Server");
       recoveryTable.addSortableColumn("Log");
       recoveryTable.addSortableColumn("Time", new DurationType(), null);

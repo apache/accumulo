@@ -63,7 +63,8 @@ public class MetaDataStateStore extends TabletStateStore {
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state, targetTableName);
+    return new MetaDataTableScanner(context, MetadataSchema.TabletsSection.getRange(), state,
+        targetTableName);
   }
 
   @Override
@@ -91,7 +92,8 @@ public class MetaDataStateStore extends TabletStateStore {
   BatchWriter createBatchWriter() {
     try {
       return context.getConnector().createBatchWriter(targetTableName,
-          new BatchWriterConfig().setMaxMemory(MAX_MEMORY).setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
+          new BatchWriterConfig().setMaxMemory(MAX_MEMORY)
+              .setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
     } catch (TableNotFoundException e) {
       // ya, I don't think so
       throw new RuntimeException(e);
@@ -101,7 +103,8 @@ public class MetaDataStateStore extends TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException {
+  public void setFutureLocations(Collection<Assignment> assignments)
+      throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
     try {
       for (Assignment assignment : assignments) {
@@ -122,12 +125,14 @@ public class MetaDataStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+  public void unassign(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     suspend(tablets, logsForDeadServers, -1);
   }
 
   @Override
-  public void suspend(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+  public void suspend(Collection<TabletLocationState> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
     try {
@@ -139,13 +144,15 @@ public class MetaDataStateStore extends TabletStateStore {
             List<Path> logs = logsForDeadServers.get(tls.current);
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry = new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
+                LogEntry entry = new LogEntry(tls.extent, 0, tls.current.hostPort(),
+                    log.toString());
                 m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
               }
             }
           }
           if (suspensionTimestamp >= 0) {
-            SuspendingTServer suspender = new SuspendingTServer(tls.current.getLocation(), suspensionTimestamp);
+            SuspendingTServer suspender = new SuspendingTServer(tls.current.getLocation(),
+                suspensionTimestamp);
             suspender.setSuspension(m);
           }
         }

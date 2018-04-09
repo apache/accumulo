@@ -40,7 +40,8 @@ public class VisibilityFilter extends Filter {
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
-  private VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultVisibility) {
+  private VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator,
+      Authorizations authorizations, byte[] defaultVisibility) {
     setSource(iterator);
     this.ve = new VisibilityEvaluator(authorizations);
     this.authorizations = authorizations;
@@ -50,7 +51,8 @@ public class VisibilityFilter extends Filter {
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new VisibilityFilter(getSource().deepCopy(env), authorizations, defaultVisibility.toArray());
+    return new VisibilityFilter(getSource().deepCopy(env), authorizations,
+        defaultVisibility.toArray());
   }
 
   @Override
@@ -96,7 +98,8 @@ public class VisibilityFilter extends Filter {
     }
   }
 
-  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source, Authorizations authorizations, byte[] defaultVisibility) {
+  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source,
+      Authorizations authorizations, byte[] defaultVisibility) {
     if (authorizations.isEmpty() && defaultVisibility.length == 0) {
       return new EmptyAuthsVisibilityFilter(source);
     } else {

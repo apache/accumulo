@@ -37,15 +37,17 @@ public class SetGoalState {
    */
   public static void main(String[] args) throws Exception {
     if (args.length != 1 || MasterGoalState.valueOf(args[0]) == null) {
-      System.err.println("Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
+      System.err.println(
+          "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
       System.exit(-1);
     }
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
     VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.waitForZookeeperAndHdfs(fs);
-    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
-        NodeExistsPolicy.OVERWRITE);
+    ZooReaderWriter.getInstance().putPersistentData(
+        ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE,
+        args[0].getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
   }
 
 }

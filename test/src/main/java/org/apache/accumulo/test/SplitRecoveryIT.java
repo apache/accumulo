@@ -85,14 +85,17 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
 
       // poke a partial split into the metadata table
-      connector.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME, TablePermission.WRITE);
+      connector.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
+          TablePermission.WRITE);
       String tableId = connector.tableOperations().tableIdMap().get(tableName);
 
       KeyExtent extent = new KeyExtent(tableId, null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();
 
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5).getBytes()));
-      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(null));
+      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m,
+          new Value(Double.toString(0.5).getBytes()));
+      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
+          KeyExtent.encodePrevEndRow(null));
       bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       bw.addMutation(m);
 

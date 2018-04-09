@@ -24,8 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Configuration object which describes how a Compaction is run. Configuration objects are dependent upon the CompactionStrategy running insider the server.
- * This class is used in conjunction with {@link CompactionConfig}.
+ * Configuration object which describes how a Compaction is run. Configuration objects are dependent
+ * upon the CompactionStrategy running insider the server. This class is used in conjunction with
+ * {@link CompactionConfig}.
  *
  * @since 1.7.0
  */
@@ -35,7 +36,9 @@ public class CompactionStrategyConfig {
 
   /**
    * @param className
-   *          The name of a class that implements org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must be exist on tservers.
+   *          The name of a class that implements
+   *          org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must be exist on
+   *          tservers.
    */
   public CompactionStrategyConfig(String className) {
     requireNonNull(className);
@@ -51,8 +54,9 @@ public class CompactionStrategyConfig {
 
   /**
    * @param opts
-   *          The options that will be passed to the init() method of the compaction strategy when its instantiated on a tserver. This method will copy the map.
-   *          The default is an empty map.
+   *          The options that will be passed to the init() method of the compaction strategy when
+   *          its instantiated on a tserver. This method will copy the map. The default is an empty
+   *          map.
    * @return this
    */
   public CompactionStrategyConfig setOptions(Map<String,String> opts) {

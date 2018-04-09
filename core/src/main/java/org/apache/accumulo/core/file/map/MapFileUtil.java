@@ -26,7 +26,8 @@ import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.SequenceFile;
 
 public class MapFileUtil {
-  public static MapFile.Reader openMapFile(AccumuloConfiguration acuconf, FileSystem fs, String dirName, Configuration conf) throws IOException {
+  public static MapFile.Reader openMapFile(AccumuloConfiguration acuconf, FileSystem fs,
+      String dirName, Configuration conf) throws IOException {
     MapFile.Reader mfr = null;
     try {
       mfr = new MapFile.Reader(fs.makeQualified(new Path(dirName)), conf);
@@ -36,7 +37,8 @@ public class MapFileUtil {
     }
   }
 
-  public static SequenceFile.Reader openIndex(Configuration conf, FileSystem fs, Path mapFile) throws IOException {
+  public static SequenceFile.Reader openIndex(Configuration conf, FileSystem fs, Path mapFile)
+      throws IOException {
     Path indexPath = new Path(mapFile, MapFile.INDEX_FILE_NAME);
     SequenceFile.Reader index = null;
     try {

@@ -51,14 +51,16 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job1, e);
     AccumuloFileOutputFormat.setSampler(job1, samplerConfig);
 
-    AccumuloConfiguration acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
+    AccumuloConfiguration acuconf = FileOutputConfigurator
+        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
     assertEquals(50l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(10l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+    assertEquals(new SamplerConfigurationImpl(samplerConfig),
+        SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
     a = 17;
     b = 1300l;
@@ -77,14 +79,16 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job2, e);
     AccumuloFileOutputFormat.setSampler(job2, samplerConfig);
 
-    acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job2.getConfiguration());
+    acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class,
+        job2.getConfiguration());
 
     assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(1300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
     assertEquals(150l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(110l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+    assertEquals(new SamplerConfigurationImpl(samplerConfig),
+        SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
   }
 }

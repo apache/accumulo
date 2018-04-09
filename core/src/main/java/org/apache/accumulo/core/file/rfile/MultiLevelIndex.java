@@ -133,7 +133,8 @@ public class MultiLevelIndex {
     }
   }
 
-  private static abstract class SerializedIndexBase<T> extends AbstractList<T> implements RandomAccess {
+  private static abstract class SerializedIndexBase<T> extends AbstractList<T>
+      implements RandomAccess {
     protected int[] offsets;
     protected byte[] data;
 
@@ -153,7 +154,8 @@ public class MultiLevelIndex {
       dis = new DataInputStream(sbais);
     }
 
-    SerializedIndexBase(byte[] data, int offsetsOffset, int numOffsets, int indexOffset, int indexSize) {
+    SerializedIndexBase(byte[] data, int offsetsOffset, int numOffsets, int indexOffset,
+        int indexSize) {
       Preconditions.checkNotNull(data, "data argument was null");
       sbais = new SeekableByteArrayInputStream(data, indexOffset + indexSize);
       dis = new DataInputStream(sbais);
@@ -164,8 +166,9 @@ public class MultiLevelIndex {
     }
 
     /**
-     * Before this method is called, {@code this.dis} is seeked to the offset of a serialized index entry. This method should deserialize the index entry by
-     * reading from {@code this.dis} and return it.
+     * Before this method is called, {@code this.dis} is seeked to the offset of a serialized index
+     * entry. This method should deserialize the index entry by reading from {@code this.dis} and
+     * return it.
      */
     protected abstract T newValue() throws IOException;
 
@@ -211,7 +214,8 @@ public class MultiLevelIndex {
       this.newFormat = newFormat;
     }
 
-    SerializedIndex(byte[] data, int offsetsOffset, int numOffsets, int indexOffset, int indexSize) {
+    SerializedIndex(byte[] data, int offsetsOffset, int numOffsets, int indexOffset,
+        int indexSize) {
       super(data, offsetsOffset, numOffsets, indexOffset, indexSize);
       this.newFormat = true;
     }
@@ -282,7 +286,8 @@ public class MultiLevelIndex {
 
     public IndexBlock() {}
 
-    public void add(Key key, int value, long offset, long compressedSize, long rawSize) throws IOException {
+    public void add(Key key, int value, long offset, long compressedSize, long rawSize)
+        throws IOException {
       offsets.add(indexOut.size());
       new IndexEntry(key, value, offset, compressedSize, rawSize).write(indexOut);
     }
@@ -310,7 +315,8 @@ public class MultiLevelIndex {
 
     public void readFields(DataInput in, int version) throws IOException {
 
-      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7 || version == RFile.RINDEX_VER_8) {
+      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7
+          || version == RFile.RINDEX_VER_8) {
         level = in.readInt();
         offset = in.readInt();
         hasNext = in.readBoolean();
@@ -397,7 +403,8 @@ public class MultiLevelIndex {
     }
 
     List<IndexEntry> getIndex() {
-      // create SerializedIndex on demand as each has an internal input stream over byte array... keeping a SerializedIndex ref for the object could lead to
+      // create SerializedIndex on demand as each has an internal input stream over byte array...
+      // keeping a SerializedIndex ref for the object could lead to
       // problems with deep copies.
       if (offsetsArray == null) {
         return new SerializedIndex(data, offsetsOffset, numOffsets, indexOffset, indexSize);
@@ -407,7 +414,8 @@ public class MultiLevelIndex {
     }
 
     public List<Key> getKeyIndex() {
-      // create KeyIndex on demand as each has an internal input stream over byte array... keeping a KeyIndex ref for the object could lead to problems with
+      // create KeyIndex on demand as each has an internal input stream over byte array... keeping a
+      // KeyIndex ref for the object could lead to problems with
       // deep copies.
       if (offsetsArray == null) {
         return new KeyIndex(data, offsetsOffset, numOffsets, indexOffset, indexSize);
@@ -435,8 +443,9 @@ public class MultiLevelIndex {
   }
 
   /**
-   * this class buffers writes to the index so that chunks of index blocks are contiguous in the file instead of having index blocks sprinkled throughout the
-   * file making scans of the entire index slow.
+   * this class buffers writes to the index so that chunks of index blocks are contiguous in the
+   * file instead of having index blocks sprinkled throughout the file making scans of the entire
+   * index slow.
    */
   public static class BufferedWriter {
 
@@ -460,7 +469,8 @@ public class MultiLevelIndex {
       IndexEntry ie = new IndexEntry(true);
       for (int i = 0; i < buffered; i++) {
         ie.readFields(dis);
-        writer.add(ie.getKey(), ie.getNumEntries(), ie.getOffset(), ie.getCompressedSize(), ie.getRawSize());
+        writer.add(ie.getKey(), ie.getNumEntries(), ie.getOffset(), ie.getCompressedSize(),
+            ie.getRawSize());
       }
 
       buffered = 0;
@@ -469,7 +479,8 @@ public class MultiLevelIndex {
 
     }
 
-    public void add(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void add(Key key, int data, long offset, long compressedSize, long rawSize)
+        throws IOException {
       if (buffer.size() > (10 * 1 << 20)) {
         flush();
       }
@@ -478,7 +489,8 @@ public class MultiLevelIndex {
       buffered++;
     }
 
-    public void addLast(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void addLast(Key key, int data, long offset, long compressedSize, long rawSize)
+        throws IOException {
       flush();
       writer.addLast(key, data, offset, compressedSize, rawSize);
     }
@@ -505,7 +517,8 @@ public class MultiLevelIndex {
       levels = new ArrayList<>();
     }
 
-    private void add(int level, Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    private void add(int level, Key key, int data, long offset, long compressedSize, long rawSize)
+        throws IOException {
       if (level == levels.size()) {
         levels.add(new IndexBlock(level, 0));
       }
@@ -537,13 +550,15 @@ public class MultiLevelIndex {
       }
     }
 
-    public void add(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void add(Key key, int data, long offset, long compressedSize, long rawSize)
+        throws IOException {
       totalAdded++;
       add(0, key, data, offset, compressedSize, rawSize);
       flush(0, key, false);
     }
 
-    public void addLast(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void addLast(Key key, int data, long offset, long compressedSize, long rawSize)
+        throws IOException {
       if (addedLast)
         throw new IllegalStateException("already added last");
 
@@ -795,7 +810,8 @@ public class MultiLevelIndex {
 
     private IndexBlock getIndexBlock(IndexEntry ie) throws IOException {
       IndexBlock iblock = new IndexBlock();
-      ABlockReader in = blockStore.getMetaBlock(ie.getOffset(), ie.getCompressedSize(), ie.getRawSize());
+      ABlockReader in = blockStore.getMetaBlock(ie.getOffset(), ie.getCompressedSize(),
+          ie.getRawSize());
       iblock.readFields(in, version);
       in.close();
 
@@ -811,7 +827,8 @@ public class MultiLevelIndex {
 
       size = 0;
 
-      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7 || version == RFile.RINDEX_VER_8) {
+      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7
+          || version == RFile.RINDEX_VER_8) {
         size = in.readInt();
       }
 
@@ -827,7 +844,8 @@ public class MultiLevelIndex {
       return size;
     }
 
-    private void getIndexInfo(IndexBlock ib, Map<Integer,Long> sizesByLevel, Map<Integer,Long> countsByLevel) throws IOException {
+    private void getIndexInfo(IndexBlock ib, Map<Integer,Long> sizesByLevel,
+        Map<Integer,Long> countsByLevel) throws IOException {
       Long size = sizesByLevel.get(ib.getLevel());
       if (size == null)
         size = 0l;

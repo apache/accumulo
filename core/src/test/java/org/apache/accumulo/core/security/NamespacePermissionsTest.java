@@ -34,6 +34,7 @@ public class NamespacePermissionsTest {
       set.remove(NamespacePermission.getEquivalent(permission));
     }
 
-    assertTrue("All namespace permissions should have equivalent table or system permissions.", set.isEmpty());
+    assertTrue("All namespace permissions should have equivalent table or system permissions.",
+        set.isEmpty());
   }
 }

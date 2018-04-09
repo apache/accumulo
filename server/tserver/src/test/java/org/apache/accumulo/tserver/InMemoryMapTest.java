@@ -109,7 +109,8 @@ public class InMemoryMapTest {
   }
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   public void mutate(InMemoryMap imm, String row, String column, long ts) {
     Mutation m = new Mutation(new Text(row));
@@ -133,7 +134,8 @@ public class InMemoryMapTest {
     return k;
   }
 
-  static void testAndCallNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
+  static void testAndCallNext(SortedKeyValueIterator<Key,Value> dc, String row, String column,
+      int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
     assertEquals(new Value(val.getBytes()), dc.getTopValue());
@@ -141,7 +143,8 @@ public class InMemoryMapTest {
 
   }
 
-  static void assertEqualsNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
+  static void assertEqualsNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column,
+      int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
     assertEquals(new Value(val.getBytes()), dc.getTopValue());
@@ -171,7 +174,8 @@ public class InMemoryMapTest {
     return config;
   }
 
-  static InMemoryMap newInMemoryMap(boolean useNative, String memDumpDir) throws LocalityGroupConfigurationError {
+  static InMemoryMap newInMemoryMap(boolean useNative, String memDumpDir)
+      throws LocalityGroupConfigurationError {
     ConfigurationCopy config = new ConfigurationCopy(DefaultConfiguration.getInstance());
     config.set(Property.TSERV_NATIVEMAP_ENABLED, "" + useNative);
     config.set(Property.TSERV_MEMDUMP_DIR, memDumpDir);
@@ -528,7 +532,8 @@ public class InMemoryMapTest {
       imm.delete(10000);
       double mutationsPerSecond = sum(counts) / ((System.currentTimeMillis() - now) / 1000.);
       timings.add(mutationsPerSecond);
-      log.info(String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
+      log.info(
+          String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
     }
     // verify that more threads doesn't go a lot faster, or a lot slower than one thread
     for (int i = 0; i < timings.size(); i++) {
@@ -541,8 +546,10 @@ public class InMemoryMapTest {
   @Test
   public void testLocalityGroups() throws Exception {
     ConfigurationCopy config = newConfig(tempFolder.newFolder().getAbsolutePath());
-    config.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg1", LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf1", "cf2")));
-    config.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg2", LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf3", "cf4")));
+    config.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg1",
+        LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf1", "cf2")));
+    config.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg2",
+        LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf3", "cf4")));
     config.set(Property.TABLE_LOCALITY_GROUPS.getKey(), "lg1,lg2");
 
     InMemoryMap imm = new InMemoryMap(config);
@@ -589,7 +596,8 @@ public class InMemoryMapTest {
   @Test
   public void testSample() throws Exception {
 
-    SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+    SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
+        ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig, DefaultConfiguration.getInstance());
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
@@ -598,7 +606,8 @@ public class InMemoryMapTest {
     }
 
     ConfigurationCopy config2 = newConfig(tempFolder.newFolder().getAbsolutePath());
-    config2.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg1", LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf2")));
+    config2.set(Property.TABLE_LOCALITY_GROUP_PREFIX + "lg1",
+        LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf2")));
     config2.set(Property.TABLE_LOCALITY_GROUPS.getKey(), "lg1");
     for (Entry<String,String> entry : sampleConfig.toTablePropertiesMap().entrySet()) {
       config2.set(entry.getKey(), entry.getValue());
@@ -681,8 +690,10 @@ public class InMemoryMapTest {
     runInterruptSampleTest(true, true, true);
   }
 
-  private void runInterruptSampleTest(boolean deepCopy, boolean delete, boolean dcAfterDelete) throws Exception {
-    SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "2"));
+  private void runInterruptSampleTest(boolean deepCopy, boolean delete, boolean dcAfterDelete)
+      throws Exception {
+    SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(
+        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "2"));
     Sampler sampler = SamplerFactory.newSampler(sampleConfig1, DefaultConfiguration.getInstance());
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
@@ -730,8 +741,8 @@ public class InMemoryMapTest {
     miter.close();
   }
 
-  private void mutate(InMemoryMap imm, String row, String cols, int ts, String val, Sampler sampler, TreeMap<Key,Value> expectedSample,
-      TreeMap<Key,Value> expectedAll) {
+  private void mutate(InMemoryMap imm, String row, String cols, int ts, String val, Sampler sampler,
+      TreeMap<Key,Value> expectedSample, TreeMap<Key,Value> expectedAll) {
     mutate(imm, row, cols, ts, val);
     Key k1 = newKey(row, cols, ts);
     if (sampler.accept(k1)) {
@@ -742,7 +753,8 @@ public class InMemoryMapTest {
 
   @Test(expected = SampleNotPresentException.class)
   public void testDifferentSampleConfig() throws Exception {
-    SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+    SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
+        ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
     for (Entry<String,String> entry : sampleConfig.toTablePropertiesMap().entrySet()) {
@@ -753,7 +765,8 @@ public class InMemoryMapTest {
 
     mutate(imm, "r", "cf:cq", 5, "b");
 
-    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
+        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
   }
@@ -764,7 +777,8 @@ public class InMemoryMapTest {
 
     mutate(imm, "r", "cf:cq", 5, "b");
 
-    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
+        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
     iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
   }
@@ -773,7 +787,8 @@ public class InMemoryMapTest {
   public void testEmptyNoSampleConfig() throws Exception {
     InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
 
-    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
+        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
 
     // when in mem map is empty should be able to get sample iterator with any sample config
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
@@ -783,7 +798,8 @@ public class InMemoryMapTest {
 
   @Test
   public void testDeferredSamplerCreation() throws Exception {
-    SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
+    SamplerConfigurationImpl sampleConfig1 = new SamplerConfigurationImpl(
+        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "9"));
 
     ConfigurationCopy config1 = newConfig(tempFolder.newFolder().getAbsolutePath());
     for (Entry<String,String> entry : sampleConfig1.toTablePropertiesMap().entrySet()) {
@@ -793,7 +809,8 @@ public class InMemoryMapTest {
     InMemoryMap imm = new InMemoryMap(config1);
 
     // change sampler config after creating in mem map.
-    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
+    SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
+        RowSampler.class.getName(), ImmutableMap.of("hasher", "murmur3_32", "modulus", "7"));
     for (Entry<String,String> entry : sampleConfig2.toTablePropertiesMap().entrySet()) {
       config1.set(entry.getKey(), entry.getValue());
     }

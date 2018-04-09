@@ -39,7 +39,8 @@ public class GrepCommand extends ScanCommand {
   private Option numThreadsOpt;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     try (final PrintFile printFile = getOutputFile(cl)) {
 
       final String tableName = OptUtil.getTableOpt(cl, shellState);
@@ -57,7 +58,8 @@ public class GrepCommand extends ScanCommand {
         numThreads = Integer.parseInt(cl.getOptionValue(numThreadsOpt.getOpt()));
       }
       final Authorizations auths = getAuths(cl, shellState);
-      final BatchScanner scanner = shellState.getConnector().createBatchScanner(tableName, auths, numThreads);
+      final BatchScanner scanner = shellState.getConnector().createBatchScanner(tableName, auths,
+          numThreads);
       scanner.setRanges(Collections.singletonList(getRange(cl, interpeter)));
 
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
@@ -65,7 +67,8 @@ public class GrepCommand extends ScanCommand {
       setupSampling(tableName, cl, shellState, scanner);
 
       for (int i = 0; i < cl.getArgs().length; i++) {
-        setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i], scanner, cl);
+        setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i],
+            scanner, cl);
       }
       try {
         // handle columns
@@ -83,7 +86,8 @@ public class GrepCommand extends ScanCommand {
     return 0;
   }
 
-  protected void setUpIterator(final int prio, final String name, final String term, final BatchScanner scanner, CommandLine cl) throws IOException {
+  protected void setUpIterator(final int prio, final String name, final String term,
+      final BatchScanner scanner, CommandLine cl) throws IOException {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
@@ -94,7 +98,8 @@ public class GrepCommand extends ScanCommand {
 
   @Override
   public String description() {
-    return "searches each row, column family, column qualifier and value in a table for a substring (not a regular expression), in parallel, on the server side";
+    return "searches each row, column family, column qualifier and value in a"
+        + " table for a substring (not a regular expression), in parallel, on the" + " server side";
   }
 
   @Override

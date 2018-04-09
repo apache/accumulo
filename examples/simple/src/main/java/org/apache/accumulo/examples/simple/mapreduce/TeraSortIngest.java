@@ -50,8 +50,9 @@ import org.apache.hadoop.util.ToolRunner;
 import com.beust.jcommander.Parameter;
 
 /**
- * Generate the *almost* official terasort input data set. (See below) The user specifies the number of rows and the output directory and this class runs a
- * map/reduce program to generate the data. The format of the data is:
+ * Generate the *almost* official terasort input data set. (See below) The user specifies the number
+ * of rows and the output directory and this class runs a map/reduce program to generate the data.
+ * The format of the data is:
  * <ul>
  * <li>(10 bytes key) (10 bytes rowid) (78 bytes filler) \r \n
  * <li>The keys are random characters from the set ' ' .. '~'.
@@ -59,9 +60,11 @@ import com.beust.jcommander.Parameter;
  * <li>The filler consists of 7 runs of 10 characters from 'A' to 'Z'.
  * </ul>
  *
- * This TeraSort is slightly modified to allow for variable length key sizes and value sizes. The row length isn't variable. To generate a terabyte of data in
- * the same way TeraSort does use 10000000000 rows and 10/10 byte key length and 78/78 byte value length. Along with the 10 byte row id and \r\n this gives you
- * 100 byte row * 10000000000 rows = 1tb. Min/Max ranges for key and value parameters are inclusive/inclusive respectively.
+ * This TeraSort is slightly modified to allow for variable length key sizes and value sizes. The
+ * row length isn't variable. To generate a terabyte of data in the same way TeraSort does use
+ * 10000000000 rows and 10/10 byte key length and 78/78 byte value length. Along with the 10 byte
+ * row id and \r\n this gives you 100 byte row * 10000000000 rows = 1tb. Min/Max ranges for key and
+ * value parameters are inclusive/inclusive respectively.
  *
  *
  */
@@ -140,7 +143,8 @@ public class TeraSortIngest extends Configured implements Tool {
       }
 
       @Override
-      public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {}
+      public void initialize(InputSplit split, TaskAttemptContext context)
+          throws IOException, InterruptedException {}
 
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
@@ -153,7 +157,8 @@ public class TeraSortIngest extends Configured implements Tool {
     }
 
     @Override
-    public RecordReader<LongWritable,NullWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
+    public RecordReader<LongWritable,NullWritable> createRecordReader(InputSplit split,
+        TaskAttemptContext context) throws IOException {
       // reporter.setStatus("Creating record reader");
       return new RangeRecordReader((RangeInputSplit) split);
     }
@@ -166,7 +171,8 @@ public class TeraSortIngest extends Configured implements Tool {
       long totalRows = job.getConfiguration().getLong(NUMROWS, 0);
       int numSplits = job.getConfiguration().getInt(NUMSPLITS, 1);
       long rowsPerSplit = totalRows / numSplits;
-      System.out.println("Generating " + totalRows + " using " + numSplits + " maps with step of " + rowsPerSplit);
+      System.out.println(
+          "Generating " + totalRows + " using " + numSplits + " maps with step of " + rowsPerSplit);
       ArrayList<InputSplit> splits = new ArrayList<>(numSplits);
       long currentRow = 0;
       for (int split = 0; split < numSplits - 1; ++split) {
@@ -191,11 +197,14 @@ public class TeraSortIngest extends Configured implements Tool {
      */
     private static final int seedSkip = 128 * 1024 * 1024;
     /**
-     * The precomputed seed values after every seedSkip iterations. There should be enough values so that a 2**32 iterations are covered.
+     * The precomputed seed values after every seedSkip iterations. There should be enough values so
+     * that a 2**32 iterations are covered.
      */
-    private static final long[] seeds = new long[] {0L, 4160749568L, 4026531840L, 3892314112L, 3758096384L, 3623878656L, 3489660928L, 3355443200L, 3221225472L,
-        3087007744L, 2952790016L, 2818572288L, 2684354560L, 2550136832L, 2415919104L, 2281701376L, 2147483648L, 2013265920L, 1879048192L, 1744830464L,
-        1610612736L, 1476395008L, 1342177280L, 1207959552L, 1073741824L, 939524096L, 805306368L, 671088640L, 536870912L, 402653184L, 268435456L, 134217728L,};
+    private static final long[] seeds = new long[] {0L, 4160749568L, 4026531840L, 3892314112L,
+        3758096384L, 3623878656L, 3489660928L, 3355443200L, 3221225472L, 3087007744L, 2952790016L,
+        2818572288L, 2684354560L, 2550136832L, 2415919104L, 2281701376L, 2147483648L, 2013265920L,
+        1879048192L, 1744830464L, 1610612736L, 1476395008L, 1342177280L, 1207959552L, 1073741824L,
+        939524096L, 805306368L, 671088640L, 536870912L, 402653184L, 268435456L, 134217728L,};
 
     /**
      * Start the random number generator on the given iteration.
@@ -286,7 +295,8 @@ public class TeraSortIngest extends Configured implements Tool {
     }
 
     /**
-     * Add the required filler bytes. Each row consists of 7 blocks of 10 characters and 1 block of 8 characters.
+     * Add the required filler bytes. Each row consists of 7 blocks of 10 characters and 1 block of
+     * 8 characters.
      *
      * @param rowId
      *          the current row number
@@ -310,7 +320,8 @@ public class TeraSortIngest extends Configured implements Tool {
     }
 
     @Override
-    public void map(LongWritable row, NullWritable ignored, Context context) throws IOException, InterruptedException {
+    public void map(LongWritable row, NullWritable ignored, Context context)
+        throws IOException, InterruptedException {
       context.setStatus("Entering");
       long rowId = row.get();
       if (rand == null) {

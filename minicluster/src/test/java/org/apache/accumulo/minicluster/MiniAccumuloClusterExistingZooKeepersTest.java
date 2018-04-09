@@ -40,12 +40,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MiniAccumuloClusterExistingZooKeepersTest {
-  private static final File BASE_DIR = new File(System.getProperty("user.dir") + "/target/mini-tests/"
-      + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
+  private static final File BASE_DIR = new File(System.getProperty("user.dir")
+      + "/target/mini-tests/" + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
 
   private static final String SECRET = "superSecret";
 
-  private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterExistingZooKeepersTest.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(MiniAccumuloClusterExistingZooKeepersTest.class);
   private TestingServer zooKeeper;
   private MiniAccumuloCluster accumulo;
 
@@ -97,8 +98,10 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
     Map<String,String> tableIds = conn.tableOperations().tableIdMap();
     assertTrue(tableIds.containsKey(tableName));
 
-    String zkTablePath = String.format("/accumulo/%s/tables/%s/name", instance.getInstanceID(), tableIds.get(tableName));
-    try (CuratorFramework client = CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
+    String zkTablePath = String.format("/accumulo/%s/tables/%s/name", instance.getInstanceID(),
+        tableIds.get(tableName));
+    try (CuratorFramework client = CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(),
+        new RetryOneTime(1))) {
       client.start();
       assertNotNull(client.checkExists().forPath(zkTablePath));
       assertEquals(tableName, new String(client.getData().forPath(zkTablePath)));

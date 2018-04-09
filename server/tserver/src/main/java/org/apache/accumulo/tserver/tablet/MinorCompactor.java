@@ -57,36 +57,39 @@ public class MinorCompactor extends Compactor {
 
   private final TabletServer tabletServer;
 
-  public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile,
-      MinorCompactionReason mincReason, TableConfiguration tableConfig) {
-    super(tabletServer, tablet, toFileMap(mergeFile, dfv), imm, outputFile, true, new CompactionEnv() {
+  public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
+      FileRef mergeFile, DataFileValue dfv, FileRef outputFile, MinorCompactionReason mincReason,
+      TableConfiguration tableConfig) {
+    super(tabletServer, tablet, toFileMap(mergeFile, dfv), imm, outputFile, true,
+        new CompactionEnv() {
 
-      @Override
-      public boolean isCompactionEnabled() {
-        return true;
-      }
+          @Override
+          public boolean isCompactionEnabled() {
+            return true;
+          }
 
-      @Override
-      public IteratorScope getIteratorScope() {
-        return IteratorScope.minc;
-      }
+          @Override
+          public IteratorScope getIteratorScope() {
+            return IteratorScope.minc;
+          }
 
-      @Override
-      public RateLimiter getReadLimiter() {
-        return null;
-      }
+          @Override
+          public RateLimiter getReadLimiter() {
+            return null;
+          }
 
-      @Override
-      public RateLimiter getWriteLimiter() {
-        return null;
-      }
-    }, Collections.<IteratorSetting> emptyList(), mincReason.ordinal(), tableConfig);
+          @Override
+          public RateLimiter getWriteLimiter() {
+            return null;
+          }
+        }, Collections.<IteratorSetting> emptyList(), mincReason.ordinal(), tableConfig);
     this.tabletServer = tabletServer;
   }
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getInstance(), extent.getTableId()) == TableState.DELETING;
+      return Tables.getTableState(tabletServer.getInstance(),
+          extent.getTableId()) == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
@@ -110,23 +113,28 @@ public class MinorCompactor extends Compactor {
         try {
           CompactionStats ret = super.call();
 
-          // log.debug(String.format("MinC %,d recs in | %,d recs out | %,d recs/sec | %6.3f secs | %,d bytes ",map.size(), entriesCompacted,
+          // log.debug(String.format("MinC %,d recs in | %,d recs out | %,d recs/sec | %6.3f secs |
+          // %,d bytes ",map.size(), entriesCompacted,
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
 
           if (reportedProblem) {
-            ProblemReports.getInstance(tabletServer).deleteProblemReport(getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName);
+            ProblemReports.getInstance(tabletServer).deleteProblemReport(getExtent().getTableId(),
+                ProblemType.FILE_WRITE, outputFileName);
           }
 
           return ret;
         } catch (IOException e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
-          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(
+              getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (RuntimeException e) {
-          // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
+          // if this is coming from a user iterator, it is possible that the user could change the
+          // iterator config and that the
           // minor compaction would succeed
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
-          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(
+              getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);

@@ -69,7 +69,8 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
     for (int i = 0; i < numRows; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"),
+          new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
       bw.addMutation(m);
     }
 
@@ -77,7 +78,8 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
     getConnector().tableOperations().flush(tableName, null, null, true);
 
-    getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
+    getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+        "4K");
 
     Collection<Text> splits = getConnector().tableOperations().listSplits(tableName);
     while (splits.size() < 2) {

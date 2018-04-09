@@ -90,11 +90,14 @@ public class Framework {
   }
 
   static class Opts extends org.apache.accumulo.core.cli.Help {
-    @Parameter(names = "--configDir", required = true, description = "directory containing the test configuration")
+    @Parameter(names = "--configDir", required = true,
+        description = "directory containing the test configuration")
     String configDir;
-    @Parameter(names = "--logDir", required = true, description = "location of the local logging directory")
+    @Parameter(names = "--logDir", required = true,
+        description = "location of the local logging directory")
     String localLogPath;
-    @Parameter(names = "--logId", required = true, description = "a unique log identifier (like a hostname, or pid)")
+    @Parameter(names = "--logId", required = true,
+        description = "a unique log identifier (like a hostname, or pid)")
     String logId;
     @Parameter(names = "--module", required = true, description = "the name of the module to run")
     String module;

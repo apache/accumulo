@@ -105,13 +105,17 @@ public class RangeInputSplit extends InputSplit implements Writable {
       if (range.getStartKey() != null && range.getEndKey() != null) {
         if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
           // just look at the row progress
-          return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
+          return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(),
+              currentKey.getRowData());
         } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
           // just look at the column family progress
-          return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+          return getProgress(range.getStartKey().getColumnFamilyData(),
+              range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+        } else if (range.getStartKey().compareTo(range.getEndKey(),
+            PartialKey.ROW_COLFAM_COLQUAL) != 0) {
           // just look at the column qualifier progress
-          return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
+          return getProgress(range.getStartKey().getColumnQualifierData(),
+              range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
         }
       }
     }
@@ -120,7 +124,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   /**
-   * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
+   * This implementation of length is only an estimate, it does not provide exact values. Do not
+   * have your code rely on this return value.
    */
   @Override
   public long getLength() throws IOException {
@@ -277,7 +282,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
       out.writeInt(tokenSource.ordinal());
 
       if (null != token && null != tokenFile) {
-        throw new IOException("Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
+        throw new IOException(
+            "Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
       } else if (null != token) {
         out.writeUTF(token.getClass().getName());
         out.writeUTF(Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));

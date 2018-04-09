@@ -73,7 +73,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
+      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter)
+          throws IOException {
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
@@ -106,7 +107,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 1 && args.length != 3) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table> [<batchScan> <scan sample>]");
+        throw new IllegalArgumentException(
+            "Usage : " + MRTester.class.getName() + " <table> [<batchScan> <scan sample>]");
       }
 
       String table = args[0];
@@ -143,7 +145,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     public static void main(String... args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
@@ -169,15 +172,16 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertNull(e2);
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption(
-      "modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
+      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
     Connector c = getConnector();
-    c.tableOperations().create(TEST_TABLE_3, new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
+    c.tableOperations().create(TEST_TABLE_3,
+        new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
@@ -208,7 +212,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns = Collections
+        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 

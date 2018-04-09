@@ -88,9 +88,11 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
 
       if (cf != null) {
         for (Path path : cf) {
-          if (path.toUri().getPath().endsWith(cutFileName.substring(cutFileName.lastIndexOf('/')))) {
+          if (path.toUri().getPath()
+              .endsWith(cutFileName.substring(cutFileName.lastIndexOf('/')))) {
             TreeSet<Text> cutPoints = new TreeSet<>();
-            Scanner in = new Scanner(new BufferedReader(new InputStreamReader(new FileInputStream(path.toString()), UTF_8)));
+            Scanner in = new Scanner(new BufferedReader(
+                new InputStreamReader(new FileInputStream(path.toString()), UTF_8)));
             try {
               while (in.hasNextLine())
                 cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(UTF_8))));
@@ -119,7 +121,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   }
 
   /**
-   * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split points that represent ranges for partitioning
+   * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split
+   * points that represent ranges for partitioning
    */
   public static void setSplitFile(Job job, String file) {
     URI uri = new Path(file).toUri();

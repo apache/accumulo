@@ -25,13 +25,15 @@ public class StandaloneAccumuloClusterTest {
 
   @Test
   public void test() throws Exception {
-    StandaloneAccumuloCluster cluster = EasyMock.createMockBuilder(StandaloneAccumuloCluster.class).addMockedMethod("getClusterControl").createMock();
+    StandaloneAccumuloCluster cluster = EasyMock.createMockBuilder(StandaloneAccumuloCluster.class)
+        .addMockedMethod("getClusterControl").createMock();
     StandaloneClusterControl control = EasyMock.createMock(StandaloneClusterControl.class);
 
     // Return our mocked clustercontrol
     EasyMock.expect(cluster.getClusterControl()).andReturn(control);
 
-    // `SetGoalState NORMAL` should be called specifically on this method, not via ClusterControl.exec(..)
+    // `SetGoalState NORMAL` should be called specifically on this method, not via
+    // ClusterControl.exec(..)
     control.setGoalState(MasterGoalState.NORMAL.toString());
     EasyMock.expectLastCall().once();
 

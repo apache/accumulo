@@ -32,17 +32,16 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A chaotic load balancer used for testing. It constantly shuffles tablets, preventing them from resting in a single location for very long. This is not
- * designed for performance, do not use on production systems. I'm calling it the LokiLoadBalancer.
+ * A chaotic load balancer used for testing. It constantly shuffles tablets, preventing them from
+ * resting in a single location for very long. This is not designed for performance, do not use on
+ * production systems. I'm calling it the LokiLoadBalancer.
  *
  * <p>
  * Will balance randomly, maintaining distribution
@@ -65,8 +64,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   Random r = new Random();
 
   @Override
-  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
-      Map<KeyExtent,TServerInstance> assignments) {
+  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
+      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
     long total = assignments.size() + unassigned.size();
     long avg = (long) Math.ceil(((double) total) / current.size());
     Map<TServerInstance,Long> toAssign = new HashMap<>();
@@ -104,7 +103,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
 
   @Override
-  public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
+  public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
+      Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     Map<TServerInstance,Long> numTablets = new HashMap<>();
     List<TServerInstance> underCapacityTServer = new ArrayList<>();
 
@@ -144,16 +144,20 @@ public class ChaoticLoadBalancer extends TabletBalancer {
             migrationsOut.add(new TabletMigration(ke, e.getKey(), dest));
             if (numTablets.put(dest, numTablets.get(dest) + 1) > avg)
               underCapacityTServer.remove(index);
-            if (numTablets.put(e.getKey(), numTablets.get(e.getKey()) - 1) <= avg && !underCapacityTServer.contains(e.getKey()))
+            if (numTablets.put(e.getKey(), numTablets.get(e.getKey()) - 1) <= avg
+                && !underCapacityTServer.contains(e.getKey()))
               underCapacityTServer.add(e.getKey());
 
-            // We can get some craziness with only 1 tserver, so lets make sure there's always an option!
+            // We can get some craziness with only 1 tserver, so lets make sure there's always an
+            // option!
             if (underCapacityTServer.isEmpty())
               underCapacityTServer.addAll(numTablets.keySet());
           }
         } catch (ThriftSecurityException e1) {
           // Shouldn't happen, but carry on if it does
-          log.debug("Encountered ThriftSecurityException.  This should not happen.  Carrying on anyway.", e1);
+          log.debug(
+              "Encountered ThriftSecurityException.  This should not happen.  Carrying on anyway.",
+              e1);
         } catch (TException e1) {
           // Shouldn't happen, but carry on if it does
           log.debug("Encountered TException.  This should not happen.  Carrying on anyway.", e1);
@@ -167,10 +171,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   @Deprecated
   @Override
   public void init(ServerConfiguration conf) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
-
-  @Override
-  public void init(ServerConfigurationFactory conf) {}
 
 }

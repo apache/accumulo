@@ -32,9 +32,10 @@ import org.apache.accumulo.core.data.Value;
  *
  * Subclasses must implement an accept method: public boolean accept(Key k, Value v);
  *
- * Key/Value pairs for which the accept method returns true are said to match the filter. By default, this class iterates over entries that match its filter.
- * This iterator takes an optional "negate" boolean parameter that defaults to false. If negate is set to true, this class instead omits entries that match its
- * filter, thus iterating over entries that do not match its filter.
+ * Key/Value pairs for which the accept method returns true are said to match the filter. By
+ * default, this class iterates over entries that match its filter. This iterator takes an optional
+ * "negate" boolean parameter that defaults to false. If negate is set to true, this class instead
+ * omits entries that match its filter, thus iterating over entries that do not match its filter.
  */
 public abstract class Filter extends WrappingIterator implements OptionDescriber {
   @Override
@@ -60,7 +61,8 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     super.seek(range, columnFamilies, inclusive);
     findTop();
   }
@@ -70,7 +72,8 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
    */
   protected void findTop() {
     SortedKeyValueIterator<Key,Value> source = getSource();
-    while (source.hasTop() && !source.getTopKey().isDeleted() && (negate == accept(source.getTopKey(), source.getTopValue()))) {
+    while (source.hasTop() && !source.getTopKey().isDeleted()
+        && (negate == accept(source.getTopKey(), source.getTopValue()))) {
       try {
         source.next();
       } catch (IOException e) {
@@ -85,7 +88,8 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
   public abstract boolean accept(Key k, Value v);
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     negate = false;
     if (options.get(NEGATE) != null) {
@@ -95,8 +99,10 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
 
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions("filter", "Filter accepts or rejects each Key/Value pair", Collections.singletonMap("negate",
-        "default false keeps k/v that pass accept method, true rejects k/v that pass accept method"), null);
+    return new IteratorOptions("filter", "Filter accepts or rejects each Key/Value pair",
+        Collections.singletonMap("negate", "default false keeps k/v that pass"
+            + " accept method, true rejects k/v that pass accept method"),
+        null);
   }
 
   @Override
@@ -117,7 +123,8 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
    * @param is
    *          IteratorSetting object to configure.
    * @param negate
-   *          if false, filter accepts k/v for which the accept method returns true; if true, filter accepts k/v for which the accept method returns false.
+   *          if false, filter accepts k/v for which the accept method returns true; if true, filter
+   *          accepts k/v for which the accept method returns false.
    */
   public static void setNegate(IteratorSetting is, boolean negate) {
     is.addOption(NEGATE, Boolean.toString(negate));

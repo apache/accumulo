@@ -62,11 +62,16 @@ public class MapReduceClientOpts extends ClientOpts {
         Connector conn = getInstance().getConnector(newPrincipal, krbToken);
 
         // Do the explicit check to see if the user has the permission to get a delegation token
-        if (!conn.securityOperations().hasSystemPermission(conn.whoami(), SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
-          log.error("{} doesn't have the {} SystemPermission neccesary to obtain a delegation token. MapReduce tasks cannot automatically use the client's"
-              + " credentials on remote servers. Delegation tokens provide a means to run MapReduce without distributing the user's credentials.",
+        if (!conn.securityOperations().hasSystemPermission(conn.whoami(),
+            SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
+          log.error(
+              "{} doesn't have the {} SystemPermission neccesary to obtain a delegation"
+                  + " token. MapReduce tasks cannot automatically use the client's"
+                  + " credentials on remote servers. Delegation tokens provide a means to run"
+                  + " MapReduce without distributing the user's credentials.",
               user.getUserName(), SystemPermission.OBTAIN_DELEGATION_TOKEN.name());
-          throw new IllegalStateException(conn.whoami() + " does not have permission to obtain a delegation token");
+          throw new IllegalStateException(
+              conn.whoami() + " does not have permission to obtain a delegation token");
         }
 
         // Get the delegation token from Accumulo

@@ -47,7 +47,8 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance(environment).grantTablePermission(environment.rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
+        AuditedSecurityOperation.getInstance(environment).grantTablePermission(
+            environment.rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
             cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ClonePermissions.class).error("{}", e.getMessage(), e);
@@ -61,13 +62,15 @@ class ClonePermissions extends MasterRepo {
     try {
       return new CloneZookeeper(cloneInfo);
     } catch (NamespaceNotFoundException e) {
-      throw new AcceptableThriftTableOperationException(null, cloneInfo.tableName, TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
+      throw new AcceptableThriftTableOperationException(null, cloneInfo.tableName,
+          TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
           "Namespace for target table not found");
     }
   }
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance(environment).deleteTable(environment.rpcCreds(), cloneInfo.tableId, cloneInfo.namespaceId);
+    AuditedSecurityOperation.getInstance(environment).deleteTable(environment.rpcCreds(),
+        cloneInfo.tableId, cloneInfo.namespaceId);
   }
 }

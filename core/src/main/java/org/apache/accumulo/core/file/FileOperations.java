@@ -36,7 +36,8 @@ import org.apache.hadoop.fs.FileSystem;
 
 public abstract class FileOperations {
 
-  private static final HashSet<String> validExtensions = new HashSet<>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
+  private static final HashSet<String> validExtensions = new HashSet<>(
+      Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
 
   public static Set<String> getValidExtensions() {
     return validExtensions;
@@ -60,7 +61,8 @@ public abstract class FileOperations {
 
   protected abstract FileSKVIterator openIndex(OpenIndexOperation options) throws IOException;
 
-  protected abstract FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException;
+  protected abstract FileSKVIterator openScanReader(OpenScanReaderOperation options)
+      throws IOException;
 
   protected abstract FileSKVIterator openReader(OpenReaderOperation options) throws IOException;
 
@@ -73,7 +75,8 @@ public abstract class FileOperations {
    * Syntax:
    *
    * <pre>
-   * long size = fileOperations.getFileSize().forFile(filename, fileSystem, fsConfiguration).withTableConfiguration(tableConf).execute();
+   * long size = fileOperations.getFileSize().forFile(filename, fileSystem, fsConfiguration)
+   *     .withTableConfiguration(tableConf).execute();
    * </pre>
    */
   public NeedsFile<GetFileSizeOperationBuilder> getFileSize() {
@@ -115,9 +118,11 @@ public abstract class FileOperations {
   }
 
   /**
-   * Construct an operation object allowing one to create a "scan" reader for a file. Scan readers do not have any optimizations for seeking beyond their
-   * initial position. This is useful for file operations that only need to scan data within a range and do not need to seek. Therefore file metadata such as
-   * indexes does not need to be kept in memory while the file is scanned. Also seek optimizations like bloom filters do not need to be loaded. <br>
+   * Construct an operation object allowing one to create a "scan" reader for a file. Scan readers
+   * do not have any optimizations for seeking beyond their initial position. This is useful for
+   * file operations that only need to scan data within a range and do not need to seek. Therefore
+   * file metadata such as indexes does not need to be kept in memory while the file is scanned.
+   * Also seek optimizations like bloom filters do not need to be loaded. <br>
    * Syntax:
    *
    * <pre>
@@ -132,12 +137,16 @@ public abstract class FileOperations {
    */
   @SuppressWarnings("unchecked")
   public NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>> newScanReaderBuilder() {
-    return (NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>>) (NeedsFile<?>) new OpenScanReaderOperation();
+    // @formatter:off
+    return (NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>>)
+      (NeedsFile<?>) new OpenScanReaderOperation();
+    // @formatter:on
   }
 
   /**
-   * Construct an operation object allowing one to create a reader for a file. A reader constructed in this manner fully supports seeking, and also enables any
-   * optimizations related to seeking (e.g. Bloom filters). <br>
+   * Construct an operation object allowing one to create a reader for a file. A reader constructed
+   * in this manner fully supports seeking, and also enables any optimizations related to seeking
+   * (e.g. Bloom filters). <br>
    * Syntax:
    *
    * <pre>
@@ -158,7 +167,8 @@ public abstract class FileOperations {
   // Domain specific embedded language for execution of operations.
   //
   // Here, for each ...Operation class which is a POJO holding a group of parameters,
-  // we have a parallel ...OperationBuilder interface which only exposes the setters / execute methods.
+  // we have a parallel ...OperationBuilder interface which only exposes the setters / execute
+  // methods.
   // This allows us to expose only the setter/execute methods to upper layers, while
   // allowing lower layers the freedom to both get and set.
   //
@@ -166,7 +176,10 @@ public abstract class FileOperations {
   /**
    * Options common to all FileOperations.
    */
-  protected static class FileAccessOperation<SubclassType extends FileAccessOperation<SubclassType>> {
+  // @formatter:off
+  protected static class
+    FileAccessOperation<SubclassType extends FileAccessOperation<SubclassType>> {
+  // @formatter:on
     private AccumuloConfiguration tableConfiguration;
 
     private String filename;
@@ -196,7 +209,9 @@ public abstract class FileOperations {
       return (SubclassType) this;
     }
 
-    /** Specify the filesystem which this operation should apply to, along with its configuration. */
+    /**
+     * Specify the filesystem which this operation should apply to, along with its configuration.
+     */
     @SuppressWarnings("unchecked")
     public SubclassType inFileSystem(FileSystem fs, Configuration fsConf) {
       this.fs = fs;
@@ -238,7 +253,8 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link FileAccessOperation}. */
-  protected static interface FileAccessOperationBuilder<SubbuilderType> extends NeedsFile<SubbuilderType>, NeedsFileSystem<SubbuilderType>,
+  protected static interface FileAccessOperationBuilder<SubbuilderType>
+      extends NeedsFile<SubbuilderType>, NeedsFileSystem<SubbuilderType>,
       NeedsTableConfiguration<SubbuilderType> {
     // no optional/generic methods.
   }
@@ -246,7 +262,8 @@ public abstract class FileOperations {
   /**
    * Operation object for performing {@code getFileSize()} operations.
    */
-  protected class GetFileSizeOperation extends FileAccessOperation<GetFileSizeOperation> implements GetFileSizeOperationBuilder {
+  protected class GetFileSizeOperation extends FileAccessOperation<GetFileSizeOperation>
+      implements GetFileSizeOperationBuilder {
     /** Return the size of the file. */
     @Override
     public long execute() throws IOException {
@@ -255,8 +272,12 @@ public abstract class FileOperations {
     }
   }
 
-  /** Builder interface for {@link GetFileSizeOperation}, allowing execution of {@code getFileSize()} operations. */
-  public static interface GetFileSizeOperationBuilder extends FileAccessOperationBuilder<GetFileSizeOperationBuilder> {
+  /**
+   * Builder interface for {@link GetFileSizeOperation}, allowing execution of {@code getFileSize()}
+   * operations.
+   */
+  public static interface GetFileSizeOperationBuilder
+      extends FileAccessOperationBuilder<GetFileSizeOperationBuilder> {
     /** Return the size of the file. */
     public long execute() throws IOException;
   }
@@ -264,7 +285,8 @@ public abstract class FileOperations {
   /**
    * Options common to all {@code FileOperation}s which perform reading or writing.
    */
-  protected static class FileIOOperation<SubclassType extends FileIOOperation<SubclassType>> extends FileAccessOperation<SubclassType> {
+  protected static class FileIOOperation<SubclassType extends FileIOOperation<SubclassType>>
+      extends FileAccessOperation<SubclassType> {
     private RateLimiter rateLimiter;
 
     /** Specify a rate limiter for this operation. */
@@ -280,7 +302,8 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link FileIOOperation}. */
-  protected static interface FileIOOperationBuilder<SubbuilderType> extends FileAccessOperationBuilder<SubbuilderType> {
+  protected static interface FileIOOperationBuilder<SubbuilderType>
+      extends FileAccessOperationBuilder<SubbuilderType> {
     /** Specify a rate limiter for this operation. */
     public SubbuilderType withRateLimiter(RateLimiter rateLimiter);
   }
@@ -288,13 +311,14 @@ public abstract class FileOperations {
   /**
    * Operation object for constructing a writer.
    */
-  protected class OpenWriterOperation extends FileIOOperation<OpenWriterOperation> implements OpenWriterOperationBuilder,
-      NeedsFileOrOuputStream<OpenWriterOperationBuilder> {
+  protected class OpenWriterOperation extends FileIOOperation<OpenWriterOperation>
+      implements OpenWriterOperationBuilder, NeedsFileOrOuputStream<OpenWriterOperationBuilder> {
     private String compression;
     private FSDataOutputStream outputStream;
 
     @Override
-    public NeedsTableConfiguration<OpenWriterOperationBuilder> forOutputStream(String extenstion, FSDataOutputStream outputStream, Configuration fsConf) {
+    public NeedsTableConfiguration<OpenWriterOperationBuilder> forOutputStream(String extenstion,
+        FSDataOutputStream outputStream, Configuration fsConf) {
       this.outputStream = outputStream;
       setConfiguration(fsConf);
       setFilename("foo" + extenstion);
@@ -333,7 +357,8 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link OpenWriterOperation}. */
-  public static interface OpenWriterOperationBuilder extends FileIOOperationBuilder<OpenWriterOperationBuilder> {
+  public static interface OpenWriterOperationBuilder
+      extends FileIOOperationBuilder<OpenWriterOperationBuilder> {
     /** Set the compression type. */
     public OpenWriterOperationBuilder withCompression(String compression);
 
@@ -344,11 +369,15 @@ public abstract class FileOperations {
   /**
    * Options common to all {@code FileOperations} which perform reads.
    */
-  protected static class FileReaderOperation<SubclassType extends FileReaderOperation<SubclassType>> extends FileIOOperation<SubclassType> {
+  protected static class FileReaderOperation<SubclassType extends FileReaderOperation<SubclassType>>
+      extends FileIOOperation<SubclassType> {
     private BlockCache dataCache;
     private BlockCache indexCache;
 
-    /** (Optional) Set the block cache pair to be used to optimize reads within the constructed reader. */
+    /**
+     * (Optional) Set the block cache pair to be used to optimize reads within the constructed
+     * reader.
+     */
     @SuppressWarnings("unchecked")
     public SubclassType withBlockCache(BlockCache dataCache, BlockCache indexCache) {
       this.dataCache = dataCache;
@@ -363,7 +392,9 @@ public abstract class FileOperations {
       return (SubclassType) this;
     }
 
-    /** (Optional) set the index cache to be used to optimize reads within the constructed reader. */
+    /**
+     * (Optional) set the index cache to be used to optimize reads within the constructed reader.
+     */
     @SuppressWarnings("unchecked")
     public SubclassType withIndexCache(BlockCache indexCache) {
       this.indexCache = indexCache;
@@ -380,21 +411,28 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link FileReaderOperation}. */
-  protected static interface FileReaderOperationBuilder<SubbuilderType> extends FileIOOperationBuilder<SubbuilderType> {
-    /** (Optional) Set the block cache pair to be used to optimize reads within the constructed reader. */
+  protected static interface FileReaderOperationBuilder<SubbuilderType>
+      extends FileIOOperationBuilder<SubbuilderType> {
+    /**
+     * (Optional) Set the block cache pair to be used to optimize reads within the constructed
+     * reader.
+     */
     public SubbuilderType withBlockCache(BlockCache dataCache, BlockCache indexCache);
 
     /** (Optional) set the data cache to be used to optimize reads within the constructed reader. */
     public SubbuilderType withDataCache(BlockCache dataCache);
 
-    /** (Optional) set the index cache to be used to optimize reads within the constructed reader. */
+    /**
+     * (Optional) set the index cache to be used to optimize reads within the constructed reader.
+     */
     public SubbuilderType withIndexCache(BlockCache indexCache);
   }
 
   /**
    * Operation object for opening an index.
    */
-  protected class OpenIndexOperation extends FileReaderOperation<OpenIndexOperation> implements OpenIndexOperationBuilder {
+  protected class OpenIndexOperation extends FileReaderOperation<OpenIndexOperation>
+      implements OpenIndexOperationBuilder {
     @Override
     public FileSKVIterator build() throws IOException {
       validate();
@@ -403,20 +441,23 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link OpenIndexOperation}. */
-  public static interface OpenIndexOperationBuilder extends FileReaderOperationBuilder<OpenIndexOperationBuilder> {
+  public static interface OpenIndexOperationBuilder
+      extends FileReaderOperationBuilder<OpenIndexOperationBuilder> {
     /** Construct the reader. */
     public FileSKVIterator build() throws IOException;
   }
 
   /** Operation object for opening a scan reader. */
-  protected class OpenScanReaderOperation extends FileReaderOperation<OpenScanReaderOperation> implements OpenScanReaderOperationBuilder {
+  protected class OpenScanReaderOperation extends FileReaderOperation<OpenScanReaderOperation>
+      implements OpenScanReaderOperationBuilder {
     private Range range;
     private Set<ByteSequence> columnFamilies;
     private boolean inclusive;
 
     /** Set the range over which the constructed iterator will search. */
     @Override
-    public OpenScanReaderOperation overRange(Range range, Set<ByteSequence> columnFamilies, boolean inclusive) {
+    public OpenScanReaderOperation overRange(Range range, Set<ByteSequence> columnFamilies,
+        boolean inclusive) {
       this.range = range;
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
@@ -453,18 +494,21 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link OpenScanReaderOperation}. */
-  public static interface OpenScanReaderOperationBuilder extends FileReaderOperationBuilder<OpenScanReaderOperationBuilder>,
+  public static interface OpenScanReaderOperationBuilder
+      extends FileReaderOperationBuilder<OpenScanReaderOperationBuilder>,
       NeedsRange<OpenScanReaderOperationBuilder> {
     /** Execute the operation, constructing a scan iterator. */
     public FileSKVIterator build() throws IOException;
   }
 
   /** Operation object for opening a full reader. */
-  protected class OpenReaderOperation extends FileReaderOperation<OpenReaderOperation> implements OpenReaderOperationBuilder {
+  protected class OpenReaderOperation extends FileReaderOperation<OpenReaderOperation>
+      implements OpenReaderOperationBuilder {
     private boolean seekToBeginning = false;
 
     /**
-     * Seek the constructed iterator to the beginning of its domain before returning. Equivalent to {@code seekToBeginning(true)}.
+     * Seek the constructed iterator to the beginning of its domain before returning. Equivalent to
+     * {@code seekToBeginning(true)}.
      */
     @Override
     public OpenReaderOperation seekToBeginning() {
@@ -491,9 +535,11 @@ public abstract class FileOperations {
   }
 
   /** Builder parallel to {@link OpenReaderOperation}. */
-  public static interface OpenReaderOperationBuilder extends FileReaderOperationBuilder<OpenReaderOperationBuilder> {
+  public static interface OpenReaderOperationBuilder
+      extends FileReaderOperationBuilder<OpenReaderOperationBuilder> {
     /**
-     * Seek the constructed iterator to the beginning of its domain before returning. Equivalent to {@code seekToBeginning(true)}.
+     * Seek the constructed iterator to the beginning of its domain before returning. Equivalent to
+     * {@code seekToBeginning(true)}.
      */
     public OpenReaderOperationBuilder seekToBeginning();
 
@@ -509,7 +555,8 @@ public abstract class FileOperations {
    */
   public static interface NeedsFile<ReturnType> {
     /** Specify the file this operation should apply to. */
-    public NeedsTableConfiguration<ReturnType> forFile(String filename, FileSystem fs, Configuration fsConf);
+    public NeedsTableConfiguration<ReturnType> forFile(String filename, FileSystem fs,
+        Configuration fsConf);
 
     /** Specify the file this operation should apply to. */
     public NeedsFileSystem<ReturnType> forFile(String filename);
@@ -517,14 +564,18 @@ public abstract class FileOperations {
 
   public static interface NeedsFileOrOuputStream<ReturnType> extends NeedsFile<ReturnType> {
     /** Specify the file this operation should apply to. */
-    public NeedsTableConfiguration<ReturnType> forOutputStream(String extenstion, FSDataOutputStream out, Configuration fsConf);
+    public NeedsTableConfiguration<ReturnType> forOutputStream(String extenstion,
+        FSDataOutputStream out, Configuration fsConf);
   }
 
   /**
    * Type wrapper to ensure that {@code inFileSystem(...)} is called before other methods.
    */
   public static interface NeedsFileSystem<ReturnType> {
-    /** Specify the {@link FileSystem} that this operation operates on, along with an alternate configuration. */
+    /**
+     * Specify the {@link FileSystem} that this operation operates on, along with an alternate
+     * configuration.
+     */
     public NeedsTableConfiguration<ReturnType> inFileSystem(FileSystem fs, Configuration fsConf);
   }
 

@@ -22,7 +22,8 @@ import org.apache.htrace.NullScope;
 import org.apache.htrace.TraceScope;
 
 /**
- * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent. Not recommended for client use.
+ * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent. Not
+ * recommended for client use.
  */
 public class Span {
   public static final Span NULL_SPAN = new Span(NullScope.INSTANCE);

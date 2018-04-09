@@ -42,9 +42,10 @@ public class ConditionalWriterConfig {
   private String classLoaderContext = null;
 
   /**
-   * A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in must be
-   * a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are passed, then an
-   * exception will be thrown.
+   * A set of authorization labels that will be checked against the column visibility of each key in
+   * order to filter data. The authorizations passed in must be a subset of the accumulo user's set
+   * of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3)
+   * are passed, then an exception will be thrown.
    *
    * <p>
    * Any condition that is not visible with this set of authorizations will fail.
@@ -56,14 +57,15 @@ public class ConditionalWriterConfig {
   }
 
   /**
-   * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link ConditionalWriter} should return the
-   * mutation with an exception.<br>
+   * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is
+   * exceeded, the {@link ConditionalWriter} should return the mutation with an exception.<br>
    * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
    *
    * <p>
-   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br>
-   * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
-   * be used.
+   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest
+   * {@link TimeUnit#MILLISECONDS}.<br>
+   * If this truncation would result in making the value zero when it was specified as non-zero,
+   * then a minimum value of one {@link TimeUnit#MILLISECONDS} will be used.
    *
    * <p>
    * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
@@ -83,7 +85,8 @@ public class ConditionalWriterConfig {
     if (timeout == 0)
       this.timeout = Long.MAX_VALUE;
     else
-      // make small, positive values that truncate to 0 when converted use the minimum millis instead
+      // make small, positive values that truncate to 0 when converted use the minimum millis
+      // instead
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
     return this;
   }
@@ -138,8 +141,8 @@ public class ConditionalWriterConfig {
   }
 
   /**
-   * Sets the name of the classloader context on this scanner. See the administration chapter of the user manual for details on how to configure and use
-   * classloader contexts.
+   * Sets the name of the classloader context on this scanner. See the administration chapter of the
+   * user manual for details on how to configure and use classloader contexts.
    *
    * @param classLoaderContext
    *          name of the classloader context

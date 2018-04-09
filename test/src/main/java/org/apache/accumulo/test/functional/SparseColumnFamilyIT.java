@@ -50,7 +50,8 @@ public class SparseColumnFamilyIT extends AccumuloClusterHarness {
 
     BatchWriter bw = c.createBatchWriter(scftt, new BatchWriterConfig());
 
-    // create file in the tablet that has mostly column family 0, with a few entries for column family 1
+    // create file in the tablet that has mostly column family 0, with a few entries for column
+    // family 1
 
     bw.addMutation(nm(0, 1, 0));
     for (int i = 1; i < 99999; i++) {

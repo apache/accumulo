@@ -22,7 +22,8 @@ import org.apache.hadoop.io.Text;
  * @deprecated since 1.4
  */
 @Deprecated
-public class AggregatorConfiguration extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig {
+public class AggregatorConfiguration
+    extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig {
 
   public AggregatorConfiguration(Text columnFamily, String aggClassName) {
     super(columnFamily, aggClassName);

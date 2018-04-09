@@ -42,8 +42,9 @@ public class YieldCallback<K> {
   }
 
   /**
-   * Called by the client to get the yield position used as the start key (non-inclusive) of the range in a subsequent seek call when the iterator is rebuilt.
-   * This will also reset the state returned by hasYielded.
+   * Called by the client to get the yield position used as the start key (non-inclusive) of the
+   * range in a subsequent seek call when the iterator is rebuilt. This will also reset the state
+   * returned by hasYielded.
    *
    * @return <tt>K</tt> The key position
    */

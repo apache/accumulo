@@ -44,7 +44,8 @@ public class VerifyIngest {
     int numRows = 0;
   }
 
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void main(String[] args)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
     opts.parseArgs(VerifyIngest.class.getName(), args);
 
@@ -63,12 +64,14 @@ public class VerifyIngest {
         Entry<Key,Value> entry = si.next();
 
         if (!entry.getKey().getRow().toString().equals(String.format("row_%010d", i))) {
-          log.error("unexpected row key " + entry.getKey().getRow().toString() + " expected " + String.format("row_%010d", i));
+          log.error("unexpected row key " + entry.getKey().getRow().toString() + " expected "
+              + String.format("row_%010d", i));
           ok = false;
         }
 
         if (!entry.getValue().toString().equals(String.format("value_%010d", i))) {
-          log.error("unexpected value " + entry.getValue().toString() + " expected " + String.format("value_%010d", i));
+          log.error("unexpected value " + entry.getValue().toString() + " expected "
+              + String.format("value_%010d", i));
           ok = false;
         }
 

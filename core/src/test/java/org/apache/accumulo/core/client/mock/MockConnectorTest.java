@@ -69,7 +69,8 @@ public class MockConnectorTest {
     for (int i = 0; i < 100; i++) {
       int r = random.nextInt();
       Mutation m = new Mutation(asText(r));
-      m.put(asText(random.nextInt()), asText(random.nextInt()), new Value(Integer.toHexString(r).getBytes()));
+      m.put(asText(random.nextInt()), asText(random.nextInt()),
+          new Value(Integer.toHexString(r).getBytes()));
       bw.addMutation(m);
     }
     bw.close();
@@ -103,8 +104,8 @@ public class MockConnectorTest {
   public void testBadMutations() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
-    BatchWriter bw = c
-        .createBatchWriter("test", new BatchWriterConfig().setMaxMemory(10000L).setMaxLatency(1000L, TimeUnit.MILLISECONDS).setMaxWriteThreads(4));
+    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(10000L)
+        .setMaxLatency(1000L, TimeUnit.MILLISECONDS).setMaxWriteThreads(4));
 
     try {
       bw.addMutation(null);
@@ -146,8 +147,8 @@ public class MockConnectorTest {
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("day")));
     SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(table, is);
-    String keys[][] = { {"foo", "day", "20080101"}, {"foo", "day", "20080101"}, {"foo", "day", "20080103"}, {"bar", "day", "20080101"},
-        {"bar", "day", "20080101"},};
+    String keys[][] = {{"foo", "day", "20080101"}, {"foo", "day", "20080101"},
+        {"foo", "day", "20080103"}, {"bar", "day", "20080101"}, {"bar", "day", "20080101"},};
     BatchWriter bw = c.createBatchWriter("perDayCounts", new BatchWriterConfig());
     for (String elt[] : keys) {
       Mutation m = new Mutation(new Text(elt[0]));
@@ -211,7 +212,8 @@ public class MockConnectorTest {
       c.tableOperations().delete("test");
     c.tableOperations().create("test");
 
-    BatchDeleter deleter = c.createBatchDeleter("test", Authorizations.EMPTY, 2, new BatchWriterConfig());
+    BatchDeleter deleter = c.createBatchDeleter("test", Authorizations.EMPTY, 2,
+        new BatchWriterConfig());
     // first make sure it deletes fine when its empty
     deleter.setRanges(Collections.singletonList(new Range(("r1"))));
     deleter.delete();
@@ -287,7 +289,8 @@ public class MockConnectorTest {
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
-      m.put(key.getColumnFamily().toString(), key.getColumnQualifier().toString(), key.getTimestamp() + 1, "v" + (count));
+      m.put(key.getColumnFamily().toString(), key.getColumnQualifier().toString(),
+          key.getTimestamp() + 1, "v" + (count));
       count++;
       bw.addMutation(m);
     }
@@ -365,11 +368,14 @@ public class MockConnectorTest {
   }
 
   @Test
-  public void testMockConnectorReturnsCorrectInstance() throws AccumuloException, AccumuloSecurityException {
+  public void testMockConnectorReturnsCorrectInstance()
+      throws AccumuloException, AccumuloSecurityException {
     String name = "an-interesting-instance-name";
     Instance mockInstance = new MockInstance(name);
-    assertEquals(mockInstance, mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance());
-    assertEquals(name, mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance().getInstanceName());
+    assertEquals(mockInstance,
+        mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance());
+    assertEquals(name,
+        mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance().getInstanceName());
   }
 
 }

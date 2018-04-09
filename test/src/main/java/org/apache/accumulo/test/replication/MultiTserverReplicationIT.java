@@ -70,7 +70,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
     for (String tserver : tserverHost) {
       try {
-        byte[] portData = zreader.getData(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
+        byte[] portData = zreader.getData(
+            ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
         HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
         replicationServices.add(replAddress);
       } catch (Exception e) {
@@ -80,7 +81,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     }
 
     // Each tserver should also have equial replicaiton services running internally
-    Assert.assertEquals("Expected an equal number of replication servicers and tservers", tserverHost.size(), replicationServices.size());
+    Assert.assertEquals("Expected an equal number of replication servicers and tservers",
+        tserverHost.size(), replicationServices.size());
   }
 
   @Test
@@ -103,7 +105,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     String masterAddr = Iterables.getOnlyElement(inst.getMasterLocations());
 
     // Get the master replication coordinator addr
-    String replCoordAddr = new String(zreader.getData(ZooUtil.getRoot(inst) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null), UTF_8);
+    String replCoordAddr = new String(zreader.getData(
+        ZooUtil.getRoot(inst) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null), UTF_8);
 
     // They shouldn't be the same
     Assert.assertNotEquals(masterAddr, replCoordAddr);

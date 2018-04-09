@@ -19,11 +19,13 @@ package org.apache.accumulo.core.security;
 
 /**
  *
- * @deprecated since 1.7.0 This is server side code not intended to exist in a public API package. This class references types that are not in the public API
- *             and therefore is not guaranteed to be stable. It was deprecated to clearly communicate this. Use
+ * @deprecated since 1.7.0 This is server side code not intended to exist in a public API package.
+ *             This class references types that are not in the public API and therefore is not
+ *             guaranteed to be stable. It was deprecated to clearly communicate this. Use
  *             {@link org.apache.accumulo.core.constraints.VisibilityConstraint} instead.
  */
 @Deprecated
-public class VisibilityConstraint extends org.apache.accumulo.core.constraints.VisibilityConstraint {
+public class VisibilityConstraint
+    extends org.apache.accumulo.core.constraints.VisibilityConstraint {
 
 }

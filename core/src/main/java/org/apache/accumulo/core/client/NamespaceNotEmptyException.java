@@ -36,9 +36,11 @@ public class NamespaceNotEmptyException extends Exception {
    *          the specific reason why it failed
    */
   public NamespaceNotEmptyException(String namespaceId, String namespaceName, String description) {
-    super("Namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
-        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " it not empty, contains at least one table"
-        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super(
+        "Namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
+            + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "")
+            + " it not empty, contains at least one table"
+            + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.namespace = namespaceName;
   }
 
@@ -52,7 +54,8 @@ public class NamespaceNotEmptyException extends Exception {
    * @param cause
    *          the exception that caused this failure
    */
-  public NamespaceNotEmptyException(String namespaceId, String namespaceName, String description, Throwable cause) {
+  public NamespaceNotEmptyException(String namespaceId, String namespaceName, String description,
+      Throwable cause) {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
   }

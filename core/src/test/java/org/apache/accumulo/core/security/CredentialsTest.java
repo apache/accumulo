@@ -63,7 +63,8 @@ public class CredentialsTest {
     TCredentials tCreds = creds.toThrift(inst);
     assertEquals("test", tCreds.getPrincipal());
     assertEquals(PasswordToken.class.getName(), tCreds.getTokenClassName());
-    assertArrayEquals(AuthenticationTokenSerializer.serialize(new PasswordToken("testing")), tCreds.getToken());
+    assertArrayEquals(AuthenticationTokenSerializer.serialize(new PasswordToken("testing")),
+        tCreds.getToken());
 
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
@@ -73,7 +74,8 @@ public class CredentialsTest {
     } catch (Exception e) {
       assertTrue(e instanceof RuntimeException);
       assertTrue(e.getCause() instanceof AccumuloSecurityException);
-      assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
+      assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode()
+          .equals(SecurityErrorCode.TOKEN_EXPIRED));
     }
   }
 
@@ -86,7 +88,8 @@ public class CredentialsTest {
   }
 
   @Test
-  public void testMockConnector() throws AccumuloException, DestroyFailedException, AccumuloSecurityException {
+  public void testMockConnector()
+      throws AccumuloException, DestroyFailedException, AccumuloSecurityException {
     Instance inst = DeprecationUtil.makeMockInstance(test.getMethodName());
     Connector rootConnector = inst.getConnector("root", new PasswordToken());
     PasswordToken testToken = new PasswordToken("testPass");
@@ -120,7 +123,8 @@ public class CredentialsTest {
     assertEquals(abcNullCreds, abcNullCreds);
     assertEquals(new Credentials("abc", new NullToken()), abcNullCreds);
     // equal, but different token constructors
-    assertEquals(new Credentials("abc", new PasswordToken("abc".getBytes(UTF_8))), new Credentials("abc", new PasswordToken("abc")));
+    assertEquals(new Credentials("abc", new PasswordToken("abc".getBytes(UTF_8))),
+        new Credentials("abc", new PasswordToken("abc")));
     // test not equals
     assertFalse(nullNullCreds.equals(abcBlahCreds));
     assertFalse(nullNullCreds.equals(abcNullCreds));
@@ -148,10 +152,13 @@ public class CredentialsTest {
     Credentials creds = new Credentials(null, null);
     assertEquals(Credentials.class.getName() + ":null:null:<hidden>", creds.toString());
     creds = new Credentials("", new NullToken());
-    assertEquals(Credentials.class.getName() + "::" + NullToken.class.getName() + ":<hidden>", creds.toString());
+    assertEquals(Credentials.class.getName() + "::" + NullToken.class.getName() + ":<hidden>",
+        creds.toString());
     creds = new Credentials("abc", null);
     assertEquals(Credentials.class.getName() + ":abc:null:<hidden>", creds.toString());
     creds = new Credentials("abc", new PasswordToken(""));
-    assertEquals(Credentials.class.getName() + ":abc:" + PasswordToken.class.getName() + ":<hidden>", creds.toString());
+    assertEquals(
+        Credentials.class.getName() + ":abc:" + PasswordToken.class.getName() + ":<hidden>",
+        creds.toString());
   }
 }

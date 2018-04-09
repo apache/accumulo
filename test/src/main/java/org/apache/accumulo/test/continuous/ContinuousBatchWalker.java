@@ -45,7 +45,8 @@ import com.beust.jcommander.validators.PositiveInteger;
 public class ContinuousBatchWalker {
 
   static class Opts extends ContinuousWalk.Opts {
-    @Parameter(names = "--numToScan", description = "Number rows to scan between sleeps", required = true, validateWith = PositiveInteger.class)
+    @Parameter(names = "--numToScan", description = "Number rows to scan between sleeps",
+        required = true, validateWith = PositiveInteger.class)
     long numToScan = 0;
   }
 
@@ -65,7 +66,8 @@ public class ContinuousBatchWalker {
     scanner.setBatchSize(scanOpts.scanBatchSize);
 
     while (true) {
-      BatchScanner bs = conn.createBatchScanner(clientOpts.getTableName(), auths, bsOpts.scanThreads);
+      BatchScanner bs = conn.createBatchScanner(clientOpts.getTableName(), auths,
+          bsOpts.scanThreads);
       bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
       Set<Text> batch = getBatch(scanner, opts.min, opts.max, scanOpts.scanBatchSize, r);
@@ -82,7 +84,8 @@ public class ContinuousBatchWalker {
 
   }
 
-  private static void runBatchScan(int batchSize, BatchScanner bs, Set<Text> batch, List<Range> ranges) {
+  private static void runBatchScan(int batchSize, BatchScanner bs, Set<Text> batch,
+      List<Range> ranges) {
     bs.setRanges(ranges);
 
     Set<Text> rowsSeen = new HashSet<>();
@@ -116,7 +119,8 @@ public class ContinuousBatchWalker {
       System.err.println("Extra seen : " + copy1);
       System.err.println("Not seen   : " + copy2);
     } else {
-      System.out.printf("BRQ %d %d %d %d %d%n", t1, (t2 - t1), rowsSeen.size(), count, (int) (rowsSeen.size() / ((t2 - t1) / 1000.0)));
+      System.out.printf("BRQ %d %d %d %d %d%n", t1, (t2 - t1), rowsSeen.size(), count,
+          (int) (rowsSeen.size() / ((t2 - t1) / 1000.0)));
     }
 
   }

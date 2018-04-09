@@ -40,12 +40,14 @@ public class NumericValueConstraintTest {
     Mutation badMutation = new Mutation(new Text("r"));
     badMutation.put(new Text("cf"), new Text("cq"), new Value("foo1234".getBytes()));
     badMutation.put(new Text("cf2"), new Text("cq2"), new Value("foo1234".getBytes()));
-    assertEquals(NumericValueConstraint.NON_NUMERIC_VALUE, Iterables.getOnlyElement(nvc.check(null, badMutation)).shortValue());
+    assertEquals(NumericValueConstraint.NON_NUMERIC_VALUE,
+        Iterables.getOnlyElement(nvc.check(null, badMutation)).shortValue());
   }
 
   @Test
   public void testGetViolationDescription() {
-    assertEquals(NumericValueConstraint.VIOLATION_MESSAGE, nvc.getViolationDescription(NumericValueConstraint.NON_NUMERIC_VALUE));
+    assertEquals(NumericValueConstraint.VIOLATION_MESSAGE,
+        nvc.getViolationDescription(NumericValueConstraint.NON_NUMERIC_VALUE));
     assertNull(nvc.getViolationDescription((short) 2));
   }
 }

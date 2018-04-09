@@ -60,7 +60,8 @@ public class AlterTablePerm extends Test {
     } else
       tabPerm = TablePermission.valueOf(perm);
     String tableName = WalkingSecurity.get(state, env).getTableName();
-    boolean hasPerm = WalkingSecurity.get(state, env).hasTablePermission(target, tableName, tabPerm);
+    boolean hasPerm = WalkingSecurity.get(state, env).hasTablePermission(target, tableName,
+        tabPerm);
     boolean canGive;
     String sourceUser;
     AuthenticationToken sourceToken;
@@ -76,16 +77,20 @@ public class AlterTablePerm extends Test {
     }
     Connector conn = env.getInstance().getConnector(sourceUser, sourceToken);
 
-    canGive = WalkingSecurity.get(state, env).canGrantTable(new Credentials(sourceUser, sourceToken).toThrift(env.getInstance()), target,
-        WalkingSecurity.get(state, env).getTableName(), WalkingSecurity.get(state, env).getNamespaceName());
+    canGive = WalkingSecurity.get(state, env).canGrantTable(
+        new Credentials(sourceUser, sourceToken).toThrift(env.getInstance()), target,
+        WalkingSecurity.get(state, env).getTableName(),
+        WalkingSecurity.get(state, env).getNamespaceName());
 
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
       try {
         boolean res;
-        if (hasPerm != (res = env.getConnector().securityOperations().hasTablePermission(target, tableName, tabPerm)))
-          throw new AccumuloException("Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm " + tabPerm.name()
-              + " with local vs. accumulo being " + hasPerm + " " + res);
+        if (hasPerm != (res = env.getConnector().securityOperations().hasTablePermission(target,
+            tableName, tabPerm)))
+          throw new AccumuloException(
+              "Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm "
+                  + tabPerm.name() + " with local vs. accumulo being " + hasPerm + " " + res);
 
         if (hasPerm)
           action = "take";
@@ -95,7 +100,8 @@ public class AlterTablePerm extends Test {
         switch (ae.getSecurityErrorCode()) {
           case USER_DOESNT_EXIST:
             if (exists)
-              throw new AccumuloException("Framework and Accumulo are out of sync, we think user exists", ae);
+              throw new AccumuloException(
+                  "Framework and Accumulo are out of sync, we think user exists", ae);
             else
               return;
           case TABLE_DOESNT_EXIST:
@@ -119,7 +125,8 @@ public class AlterTablePerm extends Test {
             throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
             if (canGive)
-              throw new AccumuloException(conn.whoami() + " failed to revoke permission to " + target + " when it should have worked", ae);
+              throw new AccumuloException(conn.whoami() + " failed to revoke permission to "
+                  + target + " when it should have worked", ae);
             return;
           case USER_DOESNT_EXIST:
             if (exists)
@@ -147,7 +154,8 @@ public class AlterTablePerm extends Test {
             throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
             if (canGive)
-              throw new AccumuloException(conn.whoami() + " failed to give permission to " + target + " when it should have worked", ae);
+              throw new AccumuloException(conn.whoami() + " failed to give permission to " + target
+                  + " when it should have worked", ae);
             return;
           case USER_DOESNT_EXIST:
             if (exists)

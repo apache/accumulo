@@ -31,8 +31,10 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
 
 /**
- * A tablet is assigned to a tablet server at the given address as long as it is alive and well. When the tablet server is restarted, the instance information
- * it advertises will change. Therefore tablet assignments can be considered out-of-date if the tablet server instance information has been changed.
+ * A tablet is assigned to a tablet server at the given address as long as it is alive and well.
+ * When the tablet server is restarted, the instance information it advertises will change.
+ * Therefore tablet assignments can be considered out-of-date if the tablet server instance
+ * information has been changed.
  *
  */
 public class TServerInstance implements Comparable<TServerInstance>, Serializable {

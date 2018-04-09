@@ -90,8 +90,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   /**
-   * A well-timed tabletserver failure could result in an incomplete header written to a write-ahead log. This exception is thrown when the header cannot be
-   * read from a WAL which should only happen when the tserver dies as described.
+   * A well-timed tabletserver failure could result in an incomplete header written to a write-ahead
+   * log. This exception is thrown when the header cannot be read from a WAL which should only
+   * happen when the tserver dies as described.
    */
   public static class LogHeaderIncompleteException extends IOException {
     private static final long serialVersionUID = 1l;
@@ -106,7 +107,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     private FSDataInputStream originalInput;
     private DataInputStream decryptingInputStream;
 
-    public DFSLoggerInputStreams(FSDataInputStream originalInput, DataInputStream decryptingInputStream) {
+    public DFSLoggerInputStreams(FSDataInputStream originalInput,
+        DataInputStream decryptingInputStream) {
       this.originalInput = originalInput;
       this.decryptingInputStream = decryptingInputStream;
     }
@@ -138,7 +140,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   private final Object closeLock = new Object();
 
-  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null, Durability.FLUSH);
+  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null,
+      Durability.FLUSH);
 
   private static final LogFileValue EMPTY = new LogFileValue();
 
@@ -195,8 +198,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         }
         long duration = System.currentTimeMillis() - start;
         if (duration > slowFlushMillis) {
-          String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration).append(" ms, current pipeline: ")
-              .append(Arrays.toString(getPipeLine())).toString();
+          String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration)
+              .append(" ms, current pipeline: ").append(Arrays.toString(getPipeLine())).toString();
           log.info(msg);
           if (expectedReplication > 0) {
             int current = expectedReplication;
@@ -206,13 +209,17 @@ public class DfsLogger implements Comparable<DfsLogger> {
               fail(work, e, "getting replication level");
             }
             if (current < expectedReplication) {
-              fail(work, new IOException("replication of " + current + " is less than " + expectedReplication), "replication check");
+              fail(work,
+                  new IOException(
+                      "replication of " + current + " is less than " + expectedReplication),
+                  "replication check");
             }
           }
         }
         if (expectedReplication == 0 && logFile.getWrappedStream() instanceof DFSOutputStream) {
           try {
-            expectedReplication = ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
+            expectedReplication = ((DFSOutputStream) logFile.getWrappedStream())
+                .getCurrentBlockReplication();
           } catch (IOException e) {
             fail(work, e, "getting replication level");
           }
@@ -316,10 +323,12 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   private DfsLogger(ServerResources conf) {
     this.conf = conf;
-    this.slowFlushMillis = conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+    this.slowFlushMillis = conf.getConfiguration()
+        .getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
   }
 
-  public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter) throws IOException {
+  public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter)
+      throws IOException {
     this(conf);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
@@ -337,7 +346,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     metaReference = meta;
   }
 
-  public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input, AccumuloConfiguration conf) throws IOException {
+  public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input,
+      AccumuloConfiguration conf) throws IOException {
     DataInputStream decryptingInput = null;
 
     byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
@@ -350,7 +360,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoModuleClassname);
 
         // Create the parameters and set the input stream into those parameters
-        CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+        CryptoModuleParameters params = CryptoModuleFactory
+            .createParamsObjectFromAccumuloConfiguration(conf);
         params.setEncryptedInputStream(input);
 
         // Create the plaintext input stream from the encrypted one
@@ -368,8 +379,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
         input.readFully(magicBufferV2);
 
         if (Arrays.equals(magicBufferV2, magicV2)) {
-          // Log files from 1.5 dump their options in raw to the logger files. Since we don't know the class
-          // that needs to read those files, we can make a couple of basic assumptions. Either it's going to be
+          // Log files from 1.5 dump their options in raw to the logger files. Since we don't know
+          // the class
+          // that needs to read those files, we can make a couple of basic assumptions. Either it's
+          // going to be
           // the NullCryptoModule (no crypto) or the DefaultCryptoModule.
 
           // If it's null, we won't have any parameters whatsoever. First, let's attempt to read
@@ -387,11 +400,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
             decryptingInput = input;
           } else {
 
-            // The DefaultCryptoModule will want to read the parameters from the underlying file, so we will put the file back to that spot.
-            org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+            // The DefaultCryptoModule will want to read the parameters from the underlying file, so
+            // we will put the file back to that spot.
+            // @formatter:off
+            org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
+              org.apache.accumulo.core.security.crypto.CryptoModuleFactory
                 .getCryptoModule(DefaultCryptoModule.class.getName());
+            // @formatter:on
 
-            CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+            CryptoModuleParameters params = CryptoModuleFactory
+                .createParamsObjectFromAccumuloConfiguration(conf);
 
             // go back to the beginning, but skip over magicV2 already checked earlier
             input.seek(magicV2.length);
@@ -413,7 +431,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
       }
     } catch (EOFException e) {
-      log.warn("Got EOFException trying to read WAL header information, assuming the rest of the file has no data.");
+      log.warn("Got EOFException trying to read WAL header information,"
+          + " assuming the rest of the file has no data.");
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }
@@ -422,9 +441,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   /**
-   * Opens a Write-Ahead Log file and writes the necessary header information and OPEN entry to the file. The file is ready to be used for ingest if this method
-   * returns successfully. If an exception is thrown from this method, it is the callers responsibility to ensure that {@link #close()} is called to prevent
-   * leaking the file handle and/or syncing thread.
+   * Opens a Write-Ahead Log file and writes the necessary header information and OPEN entry to the
+   * file. The file is ready to be used for ingest if this method returns successfully. If an
+   * exception is thrown from this method, it is the callers responsibility to ensure that
+   * {@link #close()} is called to prevent leaking the file handle and/or syncing thread.
    *
    * @param address
    *          The address of the host using this WAL
@@ -437,8 +457,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    logPath = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.WAL_DIR + Path.SEPARATOR + logger
-        + Path.SEPARATOR + filename;
+    logPath = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Path.SEPARATOR
+        + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
     metaReference = toString();
     LoggerOperation op = null;
@@ -448,7 +468,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         replication = fs.getDefaultReplication(new Path(logPath));
       long blockSize = conf.getConfiguration().getMemoryInBytes(Property.TSERV_WAL_BLOCKSIZE);
       if (blockSize == 0)
-        blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
+        blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE)
+            * 1.1);
       if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
         logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else
@@ -457,18 +478,23 @@ public class DfsLogger implements Comparable<DfsLogger> {
       flush = logFile.getClass().getMethod("hflush");
 
       // Initialize the crypto operations.
-      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory.getCryptoModule(conf
-          .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
+      // @formatter:off
+      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
+        org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+          .getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
+      // @formatter:on
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
       logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));
 
-      CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
+      CryptoModuleParameters params = CryptoModuleFactory
+          .createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
 
       NoFlushOutputStream nfos = new NoFlushOutputStream(logFile);
       params.setPlaintextOutputStream(nfos);
 
-      // In order to bootstrap the reading of this file later, we have to record the CryptoModule that was used to encipher it here,
+      // In order to bootstrap the reading of this file later, we have to record the CryptoModule
+      // that was used to encipher it here,
       // so that that crypto module can re-read its own parameters.
 
       logFile.writeUTF(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
@@ -580,7 +606,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       write(key, EMPTY);
     } catch (IllegalArgumentException e) {
-      log.error("Signature of sync method changed. Accumulo is likely incompatible with this version of Hadoop.");
+      log.error("Signature of sync method changed. Accumulo is likely"
+          + " incompatible with this version of Hadoop.");
       throw new RuntimeException(e);
     }
   }
@@ -591,11 +618,14 @@ public class DfsLogger implements Comparable<DfsLogger> {
     encryptingLogFile.flush();
   }
 
-  public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability) throws IOException {
-    return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation), durability)));
+  public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability)
+      throws IOException {
+    return logManyTablets(Collections.singletonList(
+        new TabletMutations(tid, seq, Collections.singletonList(mutation), durability)));
   }
 
-  private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys, Durability durability) throws IOException {
+  private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys,
+      Durability durability) throws IOException {
     DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1), durability);
     synchronized (DfsLogger.this) {
       try {
@@ -653,7 +683,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return result;
   }
 
-  public LoggerOperation minorCompactionFinished(long seq, int tid, String fqfn, Durability durability) throws IOException {
+  public LoggerOperation minorCompactionFinished(long seq, int tid, String fqfn,
+      Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;
@@ -661,7 +692,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
   }
 
-  public LoggerOperation minorCompactionStarted(long seq, int tid, String fqfn, Durability durability) throws IOException {
+  public LoggerOperation minorCompactionStarted(long seq, int tid, String fqfn,
+      Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_START;
     key.seq = seq;

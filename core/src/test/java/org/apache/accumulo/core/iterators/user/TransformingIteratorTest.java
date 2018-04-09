@@ -60,7 +60,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class TransformingIteratorTest {
 
-  private static Authorizations authorizations = new Authorizations("vis0", "vis1", "vis2", "vis3", "vis4");
+  private static Authorizations authorizations = new Authorizations("vis0", "vis1", "vis2", "vis3",
+      "vis4");
   private static final Map<String,String> EMPTY_OPTS = ImmutableMap.of();
   private TransformingIterator titer;
 
@@ -74,14 +75,17 @@ public class TransformingIteratorTest {
     generateRow(data, "row3");
   }
 
-  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz) throws IOException {
+  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz)
+      throws IOException {
     setUpTransformIterator(clazz, true);
   }
 
-  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz, boolean setupAuths) throws IOException {
+  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz,
+      boolean setupAuths) throws IOException {
     SortedMapIterator source = new SortedMapIterator(data);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(source);
-    SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(cfsi, authorizations, new byte[0]);
+    SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(cfsi, authorizations,
+        new byte[0]);
     ReuseIterator reuserIter = new ReuseIterator();
     reuserIter.init(visFilter, EMPTY_OPTS, null);
     try {
@@ -97,7 +101,8 @@ public class TransformingIteratorTest {
     Map<String,String> opts;
     if (setupAuths) {
       IteratorSetting cfg = new IteratorSetting(21, clazz);
-      TransformingIterator.setAuthorizations(cfg, new Authorizations("vis0", "vis1", "vis2", "vis3"));
+      TransformingIterator.setAuthorizations(cfg,
+          new Authorizations("vis0", "vis1", "vis2", "vis3"));
       opts = cfg.getOptions();
     } else {
       opts = ImmutableMap.of();
@@ -181,7 +186,8 @@ public class TransformingIteratorTest {
 
   @Test
   public void testCreatingIllegalVisbility() throws Exception {
-    // illegal visibility created by transform should be filtered on scan, even if evaluation is done
+    // illegal visibility created by transform should be filtered on scan, even if evaluation is
+    // done
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class, false);
     checkExpected(new TreeMap<Key,Value>());
 
@@ -195,10 +201,12 @@ public class TransformingIteratorTest {
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    putExpected(expected, 1, 2, 2, 1, PartialKey.ROW_COLFAM_COLQUAL); // before the range start, but transforms in the range
+    putExpected(expected, 1, 2, 2, 1, PartialKey.ROW_COLFAM_COLQUAL); // before the range start, but
+                                                                      // transforms in the range
     putExpected(expected, 1, 2, 2, 2, PartialKey.ROW_COLFAM_COLQUAL);
 
-    checkExpected(new Range(new Key("row1", "cf2", "cq2", "vis1"), true, new Key("row1", "cf2", "cq3"), false), expected);
+    checkExpected(new Range(new Key("row1", "cf2", "cq2", "vis1"), true,
+        new Key("row1", "cf2", "cq3"), false), expected);
   }
 
   @Test
@@ -210,7 +218,8 @@ public class TransformingIteratorTest {
     putExpected(expected, 1, 2, 2, 2, PartialKey.ROW_COLFAM_COLQUAL);
     putExpected(expected, 1, 2, 2, 3, PartialKey.ROW_COLFAM_COLQUAL);
 
-    checkExpected(new Range(new Key("row1", "cf2", "cq2"), true, new Key("row1", "cf2", "cq2", "vis2"), false), expected);
+    checkExpected(new Range(new Key("row1", "cf2", "cq2"), true,
+        new Key("row1", "cf2", "cq2", "vis2"), false), expected);
   }
 
   @Test
@@ -253,7 +262,8 @@ public class TransformingIteratorTest {
     newKey = it.replaceKeyParts(originalKey, new Text("testCQ"), new Text("testCV"));
     assertEquals(createDeleteKey("r", "cf", "testCQ", "testCV", 42), newKey);
 
-    newKey = it.replaceKeyParts(originalKey, new Text("testCF"), new Text("testCQ"), new Text("testCV"));
+    newKey = it.replaceKeyParts(originalKey, new Text("testCF"), new Text("testCQ"),
+        new Text("testCV"));
     assertEquals(createDeleteKey("r", "testCF", "testCQ", "testCV", 42), newKey);
   }
 
@@ -295,7 +305,8 @@ public class TransformingIteratorTest {
 
     IntersectingIterator iiIter = new IntersectingIterator();
     IteratorSetting iicfg = new IteratorSetting(22, IntersectingIterator.class);
-    IntersectingIterator.setColumnFamilies(iicfg, new Text[] {new Text("foo"), new Text("dog"), new Text("cat")});
+    IntersectingIterator.setColumnFamilies(iicfg,
+        new Text[] {new Text("foo"), new Text("dog"), new Text("cat")});
     iiIter.init(titer, iicfg.getOptions(), null);
 
     iiIter.seek(new Range(), new HashSet<ByteSequence>(), false);
@@ -386,7 +397,8 @@ public class TransformingIteratorTest {
   @Test
   public void testValidateOptions() {
     TransformingIterator ti = new ColFamReversingKeyTransformingIterator();
-    IteratorSetting is = new IteratorSetting(100, "cfrkt", ColFamReversingKeyTransformingIterator.class);
+    IteratorSetting is = new IteratorSetting(100, "cfrkt",
+        ColFamReversingKeyTransformingIterator.class);
     TransformingIterator.setAuthorizations(is, new Authorizations("A", "B"));
     TransformingIterator.setMaxBufferSize(is, 10000000);
     Assert.assertTrue(ti.validateOptions(is.getOptions()));
@@ -412,7 +424,8 @@ public class TransformingIteratorTest {
 
   }
 
-  private Key createDeleteKey(String row, String colFam, String colQual, String colVis, long timestamp) {
+  private Key createDeleteKey(String row, String colFam, String colQual, String colVis,
+      long timestamp) {
     Key key = new Key(row, colFam, colQual, colVis, timestamp);
     key.setDeleted(true);
     return key;
@@ -432,7 +445,8 @@ public class TransformingIteratorTest {
     checkExpected(new Range(), families, expectedEntries);
   }
 
-  private void checkExpected(Range range, Set<ByteSequence> families, TreeMap<Key,Value> expectedEntries) throws IOException {
+  private void checkExpected(Range range, Set<ByteSequence> families,
+      TreeMap<Key,Value> expectedEntries) throws IOException {
 
     titer.seek(range, families, families.size() != 0);
 
@@ -447,10 +461,12 @@ public class TransformingIteratorTest {
       assertEquals("Value mismatch", expected.getValue(), actualValue);
     }
 
-    assertTrue("Scanner did not return all expected entries: " + expectedEntries, expectedEntries.isEmpty());
+    assertTrue("Scanner did not return all expected entries: " + expectedEntries,
+        expectedEntries.isEmpty());
   }
 
-  private static void putExpected(SortedMap<Key,Value> expected, int rowID, int cfID, int cqID, int cvID, PartialKey part) {
+  private static void putExpected(SortedMap<Key,Value> expected, int rowID, int cfID, int cqID,
+      int cvID, PartialKey part) {
     String row = "row" + rowID;
     String cf = "cf" + cfID;
     String cq = "cq" + cqID;
@@ -536,7 +552,8 @@ public class TransformingIteratorTest {
     }
 
     @Override
-    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
+        throws IOException {
       while (input.hasTop()) {
         output.append(input.getTopKey(), input.getTopValue());
         input.next();
@@ -546,7 +563,8 @@ public class TransformingIteratorTest {
 
   public static class DupeTransformingIterator extends TransformingIterator {
     @Override
-    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
+        throws IOException {
       while (input.hasTop()) {
         Key originalKey = input.getTopKey();
         Key ret = replaceKeyParts(originalKey, new Text("cf1"), new Text("cq1"), new Text(""));
@@ -566,7 +584,8 @@ public class TransformingIteratorTest {
   public static abstract class ReversingKeyTransformingIterator extends TransformingIterator {
 
     @Override
-    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
+        throws IOException {
       while (input.hasTop()) {
         Key originalKey = input.getTopKey();
         output.append(reverseKeyPart(originalKey, getKeyPrefix()), input.getTopValue());
@@ -575,14 +594,16 @@ public class TransformingIteratorTest {
     }
   }
 
-  public static class ColFamReversingKeyTransformingIterator extends ReversingKeyTransformingIterator {
+  public static class ColFamReversingKeyTransformingIterator
+      extends ReversingKeyTransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {
       return PartialKey.ROW;
     }
 
     @Override
-    protected Collection<ByteSequence> untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
+    protected Collection<ByteSequence> untransformColumnFamilies(
+        Collection<ByteSequence> columnFamilies) {
       HashSet<ByteSequence> untransformed = new HashSet<>();
       for (ByteSequence cf : columnFamilies)
         untransformed.add(untransformColumnFamily(cf));
@@ -596,22 +617,26 @@ public class TransformingIteratorTest {
     }
   }
 
-  public static class ColFamReversingCompactionKeyTransformingIterator extends ColFamReversingKeyTransformingIterator {
+  public static class ColFamReversingCompactionKeyTransformingIterator
+      extends ColFamReversingKeyTransformingIterator {
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       env = new MajCIteratorEnvironmentAdapter();
       super.init(source, options, env);
     }
   }
 
-  public static class ColQualReversingKeyTransformingIterator extends ReversingKeyTransformingIterator {
+  public static class ColQualReversingKeyTransformingIterator
+      extends ReversingKeyTransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {
       return PartialKey.ROW_COLFAM;
     }
   }
 
-  public static class ColVisReversingKeyTransformingIterator extends ReversingKeyTransformingIterator {
+  public static class ColVisReversingKeyTransformingIterator
+      extends ReversingKeyTransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {
       return PartialKey.ROW_COLFAM_COLQUAL;
@@ -625,20 +650,24 @@ public class TransformingIteratorTest {
     }
 
     @Override
-    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
+        throws IOException {
       while (input.hasTop()) {
         Key originalKey = input.getTopKey();
         output.append(
-            new Key(originalKey.getRow(), originalKey.getColumnFamily(), originalKey.getColumnQualifier(), new Text("A&|||"), originalKey.getTimestamp()),
+            new Key(originalKey.getRow(), originalKey.getColumnFamily(),
+                originalKey.getColumnQualifier(), new Text("A&|||"), originalKey.getTimestamp()),
             input.getTopValue());
         input.next();
       }
     }
   }
 
-  public static class IllegalVisCompactionKeyTransformingIterator extends IllegalVisKeyTransformingIterator {
+  public static class IllegalVisCompactionKeyTransformingIterator
+      extends IllegalVisKeyTransformingIterator {
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       env = new MajCIteratorEnvironmentAdapter();
       super.init(source, options, env);
     }
@@ -651,20 +680,24 @@ public class TransformingIteratorTest {
     }
 
     @Override
-    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
+        throws IOException {
       while (input.hasTop()) {
         Key originalKey = input.getTopKey();
         output.append(
-            new Key(originalKey.getRow(), originalKey.getColumnFamily(), originalKey.getColumnQualifier(), new Text("badvis"), originalKey.getTimestamp()),
+            new Key(originalKey.getRow(), originalKey.getColumnFamily(),
+                originalKey.getColumnQualifier(), new Text("badvis"), originalKey.getTimestamp()),
             input.getTopValue());
         input.next();
       }
     }
   }
 
-  public static class BadVisCompactionKeyTransformingIterator extends BadVisKeyTransformingIterator {
+  public static class BadVisCompactionKeyTransformingIterator
+      extends BadVisKeyTransformingIterator {
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       env = new MajCIteratorEnvironmentAdapter();
       super.init(source, options, env);
     }
@@ -682,7 +715,8 @@ public class TransformingIteratorTest {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
       super.seek(range, columnFamilies, inclusive);
       loadTop();
     }

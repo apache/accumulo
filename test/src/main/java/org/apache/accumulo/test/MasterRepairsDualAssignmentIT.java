@@ -72,7 +72,8 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
   public void test() throws Exception {
     // make some tablets, spread 'em around
     Connector c = getConnector();
-    ClientContext context = new ClientContext(c.getInstance(), new Credentials("root", new PasswordToken(ROOT_PASSWORD)), getClientConfig());
+    ClientContext context = new ClientContext(c.getInstance(),
+        new Credentials("root", new PasswordToken(ROOT_PASSWORD)), getClientConfig());
     String table = this.getUniqueNames(1)[0];
     c.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
@@ -98,7 +99,8 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
     }
     assertEquals(2, states.size());
     // Kill a tablet server... we don't care which one... wait for everything to be reassigned
-    cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+    cluster.killProcess(ServerType.TABLET_SERVER,
+        cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
     Set<TServerInstance> replStates = new HashSet<>();
     // Find out which tablet server remains
     while (true) {
@@ -109,7 +111,8 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       for (TabletLocationState tls : store) {
         if (tls != null && tls.current != null) {
           states.add(tls.current);
-        } else if (tls != null && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
+        } else if (tls != null
+            && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
           replStates.add(tls.current);
         } else {
           allAssigned = false;

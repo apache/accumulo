@@ -40,15 +40,18 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
 
   /**
    * A utility class to serialize/deserialize {@link AuthenticationToken} objects.<br>
-   * Unfortunately, these methods are provided in an inner-class, to avoid breaking the interface API.
+   * Unfortunately, these methods are provided in an inner-class, to avoid breaking the interface
+   * API.
    *
    * @since 1.6.0
    */
   public static final class AuthenticationTokenSerializer {
     /**
-     * A convenience method to create tokens from serialized bytes, created by {@link #serialize(AuthenticationToken)}
+     * A convenience method to create tokens from serialized bytes, created by
+     * {@link #serialize(AuthenticationToken)}
      * <p>
-     * The specified tokenType will be instantiated, and used to deserialize the decoded bytes. The resulting object will then be returned to the caller.
+     * The specified tokenType will be instantiated, and used to deserialize the decoded bytes. The
+     * resulting object will then be returned to the caller.
      *
      * @param tokenType
      *          the token class to use to deserialize the bytes
@@ -57,7 +60,8 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * @return an {@link AuthenticationToken} instance of the type specified by tokenType
      * @see #serialize(AuthenticationToken)
      */
-    public static <T extends AuthenticationToken> T deserialize(Class<T> tokenType, byte[] tokenBytes) {
+    public static <T extends AuthenticationToken> T deserialize(Class<T> tokenType,
+        byte[] tokenBytes) {
       T type = null;
       try {
         type = tokenType.newInstance();
@@ -69,7 +73,8 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       try {
         type.readFields(in);
       } catch (IOException e) {
-        throw new IllegalArgumentException("Cannot deserialize provided byte array as class " + tokenType.getName(), e);
+        throw new IllegalArgumentException(
+            "Cannot deserialize provided byte array as class " + tokenType.getName(), e);
       }
       try {
         in.close();
@@ -80,7 +85,8 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
 
     /**
-     * An alternate version of {@link #deserialize(Class, byte[])} that accepts a token class name rather than a token class.
+     * An alternate version of {@link #deserialize(Class, byte[])} that accepts a token class name
+     * rather than a token class.
      *
      * @param tokenClassName
      *          the fully-qualified class name to be returned
@@ -89,8 +95,11 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) {
       Class<? extends AuthenticationToken> tokenType = null;
       try {
+        // @formatter:off
         @SuppressWarnings("unchecked")
-        Class<? extends AuthenticationToken> tmpTokenType = (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
+        Class<? extends AuthenticationToken> tmpTokenType =
+          (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
+        // @formatter:on
         tokenType = tmpTokenType;
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException("Class not available " + tokenClassName, e);
@@ -101,7 +110,8 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     /**
      * A convenience method to serialize tokens.
      * <p>
-     * The provided {@link AuthenticationToken} will be serialized to bytes by its own implementation and returned to the caller.
+     * The provided {@link AuthenticationToken} will be serialized to bytes by its own
+     * implementation and returned to the caller.
      *
      * @param token
      *          the token to serialize

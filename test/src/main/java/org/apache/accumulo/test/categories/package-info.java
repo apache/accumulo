@@ -18,4 +18,3 @@
  * JUnit categories for the various types of Accumulo integration tests.
  */
 package org.apache.accumulo.test.categories;
-

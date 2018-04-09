@@ -32,13 +32,13 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
- * An InputFormat that turns the file data ingested with {@link FileDataIngest} into an InputStream using {@link ChunkInputStream}. Mappers used with this
- * InputFormat must close the InputStream.
+ * An InputFormat that turns the file data ingested with {@link FileDataIngest} into an InputStream
+ * using {@link ChunkInputStream}. Mappers used with this InputFormat must close the InputStream.
  */
 public class ChunkInputFormat extends InputFormatBase<List<Entry<Key,Value>>,InputStream> {
   @Override
-  public RecordReader<List<Entry<Key,Value>>,InputStream> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException,
-      InterruptedException {
+  public RecordReader<List<Entry<Key,Value>>,InputStream> createRecordReader(InputSplit split,
+      TaskAttemptContext context) throws IOException, InterruptedException {
     return new RecordReaderBase<List<Entry<Key,Value>>,InputStream>() {
       private PeekingIterator<Entry<Key,Value>> peekingScannerIterator;
 

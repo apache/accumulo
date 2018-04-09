@@ -24,11 +24,16 @@ public class ConstraintViolationSummaryTest {
 
   @Test
   public void testToString() {
-    ConstraintViolationSummary cvs = new ConstraintViolationSummary("fooClass", (short) 1, "fooDescription", 100L);
-    assertEquals("ConstraintViolationSummary(constrainClass:fooClass, violationCode:1, violationDescription:fooDescription, numberOfViolatingMutations:100)",
-        cvs.toString());
+    ConstraintViolationSummary cvs = new ConstraintViolationSummary("fooClass", (short) 1,
+        "fooDescription", 100L);
+    assertEquals("ConstraintViolationSummary(constrainClass:fooClass,"
+        + " violationCode:1, violationDescription:fooDescription,"
+        + " numberOfViolatingMutations:100)", cvs.toString());
 
     cvs = new ConstraintViolationSummary(null, (short) 2, null, 101L);
-    assertEquals("ConstraintViolationSummary(constrainClass:null, violationCode:2, violationDescription:null, numberOfViolatingMutations:101)", cvs.toString());
+    assertEquals(
+        "ConstraintViolationSummary(constrainClass:null,"
+            + " violationCode:2, violationDescription:null," + " numberOfViolatingMutations:101)",
+        cvs.toString());
   }
 }

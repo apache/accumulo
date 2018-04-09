@@ -22,8 +22,8 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 
 public class IntegerLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
-    assertSortOrder(new IntegerLexicoder(),
-        Arrays.asList(Integer.MIN_VALUE, 0xff123456, 0xffff3456, 0xffffff56, -1, 0, 1, 0x12, 0x1234, 0x123456, 0x1234678, Integer.MAX_VALUE));
+    assertSortOrder(new IntegerLexicoder(), Arrays.asList(Integer.MIN_VALUE, 0xff123456, 0xffff3456,
+        0xffffff56, -1, 0, 1, 0x12, 0x1234, 0x123456, 0x1234678, Integer.MAX_VALUE));
   }
 
   public void testDecode() {

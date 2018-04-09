@@ -73,7 +73,8 @@ public class NativeMapConcurrencyTest {
     }
     long t2 = System.currentTimeMillis();
 
-    System.out.printf("inserted %,d in %,d %,d %,6.2f%n", (numRows * numCols), (t2 - t1), nm.size(), rate((numRows * numCols), (t2 - t1)));
+    System.out.printf("inserted %,d in %,d %,d %,6.2f%n", (numRows * numCols), (t2 - t1), nm.size(),
+        rate((numRows * numCols), (t2 - t1)));
   }
 
   private static double rate(int num, long ms) {
@@ -133,7 +134,8 @@ public class NativeMapConcurrencyTest {
 
         long t2 = System.currentTimeMillis();
 
-        System.out.printf("%d %,d %,d %,d %,d %,6.2f%n", Thread.currentThread().getId(), (t2 - t1), t1, t2, count, rate(count, (t2 - t1)));
+        System.out.printf("%d %,d %,d %,d %,d %,6.2f%n", Thread.currentThread().getId(), (t2 - t1),
+            t1, t2, count, rate(count, (t2 - t1)));
       }
     }
 
@@ -160,7 +162,8 @@ public class NativeMapConcurrencyTest {
 
   }
 
-  private static void runTest(NativeMap nm, int rows, int cols, int numReadThreads, int writeThreads) {
+  private static void runTest(NativeMap nm, int rows, int cols, int numReadThreads,
+      int writeThreads) {
 
     Thread threads[] = new Thread[numReadThreads + writeThreads];
 

@@ -63,7 +63,8 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
   @Before
   public void updateMajcDelay() throws Exception {
     Connector c = getConnector();
-    majcDelay = c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
+    majcDelay = c.instanceOperations().getSystemConfiguration()
+        .get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     if (getClusterType() == ClusterType.STANDALONE) {
       Thread.sleep(AccumuloConfiguration.getTimeInMillis(majcDelay));
@@ -105,7 +106,8 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
       MasterClientService.Iface client = null;
       MasterMonitorInfo stats = null;
       try {
-        client = MasterClient.getConnectionWithRetry(new ClientContext(c.getInstance(), creds, clientConf));
+        client = MasterClient
+            .getConnectionWithRetry(new ClientContext(c.getInstance(), creds, clientConf));
         stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)

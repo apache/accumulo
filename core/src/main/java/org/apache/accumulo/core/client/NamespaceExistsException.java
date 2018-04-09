@@ -37,9 +37,11 @@ public class NamespaceExistsException extends Exception {
    *          the specific reason why it failed
    */
   public NamespaceExistsException(String namespaceId, String namespaceName, String description) {
-    super("Namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
-        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " exists"
-        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super(
+        "Namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
+            + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "")
+            + " exists"
+            + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
   }
 
   /**
@@ -52,7 +54,8 @@ public class NamespaceExistsException extends Exception {
    * @param cause
    *          the exception that caused this failure
    */
-  public NamespaceExistsException(String namespaceId, String namespaceName, String description, Throwable cause) {
+  public NamespaceExistsException(String namespaceId, String namespaceName, String description,
+      Throwable cause) {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
   }

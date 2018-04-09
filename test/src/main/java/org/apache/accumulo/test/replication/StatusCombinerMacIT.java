@@ -84,7 +84,8 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     }
 
     for (IteratorScope scope : scopes) {
-      String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "." + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
+      String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
+          + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
       Assert.assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
       Assert.assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
     }
@@ -96,11 +97,13 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     ClusterUser user = getAdminUser();
 
     ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME,
+        TablePermission.WRITE);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     long createTime = System.currentTimeMillis();
     try {
-      Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
+      Mutation m = new Mutation(
+          "file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
       StatusSection.add(m, "1", StatusUtil.fileCreatedValue(createTime));
       bw.addMutation(m);
     } finally {
@@ -113,7 +116,8 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
     bw = ReplicationTable.getBatchWriter(conn);
     try {
-      Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
+      Mutation m = new Mutation(
+          "file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
       StatusSection.add(m, "1", ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
       bw.addMutation(m);
     } finally {

@@ -26,7 +26,8 @@ import org.apache.htrace.HTraceConfiguration;
 @Deprecated
 public class CountSampler extends org.apache.htrace.impl.CountSampler implements Sampler {
   public CountSampler(long frequency) {
-    super(HTraceConfiguration.fromMap(Collections.singletonMap(CountSampler.SAMPLER_FREQUENCY_CONF_KEY, Long.toString(frequency))));
+    super(HTraceConfiguration.fromMap(Collections
+        .singletonMap(CountSampler.SAMPLER_FREQUENCY_CONF_KEY, Long.toString(frequency))));
   }
 
   @Override

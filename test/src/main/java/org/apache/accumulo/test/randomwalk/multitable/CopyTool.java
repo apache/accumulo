@@ -62,7 +62,8 @@ public class CopyTool extends Configured implements Tool {
       return 1;
     }
 
-    ClientConfiguration clientConf = ClientConfiguration.create().withInstance(args[3]).withZkHosts(args[4]);
+    ClientConfiguration clientConf = ClientConfiguration.create().withInstance(args[3])
+        .withZkHosts(args[4]);
 
     job.setInputFormatClass(AccumuloInputFormat.class);
     AccumuloInputFormat.setInputTableName(job, args[2]);
@@ -73,7 +74,8 @@ public class CopyTool extends Configured implements Tool {
     final AuthenticationToken token;
     if (clientConf.hasSasl()) {
       // Use the Kerberos creds to request a DelegationToken for MapReduce to use
-      // We could use the specified keytab (args[1]), but we're already logged in and don't need to, so we can just use the current user
+      // We could use the specified keytab (args[1]), but we're already logged in and don't need to,
+      // so we can just use the current user
       KerberosToken kt = new KerberosToken();
       try {
         UserGroupInformation user = UserGroupInformation.getCurrentUser();
@@ -89,11 +91,16 @@ public class CopyTool extends Configured implements Tool {
         Connector conn = inst.getConnector(principal, kt);
 
         // Do the explicit check to see if the user has the permission to get a delegation token
-        if (!conn.securityOperations().hasSystemPermission(conn.whoami(), SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
-          log.error(principal + " doesn't have the " + SystemPermission.OBTAIN_DELEGATION_TOKEN.name()
-              + " SystemPermission neccesary to obtain a delegation token. MapReduce tasks cannot automatically use the client's"
-              + " credentials on remote servers. Delegation tokens provide a means to run MapReduce without distributing the user's credentials.");
-          throw new IllegalStateException(conn.whoami() + " does not have permission to obtain a delegation token");
+        if (!conn.securityOperations().hasSystemPermission(conn.whoami(),
+            SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
+          log.error(
+              principal + " doesn't have the " + SystemPermission.OBTAIN_DELEGATION_TOKEN.name()
+                  + " SystemPermission neccesary to obtain a delegation token."
+                  + " MapReduce tasks cannot automatically use the client's credentials"
+                  + " on remote servers. Delegation tokens provide a means to run"
+                  + " MapReduce without distributing the user's credentials.");
+          throw new IllegalStateException(
+              conn.whoami() + " does not have permission to obtain a delegation token");
         }
 
         // Fetch a delegation token from Accumulo

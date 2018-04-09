@@ -46,16 +46,18 @@ public class Utils {
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  static void checkTableDoesNotExist(Instance instance, String tableName, String tableId, TableOperation operation)
-      throws AcceptableThriftTableOperationException {
+  static void checkTableDoesNotExist(Instance instance, String tableName, String tableId,
+      TableOperation operation) throws AcceptableThriftTableOperationException {
 
     String id = Tables.getNameToIdMap(instance).get(tableName);
 
     if (id != null && !id.equals(tableId))
-      throw new AcceptableThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
+      throw new AcceptableThriftTableOperationException(null, tableName, operation,
+          TableOperationExceptionType.EXISTS, null);
   }
 
-  static String getNextTableId(String tableName, Instance instance) throws AcceptableThriftTableOperationException {
+  static String getNextTableId(String tableName, Instance instance)
+      throws AcceptableThriftTableOperationException {
 
     String tableId = null;
     try {
@@ -72,22 +74,26 @@ public class Utils {
       return new String(nid, UTF_8);
     } catch (Exception e1) {
       log.error("Failed to assign tableId to " + tableName, e1);
-      throw new AcceptableThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
+      throw new AcceptableThriftTableOperationException(tableId, tableName, TableOperation.CREATE,
+          TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
 
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(String tableId, long tid, boolean writeLock, boolean tableMustExist, TableOperation op) throws Exception {
+  public static long reserveTable(String tableId, long tid, boolean writeLock,
+      boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
-          throw new AcceptableThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
+          throw new AcceptableThriftTableOperationException(tableId, "", op,
+              TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
-      log.info("table " + tableId + " (" + Long.toHexString(tid) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
+      log.info("table " + tableId + " (" + Long.toHexString(tid) + ") locked for "
+          + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
     } else
       return 100;
@@ -95,35 +101,44 @@ public class Utils {
 
   public static void unreserveTable(String tableId, long tid, boolean writeLock) throws Exception {
     getLock(tableId, tid, writeLock).unlock();
-    log.info("table " + tableId + " (" + Long.toHexString(tid) + ") unlocked for " + (writeLock ? "write" : "read"));
+    log.info("table " + tableId + " (" + Long.toHexString(tid) + ") unlocked for "
+        + (writeLock ? "write" : "read"));
   }
 
-  public static void unreserveNamespace(String namespaceId, long id, boolean writeLock) throws Exception {
+  public static void unreserveNamespace(String namespaceId, long id, boolean writeLock)
+      throws Exception {
     getLock(namespaceId, id, writeLock).unlock();
-    log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") unlocked for " + (writeLock ? "write" : "read"));
+    log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") unlocked for "
+        + (writeLock ? "write" : "read"));
   }
 
-  public static long reserveNamespace(String namespaceId, long id, boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
+  public static long reserveNamespace(String namespaceId, long id, boolean writeLock,
+      boolean mustExist, TableOperation op) throws Exception {
     if (getLock(namespaceId, id, writeLock).tryLock()) {
       if (mustExist) {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId))
-          throw new AcceptableThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
+          throw new AcceptableThriftTableOperationException(namespaceId, "", op,
+              TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
-      log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
+      log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for "
+          + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
     } else
       return 100;
   }
 
-  public static String getNamespaceId(Instance instance, String tableId, TableOperation op, String namespaceId) throws Exception {
+  public static String getNamespaceId(Instance instance, String tableId, TableOperation op,
+      String namespaceId) throws Exception {
     if (namespaceId != null) {
       return namespaceId;
     }
 
-    // For ACCUMULO-4575 namespaceId was added in a bug fix release. Since it was added in bug fix release, we have to ensure we can properly deserialize
-    // older versions. When deserializing an older version, namespaceId will be null. For this case revert to the old buggy behavior.
+    // For ACCUMULO-4575 namespaceId was added in a bug fix release. Since it was added in bug fix
+    // release, we have to ensure we can properly deserialize
+    // older versions. When deserializing an older version, namespaceId will be null. For this case
+    // revert to the old buggy behavior.
 
     try {
       return Tables.getNamespaceId(instance, tableId);
@@ -131,16 +146,19 @@ public class Utils {
       // see if this was caused because the table does not exists
       IZooReaderWriter zk = ZooReaderWriter.getInstance();
       if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
-        throw new AcceptableThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
+        throw new AcceptableThriftTableOperationException(tableId, "", op,
+            TableOperationExceptionType.NOTFOUND, "Table does not exist");
       else
         throw e;
     }
   }
 
-  public static long reserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
+  public static long reserveHdfsDirectory(String directory, long tid)
+      throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
 
-    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + Base64.encodeBase64String(directory.getBytes(UTF_8));
+    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
+        + Base64.encodeBase64String(directory.getBytes(UTF_8));
 
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
 
@@ -150,15 +168,19 @@ public class Utils {
       return 50;
   }
 
-  public static void unreserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
+  public static void unreserveHdfsDirectory(String directory, long tid)
+      throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
-    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + Base64.encodeBase64String(directory.getBytes(UTF_8));
+    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
+        + Base64.encodeBase64String(directory.getBytes(UTF_8));
     ZooReservation.release(ZooReaderWriter.getInstance(), resvPath, String.format("%016x", tid));
   }
 
   private static Lock getLock(String tableId, long tid, boolean writeLock) throws Exception {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
-    ZooQueueLock qlock = new ZooQueueLock(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLE_LOCKS + "/" + tableId, false);
+    ZooQueueLock qlock = new ZooQueueLock(
+        ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLE_LOCKS + "/" + tableId,
+        false);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
@@ -174,12 +196,13 @@ public class Utils {
     return Utils.getLock(tableId, tid, false);
   }
 
-  static void checkNamespaceDoesNotExist(Instance instance, String namespace, String namespaceId, TableOperation operation)
-      throws AcceptableThriftTableOperationException {
+  static void checkNamespaceDoesNotExist(Instance instance, String namespace, String namespaceId,
+      TableOperation operation) throws AcceptableThriftTableOperationException {
 
     String n = Namespaces.getNameToIdMap(instance).get(namespace);
 
     if (n != null && !n.equals(namespaceId))
-      throw new AcceptableThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NAMESPACE_EXISTS, null);
+      throw new AcceptableThriftTableOperationException(null, namespace, operation,
+          TableOperationExceptionType.NAMESPACE_EXISTS, null);
   }
 }

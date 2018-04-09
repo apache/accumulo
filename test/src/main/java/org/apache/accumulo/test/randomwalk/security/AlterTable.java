@@ -33,27 +33,33 @@ public class AlterTable extends Test {
 
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state, env).getSysUserName(), WalkingSecurity.get(state, env).getSysToken());
+    Connector conn = env.getInstance().getConnector(
+        WalkingSecurity.get(state, env).getSysUserName(),
+        WalkingSecurity.get(state, env).getSysToken());
 
     String tableName = WalkingSecurity.get(state, env).getTableName();
     String namespaceName = WalkingSecurity.get(state, env).getNamespaceName();
 
     boolean exists = WalkingSecurity.get(state, env).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state, env).canAlterTable(WalkingSecurity.get(state, env).getSysCredentials(), tableName, namespaceName);
-    String newTableName = String.format("security_%s_%s_%d", InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), env.getPid(),
+    boolean hasPermission = WalkingSecurity.get(state, env).canAlterTable(
+        WalkingSecurity.get(state, env).getSysCredentials(), tableName, namespaceName);
+    String newTableName = String.format("security_%s_%s_%d",
+        InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), env.getPid(),
         System.currentTimeMillis());
 
     renameTable(conn, state, env, tableName, newTableName, hasPermission, exists);
   }
 
-  public static void renameTable(Connector conn, State state, Environment env, String oldName, String newName, boolean hasPermission, boolean tableExists)
+  public static void renameTable(Connector conn, State state, Environment env, String oldName,
+      String newName, boolean hasPermission, boolean tableExists)
       throws AccumuloSecurityException, AccumuloException, TableExistsException {
     try {
       conn.tableOperations().rename(oldName, newName);
     } catch (AccumuloSecurityException ae) {
       if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
         if (hasPermission)
-          throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+          throw new AccumuloException("Got a security exception when I should have had permission.",
+              ae);
         else
           return;
       } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
@@ -63,7 +69,8 @@ public class AlterTable extends Test {
       throw new AccumuloException("Got unexpected ae error code", ae);
     } catch (TableNotFoundException tnfe) {
       if (tableExists)
-        throw new TableExistsException(null, oldName, "Got a TableNotFoundException but it should exist", tnfe);
+        throw new TableExistsException(null, oldName,
+            "Got a TableNotFoundException but it should exist", tnfe);
       else
         return;
     }

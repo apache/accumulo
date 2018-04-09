@@ -53,7 +53,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 
 public class AuthenticationTokenSecretManagerTest {
-  private static final Logger log = LoggerFactory.getLogger(AuthenticationTokenSecretManagerTest.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(AuthenticationTokenSecretManagerTest.class);
 
   // From org.apache.hadoop.security.token.SecretManager
   private static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA1";
@@ -89,7 +90,8 @@ public class AuthenticationTokenSecretManagerTest {
   public void testAddKey() {
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a single key
     AuthenticationKey authKey = new AuthenticationKey(1, 0, tokenLifetime, keyGen.generateKey());
@@ -115,7 +117,8 @@ public class AuthenticationTokenSecretManagerTest {
   public void testRemoveKey() {
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a single key
     AuthenticationKey authKey = new AuthenticationKey(1, 0, tokenLifetime, keyGen.generateKey());
@@ -138,13 +141,16 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a current key
-    secretManager.addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
+    secretManager
+        .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     String principal = "user@EXAMPLE.COM";
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager.generateToken(principal, cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
+        .generateToken(principal, cfg);
 
     assertNotNull(pair);
     Token<AuthenticationTokenIdentifier> token = pair.getKey();
@@ -157,10 +163,10 @@ public class AuthenticationTokenSecretManagerTest {
     long now = System.currentTimeMillis();
 
     // Issue date should be after the test started, but before we deserialized the token
-    assertTrue("Issue date did not fall within the expected upper bound. Expected less than " + now + ", but was " + id.getIssueDate(),
-        id.getIssueDate() <= now);
-    assertTrue("Issue date did not fall within the expected lower bound. Expected greater than " + then + ", but was " + id.getIssueDate(),
-        id.getIssueDate() >= then);
+    assertTrue("Issue date did not fall within the expected upper bound. Expected less than " + now
+        + ", but was " + id.getIssueDate(), id.getIssueDate() <= now);
+    assertTrue("Issue date did not fall within the expected lower bound. Expected greater than "
+        + then + ", but was " + id.getIssueDate(), id.getIssueDate() >= then);
 
     // Expiration is the token lifetime plus the issue date
     assertEquals(id.getIssueDate() + tokenLifetime, id.getExpirationDate());
@@ -179,13 +185,16 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a current key
-    secretManager.addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
+    secretManager
+        .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     String principal = "user@EXAMPLE.COM";
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager.generateToken(principal, cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
+        .generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token = pair.getKey();
 
     AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier();
@@ -197,7 +206,8 @@ public class AuthenticationTokenSecretManagerTest {
     assertArrayEquals(password, secretManager.retrievePassword(id));
 
     // Make a second token for the same user
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair2 = secretManager.generateToken(principal, cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair2 = secretManager
+        .generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token2 = pair2.getKey();
     // Reconstitute the token identifier (will happen when clients are involved)
     AuthenticationTokenIdentifier id2 = new AuthenticationTokenIdentifier();
@@ -207,7 +217,8 @@ public class AuthenticationTokenSecretManagerTest {
     byte[] password2 = secretManager.retrievePassword(id2);
 
     // It should be different than the password for the first user.
-    assertFalse("Different tokens for the same user shouldn't have the same password", Arrays.equals(password, password2));
+    assertFalse("Different tokens for the same user shouldn't have the same password",
+        Arrays.equals(password, password2));
   }
 
   @Test(expected = InvalidToken.class)
@@ -217,13 +228,16 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 500ms lifetime
     long tokenLifetime = 500;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a current key
-    secretManager.addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
+    secretManager
+        .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     String principal = "user@EXAMPLE.COM";
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager.generateToken(principal, cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
+        .generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token = pair.getKey();
 
     // Add a small buffer to make sure we move past the expiration of 0 for the token.
@@ -242,13 +256,16 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a current key
-    secretManager.addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
+    secretManager
+        .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     String principal = "user@EXAMPLE.COM";
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager.generateToken(principal, cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
+        .generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token = pair.getKey();
 
     // Reconstitute the token identifier (will happen when clients are involved)
@@ -267,14 +284,17 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a current key
-    AuthenticationKey authKey1 = new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey());
+    AuthenticationKey authKey1 = new AuthenticationKey(1, then, then + tokenLifetime,
+        keyGen.generateKey());
     secretManager.addKey(authKey1);
 
     String principal = "user@EXAMPLE.COM";
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager.generateToken(principal, cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
+        .generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token = pair.getKey();
 
     AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier();
@@ -295,17 +315,21 @@ public class AuthenticationTokenSecretManagerTest {
 
   @Test(timeout = 20 * 1000)
   public void testMasterKeyExpiration() throws Exception {
-    ZooAuthenticationKeyDistributor keyDistributor = createMock(ZooAuthenticationKeyDistributor.class);
+    ZooAuthenticationKeyDistributor keyDistributor = createMock(
+        ZooAuthenticationKeyDistributor.class);
     // start of the test
     long then = System.currentTimeMillis();
 
     // 10s lifetime
     long tokenLifetime = 10 * 1000l;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Make 2 keys, and add only one. The second has double the expiration of the first
-    AuthenticationKey authKey1 = new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()), authKey2 = new AuthenticationKey(2, then
-        + tokenLifetime, then + tokenLifetime * 2, keyGen.generateKey());
+    AuthenticationKey authKey1 = new AuthenticationKey(1, then, then + tokenLifetime,
+        keyGen.generateKey()),
+        authKey2 = new AuthenticationKey(2, then + tokenLifetime, then + tokenLifetime * 2,
+            keyGen.generateKey());
     secretManager.addKey(authKey1);
 
     keyDistributor.remove(authKey1);
@@ -348,16 +372,19 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 hr
     long tokenLifetime = 60 * 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a current key
-    secretManager.addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
+    secretManager
+        .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     // 1 minute
     cfg.setTokenLifetime(1, TimeUnit.MINUTES);
 
     String principal = "user@EXAMPLE.COM";
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager.generateToken(principal, cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
+        .generateToken(principal, cfg);
 
     assertNotNull(pair);
 
@@ -368,7 +395,9 @@ public class AuthenticationTokenSecretManagerTest {
     log.info("actualExpiration={}, approximateLifetime={}", actualExpiration, approximateLifetime);
 
     // We don't know the exact lifetime, but we know that it can be no more than what was requested
-    assertTrue("Expected lifetime to be on thet order of the token lifetime, but was " + approximateLifetime,
+    assertTrue(
+        "Expected lifetime to be on thet order of the token lifetime, but was "
+            + approximateLifetime,
         approximateLifetime <= cfg.getTokenLifetime(TimeUnit.MILLISECONDS));
   }
 
@@ -379,10 +408,12 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 hr
     long tokenLifetime = 60 * 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance, tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
+        tokenLifetime);
 
     // Add a current key
-    secretManager.addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
+    secretManager
+        .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     // A longer timeout than the secret key has
     cfg.setTokenLifetime(tokenLifetime + 1, TimeUnit.MILLISECONDS);

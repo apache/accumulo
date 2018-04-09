@@ -47,12 +47,15 @@ public class UsersIT extends AccumuloClusterHarness {
     }
 
     try {
-      conn.securityOperations().createLocalUser(user0.getPrincipal(), new PasswordToken("better_fail"));
+      conn.securityOperations().createLocalUser(user0.getPrincipal(),
+          new PasswordToken("better_fail"));
       fail("Creating a user that already exists should throw an exception");
     } catch (AccumuloSecurityException e) {
-      assertTrue("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS == e.getSecurityErrorCode());
+      assertTrue("Expected USER_EXISTS error",
+          SecurityErrorCode.USER_EXISTS == e.getSecurityErrorCode());
       String msg = e.getMessage();
-      assertTrue("Error message didn't contain principal: '" + msg + "'", msg.contains(user0.getPrincipal()));
+      assertTrue("Error message didn't contain principal: '" + msg + "'",
+          msg.contains(user0.getPrincipal()));
     }
   }
 

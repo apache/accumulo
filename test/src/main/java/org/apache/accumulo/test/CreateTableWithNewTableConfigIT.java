@@ -63,12 +63,13 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  public int numProperties(Connector connector, String tableName) throws AccumuloException, TableNotFoundException {
+  public int numProperties(Connector connector, String tableName)
+      throws AccumuloException, TableNotFoundException {
     return Iterators.size(connector.tableOperations().getProperties(tableName).iterator());
   }
 
-  public int compareProperties(Connector connector, String tableNameOrig, String tableName, String changedProp) throws AccumuloException,
-      TableNotFoundException {
+  public int compareProperties(Connector connector, String tableNameOrig, String tableName,
+      String changedProp) throws AccumuloException, TableNotFoundException {
     boolean inNew = false;
     int countOrig = 0;
     for (Entry<String,String> orig : connector.tableOperations().getProperties(tableNameOrig)) {
@@ -86,13 +87,15 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     return countOrig;
   }
 
-  public boolean checkTimeType(Connector connector, String tableName, TimeType expectedTimeType) throws TableNotFoundException {
+  public boolean checkTimeType(Connector connector, String tableName, TimeType expectedTimeType)
+      throws TableNotFoundException {
     final Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     String tableID = connector.tableOperations().tableIdMap().get(tableName) + "<";
     for (Entry<Key,Value> entry : scanner) {
       Key k = entry.getKey();
 
-      if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString().equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
+      if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString()
+          .equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
         if (expectedTimeType == TimeType.MILLIS && entry.getValue().toString().charAt(0) == 'M')
           return true;
         if (expectedTimeType == TimeType.LOGICAL && entry.getValue().toString().charAt(0) == 'L')
@@ -131,7 +134,8 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     Connector connector = getConnector();
     String tableName = getUniqueNames(2)[0];
     boolean limitVersion = false;
-    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+    connector.tableOperations().create(tableName,
+        new NewTableConfiguration().withoutDefaultIterators());
 
     String tableNameOrig = "originalWithLimitVersion";
     connector.tableOperations().create(tableNameOrig, limitVersion);
@@ -153,7 +157,8 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     String tableName = getUniqueNames(2)[0];
     boolean limitVersion = false;
     TimeType tt = TimeType.LOGICAL;
-    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators().setTimeType(tt));
+    connector.tableOperations().create(tableName,
+        new NewTableConfiguration().withoutDefaultIterators().setTimeType(tt));
 
     String tableNameOrig = "originalWithLimitVersionAndTimeType";
     connector.tableOperations().create(tableNameOrig, limitVersion, tt);
@@ -183,7 +188,8 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     // Create a table with the initial properties
     Connector connector = getConnector();
     String tableName = getUniqueNames(2)[0];
-    connector.tableOperations().create(tableName, new NewTableConfiguration().setProperties(properties));
+    connector.tableOperations().create(tableName,
+        new NewTableConfiguration().setProperties(properties));
 
     String tableNameOrig = "originalWithTableName";
     connector.tableOperations().create(tableNameOrig, true);
@@ -195,7 +201,8 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
         Assert.assertTrue("TABLE_SPLIT_THRESHOLD has been changed", entry.getValue().equals("10K"));
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertTrue("table.custom.testProp has been changed", entry.getValue().equals("Test property"));
+        Assert.assertTrue("table.custom.testProp has been changed",
+            entry.getValue().equals("Test property"));
     }
 
     Assert.assertEquals("Extra properties using the new create method", countOrig + 1, countNew);

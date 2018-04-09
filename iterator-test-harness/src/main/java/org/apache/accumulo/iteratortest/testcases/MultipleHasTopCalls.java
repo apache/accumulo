@@ -29,10 +29,12 @@ import org.apache.accumulo.iteratortest.IteratorTestUtil;
 import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
- * TestCase which asserts that multiple calls to {@link SortedKeyValueIterator#hasTop()} should not alter the internal state of the iterator and should not
- * return different values due to multiple, sequential invocations.
+ * TestCase which asserts that multiple calls to {@link SortedKeyValueIterator#hasTop()} should not
+ * alter the internal state of the iterator and should not return different values due to multiple,
+ * sequential invocations.
  * <p>
- * This test case will call {@code hasTop()} multiple times, verifying that each call returns the same value as the first.
+ * This test case will call {@code hasTop()} multiple times, verifying that each call returns the
+ * same value as the first.
  */
 public class MultipleHasTopCalls extends OutputVerifyingTestCase {
 
@@ -80,7 +82,8 @@ public class MultipleHasTopCalls extends OutputVerifyingTestCase {
   }
 
   IllegalStateException badStateException(boolean expectedState) {
-    return new IllegalStateException("Multiple sequential calls to hasTop should not alter the state or return value of the iterator. Expected '"
-        + expectedState + ", but got '" + !expectedState + "'.");
+    return new IllegalStateException("Multiple sequential calls to hasTop"
+        + " should not alter the state or return value of the iterator. Expected '" + expectedState
+        + ", but got '" + !expectedState + "'.");
   }
 }

@@ -55,7 +55,8 @@ public class LogReader {
     String row;
     @Parameter(names = "-m", description = "limit the number of mutations printed per row")
     int maxMutations = 5;
-    @Parameter(names = "-t", description = "print only mutations that fall within the given key extent")
+    @Parameter(names = "-t",
+        description = "print only mutations that fall within the given key extent")
     String extent;
     @Parameter(names = "-p", description = "search for a row that matches the given regex")
     String regexp;
@@ -136,7 +137,8 @@ public class LogReader {
     }
   }
 
-  public static void printLogEvent(LogFileKey key, LogFileValue value, Text row, Matcher rowMatcher, KeyExtent ke, Set<Integer> tabletIds, int maxMutations) {
+  public static void printLogEvent(LogFileKey key, LogFileValue value, Text row, Matcher rowMatcher,
+      KeyExtent ke, Set<Integer> tabletIds, int maxMutations) {
 
     if (ke != null) {
       if (key.event == LogEvents.DEFINE_TABLET) {

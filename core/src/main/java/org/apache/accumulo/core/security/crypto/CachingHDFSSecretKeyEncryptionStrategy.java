@@ -41,7 +41,8 @@ import org.slf4j.LoggerFactory;
  */
 public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  private static final Logger log = LoggerFactory.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
+  private static final Logger log = LoggerFactory
+      .getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
 
   @Override
@@ -68,11 +69,14 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     return context;
   }
 
-  private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params) throws IOException {
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
+  private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params)
+      throws IOException {
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(
+        params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
 
     try {
-      cipher.init(encryptionMode, new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getAlgorithmName()));
+      cipher.init(encryptionMode,
+          new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getAlgorithmName()));
     } catch (InvalidKeyException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
@@ -80,7 +84,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     if (Cipher.UNWRAP_MODE == encryptionMode) {
       try {
-        Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
+        Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(),
+            Cipher.SECRET_KEY);
         params.setPlaintextKey(plaintextKey.getEncoded());
       } catch (InvalidKeyException e) {
         log.error("{}", e.getMessage(), e);
@@ -114,7 +119,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     public SecretKeyCache() {}
 
-    public synchronized void ensureSecretKeyCacheInitialized(CryptoModuleParameters context) throws IOException {
+    public synchronized void ensureSecretKeyCacheInitialized(CryptoModuleParameters context)
+        throws IOException {
 
       if (initialized) {
         return;
@@ -152,13 +158,15 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       }
     }
 
-    private void initializeKeyEncryptionKey(FileSystem fs, Path pathToKey, CryptoModuleParameters params) throws IOException {
+    private void initializeKeyEncryptionKey(FileSystem fs, Path pathToKey,
+        CryptoModuleParameters params) throws IOException {
       DataOutputStream out = null;
       try {
         out = fs.create(pathToKey);
         // Very important, lets hedge our bets
         fs.setReplication(pathToKey, (short) 5);
-        SecureRandom random = DefaultCryptoModuleUtils.getSecureRandom(params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
+        SecureRandom random = DefaultCryptoModuleUtils.getSecureRandom(
+            params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
         int keyLength = params.getKeyLength();
         byte[] newRandomKeyEncryptionKey = new byte[keyLength / 8];
         random.nextBytes(newRandomKeyEncryptionKey);
@@ -175,7 +183,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     @SuppressWarnings("deprecation")
     private String getFullPathToKey(CryptoModuleParameters params) {
-      String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
+      String pathToKeyName = params.getAllOptions()
+          .get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
       String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
 
       if (pathToKeyName == null) {

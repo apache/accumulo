@@ -92,7 +92,8 @@ public class GarbageCollectionTest {
     }
 
     public Key newFileReferenceKey(String tableId, String endRow, String file) {
-      String row = new KeyExtent(tableId, endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
+      String row = new KeyExtent(tableId, endRow == null ? null : new Text(endRow), null)
+          .getMetadataEntry().toString();
       String cf = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString();
       String cq = file;
       Key key = new Key(row, cf, cq);
@@ -110,9 +111,12 @@ public class GarbageCollectionTest {
     }
 
     Key newDirReferenceKey(String tableId, String endRow) {
-      String row = new KeyExtent(tableId, endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
-      String cf = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily().toString();
-      String cq = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier().toString();
+      String row = new KeyExtent(tableId, endRow == null ? null : new Text(endRow), null)
+          .getMetadataEntry().toString();
+      String cf = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
+          .getColumnFamily().toString();
+      String cq = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
+          .getColumnQualifier().toString();
       Key key = new Key(row, cf, cq);
       return key;
     }
@@ -134,7 +138,8 @@ public class GarbageCollectionTest {
     public void incrementInUseStat(long i) {}
 
     @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException {
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator()
+        throws AccumuloException, AccumuloSecurityException {
       return filesToReplicate.entrySet().iterator();
     }
   }
@@ -165,7 +170,8 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertRemoved(gce);
 
-    // Remove the reference to this flush file, run the GC which should not trim it from the candidates, and assert that it's gone
+    // Remove the reference to this flush file, run the GC which should not trim it from the
+    // candidates, and assert that it's gone
     gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
@@ -184,7 +190,8 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
     gca.collect(gce);
-    assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf", "hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
+    assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf",
+        "hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
 
   }
 
@@ -266,15 +273,18 @@ public class GarbageCollectionTest {
     // Remove the first blip
     gce.blips.remove("/4/b-0");
 
-    // And we should lose all files in that blip and the blip directory itself -- relative and absolute
+    // And we should lose all files in that blip and the blip directory itself -- relative and
+    // absolute
     gca.collect(gce);
-    assertRemoved(gce, "/4/b-0", "/4/b-0/F002.rf", "hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf");
+    assertRemoved(gce, "/4/b-0", "/4/b-0/F002.rf",
+        "hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf");
 
     gce.blips.remove("hdfs://foo.com:6000/accumulo/tables/5/b-0");
 
     // Same as above, we should lose relative and absolute for a relative or absolute blip
     gca.collect(gce);
-    assertRemoved(gce, "/5/b-0", "/5/b-0/F002.rf", "hdfs://foo.com:6000/accumulo/tables/5/b-0/F001.rf");
+    assertRemoved(gce, "/5/b-0", "/5/b-0/F002.rf",
+        "hdfs://foo.com:6000/accumulo/tables/5/b-0/F001.rf");
 
     gca.collect(gce);
     assertRemoved(gce);
@@ -337,8 +347,8 @@ public class GarbageCollectionTest {
     gce.removeFileReference("e", "m", "../c/t-0/F00.rf");
     gce.removeFileReference("f", "m", "../d/t-0/F00.rf");
     gca.collect(gce);
-    assertRemoved(gce, "/8/t-0", "hdfs://foo:6000/accumulo/tables/9/t-0", "/a/t-0", "hdfs://foo:6000/accumulo/tables/b/t-0", "/c/t-0",
-        "hdfs://foo:6000/accumulo/tables/d/t-0");
+    assertRemoved(gce, "/8/t-0", "hdfs://foo:6000/accumulo/tables/9/t-0", "/a/t-0",
+        "hdfs://foo:6000/accumulo/tables/b/t-0", "/c/t-0", "hdfs://foo:6000/accumulo/tables/d/t-0");
 
     gca.collect(gce);
     assertRemoved(gce);
@@ -401,8 +411,8 @@ public class GarbageCollectionTest {
     gce.removeFileReference("e", "m", "../c/t-0/F00.rf");
     gce.removeFileReference("f", "m", "../d/t-0/F00.rf");
     gca.collect(gce);
-    assertRemoved(gce, "/8/t-0", "hdfs://foo:6000/user/foo/tables/9/t-0", "/a/t-0", "hdfs://foo:6000/user/foo/tables/b/t-0", "/c/t-0",
-        "hdfs://foo:6000/user/foo/tables/d/t-0");
+    assertRemoved(gce, "/8/t-0", "hdfs://foo:6000/user/foo/tables/9/t-0", "/a/t-0",
+        "hdfs://foo:6000/user/foo/tables/b/t-0", "/c/t-0", "hdfs://foo:6000/user/foo/tables/d/t-0");
 
     gca.collect(gce);
     assertRemoved(gce);
@@ -590,7 +600,8 @@ public class GarbageCollectionTest {
 
     // We need to replicate that one file still, should not delete it.
     Assert.assertEquals(1, gce.deletes.size());
-    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
+    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf",
+        gce.deletes.get(0));
   }
 
   @Test
@@ -610,7 +621,8 @@ public class GarbageCollectionTest {
 
     // We need to replicate that one file still, should not delete it.
     Assert.assertEquals(1, gce.deletes.size());
-    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
+    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf",
+        gce.deletes.get(0));
   }
 
   @Test
@@ -630,6 +642,7 @@ public class GarbageCollectionTest {
 
     // We need to replicate that one file still, should not delete it.
     Assert.assertEquals(1, gce.deletes.size());
-    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
+    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf",
+        gce.deletes.get(0));
   }
 }

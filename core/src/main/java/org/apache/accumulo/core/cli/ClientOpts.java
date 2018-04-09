@@ -130,14 +130,15 @@ public class ClientOpts extends Help {
   @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
   private Password password = null;
 
-  @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
+  @Parameter(names = "--password", converter = PasswordConverter.class,
+      description = "Enter the connection password", password = true)
   private Password securePassword = null;
 
   @Parameter(names = {"-tc", "--tokenClass"}, description = "Token class")
   private String tokenClassName = null;
 
-  @DynamicParameter(names = "-l",
-      description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
+  @DynamicParameter(names = "-l", description = "login properties in the format key=value. "
+      + "Reuse -l for each property (prompt for properties if this option is missing")
   public Map<String,String> loginProps = new LinkedHashMap<>();
 
   public AuthenticationToken getToken() {
@@ -148,9 +149,11 @@ public class ClientOpts extends Help {
           props.put(loginOption.getKey(), loginOption.getValue());
       }
 
-      // It's expected that the user is already logged in via UserGroupInformation or external to this program (kinit).
+      // It's expected that the user is already logged in via UserGroupInformation or external to
+      // this program (kinit).
       try {
-        AuthenticationToken token = Class.forName(tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
+        AuthenticationToken token = Class.forName(tokenClassName)
+            .asSubclass(AuthenticationToken.class).newInstance();
         token.init(props);
         return token;
       } catch (Exception e) {
@@ -174,13 +177,15 @@ public class ClientOpts extends Help {
     return new PasswordToken(pass.value);
   }
 
-  @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
+  @Parameter(names = {"-z", "--keepers"},
+      description = "Comma separated list of zookeeper hosts (host:port,host:port)")
   public String zookeepers = "localhost:2181";
 
   @Parameter(names = {"-i", "--instance"}, description = "The name of the accumulo instance")
   public String instance = null;
 
-  @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class, description = "the authorizations to use when reading or writing")
+  @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class,
+      description = "the authorizations to use when reading or writing")
   public Authorizations auths = Authorizations.EMPTY;
 
   @Parameter(names = "--debug", description = "turn on TRACE-level log messages")
@@ -189,7 +194,8 @@ public class ClientOpts extends Help {
   @Parameter(names = {"-fake", "--mock"}, description = "Use a mock Instance")
   public boolean mock = false;
 
-  @Parameter(names = "--site-file", description = "Read the given accumulo site file to find the accumulo instance")
+  @Parameter(names = "--site-file",
+      description = "Read the given accumulo site file to find the accumulo instance")
   public String siteFile = null;
 
   @Parameter(names = "--ssl", description = "Connect to accumulo over SSL")
@@ -199,8 +205,8 @@ public class ClientOpts extends Help {
   public boolean saslEnabled = false;
 
   @Parameter(names = "--config-file", description = "Read the given client config file. "
-      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
-      + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, which "
+      + "defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
   public String clientConfigFile = null;
 
   public void startDebugLogging() {
@@ -225,8 +231,8 @@ public class ClientOpts extends Help {
   }
 
   /**
-   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't overwrite the options if the user has provided something
-   * specifically.
+   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't
+   * overwrite the options if the user has provided something specifically.
    */
   public void updateKerberosCredentials() {
     ClientConfiguration clientConfig;
@@ -242,14 +248,16 @@ public class ClientOpts extends Help {
   }
 
   /**
-   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't overwrite the options if the user has provided something
-   * specifically.
+   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't
+   * overwrite the options if the user has provided something specifically.
    */
   public void updateKerberosCredentials(ClientConfiguration clientConfig) {
-    final boolean clientConfSaslEnabled = Boolean.parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+    final boolean clientConfSaslEnabled = Boolean
+        .parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
     if ((saslEnabled || clientConfSaslEnabled) && null == tokenClassName) {
       tokenClassName = KerberosToken.CLASS_NAME;
-      // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce Job is going to make a copy of the current user (UGI)
+      // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce
+      // Job is going to make a copy of the current user (UGI)
       // when it is instantiated.
       if (null != keytabPath) {
         File keytab = new File(keytabPath);
@@ -291,10 +299,12 @@ public class ClientOpts extends Help {
     if (null == principal) {
       AuthenticationToken token = getToken();
       if (null == token) {
-        throw new AccumuloSecurityException("No principal or authentication token was provided", SecurityErrorCode.BAD_CREDENTIALS);
+        throw new AccumuloSecurityException("No principal or authentication token was provided",
+            SecurityErrorCode.BAD_CREDENTIALS);
       }
 
-      // In MapReduce, if we create a DelegationToken, the principal is updated from the KerberosToken
+      // In MapReduce, if we create a DelegationToken, the principal is updated from the
+      // KerberosToken
       // used to obtain the DelegationToken.
       if (null != principal) {
         return principal;
@@ -389,7 +399,8 @@ public class ClientOpts extends Help {
       String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir, config);
       if (config.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
         clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
-      return cachedClientConfig = clientConfig.withInstance(UUID.fromString(instanceIDFromFile)).withZkHosts(zookeepers);
+      return cachedClientConfig = clientConfig.withInstance(UUID.fromString(instanceIDFromFile))
+          .withZkHosts(zookeepers);
     }
     return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
   }

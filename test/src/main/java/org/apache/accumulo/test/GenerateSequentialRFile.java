@@ -58,7 +58,8 @@ public class GenerateSequentialRFile implements Runnable {
       final Configuration conf = new Configuration();
       Path p = new Path(opts.filePath);
       final FileSystem fs = p.getFileSystem(conf);
-      FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder().forFile(opts.filePath, fs, conf)
+      FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
+          .forFile(opts.filePath, fs, conf)
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
 
       writer.startDefaultLocalityGroup();
@@ -67,7 +68,8 @@ public class GenerateSequentialRFile implements Runnable {
         final Text row = new Text(String.format("%03d", x));
         for (int y = 0; y < opts.valuesPerRow; y++) {
           final String suffix = String.format("%05d", y);
-          writer.append(new Key(new Text(row + ":" + suffix), CF, CQ), new Value(suffix.getBytes(UTF_8)));
+          writer.append(new Key(new Text(row + ":" + suffix), CF, CQ),
+              new Value(suffix.getBytes(UTF_8)));
         }
       }
 

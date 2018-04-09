@@ -54,7 +54,8 @@ public class ZooSession {
   private static Map<String,ZooSessionInfo> sessions = new HashMap<>();
 
   private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
-    return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":" + (auth == null ? "" : new String(auth, UTF_8));
+    return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":"
+        + (auth == null ? "" : new String(auth, UTF_8));
   }
 
   private static class ZooWatcher implements Watcher {
@@ -80,7 +81,8 @@ public class ZooSession {
    * @param watcher
    *          ZK notifications, may be null
    */
-  public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
+  public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth,
+      Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
     int connectTimeWait = Math.min(10 * 1000, timeout);
     boolean tryAgain = true;
@@ -107,9 +109,11 @@ public class ZooSession {
           /*
            * Make sure we wait atleast as long as the JVM TTL for negative DNS responses
            */
-          sleepTime = Math.max(sleepTime, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);
+          sleepTime = Math.max(sleepTime,
+              (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);
         }
-        log.warn("Connection to zooKeeper failed, will try again in " + String.format("%.2f secs", sleepTime / 1000.0), e);
+        log.warn("Connection to zooKeeper failed, will try again in "
+            + String.format("%.2f secs", sleepTime / 1000.0), e);
       } finally {
         if (tryAgain && zooKeeper != null)
           try {
@@ -121,7 +125,8 @@ public class ZooSession {
       }
 
       if (System.currentTimeMillis() - startTime > 2 * timeout) {
-        throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
+        throw new RuntimeException("Failed to connect to zookeeper (" + host
+            + ") within 2x zookeeper timeout period " + timeout);
       }
 
       if (tryAgain) {
@@ -140,7 +145,8 @@ public class ZooSession {
     return zooKeeper;
   }
 
-  public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme, byte[] auth) {
+  public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme,
+      byte[] auth) {
 
     if (sessions == null)
       throw new ZooSessionShutdownException();

@@ -29,8 +29,8 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 
 /**
- * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to include default iterators, and user-specified initial
- * properties
+ * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to
+ * include default iterators, and user-specified initial properties
  *
  * @since 1.7.0
  */
@@ -68,8 +68,9 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Currently the only default iterator is the {@link VersioningIterator}. This method will cause the table to be created without that iterator, or any others
-   * which may become defaults in the future.
+   * Currently the only default iterator is the {@link VersioningIterator}. This method will cause
+   * the table to be created without that iterator, or any others which may become defaults in the
+   * future.
    *
    * @return this
    */
@@ -79,8 +80,8 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Sets additional properties to be applied to tables created with this configuration. Additional calls to this method replaces properties set by previous
-   * calls.
+   * Sets additional properties to be applied to tables created with this configuration. Additional
+   * calls to this method replaces properties set by previous calls.
    *
    * @param prop
    *          additional properties to add to the table when it is created
@@ -95,7 +96,8 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Retrieves the complete set of currently configured table properties to be applied to a table when this configuration object is used.
+   * Retrieves the complete set of currently configured table properties to be applied to a table
+   * when this configuration object is used.
    *
    * @return the current properties configured
    */

@@ -24,7 +24,8 @@ public class ScanCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is inclusive", new ScanCommand().getOptions().getOption("b").getDescription().contains("row (inclusive)"));
+    assertTrue("-b should say it is inclusive",
+        new ScanCommand().getOptions().getOption("b").getDescription().contains("row (inclusive)"));
   }
 
 }

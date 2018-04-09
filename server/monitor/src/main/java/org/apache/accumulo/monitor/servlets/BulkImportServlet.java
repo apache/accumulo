@@ -46,11 +46,13 @@ public class BulkImportServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb)
+      throws IOException {
     Table table = new Table("masterBulkImportStatus", "Bulk&nbsp;Import&nbsp;Status");
     table.addSortableColumn("Directory");
     table.addSortableColumn("Age", new DurationType(0l, 5 * 60 * 1000l), "The age the import.");
-    table.addSortableColumn("State", new BulkImportStateType(), "The current state of the bulk import");
+    table.addSortableColumn("State", new BulkImportStateType(),
+        "The current state of the bulk import");
     for (BulkImportStatus bulk : Monitor.getMmi().bulkImports) {
       TableRow row = table.prepareRow();
       row.add(bulk.filename);
@@ -62,8 +64,10 @@ public class BulkImportServlet extends BasicServlet {
 
     table = new Table("bulkImportStatus", "TabletServer&nbsp;Bulk&nbsp;Import&nbsp;Status");
     table.addSortableColumn("Server", new TServerLinkType(), null);
-    table.addSortableColumn("#", new PreciseNumberType(0, 20, 0, 100), "Number of imports presently running");
-    table.addSortableColumn("Oldest&nbsp;Age", new DurationType(0l, 5 * 60 * 1000l), "The age of the oldest import running on this server.");
+    table.addSortableColumn("#", new PreciseNumberType(0, 20, 0, 100),
+        "Number of imports presently running");
+    table.addSortableColumn("Oldest&nbsp;Age", new DurationType(0l, 5 * 60 * 1000l),
+        "The age of the oldest import running on this server.");
     for (TabletServerStatus tserverInfo : Monitor.getMmi().getTServerInfo()) {
       TableRow row = table.prepareRow();
       row.add(tserverInfo);

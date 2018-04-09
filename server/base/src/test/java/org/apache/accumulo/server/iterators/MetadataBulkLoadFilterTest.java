@@ -83,12 +83,14 @@ public class MetadataBulkLoadFilterTest {
 
     // following should not be deleted by filter
     put(tm1, "2;m", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1");
-    put(tm1, "2;m", DataFileColumnFamily.NAME, "/t1/file1", new DataFileValue(1, 1).encodeAsString());
+    put(tm1, "2;m", DataFileColumnFamily.NAME, "/t1/file1",
+        new DataFileValue(1, 1).encodeAsString());
     put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file1", "5");
     put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file3", "7");
     put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file4", "9");
     put(tm1, "2<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t2");
-    put(tm1, "2<", DataFileColumnFamily.NAME, "/t2/file2", new DataFileValue(1, 1).encodeAsString());
+    put(tm1, "2<", DataFileColumnFamily.NAME, "/t2/file2",
+        new DataFileValue(1, 1).encodeAsString());
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file6", "5");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file7", "7");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file8", "9");
@@ -102,18 +104,19 @@ public class MetadataBulkLoadFilterTest {
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileA", "2");
 
     TestMetadataBulkLoadFilter iter = new TestMetadataBulkLoadFilter();
-    iter.init(new SortedMapIterator(tm1), new HashMap<String,String>(), new BaseIteratorEnvironment() {
+    iter.init(new SortedMapIterator(tm1), new HashMap<String,String>(),
+        new BaseIteratorEnvironment() {
 
-      @Override
-      public boolean isFullMajorCompaction() {
-        return false;
-      }
+          @Override
+          public boolean isFullMajorCompaction() {
+            return false;
+          }
 
-      @Override
-      public IteratorScope getIteratorScope() {
-        return IteratorScope.majc;
-      }
-    });
+          @Override
+          public IteratorScope getIteratorScope() {
+            return IteratorScope.majc;
+          }
+        });
 
     iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
 

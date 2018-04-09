@@ -107,8 +107,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
-      new CleanupThreadFactory());
+  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3,
+      TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new CleanupThreadFactory());
 
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
@@ -348,10 +348,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private void reschedule(SendTask task) {
     ServerQueue serverQueue = getServerQueue(task.location);
-    // just finished processing work for this server, could reschedule if it has more work or immediately process the work
+    // just finished processing work for this server, could reschedule if it has more work or
+    // immediately process the work
     // this code reschedules the the server for processing later... there may be other queues with
     // more data that need to be processed... also it will give the current server time to build
-    // up more data... the thinking is that rescheduling instead or processing immediately will result
+    // up more data... the thinking is that rescheduling instead or processing immediately will
+    // result
     // in bigger batches and less RPC overhead
 
     synchronized (serverQueue) {
@@ -398,7 +400,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(), new NamingThreadFactory(this.getClass().getSimpleName()));
+    this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(),
+        new NamingThreadFactory(this.getClass().getSimpleName()));
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
@@ -438,7 +441,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       count++;
 
       if (mut.getConditions().size() == 0)
-        throw new IllegalArgumentException("ConditionalMutation had no conditions " + new String(mut.getRow(), UTF_8));
+        throw new IllegalArgumentException(
+            "ConditionalMutation had no conditions " + new String(mut.getRow(), UTF_8));
 
       for (Condition cond : mut.getConditions()) {
         if (!isVisible(cond.getVisibility())) {
@@ -504,7 +508,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private HashMap<HostAndPort,SessionID> cachedSessionIDs = new HashMap<>();
 
-  private SessionID reserveSessionID(HostAndPort location, TabletClientService.Iface client, TInfo tinfo) throws ThriftSecurityException, TException {
+  private SessionID reserveSessionID(HostAndPort location, TabletClientService.Iface client,
+      TInfo tinfo) throws ThriftSecurityException, TException {
     // avoid cost of repeatedly making RPC to create sessions, reuse sessions
     synchronized (cachedSessionIDs) {
       SessionID sid = cachedSessionIDs.get(location);
@@ -521,7 +526,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       }
     }
 
-    TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId,
+    TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(),
+        ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId,
         DurabilityImpl.toThrift(durability), this.classLoaderContext);
 
     synchronized (cachedSessionIDs) {
@@ -598,7 +604,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       while (tresults == null) {
         try {
           sessionId = reserveSessionID(location, client, tinfo);
-          tresults = client.conditionalUpdate(tinfo, sessionId.sessionID, tmutations, compressedIters.getSymbolTable());
+          tresults = client.conditionalUpdate(tinfo, sessionId.sessionID, tmutations,
+              compressedIters.getSymbolTable());
         } catch (NoSuchScanIDException nssie) {
           sessionId = null;
           invalidateSessionID(location);
@@ -627,8 +634,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
       queueRetry(ignored, location);
 
     } catch (ThriftSecurityException tse) {
-      AccumuloSecurityException ase = new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(), Tables.getPrintableTableInfoFromId(
-          context.getInstance(), tableId), tse);
+      AccumuloSecurityException ase = new AccumuloSecurityException(
+          context.getCredentials().getPrincipal(), tse.getCode(),
+          Tables.getPrintableTableInfoFromId(context.getInstance(), tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TTransportException e) {
       locator.invalidateCache(context.getInstance(), location.toString());
@@ -659,7 +667,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       cmk.cm.queueResult(new Result(e, cmk.cm, location.toString()));
   }
 
-  private void invalidateSession(HostAndPort location, TabletServerMutations<QCMutation> mutations, Map<Long,CMK> cmidToCm, SessionID sessionId) {
+  private void invalidateSession(HostAndPort location, TabletServerMutations<QCMutation> mutations,
+      Map<Long,CMK> cmidToCm, SessionID sessionId) {
     if (sessionId == null) {
       queueRetry(cmidToCm, location);
     } else {
@@ -674,13 +683,16 @@ class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   /**
-   * The purpose of this code is to ensure that a conditional mutation will not execute when its status is unknown. This allows a user to read the row when the
-   * status is unknown and not have to worry about the tserver applying the mutation after the scan.
+   * The purpose of this code is to ensure that a conditional mutation will not execute when its
+   * status is unknown. This allows a user to read the row when the status is unknown and not have
+   * to worry about the tserver applying the mutation after the scan.
    *
    * <p>
-   * If a conditional mutation is taking a long time to process, then this method will wait for it to finish... unless this exceeds timeout.
+   * If a conditional mutation is taking a long time to process, then this method will wait for it
+   * to finish... unless this exceeds timeout.
    */
-  private void invalidateSession(SessionID sessionId, HostAndPort location) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private void invalidateSession(SessionID sessionId, HostAndPort location)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     long sleepTime = 50;
 
@@ -691,15 +703,18 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     ZooCacheFactory zcf = new ZooCacheFactory();
     while (true) {
-      if (!ZooLock.isLockHeld(zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), lid)) {
-        // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this invalidation prevents future attempts to contact the
+      if (!ZooLock.isLockHeld(
+          zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), lid)) {
+        // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
+        // invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
         locator.invalidateCache(context.getInstance(), location.toString());
         return;
       }
 
       try {
-        // if the mutation is currently processing, this method will block until its done or times out
+        // if the mutation is currently processing, this method will block until its done or times
+        // out
         invalidateSession(sessionId.sessionID, location);
 
         return;
@@ -745,8 +760,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  private void convertMutations(TabletServerMutations<QCMutation> mutations, Map<Long,CMK> cmidToCm, MutableLong cmid,
-      Map<TKeyExtent,List<TConditionalMutation>> tmutations, CompressedIterators compressedIters) {
+  private void convertMutations(TabletServerMutations<QCMutation> mutations, Map<Long,CMK> cmidToCm,
+      MutableLong cmid, Map<TKeyExtent,List<TConditionalMutation>> tmutations,
+      CompressedIterators compressedIters) {
 
     for (Entry<KeyExtent,List<QCMutation>> entry : mutations.getMutations().entrySet()) {
       TKeyExtent tke = entry.getKey().toThrift();
@@ -802,10 +818,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private static final ConditionComparator CONDITION_COMPARATOR = new ConditionComparator();
 
-  private List<TCondition> convertConditions(ConditionalMutation cm, CompressedIterators compressedIters) {
+  private List<TCondition> convertConditions(ConditionalMutation cm,
+      CompressedIterators compressedIters) {
     List<TCondition> conditions = new ArrayList<>(cm.getConditions().size());
 
-    // sort conditions inorder to get better lookup performance. Sort on client side so tserver does not have to do it.
+    // sort conditions inorder to get better lookup performance. Sort on client side so tserver does
+    // not have to do it.
     Condition[] ca = cm.getConditions().toArray(new Condition[cm.getConditions().size()]);
     Arrays.sort(ca, CONDITION_COMPARATOR);
 
@@ -820,8 +838,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
       ByteBuffer iters = compressedIters.compress(cond.getIterators());
 
-      TCondition tc = new TCondition(ByteBufferUtil.toByteBuffers(cond.getFamily()), ByteBufferUtil.toByteBuffers(cond.getQualifier()),
-          ByteBufferUtil.toByteBuffers(cond.getVisibility()), ts, hasTs, ByteBufferUtil.toByteBuffers(cond.getValue()), iters);
+      TCondition tc = new TCondition(ByteBufferUtil.toByteBuffers(cond.getFamily()),
+          ByteBufferUtil.toByteBuffers(cond.getQualifier()),
+          ByteBufferUtil.toByteBuffers(cond.getVisibility()), ts, hasTs,
+          ByteBufferUtil.toByteBuffers(cond.getValue()), iters);
 
       conditions.add(tc);
     }

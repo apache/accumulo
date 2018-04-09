@@ -26,10 +26,11 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 public class FloatLexicoderTest extends AbstractLexicoderTest {
 
   public void testSortOrder() {
-    assertSortOrder(
-        new FloatLexicoder(),
-        Arrays.asList(Float.MIN_VALUE, Float.MAX_VALUE, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, 0.0F, 0.01F, 0.001F, 1.0F, -1.0F, -1.1F, -1.01F,
-            Math.nextUp(Float.NEGATIVE_INFINITY), Math.nextAfter(0.0F, Float.NEGATIVE_INFINITY), Math.nextAfter(Float.MAX_VALUE, Float.NEGATIVE_INFINITY)));
+    assertSortOrder(new FloatLexicoder(),
+        Arrays.asList(Float.MIN_VALUE, Float.MAX_VALUE, Float.NEGATIVE_INFINITY,
+            Float.POSITIVE_INFINITY, 0.0F, 0.01F, 0.001F, 1.0F, -1.0F, -1.1F, -1.01F,
+            Math.nextUp(Float.NEGATIVE_INFINITY), Math.nextAfter(0.0F, Float.NEGATIVE_INFINITY),
+            Math.nextAfter(Float.MAX_VALUE, Float.NEGATIVE_INFINITY)));
 
   }
 

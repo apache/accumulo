@@ -129,7 +129,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Gets a property value from this configuration.
    *
    * <p>
-   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use {@link #getProperties(Map, Predicate)} with a custom filter.
+   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use
+   * {@link #getProperties(Map, Predicate)} with a custom filter.
    *
    * @param property
    *          property to get
@@ -151,8 +152,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public abstract String get(Property property);
 
   /**
-   * Returns property key/value pairs in this configuration. The pairs include those defined in this configuration which pass the given filter, and those
-   * supplied from the parent configuration which are not included from here.
+   * Returns property key/value pairs in this configuration. The pairs include those defined in this
+   * configuration which pass the given filter, and those supplied from the parent configuration
+   * which are not included from here.
    *
    * @param props
    *          properties object to populate
@@ -162,7 +164,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public abstract void getProperties(Map<String,String> props, Predicate<String> filter);
 
   /**
-   * Returns an iterator over property key/value pairs in this configuration. Some implementations may elect to omit properties.
+   * Returns an iterator over property key/value pairs in this configuration. Some implementations
+   * may elect to omit properties.
    *
    * @return iterator over properties
    */
@@ -176,7 +179,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   private void checkType(Property property, PropertyType type) {
     if (!property.getType().equals(type)) {
-      String msg = "Configuration method intended for type " + type + " called with a " + property.getType() + " argument (" + property.getKey() + ")";
+      String msg = "Configuration method intended for type " + type + " called with a "
+          + property.getType() + " argument (" + property.getKey() + ")";
       IllegalArgumentException err = new IllegalArgumentException(msg);
       log.error(msg, err);
       throw err;
@@ -184,8 +188,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Each time configuration changes, this counter should increase. Anything that caches information that is derived from configuration can use this method to
-   * know when to update.
+   * Each time configuration changes, this counter should increase. Anything that caches information
+   * that is derived from configuration can use this method to know when to update.
    */
   public long getUpdateCount() {
     return 0;
@@ -208,7 +212,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     if (prefixProps == null || prefixProps.updateCount != getUpdateCount()) {
       prefixCacheUpdateLock.lock();
       try {
-        // Very important that update count is read before getting properties. Also only read it once.
+        // Very important that update count is read before getting properties. Also only read it
+        // once.
         long updateCount = getUpdateCount();
         prefixProps = cachedPrefixProps.get(property);
 
@@ -218,7 +223,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           getProperties(propMap, new PrefixFilter(property.getKey()));
           propMap = ImmutableMap.copyOf(propMap);
 
-          // So that locking is not needed when reading from enum map, always create a new one. Construct and populate map using a local var so its not visible
+          // So that locking is not needed when reading from enum map, always create a new one.
+          // Construct and populate map using a local var so its not visible
           // until ready.
           EnumMap<Property,PrefixProps> localPrefixes = new EnumMap<>(Property.class);
 
@@ -258,7 +264,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Interprets a string specifying a memory size. A memory size is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), or G (GB).
+   * Interprets a string specifying a memory size. A memory size is specified as a long integer
+   * followed by an optional B (bytes), K (KB), M (MB), or G (GB).
    *
    * @param str
    *          string value
@@ -268,7 +275,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     char lastChar = str.charAt(str.length() - 1);
 
     if (lastChar == 'b') {
-      log.warn("The 'b' in " + str + " is being considered as bytes. " + "Setting memory by bits is not supported");
+      log.warn("The 'b' in " + str + " is being considered as bytes. "
+          + "Setting memory by bits is not supported");
     }
     try {
       int multiplier;
@@ -290,8 +298,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       }
       return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
     } catch (Exception ex) {
-      throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting. A valid value would a number "
-          + "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
+      throw new IllegalArgumentException(
+          "The value '" + str + "' is not a valid memory setting. A valid value would a number "
+              + "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
     }
   }
 
@@ -312,8 +321,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Interprets a string specifying a time duration. A time duration is specified as a long integer followed by an optional d (days), h (hours), m (minutes), s
-   * (seconds), or ms (milliseconds). A value without a unit is interpreted as seconds.
+   * Interprets a string specifying a time duration. A time duration is specified as a long integer
+   * followed by an optional d (days), h (hours), m (minutes), s (seconds), or ms (milliseconds). A
+   * value without a unit is interpreted as seconds.
    *
    * @param str
    *          string value
@@ -348,7 +358,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#BOOLEAN}, interpreting the value properly (using <code>Boolean.parseBoolean()</code>).
+   * Gets a property of type {@link PropertyType#BOOLEAN}, interpreting the value properly (using
+   * <code>Boolean.parseBoolean()</code>).
    *
    * @param property
    *          property to get
@@ -378,7 +389,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Interprets a string specifying a fraction. A fraction is specified as a double. An optional % at the end signifies a percentage.
+   * Interprets a string specifying a fraction. A fraction is specified as a double. An optional %
+   * at the end signifies a percentage.
    *
    * @param str
    *          string value
@@ -391,7 +403,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#PORT}, interpreting the value properly (as an integer within the range of non-privileged ports).
+   * Gets a property of type {@link PropertyType#PORT}, interpreting the value properly (as an
+   * integer within the range of non-privileged ports).
    *
    * @param property
    *          property to get
@@ -419,7 +432,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         int port = Integer.parseInt(portString);
         if (port != 0) {
           if (port < 1024 || port > 65535) {
-            log.error("Invalid port number " + port + "; Using default " + property.getDefaultValue());
+            log.error(
+                "Invalid port number " + port + "; Using default " + property.getDefaultValue());
             ports[0] = Integer.parseInt(property.getDefaultValue());
           } else {
             ports[0] = port;
@@ -428,14 +442,16 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           ports[0] = port;
         }
       } catch (NumberFormatException e1) {
-        throw new IllegalArgumentException("Invalid port syntax. Must be a single positive integers or a range (M-N) of positive integers");
+        throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
+            + "integers or a range (M-N) of positive integers");
       }
     }
     return ports;
   }
 
   /**
-   * Gets a property of type {@link PropertyType#COUNT}, interpreting the value properly (as an integer).
+   * Gets a property of type {@link PropertyType#COUNT}, interpreting the value properly (as an
+   * integer).
    *
    * @param property
    *          property to get
@@ -452,7 +468,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#PATH}, interpreting the value properly, replacing supported environment variables.
+   * Gets a property of type {@link PropertyType#PATH}, interpreting the value properly, replacing
+   * supported environment variables.
    *
    * @param property
    *          property to get
@@ -500,7 +517,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @throws AccumuloException
    *           if there is a problem communicating to Accumulo
    */
-  public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId) throws TableNotFoundException, AccumuloException {
+  public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId)
+      throws TableNotFoundException, AccumuloException {
     String tableName = Tables.getTableName(conn.getInstance(), tableId);
     return new ConfigurationCopy(conn.tableOperations().getProperties(tableName));
   }
@@ -523,7 +541,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this configuration.
+   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for
+   * this configuration.
    */
   public void invalidateCache() {}
 

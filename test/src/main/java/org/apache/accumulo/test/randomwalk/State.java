@@ -80,7 +80,8 @@ public class State {
   }
 
   /**
-   * Gets the map of state objects. The backing map for state is returned, so changes to it affect the state.
+   * Gets the map of state objects. The backing map for state is returned, so changes to it affect
+   * the state.
    *
    * @return state map
    */

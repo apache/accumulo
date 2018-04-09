@@ -52,13 +52,17 @@ abstract public class BasicServlet extends HttpServlet {
   abstract protected String getTitle(HttpServletRequest req);
 
   @Override
-  public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  public void doGet(HttpServletRequest req, HttpServletResponse resp)
+      throws ServletException, IOException {
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();
-      bannerText = sanitize(Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_TEXT));
-      bannerColor = Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_COLOR).replace("'", "&#39;");
-      bannerBackground = Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_BACKGROUND).replace("'", "&#39;");
+      bannerText = sanitize(
+          Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_TEXT));
+      bannerColor = Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_COLOR)
+          .replace("'", "&#39;");
+      bannerBackground = Monitor.getContext().getConfiguration()
+          .get(Property.MONITOR_BANNER_BACKGROUND).replace("'", "&#39;");
       pageStart(req, resp, sb);
       pageBody(req, resp, sb);
       pageEnd(req, resp, sb);
@@ -76,7 +80,8 @@ abstract public class BasicServlet extends HttpServlet {
   }
 
   @Override
-  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+      throws ServletException, IOException {
     doGet(req, resp);
   }
 
@@ -94,7 +99,8 @@ abstract public class BasicServlet extends HttpServlet {
     return null;
   }
 
-  protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
+  protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb)
+      throws Exception {
     resp.setContentType(DEFAULT_CONTENT_TYPE);
     int refresh = -1;
     String refreshStr = getCookieValue(req, "page.refresh.rate");
@@ -127,19 +133,25 @@ abstract public class BasicServlet extends HttpServlet {
 
     // BEGIN HEADER
     sb.append("<head>\n");
-    sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION).append("</title>\n");
-    if ((refresh > 0) && (req.getRequestURI().startsWith("/vis") == false) && (req.getRequestURI().startsWith("/shell") == false))
+    sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION)
+        .append("</title>\n");
+    if ((refresh > 0) && (req.getRequestURI().startsWith("/vis") == false)
+        && (req.getRequestURI().startsWith("/shell") == false))
       sb.append("<meta http-equiv='refresh' content='" + refresh + "' />\n");
-    sb.append("<meta http-equiv='Content-Type' content='").append(DEFAULT_CONTENT_TYPE).append("' />\n");
+    sb.append("<meta http-equiv='Content-Type' content='").append(DEFAULT_CONTENT_TYPE)
+        .append("' />\n");
     sb.append("<meta http-equiv='Content-Script-Type' content='text/javascript' />\n");
     sb.append("<meta http-equiv='Content-Style-Type' content='text/css' />\n");
     sb.append("<link rel='shortcut icon' type='image/jpg' href='/web/favicon.png' />\n");
     sb.append("<link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />\n");
     sb.append("<script src='/web/functions.js' type='text/javascript'></script>\n");
 
-    sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/excanvas.js\"></script><![endif]-->\n");
-    sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.js\"></script>\n");
-    sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.flot.js\"></script>\n");
+    sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\""
+        + " src=\"/web/flot/excanvas.js\"></script><![endif]-->\n");
+    sb.append("<script language=\"javascript\" type=\"text/javascript\""
+        + " src=\"/web/flot/jquery.js\"></script>\n");
+    sb.append("<script language=\"javascript\" type=\"text/javascript\""
+        + " src=\"/web/flot/jquery.flot.js\"></script>\n");
 
     sb.append("</head>\n");
 
@@ -149,15 +161,18 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<div id='content'>\n");
     sb.append("<div id='header'>");
     if (!bannerText.isEmpty()) {
-      sb.append("<div id='banner' style='color:").append(bannerColor).append(";background:").append(bannerBackground).append("'>").append(bannerText)
-          .append("</div>\n");
+      sb.append("<div id='banner' style='color:").append(bannerColor).append(";background:")
+          .append(bannerBackground).append("'>").append(bannerText).append("</div>\n");
     }
     sb.append("<div id='headertitle'>");
     sb.append("<h1>").append(getTitle(req)).append("</h1></div>\n");
-    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(Monitor.cachedInstanceName.get()).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;")
+    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;")
+        .append(Monitor.cachedInstanceName.get()).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;")
         .append(Constants.VERSION).append("\n");
-    sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;").append(Monitor.getContext().getInstance().getInstanceID()).append("</span>\n");
-    sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span>");
+    sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;")
+        .append(Monitor.getContext().getInstance().getInstanceID()).append("</span>\n");
+    sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;"))
+        .append("</span>");
     sb.append("</div>\n"); // end <div id='subheader'>
     sb.append("</div>\n"); // end <div id='header'>
 
@@ -183,17 +198,20 @@ abstract public class BasicServlet extends HttpServlet {
         break;
       }
     if (numLogs > 0)
-      sb.append("<span class='" + (logsHaveError ? "error" : "warning") + "'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(" + numLogs
+      sb.append("<span class='" + (logsHaveError ? "error" : "warning")
+          + "'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(" + numLogs
           + ")</a></span></span><br />\n");
     int numProblems = Monitor.getProblemSummary().entrySet().size();
     if (numProblems > 0)
-      sb.append("<span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;<span class='smalltext'>(" + numProblems + ")</a></span></span><br />\n");
+      sb.append("<span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;"
+          + "<span class='smalltext'>(" + numProblems + ")</a></span></span><br />\n");
     sb.append("<hr />\n");
     sb.append("<a href='/xml'>XML</a><br />\n");
     sb.append("<a href='/json'>JSON</a><hr />\n");
     if (Monitor.isUsingSsl())
       sb.append("<a href='/shell'>Shell</a><hr />\n");
-    sb.append("<div class='smalltext'>[<a href='").append("/op?action=refresh&value=").append(refresh < 1 ? "5" : "-1");
+    sb.append("<div class='smalltext'>[<a href='").append("/op?action=refresh&value=")
+        .append(refresh < 1 ? "5" : "-1");
     sb.append("&redir=").append(currentPage(req)).append("'>");
     sb.append(refresh < 1 ? "en" : "dis").append("able&nbsp;auto-refresh</a>]</div>\n");
     sb.append("</div>\n"); // end <div id='nav'>
@@ -205,11 +223,13 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<!-- BEGIN MAIN BODY CONTENT -->\n\n");
   }
 
-  protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb)
+      throws Exception {
     sb.append("This page intentionally left blank.");
   }
 
-  protected void pageEnd(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
+  protected void pageEnd(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb)
+      throws Exception {
     sb.append("\n<!-- END MAIN BODY CONTENT -->\n");
     sb.append("</div>\n"); // end <div id='main'>
 
@@ -217,16 +237,17 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("</div>\n"); // end <div id='content'>
     sb.append("</div>\n"); // end <div id='content-wrapper'>
     if (!bannerText.isEmpty()) {
-      sb.append("<div id='footer' style='color:").append(bannerColor).append(";background:").append(bannerBackground).append("'>").append(bannerText)
-          .append("</div>\n");
+      sb.append("<div id='footer' style='color:").append(bannerColor).append(";background:")
+          .append(bannerBackground).append("'>").append(bannerText).append("</div>\n");
     }
     sb.append("</body>\n");
     sb.append("</html>\n");
   }
 
   /**
-   * Allow the concrete servlet implementation to provide attributes on the body HTML tag, such as 'onload', which can be used to call Javascript methods on
-   * page load. By default, nothing is specified.
+   * Allow the concrete servlet implementation to provide attributes on the body HTML tag, such as
+   * 'onload', which can be used to call Javascript methods on page load. By default, nothing is
+   * specified.
    */
   protected String getBodyAttributes() {
     return "";
@@ -266,7 +287,8 @@ abstract public class BasicServlet extends HttpServlet {
   }
 
   /**
-   * Creates a {@link Cookie} with the given name and value, also setting the HttpOnly attribute on the cookie.
+   * Creates a {@link Cookie} with the given name and value, also setting the HttpOnly attribute on
+   * the cookie.
    */
   protected static Cookie createCookie(String name, String value) {
     Cookie c = new Cookie(name, value);

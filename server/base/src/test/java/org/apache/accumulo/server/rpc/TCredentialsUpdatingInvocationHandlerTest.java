@@ -91,7 +91,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     final String principal = "root";
     ConcurrentHashMap<String,Class<? extends AuthenticationToken>> cache = proxy.getTokenCache();
     cache.clear();
-    TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME, ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME,
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(principal);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
     Assert.assertEquals(1, cache.size());
@@ -101,7 +102,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test(expected = ThriftSecurityException.class)
   public void testMissingPrincipal() throws Exception {
     final String principal = "root";
-    TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME, ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME,
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(null);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -109,7 +111,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test(expected = ThriftSecurityException.class)
   public void testMismatchedPrincipal() throws Exception {
     final String principal = "root";
-    TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME, ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials(principal, KerberosToken.CLASS_NAME,
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(principal + "foobar");
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -117,7 +120,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test(expected = ThriftSecurityException.class)
   public void testWrongTokenType() throws Exception {
     final String principal = "root";
-    TCredentials tcreds = new TCredentials(principal, PasswordToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials(principal, PasswordToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(principal);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -129,7 +133,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", "*");
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -140,7 +145,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, proxyServer + ":*");
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -149,13 +155,16 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test
   public void testAllowedImpersonationForSpecificUsers() throws Exception {
     final String proxyServer = "proxy";
-    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", "client1,client2");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users",
+        "client1,client2");
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
-    tcreds = new TCredentials("client2", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    tcreds = new TCredentials("client2", KerberosToken.class.getName(), ByteBuffer.allocate(0),
+        UUID.randomUUID().toString());
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
 
@@ -165,10 +174,12 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, proxyServer + ":client1,client2");
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
-    tcreds = new TCredentials("client2", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    tcreds = new TCredentials("client2", KerberosToken.class.getName(), ByteBuffer.allocate(0),
+        UUID.randomUUID().toString());
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
 
@@ -180,7 +191,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy" + ".users", "*");
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy" + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -192,7 +204,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, "otherproxy:*");
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -204,10 +217,12 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     // let "otherproxy" impersonate, but not "proxy"
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy1" + ".users", "*");
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy1" + ".hosts", "*");
-    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy2" + ".users", "client1,client2");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy2" + ".users",
+        "client1,client2");
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy2" + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -216,10 +231,12 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   public void testDisallowedImpersonationForMultipleUsersNewConfig() throws Exception {
     final String proxyServer = "proxy";
     // let "otherproxy" impersonate, but not "proxy"
-    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, "otherproxy1:*;otherproxy2:client1,client2");
+    cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION,
+        "otherproxy1:*;otherproxy2:client1,client2");
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*;*");
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
   }
@@ -231,7 +248,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", client);
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", host);
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     TServerUtils.clientAddress.set(host);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
@@ -243,7 +261,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, proxyServer + ":" + client);
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, host);
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     TServerUtils.clientAddress.set(host);
     proxy.updateArgs(new Object[] {new Object(), tcreds});
@@ -256,7 +275,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", client);
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", host);
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     // The RPC came from a different host than is allowed
     TServerUtils.clientAddress.set("otherhost.domain.com");
@@ -269,7 +289,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, proxyServer + ":" + client);
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, host);
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
-    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
+    TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(),
+        ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
     // The RPC came from a different host than is allowed
     TServerUtils.clientAddress.set("otherhost.domain.com");

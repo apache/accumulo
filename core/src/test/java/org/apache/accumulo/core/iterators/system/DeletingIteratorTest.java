@@ -226,7 +226,8 @@ public class DeletingIteratorTest extends TestCase {
     return new Key(new Text(row), ts);
   }
 
-  private void newKeyValue(TreeMap<Key,Value> tm, String row, long ts, boolean deleted, String val) {
+  private void newKeyValue(TreeMap<Key,Value> tm, String row, long ts, boolean deleted,
+      String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
     tm.put(k, new Value(val.getBytes()));

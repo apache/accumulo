@@ -79,7 +79,8 @@ public class TServersServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb)
+      throws Exception {
     String tserverAddress = req.getParameter("s");
 
     // Check to make sure tserver is a known address
@@ -103,7 +104,8 @@ public class TServersServlet extends BasicServlet {
         tservers.addAll(Monitor.getMmi().tServerInfo);
 
       Table tServerList = new Table("tservers", "Tablet&nbsp;Servers");
-      tServerList.setSubCaption("Click on the <span style='color: #0000ff;'>server address</span> to view detailed performance statistics for that server.");
+      tServerList.setSubCaption("Click on the <span style='color: #0000ff;'>server address</span>"
+          + " to view detailed performance statistics for that server.");
 
       doTserverList(req, sb, tservers, null, tServerList);
       return;
@@ -119,14 +121,17 @@ public class TServersServlet extends BasicServlet {
     double currentMajorAvg = 0;
     double currentMinorStdDev = 0;
     double currentMajorStdDev = 0;
-    TabletStats total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
+    TabletStats total = new TabletStats(null, new ActionStats(), new ActionStats(),
+        new ActionStats(), 0, 0, 0, 0);
 
     HostAndPort address = HostAndPort.fromString(tserverAddress);
-    TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
+    TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(),
+        new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<>();
     try {
       ClientContext context = Monitor.getContext();
-      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client = ThriftUtil
+          .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId));
@@ -195,7 +200,8 @@ public class TServersServlet extends BasicServlet {
       currentMinorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
     if (total.majors.num != 0)
       currentMajorAvg = total.majors.elapsed / total.majors.num;
-    if (total.majors.elapsed != 0 && total.majors.num != 0 && total.majors.elapsed > total.majors.num)
+    if (total.majors.elapsed != 0 && total.majors.num != 0
+        && total.majors.elapsed > total.majors.num)
       currentMajorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
 
     // After these += operations, these variables are now total for current
@@ -208,48 +214,63 @@ public class TServersServlet extends BasicServlet {
     minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
     majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
-    splitStdDev = stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
+    splitStdDev = stddev(historical.splits.num, historical.splits.elapsed,
+        historical.splits.sumDev);
 
     doDetailTable(req, sb, address, tsStats.size(), total, historical);
-    doAllTimeTable(req, sb, total, historical, majorQueueStdDev, minorQueueStdDev, totalElapsedForAll, splitStdDev, majorStdDev, minorStdDev);
-    doCurrentTabletOps(req, sb, currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev);
+    doAllTimeTable(req, sb, total, historical, majorQueueStdDev, minorQueueStdDev,
+        totalElapsedForAll, splitStdDev, majorStdDev, minorStdDev);
+    doCurrentTabletOps(req, sb, currentMinorAvg, currentMinorStdDev, currentMajorAvg,
+        currentMajorStdDev);
     perTabletResults.generate(req, sb);
   }
 
-  private void doCurrentTabletOps(HttpServletRequest req, StringBuilder sb, double currentMinorAvg, double currentMinorStdDev, double currentMajorAvg,
-      double currentMajorStdDev) {
-    Table currentTabletOps = new Table("currentTabletOps", "Current&nbsp;Tablet&nbsp;Operation&nbsp;Results");
+  private void doCurrentTabletOps(HttpServletRequest req, StringBuilder sb, double currentMinorAvg,
+      double currentMinorStdDev, double currentMajorAvg, double currentMajorStdDev) {
+    Table currentTabletOps = new Table("currentTabletOps",
+        "Current&nbsp;Tablet&nbsp;Operation&nbsp;Results");
     currentTabletOps.addSortableColumn("Minor&nbsp;Average", new SecondType(), null);
     currentTabletOps.addSortableColumn("Minor&nbsp;Std&nbsp;Dev", new SecondType(), null);
     currentTabletOps.addSortableColumn("Major&nbsp;Avg", new SecondType(), null);
     currentTabletOps.addSortableColumn("Major&nbsp;Std&nbsp;Dev", new SecondType(), null);
-    currentTabletOps.addRow(currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev);
+    currentTabletOps.addRow(currentMinorAvg, currentMinorStdDev, currentMajorAvg,
+        currentMajorStdDev);
     currentTabletOps.generate(req, sb);
   }
 
-  private void doAllTimeTable(HttpServletRequest req, StringBuilder sb, TabletStats total, TabletStats historical, double majorQueueStdDev,
-      double minorQueueStdDev, double totalElapsedForAll, double splitStdDev, double majorStdDev, double minorStdDev) {
+  private void doAllTimeTable(HttpServletRequest req, StringBuilder sb, TabletStats total,
+      TabletStats historical, double majorQueueStdDev, double minorQueueStdDev,
+      double totalElapsedForAll, double splitStdDev, double majorStdDev, double minorStdDev) {
 
-    Table opHistoryDetails = new Table("opHistoryDetails", "All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results");
+    Table opHistoryDetails = new Table("opHistoryDetails",
+        "All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results");
     opHistoryDetails.addSortableColumn("Operation");
     opHistoryDetails.addSortableColumn("Success", new NumberType<Integer>(), null);
     opHistoryDetails.addSortableColumn("Failure", new NumberType<Integer>(), null);
     opHistoryDetails.addSortableColumn("Average<br />Queue&nbsp;Time", new SecondType(), null);
-    opHistoryDetails.addSortableColumn("Std.&nbsp;Dev.<br />Queue&nbsp;Time", new SecondType(), null);
+    opHistoryDetails.addSortableColumn("Std.&nbsp;Dev.<br />Queue&nbsp;Time", new SecondType(),
+        null);
     opHistoryDetails.addSortableColumn("Average<br />Time", new SecondType(), null);
     opHistoryDetails.addSortableColumn("Std.&nbsp;Dev.<br />Time", new SecondType(), null);
-    opHistoryDetails.addSortableColumn("Percentage&nbsp;Time&nbsp;Spent", new ProgressChartType(totalElapsedForAll), null);
+    opHistoryDetails.addSortableColumn("Percentage&nbsp;Time&nbsp;Spent",
+        new ProgressChartType(totalElapsedForAll), null);
 
     opHistoryDetails.addRow("Split", historical.splits.num, historical.splits.fail, null, null,
-        historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null, splitStdDev, historical.splits.elapsed);
-    opHistoryDetails.addRow("Major&nbsp;Compaction", total.majors.num, total.majors.fail, total.majors.num != 0 ? (total.majors.queueTime / total.majors.num)
-        : null, majorQueueStdDev, total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null, majorStdDev, total.majors.elapsed);
-    opHistoryDetails.addRow("Minor&nbsp;Compaction", total.minors.num, total.minors.fail, total.minors.num != 0 ? (total.minors.queueTime / total.minors.num)
-        : null, minorQueueStdDev, total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null, minorStdDev, total.minors.elapsed);
+        historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null,
+        splitStdDev, historical.splits.elapsed);
+    opHistoryDetails.addRow("Major&nbsp;Compaction", total.majors.num, total.majors.fail,
+        total.majors.num != 0 ? (total.majors.queueTime / total.majors.num) : null,
+        majorQueueStdDev, total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null,
+        majorStdDev, total.majors.elapsed);
+    opHistoryDetails.addRow("Minor&nbsp;Compaction", total.minors.num, total.minors.fail,
+        total.minors.num != 0 ? (total.minors.queueTime / total.minors.num) : null,
+        minorQueueStdDev, total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null,
+        minorStdDev, total.minors.elapsed);
     opHistoryDetails.generate(req, sb);
   }
 
-  private void doDetailTable(HttpServletRequest req, StringBuilder sb, HostAndPort address, int numTablets, TabletStats total, TabletStats historical) {
+  private void doDetailTable(HttpServletRequest req, StringBuilder sb, HostAndPort address,
+      int numTablets, TabletStats total, TabletStats historical) {
     Table detailTable = new Table("tServerDetail", "Details");
     detailTable.setSubCaption(address.getHost() + ":" + address.getPort());
     detailTable.addSortableColumn("Hosted&nbsp;Tablets", new NumberType<Integer>(), null);
@@ -257,13 +278,15 @@ public class TServersServlet extends BasicServlet {
     detailTable.addSortableColumn("Minor&nbsp;Compacting", new NumberType<Integer>(), null);
     detailTable.addSortableColumn("Major&nbsp;Compacting", new NumberType<Integer>(), null);
     detailTable.addSortableColumn("Splitting", new NumberType<Integer>(), null);
-    detailTable.addRow(numTablets, total.numEntries, total.minors.status, total.majors.status, historical.splits.status);
+    detailTable.addRow(numTablets, total.numEntries, total.minors.status, total.majors.status,
+        historical.splits.status);
     detailTable.generate(req, sb);
   }
 
   /*
-   * omg there's so much undocumented stuff going on here. First, sumDev is a partial standard deviation computation. It is the (clue 1) sum of the squares of
-   * (clue 2) seconds of elapsed time.
+   * omg there's so much undocumented stuff going on here. First, sumDev is a partial standard
+   * deviation computation. It is the (clue 1) sum of the squares of (clue 2) seconds of elapsed
+   * time.
    */
   private static double stddev(double elapsed, double num, double sumDev) {
     if (num != 0) {
@@ -275,12 +298,15 @@ public class TServersServlet extends BasicServlet {
 
   private void doBadTserverList(HttpServletRequest req, StringBuilder sb) {
     if (Monitor.getMmi() != null && !Monitor.getMmi().badTServers.isEmpty()) {
-      Table badTServerList = new Table("badtservers", "Non-Functioning&nbsp;Tablet&nbsp;Servers", "error");
-      badTServerList.setSubCaption("The following tablet servers reported a status other than Online.");
+      Table badTServerList = new Table("badtservers", "Non-Functioning&nbsp;Tablet&nbsp;Servers",
+          "error");
+      badTServerList
+          .setSubCaption("The following tablet servers reported a status other than Online.");
       badTServerList.addSortableColumn("Tablet&nbsp;Server");
       badTServerList.addSortableColumn("Tablet&nbsp;Server&nbsp;Status");
       for (Entry<String,Byte> badserver : Monitor.getMmi().badTServers.entrySet())
-        badTServerList.addRow(badserver.getKey(), TabletServerState.getStateById(badserver.getValue()).name());
+        badTServerList.addRow(badserver.getKey(),
+            TabletServerState.getStateById(badserver.getValue()).name());
       badTServerList.generate(req, sb);
     }
   }
@@ -295,15 +321,18 @@ public class TServersServlet extends BasicServlet {
     }
   }
 
-  public static void doDeadServerTable(HttpServletRequest req, StringBuilder sb, Table deadTServerList, List<DeadServer> obit) {
+  public static void doDeadServerTable(HttpServletRequest req, StringBuilder sb,
+      Table deadTServerList, List<DeadServer> obit) {
     if (obit != null && !obit.isEmpty()) {
       deadTServerList.addSortableColumn("Server");
-      deadTServerList.addSortableColumn("Last&nbsp;Updated", new DateTimeType(DateFormat.MEDIUM, DateFormat.SHORT), null);
+      deadTServerList.addSortableColumn("Last&nbsp;Updated",
+          new DateTimeType(DateFormat.MEDIUM, DateFormat.SHORT), null);
       deadTServerList.addSortableColumn("Event");
       deadTServerList.addUnsortableColumn("Clear");
       for (DeadServer dead : obit)
-        deadTServerList.addRow(TServerLinkType.displayName(dead.server), dead.lastStatus, dead.status, "<a href='/op?action=clearDeadServer&redir="
-            + currentPage(req) + "&server=" + encode(dead.server) + "'>clear</a>");
+        deadTServerList.addRow(TServerLinkType.displayName(dead.server), dead.lastStatus,
+            dead.status, "<a href='/op?action=clearDeadServer&redir=" + currentPage(req)
+                + "&server=" + encode(dead.server) + "'>clear</a>");
       deadTServerList.generate(req, sb);
     }
   }
@@ -313,7 +342,8 @@ public class TServersServlet extends BasicServlet {
   static final long MINUTE = 60 * SECOND;
   static final long LAST_CONTEXT_MAX_ERR = 3 * MINUTE;
 
-  static void doTserverList(HttpServletRequest req, StringBuilder sb, List<TabletServerStatus> tservers, String tableId, Table tServerList) {
+  static void doTserverList(HttpServletRequest req, StringBuilder sb,
+      List<TabletServerStatus> tservers, String tableId, Table tServerList) {
     int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
     long now = System.currentTimeMillis();
 
@@ -327,26 +357,39 @@ public class TServersServlet extends BasicServlet {
     }
     avgResponseTime /= count;
     tServerList.addSortableColumn("Server", new TServerLinkType(), null);
-    tServerList.addSortableColumn("Hosted&nbsp;Tablets", new NumberType<>(0, Integer.MAX_VALUE), null);
-    tServerList.addSortableColumn("Last&nbsp;Contact", new DurationType(0l, (long) Math.min(avgLastContact * 4, LAST_CONTEXT_MAX_ERR)), null);
-    tServerList.addSortableColumn("Response&nbsp;Time", new DurationType(0l, (long) Math.min(avgResponseTime * 4, RESPONSE_TIME_MAX_ERR)), null);
-    tServerList.addSortableColumn("Entries", new NumberType<Long>(), "The number of key/value pairs.");
-    tServerList.addSortableColumn("Ingest", new NumberType<Long>(), "The number of key/value pairs inserted. (Note that deletes are also 'inserted')");
-    tServerList.addSortableColumn("Query", new NumberType<Long>(), "The number of key/value pairs returned to clients. (Not the number of scans)");
-    tServerList.addSortableColumn("Hold&nbsp;Time", new DurationType(), "The amount of time ingest is suspended waiting for data to be written to disk.");
-    tServerList.addSortableColumn("Running<br />Scans", new CompactionsType("scans"), "The number of scans running and queued on this tablet server.");
-    tServerList
-        .addSortableColumn(
-            "Minor<br />Compactions",
-            new CompactionsType("minor"),
-            "The number of minor compactions running and (queued waiting for resources). Minor compactions are the operations where entries are flushed from memory to disk.");
+    tServerList.addSortableColumn("Hosted&nbsp;Tablets", new NumberType<>(0, Integer.MAX_VALUE),
+        null);
+    tServerList.addSortableColumn("Last&nbsp;Contact",
+        new DurationType(0l, (long) Math.min(avgLastContact * 4, LAST_CONTEXT_MAX_ERR)), null);
+    tServerList.addSortableColumn("Response&nbsp;Time",
+        new DurationType(0l, (long) Math.min(avgResponseTime * 4, RESPONSE_TIME_MAX_ERR)), null);
+    tServerList.addSortableColumn("Entries", new NumberType<Long>(),
+        "The number of key/value pairs.");
+    tServerList.addSortableColumn("Ingest", new NumberType<Long>(),
+        "The number of key/value pairs inserted. (Note that deletes are also 'inserted')");
+    tServerList.addSortableColumn("Query", new NumberType<Long>(),
+        "The number of key/value pairs returned to clients. (Not the number of scans)");
+    tServerList.addSortableColumn("Hold&nbsp;Time", new DurationType(),
+        "The amount of time ingest is suspended waiting for data to be written to disk.");
+    tServerList.addSortableColumn("Running<br />Scans", new CompactionsType("scans"),
+        "The number of scans running and queued on this tablet server.");
+    tServerList.addSortableColumn("Minor<br />Compactions", new CompactionsType("minor"),
+        "The number of minor compactions running and (queued waiting for"
+            + " resources). Minor compactions are the operations where entries are"
+            + " flushed from memory to disk.");
     tServerList.addSortableColumn("Major<br />Compactions", new CompactionsType("major"),
-        "The number of major compactions running and (queued waiting for resources). "
-            + "Major compactions are the operations where many smaller files are grouped into a larger file, eliminating duplicates and cleaning up deletes.");
-    tServerList.addSortableColumn("Index Cache<br />Hit Rate", new PercentageType(), "The recent index cache hit rate.");
-    tServerList.addSortableColumn("Data Cache<br />Hit Rate", new PercentageType(), "The recent data cache hit rate.");
-    tServerList.addSortableColumn("OS&nbsp;Load", new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
-        "The Unix one minute load average. The average number of processes in the run queue over a one minute interval.");
+        "The number of major compactions running and (queued waiting for"
+            + " resources). Major compactions are the operations where many smaller"
+            + " files are grouped into a larger file, eliminating duplicates and"
+            + " cleaning up deletes.");
+    tServerList.addSortableColumn("Index Cache<br />Hit Rate", new PercentageType(),
+        "The recent index cache hit rate.");
+    tServerList.addSortableColumn("Data Cache<br />Hit Rate", new PercentageType(),
+        "The recent data cache hit rate.");
+    tServerList.addSortableColumn("OS&nbsp;Load",
+        new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
+        "The Unix one minute load average. The average number of processes in"
+            + " the run queue over a one minute interval.");
 
     log.debug("tableId: " + tableId);
     for (TabletServerStatus status : tservers) {
@@ -369,9 +412,11 @@ public class TServersServlet extends BasicServlet {
       row.add(summary); // add for scans
       row.add(summary); // add for minor compactions
       row.add(summary); // add for major compactions
-      double indexCacheHitRate = status.indexCacheHits / (double) Math.max(status.indexCacheRequest, 1);
+      double indexCacheHitRate = status.indexCacheHits
+          / (double) Math.max(status.indexCacheRequest, 1);
       row.add(indexCacheHitRate);
-      double dataCacheHitRate = status.dataCacheHits / (double) Math.max(status.dataCacheRequest, 1);
+      double dataCacheHitRate = status.dataCacheHits
+          / (double) Math.max(status.dataCacheRequest, 1);
       row.add(dataCacheHitRate);
       row.add(status.osLoad);
       tServerList.addRow(row);

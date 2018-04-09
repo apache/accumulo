@@ -30,7 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class generates documentation to inform users of the available configuration properties in a presentable form.
+ * This class generates documentation to inform users of the available configuration properties in a
+ * presentable form.
  */
 class ConfigurationDocGen {
   private abstract class Format {
@@ -152,12 +153,15 @@ class ConfigurationDocGen {
     @Override
     void prefixSection(Property prefix) {
       beginRow();
-      doc.println(t("td", t("span", prefix.getKey() + '*', "id='" + prefix.name() + "' class='large'"), "colspan='5'"
-          + (prefix.isDeprecated() ? " class='deprecated'" : "")));
+      doc.println(
+          t("td", t("span", prefix.getKey() + '*', "id='" + prefix.name() + "' class='large'"),
+              "colspan='5'" + (prefix.isDeprecated() ? " class='deprecated'" : "")));
       endRow();
       beginRow();
-      doc.println(t("td", (prefix.isDeprecated() ? t("b", t("i", "Deprecated. ", null), null) : "") + sanitize(prefix.getDescription()), "colspan='5'"
-          + (prefix.isDeprecated() ? " class='deprecated'" : "")));
+      doc.println(t("td",
+          (prefix.isDeprecated() ? t("b", t("i", "Deprecated. ", null), null) : "")
+              + sanitize(prefix.getDescription()),
+          "colspan='5'" + (prefix.isDeprecated() ? " class='deprecated'" : "")));
       endRow();
 
       switch (prefix) {
@@ -181,12 +185,18 @@ class ConfigurationDocGen {
       if (prop.getKey().startsWith(prefix.getKey())) {
         beginRow();
         cellData(prop.getKey(), isDeprecated ? "class='deprecated'" : null);
-        cellData("<b><a href='#" + prop.getType().name() + "'>" + prop.getType().toString().replaceAll(" ", "&nbsp;") + "</a></b>",
+        cellData(
+            "<b><a href='#" + prop.getType().name() + "'>"
+                + prop.getType().toString().replaceAll(" ", "&nbsp;") + "</a></b>",
             isDeprecated ? "class='deprecated'" : null);
         cellData(isZooKeeperMutable(prop), isDeprecated ? "class='deprecated'" : null);
-        cellData("<pre>" + (prop.getRawDefaultValue().isEmpty() ? "&nbsp;" : sanitize(prop.getRawDefaultValue().replaceAll(" ", "&nbsp;"))) + "</pre>",
+        cellData(
+            "<pre>" + (prop.getRawDefaultValue().isEmpty() ? "&nbsp;"
+                : sanitize(prop.getRawDefaultValue().replaceAll(" ", "&nbsp;"))) + "</pre>",
             isDeprecated ? "class='deprecated'" : null);
-        cellData((isDeprecated ? "<b><i>Deprecated.</i></b> " : "") + sanitize(prop.getDescription()), isDeprecated ? "class='deprecated'" : null);
+        cellData(
+            (isDeprecated ? "<b><i>Deprecated.</i></b> " : "") + sanitize(prop.getDescription()),
+            isDeprecated ? "class='deprecated'" : null);
         endRow();
       }
 
@@ -207,7 +217,8 @@ class ConfigurationDocGen {
 
     @Override
     String sanitize(String str) {
-      return str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replaceAll("(?:\r\n|\r|\n)", "<br />");
+      return str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+          .replaceAll("(?:\r\n|\r|\n)", "<br />");
     }
 
     private String startTag(String tag, String options) {
@@ -357,7 +368,8 @@ class ConfigurationDocGen {
   }
 
   /**
-   * Generates documentation for conf/accumulo-site.xml file usage. Arguments are: "--generate-doc", file to write to.
+   * Generates documentation for conf/accumulo-site.xml file usage. Arguments are: "--generate-doc",
+   * file to write to.
    *
    * @param args
    *          command-line arguments
@@ -365,13 +377,15 @@ class ConfigurationDocGen {
    * @throws IllegalArgumentException
    *           if args is invalid
    */
-  public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+  public static void main(String[] args)
+      throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-html")) {
       new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateHtml();
     } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
       new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateAsciidoc();
     } else {
-      throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName() + " --generate-html <filename> | --generate-asciidoc <filename>");
+      throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName()
+          + " --generate-html <filename> | --generate-asciidoc <filename>");
     }
   }
 

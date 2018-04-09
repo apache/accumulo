@@ -21,9 +21,11 @@ import org.apache.hadoop.io.BinaryComparable;
 /**
  * An array of bytes wrapped so as to extend Hadoop's <code>BinaryComparable</code> class.
  *
- * @deprecated since 1.7.0 In an attempt to clean up types in the data package that were not intended to be in public API this type was deprecated. Technically
- *             this method was not considered part of the public API in 1.6.0 and earlier, therefore it could have been deleted. However a decision was made to
- *             deprecate in order to be cautious and avoid confusion between 1.6.0 and 1.7.0.
+ * @deprecated since 1.7.0 In an attempt to clean up types in the data package that were not
+ *             intended to be in public API this type was deprecated. Technically this method was
+ *             not considered part of the public API in 1.6.0 and earlier, therefore it could have
+ *             been deleted. However a decision was made to deprecate in order to be cautious and
+ *             avoid confusion between 1.6.0 and 1.7.0.
  */
 @Deprecated
 public class ComparableBytes extends BinaryComparable {
@@ -31,7 +33,8 @@ public class ComparableBytes extends BinaryComparable {
   public byte[] data;
 
   /**
-   * Creates a new byte wrapper. The given byte array is used directly as a backing array, so later changes made to the array reflect into the new object.
+   * Creates a new byte wrapper. The given byte array is used directly as a backing array, so later
+   * changes made to the array reflect into the new object.
    *
    * @param b
    *          bytes to wrap

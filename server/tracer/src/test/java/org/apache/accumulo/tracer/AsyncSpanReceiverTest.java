@@ -66,7 +66,8 @@ public class AsyncSpanReceiverTest {
 
   Span createSpan(long length) {
     long time = System.currentTimeMillis();
-    Span span = new MilliSpan.Builder().begin(time).end(time + length).description("desc").parents(Collections.<Long> emptyList()).spanId(1).traceId(2).build();
+    Span span = new MilliSpan.Builder().begin(time).end(time + length).description("desc")
+        .parents(Collections.<Long> emptyList()).spanId(1).traceId(2).build();
     return span;
   }
 
@@ -92,7 +93,8 @@ public class AsyncSpanReceiverTest {
 
   @Test
   public void testKeepAll() throws InterruptedException {
-    try (TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "0")))) {
+    try (TestReceiver receiver = new TestReceiver(HTraceConfiguration
+        .fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "0")))) {
 
       receiver.receiveSpan(createSpan(0));
       while (receiver.getQueueSize() > 0) {
@@ -105,7 +107,8 @@ public class AsyncSpanReceiverTest {
 
   @Test
   public void testExcludeMore() throws InterruptedException {
-    try (TestReceiver receiver = new TestReceiver(HTraceConfiguration.fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "10")))) {
+    try (TestReceiver receiver = new TestReceiver(HTraceConfiguration
+        .fromMap(Collections.singletonMap(AsyncSpanReceiver.SPAN_MIN_MS, "10")))) {
 
       receiver.receiveSpan(createSpan(0));
       while (receiver.getQueueSize() > 0) {

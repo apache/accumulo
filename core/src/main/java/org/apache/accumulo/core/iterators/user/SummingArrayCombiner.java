@@ -54,15 +54,18 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
 
   public static enum Type {
     /**
-     * indicates a variable-length encoding of a list of Longs using {@link SummingArrayCombiner.VarLongArrayEncoder}
+     * indicates a variable-length encoding of a list of Longs using
+     * {@link SummingArrayCombiner.VarLongArrayEncoder}
      */
     VARLEN,
     /**
-     * indicates a fixed-length (8 bytes for each Long) encoding of a list of Longs using {@link SummingArrayCombiner.FixedLongArrayEncoder}
+     * indicates a fixed-length (8 bytes for each Long) encoding of a list of Longs using
+     * {@link SummingArrayCombiner.FixedLongArrayEncoder}
      */
     FIXEDLEN,
     /**
-     * indicates a string (comma-separated) representation of a list of Longs using {@link SummingArrayCombiner.StringArrayEncoder}
+     * indicates a string (comma-separated) representation of a list of Longs using
+     * {@link SummingArrayCombiner.StringArrayEncoder}
      */
     STRING
   }
@@ -91,7 +94,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     setEncoder(options);
   }
@@ -124,8 +128,9 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("sumarray");
-    io.setDescription("SummingArrayCombiner can interpret Values as arrays of Longs using a variety of encodings "
-        + "(arrays of variable length longs or fixed length longs, or comma-separated strings) before summing element-wise.");
+    io.setDescription("SummingArrayCombiner can interpret Values as arrays of"
+        + " Longs using a variety of encodings (arrays of variable length longs or"
+        + " fixed length longs, or comma-separated strings) before summing" + " element-wise.");
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }
@@ -164,7 +169,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
 
     @Override
     public List<V> decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility with 1.6; it can be
+      // removed in 2.0. See ACCUMULO-3789.
       return super.decode(b);
     }
 
@@ -223,7 +229,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
 
     @Override
     public List<Long> decode(byte[] b) {
-      // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
+      // This concrete implementation is provided for binary compatibility with 1.6; it can be
+      // removed in 2.0. See ACCUMULO-3789.
       return super.decode(b);
     }
 
@@ -265,7 +272,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
    * @param encoderClass
    *          {@code Class<? extends Encoder<List<Long>>>} specifying the encoding type.
    */
-  public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<List<Long>>> encoderClass) {
+  public static void setEncodingType(IteratorSetting is,
+      Class<? extends Encoder<List<Long>>> encoderClass) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());
   }
 

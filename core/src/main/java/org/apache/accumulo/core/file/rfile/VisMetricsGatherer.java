@@ -35,12 +35,15 @@ import org.apache.hadoop.io.Text;
 import com.google.common.util.concurrent.AtomicLongMap;
 
 /**
- * This class provides visibility metrics per locality group. The Map in getMetrics() maps the locality group name to an ArrayList of VisibilityMetric objects.
- * These contain the components of a visibility metric; the visibility as a String, the number of times that is seen in a locality group, the percentage of keys
- * that contain that visibility in the locality group, the number of blocks in the locality group that contain the visibility, and the percentage of blocks in
- * the locality group that contain the visibility.
+ * This class provides visibility metrics per locality group. The Map in getMetrics() maps the
+ * locality group name to an ArrayList of VisibilityMetric objects. These contain the components of
+ * a visibility metric; the visibility as a String, the number of times that is seen in a locality
+ * group, the percentage of keys that contain that visibility in the locality group, the number of
+ * blocks in the locality group that contain the visibility, and the percentage of blocks in the
+ * locality group that contain the visibility.
  */
-public class VisMetricsGatherer implements MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> {
+public class VisMetricsGatherer
+    implements MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> {
 
   protected Map<String,AtomicLongMap<String>> metric;
   protected Map<String,AtomicLongMap<String>> blocks;
@@ -124,12 +127,14 @@ public class VisMetricsGatherer implements MetricsGatherer<Map<String,ArrayList<
       else
         out.println(localityGroups.get(i));
       out.printf("%-27s", metricWord);
-      out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t" + "Percent of blocks");
+      out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t"
+          + "Percent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
         if (hash) {
           String md5String = "";
           try {
-            byte[] md5Bytes = MessageDigest.getInstance("MD5").digest(entry.getKey().getBytes(UTF_8));
+            byte[] md5Bytes = MessageDigest.getInstance("MD5")
+                .digest(entry.getKey().getBytes(UTF_8));
             md5String = new String(md5Bytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
             out.println("Failed to convert key to MD5 hash: " + e.getMessage());

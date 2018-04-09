@@ -23,8 +23,9 @@ import org.apache.log4j.net.SocketAppender;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**
- * An asynchronous appender that maintains its own internal socket appender. Unlike <code>AsyncAppender</code>, this appender can be configured with a Log4J
- * properties file, although in that case no additional appenders can be added.
+ * An asynchronous appender that maintains its own internal socket appender. Unlike
+ * <code>AsyncAppender</code>, this appender can be configured with a Log4J properties file,
+ * although in that case no additional appenders can be added.
  */
 public class AsyncSocketAppender extends AsyncAppender {
 
@@ -39,7 +40,8 @@ public class AsyncSocketAppender extends AsyncAppender {
   }
 
   /**
-   * Creates a new appender using the given socket appender internally. Use this constructor for testing only.
+   * Creates a new appender using the given socket appender internally. Use this constructor for
+   * testing only.
    */
   AsyncSocketAppender(SocketAppender socketAppender) {
     this.socketAppender = socketAppender;

@@ -73,11 +73,12 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption(
-      "modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
+      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void testEmptyWrite() throws Exception {
@@ -103,7 +104,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       int index = 0;
 
       @Override
-      public void map(Key key, Value value, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
+      public void map(Key key, Value value, OutputCollector<Key,Value> output, Reporter reporter)
+          throws IOException {
         try {
           try {
             output.collect(key, value);
@@ -137,7 +139,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     public int run(String[] args) throws Exception {
 
       if (args.length != 2) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <table> <outputfile>");
+        throw new IllegalArgumentException(
+            "Usage : " + MRTester.class.getName() + " <table> <outputfile>");
       }
 
       String table = args[0];
@@ -167,7 +170,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
@@ -193,8 +197,9 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       Configuration conf = CachedConfiguration.getInstance();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
-      FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder().forFile(files[0].toString(), FileSystem.get(conf), conf)
-          .withTableConfiguration(acuconf).build().getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
+      FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
+          .forFile(files[0].toString(), FileSystem.get(conf), conf).withTableConfiguration(acuconf)
+          .build().getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);
     } else {
       assertEquals(0, files.length);

@@ -160,7 +160,8 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
     }
     es.shutdown();
     es.awaitTermination(2, TimeUnit.MINUTES);
-    log.info(String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
+    log.info(
+        String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
     sleepUninterruptibly(30, TimeUnit.SECONDS);
     long getFileInfoOpts = getOpts() - startOps;
     log.info("# opts: {}", getFileInfoOpts);

@@ -44,7 +44,8 @@ public class DefaultConfigurationTest {
     Predicate<String> all = Predicates.alwaysTrue();
     Map<String,String> p = new java.util.HashMap<>();
     c.getProperties(p, all);
-    assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), p.get(Property.MASTER_CLIENTPORT.getKey()));
+    assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(),
+        p.get(Property.MASTER_CLIENTPORT.getKey()));
   }
 
   @Test

@@ -33,7 +33,8 @@ import org.junit.Test;
 import com.google.common.collect.Iterators;
 
 public class BigRootTabletIT extends AccumuloClusterHarness {
-  // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan buffers
+  // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan
+  // buffers
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -51,7 +52,8 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().addSplits(MetadataTable.NAME, FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
+    c.tableOperations().addSplits(MetadataTable.NAME,
+        FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
     String[] names = getUniqueNames(10);
     for (String name : names) {
       c.tableOperations().create(name);
@@ -60,7 +62,8 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
     }
     cluster.stop();
     cluster.start();
-    assertTrue(Iterators.size(c.createScanner(RootTable.NAME, Authorizations.EMPTY).iterator()) > 0);
+    assertTrue(
+        Iterators.size(c.createScanner(RootTable.NAME, Authorizations.EMPTY).iterator()) > 0);
   }
 
 }

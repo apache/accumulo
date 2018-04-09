@@ -104,7 +104,8 @@ public class ManySplitIT extends ConfigurableMacBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hdfs) {
     cfg.setNumTservers(1);
-    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2, MemoryUnit.BYTE);
+    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2,
+        MemoryUnit.BYTE);
   }
 
 }

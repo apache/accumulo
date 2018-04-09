@@ -46,7 +46,8 @@ public class MultiIteratorTest extends TestCase {
     return new Range(newKey(row, ts), null);
   }
 
-  public static void newKeyValue(TreeMap<Key,Value> tm, int row, long ts, boolean deleted, String val) {
+  public static void newKeyValue(TreeMap<Key,Value> tm, int row, long ts, boolean deleted,
+      String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
     tm.put(k, new Value(val.getBytes()));
@@ -56,7 +57,8 @@ public class MultiIteratorTest extends TestCase {
     return new Text(String.format("r%03d", row));
   }
 
-  void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow, boolean init, boolean incrRow, List<TreeMap<Key,Value>> maps) throws IOException {
+  void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow, boolean init,
+      boolean incrRow, List<TreeMap<Key,Value>> maps) throws IOException {
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(maps.size());
 
     for (TreeMap<Key,Value> map : maps) {
@@ -98,8 +100,9 @@ public class MultiIteratorTest extends TestCase {
         i--;
     }
 
-    assertEquals("start=" + start + " end=" + end + " seekKey=" + seekKey + " endRow=" + endRow + " prevEndRow=" + prevEndRow + " init=" + init + " incrRow="
-        + incrRow + " maps=" + maps, end, i);
+    assertEquals("start=" + start + " end=" + end + " seekKey=" + seekKey + " endRow=" + endRow
+        + " prevEndRow=" + prevEndRow + " init=" + init + " incrRow=" + incrRow + " maps=" + maps,
+        end, i);
   }
 
   void verify(int start, Key seekKey, List<TreeMap<Key,Value>> maps) throws IOException {
@@ -110,7 +113,8 @@ public class MultiIteratorTest extends TestCase {
     verify(start, -1, seekKey, null, null, true, false, maps);
   }
 
-  void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow, List<TreeMap<Key,Value>> maps) throws IOException {
+  void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow,
+      List<TreeMap<Key,Value>> maps) throws IOException {
     if (seekKey != null) {
       verify(start, end, seekKey, endRow, prevEndRow, false, false, maps);
     }
@@ -248,8 +252,10 @@ public class MultiIteratorTest extends TestCase {
           }
 
           verify(noSeekStart, noSeekEnd, null, newRow(er), newRow(per), true, true, tmpList);
-          verify(Math.max(0, start), end, newKey(seek, 0), newRow(er), newRow(per), true, true, tmpList);
-          verify(Math.max(0, start), end, newKey(seek, 0), newRow(er), newRow(per), false, true, tmpList);
+          verify(Math.max(0, start), end, newKey(seek, 0), newRow(er), newRow(per), true, true,
+              tmpList);
+          verify(Math.max(0, start), end, newKey(seek, 0), newRow(er), newRow(per), false, true,
+              tmpList);
         }
       }
     }

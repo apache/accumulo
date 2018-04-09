@@ -40,7 +40,8 @@ public class ConstraintViolationSummary {
    * @param numberOfViolatingMutations
    *          number of mutations that produced this particular violation
    */
-  public ConstraintViolationSummary(String constrainClass, short violationCode, String violationDescription, long numberOfViolatingMutations) {
+  public ConstraintViolationSummary(String constrainClass, short violationCode,
+      String violationDescription, long numberOfViolatingMutations) {
     this.constrainClass = constrainClass;
     this.violationCode = violationCode;
     this.violationDescription = violationDescription;
@@ -54,7 +55,8 @@ public class ConstraintViolationSummary {
    *          Thrift summary
    */
   public ConstraintViolationSummary(TConstraintViolationSummary tcvs) {
-    this(tcvs.constrainClass, tcvs.violationCode, tcvs.violationDescription, tcvs.numberOfViolatingMutations);
+    this(tcvs.constrainClass, tcvs.violationCode, tcvs.violationDescription,
+        tcvs.numberOfViolatingMutations);
   }
 
   public String getConstrainClass() {
@@ -75,7 +77,9 @@ public class ConstraintViolationSummary {
 
   @Override
   public String toString() {
-    return String.format("ConstraintViolationSummary(constrainClass:%s, violationCode:%d, violationDescription:%s, numberOfViolatingMutations:%d)",
+    return String.format(
+        "ConstraintViolationSummary(constrainClass:%s, violationCode:%d,"
+            + " violationDescription:%s, numberOfViolatingMutations:%d)",
         constrainClass, violationCode, violationDescription, numberOfViolatingMutations);
   }
 
@@ -85,7 +89,8 @@ public class ConstraintViolationSummary {
    * @return Thrift summary
    */
   public TConstraintViolationSummary toThrift() {
-    return new TConstraintViolationSummary(this.constrainClass, violationCode, violationDescription, numberOfViolatingMutations);
+    return new TConstraintViolationSummary(this.constrainClass, violationCode, violationDescription,
+        numberOfViolatingMutations);
   }
 
 }

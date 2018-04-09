@@ -56,7 +56,8 @@ public class TestProxyClient {
     this(host, port, new TCompactProtocol.Factory());
   }
 
-  public TestProxyClient(String host, int port, TProtocolFactory protoFactory) throws TTransportException {
+  public TestProxyClient(String host, int port, TProtocolFactory protoFactory)
+      throws TTransportException {
     final TSocket socket = new TSocket(host, port);
     socket.setTimeout(600000);
     transport = new TFramedTransport(socket);
@@ -65,11 +66,11 @@ public class TestProxyClient {
     transport.open();
   }
 
-  public TestProxyClient(String host, int port, TProtocolFactory protoFactory, String proxyPrimary, UserGroupInformation ugi) throws SaslException,
-      TTransportException {
+  public TestProxyClient(String host, int port, TProtocolFactory protoFactory, String proxyPrimary,
+      UserGroupInformation ugi) throws SaslException, TTransportException {
     TSocket socket = new TSocket(host, port);
-    TSaslClientTransport saslTransport = new TSaslClientTransport("GSSAPI", null, proxyPrimary, host, Collections.singletonMap("javax.security.sasl.qop",
-        "auth"), null, socket);
+    TSaslClientTransport saslTransport = new TSaslClientTransport("GSSAPI", null, proxyPrimary,
+        host, Collections.singletonMap("javax.security.sasl.qop", "auth"), null, socket);
 
     transport = new UGIAssumingTransport(saslTransport, ugi);
 
@@ -130,7 +131,8 @@ public class TestProxyClient {
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
-      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(UTF_8)), ByteBuffer.wrap(("cq" + i).getBytes(UTF_8)));
+      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(UTF_8)),
+          ByteBuffer.wrap(("cq" + i).getBytes(UTF_8)));
       update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes(UTF_8)), Collections.singletonList(update));
 
@@ -157,7 +159,8 @@ public class TestProxyClient {
       String result = String.format(format, i);
       Key pkey = new Key();
       pkey.setRow(result.getBytes(UTF_8));
-      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(UTF_8)), ByteBuffer.wrap(("cq" + i).getBytes(UTF_8)));
+      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(UTF_8)),
+          ByteBuffer.wrap(("cq" + i).getBytes(UTF_8)));
       update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes(UTF_8)), Collections.singletonList(update));
       tpc.proxy().update(writer, mutations);

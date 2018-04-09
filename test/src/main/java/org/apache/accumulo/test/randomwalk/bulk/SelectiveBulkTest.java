@@ -22,7 +22,8 @@ import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 
 /**
- * Selectively runs the actual {@link BulkTest} based on the number of active TServers and the number of queued operations.
+ * Selectively runs the actual {@link BulkTest} based on the number of active TServers and the
+ * number of queued operations.
  */
 public abstract class SelectiveBulkTest extends BulkTest {
 
@@ -31,7 +32,8 @@ public abstract class SelectiveBulkTest extends BulkTest {
     if (SelectiveQueueing.shouldQueueOperation(state, env)) {
       super.visit(state, env, props);
     } else {
-      log.debug("Skipping queueing of " + getClass().getSimpleName() + " because of excessive queued tasks already");
+      log.debug("Skipping queueing of " + getClass().getSimpleName()
+          + " because of excessive queued tasks already");
       log.debug("Waiting 30 seconds before continuing");
       try {
         Thread.sleep(30 * 1000);

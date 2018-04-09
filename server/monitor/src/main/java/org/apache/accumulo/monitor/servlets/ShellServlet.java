@@ -61,7 +61,8 @@ public class ShellServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb)
+      throws IOException {
     HttpSession session = req.getSession(true);
     final String CSRF_TOKEN;
     if (null == session.getAttribute(CSRF_KEY)) {
@@ -94,7 +95,8 @@ public class ShellServlet extends BasicServlet {
         userShells().put(session.getId(), shellThread);
       } catch (IOException e) {
         // error validating user, reauthenticate
-        sb.append("<div id='loginError'>Invalid user/password</div>" + authenticationForm(req.getRequestURI(), CSRF_TOKEN));
+        sb.append("<div id='loginError'>Invalid user/password</div>"
+            + authenticationForm(req.getRequestURI(), CSRF_TOKEN));
         return;
       }
       session.setAttribute("user", user);
@@ -111,7 +113,8 @@ public class ShellServlet extends BasicServlet {
     sb.append("<div id='shell'>\n");
     sb.append("<pre id='shellResponse'>").append(shellThread.getOutput()).append("</pre>\n");
     sb.append("<form><span id='shellPrompt'>").append(shellThread.getPrompt());
-    sb.append("</span><input type='text' name='cmd' id='cmd' onkeydown='return handleKeyDown(event.keyCode);'>\n");
+    sb.append("</span><input type='text' name='cmd' id='cmd' "
+        + "onkeydown='return handleKeyDown(event.keyCode);'>\n");
     sb.append("</form>\n</div>\n");
     sb.append("<script type='text/javascript'>\n");
     sb.append("var url = '").append(req.getRequestURL().toString()).append("';\n");
@@ -145,11 +148,13 @@ public class ShellServlet extends BasicServlet {
     sb.append("\n");
     sb.append("function submitCmd(cmd) {\n");
     sb.append("  if (cmd=='history') {\n");
-    sb.append("    document.getElementById('shellResponse').innerHTML += document.getElementById('shellPrompt').innerHTML+cmd+'\\n';\n");
+    sb.append("    document.getElementById('shellResponse').innerHTML += "
+        + "document.getElementById('shellPrompt').innerHTML+cmd+'\\n';\n");
     sb.append("    document.getElementById('shellResponse').innerHTML += history.join('\\n');\n");
     sb.append("    return\n");
     sb.append("  }\n");
-    sb.append("  xmlhttp.open('POST',url+'?cmd='+cmd+'&'+'").append(CSRF_KEY).append("=").append(CSRF_TOKEN).append("',false);\n");
+    sb.append("  xmlhttp.open('POST',url+'?cmd='+cmd+'&'+'").append(CSRF_KEY).append("=")
+        .append(CSRF_TOKEN).append("',false);\n");
     sb.append("  xmlhttp.send();\n");
     sb.append("  var text = xmlhttp.responseText;\n");
     sb.append("  var index = text.lastIndexOf('\\n');\n");
@@ -165,20 +170,24 @@ public class ShellServlet extends BasicServlet {
     sb.append("    } else {\n");
     sb.append("      document.getElementById('cmd').type = 'text';\n");
     sb.append("    }\n");
-    sb.append("    document.getElementById('shellResponse').innerHTML += text.substring(0,index+1);\n");
+    sb.append(
+        "    document.getElementById('shellResponse').innerHTML += text.substring(0,index+1);\n");
     sb.append("    document.getElementById('shellPrompt').innerHTML = text.substring(index+1);\n");
     sb.append("    document.getElementById('cmd').value = '';\n");
-    sb.append("    document.getElementById('shell').scrollTop = document.getElementById('cmd').offsetTop;\n");
+    sb.append("    document.getElementById('shell').scrollTop ="
+        + " document.getElementById('cmd').offsetTop;\n");
     sb.append("  } else {\n");
     sb.append("    window.location = url;\n");
     sb.append("  }\n");
     sb.append("}\n");
     sb.append("</script>\n");
-    sb.append("<script type='text/javascript'>window.onload = function() { document.getElementById('cmd').select(); }</script>\n");
+    sb.append("<script type='text/javascript'>window.onload = "
+        + "function() { document.getElementById('cmd').select(); }</script>\n");
   }
 
   @Override
-  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+      throws ServletException, IOException {
     final HttpSession session = req.getSession(true);
     String user = (String) session.getAttribute("user");
     if (user == null || !userShells().containsKey(session.getId())) {
@@ -223,10 +232,11 @@ public class ShellServlet extends BasicServlet {
   }
 
   private String authenticationForm(String requestURI, String csrfToken) {
-    return "<div id='login'><form method=POST action='" + requestURI + "'>"
-        + "<table><tr><td>Mock:&nbsp</td><td><input type='checkbox' name='mock' value='mock'></td></tr>"
+    return "<div id='login'><form method=POST action='" + requestURI + "'><table>"
+        + "<tr><td>Mock:&nbsp</td><td><input type='checkbox' name='mock' value='mock'></td></tr>"
         + "<tr><td>Username:&nbsp;</td><td><input type='text' name='user'></td></tr>"
-        + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass'></td><td>" + "<input type='hidden' name='" + CSRF_KEY + "' value='" + csrfToken
+        + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass'></td><td>"
+        + "<input type='hidden' name='" + CSRF_KEY + "' value='" + csrfToken
         + "'/><input type='submit' value='Enter'></td></tr></table></form></div>";
   }
 

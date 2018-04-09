@@ -58,8 +58,9 @@ public class InsertCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, IOException, ConstraintViolationException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
+      ConstraintViolationException {
     shellState.checkTableState();
 
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
@@ -80,7 +81,8 @@ public class InsertCommand extends Command {
     else
       m.put(colf, colq, val);
 
-    final BatchWriterConfig cfg = new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1)
+    final BatchWriterConfig cfg = new BatchWriterConfig()
+        .setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1)
         .setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
     if (cl.hasOption(durabilityOption.getOpt())) {
       String userDurability = cl.getOptionValue(durabilityOption.getOpt());
@@ -101,7 +103,8 @@ public class InsertCommand extends Command {
           throw new IllegalArgumentException("Unknown durability: " + userDurability);
       }
     }
-    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), cfg);
+    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
+        cfg);
     bw.addMutation(m);
     try {
       bw.close();
@@ -124,7 +127,8 @@ public class InsertCommand extends Command {
         // must always print something
         lines.add(" " + e.getClass().getName() + " : " + e.getMessage());
         if (e.getCause() != null)
-          lines.add("   Caused by : " + e.getCause().getClass().getName() + " : " + e.getCause().getMessage());
+          lines.add("   Caused by : " + e.getCause().getClass().getName() + " : "
+              + e.getCause().getMessage());
       }
 
       shellState.printLines(lines.iterator(), false);
@@ -156,11 +160,13 @@ public class InsertCommand extends Command {
     o.addOption(timestampOpt);
 
     timeoutOption = new Option(null, "timeout", true,
-        "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+        "time before insert should fail if no data is written. If no unit is"
+            + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s" + " or 100ms");
     timeoutOption.setArgName("timeout");
     o.addOption(timeoutOption);
 
-    durabilityOption = new Option("d", "durability", true, "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
+    durabilityOption = new Option("d", "durability", true,
+        "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
     o.addOption(durabilityOption);
 
     return o;

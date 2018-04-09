@@ -42,7 +42,8 @@ import org.apache.hadoop.io.WritableComparable;
 @Deprecated
 public class KeyExtent implements WritableComparable<KeyExtent> {
 
-  // Wrapping impl.KeyExtent to resuse code. Did not want to extend impl.KeyExtent because any changes to impl.KeyExtent would be reflected in this class.
+  // Wrapping impl.KeyExtent to resuse code. Did not want to extend impl.KeyExtent because any
+  // changes to impl.KeyExtent would be reflected in this class.
   // Wrapping impl.KeyExtent allows the API of this deprecated class to be frozen.
   private org.apache.accumulo.core.data.impl.KeyExtent wrapped;
 
@@ -51,11 +52,13 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public KeyExtent(Text table, Text endRow, Text prevEndRow) {
-    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(table.toString(), endRow, prevEndRow);
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(table.toString(), endRow,
+        prevEndRow);
   }
 
   public KeyExtent(KeyExtent extent) {
-    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(extent.getTableId().toString(), extent.getEndRow(), extent.getPrevEndRow());
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(extent.getTableId().toString(),
+        extent.getEndRow(), extent.getPrevEndRow());
   }
 
   public KeyExtent(TKeyExtent tke) {
@@ -179,7 +182,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return wrapped.isRootTablet();
   }
 
-  private static SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> unwrap(Set<KeyExtent> tablets) {
+  private static SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> unwrap(
+      Set<KeyExtent> tablets) {
     SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> trans = new TreeSet<>();
     for (KeyExtent wrapper : tablets) {
       trans.add(wrapper.wrapped);
@@ -192,7 +196,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return new KeyExtent(new Text(ke.getTableId()), ke.getEndRow(), ke.getPrevEndRow());
   }
 
-  private static SortedSet<KeyExtent> wrap(Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped) {
+  private static SortedSet<KeyExtent> wrap(
+      Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped) {
     SortedSet<KeyExtent> wrapped = new TreeSet<>();
     for (org.apache.accumulo.core.data.impl.KeyExtent wrappee : unwrapped) {
       wrapped.add(wrap(wrappee));
@@ -206,14 +211,18 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   /**
-   * Empty start or end rows tell the method there are no start or end rows, and to use all the keyextents that are before the end row if no start row etc.
+   * Empty start or end rows tell the method there are no start or end rows, and to use all the
+   * keyextents that are before the end row if no start row etc.
    *
-   * @deprecated this method not intended for public use and is likely to be removed in a future version.
+   * @deprecated this method not intended for public use and is likely to be removed in a future
+   *             version.
    * @return all the key extents that the rows cover
    */
   @Deprecated
-  public static Collection<KeyExtent> getKeyExtentsForRange(Text startRow, Text endRow, Set<KeyExtent> kes) {
-    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.getKeyExtentsForRange(startRow, endRow, unwrap(kes)));
+  public static Collection<KeyExtent> getKeyExtentsForRange(Text startRow, Text endRow,
+      Set<KeyExtent> kes) {
+    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.getKeyExtentsForRange(startRow, endRow,
+        unwrap(kes)));
   }
 
   public static Text decodePrevEndRow(Value ibw) {
@@ -233,15 +242,18 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public static SortedSet<KeyExtent> findChildren(KeyExtent ke, SortedSet<KeyExtent> tablets) {
-    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findChildren(ke.wrapped, unwrap(tablets)));
+    return wrap(
+        org.apache.accumulo.core.data.impl.KeyExtent.findChildren(ke.wrapped, unwrap(tablets)));
   }
 
   public static KeyExtent findContainingExtent(KeyExtent extent, SortedSet<KeyExtent> extents) {
-    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findContainingExtent(extent.wrapped, unwrap(extents)));
+    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findContainingExtent(extent.wrapped,
+        unwrap(extents)));
   }
 
   public static Set<KeyExtent> findOverlapping(KeyExtent nke, SortedSet<KeyExtent> extents) {
-    return wrap(org.apache.accumulo.core.data.impl.KeyExtent.findOverlapping(nke.wrapped, unwrap(extents)));
+    return wrap(
+        org.apache.accumulo.core.data.impl.KeyExtent.findOverlapping(nke.wrapped, unwrap(extents)));
   }
 
   public static Set<KeyExtent> findOverlapping(KeyExtent nke, SortedMap<KeyExtent,?> extents) {

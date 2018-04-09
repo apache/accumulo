@@ -19,11 +19,13 @@ package org.apache.accumulo.server.rpc;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * The type of configured Thrift server to start. This is meant more as a developer knob to ensure that appropriate Thrift servers can be constructed to make a
- * better test on the overhead of SSL or SASL.
+ * The type of configured Thrift server to start. This is meant more as a developer knob to ensure
+ * that appropriate Thrift servers can be constructed to make a better test on the overhead of SSL
+ * or SASL.
  *
- * Both SSL and SASL don't presently work with TFramedTransport which means that the Thrift servers with asynchronous support will fail with these transports.
- * As such, we want to ensure that any benchmarks against "unsecure" Accumulo use the same type of Thrift server.
+ * Both SSL and SASL don't presently work with TFramedTransport which means that the Thrift servers
+ * with asynchronous support will fail with these transports. As such, we want to ensure that any
+ * benchmarks against "unsecure" Accumulo use the same type of Thrift server.
  */
 public enum ThriftServerType {
   CUSTOM_HS_HA("custom_hs_ha"), THREADPOOL("threadpool"), SSL("ssl"), SASL("sasl");

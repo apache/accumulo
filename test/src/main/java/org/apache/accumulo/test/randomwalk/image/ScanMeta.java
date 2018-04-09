@@ -42,7 +42,8 @@ public class ScanMeta extends Test {
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
 
-    // scan just the metadata of the images table to find N hashes... use the batch scanner to lookup those N hashes in the index table
+    // scan just the metadata of the images table to find N hashes... use the batch scanner to
+    // lookup those N hashes in the index table
     // this scan will test locality groups....
 
     String indexTableName = state.getString("indexTableName");
@@ -101,7 +102,8 @@ public class ScanMeta extends Test {
     if (!hashes.equals(hashes2)) {
       log.error("uuids from doc table : " + hashes.values());
       log.error("uuids from index     : " + hashes2.values());
-      throw new Exception("Mismatch between document table and index " + indexTableName + " " + imageTableName);
+      throw new Exception(
+          "Mismatch between document table and index " + indexTableName + " " + imageTableName);
     }
 
     indexScanner.close();

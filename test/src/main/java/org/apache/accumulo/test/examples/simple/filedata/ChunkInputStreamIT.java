@@ -109,25 +109,31 @@ public class ChunkInputStreamIT extends AccumuloClusterHarness {
     addData(multidata, "c", "~chunk", 100, 1, "B&C", "");
   }
 
-  static void addData(List<Entry<Key,Value>> data, String row, String cf, String cq, String vis, String value) {
-    data.add(new KeyValue(new Key(new Text(row), new Text(cf), new Text(cq), new Text(vis)), value.getBytes()));
+  static void addData(List<Entry<Key,Value>> data, String row, String cf, String cq, String vis,
+      String value) {
+    data.add(new KeyValue(new Key(new Text(row), new Text(cf), new Text(cq), new Text(vis)),
+        value.getBytes()));
   }
 
-  static void addData(List<Entry<Key,Value>> data, String row, String cf, int chunkSize, int chunkCount, String vis, String value) {
+  static void addData(List<Entry<Key,Value>> data, String row, String cf, int chunkSize,
+      int chunkCount, String vis, String value) {
     Text chunkCQ = new Text(FileDataIngest.intToBytes(chunkSize));
     chunkCQ.append(FileDataIngest.intToBytes(chunkCount), 0, 4);
-    data.add(new KeyValue(new Key(new Text(row), new Text(cf), chunkCQ, new Text(vis)), value.getBytes()));
+    data.add(new KeyValue(new Key(new Text(row), new Text(cf), chunkCQ, new Text(vis)),
+        value.getBytes()));
   }
 
   @Test
-  public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
+  public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException, IOException {
     conn.tableOperations().create(tableName);
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
-      m.put(k.getColumnFamily(), k.getColumnQualifier(), new ColumnVisibility(k.getColumnVisibility()), e.getValue());
+      m.put(k.getColumnFamily(), k.getColumnQualifier(),
+          new ColumnVisibility(k.getColumnVisibility()), e.getValue());
       bw.addMutation(m);
     }
     bw.close();

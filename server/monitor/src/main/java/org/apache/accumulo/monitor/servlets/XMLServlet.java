@@ -68,16 +68,20 @@ public class XMLServlet extends BasicServlet {
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
 
       sb.append("\n<server id='").append(status.name).append("'>\n");
-      sb.append("<hostname>").append(TServerLinkType.displayName(status.name)).append("</hostname>");
-      sb.append("<lastContact>").append(System.currentTimeMillis() - status.lastContact).append("</lastContact>\n");
+      sb.append("<hostname>").append(TServerLinkType.displayName(status.name))
+          .append("</hostname>");
+      sb.append("<lastContact>").append(System.currentTimeMillis() - status.lastContact)
+          .append("</lastContact>\n");
       sb.append("<osload>").append(status.osLoad).append("</osload>\n");
 
       TableInfo summary = TableInfoUtil.summarizeTableStats(status);
       sb.append("<compactions>\n");
-      sb.append("<major>").append("<running>").append(summary.majors.running).append("</running>").append("<queued>").append(summary.majors.queued)
-          .append("</queued>").append("</major>\n");
-      sb.append("<minor>").append("<running>").append(summary.minors.running).append("</running>").append("<queued>").append(summary.minors.queued)
-          .append("</queued>").append("</minor>\n");
+      sb.append("<major>").append("<running>").append(summary.majors.running).append("</running>")
+          .append("<queued>").append(summary.majors.queued).append("</queued>")
+          .append("</major>\n");
+      sb.append("<minor>").append("<running>").append(summary.minors.running).append("</running>")
+          .append("<queued>").append(summary.minors.queued).append("</queued>")
+          .append("</minor>\n");
       sb.append("</compactions>\n");
 
       sb.append("<tablets>").append(summary.tablets).append("</tablets>\n");
@@ -101,7 +105,8 @@ public class XMLServlet extends BasicServlet {
 
     sb.append("\n<badTabletServers>\n");
     for (Entry<String,Byte> entry : Monitor.getMmi().badTServers.entrySet()) {
-      sb.append(String.format("<badTabletServer id='%s' status='%s'/>\n", entry.getKey(), TabletServerState.getStateById(entry.getValue())));
+      sb.append(String.format("<badTabletServer id='%s' status='%s'/>\n", entry.getKey(),
+          TabletServerState.getStateById(entry.getValue())));
     }
     sb.append("\n</badTabletServers>\n");
 
@@ -111,17 +116,20 @@ public class XMLServlet extends BasicServlet {
     }
     sb.append("\n</tabletServersShuttingDown>\n");
 
-    sb.append(String.format("\n<unassignedTablets>%d</unassignedTablets>\n", Monitor.getMmi().unassignedTablets));
+    sb.append(String.format("\n<unassignedTablets>%d</unassignedTablets>\n",
+        Monitor.getMmi().unassignedTablets));
 
     sb.append("\n<deadTabletServers>\n");
     for (DeadServer dead : Monitor.getMmi().deadTabletServers) {
-      sb.append(String.format("<deadTabletServer id='%s' lastChange='%d' status='%s'/>\n", dead.server, dead.lastStatus, dead.status));
+      sb.append(String.format("<deadTabletServer id='%s' lastChange='%d' status='%s'/>\n",
+          dead.server, dead.lastStatus, dead.status));
     }
     sb.append("\n</deadTabletServers>\n");
 
     sb.append("\n<deadLoggers>\n");
     for (DeadServer dead : Monitor.getMmi().deadTabletServers) {
-      sb.append(String.format("<deadLogger id='%s' lastChange='%d' status='%s'/>\n", dead.server, dead.lastStatus, dead.status));
+      sb.append(String.format("<deadLogger id='%s' lastChange='%d' status='%s'/>\n", dead.server,
+          dead.lastStatus, dead.status));
     }
     sb.append("\n</deadLoggers>\n");
 
@@ -158,8 +166,8 @@ public class XMLServlet extends BasicServlet {
         running = compacting.running;
         queued = compacting.queued;
       }
-      sb.append("<majorCompactions>").append("<running>").append(running).append("</running>").append("<queued>").append(queued).append("</queued>")
-          .append("</majorCompactions>\n");
+      sb.append("<majorCompactions>").append("<running>").append(running).append("</running>")
+          .append("<queued>").append(queued).append("</queued>").append("</majorCompactions>\n");
       sb.append("</table>\n");
     }
     sb.append("\n</tables>\n");

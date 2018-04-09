@@ -19,7 +19,8 @@ package org.apache.accumulo.test.stress.random;
 import java.util.Iterator;
 
 /**
- * Base class to model an infinite stream of data. A stream implements an iterator whose {{@link #hasNext()} method will always return true.
+ * Base class to model an infinite stream of data. A stream implements an iterator whose
+ * {{@link #hasNext()} method will always return true.
  *
  */
 public abstract class Stream<T> implements Iterator<T> {

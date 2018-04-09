@@ -61,15 +61,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ACCUMULO-2641 Integration test. ACCUMULO-2641 Adds scan id to thrift protocol so that {@code org.apache.accumulo.core.client.admin.ActiveScan.getScanid()}
- * returns a unique scan id.
+ * ACCUMULO-2641 Integration test. ACCUMULO-2641 Adds scan id to thrift protocol so that
+ * {@code org.apache.accumulo.core.client.admin.ActiveScan.getScanid()} returns a unique scan id.
  *
  * <p>
- * The test uses the Minicluster and the {@code org.apache.accumulo.test.functional.SlowIterator} to create multiple scan sessions. The test exercises multiple
- * tablet servers with splits and multiple ranges to force the scans to occur across multiple tablet servers for completeness.
+ * The test uses the Minicluster and the {@code org.apache.accumulo.test.functional.SlowIterator} to
+ * create multiple scan sessions. The test exercises multiple tablet servers with splits and
+ * multiple ranges to force the scans to occur across multiple tablet servers for completeness.
  *
  * <p>
- * This patch modified thrift, the TraceRepoDeserializationTest test seems to fail unless the following be added:
+ * This patch modified thrift, the TraceRepoDeserializationTest test seems to fail unless the
+ * following be added:
  *
  * <p>
  * private static final long serialVersionUID = -4659975753252858243l;
@@ -178,7 +180,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
       }
     }
 
-    assertTrue("Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size(), NUM_SCANNERS <= scanIds.size());
+    assertTrue("Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size(),
+        NUM_SCANNERS <= scanIds.size());
 
   }
 
@@ -195,7 +198,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
     private final String tablename;
     private final CountDownLatch latch;
 
-    public ScannerThread(final Connector connector, final int workerIndex, final String tablename, final CountDownLatch latch) {
+    public ScannerThread(final Connector connector, final int workerIndex, final String tablename,
+        final CountDownLatch latch) {
       this.connector = connector;
       this.workerIndex = workerIndex;
       this.tablename = tablename;
@@ -203,7 +207,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
     }
 
     /**
-     * execute the scan across the sample data and put scan result into result map until testInProgress flag is set to false.
+     * execute the scan across the sample data and put scan result into result map until
+     * testInProgress flag is set to false.
      */
     @Override
     public void run() {
@@ -257,7 +262,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
           // value should always being increasing
           if (prevValue != null) {
 
-            log.trace("worker {} values {}", workerIndex, String.format("%1$s < %2$s", prevValue, entry.getValue()));
+            log.trace("worker {} values {}", workerIndex,
+                String.format("%1$s < %2$s", prevValue, entry.getValue()));
 
             assertTrue(prevValue.compareTo(entry.getValue()) > 0);
           }
@@ -274,7 +280,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Create splits on table and force migration by taking table offline and then bring back online for test.
+   * Create splits on table and force migration by taking table offline and then bring back online
+   * for test.
    *
    * @param conn
    *          Accumulo connector Accumulo connector to test cluster or MAC instance.
@@ -297,11 +304,14 @@ public class ScanIdIT extends AccumuloClusterHarness {
       }
 
     } catch (AccumuloSecurityException e) {
-      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName, e);
+      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName,
+          e);
     } catch (TableNotFoundException e) {
-      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName, e);
+      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName,
+          e);
     } catch (AccumuloException e) {
-      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName, e);
+      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName,
+          e);
     }
 
   }
@@ -325,8 +335,9 @@ public class ScanIdIT extends AccumuloClusterHarness {
   /**
    * Generate some sample data using random row id to distribute across splits.
    * <p>
-   * The primary goal is to determine that each scanner is assigned a unique scan id. This test does check that the count value for fam1 increases if a scanner
-   * reads multiple value, but this is secondary consideration for this test, that is included for completeness.
+   * The primary goal is to determine that each scanner is assigned a unique scan id. This test does
+   * check that the count value for fam1 increases if a scanner reads multiple value, but this is
+   * secondary consideration for this test, that is included for completeness.
    *
    * @param connector
    *          Accumulo connector Accumulo connector to test cluster or MAC instance.
@@ -345,8 +356,10 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
         Mutation m = new Mutation(rowId);
         m.put(new Text("fam1"), new Text("count"), new Value(Integer.toString(i).getBytes(UTF_8)));
-        m.put(new Text("fam1"), new Text("positive"), vis, new Value(Integer.toString(NUM_DATA_ROWS - i).getBytes(UTF_8)));
-        m.put(new Text("fam1"), new Text("negative"), vis, new Value(Integer.toString(i - NUM_DATA_ROWS).getBytes(UTF_8)));
+        m.put(new Text("fam1"), new Text("positive"), vis,
+            new Value(Integer.toString(NUM_DATA_ROWS - i).getBytes(UTF_8)));
+        m.put(new Text("fam1"), new Text("negative"), vis,
+            new Value(Integer.toString(i - NUM_DATA_ROWS).getBytes(UTF_8)));
 
         log.trace("Added row {}", rowId);
 
@@ -362,8 +375,10 @@ public class ScanIdIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Attach the test slow iterator so that we have time to read the scan id without creating a large dataset. Uses a fairly large sleep and delay times because
-   * we are not concerned with how much data is read and we do not read all of the data - the test stops once each scanner reports a scan id.
+   * Attach the test slow iterator so that we have time to read the scan id without creating a large
+   * dataset. Uses a fairly large sleep and delay times because we are not concerned with how much
+   * data is read and we do not read all of the data - the test stops once each scanner reports a
+   * scan id.
    *
    * @param connector
    *          Accumulo connector Accumulo connector to test cluster or MAC instance.
@@ -371,11 +386,13 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private void attachSlowIterator(Connector connector, final String tablename) {
     try {
 
-      IteratorSetting slowIter = new IteratorSetting(50, "slowIter", "org.apache.accumulo.test.functional.SlowIterator");
+      IteratorSetting slowIter = new IteratorSetting(50, "slowIter",
+          "org.apache.accumulo.test.functional.SlowIterator");
       slowIter.addOption("sleepTime", "200");
       slowIter.addOption("seekSleepTime", "200");
 
-      connector.tableOperations().attachIterator(tablename, slowIter, EnumSet.of(IteratorUtil.IteratorScope.scan));
+      connector.tableOperations().attachIterator(tablename, slowIter,
+          EnumSet.of(IteratorUtil.IteratorScope.scan));
 
     } catch (AccumuloException ex) {
       throw new IllegalStateException("Initialization failed. Could not attach slow iterator", ex);

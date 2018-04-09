@@ -55,8 +55,10 @@ import com.google.common.collect.Multimap;
 
 public class ChunkInputFormatIT extends AccumuloClusterHarness {
 
-  // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to ensure test correctness),
-  // so error tests should check to see if there is at least one error (could be more depending on the test) rather than zero
+  // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to
+  // ensure test correctness),
+  // so error tests should check to see if there is at least one error (could be more depending on
+  // the test) rather than zero
   private static Multimap<String,AssertionError> assertionErrors = ArrayListMultimap.create();
 
   private static final Authorizations AUTHS = new Authorizations("A", "B", "C", "D");
@@ -101,11 +103,13 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
   }
 
   public static class CIFTester extends Configured implements Tool {
-    public static class TestMapper extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
+    public static class TestMapper
+        extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
       int count = 0;
 
       @Override
-      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context)
+          throws IOException, InterruptedException {
         String table = context.getConfiguration().get("MRTester_tableName");
         assertNotNull(table);
 
@@ -153,11 +157,13 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
       }
     }
 
-    public static class TestNoClose extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
+    public static class TestNoClose
+        extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
       int count = 0;
 
       @Override
-      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context)
+          throws IOException, InterruptedException {
         String table = context.getConfiguration().get("MRTester_tableName");
         assertNotNull(table);
 
@@ -185,9 +191,11 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
       }
     }
 
-    public static class TestBadData extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
+    public static class TestBadData
+        extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
       @Override
-      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context)
+          throws IOException, InterruptedException {
         String table = context.getConfiguration().get("MRTester_tableName");
         assertNotNull(table);
 
@@ -225,7 +233,8 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
     @Override
     public int run(String[] args) throws Exception {
       if (args.length != 2) {
-        throw new IllegalArgumentException("Usage : " + CIFTester.class.getName() + " <table> <mapperClass>");
+        throw new IllegalArgumentException(
+            "Usage : " + CIFTester.class.getName() + " <table> <mapperClass>");
       }
 
       String table = args[0];
@@ -245,7 +254,8 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
       ChunkInputFormat.setScanAuthorizations(job, AUTHS);
 
       @SuppressWarnings("unchecked")
-      Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[1]);
+      Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class
+          .forName(args[1]);
       job.setMapperClass(forName);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
@@ -261,7 +271,8 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
     public static int main(String... args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       return ToolRunner.run(conf, new CIFTester(), args);
     }
   }
@@ -274,7 +285,8 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
-      m.put(k.getColumnFamily(), k.getColumnQualifier(), new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp(), e.getValue());
+      m.put(k.getColumnFamily(), k.getColumnQualifier(),
+          new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp(), e.getValue());
       bw.addMutation(m);
     }
     bw.close();
@@ -291,7 +303,8 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
-      m.put(k.getColumnFamily(), k.getColumnQualifier(), new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp(), e.getValue());
+      m.put(k.getColumnFamily(), k.getColumnQualifier(),
+          new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp(), e.getValue());
       bw.addMutation(m);
     }
     bw.close();
@@ -309,7 +322,8 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
     for (Entry<Key,Value> e : baddata) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
-      m.put(k.getColumnFamily(), k.getColumnQualifier(), new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp(), e.getValue());
+      m.put(k.getColumnFamily(), k.getColumnQualifier(),
+          new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp(), e.getValue());
       bw.addMutation(m);
     }
     bw.close();

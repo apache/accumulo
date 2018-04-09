@@ -93,7 +93,8 @@ public class Summary extends Basic {
         return "-";
       String type = obj.toString();
       String encodedType = BasicServlet.encode(type);
-      return String.format("<a href='/trace/listType?type=%s&minutes=%d'>%s</a>", encodedType, minutes, type);
+      return String.format("<a href='/trace/listType?type=%s&minutes=%d'>%s</a>", encodedType,
+          minutes, type);
     }
   }
 
@@ -158,7 +159,8 @@ public class Summary extends Basic {
   }
 
   @Override
-  public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
+  public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb)
+      throws Exception {
     int minutes = getMinutes(req);
 
     Entry<Scanner,UserGroupInformation> pair = getScanner(sb);
@@ -186,11 +188,10 @@ public class Summary extends Basic {
     trace.addSortableColumn("min", new DurationType(), "Shortest span duration");
     trace.addSortableColumn("max", new DurationType(), "Longest span duration");
     trace.addSortableColumn("avg", new DurationType(), "Average span duration");
-    trace
-        .addSortableColumn(
-            "Histogram",
-            new HistogramType(),
-            "Counts of spans of different duration. Columns start at milliseconds, and each column is ten times longer: tens of milliseconds, seconds, tens of seconds, etc.");
+    trace.addSortableColumn("Histogram", new HistogramType(),
+        "Counts of spans of different duration. Columns start at milliseconds,"
+            + " and each column is ten times longer: tens of milliseconds, seconds,"
+            + " tens of seconds, etc.");
 
     for (Entry<String,Stats> entry : summary.entrySet()) {
       Stats stat = entry.getValue();

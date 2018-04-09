@@ -36,7 +36,8 @@ public class SizeLimitCompactionStrategyTest {
 
     HashMap<FileRef,DataFileValue> ret = new HashMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(AccumuloConfiguration.getMemoryInBytes(sa[i + 1]), 1));
+      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]),
+          new DataFileValue(AccumuloConfiguration.getMemoryInBytes(sa[i + 1]), 1));
     }
 
     return ret;
@@ -51,7 +52,8 @@ public class SizeLimitCompactionStrategyTest {
     slcs.init(opts);
 
     KeyExtent ke = new KeyExtent("0", null, null);
-    MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, AccumuloConfiguration.getDefaultConfiguration());
+    MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null,
+        AccumuloConfiguration.getDefaultConfiguration());
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G"));
 
@@ -59,10 +61,12 @@ public class SizeLimitCompactionStrategyTest {
     Assert.assertEquals(0, slcs.getCompactionPlan(mcr).inputFiles.size());
     Assert.assertEquals(4, mcr.getFiles().size());
 
-    mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G", "f5", "500M", "f6", "500M", "f7", "500M", "f8", "500M"));
+    mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G", "f5", "500M", "f6", "500M",
+        "f7", "500M", "f8", "500M"));
 
     Assert.assertTrue(slcs.shouldCompact(mcr));
-    Assert.assertEquals(nfl("f5", "500M", "f6", "500M", "f7", "500M", "f8", "500M").keySet(), new HashSet<>(slcs.getCompactionPlan(mcr).inputFiles));
+    Assert.assertEquals(nfl("f5", "500M", "f6", "500M", "f7", "500M", "f8", "500M").keySet(),
+        new HashSet<>(slcs.getCompactionPlan(mcr).inputFiles));
     Assert.assertEquals(8, mcr.getFiles().size());
   }
 }

@@ -25,8 +25,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
 /**
- * This interface is used for the system which will be used for getting a users Authorizations. If the implementation does not support configuration through
- * Accumulo, it should throw an AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
+ * This interface is used for the system which will be used for getting a users Authorizations. If
+ * the implementation does not support configuration through Accumulo, it should throw an
+ * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  */
 public interface Authorizor {
 
@@ -43,12 +44,14 @@ public interface Authorizor {
   /**
    * Used to initialize security for the root user
    */
-  void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
+  void initializeSecurity(TCredentials credentials, String rootuser)
+      throws AccumuloSecurityException, ThriftSecurityException;
 
   /**
    * Used to change the authorizations for the user
    */
-  void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException;
+  void changeAuthorizations(String user, Authorizations authorizations)
+      throws AccumuloSecurityException;
 
   /**
    * Used to get the authorizations for the user
@@ -58,7 +61,8 @@ public interface Authorizor {
   /**
    * Used to check if a user has valid auths.
    */
-  boolean isValidAuthorizations(String user, List<ByteBuffer> list) throws AccumuloSecurityException;
+  boolean isValidAuthorizations(String user, List<ByteBuffer> list)
+      throws AccumuloSecurityException;
 
   /**
    * Initializes a new user

@@ -44,7 +44,8 @@ public class ClientInfoProcessorFactory extends TProcessorFactory {
       clientAddress.set(tsock.getClientString());
     } else if (trans instanceof TSocket) {
       TSocket tsock = (TSocket) trans;
-      clientAddress.set(tsock.getSocket().getInetAddress().getHostAddress() + ":" + tsock.getSocket().getPort());
+      clientAddress.set(
+          tsock.getSocket().getInetAddress().getHostAddress() + ":" + tsock.getSocket().getPort());
     } else {
       log.warn("Unable to extract clientAddress from transport of type {}", trans.getClass());
     }

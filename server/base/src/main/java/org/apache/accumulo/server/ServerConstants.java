@@ -41,7 +41,8 @@ public class ServerConstants {
   public static final String INSTANCE_ID_DIR = "instance_id";
 
   /**
-   * current version (3) reflects additional namespace operations (ACCUMULO-802) in version 1.6.0<br>
+   * current version (3) reflects additional namespace operations (ACCUMULO-802) in version
+   * 1.6.0<br>
    * (versions should never be negative)
    */
   public static final Integer WIRE_VERSION = 3;
@@ -89,14 +90,16 @@ public class ServerConstants {
   // these are functions to delay loading the Accumulo configuration unless we must
   public static synchronized String[] getBaseUris() {
     if (baseUris == null) {
-      baseUris = checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
+      baseUris = checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()),
+          false);
     }
 
     return baseUris;
   }
 
   public static String[] checkBaseUris(String[] configuredBaseDirs, boolean ignore) {
-    // all base dirs must have same instance id and data version, any dirs that have neither should be ignored
+    // all base dirs must have same instance id and data version, any dirs that have neither should
+    // be ignored
     String firstDir = null;
     String firstIid = null;
     Integer firstVersion = null;
@@ -108,7 +111,8 @@ public class ServerConstants {
       try {
         currentIid = ZooUtil.getInstanceIDFromHdfs(path, SiteConfiguration.getInstance());
         Path vpath = new Path(baseDir, VERSION_DIR);
-        currentVersion = Accumulo.getAccumuloPersistentVersion(vpath.getFileSystem(CachedConfiguration.getInstance()), vpath);
+        currentVersion = Accumulo.getAccumuloPersistentVersion(
+            vpath.getFileSystem(CachedConfiguration.getInstance()), vpath);
       } catch (Exception e) {
         if (ignore)
           continue;
@@ -121,11 +125,13 @@ public class ServerConstants {
         firstDir = baseDir;
         firstVersion = currentVersion;
       } else if (!currentIid.equals(firstIid)) {
-        throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey() + " contains paths that have different instance ids "
-            + baseDir + " has " + currentIid + " and " + firstDir + " has " + firstIid);
+        throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
+            + " contains paths that have different instance ids " + baseDir + " has " + currentIid
+            + " and " + firstDir + " has " + firstIid);
       } else if (!currentVersion.equals(firstVersion)) {
-        throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey() + " contains paths that have different versions " + baseDir
-            + " has " + currentVersion + " and " + firstDir + " has " + firstVersion);
+        throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
+            + " contains paths that have different versions " + baseDir + " has " + currentVersion
+            + " and " + firstDir + " has " + firstVersion);
       }
 
       baseDirsList.add(baseDir);
@@ -173,7 +179,8 @@ public class ServerConstants {
   public static synchronized List<Pair<Path,Path>> getVolumeReplacements() {
 
     if (replacementsList == null) {
-      String replacements = SiteConfiguration.getInstance().get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
+      String replacements = SiteConfiguration.getInstance()
+          .get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
 
       replacements = replacements.trim();
 
@@ -187,24 +194,29 @@ public class ServerConstants {
 
         String uris[] = pair.split("\\s+");
         if (uris.length != 2)
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains malformed pair " + pair);
+          throw new IllegalArgumentException(
+              Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains malformed pair " + pair);
 
         Path p1, p2;
         try {
           // URI constructor handles hex escaping
           p1 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[0].trim())));
           if (p1.toUri().getScheme() == null)
-            throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + uris[0] + " which is not fully qualified");
+            throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+                + " contains " + uris[0] + " which is not fully qualified");
         } catch (URISyntaxException e) {
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + uris[0] + " which has a syntax error", e);
+          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+              + " contains " + uris[0] + " which has a syntax error", e);
         }
 
         try {
           p2 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[1].trim())));
           if (p2.toUri().getScheme() == null)
-            throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + uris[1] + " which is not fully qualified");
+            throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+                + " contains " + uris[1] + " which is not fully qualified");
         } catch (URISyntaxException e) {
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + uris[1] + " which has a syntax error", e);
+          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+              + " contains " + uris[1] + " which has a syntax error", e);
         }
 
         ret.add(new Pair<>(p1, p2));
@@ -218,8 +230,8 @@ public class ServerConstants {
 
       for (Pair<Path,Path> pair : ret)
         if (!baseDirs.contains(pair.getSecond()))
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + pair.getSecond()
-              + " which is not a configured volume");
+          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+              + " contains " + pair.getSecond() + " which is not a configured volume");
 
       // only set if get here w/o exception
       replacementsList = ret;

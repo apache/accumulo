@@ -254,7 +254,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
     es.shutdown();
   }
 
-  private void writeData(Connector c, String table) throws TableNotFoundException, MutationsRejectedException {
+  private void writeData(Connector c, String table)
+      throws TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
     try {
       Random rand = new Random();

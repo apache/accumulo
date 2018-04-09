@@ -171,13 +171,16 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       if (sendQueueSize.get() > maxQueueSize) {
         long now = System.currentTimeMillis();
         if (now - lastNotificationOfDroppedSpans > 60 * 1000) {
-          log.warn("Tracing spans are being dropped because there are already " + maxQueueSize + " spans queued for delivery.\n"
-              + "This does not affect performance, security or data integrity, but distributed tracing information is being lost.");
+          log.warn("Tracing spans are being dropped because there are already " + maxQueueSize
+              + " spans queued for delivery.\n"
+              + "This does not affect performance, security or data integrity,"
+              + " but distributed tracing information is being lost.");
           lastNotificationOfDroppedSpans = now;
         }
         return;
       }
-      sendQueue.add(new RemoteSpan(host, service == null ? s.getProcessId() : service, s.getTraceId(), s.getSpanId(), s.getParentId(), s.getStartTimeMillis(),
+      sendQueue.add(new RemoteSpan(host, service == null ? s.getProcessId() : service,
+          s.getTraceId(), s.getSpanId(), s.getParentId(), s.getStartTimeMillis(),
           s.getStopTimeMillis(), s.getDescription(), data, annotations));
       sendQueueSize.incrementAndGet();
     }

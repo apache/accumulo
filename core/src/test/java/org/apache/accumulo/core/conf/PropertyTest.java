@@ -46,14 +46,18 @@ public class PropertyTest {
     for (Property prop : Property.values()) {
       // make sure properties default values match their type
       if (prop.getType() == PropertyType.PREFIX) {
-        assertNull("PREFIX property " + prop.name() + " has unexpected non-null default value.", prop.getDefaultValue());
+        assertNull("PREFIX property " + prop.name() + " has unexpected non-null default value.",
+            prop.getDefaultValue());
       } else {
-        assertTrue("Property " + prop + " has invalid default value " + prop.getDefaultValue() + " for type " + prop.getType(),
+        assertTrue(
+            "Property " + prop + " has invalid default value " + prop.getDefaultValue()
+                + " for type " + prop.getType(),
             prop.getType().isValidFormat(prop.getDefaultValue()));
       }
 
       // make sure property has a description
-      assertFalse("Description not set for " + prop, prop.getDescription() == null || prop.getDescription().isEmpty());
+      assertFalse("Description not set for " + prop,
+          prop.getDescription() == null || prop.getDescription().isEmpty());
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
@@ -65,7 +69,8 @@ public class PropertyTest {
       assertTrue("Invalid prefix on prop " + prop, containsValidPrefix);
 
       // make sure properties aren't duplicate
-      assertFalse("Duplicate property name " + prop.getKey(), propertyNames.contains(prop.getKey()));
+      assertFalse("Duplicate property name " + prop.getKey(),
+          propertyNames.contains(prop.getKey()));
       propertyNames.add(prop.getKey());
 
     }
@@ -86,8 +91,11 @@ public class PropertyTest {
   @Test
   public void testRawDefaultValues() {
     AccumuloConfiguration conf = AccumuloConfiguration.getDefaultConfiguration();
-    assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}", Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
-    assertEquals(new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
+    assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
+        Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
+    assertEquals(
+        new File(System.getProperty("java.io.tmpdir"),
+            "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
         conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
   }
 
@@ -130,7 +138,8 @@ public class PropertyTest {
     TreeSet<String> expected = new TreeSet<>();
     for (Entry<String,String> entry : conf) {
       String key = entry.getKey();
-      if (key.equals(Property.INSTANCE_SECRET.getKey()) || key.toLowerCase().contains("password") || key.toLowerCase().endsWith("secret")
+      if (key.equals(Property.INSTANCE_SECRET.getKey()) || key.toLowerCase().contains("password")
+          || key.toLowerCase().endsWith("secret")
           || key.startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
         expected.add(key);
     }

@@ -61,7 +61,8 @@ public class DeleteWord extends Test {
 
     if (documentsToDelete.size() > 0) {
       // use a batch scanner to fetch all documents
-      BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName, Authorizations.EMPTY, 8);
+      BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName,
+          Authorizations.EMPTY, 8);
       bscanner.setRanges(documentsToDelete);
 
       BatchWriter ibw = env.getMultiTableBatchWriter().getBatchWriter(indexTableName);
@@ -87,7 +88,8 @@ public class DeleteWord extends Test {
       env.getMultiTableBatchWriter().flush();
 
       if (count != documentsToDelete.size()) {
-        throw new Exception("Batch scanner did not return expected number of docs " + count + " " + documentsToDelete.size());
+        throw new Exception("Batch scanner did not return expected number of docs " + count + " "
+            + documentsToDelete.size());
       }
     }
 

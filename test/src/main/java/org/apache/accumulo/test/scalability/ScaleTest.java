@@ -35,7 +35,8 @@ public abstract class ScaleTest {
   private int numTabletServers;
   private long startTime;
 
-  public void init(Properties scaleProps, Properties testProps, int numTabletServers) throws AccumuloException, AccumuloSecurityException {
+  public void init(Properties scaleProps, Properties testProps, int numTabletServers)
+      throws AccumuloException, AccumuloSecurityException {
 
     this.scaleProps = scaleProps;
     this.testProps = testProps;
@@ -48,8 +49,9 @@ public abstract class ScaleTest {
     String password = this.scaleProps.getProperty("PASSWORD");
     System.out.println(password);
 
-    conn = new ZooKeeperInstance(ClientConfiguration.create().withInstance(instanceName).withZkHosts(zookeepers)).getConnector(user,
-        new PasswordToken(password));
+    conn = new ZooKeeperInstance(
+        ClientConfiguration.create().withInstance(instanceName).withZkHosts(zookeepers))
+            .getConnector(user, new PasswordToken(password));
   }
 
   protected void startTimer() {

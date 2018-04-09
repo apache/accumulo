@@ -93,8 +93,10 @@ public class RpcWrapperTest {
 
     final FakeService impl = new FakeServiceImpl();
 
-    // "short" names throw RTEs and are oneway, while long names do not throw exceptions and are not oneway.
-    RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl, Sets.newHashSet("foo", "bar"));
+    // "short" names throw RTEs and are oneway, while long names do not throw exceptions and are not
+    // oneway.
+    RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl,
+        Sets.newHashSet("foo", "bar"));
 
     // Should throw an exception, but not be wrapped because the method is oneway
     try {
@@ -114,8 +116,10 @@ public class RpcWrapperTest {
 
     final FakeService impl = new FakeServiceImpl();
 
-    // "short" names throw RTEs and are not oneway, while long names do not throw exceptions and are oneway.
-    RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl, Sets.newHashSet("foobar", "barfoo"));
+    // "short" names throw RTEs and are not oneway, while long names do not throw exceptions and are
+    // oneway.
+    RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl,
+        Sets.newHashSet("foobar", "barfoo"));
 
     // Should throw an exception, but not be wrapped because the method is oneway
     try {
@@ -173,7 +177,8 @@ public class RpcWrapperTest {
   }
 
   /**
-   * An implementation of the fake thrift service. The "short" names throw RTEs, while long names do not.
+   * An implementation of the fake thrift service. The "short" names throw RTEs, while long names do
+   * not.
    */
   public static class FakeServiceImpl implements FakeService {
     @Override
@@ -198,9 +203,11 @@ public class RpcWrapperTest {
   }
 
   /**
-   * A fake ProcessFunction implementation for testing that allows injection of method name and oneway.
+   * A fake ProcessFunction implementation for testing that allows injection of method name and
+   * oneway.
    */
-  private static class fake_proc<I extends FakeService> extends org.apache.thrift.ProcessFunction<I,foo_args> {
+  private static class fake_proc<I extends FakeService>
+      extends org.apache.thrift.ProcessFunction<I,foo_args> {
     final private boolean isOneway;
 
     public fake_proc(String methodName, boolean isOneway) {

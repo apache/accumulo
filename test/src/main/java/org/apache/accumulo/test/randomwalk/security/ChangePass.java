@@ -56,7 +56,8 @@ public class ChangePass extends Test {
 
     targetExists = WalkingSecurity.get(state, env).userExists(target);
 
-    hasPerm = WalkingSecurity.get(state, env).canChangePassword(new Credentials(principal, token).toThrift(env.getInstance()), target);
+    hasPerm = WalkingSecurity.get(state, env)
+        .canChangePassword(new Credentials(principal, token).toThrift(env.getInstance()), target);
 
     Random r = new Random();
 
@@ -71,7 +72,9 @@ public class ChangePass extends Test {
       switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (hasPerm)
-            throw new AccumuloException("Change failed when it should have succeeded to change " + target + "'s password", ae);
+            throw new AccumuloException(
+                "Change failed when it should have succeeded to change " + target + "'s password",
+                ae);
           return;
         case USER_DOESNT_EXIST:
           if (targetExists)
@@ -89,6 +92,7 @@ public class ChangePass extends Test {
     // Waiting 1 second for password to propogate through Zk
     Thread.sleep(1000);
     if (!hasPerm)
-      throw new AccumuloException("Password change succeeded when it should have failed for " + source + " changing the password for " + target + ".");
+      throw new AccumuloException("Password change succeeded when it should have failed for "
+          + source + " changing the password for " + target + ".");
   }
 }

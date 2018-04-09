@@ -97,20 +97,23 @@ public class DefaultFormatterTest {
     assertEquals("a a:a [] " + timestamp + "\ta", answer);
 
     // yes timestamp, no max, new DateFormat
-    config.setPrintTimestamps(true).doNotLimitShowLength().setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("YYYY"));
+    config.setPrintTimestamps(true).doNotLimitShowLength()
+        .setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("YYYY"));
     df = new DefaultFormatter();
     df.initialize(map.entrySet(), config);
     answer = df.next();
     assertEquals("a ab:abc [] 1970\tabcd", answer);
 
     // yes timestamp, no max, new DateFormat, different TimeZone
-    config.setPrintTimestamps(true).doNotLimitShowLength().setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("HH", UTC));
+    config.setPrintTimestamps(true).doNotLimitShowLength()
+        .setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("HH", UTC));
     df = new DefaultFormatter();
     df.initialize(map.entrySet(), config);
     answer = df.next();
     assertEquals("a ab:abc [] 00\tabcd", answer);
 
-    config.setPrintTimestamps(true).doNotLimitShowLength().setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("HH", EST));
+    config.setPrintTimestamps(true).doNotLimitShowLength()
+        .setDateFormatSupplier(DateFormatSupplier.createSimpleFormatSupplier("HH", EST));
     df = new DefaultFormatter();
     df.initialize(map.entrySet(), config);
     answer = df.next();

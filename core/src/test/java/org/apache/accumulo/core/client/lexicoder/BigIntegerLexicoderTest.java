@@ -26,13 +26,18 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
  */
 public class BigIntegerLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
-    assertSortOrder(new BigIntegerLexicoder(), Arrays.asList(new BigInteger("-1"), new BigInteger("0"), new BigInteger("1"), new BigInteger("-257"),
-        new BigInteger("-256"), new BigInteger("-255"), new BigInteger("255"), new BigInteger("256"), new BigInteger("257"), new BigInteger("65534"),
-        new BigInteger("65535"), new BigInteger("65536"), new BigInteger("65537"), new BigInteger("-65534"), new BigInteger("-65535"),
-        new BigInteger("-65536"), new BigInteger("-65537"), new BigInteger("2147483648"), new BigInteger("2147483647"), new BigInteger("2147483649"),
-        new BigInteger("-2147483648"), new BigInteger("-2147483647"), new BigInteger("-2147483649"), new BigInteger("32768"), new BigInteger("32769"),
-        new BigInteger("32767"), new BigInteger("-32768"), new BigInteger("-32769"), new BigInteger("-32767"), new BigInteger("126"), new BigInteger("127"),
-        new BigInteger("128"), new BigInteger("129"), new BigInteger("-126"), new BigInteger("-127"), new BigInteger("-128"), new BigInteger("-129")));
+    assertSortOrder(new BigIntegerLexicoder(), Arrays.asList(new BigInteger("-1"),
+        new BigInteger("0"), new BigInteger("1"), new BigInteger("-257"), new BigInteger("-256"),
+        new BigInteger("-255"), new BigInteger("255"), new BigInteger("256"), new BigInteger("257"),
+        new BigInteger("65534"), new BigInteger("65535"), new BigInteger("65536"),
+        new BigInteger("65537"), new BigInteger("-65534"), new BigInteger("-65535"),
+        new BigInteger("-65536"), new BigInteger("-65537"), new BigInteger("2147483648"),
+        new BigInteger("2147483647"), new BigInteger("2147483649"), new BigInteger("-2147483648"),
+        new BigInteger("-2147483647"), new BigInteger("-2147483649"), new BigInteger("32768"),
+        new BigInteger("32769"), new BigInteger("32767"), new BigInteger("-32768"),
+        new BigInteger("-32769"), new BigInteger("-32767"), new BigInteger("126"),
+        new BigInteger("127"), new BigInteger("128"), new BigInteger("129"), new BigInteger("-126"),
+        new BigInteger("-127"), new BigInteger("-128"), new BigInteger("-129")));
 
   }
 

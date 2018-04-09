@@ -19,8 +19,9 @@ package org.apache.accumulo.core.util;
 import org.apache.commons.codec.binary.StringUtils;
 
 /**
- * A wrapper around commons-codec's Base64 to make sure we get the non-chunked behavior that became the default in commons-codec version 1.5+ while relying on
- * the commons-codec version 1.4 that Hadoop Client provides.
+ * A wrapper around commons-codec's Base64 to make sure we get the non-chunked behavior that became
+ * the default in commons-codec version 1.5+ while relying on the commons-codec version 1.4 that
+ * Hadoop Client provides.
  */
 public final class Base64 {
 
@@ -40,8 +41,12 @@ public final class Base64 {
    * Serialize to Base64 as a String, non-chunked.
    */
   public static String encodeBase64String(byte[] data) {
-    /* Based on implementation of this same name function in commons-codec 1.5+. in commons-codec 1.4, the second param sets chunking to true. */
-    return StringUtils.newStringUtf8(org.apache.commons.codec.binary.Base64.encodeBase64(data, false));
+    /*
+     * Based on implementation of this same name function in commons-codec 1.5+. in commons-codec
+     * 1.4, the second param sets chunking to true.
+     */
+    return StringUtils
+        .newStringUtf8(org.apache.commons.codec.binary.Base64.encodeBase64(data, false));
   }
 
   /**

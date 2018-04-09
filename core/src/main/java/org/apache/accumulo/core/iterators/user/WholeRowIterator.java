@@ -32,19 +32,22 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  *
- * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as atomic. It does so by encapsulating an entire row of key/value
- * pairs into a single key/value pair, which is returned through the client as an atomic operation.
+ * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as
+ * atomic. It does so by encapsulating an entire row of key/value pairs into a single key/value
+ * pair, which is returned through the client as an atomic operation.
  *
  * <p>
- * This iterator extends the {@link RowEncodingIterator}, providing implementations for rowEncoder and rowDecoder which serializes all column and value
- * information from a given row into a single ByteStream in a value.
+ * This iterator extends the {@link RowEncodingIterator}, providing implementations for rowEncoder
+ * and rowDecoder which serializes all column and value information from a given row into a single
+ * ByteStream in a value.
  *
  * <p>
- * As with the RowEncodingIterator, when seeking in the WholeRowIterator using a range that starts at a non-inclusive first key in a row, this iterator will
- * skip to the next row.
+ * As with the RowEncodingIterator, when seeking in the WholeRowIterator using a range that starts
+ * at a non-inclusive first key in a row, this iterator will skip to the next row.
  *
  * <p>
- * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
+ * To regain the original key/value pairs of the row, call the decodeRow function on the key/value
+ * pair that this iterator returned.
  *
  * @see RowFilter
  */
@@ -66,8 +69,8 @@ public class WholeRowIterator extends RowEncodingIterator {
   }
 
   /**
-   * Returns the byte array containing the field of row key from the given DataInputStream din. Assumes that din first has the length of the field, followed by
-   * the field itself.
+   * Returns the byte array containing the field of row key from the given DataInputStream din.
+   * Assumes that din first has the length of the field, followed by the field itself.
    */
   private static byte[] readField(DataInputStream din) throws IOException {
     int len = din.readInt();
@@ -83,7 +86,8 @@ public class WholeRowIterator extends RowEncodingIterator {
   }
 
   // decode a bunch of key value pairs that have been encoded into a single value
-  public static final SortedMap<Key,Value> decodeRow(Key rowKey, Value rowValue) throws IOException {
+  public static final SortedMap<Key,Value> decodeRow(Key rowKey, Value rowValue)
+      throws IOException {
     SortedMap<Key,Value> map = new TreeMap<>();
     ByteArrayInputStream in = new ByteArrayInputStream(rowValue.get());
     DataInputStream din = new DataInputStream(in);
@@ -94,7 +98,8 @@ public class WholeRowIterator extends RowEncodingIterator {
       byte[] cv = readField(din); // read the col visibility
       long timestamp = din.readLong(); // read the timestamp
       byte[] valBytes = readField(din); // read the value
-      map.put(new Key(rowKey.getRowData().toArray(), cf, cq, cv, timestamp, false, false), new Value(valBytes, false));
+      map.put(new Key(rowKey.getRowData().toArray(), cf, cq, cv, timestamp, false, false),
+          new Value(valBytes, false));
     }
     return map;
   }

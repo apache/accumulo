@@ -40,9 +40,11 @@ final class ContinuousUtil {
    * @throws TableNotFoundException
    *           If the table does not exist
    */
-  static Scanner createScanner(Connector connector, String table, Authorizations auths) throws TableNotFoundException {
+  static Scanner createScanner(Connector connector, String table, Authorizations auths)
+      throws TableNotFoundException {
     if (!connector.tableOperations().exists(table)) {
-      throw new TableNotFoundException(null, table, "Consult the README and create the table before starting test processes.");
+      throw new TableNotFoundException(null, table,
+          "Consult the README and create the table before starting test processes.");
     }
     return connector.createScanner(table, auths);
   }

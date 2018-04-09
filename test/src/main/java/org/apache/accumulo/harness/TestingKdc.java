@@ -59,7 +59,8 @@ public class TestingKdc {
     File targetDir = new File(System.getProperty("user.dir"), "target");
     if (!targetDir.exists())
       Assert.assertTrue(targetDir.mkdirs());
-    Assert.assertTrue("Could not find Maven target directory: " + targetDir, targetDir.exists() && targetDir.isDirectory());
+    Assert.assertTrue("Could not find Maven target directory: " + targetDir,
+        targetDir.exists() && targetDir.isDirectory());
 
     // Create the directories: target/kerberos/minikdc
     File kdcDir = new File(new File(targetDir, "kerberos"), "minikdc");
@@ -71,7 +72,8 @@ public class TestingKdc {
 
   public static File computeKeytabDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
-    Assert.assertTrue("Could not find Maven target directory: " + targetDir, targetDir.exists() && targetDir.isDirectory());
+    Assert.assertTrue("Could not find Maven target directory: " + targetDir,
+        targetDir.exists() && targetDir.isDirectory());
 
     // Create the directories: target/kerberos/keytabs
     File keytabDir = new File(new File(targetDir, "kerberos"), "keytabs");
@@ -181,7 +183,8 @@ public class TestingKdc {
    */
   public ClusterUser getClientPrincipal(int offset) {
     checkArgument(started, "Client principal is not initialized, is the KDC started?");
-    checkArgument(offset >= 0 && offset < NUM_USERS, "Offset is invalid, must be non-negative and less than " + NUM_USERS);
+    checkArgument(offset >= 0 && offset < NUM_USERS,
+        "Offset is invalid, must be non-negative and less than " + NUM_USERS);
     return clientPrincipals.get(offset);
   }
 

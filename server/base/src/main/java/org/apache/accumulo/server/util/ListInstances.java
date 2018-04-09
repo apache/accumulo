@@ -51,7 +51,8 @@ public class ListInstances {
   static class Opts extends Help {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
-    @Parameter(names = "--print-all", description = "print information for all instances, not just those with names")
+    @Parameter(names = "--print-all",
+        description = "print information for all instances, not just those with names")
     boolean printAll = false;
     @Parameter(names = {"-z", "--zookeepers"}, description = "the zookeepers to contact")
     String keepers = null;
@@ -100,13 +101,15 @@ public class ListInstances {
       }
     } else if (instancedIds.size() > 0) {
       System.out.println();
-      System.out.println("INFO : " + instancedIds.size() + " unamed instances were not printed, run with --print-all to see all instances");
+      System.out.println("INFO : " + instancedIds.size()
+          + " unamed instances were not printed, run with --print-all to see all instances");
     } else {
       System.out.println();
     }
 
     if (!printErrors && errors > 0) {
-      System.err.println("WARN : There were " + errors + " errors, run with --print-errors to see more info");
+      System.err.println(
+          "WARN : There were " + errors + " errors, run with --print-errors to see more info");
     }
   }
 
@@ -130,13 +133,16 @@ public class ListInstances {
   }
 
   private static void printHeader() {
-    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MASTER_WIDTH + "s%n", "Instance Name", "Instance ID", "Master");
-    System.out.printf("%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MASTER_WIDTH + 1) + "s%n", new CharFiller('-'), new CharFiller('-'),
-        new CharFiller('-'));
+    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MASTER_WIDTH + "s%n",
+        "Instance Name", "Instance ID", "Master");
+    System.out.printf(
+        "%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MASTER_WIDTH + 1) + "s%n",
+        new CharFiller('-'), new CharFiller('-'), new CharFiller('-'));
 
   }
 
-  private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid, boolean printErrors) {
+  private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid,
+      boolean printErrors) {
     String master = getMaster(cache, iid, printErrors);
     if (instanceName == null) {
       instanceName = "";
@@ -146,7 +152,8 @@ public class ListInstances {
       master = "";
     }
 
-    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n", "\"" + instanceName + "\"", iid, master);
+    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n",
+        "\"" + instanceName + "\"", iid, master);
   }
 
   private static String getMaster(ZooCache cache, UUID iid, boolean printErrors) {

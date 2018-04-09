@@ -38,17 +38,20 @@ public class BulkImportDirectory {
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names = {"-s", "--source"}, description = "directory to import from")
     String source = null;
-    @Parameter(names = {"-f", "--failures"}, description = "directory to copy failures into: will be deleted before the bulk import")
+    @Parameter(names = {"-f", "--failures"},
+        description = "directory to copy failures into: will be deleted before the bulk import")
     String failures = null;
     @Parameter(description = "<username> <password> <tablename> <sourcedir> <failuredir>")
     List<String> args = new ArrayList<>();
   }
 
-  public static void main(String[] args) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void main(String[] args)
+      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Opts opts = new Opts();
     if (args.length == 5) {
-      System.err.println("Deprecated syntax for BulkImportDirectory, please use the new style (see --help)");
+      System.err.println(
+          "Deprecated syntax for BulkImportDirectory, please use the new style (see --help)");
       final String user = args[0];
       final byte[] pass = args[1].getBytes(UTF_8);
       final String tableName = args[2];
@@ -57,12 +60,14 @@ public class BulkImportDirectory {
       final Path failureDirPath = new Path(failureDir);
       fs.delete(failureDirPath, true);
       fs.mkdirs(failureDirPath);
-      HdfsZooInstance.getInstance().getConnector(user, new PasswordToken(pass)).tableOperations().importDirectory(tableName, dir, failureDir, false);
+      HdfsZooInstance.getInstance().getConnector(user, new PasswordToken(pass)).tableOperations()
+          .importDirectory(tableName, dir, failureDir, false);
     } else {
       opts.parseArgs(BulkImportDirectory.class.getName(), args);
       fs.delete(new Path(opts.failures), true);
       fs.mkdirs(new Path(opts.failures));
-      opts.getConnector().tableOperations().importDirectory(opts.getTableName(), opts.source, opts.failures, false);
+      opts.getConnector().tableOperations().importDirectory(opts.getTableName(), opts.source,
+          opts.failures, false);
     }
   }
 }

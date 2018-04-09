@@ -39,6 +39,7 @@ public class IteratorTestUtil {
   }
 
   public static SortedKeyValueIterator<Key,Value> createSource(IteratorTestInput input) {
-    return new SimpleKVReusingIterator(new ColumnFamilySkippingIterator(new SortedMapIterator(requireNonNull(input).getInput())));
+    return new SimpleKVReusingIterator(
+        new ColumnFamilySkippingIterator(new SortedMapIterator(requireNonNull(input).getInput())));
   }
 }

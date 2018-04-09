@@ -56,6 +56,38 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
+  public double getIngestByteRate() {
+    double result = 0;
+    for (Tablet tablet : tserver.getOnlineTablets()) {
+      result += tablet.ingestByteRate();
+    }
+    return result;
+  }
+
+  public double getQueryRate() {
+    double result = 0;
+    for (Tablet tablet : tserver.getOnlineTablets()) {
+      result += tablet.queryRate();
+    }
+    return result;
+  }
+
+  public double getQueryByteRate() {
+    double result = 0;
+    for (Tablet tablet : tserver.getOnlineTablets()) {
+      result += tablet.queryByteRate();
+    }
+    return result;
+  }
+
+  public double getScannedRate() {
+    double result = 0;
+    for (Tablet tablet : tserver.getOnlineTablets()) {
+      result += tablet.scanRate();
+    }
+    return result;
+  }
+
   public int getMajorCompactions() {
     int result = 0;
     for (Tablet tablet : tserver.getOnlineTablets()) {

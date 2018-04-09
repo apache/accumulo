@@ -37,14 +37,19 @@ public class HiddenCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     if (rand.nextInt(10) == 0) {
       shellState.getReader().beep();
       shellState.getReader().println();
-      shellState.getReader().println(
-          new String(Base64.decodeBase64(("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88LgogICAgLyB8ICd8ICcgXAog"
-              + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
-              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes(UTF_8)), UTF_8));
+      shellState.getReader()
+          .println(new String(Base64
+              .decodeBase64(("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88"
+                  + "LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAog"
+                  + "fCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAg"
+                  + "ICAvICAvICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxf"
+                  + "Xy8gICAgICAgIFx8X3wK").getBytes(UTF_8)),
+              UTF_8));
     } else {
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
     }

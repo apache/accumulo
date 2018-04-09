@@ -71,7 +71,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
     for (String table : tableNames) {
       log.debug("Checking constraints on {}", table);
       Map<String,Integer> constraints = c.tableOperations().listConstraints(table);
-      while (!constraints.containsKey(NumericValueConstraint.class.getName()) || !constraints.containsKey(AlphaNumKeyConstraint.class.getName())) {
+      while (!constraints.containsKey(NumericValueConstraint.class.getName())
+          || !constraints.containsKey(AlphaNumKeyConstraint.class.getName())) {
         log.debug("Failed to verify constraints. Sleeping and retrying");
         Thread.sleep(2000);
         constraints = c.tableOperations().listConstraints(table);
@@ -144,14 +145,17 @@ public class ConstraintIT extends AccumuloClusterHarness {
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     Entry<Key,Value> entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+    if (!entry.getKey().getRow().equals(new Text("r1"))
+        || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
+        || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     if (iter.hasNext()) {
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      throw new Exception(
+          "Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     // remove the numeric value constraint
@@ -167,18 +171,22 @@ public class ConstraintIT extends AccumuloClusterHarness {
     iter = scanner.iterator();
     entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+    if (!entry.getKey().getRow().equals(new Text("r1"))
+        || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
+        || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     if (iter.hasNext()) {
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      throw new Exception(
+          "Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     // add a constraint that references a non-existant class
-    getConnector().tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
+    getConnector().tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1",
+        "com.foobar.nonExistantClass");
     sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     // add a mutation
@@ -207,14 +215,17 @@ public class ConstraintIT extends AccumuloClusterHarness {
     iter = scanner.iterator();
     entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+    if (!entry.getKey().getRow().equals(new Text("r1"))
+        || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
+        || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     if (iter.hasNext()) {
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      throw new Exception(
+          "Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     // remove the bad constraint
@@ -230,14 +241,17 @@ public class ConstraintIT extends AccumuloClusterHarness {
     iter = scanner.iterator();
     entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
+    if (!entry.getKey().getRow().equals(new Text("r1"))
+        || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
+        || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     if (iter.hasNext()) {
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      throw new Exception(
+          "Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
     }
   }
 
@@ -248,7 +262,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
   }
 
   private void test2(String table, boolean doFlush) throws Exception {
-    // test sending multiple mutations with multiple constrain violations... all of the non violating mutations
+    // test sending multiple mutations with multiple constrain violations... all of the non
+    // violating mutations
     // should go through
     int numericErrors = 2;
 
@@ -294,12 +309,14 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
       HashMap<String,Integer> expected = new HashMap<>();
 
-      expected.put("org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", numericErrors);
+      expected.put("org.apache.accumulo.examples.simple.constraints.NumericValueConstraint",
+          numericErrors);
       expected.put("org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint", 1);
 
       for (ConstraintViolationSummary cvs : cvsl) {
         if (expected.get(cvs.constrainClass) != cvs.numberOfViolatingMutations) {
-          throw new Exception("Unexpected " + cvs.constrainClass + " " + cvs.numberOfViolatingMutations);
+          throw new Exception(
+              "Unexpected " + cvs.constrainClass + " " + cvs.numberOfViolatingMutations);
         }
       }
     }
@@ -314,21 +331,26 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
     Entry<Key,Value> entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+    if (!entry.getKey().getRow().equals(new Text("r1"))
+        || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1"))
+        || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
+    if (!entry.getKey().getRow().equals(new Text("r1"))
+        || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq4"))
+        || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     if (iter.hasNext()) {
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      throw new Exception(
+          "Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
     }
 
   }

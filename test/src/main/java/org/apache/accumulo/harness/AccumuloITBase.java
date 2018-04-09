@@ -45,11 +45,14 @@ public class AccumuloITBase {
   }
 
   /**
-   * Determines an appropriate directory name for holding generated ssl files for a test. The directory returned will have the same name as the provided
-   * directory, but with the suffix "-ssl" appended. This new directory is not created here, but is expected to be created as needed.
+   * Determines an appropriate directory name for holding generated ssl files for a test. The
+   * directory returned will have the same name as the provided directory, but with the suffix
+   * "-ssl" appended. This new directory is not created here, but is expected to be created as
+   * needed.
    *
    * @param baseDir
-   *          the original directory, which the new directory will be created next to; it should exist
+   *          the original directory, which the new directory will be created next to; it should
+   *          exist
    * @return the new directory (is not created)
    */
   public static File getSslDir(File baseDir) {
@@ -69,17 +72,21 @@ public class AccumuloITBase {
   }
 
   /**
-   * If a given IT test has a method that takes longer than a class-set default timeout, declare it failed.
+   * If a given IT test has a method that takes longer than a class-set default timeout, declare it
+   * failed.
    *
-   * Note that this provides a upper bound on test times, even in the presence of Test annotations with a timeout. That is, the Test annotatation can make the
-   * timing tighter but will not be able to allow a timeout that takes longer.
+   * Note that this provides a upper bound on test times, even in the presence of Test annotations
+   * with a timeout. That is, the Test annotatation can make the timing tighter but will not be able
+   * to allow a timeout that takes longer.
    *
    * Defaults to no timeout and can be changed via two mechanisms
    *
-   * 1) A given IT class can override the defaultTimeoutSeconds method if test methods in that class should have a timeout. 2) The system property
-   * "timeout.factor" is used as a multiplier for the class provided default
+   * 1) A given IT class can override the defaultTimeoutSeconds method if test methods in that class
+   * should have a timeout. 2) The system property "timeout.factor" is used as a multiplier for the
+   * class provided default
    *
-   * Note that if either of these values is '0' tests will run with no timeout. The default class level timeout is set to 0.
+   * Note that if either of these values is '0' tests will run with no timeout. The default class
+   * level timeout is set to 0.
    *
    */
   @Rule
@@ -94,7 +101,8 @@ public class AccumuloITBase {
       log.warn("Could not parse timeout.factor, defaulting to no timeout.");
     }
 
-    return Timeout.builder().withTimeout(waitLonger * defaultTimeoutSeconds(), TimeUnit.SECONDS).withLookingForStuckThread(true).build();
+    return Timeout.builder().withTimeout(waitLonger * defaultTimeoutSeconds(), TimeUnit.SECONDS)
+        .withLookingForStuckThread(true).build();
   }
 
   /**

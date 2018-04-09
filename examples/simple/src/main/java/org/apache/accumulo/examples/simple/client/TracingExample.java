@@ -71,7 +71,8 @@ public class TracingExample {
     DistributedTrace.enable("myHost", "myApp");
   }
 
-  public void execute(Opts opts) throws TableNotFoundException, InterruptedException, AccumuloException, AccumuloSecurityException, TableExistsException {
+  public void execute(Opts opts) throws TableNotFoundException, InterruptedException,
+      AccumuloException, AccumuloSecurityException, TableExistsException {
 
     if (opts.createtable) {
       opts.getConnector().tableOperations().create(opts.getTableName());
@@ -90,15 +91,18 @@ public class TracingExample {
     }
   }
 
-  private void createEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  private void createEntries(Opts opts)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
     // Trace the write operation. Note, unless you flush the BatchWriter, you will not capture
-    // the write operation as it is occurs asynchronously. You can optionally create additional Spans
+    // the write operation as it is occurs asynchronously. You can optionally create additional
+    // Spans
     // within a given Trace as seen below around the flush
     TraceScope scope = Trace.startSpan("Client Write", Sampler.ALWAYS);
 
     System.out.println("TraceID: " + Long.toHexString(scope.getSpan().getTraceId()));
-    BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(), new BatchWriterConfig());
+    BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(),
+        new BatchWriterConfig());
 
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");
@@ -112,7 +116,8 @@ public class TracingExample {
     scope.close();
   }
 
-  private void readEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  private void readEntries(Opts opts)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
     Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
 
@@ -125,8 +130,10 @@ public class TracingExample {
       System.out.println(entry.getKey().toString() + " -> " + entry.getValue().toString());
       ++numberOfEntriesRead;
     }
-    // You can add additional metadata (key, values) to Spans which will be able to be viewed in the Monitor
-    readScope.getSpan().addKVAnnotation("Number of Entries Read".getBytes(UTF_8), String.valueOf(numberOfEntriesRead).getBytes(UTF_8));
+    // You can add additional metadata (key, values) to Spans which will be able to be viewed in the
+    // Monitor
+    readScope.getSpan().addKVAnnotation("Number of Entries Read".getBytes(UTF_8),
+        String.valueOf(numberOfEntriesRead).getBytes(UTF_8));
 
     readScope.close();
   }

@@ -151,7 +151,8 @@ public class SaslConnectionParams {
       mechanism = SaslMechanism.DIGEST_MD5;
       callbackHandler = new SaslClientDigestCallbackHandler((DelegationTokenImpl) token);
     } else {
-      throw new IllegalArgumentException("Cannot determine SASL mechanism for token class: " + token.getClass());
+      throw new IllegalArgumentException(
+          "Cannot determine SASL mechanism for token class: " + token.getClass());
     }
   }
 
@@ -165,7 +166,8 @@ public class SaslConnectionParams {
     final KerberosName krbName;
     try {
       krbName = new KerberosName(serverPrincipal);
-      clientProperties.put(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey(), krbName.getServiceName());
+      clientProperties.put(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey(),
+          krbName.getServiceName());
     } catch (Exception e) {
       // bad value or empty, assume we're not using kerberos
     }
@@ -262,7 +264,8 @@ public class SaslConnectionParams {
   @Override
   public int hashCode() {
     HashCodeBuilder hcb = new HashCodeBuilder(23, 29);
-    hcb.append(kerberosServerPrimary).append(saslProperties).append(qop.hashCode()).append(principal).append(mechanism).append(callbackHandler);
+    hcb.append(kerberosServerPrimary).append(saslProperties).append(qop.hashCode())
+        .append(principal).append(mechanism).append(callbackHandler);
     return hcb.toHashCode();
   }
 
@@ -299,8 +302,10 @@ public class SaslConnectionParams {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(64);
-    sb.append("SaslConnectionParams[").append("kerberosServerPrimary=").append(kerberosServerPrimary).append(", qualityOfProtection=").append(qop);
-    sb.append(", principal=").append(principal).append(", mechanism=").append(mechanism).append(", callbackHandler=").append(callbackHandler).append("]");
+    sb.append("SaslConnectionParams[").append("kerberosServerPrimary=")
+        .append(kerberosServerPrimary).append(", qualityOfProtection=").append(qop);
+    sb.append(", principal=").append(principal).append(", mechanism=").append(mechanism)
+        .append(", callbackHandler=").append(callbackHandler).append("]");
     return sb.toString();
   }
 

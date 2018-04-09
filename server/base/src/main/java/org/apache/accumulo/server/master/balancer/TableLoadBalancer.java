@@ -45,13 +45,15 @@ public class TableLoadBalancer extends TabletBalancer {
 
   Map<String,TabletBalancer> perTableBalancers = new HashMap<>();
 
-  private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
+  private TabletBalancer constructNewBalancerForTable(String clazzName, String table)
+      throws Exception {
     String context = null;
     if (null != configuration)
       context = configuration.getTableConfiguration(table).get(Property.TABLE_CLASSPATH);
     Class<? extends TabletBalancer> clazz;
     if (context != null && !context.equals(""))
-      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, TabletBalancer.class);
+      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName,
+          TabletBalancer.class);
     else
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(String.class);
@@ -111,12 +113,13 @@ public class TableLoadBalancer extends TabletBalancer {
   }
 
   @Override
-  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
-      Map<KeyExtent,TServerInstance> assignments) {
+  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
+      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
     // separate the unassigned into tables
     Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId());
+      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned
+          .get(e.getKey().getTableId());
       if (tableUnassigned == null) {
         tableUnassigned = new HashMap<>();
         groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
@@ -145,7 +148,8 @@ public class TableLoadBalancer extends TabletBalancer {
   }
 
   @Override
-  public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
+  public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
+      Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     long minBalanceTime = 5 * 1000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();

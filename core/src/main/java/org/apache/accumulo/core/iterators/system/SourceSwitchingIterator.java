@@ -36,11 +36,14 @@ import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
 import com.google.common.base.Optional;
 
 /**
- * A SortedKeyValueIterator which presents a view over some section of data, regardless of whether or not it is backed by memory (InMemoryMap) or an RFile
- * (InMemoryMap that was minor compacted to a file). Clients reading from a table that has data in memory should not see interruption in their scan when that
- * data is minor compacted. This iterator is designed to manage this behind the scene.
+ * A SortedKeyValueIterator which presents a view over some section of data, regardless of whether
+ * or not it is backed by memory (InMemoryMap) or an RFile (InMemoryMap that was minor compacted to
+ * a file). Clients reading from a table that has data in memory should not see interruption in
+ * their scan when that data is minor compacted. This iterator is designed to manage this behind the
+ * scene.
  */
-public class SourceSwitchingIterator implements InterruptibleIterator, YieldingKeyValueIterator<Key,Value> {
+public class SourceSwitchingIterator
+    implements InterruptibleIterator, YieldingKeyValueIterator<Key,Value> {
 
   public interface DataSource {
     boolean isCurrent();
@@ -75,13 +78,15 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
   // copies of this iterator if other iterators above this one duplicate their source. For example,
   // if an IntersectingIterator over two columns was configured, `copies` would contain two SSIs
   // instead of just one SSI. The two instances in `copies` would both be at the same "level"
-  // in the tree of iterators for the scan. If multiple instances of SSI are configure in the iterator
+  // in the tree of iterators for the scan. If multiple instances of SSI are configure in the
+  // iterator
   // tree (e.g. priority 8 and priority 12), each instance would share their own `copies` e.g.
   // SSI@priority8:copies1[...], SSI@priority12:copies2[...]
 
   private final List<SourceSwitchingIterator> copies;
 
-  private SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow, List<SourceSwitchingIterator> copies) {
+  private SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow,
+      List<SourceSwitchingIterator> copies) {
     this.source = source;
     this.onlySwitchAfterRow = onlySwitchAfterRow;
     this.copies = copies;
@@ -99,7 +104,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     synchronized (copies) {
-      return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies);
+      return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow,
+          copies);
     }
   }
 
@@ -131,7 +137,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
 
@@ -144,7 +151,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
 
   private void readNext(boolean initialSeek) throws IOException {
 
-    // we need to check here if we were yielded in case the source was switched out and re-seeked by someone else (minor compaction/InMemoryMap)
+    // we need to check here if we were yielded in case the source was switched out and re-seeked by
+    // someone else (minor compaction/InMemoryMap)
     boolean yielded = (yield.isPresent() && yield.get().hasYielded());
 
     // check of initialSeek second is intentional so that it does not short
@@ -157,22 +165,28 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
       else if (yielded) {
         Key yieldPosition = yield.get().getPositionAndReset();
         if (!range.contains(yieldPosition)) {
-          throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + range);
+          throw new IOException("Underlying iterator yielded to a position outside of its range: "
+              + yieldPosition + " not in " + range);
         }
-        iter.seek(new Range(yieldPosition, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
+        iter.seek(new Range(yieldPosition, false, range.getEndKey(), range.isEndKeyInclusive()),
+            columnFamilies, inclusive);
       } else
-        iter.seek(new Range(key, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
+        iter.seek(new Range(key, false, range.getEndKey(), range.isEndKeyInclusive()),
+            columnFamilies, inclusive);
     else {
       iter.next();
-      if (onlySwitchAfterRow && iter.hasTop() && !source.isCurrent() && !key.getRowData().equals(iter.getTopKey().getRowData())) {
+      if (onlySwitchAfterRow && iter.hasTop() && !source.isCurrent()
+          && !key.getRowData().equals(iter.getTopKey().getRowData())) {
         switchSource();
-        iter.seek(new Range(key.followingKey(PartialKey.ROW), true, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
+        iter.seek(new Range(key.followingKey(PartialKey.ROW), true, range.getEndKey(),
+            range.isEndKeyInclusive()), columnFamilies, inclusive);
       }
     }
 
     if (iter.hasTop()) {
       if (yield.isPresent() && yield.get().hasYielded()) {
-        throw new IOException("Coding error: hasTop returned true but has yielded at " + yield.get().getPositionAndReset());
+        throw new IOException("Coding error: hasTop returned true but has yielded at "
+            + yield.get().getPositionAndReset());
       }
 
       Key nextKey = iter.getTopKey();
@@ -206,7 +220,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
     synchronized (copies) {
       this.range = range;
       this.inclusive = inclusive;
@@ -231,7 +246,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
 
     if (switchSource()) {
       if (key != null) {
-        iter.seek(new Range(key, true, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
+        iter.seek(new Range(key, true, range.getEndKey(), range.isEndKeyInclusive()),
+            columnFamilies, inclusive);
       }
     }
   }
@@ -247,7 +263,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator, YieldingK
   public void setInterruptFlag(AtomicBoolean flag) {
     synchronized (copies) {
       if (copies.size() != 1)
-        throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
+        throw new IllegalStateException(
+            "setInterruptFlag() called after deep copies made " + copies.size());
 
       if (iter != null)
         ((InterruptibleIterator) iter).setInterruptFlag(flag);

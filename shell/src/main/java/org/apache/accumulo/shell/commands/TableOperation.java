@@ -41,7 +41,8 @@ public abstract class TableOperation extends Command {
   private boolean useCommandLine = true;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
     // populate the tableSet set with the tables you want to operate on
     final SortedSet<String> tableSet = new TreeSet<>();
     if (cl.hasOption(optTablePattern.getOpt())) {
@@ -55,7 +56,8 @@ public abstract class TableOperation extends Command {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (cl.hasOption(optNamespace.getOpt())) {
       Instance instance = shellState.getInstance();
-      String namespaceId = Namespaces.getNamespaceId(instance, cl.getOptionValue(optNamespace.getOpt()));
+      String namespaceId = Namespaces.getNamespaceId(instance,
+          cl.getOptionValue(optNamespace.getOpt()));
       for (String tableId : Namespaces.getTableIds(instance, namespaceId)) {
         tableSet.add(Tables.getTableName(instance, tableId));
       }
@@ -83,7 +85,8 @@ public abstract class TableOperation extends Command {
       boolean operate = true;
       if (!force) {
         shellState.getReader().flush();
-        String line = shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
+        String line = shellState.getReader()
+            .readLine(getName() + " { " + tableName + " } (yes|no)? ");
         more = line != null;
         operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       }
@@ -118,13 +121,16 @@ public abstract class TableOperation extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    optTablePattern = new Option("p", "pattern", true, "regex pattern of table names to operate on");
+    optTablePattern = new Option("p", "pattern", true,
+        "regex pattern of table names to operate on");
     optTablePattern.setArgName("pattern");
 
-    optTableName = new Option(ShellOptions.tableOption, "table", true, "name of a table to operate on");
+    optTableName = new Option(ShellOptions.tableOption, "table", true,
+        "name of a table to operate on");
     optTableName.setArgName("tableName");
 
-    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace to operate on");
+    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,
+        "name of a namespace to operate on");
     optNamespace.setArgName("namespace");
 
     final OptionGroup opg = new OptionGroup();
@@ -161,7 +167,8 @@ public abstract class TableOperation extends Command {
   }
 
   @Override
-  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root,
+      final Map<Command.CompletionSet,Set<String>> special) {
     if (useCommandLine)
       registerCompletionForTables(root, special);
   }

@@ -27,13 +27,17 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 /**
- * A Combiner that decodes each Value to type V before reducing, then encodes the result of typedReduce back to Value.
+ * A Combiner that decodes each Value to type V before reducing, then encodes the result of
+ * typedReduce back to Value.
  *
- * Subclasses must implement a typedReduce method: {@code public V typedReduce(Key key, Iterator<V> iter);}
+ * Subclasses must implement a typedReduce method:
+ * {@code public V typedReduce(Key key, Iterator<V> iter);}
  *
- * This typedReduce method will be passed the most recent Key and an iterator over the Values (translated to Vs) for all non-deleted versions of that Key.
+ * This typedReduce method will be passed the most recent Key and an iterator over the Values
+ * (translated to Vs) for all non-deleted versions of that Key.
  *
- * Subclasses may implement a switch on the "type" variable to choose an Encoder in their init method.
+ * Subclasses may implement a switch on the "type" variable to choose an Encoder in their init
+ * method.
  */
 public abstract class TypedValueCombiner<V> extends Combiner {
   private Encoder<V> encoder = null;
@@ -42,7 +46,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   protected static final String LOSSY = "lossy";
 
   /**
-   * A Java Iterator that translates an {@code Iterator<Value>} to an {@code Iterator<V>} using the decode method of an Encoder.
+   * A Java Iterator that translates an {@code Iterator<Value>} to an {@code Iterator<V>} using the
+   * decode method of an Encoder.
    */
   private static class VIterator<V> implements Iterator<V> {
     private Iterator<Value> source;
@@ -105,7 +110,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   }
 
   /**
-   * An interface for translating from byte[] to V and back. Decodes the entire contents of the byte array.
+   * An interface for translating from byte[] to V and back. Decodes the entire contents of the byte
+   * array.
    */
   public interface Encoder<V> {
     byte[] encode(V v);
@@ -129,7 +135,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   protected void setEncoder(String encoderClass) {
     try {
       @SuppressWarnings("unchecked")
-      Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloVFSClassLoader.loadClass(encoderClass, Encoder.class);
+      Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloVFSClassLoader
+          .loadClass(encoderClass, Encoder.class);
       encoder = clazz.newInstance();
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException(e);
@@ -163,9 +170,11 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   public static <V> void testEncoder(Encoder<V> encoder, V v) {
     try {
       if (!v.equals(encoder.decode(encoder.encode(v))))
-        throw new IllegalArgumentException("something wrong with " + encoder.getClass().getName() + " -- doesn't encode and decode " + v + " properly");
+        throw new IllegalArgumentException("something wrong with " + encoder.getClass().getName()
+            + " -- doesn't encode and decode " + v + " properly");
     } catch (ClassCastException e) {
-      throw new IllegalArgumentException(encoder.getClass().getName() + " doesn't encode " + v.getClass().getName());
+      throw new IllegalArgumentException(
+          encoder.getClass().getName() + " doesn't encode " + v.getClass().getName());
     }
   }
 
@@ -183,7 +192,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     setLossyness(options);
   }
@@ -199,7 +209,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
-    io.addNamedOption(LOSSY, "if true, failed decodes are ignored. Otherwise combiner will error on failed decodes (default false): <TRUE|FALSE>");
+    io.addNamedOption(LOSSY, "if true, failed decodes are ignored. Otherwise"
+        + " combiner will error on failed decodes (default false): <TRUE|FALSE>");
     return io;
   }
 
@@ -216,8 +227,9 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   }
 
   /**
-   * A convenience method to set the "lossy" option on a TypedValueCombiner. If true, the combiner will ignore any values which fail to decode. Otherwise, the
-   * combiner will throw an error which will interrupt the action (and prevent potential data loss). False is the default behavior.
+   * A convenience method to set the "lossy" option on a TypedValueCombiner. If true, the combiner
+   * will ignore any values which fail to decode. Otherwise, the combiner will throw an error which
+   * will interrupt the action (and prevent potential data loss). False is the default behavior.
    *
    * @param is
    *          iterator settings object to configure

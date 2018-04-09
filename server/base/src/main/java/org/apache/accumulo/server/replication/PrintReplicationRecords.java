@@ -70,7 +70,8 @@ public class PrintReplicationRecords implements Runnable {
     s.fetchColumnFamily(ReplicationSection.COLF);
     for (Entry<Key,Value> entry : s) {
       try {
-        out.println(entry.getKey().toStringNoTruncate() + "=" + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+        out.println(entry.getKey().toStringNoTruncate() + "="
+            + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
       } catch (InvalidProtocolBufferException e) {
         out.println(entry.getKey().toStringNoTruncate() + "= Could not deserialize Status message");
       }
@@ -89,7 +90,8 @@ public class PrintReplicationRecords implements Runnable {
 
     for (Entry<Key,Value> entry : s) {
       try {
-        out.println(entry.getKey().toStringNoTruncate() + "=" + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+        out.println(entry.getKey().toStringNoTruncate() + "="
+            + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
       } catch (InvalidProtocolBufferException e) {
         out.println(entry.getKey().toStringNoTruncate() + "= Could not deserialize Status message");
       }

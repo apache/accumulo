@@ -41,7 +41,8 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
   private ColumnVisibility colv;
   private int passes;
 
-  InMemoryMapMemoryUsageTest(int passes, int keyLen, int colFamLen, int colQualLen, int colVisLen, int dataLen) {
+  InMemoryMapMemoryUsageTest(int passes, int keyLen, int colFamLen, int colQualLen, int colVisLen,
+      int dataLen) {
     this.keyLen = keyLen;
     this.colFamLen = colFamLen;
     this.colQualLen = colQualLen;

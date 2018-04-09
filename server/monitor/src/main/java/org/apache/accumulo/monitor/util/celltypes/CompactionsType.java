@@ -40,7 +40,8 @@ public class CompactionsType extends CellType<TableInfo> {
       c = summary.scans;
     if (c == null)
       c = new Compacting();
-    return String.format("%s&nbsp;(%,d)", NumberType.commas(c.running, c.queued == 0 ? 0 : 1, summary.onlineTablets), c.queued);
+    return String.format("%s&nbsp;(%,d)",
+        NumberType.commas(c.running, c.queued == 0 ? 0 : 1, summary.onlineTablets), c.queued);
   }
 
   @Override

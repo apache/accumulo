@@ -36,8 +36,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
 
 /**
- * Retrieves file data based on the hash of the file. Used by the {@link org.apache.accumulo.examples.simple.dirlist.Viewer}. See README.dirlist for
- * instructions.
+ * Retrieves file data based on the hash of the file. Used by the
+ * {@link org.apache.accumulo.examples.simple.dirlist.Viewer}. See README.dirlist for instructions.
  */
 public class FileDataQuery {
   private Connector conn = null;
@@ -45,9 +45,11 @@ public class FileDataQuery {
   private ChunkInputStream cis;
   Scanner scanner;
 
-  public FileDataQuery(String instanceName, String zooKeepers, String user, AuthenticationToken token, String tableName, Authorizations auths)
+  public FileDataQuery(String instanceName, String zooKeepers, String user,
+      AuthenticationToken token, String tableName, Authorizations auths)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ZooKeeperInstance instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
+    ZooKeeperInstance instance = new ZooKeeperInstance(
+        ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
     conn = instance.getConnector(user, token);
     lastRefs = new ArrayList<>();
     cis = new ChunkInputStream();

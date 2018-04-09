@@ -32,8 +32,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
- * Syncs itself with the static collection of TabletLocators, so that when the server clears it, it will automatically get the most up-to-date version. Caching
- * TabletLocators locally is safe when using SyncingTabletLocator.
+ * Syncs itself with the static collection of TabletLocators, so that when the server clears it, it
+ * will automatically get the most up-to-date version. Caching TabletLocators locally is safe when
+ * using SyncingTabletLocator.
  */
 public class SyncingTabletLocator extends TabletLocator {
   private static final Logger log = Logger.getLogger(SyncingTabletLocator.class);
@@ -76,20 +77,22 @@ public class SyncingTabletLocator extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return syncLocator().locateTablet(context, row, skipRow, retry);
   }
 
   @Override
-  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     syncLocator().binMutations(context, mutations, binnedMutations, failures);
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return syncLocator().binRanges(context, ranges, binnedRanges);
   }
 

@@ -46,7 +46,8 @@ import org.apache.hadoop.io.Writable;
  */
 public final class SystemCredentials extends Credentials {
 
-  private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission("systemCredentialsPermission");
+  private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission(
+      "systemCredentialsPermission");
 
   private static final String SYSTEM_PRINCIPAL = "!SYSTEM";
 
@@ -69,9 +70,12 @@ public final class SystemCredentials extends Credentials {
     String principal = SYSTEM_PRINCIPAL;
     AccumuloConfiguration conf = SiteConfiguration.getInstance();
     if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      // Use the server's kerberos principal as the Accumulo principal. We could also unwrap the principal server-side, but the principal for SystemCredentials
-      // isnt' actually used anywhere, so it really doesn't matter. We can't include the kerberos principal in the SystemToken as it would break equality when
-      // different Accumulo servers are using different kerberos principals are their accumulo principal
+      // Use the server's kerberos principal as the Accumulo principal. We could also unwrap the
+      // principal server-side, but the principal for SystemCredentials
+      // isnt' actually used anywhere, so it really doesn't matter. We can't include the kerberos
+      // principal in the SystemToken as it would break equality when
+      // different Accumulo servers are using different kerberos principals are their accumulo
+      // principal
       principal = SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     }
     return new SystemCredentials(instance, principal, SystemToken.get(instance));
@@ -80,7 +84,8 @@ public final class SystemCredentials extends Credentials {
   @Override
   public TCredentials toThrift(Instance instance) {
     if (!AS_THRIFT.getInstanceId().equals(instance.getInstanceID()))
-      throw new IllegalArgumentException("Unexpected instance used for " + SystemCredentials.class.getSimpleName() + ": " + instance.getInstanceID());
+      throw new IllegalArgumentException("Unexpected instance used for "
+          + SystemCredentials.class.getSimpleName() + ": " + instance.getInstanceID());
     return AS_THRIFT;
   }
 
@@ -125,7 +130,8 @@ public final class SystemCredentials extends Credentials {
 
       int wireVersion = ServerConstants.WIRE_VERSION;
 
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream(3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + confChecksum.length);
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream(
+          3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + confChecksum.length);
       DataOutputStream out = new DataOutputStream(bytes);
       try {
         out.write(wireVersion * -1);

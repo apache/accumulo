@@ -37,16 +37,20 @@ public class ListIterCommand extends Command {
   private Map<IteratorScope,Option> scopeOpts;
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
+      throws Exception {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
+        || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     final Map<String,EnumSet<IteratorScope>> iterators;
     if (namespaces) {
-      iterators = shellState.getConnector().namespaceOperations().listIterators(OptUtil.getNamespaceOpt(cl, shellState));
+      iterators = shellState.getConnector().namespaceOperations()
+          .listIterators(OptUtil.getNamespaceOpt(cl, shellState));
     } else if (tables) {
-      iterators = shellState.getConnector().tableOperations().listIterators(OptUtil.getTableOpt(cl, shellState));
+      iterators = shellState.getConnector().tableOperations()
+          .listIterators(OptUtil.getTableOpt(cl, shellState));
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }
@@ -79,17 +83,23 @@ public class ListIterCommand extends Command {
         if (desiredScopes.contains(scope)) {
           IteratorSetting setting;
           if (namespaces) {
-            setting = shellState.getConnector().namespaceOperations().getIteratorSetting(OptUtil.getNamespaceOpt(cl, shellState), name, scope);
+            setting = shellState.getConnector().namespaceOperations()
+                .getIteratorSetting(OptUtil.getNamespaceOpt(cl, shellState), name, scope);
           } else if (tables) {
-            setting = shellState.getConnector().tableOperations().getIteratorSetting(OptUtil.getTableOpt(cl, shellState), name, scope);
+            setting = shellState.getConnector().tableOperations()
+                .getIteratorSetting(OptUtil.getTableOpt(cl, shellState), name, scope);
           } else {
             throw new IllegalArgumentException("No table or namespace specified");
           }
-          sb.append("-    Iterator ").append(setting.getName()).append(", ").append(scope).append(" scope options:\n");
-          sb.append("-        ").append("iteratorPriority").append(" = ").append(setting.getPriority()).append("\n");
-          sb.append("-        ").append("iteratorClassName").append(" = ").append(setting.getIteratorClass()).append("\n");
+          sb.append("-    Iterator ").append(setting.getName()).append(", ").append(scope)
+              .append(" scope options:\n");
+          sb.append("-        ").append("iteratorPriority").append(" = ")
+              .append(setting.getPriority()).append("\n");
+          sb.append("-        ").append("iteratorClassName").append(" = ")
+              .append(setting.getIteratorClass()).append("\n");
           for (Entry<String,String> optEntry : setting.getOptions().entrySet()) {
-            sb.append("-        ").append(optEntry.getKey()).append(" = ").append(optEntry.getValue()).append("\n");
+            sb.append("-        ").append(optEntry.getKey()).append(" = ")
+                .append(optEntry.getValue()).append("\n");
           }
         }
       }
@@ -121,9 +131,12 @@ public class ListIterCommand extends Command {
     o.addOption(allScopesOpt);
 
     scopeOpts = new EnumMap<>(IteratorScope.class);
-    scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction", false, "list iterator for minor compaction scope"));
-    scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "list iterator for major compaction scope"));
-    scopeOpts.put(IteratorScope.scan, new Option(IteratorScope.scan.name(), "scan-time", false, "list iterator for scan scope"));
+    scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction",
+        false, "list iterator for minor compaction scope"));
+    scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction",
+        false, "list iterator for major compaction scope"));
+    scopeOpts.put(IteratorScope.scan,
+        new Option(IteratorScope.scan.name(), "scan-time", false, "list iterator for scan scope"));
 
     OptionGroup grp = new OptionGroup();
     grp.addOption(OptUtil.tableOpt("table to list the configured iterators on"));

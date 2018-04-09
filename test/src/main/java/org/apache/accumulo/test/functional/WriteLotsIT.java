@@ -45,7 +45,8 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     final AtomicReference<Exception> ref = new AtomicReference<>();
     final ClientConfiguration clientConfig = getCluster().getClientConfig();
     final int THREADS = 5;
-    ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(THREADS));
+    ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS,
+        new ArrayBlockingQueue<Runnable>(THREADS));
     for (int i = 0; i < THREADS; i++) {
       final int index = i;
       Runnable r = new Runnable() {

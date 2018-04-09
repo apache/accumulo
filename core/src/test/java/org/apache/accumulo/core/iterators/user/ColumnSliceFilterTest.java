@@ -55,7 +55,8 @@ public class ColumnSliceFilterTest {
   private ColumnSliceFilter columnSliceFilter = new ColumnSliceFilter();
   private IteratorSetting is;
 
-  private static Key newKeyValue(SortedMap<Key,Value> tm, String row, String cf, String cq, String val) {
+  private static Key newKeyValue(SortedMap<Key,Value> tm, String row, String cf, String cq,
+      String val) {
     Key k = newKey(row, cf, cq);
     tm.put(k, new Value(val.getBytes()));
     return k;

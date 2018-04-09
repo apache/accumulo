@@ -37,24 +37,30 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  * Goal which starts an instance of {@link MiniAccumuloCluster}.
  */
 @ThreadSafe
-@Mojo(name = "start", defaultPhase = LifecyclePhase.PRE_INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.TEST)
+@Mojo(name = "start", defaultPhase = LifecyclePhase.PRE_INTEGRATION_TEST,
+    requiresDependencyResolution = ResolutionScope.TEST)
 public class StartMojo extends AbstractAccumuloMojo {
 
-  @Parameter(defaultValue = "${project.build.directory}", alias = "outputDirectory", property = "accumulo.outputDirectory", required = true)
+  @Parameter(defaultValue = "${project.build.directory}", alias = "outputDirectory",
+      property = "accumulo.outputDirectory", required = true)
   private File outputDirectory;
 
-  @Parameter(defaultValue = "testInstance", alias = "instanceName", property = "accumulo.instanceName", required = true)
+  @Parameter(defaultValue = "testInstance", alias = "instanceName",
+      property = "accumulo.instanceName", required = true)
   private String instanceName;
 
-  @Parameter(defaultValue = "secret", alias = "rootPassword", property = "accumulo.rootPassword", required = true)
+  @Parameter(defaultValue = "secret", alias = "rootPassword", property = "accumulo.rootPassword",
+      required = true)
   private String rootPassword;
 
-  @Parameter(defaultValue = "0", alias = "zooKeeperPort", property = "accumulo.zooKeeperPort", required = true)
+  @Parameter(defaultValue = "0", alias = "zooKeeperPort", property = "accumulo.zooKeeperPort",
+      required = true)
   private int zooKeeperPort;
 
   private String miniClasspath;
 
-  static Set<MiniAccumuloClusterImpl> runningClusters = Collections.synchronizedSet(new HashSet<MiniAccumuloClusterImpl>());
+  static Set<MiniAccumuloClusterImpl> runningClusters = Collections
+      .synchronizedSet(new HashSet<MiniAccumuloClusterImpl>());
 
   @Override
   public void execute() throws MojoExecutionException {
@@ -75,11 +81,13 @@ public class StartMojo extends AbstractAccumuloMojo {
       cfg.setZooKeeperPort(zooKeeperPort);
       configureMiniClasspath(cfg, miniClasspath);
       MiniAccumuloClusterImpl mac = new MiniAccumuloClusterImpl(cfg);
-      getLog().info("Starting MiniAccumuloCluster: " + mac.getInstanceName() + " in " + mac.getConfig().getDir());
+      getLog().info("Starting MiniAccumuloCluster: " + mac.getInstanceName() + " in "
+          + mac.getConfig().getDir());
       mac.start();
       runningClusters.add(mac);
     } catch (Exception e) {
-      throw new MojoExecutionException("Unable to start " + MiniAccumuloCluster.class.getSimpleName(), e);
+      throw new MojoExecutionException(
+          "Unable to start " + MiniAccumuloCluster.class.getSimpleName(), e);
     }
 
   }

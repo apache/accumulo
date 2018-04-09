@@ -78,7 +78,8 @@ public class FindMax {
     }
 
     // remove trailing 0x0 bytes
-    while (ret.getLength() > 0 && ret.getBytes()[ret.getLength() - 1] == 0 && ret.compareTo(minBS) > 0) {
+    while (ret.getLength() > 0 && ret.getBytes()[ret.getLength() - 1] == 0
+        && ret.compareTo(minBS) > 0) {
       Text t = new Text();
       t.set(ret.getBytes(), 0, ret.getLength() - 1);
       ret = t;
@@ -87,9 +88,11 @@ public class FindMax {
     return ret;
   }
 
-  private static Text _findMax(Scanner scanner, Text start, boolean inclStart, Text end, boolean inclEnd) {
+  private static Text _findMax(Scanner scanner, Text start, boolean inclStart, Text end,
+      boolean inclEnd) {
 
-    // System.out.printf("findMax(%s, %s, %s, %s)%n", Key.toPrintableString(start.getBytes(), 0, start.getLength(), 1000), inclStart,
+    // System.out.printf("findMax(%s, %s, %s, %s)%n", Key.toPrintableString(start.getBytes(), 0,
+    // start.getLength(), 1000), inclStart,
     // Key.toPrintableString(end.getBytes(), 0, end.getLength(), 1000), inclEnd);
 
     int cmp = start.compareTo(end);
@@ -106,7 +109,8 @@ public class FindMax {
     }
 
     Text mid = findMidPoint(start, end);
-    // System.out.println("mid = :"+Key.toPrintableString(mid.getBytes(), 0, mid.getLength(), 1000)+":");
+    // System.out.println("mid = :"+Key.toPrintableString(mid.getBytes(), 0, mid.getLength(),
+    // 1000)+":");
 
     scanner.setRange(new Range(mid, mid.equals(start) ? inclStart : true, end, inclEnd));
 
@@ -151,7 +155,8 @@ public class FindMax {
     return end;
   }
 
-  public static Text findMax(Scanner scanner, Text start, boolean is, Text end, boolean ie) throws TableNotFoundException {
+  public static Text findMax(Scanner scanner, Text start, boolean is, Text end, boolean ie)
+      throws TableNotFoundException {
 
     scanner.setBatchSize(12);
     IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, SortedKeyIterator.class);

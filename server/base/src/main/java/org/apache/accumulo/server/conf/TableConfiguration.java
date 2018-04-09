@@ -79,7 +79,8 @@ public class TableConfiguration extends ObservableConfiguration {
         PropCacheKey key = new PropCacheKey(instance.getInstanceID(), tableId);
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
-          propCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
+          propCache = zcf.getZooCache(instance.getZooKeepers(),
+              instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
           propCaches.put(key, propCache);
         }
         propCacheAccessor = new ZooCachePropertyAccessor(propCache);
@@ -110,7 +111,8 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
+    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId
+        + Constants.ZTABLE_CONF;
   }
 
   @Override
@@ -131,7 +133,8 @@ public class TableConfiguration extends ObservableConfiguration {
    * returns the actual NamespaceConfiguration that corresponds to the current parent namespace.
    */
   public NamespaceConfiguration getNamespaceConfiguration() {
-    return new ServerConfigurationFactory(parent.inst).getNamespaceConfiguration(parent.namespaceId);
+    return new ServerConfigurationFactory(parent.inst)
+        .getNamespaceConfiguration(parent.namespaceId);
   }
 
   /**
@@ -169,7 +172,8 @@ public class TableConfiguration extends ObservableConfiguration {
     private final String context;
     private final long updateCount;
 
-    private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts, String context, long updateCount) {
+    private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts,
+        String context, long updateCount) {
       this.tableIters = ImmutableList.copyOf(ii);
       Builder<String,Map<String,String>> imb = ImmutableMap.builder();
       for (Entry<String,Map<String,String>> entry : opts.entrySet()) {
@@ -201,7 +205,8 @@ public class TableConfiguration extends ObservableConfiguration {
       List<IterInfo> iters = new ArrayList<>();
       Map<String,Map<String,String>> allOptions = new HashMap<>();
       IteratorUtil.parseIterConf(scope, iters, allOptions, this);
-      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOptions, get(Property.TABLE_CLASSPATH), count);
+      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOptions,
+          get(Property.TABLE_CLASSPATH), count);
       ref.compareAndSet(pic, newPic);
       pic = newPic;
     }

@@ -46,7 +46,8 @@ public class MetadataSchema {
     }
 
     public static Range getRange(String tableId) {
-      return new Range(new Key(tableId + ';'), true, new Key(tableId + '<').followingKey(PartialKey.ROW), false);
+      return new Range(new Key(tableId + ';'), true,
+          new Key(tableId + '<').followingKey(PartialKey.ROW), false);
     }
 
     public static Text getRow(String tableId, Text endRow) {
@@ -69,13 +70,14 @@ public class MetadataSchema {
      */
     public static class TabletColumnFamily {
       /**
-       * This needs to sort after all other column families for that tablet, because the {@link #PREV_ROW_COLUMN} sits in this and that needs to sort last
-       * because the SimpleGarbageCollector relies on this.
+       * This needs to sort after all other column families for that tablet, because the
+       * {@link #PREV_ROW_COLUMN} sits in this and that needs to sort last because the
+       * SimpleGarbageCollector relies on this.
        */
       public static final Text NAME = new Text("~tab");
       /**
-       * README : very important that prevRow sort last to avoid race conditions between garbage collector and split this needs to sort after everything else
-       * for that tablet
+       * README : very important that prevRow sort last to avoid race conditions between garbage
+       * collector and split this needs to sort after everything else for that tablet
        */
       public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text("~pr"));
       /**
@@ -110,13 +112,15 @@ public class MetadataSchema {
        */
       public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(NAME, new Text("compact"));
       /**
-       * Holds lock IDs to enable a sanity check to ensure that the TServer writing to the metadata tablet is not dead
+       * Holds lock IDs to enable a sanity check to ensure that the TServer writing to the metadata
+       * tablet is not dead
        */
       public static final ColumnFQ LOCK_COLUMN = new ColumnFQ(NAME, new Text("lock"));
     }
 
     /**
-     * Column family for storing entries created by the TServer to indicate it has loaded a tablet that it was assigned
+     * Column family for storing entries created by the TServer to indicate it has loaded a tablet
+     * that it was assigned
      */
     public static class CurrentLocationColumnFamily {
       public static final Text NAME = new Text("loc");
@@ -140,7 +144,8 @@ public class MetadataSchema {
      * Column family for storing suspension location, as a demand for assignment.
      */
     public static class SuspendLocationColumn {
-      public static final ColumnFQ SUSPEND_COLUMN = new ColumnFQ(new Text("suspend"), new Text("loc"));
+      public static final ColumnFQ SUSPEND_COLUMN = new ColumnFQ(new Text("suspend"),
+          new Text("loc"));
     }
 
     /**
@@ -165,7 +170,8 @@ public class MetadataSchema {
     }
 
     /**
-     * Column family for storing the set of files scanned with an isolated scanner, to prevent them from being deleted
+     * Column family for storing the set of files scanned with an isolated scanner, to prevent them
+     * from being deleted
      */
     public static class ScanFileColumnFamily {
       public static final Text NAME = new Text("scan");
@@ -179,7 +185,8 @@ public class MetadataSchema {
     }
 
     /**
-     * Column family for indicating that the files in a tablet have been trimmed to only include data for the current tablet, so that they are safe to merge
+     * Column family for indicating that the files in a tablet have been trimmed to only include
+     * data for the current tablet, so that they are safe to merge
      */
     public static class ChoppedColumnFamily {
       public static final Text NAME = new Text("chopped");
@@ -207,7 +214,8 @@ public class MetadataSchema {
    * Holds delete markers for potentially unused files/directories
    */
   public static class DeletesSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "del", true, RESERVED_PREFIX + "dem", false);
+    private static final Section section = new Section(RESERVED_PREFIX + "del", true,
+        RESERVED_PREFIX + "dem", false);
 
     public static Range getRange() {
       return section.getRange();
@@ -223,7 +231,8 @@ public class MetadataSchema {
    * Holds bulk-load-in-progress processing flags
    */
   public static class BlipSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "blip", true, RESERVED_PREFIX + "bliq", false);
+    private static final Section section = new Section(RESERVED_PREFIX + "blip", true,
+        RESERVED_PREFIX + "bliq", false);
 
     public static Range getRange() {
       return section.getRange();
@@ -237,13 +246,18 @@ public class MetadataSchema {
 
   /**
    * Holds references to files that need replication
-   * <p>
-   * <code>~replhdfs://localhost:8020/accumulo/wal/tserver+port/WAL stat:local_table_id [] -&gt; protobuf</code>
+   *
+   * <pre>
+   * <code>
+   * ~replhdfs://localhost:8020/accumulo/wal/tserver+port/WAL stat:local_table_id [] -&gt; protobuf
+   * </code>
+   * </pre>
    */
   public static class ReplicationSection {
     public static final Text COLF = new Text("stat");
     private static final ArrayByteSequence COLF_BYTE_SEQ = new ArrayByteSequence(COLF.toString());
-    private static final Section section = new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
+    private static final Section section = new Section(RESERVED_PREFIX + "repl", true,
+        RESERVED_PREFIX + "repm", false);
 
     public static Range getRange() {
       return section.getRange();
@@ -275,11 +289,13 @@ public class MetadataSchema {
     public static void getFile(Key k, Text buff) {
       requireNonNull(k);
       requireNonNull(buff);
-      checkArgument(COLF_BYTE_SEQ.equals(k.getColumnFamilyData()), "Given metadata replication status key with incorrect colfam");
+      checkArgument(COLF_BYTE_SEQ.equals(k.getColumnFamilyData()),
+          "Given metadata replication status key with incorrect colfam");
 
       k.getRow(buff);
 
-      buff.set(buff.getBytes(), section.getRowPrefix().length(), buff.getLength() - section.getRowPrefix().length());
+      buff.set(buff.getBytes(), section.getRowPrefix().length(),
+          buff.getLength() - section.getRowPrefix().length());
     }
   }
 

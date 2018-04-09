@@ -26,8 +26,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * An iterator that is useful testing... for example if you want to test ingest performance w/o writing data to disk, insert this iterator for scan as follows
- * using the accumulo shell.
+ * An iterator that is useful testing... for example if you want to test ingest performance w/o
+ * writing data to disk, insert this iterator for scan as follows using the accumulo shell.
  *
  * config -t ci -s table.iterator.minc.devnull=21,org.apache.accumulo.core.iterators.DevNull
  *
@@ -64,7 +64,8 @@ public class DevNull implements SortedKeyValueIterator<Key,Value> {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
 
   }
 
@@ -74,7 +75,8 @@ public class DevNull implements SortedKeyValueIterator<Key,Value> {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
 
   }
 

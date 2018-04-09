@@ -65,7 +65,8 @@ public class ReplicationServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb)
+      throws Exception {
     final Connector conn = Monitor.getContext().getConnector();
     final MasterMonitorInfo mmi = Monitor.getMmi();
 
@@ -106,28 +107,33 @@ public class ReplicationServlet extends BasicServlet {
 
       String replicaSystemClass = peers.get(configuredTarget.getPeerName());
       if (null == replicaSystemClass) {
-        log.trace("Could not determine configured ReplicaSystem for {}", configuredTarget.getPeerName());
+        log.trace("Could not determine configured ReplicaSystem for {}",
+            configuredTarget.getPeerName());
         continue;
       }
 
       Long numFiles = targetCounts.get(configuredTarget);
 
       if (null == numFiles) {
-        replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, 0);
+        replicationStats.addRow(tableName, configuredTarget.getPeerName(),
+            configuredTarget.getRemoteIdentifier(), replicaSystemClass, 0);
       } else {
-        replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, numFiles);
+        replicationStats.addRow(tableName, configuredTarget.getPeerName(),
+            configuredTarget.getRemoteIdentifier(), replicaSystemClass, numFiles);
         filesPendingOverAllTargets += numFiles;
       }
     }
 
     // Up to 2x the number of slots for replication available, WARN
     // More than 2x the number of slots for replication available, ERROR
-    NumberType<Long> filesPendingFormat = new NumberType<>(Long.valueOf(0), Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0),
+    NumberType<Long> filesPendingFormat = new NumberType<>(Long.valueOf(0),
+        Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0),
         Long.valueOf(4 * totalWorkQueueSize));
 
     String utilization = filesPendingFormat.format(filesPendingOverAllTargets);
 
-    sb.append("<div><center><br /><span class=\"table-caption\">Total files pending replication: ").append(utilization).append("</span></center></div>");
+    sb.append("<div><center><br /><span class=\"table-caption\">Total files pending replication: ")
+        .append(utilization).append("</span></center></div>");
 
     replicationStats.generate(req, sb);
 
@@ -143,11 +149,13 @@ public class ReplicationServlet extends BasicServlet {
     String zkRoot = ZooUtil.getRoot(Monitor.getContext().getInstance());
     final String workQueuePath = zkRoot + ReplicationConstants.ZOO_WORK_QUEUE;
 
-    DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, Monitor.getContext().getConfiguration());
+    DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath,
+        Monitor.getContext().getConfiguration());
 
     try {
       for (String queueKey : workQueue.getWorkQueued()) {
-        Entry<String,ReplicationTarget> queueKeyPair = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(queueKey);
+        Entry<String,ReplicationTarget> queueKeyPair = DistributedWorkQueueWorkAssignerHelper
+            .fromQueueKey(queueKey);
         String filename = queueKeyPair.getKey();
         ReplicationTarget target = queueKeyPair.getValue();
 
@@ -155,8 +163,8 @@ public class ReplicationServlet extends BasicServlet {
         String progress = getReplicationUtil().getProgress(conn, path, target);
 
         // Add a row in the table
-        replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(),
-            progress);
+        replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(),
+            target.getSourceTableId(), target.getRemoteIdentifier(), progress);
       }
     } catch (KeeperException | InterruptedException e) {
       log.warn("Could not calculate replication in progress", e);

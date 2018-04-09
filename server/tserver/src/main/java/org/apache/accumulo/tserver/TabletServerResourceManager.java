@@ -103,14 +103,16 @@ public class TabletServerResourceManager {
 
   private ExecutorService addEs(String name, ExecutorService tp) {
     if (threadPools.containsKey(name)) {
-      throw new IllegalArgumentException("Cannot create two executor services with same name " + name);
+      throw new IllegalArgumentException(
+          "Cannot create two executor services with same name " + name);
     }
     tp = new TraceExecutorService(tp);
     threadPools.put(name, tp);
     return tp;
   }
 
-  private ExecutorService addEs(final Property maxThreads, String name, final ThreadPoolExecutor tp) {
+  private ExecutorService addEs(final Property maxThreads, String name,
+      final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
     SimpleTimer.getInstance(tserver.getConfiguration()).schedule(new Runnable() {
       @Override
@@ -141,12 +143,14 @@ public class TabletServerResourceManager {
 
   private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
     int maxThreads = conf.getConfiguration().getCount(max);
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L, TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L,
+        TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
     return addEs(max, name, tp);
   }
 
   private ExecutorService createEs(int min, int max, int timeout, String name) {
-    return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
+    return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
   }
 
   public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
@@ -156,7 +160,8 @@ public class TabletServerResourceManager {
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
-    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
+    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED)
+        && NativeMap.isLoaded();
 
     long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
     long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);
@@ -170,19 +175,24 @@ public class TabletServerResourceManager {
     if (usingNativeMap) {
       // Still check block cache sizes when using native maps.
       if (dCacheSize + iCacheSize + totalQueueSize > runtime.maxMemory()) {
-        throw new IllegalArgumentException(String.format("Block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d",
+        throw new IllegalArgumentException(String.format(
+            "Block cache sizes %,d"
+                + " and mutation queue size %,d is too large for this JVM configuration %,d",
             dCacheSize + iCacheSize, totalQueueSize, runtime.maxMemory()));
       }
     } else if (maxMemory + dCacheSize + iCacheSize + totalQueueSize > runtime.maxMemory()) {
       throw new IllegalArgumentException(String.format(
-          "Maximum tablet server map memory %,d block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d", maxMemory,
-          dCacheSize + iCacheSize, totalQueueSize, runtime.maxMemory()));
+          "Maximum tablet server"
+              + " map memory %,d block cache sizes %,d and mutation queue size %,d is"
+              + " too large for this JVM configuration %,d",
+          maxMemory, dCacheSize + iCacheSize, totalQueueSize, runtime.maxMemory()));
     }
     runtime.gc();
 
     // totalMemory - freeMemory = memory in use
     // maxMemory - memory in use = max available memory
-    if (!usingNativeMap && maxMemory > runtime.maxMemory() - (runtime.totalMemory() - runtime.freeMemory())) {
+    if (!usingNativeMap
+        && maxMemory > runtime.maxMemory() - (runtime.totalMemory() - runtime.freeMemory())) {
       log.warn("In-memory map may not fit into local memory space.");
     }
 
@@ -190,7 +200,8 @@ public class TabletServerResourceManager {
 
     // make this thread pool have a priority queue... and execute tablets with the most
     // files first!
-    majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor", new CompactionQueue().asBlockingQueueOfRunnable());
+    majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor",
+        new CompactionQueue().asBlockingQueueOfRunnable());
     rootMajorCompactionThreadPool = createEs(0, 1, 300, "md root major compactor");
     defaultMajorCompactionThreadPool = createEs(0, 1, 300, "md major compactor");
 
@@ -200,8 +211,10 @@ public class TabletServerResourceManager {
     defaultMigrationPool = createEs(0, 1, 60, "metadata tablet migration");
     migrationPool = createEs(Property.TSERV_MIGRATE_MAXCONCURRENT, "tablet migration");
 
-    // not sure if concurrent assignments can run safely... even if they could there is probably no benefit at startup because
-    // individual tablet servers are already running assignments concurrently... having each individual tablet server run
+    // not sure if concurrent assignments can run safely... even if they could there is probably no
+    // benefit at startup because
+    // individual tablet servers are already running assignments concurrently... having each
+    // individual tablet server run
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool = createEs(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "tablet assignment");
 
@@ -210,13 +223,15 @@ public class TabletServerResourceManager {
     activeAssignments = new ConcurrentHashMap<>();
 
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
-    defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
+    defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT,
+        "metadata tablets read ahead");
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
     fileManager = new FileManager(tserver, fs, maxOpenFiles, _dCache, _iCache);
 
-    memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT, MemoryManager.class, new LargestFirstMemoryManager());
+    memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
+        MemoryManager.class, new LargestFirstMemoryManager());
     memoryManager.init(tserver.getServerConfigurationFactory());
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
@@ -229,8 +244,9 @@ public class TabletServerResourceManager {
   }
 
   /**
-   * Accepts some map which is tracking active assignment task(s) (running) and monitors them to ensure that the time the assignment(s) have been running don't
-   * exceed a threshold. If the time is exceeded a warning is printed and a stack trace is logged for the running assignment.
+   * Accepts some map which is tracking active assignment task(s) (running) and monitors them to
+   * ensure that the time the assignment(s) have been running don't exceed a threshold. If the time
+   * is exceeded a warning is printed and a stack trace is logged for the running assignment.
    */
   protected static class AssignmentWatcher implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(AssignmentWatcher.class);
@@ -239,7 +255,8 @@ public class TabletServerResourceManager {
     private final AccumuloConfiguration conf;
     private final SimpleTimer timer;
 
-    public AssignmentWatcher(AccumuloConfiguration conf, Map<KeyExtent,RunnableStartedAt> activeAssignments, SimpleTimer timer) {
+    public AssignmentWatcher(AccumuloConfiguration conf,
+        Map<KeyExtent,RunnableStartedAt> activeAssignments, SimpleTimer timer) {
       this.conf = conf;
       this.activeAssignments = activeAssignments;
       this.timer = timer;
@@ -247,7 +264,8 @@ public class TabletServerResourceManager {
 
     @Override
     public void run() {
-      final long millisBeforeWarning = conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+      final long millisBeforeWarning = conf
+          .getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
       try {
         long now = System.currentTimeMillis();
         KeyExtent extent;
@@ -259,7 +277,9 @@ public class TabletServerResourceManager {
 
           // Print a warning if an assignment has been running for over the configured time length
           if (duration > millisBeforeWarning) {
-            log.warn("Assignment for " + extent + " has been running for at least " + duration + "ms", runnable.getTask().getException());
+            log.warn(
+                "Assignment for " + extent + " has been running for at least " + duration + "ms",
+                runnable.getTask().getException());
           } else if (log.isTraceEnabled()) {
             log.trace("Assignment for " + extent + " only running for " + duration + "ms");
           }
@@ -410,7 +430,8 @@ public class TabletServerResourceManager {
           synchronized (tabletReports) {
             tabletReportsCopy = new HashMap<>(tabletReports);
           }
-          ArrayList<TabletState> tabletStates = new ArrayList<TabletState>(tabletReportsCopy.values());
+          ArrayList<TabletState> tabletStates = new ArrayList<TabletState>(
+              tabletReportsCopy.values());
           mma = memoryManager.getMemoryManagementActions(tabletStates);
 
         } catch (Throwable t) {
@@ -418,12 +439,14 @@ public class TabletServerResourceManager {
         }
 
         try {
-          if (mma != null && mma.tabletsToMinorCompact != null && mma.tabletsToMinorCompact.size() > 0) {
+          if (mma != null && mma.tabletsToMinorCompact != null
+              && mma.tabletsToMinorCompact.size() > 0) {
             for (KeyExtent keyExtent : mma.tabletsToMinorCompact) {
               TabletStateImpl tabletReport = tabletReportsCopy.get(keyExtent);
 
               if (tabletReport == null) {
-                log.warn("Memory manager asked to compact nonexistent tablet " + keyExtent + "; manager implementation might be misbehaving");
+                log.warn("Memory manager asked to compact nonexistent tablet " + keyExtent
+                    + "; manager implementation might be misbehaving");
                 continue;
               }
               Tablet tablet = tabletReport.getTablet();
@@ -441,9 +464,12 @@ public class TabletServerResourceManager {
                       }
                     }
                   }
-                  log.debug("Ignoring memory manager recommendation: not minor compacting closed tablet " + keyExtent);
+                  log.debug(
+                      "Ignoring memory manager recommendation: not minor compacting closed tablet "
+                          + keyExtent);
                 } else {
-                  log.info("Ignoring memory manager recommendation: not minor compacting " + keyExtent);
+                  log.info(
+                      "Ignoring memory manager recommendation: not minor compacting " + keyExtent);
                 }
               }
             }
@@ -458,7 +484,8 @@ public class TabletServerResourceManager {
       }
     }
 
-    public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime, long mincSize) {
+    public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime,
+        long mincSize) {
       memUsageReports.add(new TabletStateImpl(tablet, size, lastCommitTime, mincSize));
     }
 
@@ -481,7 +508,8 @@ public class TabletServerResourceManager {
         }
 
         if (!holdCommits) {
-          log.debug(String.format("Commits held for %6.2f secs", (System.currentTimeMillis() - holdStartTime) / 1000.0));
+          log.debug(String.format("Commits held for %6.2f secs",
+              (System.currentTimeMillis() - holdStartTime) / 1000.0));
           commitHold.notifyAll();
         }
       }
@@ -491,7 +519,8 @@ public class TabletServerResourceManager {
 
   void waitUntilCommitsAreEnabled() {
     if (holdCommits) {
-      long timeout = System.currentTimeMillis() + conf.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+      long timeout = System.currentTimeMillis()
+          + conf.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
       synchronized (commitHold) {
         while (holdCommits) {
           try {
@@ -530,7 +559,8 @@ public class TabletServerResourceManager {
     }
   }
 
-  public synchronized TabletResourceManager createTabletResourceManager(KeyExtent extent, AccumuloConfiguration conf) {
+  public synchronized TabletResourceManager createTabletResourceManager(KeyExtent extent,
+      AccumuloConfiguration conf) {
     TabletResourceManager trm = new TabletResourceManager(extent, conf);
     return trm;
   }
@@ -600,12 +630,14 @@ public class TabletServerResourceManager {
       // the other is not set intentionally because this method is not
       // synchronized... therefore there are not transactional semantics
       // for reading and writing two variables
-      if ((lrms > 0 && mincSize == 0 || lrms == 0 && mincSize > 0) && lastReportedMincSize.compareAndSet(lrms, mincSize)) {
+      if ((lrms > 0 && mincSize == 0 || lrms == 0 && mincSize > 0)
+          && lastReportedMincSize.compareAndSet(lrms, mincSize)) {
         report = true;
       }
 
       long currentTime = System.currentTimeMillis();
-      if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000)) && lastReportedSize.compareAndSet(lrs, totalSize)) {
+      if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000))
+          && lastReportedSize.compareAndSet(lrs, totalSize)) {
         if (delta > 0)
           lastReportedCommitTime = currentTime;
         report = true;
@@ -620,7 +652,8 @@ public class TabletServerResourceManager {
     // BEGIN methods that Tablets call to make decisions about major compaction
     // when too many files are open, we may want tablets to compact down
     // to one map file
-    public boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles, MajorCompactionReason reason) {
+    public boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles,
+        MajorCompactionReason reason) {
       if (closed)
         return false;// throw new IOException("closed");
 
@@ -644,10 +677,12 @@ public class TabletServerResourceManager {
           return false;
         }
       }
-      CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(tableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
+      CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(tableConf,
+          Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
           new DefaultCompactionStrategy());
       strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, TabletServerResourceManager.this.fs, tableConf);
+      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason,
+          TabletServerResourceManager.this.fs, tableConf);
       request.setFiles(tabletFiles);
       try {
         return strategy.shouldCompact(request);
@@ -725,11 +760,14 @@ public class TabletServerResourceManager {
   }
 
   public void addAssignment(KeyExtent extent, Logger log, AssignmentHandler assignmentHandler) {
-    assignmentPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent, new LoggingRunnable(log, assignmentHandler)));
+    assignmentPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent,
+        new LoggingRunnable(log, assignmentHandler)));
   }
 
-  public void addMetaDataAssignment(KeyExtent extent, Logger log, AssignmentHandler assignmentHandler) {
-    assignMetaDataPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent, new LoggingRunnable(log, assignmentHandler)));
+  public void addMetaDataAssignment(KeyExtent extent, Logger log,
+      AssignmentHandler assignmentHandler) {
+    assignMetaDataPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent,
+        new LoggingRunnable(log, assignmentHandler)));
   }
 
   public void addMigration(KeyExtent tablet, Runnable migrationHandler) {

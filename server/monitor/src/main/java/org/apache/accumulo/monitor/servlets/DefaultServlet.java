@@ -86,7 +86,8 @@ public class DefaultServlet extends BasicServlet {
   }
 
   @Override
-  public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  public void doGet(HttpServletRequest req, HttpServletResponse resp)
+      throws ServletException, IOException {
     if (req.getRequestURI().startsWith("/web"))
       getResource(req, resp);
     else if (req.getRequestURI().startsWith("/monitor"))
@@ -100,18 +101,21 @@ public class DefaultServlet extends BasicServlet {
   public static final int GRAPH_WIDTH = 450;
   public static final int GRAPH_HEIGHT = 150;
 
-  private static void plotData(StringBuilder sb, String title, @SuppressWarnings("rawtypes") List data, boolean points) {
+  private static void plotData(StringBuilder sb, String title,
+      @SuppressWarnings("rawtypes") List data, boolean points) {
     plotData(sb, title, points, new ArrayList<String>(), data);
   }
 
   @SuppressWarnings("rawtypes")
-  private static void plotData(StringBuilder sb, String title, boolean points, List<String> labels, List... series) {
+  private static void plotData(StringBuilder sb, String title, boolean points, List<String> labels,
+      List... series) {
     sb.append("<div class=\"plotHeading\">");
     sb.append(title);
     sb.append("</div>");
     sb.append("</br>");
     String id = "c" + title.hashCode();
-    sb.append("<div id=\"" + id + "\" style=\"width:" + GRAPH_WIDTH + "px;height:" + GRAPH_HEIGHT + "px;\"></div>\n");
+    sb.append("<div id=\"" + id + "\" style=\"width:" + GRAPH_WIDTH + "px;height:" + GRAPH_HEIGHT
+        + "px;\"></div>\n");
 
     sb.append("<script type=\"text/javascript\">\n");
     sb.append("$(function () {\n");
@@ -160,7 +164,9 @@ public class DefaultServlet extends BasicServlet {
       sb.append("data: d" + i + ", " + opts + ", color:\"" + colors[i] + "\" }");
     }
     sb.append("], ");
-    sb.append("{yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M<br />" + getShortTZName() + "\", ticks:3}});");
+    sb.append(
+        "{yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M<br />"
+            + getShortTZName() + "\", ticks:3}});");
     sb.append("   });\n");
     sb.append("</script>\n");
   }
@@ -183,7 +189,8 @@ public class DefaultServlet extends BasicServlet {
   }
 
   @Override
-  protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws IOException {
+  protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb)
+      throws IOException {
 
     sb.append("<table class='noborder'>\n");
     sb.append("<tr>\n");
@@ -204,7 +211,8 @@ public class DefaultServlet extends BasicServlet {
     sb.append("<tr><td>\n");
     plotData(sb, "Ingest (Entries/s)", Monitor.getIngestRateOverTime(), false);
     sb.append("</td><td>\n");
-    plotData(sb, "Scan (Entries/s)", false, Arrays.asList("Read", "Returned"), Monitor.getScanRateOverTime(), Monitor.getQueryRateOverTime());
+    plotData(sb, "Scan (Entries/s)", false, Arrays.asList("Read", "Returned"),
+        Monitor.getScanRateOverTime(), Monitor.getQueryRateOverTime());
     sb.append("</td></tr>\n");
 
     sb.append("<tr><td>\n");
@@ -245,13 +253,21 @@ public class DefaultServlet extends BasicServlet {
 
       try {
         boolean highlight = false;
-        tableRow(sb, (highlight = !highlight), "<a href='/tables'>Tables</a>", NumberType.commas(Monitor.getTotalTables()));
-        tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Tablet&nbsp;Servers</a>", NumberType.commas(info.tServerInfo.size(), 1, Long.MAX_VALUE));
-        tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Dead&nbsp;Tablet&nbsp;Servers</a>", NumberType.commas(info.deadTabletServers.size(), 0, 0));
-        tableRow(sb, (highlight = !highlight), "Tablets", NumberType.commas(Monitor.getTotalTabletCount(), 1, Long.MAX_VALUE));
-        tableRow(sb, (highlight = !highlight), "Entries", NumberType.commas(Monitor.getTotalEntries()));
-        tableRow(sb, (highlight = !highlight), "Lookups", NumberType.commas(Monitor.getTotalLookups()));
-        tableRow(sb, (highlight = !highlight), "Uptime", Duration.format(System.currentTimeMillis() - Monitor.getStartTime()));
+        tableRow(sb, (highlight = !highlight), "<a href='/tables'>Tables</a>",
+            NumberType.commas(Monitor.getTotalTables()));
+        tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Tablet&nbsp;Servers</a>",
+            NumberType.commas(info.tServerInfo.size(), 1, Long.MAX_VALUE));
+        tableRow(sb, (highlight = !highlight),
+            "<a href='/tservers'>Dead&nbsp;Tablet&nbsp;Servers</a>",
+            NumberType.commas(info.deadTabletServers.size(), 0, 0));
+        tableRow(sb, (highlight = !highlight), "Tablets",
+            NumberType.commas(Monitor.getTotalTabletCount(), 1, Long.MAX_VALUE));
+        tableRow(sb, (highlight = !highlight), "Entries",
+            NumberType.commas(Monitor.getTotalEntries()));
+        tableRow(sb, (highlight = !highlight), "Lookups",
+            NumberType.commas(Monitor.getTotalLookups()));
+        tableRow(sb, (highlight = !highlight), "Uptime",
+            Duration.format(System.currentTimeMillis() - Monitor.getStartTime()));
       } catch (Exception e) {
         log.debug(e, e);
       }
@@ -281,7 +297,8 @@ public class DefaultServlet extends BasicServlet {
     for (int i = 0; i < cells.length; ++i) {
       Object cell = cells[i];
       String cellValue = cell == null ? "" : String.valueOf(cell).trim();
-      sb.append("<td class='").append(i < cells.length - 1 ? "left" : "right").append("'>").append(cellValue.isEmpty() ? "-" : cellValue).append("</td>");
+      sb.append("<td class='").append(i < cells.length - 1 ? "left" : "right").append("'>")
+          .append(cellValue.isEmpty() ? "-" : cellValue).append("</td>");
     }
     sb.append("</tr>\n");
   }

@@ -24,7 +24,8 @@ import java.util.Map.Entry;
 import com.google.common.base.Predicate;
 
 /**
- * An {@link AccumuloConfiguration} that contains only default values for properties. This class is a singleton.
+ * An {@link AccumuloConfiguration} that contains only default values for properties. This class is
+ * a singleton.
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
   private final static Map<String,String> resolvedProps;

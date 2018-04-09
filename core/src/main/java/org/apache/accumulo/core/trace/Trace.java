@@ -73,7 +73,8 @@ public class Trace {
   /**
    * Return the current span.
    *
-   * @deprecated since 1.7 -- it is better to save the span you create in a local variable and call its methods, rather than retrieving the current span
+   * @deprecated since 1.7 -- it is better to save the span you create in a local variable and call
+   *             its methods, rather than retrieving the current span
    */
   @Deprecated
   public static Span currentTrace() {

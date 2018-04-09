@@ -51,14 +51,16 @@ public abstract class Translator<IT,OT> {
     }
   }
 
-  public static class TCVSTranslator extends Translator<TConstraintViolationSummary,ConstraintViolationSummary> {
+  public static class TCVSTranslator
+      extends Translator<TConstraintViolationSummary,ConstraintViolationSummary> {
     @Override
     public ConstraintViolationSummary translate(TConstraintViolationSummary input) {
       return new ConstraintViolationSummary(input);
     }
   }
 
-  public static class CVSTranslator extends Translator<ConstraintViolationSummary,TConstraintViolationSummary> {
+  public static class CVSTranslator
+      extends Translator<ConstraintViolationSummary,TConstraintViolationSummary> {
     @Override
     public TConstraintViolationSummary translate(ConstraintViolationSummary input) {
       return input.toThrift();
@@ -110,7 +112,8 @@ public abstract class Translator<IT,OT> {
 
   }
 
-  public static <IKT,OKT,T> Map<OKT,T> translate(Map<IKT,T> input, Translator<IKT,OKT> keyTranslator) {
+  public static <IKT,OKT,T> Map<OKT,T> translate(Map<IKT,T> input,
+      Translator<IKT,OKT> keyTranslator) {
     HashMap<OKT,T> output = new HashMap<>();
 
     for (Entry<IKT,T> entry : input.entrySet())
@@ -119,11 +122,13 @@ public abstract class Translator<IT,OT> {
     return output;
   }
 
-  public static <IKT,OKT,IVT,OVT> Map<OKT,OVT> translate(Map<IKT,IVT> input, Translator<IKT,OKT> keyTranslator, Translator<IVT,OVT> valueTranslator) {
+  public static <IKT,OKT,IVT,OVT> Map<OKT,OVT> translate(Map<IKT,IVT> input,
+      Translator<IKT,OKT> keyTranslator, Translator<IVT,OVT> valueTranslator) {
     HashMap<OKT,OVT> output = new HashMap<>();
 
     for (Entry<IKT,IVT> entry : input.entrySet())
-      output.put(keyTranslator.translate(entry.getKey()), valueTranslator.translate(entry.getValue()));
+      output.put(keyTranslator.translate(entry.getKey()),
+          valueTranslator.translate(entry.getValue()));
 
     return output;
   }
