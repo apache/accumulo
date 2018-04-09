@@ -130,11 +130,9 @@ public enum Property {
           + "javax.net.ssl.* Accumulo properties"),
   RPC_SSL_CIPHER_SUITES("rpc.ssl.cipher.suites", "", PropertyType.STRING,
       "Comma separated list of cipher suites that can be used by accepted connections"),
-  RPC_SSL_ENABLED_PROTOCOLS("rpc.ssl.server.enabled.protocols", "TLSv1,TLSv1.1,TLSv1.2",
-      PropertyType.STRING,
+  RPC_SSL_ENABLED_PROTOCOLS("rpc.ssl.server.enabled.protocols", "TLSv1.2", PropertyType.STRING,
       "Comma separated list of protocols that can be used to accept connections"),
-  // TLSv1.2 should be used as the default when JDK6 support is dropped
-  RPC_SSL_CLIENT_PROTOCOL("rpc.ssl.client.protocol", "TLSv1", PropertyType.STRING,
+  RPC_SSL_CLIENT_PROTOCOL("rpc.ssl.client.protocol", "TLSv1.2", PropertyType.STRING,
       "The protocol used to connect to a secure server, must be in the list of enabled protocols "
           + "on the server side (rpc.ssl.server.enabled.protocols)"),
   /**
@@ -580,8 +578,8 @@ public enum Property {
   MONITOR_SSL_EXCLUDE_CIPHERS("monitor.ssl.exclude.ciphers", "", PropertyType.STRING,
       "A comma-separated list of disallowed SSL Ciphers, see"
           + " monitor.ssl.include.ciphers to allow ciphers"),
-  MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1,TLSv1.1,TLSv1.2",
-      PropertyType.STRING, "A comma-separate list of allowed SSL protocols"),
+  MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1.2", PropertyType.STRING,
+      "A comma-separate list of allowed SSL protocols"),
 
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
