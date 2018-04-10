@@ -377,6 +377,7 @@ public class ConnectorImpl extends Connector {
           } catch (IOException e) {
             throw new IllegalArgumentException(e);
           }
+          break;
         case "provider":
           String name = ClientProperty.AUTH_PROVIDER_NAME.getValue(properties);
           String providerUrls = ClientProperty.AUTH_PROVIDER_URLS.getValue(properties);
@@ -385,6 +386,7 @@ public class ConnectorImpl extends Connector {
           } catch (IOException e) {
             throw new IllegalArgumentException(e);
           }
+          break;
         default:
           throw new IllegalArgumentException(
               "An authentication method (password, kerberos, etc) must be set");
