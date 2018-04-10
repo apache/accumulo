@@ -16,31 +16,30 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.Constants;
+import java.io.Serializable;
+
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 
-public class CompleteBulkImport extends MasterRepo {
-
+/**
+ * Package private class to hold all the information used for bulk import2
+ */
+class BulkInfo implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  private Table.ID tableId;
-  private String source;
-  private String bulk;
-  private String error;
+  Table.ID tableId;
+  String sourceDir;
+  String bulkDir;
+  boolean setTime;
+  int retries;
 
-  public CompleteBulkImport(Table.ID tableId, String source, String bulk, String error) {
-    this.tableId = tableId;
-    this.source = source;
-    this.bulk = bulk;
-    this.error = error;
+  BulkInfo deepCopy() {
+    BulkInfo newInfo = new BulkInfo();
+    newInfo.tableId = tableId;
+    newInfo.sourceDir = sourceDir;
+    newInfo.bulkDir = bulkDir;
+    newInfo.setTime = setTime;
+    newInfo.retries = retries;
+    return newInfo;
   }
 
-  @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
-    ZooArbitrator.stop(Constants.BULK_ARBITRATOR_TYPE, tid);
-    return new CopyFailed(tableId, source, bulk, error);
-  }
 }

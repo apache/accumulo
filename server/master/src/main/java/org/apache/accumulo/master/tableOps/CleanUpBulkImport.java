@@ -49,7 +49,7 @@ class CleanUpBulkImport extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     master.updateBulkImportStatus(source, BulkImportState.CLEANUP);
-    log.debug("removing the bulk processing flag file in " + bulk);
+    log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
     MetadataTableUtil.removeBulkLoadInProgressFlag(master,
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
@@ -59,9 +59,10 @@ class CleanUpBulkImport extends MasterRepo {
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
     Utils.unreserveHdfsDirectory(source, tid);
-    Utils.unreserveHdfsDirectory(error, tid);
+    if (error != null)
+      Utils.unreserveHdfsDirectory(error, tid);
     Utils.getReadLock(tableId, tid).unlock();
-    log.debug("completing bulk import transaction " + tid);
+    log.debug("completing bulkDir import transaction " + tid);
     ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
     master.removeBulkImportStatus(source);
     return null;

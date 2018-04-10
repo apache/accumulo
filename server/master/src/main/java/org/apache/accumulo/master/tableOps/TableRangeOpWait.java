@@ -39,8 +39,8 @@ import org.slf4j.LoggerFactory;
  * time on an unmodified tablet.
  *
  * The code below uses read-write lock to prevent some operations while a merge is taking place.
- * Normal operations, like bulk imports, will grab the read lock and prevent merges (writes) while
- * they run. Merge operations will lock out some operations while they run.
+ * Normal operations, like bulkDir imports, will grab the read lock and prevent merges (writes)
+ * while they run. Merge operations will lock out some operations while they run.
  */
 class TableRangeOpWait extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOpWait.class);

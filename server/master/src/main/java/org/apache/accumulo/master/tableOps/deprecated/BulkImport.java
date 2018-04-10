@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.tableOps;
+package org.apache.accumulo.master.tableOps.deprecated;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
@@ -39,6 +39,8 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.master.tableOps.MasterRepo;
+import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -69,7 +71,7 @@ import org.slf4j.LoggerFactory;
  * server checks the Arbitrator to see if the request is still valid.
  *
  */
-
+@Deprecated
 public class BulkImport extends MasterRepo {
   public static final String FAILURES_TXT = "failures.txt";
 

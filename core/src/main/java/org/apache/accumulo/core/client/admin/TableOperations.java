@@ -641,7 +641,7 @@ public interface TableOperations {
      *
      * @param service
      *          Use this executor to run file inspection task
-     * @return
+     * @return ImportSourceOptions
      */
     ImportSourceOptions usingExecutor(Executor service);
 
@@ -652,7 +652,7 @@ public interface TableOperations {
      *
      * @param numThreads
      *          Create a thread pool with this many thread to run file inspection task.
-     * @return
+     * @return ImportSourceOptions
      */
     ImportSourceOptions usingThreads(int numThreads);
   }
@@ -664,7 +664,8 @@ public interface TableOperations {
     /**
      *
      * @param directory
-     * @return
+     *          Load files from this directory
+     * @return ImportSourceOptions
      */
     ImportSourceOptions from(String directory);
   }

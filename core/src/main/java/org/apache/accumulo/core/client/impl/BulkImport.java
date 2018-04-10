@@ -16,13 +16,19 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,27 +45,29 @@ import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.NamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportExecutorOptions;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceOptions;
-import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.master.thrift.FateOperation;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.Validator;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -79,6 +87,20 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   private final ClientContext context;
   private final String tableName;
 
+  // TODO validate properly - this is validated right before seeding the FATE operation
+  // TODO check splits against load mapping
+  public static final Validator<SortedMap<KeyExtent,Bulk.Files>> VALID_MAPPING = new Validator<SortedMap<KeyExtent,Bulk.Files>>() {
+    @Override
+    public boolean test(SortedMap<KeyExtent,Bulk.Files> mapping) {
+      return true;
+    }
+
+    @Override
+    public String invalidMessage(SortedMap<KeyExtent,Bulk.Files> mapping) {
+      return "Bulk Import files aren't in proper Range?";
+    }
+  };
+
   BulkImport(String tableName, ClientContext context) {
     this.context = context;
     this.tableName = Objects.requireNonNull(tableName);
@@ -96,7 +118,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
 
     Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
 
-    Path srcPath = new Path(dir);
+    Path srcPath = checkPath(dir);
 
     Executor executor;
     ExecutorService service = null;
@@ -122,32 +144,23 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     }
 
     try {
-      SortedMap<KeyExtent,Files> mappings = BulkImport.computeFileToTabletMappings(tableId, srcPath,
-          executor, context);
-
-      // TODO remove this code, master needs to do this
-      Configuration conf = new Configuration();
-      FileSystem fs = FileSystem.get(srcPath.toUri(), conf);
-      Path dirPath = new Path(srcPath.getParent().getParent(),
-          "accumulo/tables/" + tableId + "/b-214999");
-
-      Map<String,String> renames = new HashMap<>();
-
-      int count = 1 << 22;
-      for (FileStatus status : fs.listStatus(srcPath)) {
-        Path newName = new Path(dirPath, "I" + Integer.toString(count++, 36) + ".rf");
-        System.out.println("rename " + status.getPath() + " " + newName);
-        fs.rename(status.getPath(), newName);
-        renames.put(status.getPath().getName(), newName.getName());
+      SortedMap<KeyExtent,Bulk.Files> mappings = BulkImport.computeFileToTabletMappings(tableId,
+          srcPath, executor, context);
+      // wrap KeyExtents for serialization
+      SortedMap<TKeyExtent,Bulk.Files> newMappings = new TreeMap<>();
+      mappings.forEach((k, v) -> newMappings.put(wrapKeyExtent(k), v));
+      List<ByteBuffer> args;
+      try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+          ObjectOutputStream outputStream = new ObjectOutputStream(byteOut)) {
+        outputStream.writeObject(newMappings);
+        args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
+            ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
+            ByteBuffer.wrap(byteOut.toByteArray()),
+            ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
       }
+      Map<String,String> opts = new HashMap<>();
 
-      mappings = mapNames(mappings, renames);
-
-      context.getConnector().tableOperations().offline(tableName, true);
-
-      BulkImport.writeFilesToMetadata(tableId, "file:" + dirPath.toString(), mappings, context);
-
-      context.getConnector().tableOperations().online(tableName, true);
+      doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, opts, tableName);
     } catch (Exception e) {
       // TODO Auto-generated catch block
       throw new RuntimeException(e);
@@ -159,15 +172,29 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     }
   }
 
-  private SortedMap<KeyExtent,Files> mapNames(SortedMap<KeyExtent,Files> mappings,
-      Map<String,String> renames) {
-    SortedMap<KeyExtent,Files> newMappings = new TreeMap<>();
+  private Path checkPath(String dir)
+      throws IOException, AccumuloException, AccumuloSecurityException {
+    Path ret;
+    Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
+    AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    mappings.forEach((k, v) -> {
-      newMappings.put(k, v.mapNames(renames));
-    });
+    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
+        .getFileSystem();
 
-    return newMappings;
+    if (dir.contains(":")) {
+      ret = new Path(dir);
+    } else {
+      ret = fs.makeQualified(new Path(dir));
+    }
+
+    try {
+      if (!fs.getFileStatus(ret).isDirectory()) {
+        throw new AccumuloException("Bulk import directory " + dir + " is not a directory!");
+      }
+    } catch (FileNotFoundException fnf) {
+      throw new AccumuloException("Bulk import directory " + dir + " does not exist!");
+    }
+    return ret;
   }
 
   @Override
@@ -194,67 +221,6 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   // retrieved from NN. This could be done once and cached.
 
   private final static byte[] byte0 = {0};
-
-  static class FileInfo {
-    final String fileName;
-    final long estFileSize;
-    final long estNumEntries;
-
-    FileInfo(String fileName, long estFileSize, long estNumEntries) {
-      this.fileName = fileName;
-      this.estFileSize = estFileSize;
-      this.estNumEntries = estNumEntries;
-    }
-
-    public FileInfo(Path path, long estSize) {
-      this(path.getName(), estSize, 0);
-    }
-
-    static FileInfo merge(FileInfo fi1, FileInfo fi2) {
-      Preconditions.checkArgument(fi1.fileName.equals(fi2.fileName));
-      return new FileInfo(fi1.fileName, fi1.estFileSize + fi2.estFileSize,
-          fi1.estNumEntries + fi2.estNumEntries);
-    }
-
-    @Override
-    public String toString() {
-      return String.format("file:%s  estSize:%d estEntries:%s", fileName, estFileSize,
-          estNumEntries);
-    }
-  }
-
-  static class Files implements Iterable<FileInfo> {
-    Map<String,FileInfo> files = new HashMap<>();
-
-    void add(FileInfo fi) {
-      if (files.putIfAbsent(fi.fileName, fi) != null) {
-        throw new IllegalArgumentException("File already present " + fi.fileName);
-      }
-    }
-
-    public Files mapNames(Map<String,String> renames) {
-      Files renamed = new Files();
-
-      files.forEach((k, v) -> {
-        String newName = renames.get(k);
-        FileInfo nfi = new FileInfo(newName, v.estFileSize, v.estNumEntries);
-        renamed.files.put(newName, nfi);
-      });
-
-      return renamed;
-    }
-
-    void merge(Files other) {
-      other.files.forEach((k, v) -> {
-        files.merge(k, v, FileInfo::merge);
-      });
-    }
-
-    @Override
-    public Iterator<FileInfo> iterator() {
-      return files.values().iterator();
-    }
-  }
 
   private static class MLong {
     public MLong(long i) {
@@ -351,7 +317,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     }
   }
 
-  public static SortedMap<KeyExtent,Files> computeFileToTabletMappings(Table.ID tableId,
+  public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(Table.ID tableId,
       Path dirPath, Executor executor, ClientContext context)
       throws IOException, URISyntaxException {
     // TODO is there a standard way to get Hadoop config on client side
@@ -364,21 +330,21 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     // TODO see how current code filters files in dir
     FileStatus[] files = fs.listStatus(dirPath, p -> p.getName().endsWith(".rf"));
 
-    List<CompletableFuture<Map<KeyExtent,FileInfo>>> futures = new ArrayList<>();
+    List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 
     for (FileStatus fileStatus : files) {
-      CompletableFuture<Map<KeyExtent,FileInfo>> future = CompletableFuture.supplyAsync(() -> {
+      CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
           List<TabletLocation> locations = findOverlappingTablets(context, locator,
               fileStatus.getPath(), fs);
           Collection<KeyExtent> extents = Collections2.transform(locations, l -> l.tablet_extent);
           Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(),
               fileStatus.getPath(), fileStatus.getLen(), extents, fs);
-          Map<KeyExtent,FileInfo> pathLocations = new HashMap<>();
+          Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (TabletLocation location : locations) {
             KeyExtent ke = location.tablet_extent;
             pathLocations.put(ke,
-                new FileInfo(fileStatus.getPath(), estSizes.getOrDefault(ke, 0L)));
+                new Bulk.FileInfo(fileStatus.getPath(), estSizes.getOrDefault(ke, 0L)));
           }
           return pathLocations;
         } catch (Exception e) {
@@ -389,13 +355,13 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       futures.add(future);
     }
 
-    SortedMap<KeyExtent,Files> mappings = new TreeMap<>();
+    SortedMap<KeyExtent,Bulk.Files> mappings = new TreeMap<>();
 
-    for (CompletableFuture<Map<KeyExtent,FileInfo>> future : futures) {
+    for (CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future : futures) {
       try {
-        Map<KeyExtent,FileInfo> pathMapping = future.get();
+        Map<KeyExtent,Bulk.FileInfo> pathMapping = future.get();
         pathMapping.forEach((extent, path) -> {
-          mappings.computeIfAbsent(extent, k -> new Files()).add(path);
+          mappings.computeIfAbsent(extent, k -> new Bulk.Files()).add(path);
         });
       } catch (InterruptedException e) {
         // TODO is this ok
@@ -411,7 +377,8 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
 
   // This method handles the case of splits happening while files are being examined. It merges
   // smaller tablets into large tablets.
-  static SortedMap<KeyExtent,Files> mergeOverlapping(SortedMap<KeyExtent,Files> mappings) {
+  static SortedMap<KeyExtent,Bulk.Files> mergeOverlapping(
+      SortedMap<KeyExtent,Bulk.Files> mappings) {
     List<KeyExtent> extents = new ArrayList<>(mappings.keySet());
 
     for (KeyExtent ke : extents) {
@@ -437,67 +404,24 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     return mappings;
   }
 
-  private static boolean equals(Text t1, Text t2) {
-    if (t1 == null || t2 == null)
-      return t1 == t2;
-
-    return t1.equals(t2);
+  private String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts,
+      String tableName) throws AccumuloSecurityException, AccumuloException {
+    try {
+      return new TableOperationsImpl(context).doFateOperation(op, args, opts, tableName);
+    } catch (TableExistsException | TableNotFoundException | NamespaceNotFoundException
+        | NamespaceExistsException e) {
+      // should not happen
+      throw new AssertionError(e);
+    }
   }
 
-  public static void writeFilesToMetadata(ID tableId, String dirUri,
-      SortedMap<KeyExtent,Files> mappings, ClientContext context)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    // TODO restrict range of scan based on min and max rows in key extents.
-    Iterable<TabletMetadata> tableMetadata = MetadataScanner.builder().from(context)
-        .overUserTableId(tableId).fetchPrev().build();
-
-    Iterator<TabletMetadata> tabletIter = tableMetadata.iterator();
-    Iterator<Entry<KeyExtent,Files>> fileIterator = mappings.entrySet().iterator();
-
-    List<TabletMetadata> tablets = new ArrayList<>();
-
-    context.getConnector().securityOperations().grantTablePermission("root", MetadataTable.NAME,
-        TablePermission.WRITE);
-    BatchWriter bw = context.getConnector().createBatchWriter(MetadataTable.NAME);
-
-    TabletMetadata currentTablet = tabletIter.next();
-    while (fileIterator.hasNext()) {
-      Entry<KeyExtent,Files> fileEntry = fileIterator.next();
-
-      KeyExtent fke = fileEntry.getKey();
-
-      tablets.clear();
-
-      while (!equals(currentTablet.getPrevEndRow(), fke.getPrevEndRow())) {
-        currentTablet = tabletIter.next();
-      }
-
-      tablets.add(currentTablet);
-
-      while (!equals(currentTablet.getEndRow(), fke.getEndRow())) {
-        currentTablet = tabletIter.next();
-        tablets.add(currentTablet);
-      }
-
-      for (TabletMetadata tablet : tablets) {
-
-        Mutation mutation = new Mutation(tablet.getExtent().getMetadataEntry());
-
-        Files files = fileEntry.getValue();
-        for (FileInfo fileInfo : files) {
-          long estSize = (long) (fileInfo.estFileSize / (double) tablets.size());
-          System.out.println("Add file " + fileInfo.fileName + " to " + tablet.getExtent() + " est "
-              + estSize + " orig est " + fileInfo.estFileSize);
-
-          String fileFamily = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString();
-          System.out.println("put : " + dirUri + "/" + fileInfo.fileName);
-          mutation.put(fileFamily, dirUri + "/" + fileInfo.fileName,
-              fileInfo.estFileSize + "," + fileInfo.estNumEntries);
-        }
-        bw.addMutation(mutation);
-      }
-    }
-
-    bw.close();
+  public static TKeyExtent wrapKeyExtent(KeyExtent keyExtent) {
+    TKeyExtent tke = new TKeyExtent();
+    tke.setTable(keyExtent.getTableId().getUtf8());
+    Text endRow = keyExtent.getEndRow();
+    Text prevEndRow = keyExtent.getPrevEndRow();
+    tke.setEndRow(endRow == null ? null : TextUtil.getBytes(endRow));
+    tke.setPrevEndRow(prevEndRow == null ? null : TextUtil.getBytes(prevEndRow));
+    return tke;
   }
 }

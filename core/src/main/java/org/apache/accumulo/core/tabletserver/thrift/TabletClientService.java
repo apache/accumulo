@@ -58,6 +58,8 @@ public class TabletClientService {
 
     public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> bulkImport(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
+    public void loadFile(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.lang.String file, long estimatedSize, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, boolean setTime) throws org.apache.thrift.TException;
+
     public void splitTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, java.nio.ByteBuffer splitPoint) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, org.apache.thrift.TException;
 
     public void loadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
@@ -131,6 +133,8 @@ public class TabletClientService {
     public void closeConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void bulkImport(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException;
+
+    public void loadFile(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.lang.String file, long estimatedSize, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void splitTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, java.nio.ByteBuffer splitPoint, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -610,6 +614,24 @@ public class TabletClientService {
         throw result.sec;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "bulkImport failed: unknown result");
+    }
+
+    public void loadFile(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.lang.String file, long estimatedSize, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, boolean setTime) throws org.apache.thrift.TException
+    {
+      send_loadFile(tinfo, credentials, tid, file, estimatedSize, keyExtent, setTime);
+    }
+
+    public void send_loadFile(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.lang.String file, long estimatedSize, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, boolean setTime) throws org.apache.thrift.TException
+    {
+      loadFile_args args = new loadFile_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setTid(tid);
+      args.setFile(file);
+      args.setEstimatedSize(estimatedSize);
+      args.setKeyExtent(keyExtent);
+      args.setSetTime(setTime);
+      sendBaseOneway("loadFile", args);
     }
 
     public void splitTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, java.nio.ByteBuffer splitPoint) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, org.apache.thrift.TException
@@ -1721,6 +1743,56 @@ public class TabletClientService {
       }
     }
 
+    public void loadFile(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.lang.String file, long estimatedSize, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      loadFile_call method_call = new loadFile_call(tinfo, credentials, tid, file, estimatedSize, keyExtent, setTime, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class loadFile_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
+      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private long tid;
+      private java.lang.String file;
+      private long estimatedSize;
+      private org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent;
+      private boolean setTime;
+      public loadFile_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, java.lang.String file, long estimatedSize, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, true);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.tid = tid;
+        this.file = file;
+        this.estimatedSize = estimatedSize;
+        this.keyExtent = keyExtent;
+        this.setTime = setTime;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("loadFile", org.apache.thrift.protocol.TMessageType.ONEWAY, 0));
+        loadFile_args args = new loadFile_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setTid(tid);
+        args.setFile(file);
+        args.setEstimatedSize(estimatedSize);
+        args.setKeyExtent(keyExtent);
+        args.setSetTime(setTime);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public Void getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return null;
+      }
+    }
+
     public void splitTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, java.nio.ByteBuffer splitPoint, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       splitTablet_call method_call = new splitTablet_call(tinfo, credentials, extent, splitPoint, resultHandler, this, ___protocolFactory, ___transport);
@@ -2539,6 +2611,7 @@ public class TabletClientService {
       processMap.put("invalidateConditionalUpdate", new invalidateConditionalUpdate());
       processMap.put("closeConditionalUpdate", new closeConditionalUpdate());
       processMap.put("bulkImport", new bulkImport());
+      processMap.put("loadFile", new loadFile());
       processMap.put("splitTablet", new splitTablet());
       processMap.put("loadTablet", new loadTablet());
       processMap.put("unloadTablet", new unloadTablet());
@@ -2921,6 +2994,25 @@ public class TabletClientService {
           result.sec = sec;
         }
         return result;
+      }
+    }
+
+    public static class loadFile<I extends Iface> extends org.apache.thrift.ProcessFunction<I, loadFile_args> {
+      public loadFile() {
+        super("loadFile");
+      }
+
+      public loadFile_args getEmptyArgsInstance() {
+        return new loadFile_args();
+      }
+
+      protected boolean isOneway() {
+        return true;
+      }
+
+      public org.apache.thrift.TBase getResult(I iface, loadFile_args args) throws org.apache.thrift.TException {
+        iface.loadFile(args.tinfo, args.credentials, args.tid, args.file, args.estimatedSize, args.keyExtent, args.setTime);
+        return null;
       }
     }
 
@@ -3392,6 +3484,7 @@ public class TabletClientService {
       processMap.put("invalidateConditionalUpdate", new invalidateConditionalUpdate());
       processMap.put("closeConditionalUpdate", new closeConditionalUpdate());
       processMap.put("bulkImport", new bulkImport());
+      processMap.put("loadFile", new loadFile());
       processMap.put("splitTablet", new splitTablet());
       processMap.put("loadTablet", new loadTablet());
       processMap.put("unloadTablet", new unloadTablet());
@@ -4328,6 +4421,40 @@ public class TabletClientService {
 
       public void start(I iface, bulkImport_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException {
         iface.bulkImport(args.tinfo, args.credentials, args.tid, args.files, args.setTime,resultHandler);
+      }
+    }
+
+    public static class loadFile<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, loadFile_args, Void> {
+      public loadFile() {
+        super("loadFile");
+      }
+
+      public loadFile_args getEmptyArgsInstance() {
+        return new loadFile_args();
+      }
+
+      public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
+          public void onComplete(Void o) {
+          }
+          public void onError(java.lang.Exception e) {
+            if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+            } else {
+              _LOGGER.error("Exception inside oneway handler", e);
+            }
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return true;
+      }
+
+      public void start(I iface, loadFile_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+        iface.loadFile(args.tinfo, args.credentials, args.tid, args.file, args.estimatedSize, args.keyExtent, args.setTime,resultHandler);
       }
     }
 
@@ -23680,6 +23807,987 @@ public class TabletClientService {
           struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class loadFile_args implements org.apache.thrift.TBase<loadFile_args, loadFile_args._Fields>, java.io.Serializable, Cloneable, Comparable<loadFile_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("loadFile_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TID_FIELD_DESC = new org.apache.thrift.protocol.TField("tid", org.apache.thrift.protocol.TType.I64, (short)3);
+    private static final org.apache.thrift.protocol.TField FILE_FIELD_DESC = new org.apache.thrift.protocol.TField("file", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField ESTIMATED_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("estimatedSize", org.apache.thrift.protocol.TType.I64, (short)5);
+    private static final org.apache.thrift.protocol.TField KEY_EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("keyExtent", org.apache.thrift.protocol.TType.STRUCT, (short)6);
+    private static final org.apache.thrift.protocol.TField SET_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("setTime", org.apache.thrift.protocol.TType.BOOL, (short)7);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new loadFile_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new loadFile_argsTupleSchemeFactory();
+
+    public org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public long tid; // required
+    public java.lang.String file; // required
+    public long estimatedSize; // required
+    public org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent; // required
+    public boolean setTime; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TID((short)3, "tid"),
+      FILE((short)4, "file"),
+      ESTIMATED_SIZE((short)5, "estimatedSize"),
+      KEY_EXTENT((short)6, "keyExtent"),
+      SET_TIME((short)7, "setTime");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // TID
+            return TID;
+          case 4: // FILE
+            return FILE;
+          case 5: // ESTIMATED_SIZE
+            return ESTIMATED_SIZE;
+          case 6: // KEY_EXTENT
+            return KEY_EXTENT;
+          case 7: // SET_TIME
+            return SET_TIME;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __TID_ISSET_ID = 0;
+    private static final int __ESTIMATEDSIZE_ISSET_ID = 1;
+    private static final int __SETTIME_ISSET_ID = 2;
+    private byte __isset_bitfield = 0;
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.TID, new org.apache.thrift.meta_data.FieldMetaData("tid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+      tmpMap.put(_Fields.FILE, new org.apache.thrift.meta_data.FieldMetaData("file", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.ESTIMATED_SIZE, new org.apache.thrift.meta_data.FieldMetaData("estimatedSize", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+      tmpMap.put(_Fields.KEY_EXTENT, new org.apache.thrift.meta_data.FieldMetaData("keyExtent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+      tmpMap.put(_Fields.SET_TIME, new org.apache.thrift.meta_data.FieldMetaData("setTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(loadFile_args.class, metaDataMap);
+    }
+
+    public loadFile_args() {
+    }
+
+    public loadFile_args(
+      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      long tid,
+      java.lang.String file,
+      long estimatedSize,
+      org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent,
+      boolean setTime)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.tid = tid;
+      setTidIsSet(true);
+      this.file = file;
+      this.estimatedSize = estimatedSize;
+      setEstimatedSizeIsSet(true);
+      this.keyExtent = keyExtent;
+      this.setTime = setTime;
+      setSetTimeIsSet(true);
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public loadFile_args(loadFile_args other) {
+      __isset_bitfield = other.__isset_bitfield;
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      this.tid = other.tid;
+      if (other.isSetFile()) {
+        this.file = other.file;
+      }
+      this.estimatedSize = other.estimatedSize;
+      if (other.isSetKeyExtent()) {
+        this.keyExtent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.keyExtent);
+      }
+      this.setTime = other.setTime;
+    }
+
+    public loadFile_args deepCopy() {
+      return new loadFile_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      setTidIsSet(false);
+      this.tid = 0;
+      this.file = null;
+      setEstimatedSizeIsSet(false);
+      this.estimatedSize = 0;
+      this.keyExtent = null;
+      setSetTimeIsSet(false);
+      this.setTime = false;
+    }
+
+    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public loadFile_args setTinfo(org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public loadFile_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public long getTid() {
+      return this.tid;
+    }
+
+    public loadFile_args setTid(long tid) {
+      this.tid = tid;
+      setTidIsSet(true);
+      return this;
+    }
+
+    public void unsetTid() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __TID_ISSET_ID);
+    }
+
+    /** Returns true if field tid is set (has been assigned a value) and false otherwise */
+    public boolean isSetTid() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __TID_ISSET_ID);
+    }
+
+    public void setTidIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __TID_ISSET_ID, value);
+    }
+
+    public java.lang.String getFile() {
+      return this.file;
+    }
+
+    public loadFile_args setFile(java.lang.String file) {
+      this.file = file;
+      return this;
+    }
+
+    public void unsetFile() {
+      this.file = null;
+    }
+
+    /** Returns true if field file is set (has been assigned a value) and false otherwise */
+    public boolean isSetFile() {
+      return this.file != null;
+    }
+
+    public void setFileIsSet(boolean value) {
+      if (!value) {
+        this.file = null;
+      }
+    }
+
+    public long getEstimatedSize() {
+      return this.estimatedSize;
+    }
+
+    public loadFile_args setEstimatedSize(long estimatedSize) {
+      this.estimatedSize = estimatedSize;
+      setEstimatedSizeIsSet(true);
+      return this;
+    }
+
+    public void unsetEstimatedSize() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __ESTIMATEDSIZE_ISSET_ID);
+    }
+
+    /** Returns true if field estimatedSize is set (has been assigned a value) and false otherwise */
+    public boolean isSetEstimatedSize() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __ESTIMATEDSIZE_ISSET_ID);
+    }
+
+    public void setEstimatedSizeIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ESTIMATEDSIZE_ISSET_ID, value);
+    }
+
+    public org.apache.accumulo.core.data.thrift.TKeyExtent getKeyExtent() {
+      return this.keyExtent;
+    }
+
+    public loadFile_args setKeyExtent(org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) {
+      this.keyExtent = keyExtent;
+      return this;
+    }
+
+    public void unsetKeyExtent() {
+      this.keyExtent = null;
+    }
+
+    /** Returns true if field keyExtent is set (has been assigned a value) and false otherwise */
+    public boolean isSetKeyExtent() {
+      return this.keyExtent != null;
+    }
+
+    public void setKeyExtentIsSet(boolean value) {
+      if (!value) {
+        this.keyExtent = null;
+      }
+    }
+
+    public boolean isSetTime() {
+      return this.setTime;
+    }
+
+    public loadFile_args setSetTime(boolean setTime) {
+      this.setTime = setTime;
+      setSetTimeIsSet(true);
+      return this;
+    }
+
+    public void unsetSetTime() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __SETTIME_ISSET_ID);
+    }
+
+    /** Returns true if field setTime is set (has been assigned a value) and false otherwise */
+    public boolean isSetSetTime() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __SETTIME_ISSET_ID);
+    }
+
+    public void setSetTimeIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SETTIME_ISSET_ID, value);
+    }
+
+    public void setFieldValue(_Fields field, java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case TID:
+        if (value == null) {
+          unsetTid();
+        } else {
+          setTid((java.lang.Long)value);
+        }
+        break;
+
+      case FILE:
+        if (value == null) {
+          unsetFile();
+        } else {
+          setFile((java.lang.String)value);
+        }
+        break;
+
+      case ESTIMATED_SIZE:
+        if (value == null) {
+          unsetEstimatedSize();
+        } else {
+          setEstimatedSize((java.lang.Long)value);
+        }
+        break;
+
+      case KEY_EXTENT:
+        if (value == null) {
+          unsetKeyExtent();
+        } else {
+          setKeyExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
+        }
+        break;
+
+      case SET_TIME:
+        if (value == null) {
+          unsetSetTime();
+        } else {
+          setSetTime((java.lang.Boolean)value);
+        }
+        break;
+
+      }
+    }
+
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case TID:
+        return getTid();
+
+      case FILE:
+        return getFile();
+
+      case ESTIMATED_SIZE:
+        return getEstimatedSize();
+
+      case KEY_EXTENT:
+        return getKeyExtent();
+
+      case SET_TIME:
+        return isSetTime();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case TID:
+        return isSetTid();
+      case FILE:
+        return isSetFile();
+      case ESTIMATED_SIZE:
+        return isSetEstimatedSize();
+      case KEY_EXTENT:
+        return isSetKeyExtent();
+      case SET_TIME:
+        return isSetSetTime();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof loadFile_args)
+        return this.equals((loadFile_args)that);
+      return false;
+    }
+
+    public boolean equals(loadFile_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_tid = true;
+      boolean that_present_tid = true;
+      if (this_present_tid || that_present_tid) {
+        if (!(this_present_tid && that_present_tid))
+          return false;
+        if (this.tid != that.tid)
+          return false;
+      }
+
+      boolean this_present_file = true && this.isSetFile();
+      boolean that_present_file = true && that.isSetFile();
+      if (this_present_file || that_present_file) {
+        if (!(this_present_file && that_present_file))
+          return false;
+        if (!this.file.equals(that.file))
+          return false;
+      }
+
+      boolean this_present_estimatedSize = true;
+      boolean that_present_estimatedSize = true;
+      if (this_present_estimatedSize || that_present_estimatedSize) {
+        if (!(this_present_estimatedSize && that_present_estimatedSize))
+          return false;
+        if (this.estimatedSize != that.estimatedSize)
+          return false;
+      }
+
+      boolean this_present_keyExtent = true && this.isSetKeyExtent();
+      boolean that_present_keyExtent = true && that.isSetKeyExtent();
+      if (this_present_keyExtent || that_present_keyExtent) {
+        if (!(this_present_keyExtent && that_present_keyExtent))
+          return false;
+        if (!this.keyExtent.equals(that.keyExtent))
+          return false;
+      }
+
+      boolean this_present_setTime = true;
+      boolean that_present_setTime = true;
+      if (this_present_setTime || that_present_setTime) {
+        if (!(this_present_setTime && that_present_setTime))
+          return false;
+        if (this.setTime != that.setTime)
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(tid);
+
+      hashCode = hashCode * 8191 + ((isSetFile()) ? 131071 : 524287);
+      if (isSetFile())
+        hashCode = hashCode * 8191 + file.hashCode();
+
+      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(estimatedSize);
+
+      hashCode = hashCode * 8191 + ((isSetKeyExtent()) ? 131071 : 524287);
+      if (isSetKeyExtent())
+        hashCode = hashCode * 8191 + keyExtent.hashCode();
+
+      hashCode = hashCode * 8191 + ((setTime) ? 131071 : 524287);
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(loadFile_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.valueOf(isSetTinfo()).compareTo(other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetCredentials()).compareTo(other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetTid()).compareTo(other.isSetTid());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTid()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tid, other.tid);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetFile()).compareTo(other.isSetFile());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetFile()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.file, other.file);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetEstimatedSize()).compareTo(other.isSetEstimatedSize());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetEstimatedSize()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.estimatedSize, other.estimatedSize);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetKeyExtent()).compareTo(other.isSetKeyExtent());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetKeyExtent()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.keyExtent, other.keyExtent);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetSetTime()).compareTo(other.isSetSetTime());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSetTime()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.setTime, other.setTime);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("loadFile_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tid:");
+      sb.append(this.tid);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("file:");
+      if (this.file == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.file);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("estimatedSize:");
+      sb.append(this.estimatedSize);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("keyExtent:");
+      if (this.keyExtent == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.keyExtent);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("setTime:");
+      sb.append(this.setTime);
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+      if (keyExtent != null) {
+        keyExtent.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class loadFile_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public loadFile_argsStandardScheme getScheme() {
+        return new loadFile_argsStandardScheme();
+      }
+    }
+
+    private static class loadFile_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<loadFile_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, loadFile_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // TID
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.tid = iprot.readI64();
+                struct.setTidIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // FILE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.file = iprot.readString();
+                struct.setFileIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 5: // ESTIMATED_SIZE
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.estimatedSize = iprot.readI64();
+                struct.setEstimatedSizeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 6: // KEY_EXTENT
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.keyExtent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+                struct.keyExtent.read(iprot);
+                struct.setKeyExtentIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 7: // SET_TIME
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.setTime = iprot.readBool();
+                struct.setSetTimeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, loadFile_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(TID_FIELD_DESC);
+        oprot.writeI64(struct.tid);
+        oprot.writeFieldEnd();
+        if (struct.file != null) {
+          oprot.writeFieldBegin(FILE_FIELD_DESC);
+          oprot.writeString(struct.file);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(ESTIMATED_SIZE_FIELD_DESC);
+        oprot.writeI64(struct.estimatedSize);
+        oprot.writeFieldEnd();
+        if (struct.keyExtent != null) {
+          oprot.writeFieldBegin(KEY_EXTENT_FIELD_DESC);
+          struct.keyExtent.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(SET_TIME_FIELD_DESC);
+        oprot.writeBool(struct.setTime);
+        oprot.writeFieldEnd();
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class loadFile_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public loadFile_argsTupleScheme getScheme() {
+        return new loadFile_argsTupleScheme();
+      }
+    }
+
+    private static class loadFile_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<loadFile_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, loadFile_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetTid()) {
+          optionals.set(2);
+        }
+        if (struct.isSetFile()) {
+          optionals.set(3);
+        }
+        if (struct.isSetEstimatedSize()) {
+          optionals.set(4);
+        }
+        if (struct.isSetKeyExtent()) {
+          optionals.set(5);
+        }
+        if (struct.isSetSetTime()) {
+          optionals.set(6);
+        }
+        oprot.writeBitSet(optionals, 7);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetTid()) {
+          oprot.writeI64(struct.tid);
+        }
+        if (struct.isSetFile()) {
+          oprot.writeString(struct.file);
+        }
+        if (struct.isSetEstimatedSize()) {
+          oprot.writeI64(struct.estimatedSize);
+        }
+        if (struct.isSetKeyExtent()) {
+          struct.keyExtent.write(oprot);
+        }
+        if (struct.isSetSetTime()) {
+          oprot.writeBool(struct.setTime);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, loadFile_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(7);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.tid = iprot.readI64();
+          struct.setTidIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.file = iprot.readString();
+          struct.setFileIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.estimatedSize = iprot.readI64();
+          struct.setEstimatedSizeIsSet(true);
+        }
+        if (incoming.get(5)) {
+          struct.keyExtent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+          struct.keyExtent.read(iprot);
+          struct.setKeyExtentIsSet(true);
+        }
+        if (incoming.get(6)) {
+          struct.setTime = iprot.readBool();
+          struct.setSetTimeIsSet(true);
         }
       }
     }

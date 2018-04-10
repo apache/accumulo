@@ -43,7 +43,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class DeleteThisIT extends AccumuloClusterHarness {
+/**
+ * Tests new bulk import technique. If the old technique ever gets removed this will replace
+ * {@link BulkFileIT}
+ *
+ * @since 2.0
+ */
+public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
@@ -71,34 +77,41 @@ public class DeleteThisIT extends AccumuloClusterHarness {
 
     String rootPath = cluster.getTemporaryPath().toString();
 
-    String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
+    String dir = rootPath + "/testBulkFile-" + getUniqueNames(1)[0];
 
     fs.delete(new Path(dir), true);
 
+    // TODO verify that data gets loaded in appropriate Tablets
+    // 1 Tablet 0333-null
     FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
         .forFile(dir + "/f1." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
     writer1.startDefaultLocalityGroup();
     writeData(writer1, 0, 333);
     writer1.close();
 
+    // 2 Tablets 0666-0334, 0999-0667
     FileSKVWriter writer2 = FileOperations.getInstance().newWriterBuilder()
         .forFile(dir + "/f2." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
     writer2.startDefaultLocalityGroup();
     writeData(writer2, 334, 999);
     writer2.close();
 
+    // 2 Tablets 1333-1000, 1666-1334
     FileSKVWriter writer3 = FileOperations.getInstance().newWriterBuilder()
         .forFile(dir + "/f3." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
     writer3.startDefaultLocalityGroup();
-    writeData(writer3, 1000, 1999);
+    // writeData(writer3, 1000, 1999);
+    writeData(writer3, 1000, 1499);
     writer3.close();
 
+    // 2 Tablets 1666-1334, >1666
     FileSKVWriter writer4 = FileOperations.getInstance().newWriterBuilder()
         .forFile(dir + "/f4." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
     writer4.startDefaultLocalityGroup();
     writeData(writer4, 1500, 1999);
     writer4.close();
 
+    // TODO test c.tableOperations().offline(tableName, true);
     c.tableOperations().addFilesTo(tableName).from(dir).load();
 
     verifyData(tableName, 0, 1999);

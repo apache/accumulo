@@ -211,6 +211,8 @@ service TabletClientService extends client.ClientService {
   // on success, returns an empty list
   list<data.TKeyExtent> bulkImport(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:i64 tid, 2:data.TabletFiles files, 5:bool setTime) throws (1:client.ThriftSecurityException sec),
 
+  oneway void loadFile(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:i64 tid, 4:string file, 5:i64 estimatedSize, 6:data.TKeyExtent keyExtent, 7:bool setTime);
+
   void splitTablet(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:data.TKeyExtent extent, 3:binary splitPoint) throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste)
  
   oneway void loadTablet(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:string lock, 2:data.TKeyExtent extent),

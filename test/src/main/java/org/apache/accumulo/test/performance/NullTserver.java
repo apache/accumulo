@@ -123,6 +123,10 @@ public class NullTserver {
     }
 
     @Override
+    public void loadFile(TInfo tinfo, TCredentials credentials, long tid, String file, long size,
+        TKeyExtent keyExtent, boolean setTime) {}
+
+    @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
 
     @Override

@@ -67,6 +67,8 @@ public class MetadataScanner {
   public static interface ColumnOptions {
     public ColumnOptions fetchFiles();
 
+    public ColumnOptions fetchLoaded();
+
     public ColumnOptions fetchLocation();
 
     public ColumnOptions fetchPrev();
@@ -122,6 +124,13 @@ public class MetadataScanner {
     public ColumnOptions fetchFiles() {
       fetchedCols.add(FetchedColumns.FILES);
       families.add(DataFileColumnFamily.NAME);
+      return this;
+    }
+
+    @Override
+    public ColumnOptions fetchLoaded() {
+      fetchedCols.add(FetchedColumns.LOADED);
+      families.add(MetadataSchema.TabletsSection.BulkFileColumnFamily.NAME);
       return this;
     }
 

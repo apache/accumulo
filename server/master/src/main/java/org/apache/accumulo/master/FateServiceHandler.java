@@ -22,6 +22,7 @@ import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
 import static org.apache.accumulo.master.util.TableValidators.VALID_ID;
 import static org.apache.accumulo.master.util.TableValidators.VALID_NAME;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -36,6 +38,8 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Bulk;
+import org.apache.accumulo.core.client.impl.BulkImport;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
@@ -47,6 +51,7 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.FateOperation;
@@ -56,7 +61,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.master.tableOps.BulkImport;
 import org.apache.accumulo.master.tableOps.CancelCompactions;
 import org.apache.accumulo.master.tableOps.ChangeTableState;
 import org.apache.accumulo.master.tableOps.CloneTable;
@@ -67,10 +71,12 @@ import org.apache.accumulo.master.tableOps.DeleteNamespace;
 import org.apache.accumulo.master.tableOps.DeleteTable;
 import org.apache.accumulo.master.tableOps.ExportTable;
 import org.apache.accumulo.master.tableOps.ImportTable;
+import org.apache.accumulo.master.tableOps.PrepBulkImport;
 import org.apache.accumulo.master.tableOps.RenameNamespace;
 import org.apache.accumulo.master.tableOps.RenameTable;
 import org.apache.accumulo.master.tableOps.TableRangeOp;
 import org.apache.accumulo.master.tableOps.TraceRepo;
+import org.apache.accumulo.master.util.BulkSerialize;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.util.TablePropUtil;
@@ -412,7 +418,9 @@ class FateServiceHandler implements FateService.Iface {
 
         master.updateBulkImportStatus(dir, BulkImportState.INITIAL);
         master.fate.seedTransaction(opid,
-            new TraceRepo<>(new BulkImport(tableId, dir, failDir, setTime)), autoCleanup);
+            new TraceRepo<>(new org.apache.accumulo.master.tableOps.deprecated.BulkImport(tableId,
+                dir, failDir, setTime)),
+            autoCleanup);
         break;
       }
       case TABLE_COMPACT: {
@@ -513,6 +521,39 @@ class FateServiceHandler implements FateService.Iface {
         master.fate.seedTransaction(opid,
             new TraceRepo<>(new ExportTable(namespaceId, tableName, tableId, exportDir)),
             autoCleanup);
+        break;
+      }
+      case TABLE_BULK_IMPORT2: {
+        TableOperation tableOp = TableOperation.BULK_IMPORT;
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
+        String dir = ByteBufferUtil.toString(arguments.get(1));
+        SortedMap<KeyExtent,Bulk.Files> loadMapping = validateMappingArgument(arguments.get(2),
+            tableOp, null);
+
+        boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
+
+        final Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName,
+            tableOp);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+
+        final boolean canBulkImport;
+        try {
+          canBulkImport = master.security.canBulkImport(c, tableId, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, tableName, TableOperation.BULK_IMPORT);
+          throw e;
+        }
+
+        if (!canBulkImport)
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
+        // write load mapping file before transaction is seeded to prevent it from being written to
+        // zookeeper
+        BulkSerialize.writeLoadMapping(loadMapping, dir, tableId, tableName, master.fs);
+
+        master.updateBulkImportStatus(dir, BulkImportState.INITIAL);
+        master.fate.seedTransaction(opid,
+            new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup);
         break;
       }
       default:
@@ -629,6 +670,21 @@ class FateServiceHandler implements FateService.Iface {
       Validator<String> userValidator) throws ThriftTableOperationException {
     String namespace = namespaceArg == null ? null : ByteBufferUtil.toString(namespaceArg);
     return _validateArgument(namespace, op, Namespaces.VALID_NAME.and(userValidator));
+  }
+
+  // Verify namespace arguments are valid, and match any additional restrictions
+  private SortedMap<KeyExtent,Bulk.Files> validateMappingArgument(ByteBuffer mappingArg,
+      TableOperation op, Validator<SortedMap<KeyExtent,Bulk.Files>> userValidator)
+      throws ThriftTableOperationException {
+    try {
+      SortedMap<KeyExtent,Bulk.Files> mapping = mappingArg == null ? null
+          : ByteBufferUtil.toBulkImportMap(mappingArg);
+      return _validateArgument(mapping, op, BulkImport.VALID_MAPPING.and(userValidator));
+    } catch (IOException | ClassNotFoundException e) {
+      String why = e.getMessage();
+      throw new ThriftTableOperationException(null, null, op,
+          TableOperationExceptionType.BULK_BAD_LOAD_MAPPING, why);
+    }
   }
 
   // helper to handle the exception

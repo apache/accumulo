@@ -39,6 +39,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.master.tableOps.deprecated.BulkImport;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
@@ -91,7 +92,7 @@ class CopyFailed extends MasterRepo {
     master.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
     VolumeManager fs = master.getFileSystem();
 
-    if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
+    if (error == null || !fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
 
     HashMap<FileRef,String> failures = new HashMap<>();

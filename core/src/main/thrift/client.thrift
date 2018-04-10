@@ -46,6 +46,7 @@ enum TableOperationExceptionType {
   OFFLINE
   BULK_BAD_INPUT_DIRECTORY
   BULK_BAD_ERROR_DIRECTORY
+  BULK_BAD_LOAD_MAPPING
   BAD_RANGE
   OTHER
   NAMESPACE_EXISTS
@@ -110,7 +111,9 @@ service ClientService {
   string getInstanceId()
   string getZooKeepers()
 
+  // deprecated for new bulkImport
   list<string> bulkImportFiles(1:trace.TInfo tinfo, 8:security.TCredentials credentials, 3:i64 tid, 4:string tableId, 5:list<string> files, 6:string errorDir, 7:bool setTime) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
+
   // ensures that nobody is working on the transaction id above
   bool isActive(1:trace.TInfo tinfo, 2:i64 tid)
 
