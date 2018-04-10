@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -618,6 +619,62 @@ public interface TableOperations {
    */
   void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * @since 2.0.0
+   */
+  public static interface ImportSourceOptions {
+    ImportSourceOptions settingLogicalTime();
+
+    void load()
+        throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  public static interface ImportExecutorOptions extends ImportSourceOptions {
+    /**
+     * Files need must be inspected to determine what tablets they go to. This inspection is done in
+     * the current process. If this property is not set, then the client property
+     * {@code bulk.threads} is used to create a thread pool.
+     *
+     * @param service
+     *          Use this executor to run file inspection task
+     * @return
+     */
+    ImportSourceOptions usingExecutor(Executor service);
+
+    /**
+     * Files need must be inspected to determine what tablets they go to. This inspection is done in
+     * the current process. If this property is not set, then the client property
+     * {@code bulk.threads} is used to create a thread pool.
+     *
+     * @param numThreads
+     *          Create a thread pool with this many thread to run file inspection task.
+     * @return
+     */
+    ImportSourceOptions usingThreads(int numThreads);
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  public static interface ImportSourceArguments {
+    /**
+     *
+     * @param directory
+     * @return
+     */
+    ImportSourceOptions from(String directory);
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  default ImportSourceArguments addFilesTo(String tableName) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Initiates taking a table offline, but does not wait for action to complete

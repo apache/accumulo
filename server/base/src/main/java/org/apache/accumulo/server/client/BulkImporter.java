@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.impl.BulkImport;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.Table;
@@ -48,8 +49,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -675,42 +674,18 @@ public class BulkImporter {
     return start;
   }
 
-  final static byte[] byte0 = {0};
+  private final static byte[] byte0 = {0};
 
   public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager vm,
       TabletLocator locator, Path file, Text startRow, Text endRow) throws Exception {
-    List<TabletLocation> result = new ArrayList<>();
-    Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
     FileSystem fs = vm.getVolumeByPath(file).getFileSystem();
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
         .forFile(filename, fs, fs.getConf()).withTableConfiguration(context.getConfiguration())
         .seekToBeginning().build()) {
-      Text row = startRow;
-      if (row == null)
-        row = new Text();
-      while (true) {
-        // log.debug(filename + " Seeking to row " + row);
-        reader.seek(new Range(row, null), columnFamilies, false);
-        if (!reader.hasTop()) {
-          // log.debug(filename + " not found");
-          break;
-        }
-        row = reader.getTopKey().getRow();
-        TabletLocation tabletLocation = locator.locateTablet(context, row, false, true);
-        // log.debug(filename + " found row " + row + " at location " + tabletLocation);
-        result.add(tabletLocation);
-        row = tabletLocation.tablet_extent.getEndRow();
-        if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
-          row = new Text(row);
-          row.append(byte0, 0, byte0.length);
-        } else
-          break;
-      }
+      return BulkImport.findOverlappingTablets(context, locator, startRow, endRow, reader);
     }
-    // log.debug(filename + " to be sent to " + result);
-    return result;
   }
 
   public static class AssignmentStats {
