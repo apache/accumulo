@@ -61,6 +61,9 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     return 4 * 60;
   }
 
+  // TODO add a test with a single file being imported to a single tablet... saw some bus with this
+  // in manual testing
+
   @Test
   public void testBulkFile() throws Exception {
     Connector c = getConnector();

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.tableOps;
+package org.apache.accumulo.master.tableOps.bulkVer2;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.client.impl.BulkSerialize;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
@@ -32,7 +33,7 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.master.util.BulkSerialize;
+import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
@@ -72,20 +73,11 @@ class BulkImportMove extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
-    if (!Utils.getReadLock(bulkInfo.tableId, tid).tryLock())
-      return 100;
-
-    return 0;
-  }
-
-  @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
     log.debug(" tid {} sourceDir {}", tid, sourceDir);
 
-    Utils.getReadLock(bulkInfo.tableId, tid).lock();
     VolumeManager fs = master.getFileSystem();
 
     ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
@@ -93,14 +85,13 @@ class BulkImportMove extends MasterRepo {
 
     try {
       Map<String,String> oldToNewNameMap = BulkSerialize.readRenameMap(bulkDir.toString(),
-          bulkInfo.tableId, fs);
-      moveFiles(sourceDir, bulkDir, master, fs, oldToNewNameMap);
-
-      log.debug("Finished moving files for tid {} to bulkDir {}", tid, bulkDir);
+          bulkInfo.tableId, p -> fs.open(p));
+      moveFiles(String.format("%016x", tid), sourceDir, bulkDir, master, fs, oldToNewNameMap);
 
       // TODO figure out where to delete the renaming file
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
+      // TODO why do this logging and throw exception?
       log.error("error preparing the bulkDir import directory", ex);
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY,
@@ -111,8 +102,8 @@ class BulkImportMove extends MasterRepo {
   /**
    * For every entry in renames, move the file from the key path to the value path
    */
-  private void moveFiles(Path sourceDir, Path bulkDir, Master master, final VolumeManager fs,
-      Map<String,String> renames) throws Exception {
+  private void moveFiles(String fmtTid, Path sourceDir, Path bulkDir, Master master,
+      final VolumeManager fs, Map<String,String> renames) throws Exception {
     MetadataTableUtil.addBulkLoadInProgressFlag(master,
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
 
@@ -130,12 +121,13 @@ class BulkImportMove extends MasterRepo {
           try {
             newPath = new Path(bulkDir, renameEntry.getValue());
             success = fs.rename(originalPath, newPath);
-            log.debug("Moved {} to {}", originalPath, newPath);
+            log.trace("tid {} moved {} to {}", fmtTid, originalPath, newPath);
           } catch (IOException ioe) {
             errorMsg = ioe.getMessage();
             success = false;
           }
           if (!success) {
+            // TODO must retry or fail fate op if a move failed
             if (errorMsg.isEmpty())
               errorMsg = "HDFS rename returned false";
             log.warn("Could not move: {} to {} {}", originalPath.toString(), newPath, errorMsg);

@@ -17,15 +17,14 @@
 package org.apache.accumulo.core.client.impl;
 
 import java.io.Serializable;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.Objects;
 
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -34,171 +33,79 @@ import com.google.common.base.Preconditions;
 public class Bulk {
 
   /**
-   * Class used for Bulk serialization to Json
+   * WARNING : do not change this class, its used for serialization to Json
    */
-  public static class Mapping implements Comparable<Mapping> {
+  public static class Mapping {
     private Tablet tablet;
-    private Files files;
+    private Collection<FileInfo> files;
 
     public Mapping(KeyExtent tablet, Files files) {
       this.tablet = toTablet(tablet);
-      this.files = files;
-    }
-
-    @Override
-    public String toString() {
-      return tablet.toString() + " " + Arrays.toString(this.files.getAllFileNames().toArray());
+      this.files = files.files.values();
     }
 
     public Tablet getTablet() {
       return tablet;
     }
 
-    public KeyExtent getKeyExtent() {
-      return tablet.toKeyExtent();
+    public KeyExtent getKeyExtent(Table.ID tableId) {
+      return tablet.toKeyExtent(tableId);
     }
 
     public Files getFiles() {
-      return files;
-    }
-
-    @Override
-    public int compareTo(Mapping o) {
-      return this.tablet.compareTo(o.tablet);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == this)
-        return true;
-      if (!(o instanceof Mapping))
-        return false;
-      Mapping other = (Mapping) o;
-      return this.tablet.equals(other.tablet) && this.files.equals(other.files);
-    }
-
-    private int hashcode = 0;
-
-    @Override
-    public int hashCode() {
-      if (hashcode != 0)
-        return hashcode;
-      return hashcode = tablet.hashCode() + files.hashCode();
+      return new Files(files);
     }
   }
 
   /**
-   * Basically a copy of KeyExtent that is used for Bulk serialization
+   * WARNING : do not change this class, its used for serialization to Json
    */
-  public static class Tablet implements Comparable<Tablet> {
-    private Table.ID tableId;
-    private Text endRow;
-    private Text prevEndRow;
+  public static class Tablet {
 
-    public Tablet(Table.ID tableId, Text endRow, Text prevEndRow) {
-      this.tableId = tableId;
-      this.endRow = endRow;
-      this.prevEndRow = prevEndRow;
+    private byte[] endRow;
+    private byte[] prevEndRow;
+
+    public Tablet(Text endRow, Text prevEndRow) {
+      this.endRow = endRow == null ? null : TextUtil.getBytes(endRow);
+      this.prevEndRow = prevEndRow == null ? null : TextUtil.getBytes(prevEndRow);
     }
 
-    public KeyExtent toKeyExtent() {
-      return Bulk.toKeyExtent(this);
-    }
-
-    public Table.ID getTableId() {
-      return tableId;
+    public KeyExtent toKeyExtent(Table.ID tableId) {
+      return Bulk.toKeyExtent(tableId, this);
     }
 
     public Text getEndRow() {
-      return endRow;
+      if (endRow == null) {
+        return null;
+      }
+      return new Text(endRow);
     }
 
     public Text getPrevEndRow() {
-      return prevEndRow;
+      if (prevEndRow == null) {
+        return null;
+      }
+      return new Text(prevEndRow);
     }
 
     @Override
     public String toString() {
-      return tableId.canonicalID() + ";" + endRow.toString() + ";" + prevEndRow.toString();
-    }
-
-    // copied from KeyExtent
-    @Override
-    public int compareTo(Tablet other) {
-
-      int result = getTableId().compareTo(other.getTableId());
-      if (result != 0)
-        return result;
-
-      if (this.getEndRow() == null) {
-        if (other.getEndRow() != null)
-          return 1;
-      } else {
-        if (other.getEndRow() == null)
-          return -1;
-
-        result = getEndRow().compareTo(other.getEndRow());
-        if (result != 0)
-          return result;
-      }
-      if (this.getPrevEndRow() == null) {
-        if (other.getPrevEndRow() == null)
-          return 0;
-        return -1;
-      }
-      if (other.getPrevEndRow() == null)
-        return 1;
-      return this.getPrevEndRow().compareTo(other.getPrevEndRow());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == this)
-        return true;
-      if (!(o instanceof Tablet))
-        return false;
-      Tablet other = (Tablet) o;
-      return tableId.equals(other.tableId) && equals(endRow, other.getEndRow())
-          && equals(prevEndRow, other.getPrevEndRow());
-    }
-
-    private boolean equals(Text t1, Text t2) {
-      if (t1 == null || t2 == null)
-        return t1 == t2;
-      return t1.equals(t2);
-    }
-
-    private int hashCode = 0;
-
-    @Override
-    public int hashCode() {
-      if (hashCode != 0)
-        return hashCode;
-
-      int prevEndRowHash = 0;
-      int endRowHash = 0;
-      if (this.getEndRow() != null) {
-        endRowHash = this.getEndRow().hashCode();
-      }
-
-      if (this.getPrevEndRow() != null) {
-        prevEndRowHash = this.getPrevEndRow().hashCode();
-      }
-
-      hashCode = getTableId().hashCode() + endRowHash + prevEndRowHash;
-      return hashCode;
+      return getEndRow().toString() + ";" + getPrevEndRow().toString();
     }
   }
 
+  /**
+   * WARNING : do not change this class, its used for serialization to Json
+   */
   public static class FileInfo implements Serializable {
-    final String fileName;
-    final long estFileSize;
-    final long estNumEntries;
+    final String name;
+    final long estSize;
+    final long estEntries;
 
     public FileInfo(String fileName, long estFileSize, long estNumEntries) {
-      this.fileName = fileName;
-      this.estFileSize = estFileSize;
-      this.estNumEntries = estNumEntries;
+      this.name = fileName;
+      this.estSize = estFileSize;
+      this.estEntries = estNumEntries;
     }
 
     public FileInfo(Path path, long estSize) {
@@ -206,27 +113,25 @@ public class Bulk {
     }
 
     static FileInfo merge(FileInfo fi1, FileInfo fi2) {
-      Preconditions.checkArgument(fi1.fileName.equals(fi2.fileName));
-      return new FileInfo(fi1.fileName, fi1.estFileSize + fi2.estFileSize,
-          fi1.estNumEntries + fi2.estNumEntries);
+      Preconditions.checkArgument(fi1.name.equals(fi2.name));
+      return new FileInfo(fi1.name, fi1.estSize + fi2.estSize, fi1.estEntries + fi2.estEntries);
     }
 
     public String getFileName() {
-      return fileName;
+      return name;
     }
 
     public long getEstFileSize() {
-      return estFileSize;
+      return estSize;
     }
 
     public long getEstNumEntries() {
-      return estNumEntries;
+      return estEntries;
     }
 
     @Override
     public String toString() {
-      return String.format("file:%s  estSize:%d estEntries:%s", fileName, estFileSize,
-          estNumEntries);
+      return String.format("file:%s  estSize:%d estEntries:%s", name, estSize, estEntries);
     }
 
     @Override
@@ -236,27 +141,28 @@ public class Bulk {
       if (!(o instanceof FileInfo))
         return false;
       FileInfo other = (FileInfo) o;
-      return this.fileName.equals(other.fileName) && this.estFileSize == other.estFileSize
-          && this.estNumEntries == other.estNumEntries;
+      return this.name.equals(other.name) && this.estSize == other.estSize
+          && this.estEntries == other.estEntries;
     }
-
-    private int hashcode = 0;
 
     @Override
     public int hashCode() {
-      if (hashcode != 0)
-        return hashcode;
-      return hashcode = fileName.hashCode() + Long.valueOf(estFileSize).hashCode()
-          + Long.valueOf(estNumEntries).hashCode();
+      return Objects.hash(name, estSize, estEntries);
     }
   }
 
   public static class Files implements Iterable<FileInfo>, Serializable {
     Map<String,FileInfo> files = new HashMap<>();
 
+    public Files(Collection<FileInfo> files) {
+      files.forEach(fi -> add(fi));
+    }
+
+    public Files() {}
+
     public void add(FileInfo fi) {
-      if (files.putIfAbsent(fi.fileName, fi) != null) {
-        throw new IllegalArgumentException("File already present " + fi.fileName);
+      if (files.putIfAbsent(fi.name, fi) != null) {
+        throw new IllegalArgumentException("File already present " + fi.name);
       }
     }
 
@@ -269,7 +175,7 @@ public class Bulk {
 
       files.forEach((k, v) -> {
         String newName = renames.get(k);
-        FileInfo nfi = new FileInfo(newName, v.estFileSize, v.estNumEntries);
+        FileInfo nfi = new FileInfo(newName, v.estSize, v.estEntries);
         renamed.files.put(newName, nfi);
       });
 
@@ -280,10 +186,6 @@ public class Bulk {
       other.files.forEach((k, v) -> {
         files.merge(k, v, FileInfo::merge);
       });
-    }
-
-    public Set<String> getAllFileNames() {
-      return this.files.keySet();
     }
 
     public int getSize() {
@@ -305,28 +207,23 @@ public class Bulk {
       return this.files.equals(other.files);
     }
 
-    private int hashcode = 0;
-
     @Override
     public int hashCode() {
-      if (hashcode != 0)
-        return hashcode;
-      return hashcode = files.hashCode();
+      return files.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return files.toString();
     }
   }
 
   public static Tablet toTablet(KeyExtent keyExtent) {
-    return new Tablet(keyExtent.getTableId(), keyExtent.getEndRow(), keyExtent.getPrevEndRow());
+    return new Tablet(keyExtent.getEndRow(), keyExtent.getPrevEndRow());
   }
 
-  public static KeyExtent toKeyExtent(Tablet tablet) {
-    return new KeyExtent(tablet.getTableId(), tablet.getEndRow(), tablet.getPrevEndRow());
-  }
-
-  public static SortedMap<KeyExtent,Files> mapNames(SortedMap<KeyExtent,Files> mappings,
-      Map<String,String> renames) {
-    SortedMap<KeyExtent,Bulk.Files> newMappings = new TreeMap<>();
-    mappings.forEach((k, f) -> newMappings.put(k, f.mapNames(renames)));
-    return newMappings;
+  public static KeyExtent toKeyExtent(Table.ID tableId, Tablet tablet) {
+    // TODO table id
+    return new KeyExtent(tableId, tablet.getEndRow(), tablet.getPrevEndRow());
   }
 }

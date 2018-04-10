@@ -14,23 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.tableOps;
+package org.apache.accumulo.master.tableOps.bulkVer2;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Bulk;
-import org.apache.accumulo.core.client.impl.BulkImport;
+import org.apache.accumulo.core.client.impl.Bulk.Files;
+import org.apache.accumulo.core.client.impl.BulkSerialize;
+import org.apache.accumulo.core.client.impl.BulkSerialize.LoadMappingIterator;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.thrift.MapFileInfo;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -38,12 +42,15 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.master.util.BulkSerialize;
+import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,29 +79,18 @@ class LoadFiles extends MasterRepo {
     master.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     VolumeManager fs = master.getFileSystem();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    SortedMap<KeyExtent,Bulk.Files> loadMapping = BulkSerialize
-        .getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs);
-
-    log.debug("tid " + tid + " sending files for " + loadMapping.firstKey() + " to "
-        + loadMapping.lastKey());
-    int fileLoadsRemaining = sendFiles(bulkInfo.tableId, bulkDir, loadMapping, master, tid);
-    if (fileLoadsRemaining > 0) {
-      int sleep = fileLoadsRemaining * 100;
-      log.debug("Sleep for {} - tid {} has {} file load{} remaining.", sleep, tid,
-          fileLoadsRemaining, fileLoadsRemaining > 1 ? "s" : "");
-      return sleep;
+    try (LoadMappingIterator lmi = BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(),
+        bulkInfo.tableId, p -> fs.open(p))) {
+      return loadFiles(bulkInfo.tableId, bulkDir, lmi, master, tid);
     }
-
-    return 0;
   }
 
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
-    // return the next step, which will verify
-    return new CompleteBulkImport(bulkInfo.tableId, bulkInfo.sourceDir, bulkInfo.bulkDir, null);
+    return new CompleteBulkImport(bulkInfo.tableId, bulkInfo.sourceDir, bulkInfo.bulkDir);
   }
 
-  private boolean equals(Text t1, Text t2) {
+  static boolean equals(Text t1, Text t2) {
     if (t1 == null || t2 == null)
       return t1 == t2;
 
@@ -106,24 +102,42 @@ class LoadFiles extends MasterRepo {
    * of load calls remaining. This method will scan the metadata table getting Tablet range and
    * location information. It will also check if the file has been loaded in that Tablet.
    */
-  private int sendFiles(Table.ID tableId, Path bulkDir, SortedMap<KeyExtent,Bulk.Files> mapping,
-      Master master, long tid)
-      throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    int fileLoadsRemaining = 0;
-    // TODO restrict range of scan based on min and max rows in key extents.
+  private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator lmi, Master master,
+      long tid) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+
+    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.next();
+
+    Text startRow = loadMapEntry.getKey().getPrevEndRow();
+
     Iterable<TabletMetadata> tableMetadata = MetadataScanner.builder().from(master)
-        .overUserTableId(tableId).fetchPrev().fetchLocation().fetchLoaded().build();
+        .overUserTableId(tableId, startRow, null).fetchPrev().fetchLocation().fetchLoaded().build();
+
     long timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
     Iterator<TabletMetadata> tabletIter = tableMetadata.iterator();
-    Iterator<Map.Entry<KeyExtent,Bulk.Files>> loadMappingIter = mapping.entrySet().iterator();
 
     List<TabletMetadata> tablets = new ArrayList<>();
     TabletMetadata currentTablet = tabletIter.next();
     HostAndPort server = null;
 
-    while (loadMappingIter.hasNext()) {
-      Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = loadMappingIter.next();
+    // track how many tablets were sent load messages per tablet server
+    MapCounter<HostAndPort> tabletsPerServer = new MapCounter<>();
+
+    String fmtTid = String.format("%016x", tid);
+
+    int locationLess = 0;
+
+    long t1 = System.currentTimeMillis();
+    while (true) {
+      if (loadMapEntry == null) {
+        if (!lmi.hasNext()) {
+          break;
+        }
+        loadMapEntry = lmi.next();
+      }
       KeyExtent fke = loadMapEntry.getKey();
+      Files files = loadMapEntry.getValue();
+      loadMapEntry = null;
+
       tablets.clear();
 
       while (!equals(currentTablet.getPrevEndRow(), fke.getPrevEndRow())) {
@@ -139,34 +153,60 @@ class LoadFiles extends MasterRepo {
       for (TabletMetadata tablet : tablets) {
         // send files to tablet sever
         // ideally there should only be one tablet location to send all the files
-        try {
-          TabletMetadata.Location location = tablet.getLocation();
-          if (location == null) {
-            fileLoadsRemaining += loadMapEntry.getValue().getSize();
-            continue;
-          } else {
-            server = location.getHostAndPort();
-          }
 
-          TabletClientService.Iface client = ThriftUtil.getTServerClient(server, master,
-              timeInMillis);
-          Set<String> loadedFiles = tablet.getLoaded();
-          for (final Bulk.FileInfo fileInfo : loadMapEntry.getValue()) {
-            String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
-            if (!loadedFiles.contains(fullPath)) {
-              // keep sending loads until file is loaded
-              fileLoadsRemaining++;
-              log.debug("Asking " + server + " to bulk import " + fullPath);
-              client.loadFile(Tracer.traceInfo(), master.rpcCreds(), tid, fullPath,
-                  fileInfo.getEstFileSize(), BulkImport.wrapKeyExtent(fke), bulkInfo.setTime);
-            }
+        TabletMetadata.Location location = tablet.getLocation();
+        if (location == null) {
+          locationLess++;
+          continue;
+        } else {
+          server = location.getHostAndPort();
+        }
+
+        Set<String> loadedFiles = tablet.getLoaded();
+
+        Map<String,MapFileInfo> thriftImports = new HashMap<>();
+
+        for (final Bulk.FileInfo fileInfo : files) {
+          String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
+
+          if (!loadedFiles.contains(fullPath)) {
+            thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
           }
-        } catch (Exception ex) {
-          log.error("rpc failed server: " + server + ", tid:" + tid + " " + ex.getMessage(), ex);
+        }
+
+        if (thriftImports.size() > 0) {
+          // must always increment this even if there is a comms failure, because it indicates there
+          // is work to do
+          tabletsPerServer.increment(server, 1);
+          log.trace("tid {} asking {} to bulk import {} files", fmtTid, server,
+              thriftImports.size());
+          TabletClientService.Client client = null;
+          try {
+            client = ThriftUtil.getTServerClient(server, master, timeInMillis);
+            client.loadFiles(Tracer.traceInfo(), master.rpcCreds(), tid, fke.toThrift(),
+                bulkDir.toString(), thriftImports, bulkInfo.setTime);
+          } catch (TException ex) {
+            log.debug("rpc failed server: " + server + ", tid:" + fmtTid + " " + ex.getMessage(),
+                ex);
+          } finally {
+            ThriftUtil.returnClient(client);
+          }
         }
       }
     }
-    return fileLoadsRemaining;
-  }
+    long t2 = System.currentTimeMillis();
 
+    long sleepTime = 0;
+    if (tabletsPerServer.size() > 0) {
+      // find which tablet server had the most load messages sent to it and sleep 13ms for each load
+      // message
+      sleepTime = Collections.max(tabletsPerServer.values()) * 13;
+    }
+
+    if (locationLess > 0) {
+      sleepTime = Math.max(100, Math.max(2 * (t2 - t1), sleepTime));
+    }
+
+    return sleepTime;
+  }
 }

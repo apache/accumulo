@@ -2394,7 +2394,7 @@ public class Tablet implements TabletCommitter {
       if (alreadyImported != null) {
         for (FileRef entry : alreadyImported) {
           if (fileMap.remove(entry) != null) {
-            log.info("Ignoring import of bulk file already imported: " + entry);
+            log.trace("Ignoring import of bulk file already imported: {}", entry);
           }
         }
       }

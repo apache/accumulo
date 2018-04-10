@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.tableOps;
+package org.apache.accumulo.master.tableOps.bulkVer2;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 
 public class CompleteBulkImport extends MasterRepo {
@@ -29,18 +30,16 @@ public class CompleteBulkImport extends MasterRepo {
   private Table.ID tableId;
   private String source;
   private String bulk;
-  private String error;
 
-  public CompleteBulkImport(Table.ID tableId, String source, String bulk, String error) {
+  public CompleteBulkImport(Table.ID tableId, String source, String bulk) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;
-    this.error = error;
   }
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     ZooArbitrator.stop(Constants.BULK_ARBITRATOR_TYPE, tid);
-    return new CopyFailed(tableId, source, bulk, error);
+    return new CleanUpBulkImport(tableId, source, bulk);
   }
 }

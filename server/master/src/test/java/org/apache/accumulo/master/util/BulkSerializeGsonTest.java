@@ -29,7 +29,11 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.impl.Bulk;
+import org.apache.accumulo.core.client.impl.Bulk.Files;
+import org.apache.accumulo.core.client.impl.BulkSerialize;
+import org.apache.accumulo.core.client.impl.BulkSerialize.LoadMappingIterator;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -63,16 +67,18 @@ public class BulkSerializeGsonTest {
 
   @Test
   public void testUpdateLoadMapping() throws Exception {
-
-    SortedMap<KeyExtent,Bulk.Files> loadMapping = generateMapping();
-    Map<String,String> renames = generateRenames();
     Table.ID tableId = Table.ID.of("1");
+    SortedMap<KeyExtent,Bulk.Files> loadMapping = generateMapping(tableId);
+    Map<String,String> renames = generateRenames();
 
-    BulkSerialize.writeRenameMap(renames, bulkDir.getAbsolutePath(), tableId, fs);
-    BulkSerialize.writeLoadMapping(loadMapping, bulkDir.getAbsolutePath(), tableId, "test", fs);
-    SortedMap<KeyExtent,Bulk.Files> updatedLoadMapping = BulkSerialize
-        .getUpdatedLoadMapping(bulkDir.getAbsolutePath(), tableId, fs);
-    updatedLoadMapping.forEach((ke, files) -> {
+    BulkSerialize.writeRenameMap(renames, bulkDir.getAbsolutePath(), tableId, p -> fs.create(p));
+    BulkSerialize.writeLoadMapping(loadMapping, bulkDir.getAbsolutePath(), tableId, "test",
+        p -> fs.create(p));
+    LoadMappingIterator updatedLoadMapping = BulkSerialize
+        .getUpdatedLoadMapping(bulkDir.getAbsolutePath(), tableId, p -> fs.open(p));
+    updatedLoadMapping.forEachRemaining(entry -> {
+      KeyExtent ke = entry.getKey();
+      Files files = entry.getValue();
       // System.out.println(ke.toString() + ":" +
       // Arrays.toString(files.getAllFileNames().toArray()));
       loadMapping.get(ke).forEach(origFileInfo -> {
@@ -90,7 +96,8 @@ public class BulkSerializeGsonTest {
 
   @Test
   public void parseBulkMapJsonString() {
-    SortedMap<KeyExtent,Bulk.Files> mapping = generateMapping();
+    ID tableId = Table.ID.of("9");
+    SortedMap<KeyExtent,Bulk.Files> mapping = generateMapping(tableId);
     SortedMap<KeyExtent,Bulk.Files> readMapping = new TreeMap<>();
     SortedSet<Bulk.Mapping> loadSet = new TreeSet<>();
     mapping.forEach((ke, files) -> loadSet.add(new Bulk.Mapping(ke, files)));
@@ -109,7 +116,7 @@ public class BulkSerializeGsonTest {
 
     for (JsonElement jsonElement : array) {
       Bulk.Mapping bm = gson.fromJson(jsonElement, Bulk.Mapping.class);
-      readMapping.put(bm.getKeyExtent(), bm.getFiles());
+      readMapping.put(bm.getKeyExtent(tableId), bm.getFiles());
     }
     assertTrue("Read bulk mapping size " + readMapping.size() + " != 3",
         mapping.size() == readMapping.size());
@@ -139,7 +146,7 @@ public class BulkSerializeGsonTest {
     return renames;
   }
 
-  public SortedMap<KeyExtent,Bulk.Files> generateMapping() {
+  public SortedMap<KeyExtent,Bulk.Files> generateMapping(Table.ID tableId) {
     SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
     Bulk.Files testFiles = new Bulk.Files();
     Bulk.Files testFiles2 = new Bulk.Files();
@@ -160,9 +167,9 @@ public class BulkSerializeGsonTest {
     }
 
     // add out of order to test sorting
-    mapping.put(new KeyExtent(Table.ID.of("9"), new Text("d"), new Text("c")), testFiles);
-    mapping.put(new KeyExtent(Table.ID.of("5"), new Text("c"), new Text("b")), testFiles2);
-    mapping.put(new KeyExtent(Table.ID.of("4"), new Text("b"), new Text("a")), testFiles3);
+    mapping.put(new KeyExtent(tableId, new Text("d"), new Text("c")), testFiles);
+    mapping.put(new KeyExtent(tableId, new Text("c"), new Text("b")), testFiles2);
+    mapping.put(new KeyExtent(tableId, new Text("b"), new Text("a")), testFiles3);
 
     return mapping;
   }

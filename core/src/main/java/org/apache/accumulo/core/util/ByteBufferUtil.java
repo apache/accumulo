@@ -21,20 +21,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.ByteArrayInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.impl.Bulk;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.hadoop.io.Text;
 
 public class ByteBufferUtil {
@@ -126,25 +120,5 @@ public class ByteBufferUtil {
     } else {
       return new ByteArrayInputStream(toBytes(buffer));
     }
-  }
-
-  public static SortedMap<KeyExtent,Bulk.Files> toBulkImportMap(ByteBuffer buffer)
-      throws IOException, ClassNotFoundException {
-    SortedMap<TKeyExtent,Bulk.Files> wrappedMapping;
-    ByteArrayInputStream byteIn;
-    if (buffer.hasArray()) {
-      byteIn = new ByteArrayInputStream(buffer.array(), buffer.arrayOffset() + buffer.position(),
-          buffer.remaining());
-    } else {
-      byteIn = new ByteArrayInputStream(toBytes(buffer));
-    }
-    try (ObjectInputStream in = new ObjectInputStream(byteIn)) {
-      wrappedMapping = (SortedMap<TKeyExtent,Bulk.Files>) in.readObject();
-    } finally {
-      byteIn.close();
-    }
-    SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
-    wrappedMapping.forEach((k, v) -> mapping.put(new KeyExtent(k), v));
-    return mapping;
   }
 }

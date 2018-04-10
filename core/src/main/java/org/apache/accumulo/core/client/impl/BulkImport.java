@@ -18,10 +18,8 @@ package org.apache.accumulo.core.client.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -60,24 +58,24 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 
 public class BulkImport implements ImportSourceArguments, ImportExecutorOptions {
+
+  private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private boolean setTime = false;
   private Executor executor = null;
@@ -86,20 +84,6 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
 
   private final ClientContext context;
   private final String tableName;
-
-  // TODO validate properly - this is validated right before seeding the FATE operation
-  // TODO check splits against load mapping
-  public static final Validator<SortedMap<KeyExtent,Bulk.Files>> VALID_MAPPING = new Validator<SortedMap<KeyExtent,Bulk.Files>>() {
-    @Override
-    public boolean test(SortedMap<KeyExtent,Bulk.Files> mapping) {
-      return true;
-    }
-
-    @Override
-    public String invalidMessage(SortedMap<KeyExtent,Bulk.Files> mapping) {
-      return "Bulk Import files aren't in proper Range?";
-    }
-  };
 
   BulkImport(String tableName, ClientContext context) {
     this.context = context;
@@ -118,7 +102,13 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
 
     Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
 
-    Path srcPath = checkPath(dir);
+    Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
+    AccumuloConfiguration conf = new ConfigurationCopy(props);
+
+    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
+        .getFileSystem();
+
+    Path srcPath = checkPath(fs, dir);
 
     Executor executor;
     ExecutorService service = null;
@@ -144,23 +134,17 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     }
 
     try {
-      SortedMap<KeyExtent,Bulk.Files> mappings = BulkImport.computeFileToTabletMappings(tableId,
-          srcPath, executor, context);
-      // wrap KeyExtents for serialization
-      SortedMap<TKeyExtent,Bulk.Files> newMappings = new TreeMap<>();
-      mappings.forEach((k, v) -> newMappings.put(wrapKeyExtent(k), v));
-      List<ByteBuffer> args;
-      try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-          ObjectOutputStream outputStream = new ObjectOutputStream(byteOut)) {
-        outputStream.writeObject(newMappings);
-        args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-            ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
-            ByteBuffer.wrap(byteOut.toByteArray()),
-            ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-      }
-      Map<String,String> opts = new HashMap<>();
+      SortedMap<KeyExtent,Bulk.Files> mappings = computeFileToTabletMappings(fs, tableId, srcPath,
+          executor, context);
 
-      doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, opts, tableName);
+      // TOOD need to handle case of file existing
+      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), tableId, tableName,
+          p -> fs.create(p));
+
+      List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
+          ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
+          ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
+      doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(), tableName);
     } catch (Exception e) {
       // TODO Auto-generated catch block
       throw new RuntimeException(e);
@@ -172,14 +156,9 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     }
   }
 
-  private Path checkPath(String dir)
+  private Path checkPath(FileSystem fs, String dir)
       throws IOException, AccumuloException, AccumuloSecurityException {
     Path ret;
-    Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
-    AccumuloConfiguration conf = new ConfigurationCopy(props);
-
-    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
-        .getFileSystem();
 
     if (dir.contains(":")) {
       ret = new Path(dir);
@@ -317,14 +296,9 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     }
   }
 
-  public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(Table.ID tableId,
-      Path dirPath, Executor executor, ClientContext context)
+  public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
+      Table.ID tableId, Path dirPath, Executor executor, ClientContext context)
       throws IOException, URISyntaxException {
-    // TODO is there a standard way to get Hadoop config on client side
-
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(dirPath.toUri(), conf);
-
     TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
     // TODO see how current code filters files in dir
@@ -335,6 +309,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     for (FileStatus fileStatus : files) {
       CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
+          long t1 = System.currentTimeMillis();
           List<TabletLocation> locations = findOverlappingTablets(context, locator,
               fileStatus.getPath(), fs);
           Collection<KeyExtent> extents = Collections2.transform(locations, l -> l.tablet_extent);
@@ -346,6 +321,9 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
             pathLocations.put(ke,
                 new Bulk.FileInfo(fileStatus.getPath(), estSizes.getOrDefault(ke, 0L)));
           }
+          long t2 = System.currentTimeMillis();
+          log.trace("Mapped {} to {} tablets in {}ms", fileStatus.getPath(), pathLocations.size(),
+              t2 - t1);
           return pathLocations;
         } catch (Exception e) {
           throw new CompletionException(e);
@@ -372,6 +350,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
         throw new RuntimeException(e);
       }
     }
+
     return mergeOverlapping(mappings);
   }
 
@@ -413,15 +392,5 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       // should not happen
       throw new AssertionError(e);
     }
-  }
-
-  public static TKeyExtent wrapKeyExtent(KeyExtent keyExtent) {
-    TKeyExtent tke = new TKeyExtent();
-    tke.setTable(keyExtent.getTableId().getUtf8());
-    Text endRow = keyExtent.getEndRow();
-    Text prevEndRow = keyExtent.getPrevEndRow();
-    tke.setEndRow(endRow == null ? null : TextUtil.getBytes(endRow));
-    tke.setPrevEndRow(prevEndRow == null ? null : TextUtil.getBytes(prevEndRow));
-    return tke;
   }
 }

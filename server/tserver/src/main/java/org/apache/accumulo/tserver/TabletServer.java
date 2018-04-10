@@ -514,30 +514,31 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     @Override
-    public void loadFile(TInfo tinfo, TCredentials credentials, long tid, String file,
-        long estimatedSize, TKeyExtent tKeyExtent, boolean setTime) throws ThriftSecurityException {
+    public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, TKeyExtent tke,
+        String dir, Map<String,MapFileInfo> fileMap, boolean setTime)
+        throws ThriftSecurityException {
       if (!security.canPerformSystemActions(credentials))
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
-      log.debug("Bulk import loadFile {}", file);
-      KeyExtent keyExtent = new KeyExtent(tKeyExtent);
 
       Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
-      Path path = new Path(file);
-      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      path = ns.makeQualified(path);
-      fileRefMap.put(new FileRef(path.toString(), path), new MapFileInfo(estimatedSize));
+      for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
+        Path path = new Path(dir, mapping.getKey());
+        FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+        path = ns.makeQualified(path);
+        fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+      }
 
-      Tablet importTablet = onlineTablets.get(keyExtent);
+      Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
 
       if (importTablet != null) {
         try {
           importTablet.importMapFiles(tid, fileRefMap, setTime);
         } catch (IOException ioe) {
-          log.info("file {} not imported to {}: {}", file, keyExtent, ioe.getMessage());
+          log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
+              ioe.getMessage());
         }
       }
-
     }
 
     @Override
