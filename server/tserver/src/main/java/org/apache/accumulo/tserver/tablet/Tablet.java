@@ -1531,18 +1531,16 @@ public class Tablet implements TabletCommitter {
     return location;
   }
 
-  public synchronized boolean initiateMajorCompaction(MajorCompactionReason reason) {
+  public synchronized void initiateMajorCompaction(MajorCompactionReason reason) {
 
     if (isClosing() || isClosed() || !needsMajorCompaction(reason) || isMajorCompactionRunning()
         || majorCompactionQueued.contains(reason)) {
-      return false;
+      return;
     }
 
     majorCompactionQueued.add(reason);
 
     getTabletResources().executeMajorCompaction(getExtent(), new CompactionRunner(this, reason));
-
-    return false;
   }
 
   /**

@@ -2140,8 +2140,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             // modification
           }
 
-          int numMajorCompactionsInProgress = 0;
-
           Iterator<Entry<KeyExtent,Tablet>> iter = copyOnlineTablets.entrySet().iterator();
 
           // bail early now if we're shutting down
@@ -2168,29 +2166,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             }
 
             synchronized (tablet) {
-              if (tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL)
-                  || tablet.isMajorCompactionQueued() || tablet.isMajorCompactionRunning()) {
-                numMajorCompactionsInProgress++;
-                continue;
-              }
-            }
-          }
-
-          int idleCompactionsToStart = Math.max(1,
-              getConfiguration().getCount(Property.TSERV_MAJC_MAXCONCURRENT) / 2);
-
-          if (numMajorCompactionsInProgress < idleCompactionsToStart) {
-            // system is not major compacting, can schedule some
-            // idle compactions
-            iter = copyOnlineTablets.entrySet().iterator();
-
-            while (iter.hasNext() && numMajorCompactionsInProgress < idleCompactionsToStart) {
-              Entry<KeyExtent,Tablet> entry = iter.next();
-              Tablet tablet = entry.getValue();
-
-              if (tablet.initiateMajorCompaction(MajorCompactionReason.IDLE)) {
-                numMajorCompactionsInProgress++;
-              }
+              tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
             }
           }
         } catch (Throwable t) {
