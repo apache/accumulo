@@ -64,8 +64,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>
  * Bulk files can be generated with summary information by calling
- * {@link AccumuloFileOutputFormat#setSummarizers(org.apache.hadoop.mapred.JobConf, SummarizerConfiguration...)}
- * or {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
+ * {@code AccumuloFileOutputFormat#setSummarizers(JobConf, SummarizerConfiguration...)} or
+ * {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
  *
  * <p>
  * When this strategy does not decide to compact based on the number of deletes, then it will defer
