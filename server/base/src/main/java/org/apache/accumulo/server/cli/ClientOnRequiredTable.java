@@ -30,8 +30,6 @@ public class ClientOnRequiredTable extends org.apache.accumulo.core.cli.ClientOn
     if (cachedInstance != null)
       return cachedInstance;
 
-    if (mock)
-      return cachedInstance = DeprecationUtil.makeMockInstance(instance);
     if (instance == null) {
       return cachedInstance = HdfsZooInstance.getInstance();
     }

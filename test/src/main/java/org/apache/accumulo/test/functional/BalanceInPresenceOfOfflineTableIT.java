@@ -127,13 +127,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    if (saslEnabled()) {
-      opts.updateKerberosCredentials();
-      vopts.updateKerberosCredentials();
-    } else {
-      opts.setPrincipal("root");
-      vopts.setPrincipal("root");
-    }
+    opts.setConnectionInfo(getConnectionInfo());
+    vopts.setConnectionInfo(getConnectionInfo());
     vopts.rows = opts.rows = 200000;
     opts.setTableName(TEST_TABLE);
     TestIngest.ingest(connector, opts, new BatchWriterOpts());

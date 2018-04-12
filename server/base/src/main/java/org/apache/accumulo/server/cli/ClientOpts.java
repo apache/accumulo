@@ -27,8 +27,6 @@ public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
 
   @Override
   public Instance getInstance() {
-    if (mock)
-      return DeprecationUtil.makeMockInstance(instance);
     if (instance == null) {
       return HdfsZooInstance.getInstance();
     }

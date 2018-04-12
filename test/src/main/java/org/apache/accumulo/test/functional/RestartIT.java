@@ -119,18 +119,15 @@ public class RestartIT extends AccumuloClusterHarness {
       args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
           cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + OPTS.rows,
           "--table", tableName};
-      OPTS.setPrincipal(getAdminPrincipal());
-      VOPTS.setPrincipal(getAdminPrincipal());
     } else if (token instanceof KerberosToken) {
       ClusterUser rootUser = getAdminUser();
       args = new String[] {"-u", getAdminPrincipal(), "--keytab",
           rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
-      OPTS.updateKerberosCredentials(saslEnabled());
-      VOPTS.updateKerberosCredentials(saslEnabled());
     } else {
       throw new RuntimeException("Unknown token");
     }
+    OPTS.setConnectionInfo(getConnectionInfo());
 
     Future<Integer> ret = svc.submit(new Callable<Integer>() {
       @Override
@@ -157,13 +154,8 @@ public class RestartIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
-    if (saslEnabled()) {
-      OPTS.updateKerberosCredentials();
-      VOPTS.updateKerberosCredentials();
-    } else {
-      OPTS.setPrincipal(getAdminPrincipal());
-      VOPTS.setPrincipal(getAdminPrincipal());
-    }
+    OPTS.setConnectionInfo(getConnectionInfo());
+    VOPTS.setConnectionInfo(getConnectionInfo());
     TestIngest.ingest(c, OPTS, BWOPTS);
     ClusterControl control = getCluster().getClusterControl();
 
@@ -221,18 +213,16 @@ public class RestartIT extends AccumuloClusterHarness {
       args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
           cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows",
           Integer.toString(VOPTS.rows), "--table", tableName};
-      OPTS.setPrincipal(getAdminPrincipal());
-      VOPTS.setPrincipal(getAdminPrincipal());
     } else if (token instanceof KerberosToken) {
       ClusterUser rootUser = getAdminUser();
       args = new String[] {"-u", getAdminPrincipal(), "--keytab",
           rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
-      OPTS.updateKerberosCredentials(saslEnabled());
-      VOPTS.updateKerberosCredentials(saslEnabled());
     } else {
       throw new RuntimeException("Unknown token");
     }
+    OPTS.setConnectionInfo(getConnectionInfo());
+    VOPTS.setConnectionInfo(getConnectionInfo());
 
     Future<Integer> ret = svc.submit(new Callable<Integer>() {
       @Override
@@ -273,13 +263,8 @@ public class RestartIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
-    if (saslEnabled()) {
-      OPTS.updateKerberosCredentials();
-      VOPTS.updateKerberosCredentials();
-    } else {
-      OPTS.setPrincipal(getAdminPrincipal());
-      VOPTS.setPrincipal(getAdminPrincipal());
-    }
+    OPTS.setConnectionInfo(getConnectionInfo());
+    VOPTS.setConnectionInfo(getConnectionInfo());
     TestIngest.ingest(c, OPTS, BWOPTS);
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -308,11 +293,7 @@ public class RestartIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
-    if (saslEnabled()) {
-      OPTS.updateKerberosCredentials();
-    } else {
-      OPTS.setPrincipal(getAdminPrincipal());
-    }
+    OPTS.setConnectionInfo(getConnectionInfo());
     TestIngest.ingest(c, OPTS, BWOPTS);
     try {
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -327,13 +308,8 @@ public class RestartIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     VOPTS.setTableName(tableName);
-    if (saslEnabled()) {
-      OPTS.updateKerberosCredentials();
-      VOPTS.updateKerberosCredentials();
-    } else {
-      OPTS.setPrincipal(getAdminPrincipal());
-      VOPTS.setPrincipal(getAdminPrincipal());
-    }
+    OPTS.setConnectionInfo(getConnectionInfo());
+    VOPTS.setConnectionInfo(getConnectionInfo());
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     String splitThreshold = null;
@@ -349,11 +325,7 @@ public class RestartIT extends AccumuloClusterHarness {
           "20K");
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(tableName);
-      if (saslEnabled()) {
-        opts.updateKerberosCredentials();
-      } else {
-        opts.setPrincipal(getAdminPrincipal());
-      }
+      opts.setConnectionInfo(getConnectionInfo());
       TestIngest.ingest(c, opts, BWOPTS);
       c.tableOperations().flush(tableName, null, null, false);
       VerifyIngest.verifyIngest(c, VOPTS, SOPTS);

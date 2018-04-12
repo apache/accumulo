@@ -215,11 +215,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
-    if (saslEnabled()) {
-      opts.updateKerberosCredentials();
-    } else {
-      opts.setPrincipal(principal);
-    }
+    opts.setConnectionInfo(getConnectionInfo());
 
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
   }
@@ -239,11 +235,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
-    if (saslEnabled()) {
-      opts.updateKerberosCredentials();
-    } else {
-      opts.setPrincipal(principal);
-    }
+    opts.setConnectionInfo(getConnectionInfo());
 
     VerifyIngest.verifyIngest(connector, opts, scannerOpts);
   }

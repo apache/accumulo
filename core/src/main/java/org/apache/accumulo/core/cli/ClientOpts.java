@@ -32,16 +32,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.util.DeprecationUtil;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -114,7 +110,7 @@ public class ClientOpts extends Help {
 
   @Parameter(names = {"-z", "--keepers"},
       description = "Comma separated list of zookeeper hosts (host:port,host:port)")
-  public String zookeepers = "localhost:2181";
+  private String zookeepers = "localhost:2181";
 
   @Parameter(names = {"-i", "--instance"}, description = "The name of the accumulo instance")
   public String instance = null;
@@ -161,119 +157,40 @@ public class ClientOpts extends Help {
     Trace.off();
   }
 
-  /**
-   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't
-   * overwrite the options if the user has provided something specifically.
-   */
-  public void updateKerberosCredentials(String clientConfigFile) {
-    boolean saslEnabled = false;
-    if (clientConfigFile != null) {
-      saslEnabled = Connector.builder().usingProperties(clientConfigFile).info().saslEnabled();
-    }
-    updateKerberosCredentials(saslEnabled);
-  }
-
-  public void updateKerberosCredentials() {
-    updateKerberosCredentials(true);
-  }
-
-  /**
-   * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't
-   * overwrite the options if the user has provided something specifically.
-   */
-  public void updateKerberosCredentials(boolean clientSaslEnabled) {
-    if (saslEnabled || clientSaslEnabled) {
-      // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce
-      // Job is going to make a copy of the current user (UGI)
-      // when it is instantiated.
-      if (null != keytabPath) {
-        File keytab = new File(keytabPath);
-        if (!keytab.exists() || !keytab.isFile()) {
-          throw new IllegalArgumentException("Keytab isn't a normal file: " + keytabPath);
-        }
-        if (null == principal) {
-          throw new IllegalArgumentException("Principal must be provided if logging in via Keytab");
-        }
-        try {
-          UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-        } catch (IOException e) {
-          throw new RuntimeException("Failed to log in with keytab", e);
-        }
-      }
-    }
-  }
-
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
     startDebugLogging();
     startTracing(programName);
-    updateKerberosCredentials(clientConfigFile);
   }
 
-  private  ConnectionInfo cachedInfo = null;
+  private ConnectionInfo cachedInfo = null;
   private Connector cachedConnector = null;
   protected Instance cachedInstance = null;
   private Properties cachedProps = null;
 
   synchronized public Instance getInstance() {
     if (cachedInstance == null) {
-      if (mock) {
-        cachedInstance = DeprecationUtil.makeMockInstance(instance);
-      } else {
-        try {
-          cachedInstance = getConnector().getInstance();
-        } catch (AccumuloSecurityException | AccumuloException e) {
-          throw new RuntimeException(e);
-        }
+      try {
+        cachedInstance = getConnector().getInstance();
+      } catch (AccumuloSecurityException | AccumuloException e) {
+        throw new RuntimeException(e);
       }
     }
     return cachedInstance;
   }
 
-  public String getPrincipal() throws AccumuloSecurityException {
-    if (null == principal) {
-      AuthenticationToken token = getToken();
-      if (null == token) {
-        throw new AccumuloSecurityException("No principal or authentication token was provided",
-            SecurityErrorCode.BAD_CREDENTIALS);
-      }
+  public String getPrincipal() {
+    return cachedInfo.getPrincipal();
 
-      // In MapReduce, if we create a DelegationToken, the principal is updated from the
-      // KerberosToken
-      // used to obtain the DelegationToken.
-      if (null != principal) {
-        return principal;
-      }
-
-      // Try to extract the principal automatically from Kerberos
-      if (token instanceof KerberosToken) {
-        principal = ((KerberosToken) token).getPrincipal();
-      } else {
-        principal = System.getProperty("user.name");
-      }
-    }
-    return principal;
   }
 
   public void setPrincipal(String principal) {
     this.principal = principal;
   }
 
-  public Password getPassword() {
-    return password;
-  }
-
-  public void setPassword(Password password) {
-    this.password = password;
-  }
-
-  public Password getSecurePassword() {
-    return securePassword;
-  }
-
-  public void setSecurePassword(Password securePassword) {
-    this.securePassword = securePassword;
+  public void setConnectionInfo(ConnectionInfo info) {
+    this.cachedInfo = info;
   }
 
   public ConnectionInfo getConnectionInfo() {
@@ -334,6 +251,9 @@ public class ClientOpts extends Help {
         cachedProps.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), securePassword.toString());
       } else if (password != null) {
         cachedProps.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), password.toString());
+      } else if (keytabPath != null) {
+        cachedProps.setProperty(ClientProperty.AUTH_METHOD.getKey(), "kerberos");
+        cachedProps.setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getKey(), keytabPath);
       }
     }
     return cachedProps;

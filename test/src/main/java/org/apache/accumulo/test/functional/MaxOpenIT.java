@@ -106,11 +106,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       opts.cols = 1;
       opts.random = i;
       opts.setTableName(tableName);
-      if (saslEnabled()) {
-        opts.updateKerberosCredentials();
-      } else {
-        opts.setPrincipal(getAdminPrincipal());
-      }
+      opts.setConnectionInfo(getConnectionInfo());
       TestIngest.ingest(c, opts, new BatchWriterOpts());
 
       c.tableOperations().flush(tableName, null, null, true);

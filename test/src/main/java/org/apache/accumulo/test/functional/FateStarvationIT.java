@@ -52,11 +52,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
     opts.rows = 100000;
     opts.cols = 1;
     opts.setTableName(tableName);
-    if (saslEnabled()) {
-      opts.updateKerberosCredentials();
-    } else {
-      opts.setPrincipal(getAdminPrincipal());
-    }
+    opts.setConnectionInfo(getConnectionInfo());
     TestIngest.ingest(c, opts, new BatchWriterOpts());
 
     c.tableOperations().flush(tableName, null, null, true);

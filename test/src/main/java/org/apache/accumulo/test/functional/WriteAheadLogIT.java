@@ -56,14 +56,8 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     opts.setTableName(tableName);
-
-    if (saslEnabled()) {
-      opts.updateKerberosCredentials();
-      vopts.updateKerberosCredentials();
-    } else {
-      opts.setPrincipal(getAdminPrincipal());
-      vopts.setPrincipal(getAdminPrincipal());
-    }
+    opts.setConnectionInfo(getConnectionInfo());
+    vopts.setConnectionInfo(getConnectionInfo());
 
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     vopts.setTableName(tableName);
