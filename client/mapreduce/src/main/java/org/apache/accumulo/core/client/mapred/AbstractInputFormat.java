@@ -253,24 +253,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *
    * @param job
    *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job,
-        ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
-  }
-
-  /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
    * @param clientConfig
    *          client configuration containing connection options
    * @since 1.6.0
@@ -473,24 +455,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
-    }
-
-    /**
-     * Configures the iterators on a scanner for the given table name.
-     *
-     * @param job
-     *          the Hadoop job configuration
-     * @param scanner
-     *          the scanner for which to configure the iterators
-     * @param tableName
-     *          the table name for which the scanner is configured
-     * @since 1.6.0
-     * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
-     */
-    @Deprecated
-    protected void setupIterators(JobConf job, Scanner scanner, String tableName,
-        RangeInputSplit split) {
-      setupIterators(job, (ScannerBase) scanner, tableName, split);
     }
 
     /**

@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -378,60 +377,6 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     @Override
     protected List<IteratorSetting> jobIterators(JobConf job, String tableName) {
       return getIterators(job);
-    }
-
-    /**
-     * Apply the configured iterators to the scanner.
-     *
-     * @param iterators
-     *          the iterators to set
-     * @param scanner
-     *          the scanner to configure
-     * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
-     */
-    @Deprecated
-    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
-      for (IteratorSetting iterator : iterators) {
-        scanner.addScanIterator(iterator);
-      }
-    }
-
-    /**
-     * Apply the configured iterators from the configuration to the scanner.
-     *
-     * @param job
-     *          the job configuration
-     * @param scanner
-     *          the scanner to configure
-     */
-    @Deprecated
-    protected void setupIterators(JobConf job, Scanner scanner) {
-      setupIterators(getIterators(job), scanner);
-    }
-  }
-
-  /**
-   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapred.RangeInputSplit}
-   *             instead.
-   * @see org.apache.accumulo.core.client.mapred.RangeInputSplit
-   */
-  @Deprecated
-  public static class RangeInputSplit
-      extends org.apache.accumulo.core.client.mapred.RangeInputSplit {
-    public RangeInputSplit() {
-      super();
-    }
-
-    public RangeInputSplit(RangeInputSplit other) throws IOException {
-      super(other);
-    }
-
-    public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
-      super(table, tableId, range, locations);
-    }
-
-    protected RangeInputSplit(String table, Range range, String[] locations) {
-      super(table, "", range, locations);
     }
   }
 }

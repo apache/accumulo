@@ -234,29 +234,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Gets the serialized token class from either the configuration or the token file.
-   *
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
-   */
-  @Deprecated
-  protected static String getTokenClass(JobContext context) {
-    return getAuthenticationToken(context).getClass().getName();
-  }
-
-  /**
-   * Gets the serialized token from either the configuration or the token file.
-   *
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
-   */
-  @Deprecated
-  protected static byte[] getToken(JobContext context) {
-    return AuthenticationToken.AuthenticationTokenSerializer
-        .serialize(getAuthenticationToken(context));
-  }
-
-  /**
    * Gets the authenticated token from either the specified token file or directly from the
    * configuration, whichever was used when the job was configured.
    *
@@ -271,24 +248,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS,
         context.getConfiguration());
     return ConfiguratorBase.unwrapAuthenticationToken(context, token);
-  }
-
-  /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setConnectionInfo(Job, ConnectionInfo)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job,
-        ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -504,24 +463,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
-    }
-
-    /**
-     * Configures the iterators on a scanner for the given table name.
-     *
-     * @param context
-     *          the Hadoop context for the configured job
-     * @param scanner
-     *          the scanner for which to configure the iterators
-     * @param tableName
-     *          the table name for which the scanner is configured
-     * @since 1.6.0
-     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
-     */
-    @Deprecated
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName,
-        RangeInputSplit split) {
-      setupIterators(context, (ScannerBase) scanner, tableName, split);
     }
 
     @Override
