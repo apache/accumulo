@@ -45,7 +45,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -62,7 +61,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private TokenSource tokenSource;
   private String tokenFile;
   private AuthenticationToken token;
-  private Boolean offline, mockInstance, isolatedScan, localIterators;
+  private Boolean offline, isolatedScan, localIterators;
   private Authorizations auths;
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
@@ -159,8 +158,10 @@ public class RangeInputSplit extends InputSplit implements Writable {
       localIterators = in.readBoolean();
     }
 
+    // ignore mock flag; it was removed
     if (in.readBoolean()) {
-      mockInstance = in.readBoolean();
+      throw new IllegalStateException(
+          "Mock flag was set in serialized RangeInputSplit, but mock Accumulo was removed");
     }
 
     if (in.readBoolean()) {
@@ -252,10 +253,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
       out.writeBoolean(localIterators);
     }
 
-    out.writeBoolean(null != mockInstance);
-    if (null != mockInstance) {
-      out.writeBoolean(mockInstance);
-    }
+    // should be false to indicate that no mock flag was serialized; mock was removed
+    out.writeBoolean(false);
 
     out.writeBoolean(null != fetchedColumns);
     if (null != fetchedColumns) {
@@ -371,10 +370,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
       return null;
     }
 
-    if (isMockInstance()) {
-      return DeprecationUtil.makeMockInstance(getInstanceName());
-    }
-
     if (null == zooKeepers) {
       return null;
     }
@@ -430,22 +425,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setLocations(String[] locations) {
     this.locations = Arrays.copyOf(locations, locations.length);
-  }
-
-  /**
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public Boolean isMockInstance() {
-    return mockInstance;
-  }
-
-  /**
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public void setMockInstance(Boolean mockInstance) {
-    this.mockInstance = mockInstance;
   }
 
   public Boolean isIsolatedScan() {
@@ -522,7 +501,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" authenticationTokenFile: ").append(tokenFile);
     sb.append(" Authorizations: ").append(auths);
     sb.append(" offlineScan: ").append(offline);
-    sb.append(" mockInstance: ").append(mockInstance);
     sb.append(" isolatedScan: ").append(isolatedScan);
     sb.append(" localIterators: ").append(localIterators);
     sb.append(" fetchColumns: ").append(fetchedColumns);

@@ -271,21 +271,6 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @since 1.5.0
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public static void setMockInstance(JobConf job, String instanceName) {
-    OutputConfigurator.setMockInstance(CLASS, job, instanceName);
-  }
-
-  /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
    *
    * @param job

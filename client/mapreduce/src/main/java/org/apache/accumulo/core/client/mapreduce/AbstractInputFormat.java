@@ -72,7 +72,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -306,21 +305,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   @Deprecated
   public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
     InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
-  }
-
-  /**
-   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @since 1.5.0
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public static void setMockInstance(Job job, String instanceName) {
-    InputConfigurator.setMockInstance(CLASS, job.getConfiguration(), instanceName);
   }
 
   /**
@@ -620,9 +604,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           if (isOffline) {
             scanner = new OfflineScanner(instance, new Credentials(principal, token),
                 Table.ID.of(split.getTableId()), authorizations);
-          } else if (DeprecationUtil.isMockInstance(instance)) {
-            scanner = instance.getConnector(principal, token).createScanner(split.getTableName(),
-                authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(attempt);
             ClientContext context = new ClientContext(instance, new Credentials(principal, token),
@@ -753,14 +734,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Instance instance = getInstance(context);
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
-      if (DeprecationUtil.isMockInstance(instance)) {
-        tableId = Table.ID.of("");
-      } else {
-        try {
-          tableId = Tables.getTableId(instance, tableName);
-        } catch (TableNotFoundException e) {
-          throw new IOException(e);
-        }
+      try {
+        tableId = Tables.getTableId(instance, tableName);
+      } catch (TableNotFoundException e) {
+        throw new IOException(e);
       }
 
       Authorizations auths = getScanAuthorizations(context);
@@ -809,13 +786,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               new Credentials(getPrincipal(context), getAuthenticationToken(context)),
               getClientConfiguration(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
-            if (!DeprecationUtil.isMockInstance(instance)) {
-              String tableIdStr = tableId.canonicalID();
-              if (!Tables.exists(instance, tableId))
-                throw new TableDeletedException(tableIdStr);
-              if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, tableIdStr);
-            }
+            String tableIdStr = tableId.canonicalID();
+            if (!Tables.exists(instance, tableId))
+              throw new TableDeletedException(tableIdStr);
+            if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+              throw new TableOfflineException(instance, tableIdStr);
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
             // sleep randomly between 100 and 200 ms

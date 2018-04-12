@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mapreduce.impl.MapReduceDeprecationUtil;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -89,7 +88,6 @@ public class RangeInputSplitTest {
     split.setToken(new PasswordToken("password"));
     split.setPrincipal("root");
     split.setInstanceName("instance");
-    MapReduceDeprecationUtil.setMockInstance(split, true);
     split.setZooKeepers("localhost");
     split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
@@ -115,8 +113,6 @@ public class RangeInputSplitTest {
     Assert.assertEquals(split.getToken(), newSplit.getToken());
     Assert.assertEquals(split.getPrincipal(), newSplit.getPrincipal());
     Assert.assertEquals(split.getInstanceName(), newSplit.getInstanceName());
-    Assert.assertEquals(MapReduceDeprecationUtil.isMockInstanceSet(split),
-        MapReduceDeprecationUtil.isMockInstanceSet(newSplit));
     Assert.assertEquals(split.getZooKeepers(), newSplit.getZooKeepers());
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());

@@ -90,7 +90,6 @@ public class BatchInputSplitTest {
     split.setFetchedColumns(fetchedColumns);
     split.setToken(new PasswordToken("password"));
     split.setPrincipal("root");
-    MapReduceDeprecationUtil.setMockInstance(split, true);
     split.setInstanceName("instance");
     split.setZooKeepers("localhost");
     split.setIterators(iterators);
@@ -115,8 +114,6 @@ public class BatchInputSplitTest {
     Assert.assertEquals(split.getToken(), newSplit.getToken());
     Assert.assertEquals(split.getPrincipal(), newSplit.getPrincipal());
     Assert.assertEquals(split.getInstanceName(), newSplit.getInstanceName());
-    Assert.assertEquals(MapReduceDeprecationUtil.isMockInstanceSet(split),
-        MapReduceDeprecationUtil.isMockInstanceSet(newSplit));
     Assert.assertEquals(split.getZooKeepers(), newSplit.getZooKeepers());
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());

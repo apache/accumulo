@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -343,32 +342,6 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param instanceName
-   *          the Accumulo instance name
-   * @since 1.6.0
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public static void setMockInstance(Class<?> implementingClass, Configuration conf,
-      String instanceName) {
-    String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
-    if (!conf.get(key, "").isEmpty())
-      throw new IllegalStateException(
-          "Instance info can only be set once per job; it has already been configured with "
-              + conf.get(key));
-    conf.set(key, "MockInstance");
-
-    checkArgument(instanceName != null, "instanceName is null");
-    conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
-  }
-
-  /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
    *
    * @param implementingClass
@@ -381,16 +354,14 @@ public class ConfiguratorBase {
    */
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
-    if ("MockInstance".equals(instanceType))
-      return DeprecationUtil
-          .makeMockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
-    else if ("ZooKeeperInstance".equals(instanceType)) {
+    if ("ZooKeeperInstance".equals(instanceType)) {
       return new ZooKeeperInstance(getClientConfiguration(implementingClass, conf));
-    } else if (instanceType.isEmpty())
+    } else if (instanceType.isEmpty()) {
       throw new IllegalStateException(
           "Instance has not been configured for " + implementingClass.getSimpleName());
-    else
+    } else {
       throw new IllegalStateException("Unrecognized instance type " + instanceType);
+    }
   }
 
   /**

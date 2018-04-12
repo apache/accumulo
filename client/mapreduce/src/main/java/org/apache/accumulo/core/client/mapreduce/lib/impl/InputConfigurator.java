@@ -69,7 +69,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
@@ -727,9 +726,6 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
       Table.ID tableId) throws TableNotFoundException {
-    String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
-    if ("MockInstance".equals(instanceType))
-      return DeprecationUtil.makeMockLocator();
     Instance instance = getInstance(implementingClass, conf);
     ClientConfiguration clientConf = getClientConfiguration(implementingClass, conf);
     ClientContext context = new ClientContext(instance,
@@ -753,7 +749,7 @@ public class InputConfigurator extends ConfiguratorBase {
     if (!isConnectorInfoSet(implementingClass, conf))
       throw new IOException("Input info has not been set.");
     String instanceKey = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
-    if (!"MockInstance".equals(instanceKey) && !"ZooKeeperInstance".equals(instanceKey))
+    if (!"ZooKeeperInstance".equals(instanceKey))
       throw new IOException("Instance info has not been set.");
     return getInstance(implementingClass, conf);
   }
@@ -827,7 +823,7 @@ public class InputConfigurator extends ConfiguratorBase {
     if (!isConnectorInfoSet(implementingClass, conf))
       throw new IOException("Input info has not been set.");
     String instanceKey = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
-    if (!"MockInstance".equals(instanceKey) && !"ZooKeeperInstance".equals(instanceKey))
+    if (!"ZooKeeperInstance".equals(instanceKey))
       throw new IOException("Instance info has not been set.");
     // validate that we can connect as configured
     try {

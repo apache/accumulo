@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.util;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.TabletLocator;
 
 /**
  * A utility class for managing deprecated items. This avoids scattering private helper methods all
@@ -43,11 +42,6 @@ public class DeprecationUtil {
   @SuppressWarnings("deprecation")
   public static Instance makeMockInstance(String instance) {
     return new org.apache.accumulo.core.client.mock.MockInstance(instance);
-  }
-
-  @SuppressWarnings("deprecation")
-  public static TabletLocator makeMockLocator() {
-    return new org.apache.accumulo.core.client.mock.impl.MockTabletLocator();
   }
 
 }
