@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.cli;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -35,8 +37,8 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
     }
     try {
       return cachedInstance = getConnector().getInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new IllegalStateException(e);
     }
   }
 

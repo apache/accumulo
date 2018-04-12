@@ -174,15 +174,14 @@ public class ClientOpts extends Help {
       try {
         cachedInstance = getConnector().getInstance();
       } catch (AccumuloSecurityException | AccumuloException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
     return cachedInstance;
   }
 
   public String getPrincipal() {
-    return cachedInfo.getPrincipal();
-
+    return getConnectionInfo().getPrincipal();
   }
 
   public void setPrincipal(String principal) {
@@ -246,7 +245,12 @@ public class ClientOpts extends Help {
       if (principal != null) {
         cachedProps.setProperty(ClientProperty.AUTH_USERNAME.getKey(), principal);
       }
-
+      if (zookeepers != null) {
+        cachedProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
+      }
+      if (instance != null) {
+        cachedProps.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instance);
+      }
       if (securePassword != null) {
         cachedProps.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), securePassword.toString());
       } else if (password != null) {
