@@ -110,7 +110,7 @@ public class Table {
       if (row.size() != columns.size())
         throw new RuntimeException("Each row must have the same number of columns");
 
-    boolean sortAscending = !"false".equals(BasicServlet.getCookieValue(req, "tableSort."
+    boolean sortDescending = "false".equals(BasicServlet.getCookieValue(req, "tableSort."
         + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "." + "sortAsc"));
 
     int sortCol = -1; // set to first sortable column by default
@@ -173,11 +173,11 @@ public class Table {
       String title = col.getTitle();
       if (rows.size() > 1 && col.getCellType().isSortable()) {
         String url = String.format("/op?action=sortTable&redir=%s&page=%s&table=%s&%s=%s", redir,
-            page, tableName, sortCol == i ? "asc" : "col", sortCol == i ? !sortAscending : i);
+            page, tableName, sortCol == i ? "asc" : "col", sortCol == i ? !sortDescending : i);
         String img = "";
         if (sortCol == i)
           img = String.format("&nbsp;<img width='10px' height='10px' src='/web/%s.gif' alt='%s' />",
-              sortAscending ? "up" : "down", !sortAscending ? "^" : "v");
+              !sortDescending ? "up" : "down", sortDescending ? "^" : "v");
         col.setTitle(String.format("<a href='%s'>%s%s</a>", url, title, img));
       }
       String legend = col.getLegend();
@@ -200,7 +200,7 @@ public class Table {
     // don't sort if no columns are sortable or if there aren't enough rows
     if (rows.size() > 1 && sortCol > -1) {
       Collections.sort(rows, TableRow.getComparator(sortCol, columns.get(sortCol).getCellType()));
-      if (!sortAscending)
+      if (!sortDescending)
         Collections.reverse(rows);
     }
     boolean highlight = true;
