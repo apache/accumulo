@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.impl;
+package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,33 +27,31 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.mapreduce.impl.MapReduceDeprecationUtil;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class BatchInputSplitTest {
+public class RangeInputSplitTest {
 
   @Test
   public void testSimpleWritable() throws IOException {
-    Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), Arrays.asList(ranges),
+    RangeInputSplit split = new RangeInputSplit("table", "1", new Range(new Key("a"), new Key("b")),
         new String[] {"localhost"});
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     split.write(dos);
 
-    BatchInputSplit newSplit = new BatchInputSplit();
+    RangeInputSplit newSplit = new RangeInputSplit();
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     DataInputStream dis = new DataInputStream(bais);
@@ -61,14 +59,13 @@ public class BatchInputSplitTest {
 
     Assert.assertEquals(split.getTableName(), newSplit.getTableName());
     Assert.assertEquals(split.getTableId(), newSplit.getTableId());
-    Assert.assertEquals(split.getRanges(), newSplit.getRanges());
+    Assert.assertEquals(split.getRange(), newSplit.getRange());
     Assert.assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
   }
 
   @Test
   public void testAllFieldsWritable() throws IOException {
-    Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), Arrays.asList(ranges),
+    RangeInputSplit split = new RangeInputSplit("table", "1", new Range(new Key("a"), new Key("b")),
         new String[] {"localhost"});
 
     Set<Pair<Text,Text>> fetchedColumns = new HashSet<>();
@@ -88,11 +85,14 @@ public class BatchInputSplitTest {
 
     split.setTableName("table");
     split.setAuths(new Authorizations("foo"));
+    split.setOffline(true);
+    split.setIsolatedScan(true);
+    split.setUsesLocalIterators(true);
     split.setFetchedColumns(fetchedColumns);
     split.setToken(new PasswordToken("password"));
     split.setPrincipal("root");
-    DeprecationUtil.setMockInstance(split, true);
     split.setInstanceName("instance");
+    MapReduceDeprecationUtil.setMockInstance(split, true);
     split.setZooKeepers("localhost");
     split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
@@ -101,23 +101,26 @@ public class BatchInputSplitTest {
     DataOutputStream dos = new DataOutputStream(baos);
     split.write(dos);
 
-    BatchInputSplit newSplit = new BatchInputSplit();
+    RangeInputSplit newSplit = new RangeInputSplit();
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     DataInputStream dis = new DataInputStream(bais);
     newSplit.readFields(dis);
 
-    Assert.assertEquals(split.getRanges(), newSplit.getRanges());
+    Assert.assertEquals(split.getRange(), newSplit.getRange());
     Assert.assertArrayEquals(split.getLocations(), newSplit.getLocations());
 
     Assert.assertEquals(split.getTableName(), newSplit.getTableName());
     Assert.assertEquals(split.getAuths(), newSplit.getAuths());
+    Assert.assertEquals(split.isOffline(), newSplit.isOffline());
+    Assert.assertEquals(split.isIsolatedScan(), newSplit.isOffline());
+    Assert.assertEquals(split.usesLocalIterators(), newSplit.usesLocalIterators());
     Assert.assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
     Assert.assertEquals(split.getToken(), newSplit.getToken());
     Assert.assertEquals(split.getPrincipal(), newSplit.getPrincipal());
     Assert.assertEquals(split.getInstanceName(), newSplit.getInstanceName());
-    Assert.assertEquals(DeprecationUtil.isMockInstanceSet(split),
-        DeprecationUtil.isMockInstanceSet(newSplit));
+    Assert.assertEquals(MapReduceDeprecationUtil.isMockInstanceSet(split),
+        MapReduceDeprecationUtil.isMockInstanceSet(newSplit));
     Assert.assertEquals(split.getZooKeepers(), newSplit.getZooKeepers());
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());

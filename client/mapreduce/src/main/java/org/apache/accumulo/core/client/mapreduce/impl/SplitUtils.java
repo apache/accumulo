@@ -42,7 +42,7 @@ public class SplitUtils {
       Authorizations auths, Level logLevel) {
     split.setInstanceName(instance.getInstanceName());
     split.setZooKeepers(instance.getZooKeepers());
-    DeprecationUtil.setMockInstance(split, DeprecationUtil.isMockInstance(instance));
+    MapReduceDeprecationUtil.setMockInstance(split, DeprecationUtil.isMockInstance(instance));
 
     split.setPrincipal(principal);
     split.setToken(token);

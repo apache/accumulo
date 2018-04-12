@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.client.mapreduce.impl;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 
 /**
  * A utility class for managing deprecated items. This avoids scattering private helper methods all
@@ -33,21 +32,16 @@ import org.apache.accumulo.core.client.impl.TabletLocator;
  * used for implementation code which must remain to support the deprecated features, and
  * <b>only</b> until that feature is removed.
  */
-public class DeprecationUtil {
+public class MapReduceDeprecationUtil {
 
   @SuppressWarnings("deprecation")
-  public static boolean isMockInstance(Instance instance) {
-    return instance instanceof org.apache.accumulo.core.client.mock.MockInstance;
+  public static void setMockInstance(RangeInputSplit split, boolean isMockInstance) {
+    split.setMockInstance(isMockInstance);
   }
 
   @SuppressWarnings("deprecation")
-  public static Instance makeMockInstance(String instance) {
-    return new org.apache.accumulo.core.client.mock.MockInstance(instance);
-  }
-
-  @SuppressWarnings("deprecation")
-  public static TabletLocator makeMockLocator() {
-    return new org.apache.accumulo.core.client.mock.impl.MockTabletLocator();
+  public static boolean isMockInstanceSet(RangeInputSplit split) {
+    return split.isMockInstance();
   }
 
 }

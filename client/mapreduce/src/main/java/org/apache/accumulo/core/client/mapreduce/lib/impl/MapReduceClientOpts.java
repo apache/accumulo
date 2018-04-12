@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.cli;
+package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
