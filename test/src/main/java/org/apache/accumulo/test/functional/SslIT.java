@@ -62,8 +62,8 @@ public class SslIT extends ConfigurableMacBase {
   @Test
   public void bulk() throws Exception {
     BulkIT.runTest(getConnector(), getConnectionInfo(), cluster.getFileSystem(),
-        new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"),
-        getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
+        new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"), getUniqueNames(1)[0],
+        this.getClass().getName(), testName.getMethodName());
   }
 
   @Test

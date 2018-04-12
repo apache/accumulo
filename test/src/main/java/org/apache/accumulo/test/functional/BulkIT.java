@@ -60,12 +60,13 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    runTest(getConnector(), getConnectionInfo(), getCluster().getFileSystem(), getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
+    runTest(getConnector(), getConnectionInfo(), getCluster().getFileSystem(),
+        getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
         testName.getMethodName());
   }
 
-  static void runTest(Connector c, ConnectionInfo info, FileSystem fs, Path basePath, String tableName,
-                      String filePrefix, String dirSuffix) throws Exception {
+  static void runTest(Connector c, ConnectionInfo info, FileSystem fs, Path basePath,
+      String tableName, String filePrefix, String dirSuffix) throws Exception {
     c.tableOperations().create(tableName);
 
     Path base = new Path(basePath, "testBulkFail_" + dirSuffix);

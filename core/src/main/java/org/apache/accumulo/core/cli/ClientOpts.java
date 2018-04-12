@@ -18,12 +18,10 @@ package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
+import java.net.URL;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
@@ -113,7 +111,7 @@ public class ClientOpts extends Help {
   private String zookeepers = "localhost:2181";
 
   @Parameter(names = {"-i", "--instance"}, description = "The name of the accumulo instance")
-  public String instance = null;
+  protected String instance = null;
 
   @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class,
       description = "the authorizations to use when reading or writing")
@@ -122,19 +120,15 @@ public class ClientOpts extends Help {
   @Parameter(names = "--debug", description = "turn on TRACE-level log messages")
   public boolean debug = false;
 
-  @Parameter(names = {"-fake", "--mock"}, description = "Use a mock Instance")
-  public boolean mock = false;
-
   @Parameter(names = "--ssl", description = "Connect to accumulo over SSL")
-  public boolean sslEnabled = false;
+  private boolean sslEnabled = false;
 
   @Parameter(names = "--sasl", description = "Connecto to Accumulo using SASL (supports Kerberos)")
-  public boolean saslEnabled = false;
+  private boolean saslEnabled = false;
 
   @Parameter(names = "--config-file", description = "Read the given client config file. "
-      + "If omitted, the following paths will be searched ~/.accumulo/accumulo-client.properties:"
-      + "$ACCUMULO_CONF_DIR/accumulo-client.properties:/etc/accumulo/accumulo-client.properties")
-  public String clientConfigFile = null;
+      + "If omitted, the classpath will be searched for file named accumulo-client.properties")
+  private String clientConfigFile = null;
 
   public void startDebugLogging() {
     if (debug)
@@ -145,7 +139,7 @@ public class ClientOpts extends Help {
   public boolean trace = false;
 
   @Parameter(names = "--keytab", description = "Kerberos keytab on the local filesystem")
-  public String keytabPath = null;
+  private String keytabPath = null;
 
   public void startTracing(String applicationName) {
     if (trace) {
@@ -208,18 +202,10 @@ public class ClientOpts extends Help {
 
   public String getClientConfigFile() {
     if (clientConfigFile == null) {
-      List<String> searchPaths = new LinkedList<>();
-      searchPaths.add(System.getProperty("user.home") + "/.accumulo/accumulo-client.properties");
-      if (System.getenv("ACCUMULO_CONF_DIR") != null) {
-        searchPaths.add(System.getenv("ACCUMULO_CONF_DIR") + "/accumulo-client.properties");
-      }
-      searchPaths.add("/etc/accumulo/accumulo-client.properties");
-      for (String path : searchPaths) {
-        File file = new File(path);
-        if (file.isFile() && file.canRead()) {
-          clientConfigFile = file.getAbsolutePath();
-          break;
-        }
+      URL clientPropsUrl = ClientOpts.class.getClassLoader()
+          .getResource("accumulo-client.properties");
+      if (clientPropsUrl != null) {
+        clientConfigFile = clientPropsUrl.getFile();
       }
     }
     return clientConfigFile;
