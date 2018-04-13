@@ -108,7 +108,7 @@ public class ClientOpts extends Help {
 
   @Parameter(names = {"-z", "--keepers"},
       description = "Comma separated list of zookeeper hosts (host:port,host:port)")
-  private String zookeepers = "localhost:2181";
+  private String zookeepers = null;
 
   @Parameter(names = {"-i", "--instance"}, description = "The name of the accumulo instance")
   protected String instance = null;

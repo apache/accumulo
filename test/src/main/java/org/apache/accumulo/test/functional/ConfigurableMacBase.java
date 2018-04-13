@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -80,7 +81,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File sslDir) {
-    Map<String,String> siteConfig = cfg.getSiteConfig();
+    Map<String, String> siteConfig = cfg.getSiteConfig();
     if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       // already enabled; don't mess with it
       return;
@@ -99,9 +100,9 @@ public class ConfigurableMacBase extends AccumuloITBase {
     try {
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
           "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
-              .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile,
-                  cfg.getInstanceName(), rootKeystorePassword, cfg.getRootPassword(),
-                  truststorePassword);
+          .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile,
+              cfg.getInstanceName(), rootKeystorePassword, cfg.getRootPassword(),
+              truststorePassword);
     } catch (Exception e) {
       throw new RuntimeException("error creating MAC keystore", e);
     }
@@ -113,6 +114,14 @@ public class ConfigurableMacBase extends AccumuloITBase {
         publicTruststoreFile.getAbsolutePath());
     siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
     cfg.setSiteConfig(siteConfig);
+
+    Map<String, String> clientProps = cfg.getClientProps();
+    clientProps.put(ClientProperty.SSL_ENABLED.getKey(), "true");
+    clientProps.put(ClientProperty.SSL_KEYSTORE_PATH.getKey(), localKeystoreFile.getAbsolutePath());
+    clientProps.put(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), cfg.getRootPassword());
+    clientProps.put(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), publicTruststoreFile.getAbsolutePath());
+    clientProps.put(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
+    cfg.setClientProps(clientProps);
   }
 
   @Before
