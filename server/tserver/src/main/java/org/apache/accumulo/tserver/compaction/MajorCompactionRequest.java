@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.Summarizer.Combiner;
@@ -139,8 +138,6 @@ public class MajorCompactionRequest implements Cloneable {
    *
    * @see Summarizer
    * @see TableOperations#addSummarizers(String, SummarizerConfiguration...)
-   * @see AccumuloFileOutputFormat#setSummarizers(org.apache.hadoop.mapred.JobConf,
-   *      SummarizerConfiguration...)
    * @see WriterOptions#withSummarizers(SummarizerConfiguration...)
    */
   public List<Summary> getSummaries(Collection<FileRef> files,

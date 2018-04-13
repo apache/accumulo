@@ -78,6 +78,7 @@
   </mailingLists>
   <modules>
     <module>assemble</module>
+    <module>client/mapreduce</module>
     <module>core</module>
     <module>fate</module>
     <module>iterator-test-harness</module>
@@ -308,6 +309,11 @@
         <groupId>log4j</groupId>
         <artifactId>log4j</artifactId>
         <version>1.2.17</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-client-mapreduce</artifactId>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>

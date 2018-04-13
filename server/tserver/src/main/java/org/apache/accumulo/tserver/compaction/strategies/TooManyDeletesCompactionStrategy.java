@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
@@ -65,8 +64,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>
  * Bulk files can be generated with summary information by calling
- * {@link AccumuloFileOutputFormat#setSummarizers(org.apache.hadoop.mapred.JobConf, SummarizerConfiguration...)}
- * or {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
+ * {@code AccumuloFileOutputFormat#setSummarizers(JobConf, SummarizerConfiguration...)} or
+ * {@link WriterOptions#withSummarizers(SummarizerConfiguration...)}
  *
  * <p>
  * When this strategy does not decide to compact based on the number of deletes, then it will defer
@@ -105,6 +104,7 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
 
   public static final String PROCEED_ZERO_NO_SUMMARY_OPT_DEFAULT = "false";
 
+  @Override
   public void init(Map<String,String> options) {
     this.threshold = Double.parseDouble(options.getOrDefault(THRESHOLD_OPT, THRESHOLD_OPT_DEFAULT));
     if (threshold <= 0.0 || threshold > 1.0) {

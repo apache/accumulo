@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
@@ -595,7 +594,7 @@ public interface TableOperations {
 
   /**
    * Bulk import all the files in a directory into a table. Files can be created using
-   * {@link AccumuloFileOutputFormat} and {@link RFile#newWriter()}
+   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}
    *
    * @param tableName
    *          the name of the table

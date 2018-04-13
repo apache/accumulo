@@ -175,7 +175,6 @@
                 <include>org[.]apache[.]accumulo[.]core[.]iterators[.]IteratorUtil[$]IteratorScope</include>
               </includes>
               <excludes>
-                <exclude>.*Impl</exclude>
                 <exclude>.*[.]impl[.].*</exclude>
                 <exclude>.*[.]thrift[.].*</exclude>
                 <exclude>org[.]apache[.]accumulo[.]core[.]security[.]crypto[.].*</exclude>
@@ -185,23 +184,16 @@
                 <!--Allow API data types to reference thrift types, but do not
 		     analyze thrift types -->
                 <allow>org[.]apache[.]accumulo[.].*[.]thrift[.].*</allow>
-                <!--Type from hadoop used in API.  If adding a new type from
+                <!--Type from hadoop used in API. If adding a new type from
 		     Hadoop to the Accumulo API ensure its annotated as
 		     stable.-->
                 <allow>org[.]apache[.]hadoop[.]conf[.]Configuration</allow>
                 <allow>org[.]apache[.]hadoop[.]fs[.](FileSystem|Path)</allow>
                 <allow>org[.]apache[.]hadoop[.]io[.](Text|Writable|WritableComparable|WritableComparator)</allow>
-                <allow>org[.]apache[.]hadoop[.]mapred[.](JobConf|RecordReader|InputSplit|RecordWriter|Reporter)</allow>
-                <allow>org[.]apache[.]hadoop[.]mapred[.]FileOutputFormat[$]Counter</allow>
-                <allow>org[.]apache[.]hadoop[.]mapreduce[.](Job|JobContext|RecordReader|InputSplit|TaskAttemptContext|RecordWriter|OutputCommitter|TaskInputOutputContext)</allow>
-                <allow>org[.]apache[.]hadoop[.]mapreduce[.]lib[.]output[.]FileOutputFormat[$]Counter</allow>
-                <allow>org[.]apache[.]hadoop[.]util[.]Progressable</allow>
                 <!--ugghhh-->
                 <allow>org[.]apache[.]log4j[.](Level|Logger)</allow>
                 <!-- allow javax security exceptions for Authentication tokens -->
                 <allow>javax[.]security[.]auth[.]DestroyFailedException</allow>
-                <!-- allow questionable Hadoop exceptions for mapreduce -->
-                <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
                 <!-- allow lexicoders to throw iterator exceptions -->
                 <allow>org[.]apache[.]accumulo[.]core[.]iterators[.]ValueFormatException</allow>
               </allows>

@@ -17,8 +17,6 @@
 package org.apache.accumulo.core.util;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 
 /**
  * A utility class for managing deprecated items. This avoids scattering private helper methods all
@@ -44,21 +42,6 @@ public class DeprecationUtil {
   @SuppressWarnings("deprecation")
   public static Instance makeMockInstance(String instance) {
     return new org.apache.accumulo.core.client.mock.MockInstance(instance);
-  }
-
-  @SuppressWarnings("deprecation")
-  public static void setMockInstance(RangeInputSplit split, boolean isMockInstance) {
-    split.setMockInstance(isMockInstance);
-  }
-
-  @SuppressWarnings("deprecation")
-  public static boolean isMockInstanceSet(RangeInputSplit split) {
-    return split.isMockInstance();
-  }
-
-  @SuppressWarnings("deprecation")
-  public static TabletLocator makeMockLocator() {
-    return new org.apache.accumulo.core.client.mock.impl.MockTabletLocator();
   }
 
 }
