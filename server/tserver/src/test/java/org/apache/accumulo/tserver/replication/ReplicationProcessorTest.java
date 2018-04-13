@@ -20,8 +20,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -47,7 +47,7 @@ public class ReplicationProcessorTest {
     Instance inst = EasyMock.createMock(Instance.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     Credentials creds = new Credentials("foo", new PasswordToken("bar"));
-    ClientContext context = new ClientContext(inst, creds, ClientConfiguration.create());
+    ClientContext context = new ClientContext(inst, creds, new Properties());
 
     Map<String,String> data = new HashMap<>();
 
@@ -66,7 +66,7 @@ public class ReplicationProcessorTest {
     Instance inst = EasyMock.createMock(Instance.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     Credentials creds = new Credentials("foo", new PasswordToken("bar"));
-    ClientContext context = new ClientContext(inst, creds, ClientConfiguration.create());
+    ClientContext context = new ClientContext(inst, creds, new Properties());
 
     Map<String,String> data = new HashMap<>();
     ConfigurationCopy conf = new ConfigurationCopy(data);

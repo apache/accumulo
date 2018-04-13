@@ -24,7 +24,7 @@ import java.security.PrivilegedExceptionAction;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -68,7 +68,7 @@ public class AccumuloServerContextTest {
         ClientConfiguration clientConf = ClientConfiguration.loadDefault();
         clientConf.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
         clientConf.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY, "accumulo");
-        final AccumuloConfiguration conf = ClientContext.convertClientConfig(clientConf);
+        final AccumuloConfiguration conf = ClientConfConverter.convertClientConfig(clientConf);
         SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
 
         EasyMock.expect(siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)).andReturn(true);

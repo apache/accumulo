@@ -30,7 +30,6 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -214,7 +213,7 @@ public class RemoveEntriesForMissingFiles {
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
 
     checkAllTables(new ClientContext(opts.getInstance(),
-        new Credentials(opts.getPrincipal(), opts.getToken()), ClientConfiguration.loadDefault()),
+        new Credentials(opts.getPrincipal(), opts.getToken()), opts.getClientProperties()),
         opts.fix);
   }
 }

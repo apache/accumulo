@@ -33,6 +33,7 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class ZooKeeperInstanceTest {
   private static final UUID IID = UUID.randomUUID();
   private static final String IID_STRING = IID.toString();
@@ -76,6 +77,17 @@ public class ZooKeeperInstanceTest {
     config = createMock(ClientConfiguration.class);
     expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(IID_STRING);
     mockNameConstruction(config);
+    replay(config);
+    new ZooKeeperInstance(config);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidConstruction2() {
+    config = createMock(ClientConfiguration.class);
+    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(null);
+    expect(config.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
+    expect(config.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(config.get(ClientProperty.INSTANCE_ZK_TIMEOUT)).andReturn("30");
     replay(config);
     new ZooKeeperInstance(config);
   }

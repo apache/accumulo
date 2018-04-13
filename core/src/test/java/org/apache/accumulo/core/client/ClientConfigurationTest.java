@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.junit.Test;
 
+@SuppressWarnings("deprecated")
 public class ClientConfigurationTest {
   @Test
   public void testOverrides() throws Exception {

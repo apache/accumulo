@@ -26,7 +26,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -255,7 +255,8 @@ public class Proxy implements KeywordExecutable {
     SaslServerConnectionParams saslParams = null;
     switch (serverType) {
       case SSL:
-        sslParams = SslConnectionParams.forClient(ClientContext.convertClientConfig(clientConf));
+        sslParams = SslConnectionParams
+            .forClient(ClientConfConverter.convertClientConfig(clientConf));
         break;
       case SASL:
         if (!clientConf.hasSasl()) {

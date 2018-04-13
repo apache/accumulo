@@ -350,7 +350,6 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
    * @since 1.6.0
-   * @see #setZooKeeperInstance(Class, Configuration, ClientConfiguration)
    */
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");

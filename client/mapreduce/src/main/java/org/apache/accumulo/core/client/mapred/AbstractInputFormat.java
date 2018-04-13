@@ -271,7 +271,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
    */
   protected static Instance getInstance(JobConf job) {
     return InputConfigurator.getInstance(CLASS, job);
@@ -487,8 +486,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       String table = baseSplit.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of
-      // configuration,
-      // but the scanner will use the table id resolved at job setup time
+      // configuration, but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
       log.debug("Creating connector with user: " + principal);

@@ -19,7 +19,6 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.mapred.InputFormatBase.RecordReaderBase;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
@@ -41,9 +40,7 @@ import org.apache.hadoop.mapred.Reporter;
  *
  * <ul>
  * <li>{@link AccumuloInputFormat#setConnectionInfo(JobConf, ConnectionInfo)}
- * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, org.apache.accumulo.core.security.Authorizations)}
- * <li>{@link AccumuloInputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)}
  * <li>{@link AccumuloMultiTableInputFormat#setInputTableConfigs(org.apache.hadoop.mapred.JobConf, java.util.Map)}
  * </ul>
  *

@@ -30,7 +30,7 @@ import javax.security.sasl.Sasl;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -71,7 +71,7 @@ public class SaslServerConnectionParamsTest {
         final String primary = "accumulo";
         clientConf.withSasl(true, primary);
 
-        final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
+        final AccumuloConfiguration rpcConf = ClientConfConverter.convertClientConfig(clientConf);
         assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
 
         // Deal with SystemToken being private
