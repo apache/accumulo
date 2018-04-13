@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1068,7 +1067,7 @@ public class Master extends AccumuloServerContext
     private long updateStatus()
         throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-      tserverStatus = gatherTableInformation(currentServers);
+      tserverStatus = Collections.synchronizedSortedMap(gatherTableInformation(currentServers));
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -1153,9 +1152,11 @@ public class Master extends AccumuloServerContext
 
     int threads = Math.max(getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE), 1);
     long timeout = getConfiguration().getTimeInMillis(Property.MASTER_STATUS_THREAD_TIMEOUT);
-    final SortedMap<TServerInstance,TabletServerStatus> results = new ConcurrentSkipListMap<>();
+    final SortedMap<TServerInstance,TabletServerStatus> results = new TreeMap<>();
 
-    try (TimeoutTaskExecutor<TabletServerStatus,GetTServerStatus> executor = new TimeoutTaskExecutor<>(threads, timeout, currentServers.size())) {
+    try (
+        TimeoutTaskExecutor<TabletServerStatus,GetTServerStatus> executor = new TimeoutTaskExecutor<>(
+            threads, timeout, currentServers.size())) {
       executor.onSuccess(new SuccessCallback<TabletServerStatus,GetTServerStatus>() {
         @Override
         public void accept(GetTServerStatus task, TabletServerStatus result) {
@@ -1193,8 +1194,8 @@ public class Master extends AccumuloServerContext
       badServers.keySet().removeAll(results.keySet());
     }
 
-    log.debug(String.format("Finished gathering information from %d servers in %.2f seconds", currentServers.size(),
-        (System.currentTimeMillis() - start) / 1000.));
+    log.debug(String.format("Finished gathering information from %d servers in %.2f seconds",
+        currentServers.size(), (System.currentTimeMillis() - start) / 1000.));
     return results;
   }
 
