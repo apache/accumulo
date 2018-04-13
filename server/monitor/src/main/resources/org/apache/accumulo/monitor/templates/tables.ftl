@@ -50,17 +50,17 @@
                       }
                     },
                     { "data": "tableState" },
-                    { "data": "tablets" },
-                    { "data": "offlineTablets" },
-                    { "data": "recs" },
-                    { "data": "recsInMemory" },
-                    { "data": "ingestRate" },
-                    { "data": "entriesRead" },
-                    { "data": "entriesReturned" },
-                    { "data": "holdTime" },
-                    { "data": "scansCombo" },
-                    { "data": "minorCombo" },
-                    { "data": "majorCombo" }
+                    { "data": "tablets", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "offlineTablets", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "recs", "orderSequence": [ "desc", "asc" ]  },
+                    { "data": "recsInMemory", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "ingestRate", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "entriesRead", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "entriesReturned", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "holdTime", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "scansCombo", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "minorCombo", "orderSequence": [ "desc", "asc" ] },
+                    { "data": "majorCombo", "orderSequence": [ "desc", "asc" ] }
                   ]
             } );
         });
