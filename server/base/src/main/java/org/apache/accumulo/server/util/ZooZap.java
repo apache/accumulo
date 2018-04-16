@@ -19,16 +19,18 @@ package org.apache.accumulo.server.util;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +46,7 @@ public class ZooZap {
       System.out.println(msg);
   }
 
-  static class Opts extends ClientOpts {
+  static class Opts extends Help {
     @Parameter(names = "-master", description = "remove master locks")
     boolean zapMaster = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
@@ -53,10 +55,6 @@ public class ZooZap {
     boolean zapTracers = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
-
-    String getTraceZKPath() {
-      return super.getClientConfiguration().get(ClientProperty.TRACE_ZK_PATH);
-    }
   }
 
   public static void main(String[] args) {
@@ -74,7 +72,9 @@ public class ZooZap {
       SecurityUtil.serverLogin(siteConf);
     }
 
-    String iid = opts.getInstance().getInstanceID();
+    String volDir = VolumeConfiguration.getVolumeUris(siteConf)[0];
+    Path instanceDir = new Path(volDir, "instance_id");
+    String iid = ZooUtil.getInstanceIDFromHdfs(instanceDir, siteConf);
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     if (opts.zapMaster) {
@@ -112,7 +112,7 @@ public class ZooZap {
     }
 
     if (opts.zapTracers) {
-      String path = opts.getTraceZKPath();
+      String path = siteConf.get(Property.TRACE_ZK_PATH);
       try {
         zapDirectory(zoo, path, opts);
       } catch (Exception e) {

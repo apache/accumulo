@@ -50,6 +50,7 @@ public class MiniAccumuloConfigImpl {
   private String rootPassword = null;
   private Map<String,String> siteConfig = new HashMap<>();
   private Map<String,String> configuredSiteConig = new HashMap<>();
+  private Map<String,String> clientProps = new HashMap<>();
   private int numTservers = 2;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
@@ -292,6 +293,15 @@ public class MiniAccumuloConfigImpl {
     return _setSiteConfig(siteConfig);
   }
 
+  public MiniAccumuloConfigImpl setClientProps(Map<String,String> clientProps) {
+    if (existingInstance != null && existingInstance)
+      throw new UnsupportedOperationException(
+          "Cannot set zookeeper info when using an existing instance.");
+    this.existingInstance = Boolean.FALSE;
+    this.clientProps = clientProps;
+    return this;
+  }
+
   private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<>(siteConfig);
     this.configuredSiteConig = new HashMap<>(siteConfig);
@@ -395,6 +405,13 @@ public class MiniAccumuloConfigImpl {
    */
   public Map<String,String> getSiteConfig() {
     return new HashMap<>(siteConfig);
+  }
+
+  /**
+   * @return a copy of client props
+   */
+  public Map<String,String> getClientProps() {
+    return new HashMap<>(clientProps);
   }
 
   public Map<String,String> getConfiguredSiteConfig() {

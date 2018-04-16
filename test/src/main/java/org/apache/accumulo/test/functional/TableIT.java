@@ -70,14 +70,8 @@ public class TableIT extends AccumuloClusterHarness {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    if (saslEnabled()) {
-      opts.updateKerberosCredentials();
-      vopts.updateKerberosCredentials();
-    } else {
-      opts.setPrincipal(getAdminPrincipal());
-      vopts.setPrincipal(getAdminPrincipal());
-    }
-
+    opts.setConnectionInfo(getConnectionInfo());
+    vopts.setConnectionInfo(getConnectionInfo());
     opts.setTableName(tableName);
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     to.flush(tableName, null, null, true);

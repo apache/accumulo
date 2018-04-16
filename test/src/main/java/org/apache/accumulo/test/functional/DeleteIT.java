@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -69,19 +68,8 @@ public class DeleteIT extends AccumuloClusterHarness {
     vopts.random = opts.random = 56;
 
     assertTrue("Expected one of password or keytab", null != password || null != keytab);
-    if (null != password) {
-      assertNull("Given password, expected null keytab", keytab);
-      Password passwd = new Password(password);
-      opts.setPassword(passwd);
-      opts.setPrincipal(user);
-      vopts.setPassword(passwd);
-      vopts.setPrincipal(user);
-    }
-    if (null != keytab) {
-      assertNull("Given keytab, expect null password", password);
-      opts.updateKerberosCredentials(saslEnabled());
-      vopts.updateKerberosCredentials(saslEnabled());
-    }
+    opts.setConnectionInfo(getConnectionInfo());
+    vopts.setConnectionInfo(getConnectionInfo());
 
     BatchWriterOpts BWOPTS = new BatchWriterOpts();
     TestIngest.ingest(c, opts, BWOPTS);

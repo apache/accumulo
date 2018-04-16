@@ -16,17 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -37,7 +33,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -125,16 +120,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
 
     AuthenticationToken adminToken = getAdminToken();
-    if (adminToken instanceof PasswordToken) {
-      PasswordToken token = (PasswordToken) getAdminToken();
-      opts.setPassword(new Password(new String(token.getPassword(), UTF_8)));
-      opts.setPrincipal(getAdminPrincipal());
-    } else if (adminToken instanceof KerberosToken) {
-      opts.updateKerberosCredentials(saslEnabled());
-    } else {
-      Assert.fail("Unknown token type");
-    }
-
+    opts.setConnectionInfo(getConnectionInfo());
     VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
 
     // ensure each tablet does not have all map files, should be ~2.5 files per tablet

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -26,12 +25,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -138,13 +135,7 @@ public class CompactionIT extends AccumuloClusterHarness {
               opts.dataSize = 50;
               opts.cols = 1;
               opts.setTableName(tableName);
-              if (saslEnabled()) {
-                opts.updateKerberosCredentials();
-              } else {
-                opts.setPrincipal(getAdminPrincipal());
-                PasswordToken passwordToken = (PasswordToken) getAdminToken();
-                opts.setPassword(new Password(new String(passwordToken.getPassword(), UTF_8)));
-              }
+              opts.setConnectionInfo(getConnectionInfo());
               VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
             } catch (Exception ex) {
               log.warn("Got exception verifying data", ex);

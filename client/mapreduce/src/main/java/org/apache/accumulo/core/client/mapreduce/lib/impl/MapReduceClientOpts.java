@@ -37,8 +37,8 @@ public class MapReduceClientOpts extends ClientOpts {
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-    AccumuloInputFormat.setZooKeeperInstance(job, this.getClientConfiguration());
-    AccumuloOutputFormat.setZooKeeperInstance(job, this.getClientConfiguration());
+    AccumuloInputFormat.setConnectionInfo(job, this.getConnectionInfo());
+    AccumuloOutputFormat.setConnectionInfo(job, this.getConnectionInfo());
   }
 
   @Override

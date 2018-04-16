@@ -139,15 +139,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
     }
     assertEquals(0, retCode.get().intValue());
     VOPTS.setTableName(tableName);
-
-    if (token instanceof PasswordToken) {
-      VOPTS.setPrincipal(getAdminPrincipal());
-    } else if (token instanceof KerberosToken) {
-      VOPTS.updateKerberosCredentials(saslEnabled());
-    } else {
-      throw new RuntimeException("Unrecognized token");
-    }
-
+    VOPTS.setConnectionInfo(getConnectionInfo());
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 

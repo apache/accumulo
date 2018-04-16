@@ -22,7 +22,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -69,14 +68,8 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     vopts.rows = opts.rows = 20000;
     opts.setTableName(tableName);
     vopts.setTableName(tableName);
-    ConnectionInfo connectionInfo = getCluster().getConnectionInfo();
-    if (connectionInfo.saslEnabled()) {
-      opts.updateKerberosCredentials(connectionInfo.saslEnabled());
-      vopts.updateKerberosCredentials(connectionInfo.saslEnabled());
-    } else {
-      opts.setPrincipal(getAdminPrincipal());
-      vopts.setPrincipal(getAdminPrincipal());
-    }
+    opts.setConnectionInfo(getConnectionInfo());
+    vopts.setConnectionInfo(getConnectionInfo());
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush(tableName, null, null, true);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());

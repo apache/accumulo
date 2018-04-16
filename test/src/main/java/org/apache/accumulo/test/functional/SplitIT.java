@@ -131,18 +131,12 @@ public class SplitIT extends AccumuloClusterHarness {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     opts.rows = 100000;
     opts.setTableName(table);
-
-    if (saslEnabled()) {
-      opts.updateKerberosCredentials();
-      vopts.updateKerberosCredentials();
-    } else {
-      opts.setPrincipal(getAdminPrincipal());
-      vopts.setPrincipal(getAdminPrincipal());
-    }
+    opts.setConnectionInfo(getConnectionInfo());
 
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     vopts.rows = opts.rows;
     vopts.setTableName(table);
+    vopts.setConnectionInfo(getConnectionInfo());
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     while (c.tableOperations().listSplits(table).size() < 10) {
       sleepUninterruptibly(15, TimeUnit.SECONDS);

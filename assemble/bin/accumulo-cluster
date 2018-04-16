@@ -244,7 +244,7 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers --site-file "${conf}/accumulo-site.xml"
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
 }
 
 
@@ -284,7 +284,7 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers --site-file "${conf}/accumulo-site.xml"
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
 }
 
 function stop_here() {

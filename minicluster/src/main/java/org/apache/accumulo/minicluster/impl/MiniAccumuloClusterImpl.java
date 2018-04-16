@@ -455,12 +455,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(),
         v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
 
-    Map<String,String> clientProps = new HashMap<>();
+    Map<String,String> clientProps = config.getClientProps();
     clientProps.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), config.getZooKeepers());
     clientProps.put(ClientProperty.INSTANCE_NAME.getKey(), config.getInstanceName());
-    clientProps.put(ClientProperty.AUTH_METHOD.getKey(), "password");
-    clientProps.put(ClientProperty.AUTH_USERNAME.getKey(), config.getRootUserName());
-    clientProps.put(ClientProperty.AUTH_PASSWORD.getKey(), config.getRootPassword());
+    if (!clientProps.containsKey(ClientProperty.AUTH_METHOD.getKey())) {
+      clientProps.put(ClientProperty.AUTH_METHOD.getKey(), "password");
+      clientProps.put(ClientProperty.AUTH_USERNAME.getKey(), config.getRootUserName());
+      clientProps.put(ClientProperty.AUTH_PASSWORD.getKey(), config.getRootPassword());
+    }
 
     File clientPropsFile = config.getClientPropsFile();
     writeConfigProperties(clientPropsFile, clientProps);

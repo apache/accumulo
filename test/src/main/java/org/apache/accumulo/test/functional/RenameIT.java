@@ -18,7 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -42,26 +41,14 @@ public class RenameIT extends AccumuloClusterHarness {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.createTable = true;
     opts.setTableName(name1);
-
-    final ConnectionInfo connectionInfo = cluster.getConnectionInfo();
-    if (connectionInfo.saslEnabled()) {
-      opts.updateKerberosCredentials(connectionInfo.saslEnabled());
-    } else {
-      opts.setPrincipal(getAdminPrincipal());
-    }
+    opts.setConnectionInfo(cluster.getConnectionInfo());
 
     Connector c = getConnector();
     TestIngest.ingest(c, opts, bwOpts);
     c.tableOperations().rename(name1, name2);
     TestIngest.ingest(c, opts, bwOpts);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-
-    if (connectionInfo.saslEnabled()) {
-      vopts.updateKerberosCredentials(connectionInfo.saslEnabled());
-    } else {
-      vopts.setPrincipal(getAdminPrincipal());
-    }
-
+    vopts.setConnectionInfo(cluster.getConnectionInfo());
     vopts.setTableName(name2);
     VerifyIngest.verifyIngest(c, vopts, scanOpts);
     c.tableOperations().delete(name1);
