@@ -21,25 +21,20 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.sasl.Sasl;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,10 +126,6 @@ public class SaslConnectionParams {
   protected final Map<String,String> saslProperties;
 
   public SaslConnectionParams(AccumuloConfiguration conf, AuthenticationToken token) {
-    this(ClientConfiguration.fromMap(getProperties(conf)), token);
-  }
-
-  public SaslConnectionParams(ClientConfiguration conf, AuthenticationToken token) {
     this(ClientConfConverter.toProperties(conf), token);
   }
 
@@ -162,37 +153,7 @@ public class SaslConnectionParams {
     }
   }
 
-  protected static Map<String,String> getProperties(AccumuloConfiguration conf) {
-    final Map<String,String> clientProperties = new HashMap<>();
 
-    // Servers will only have the full principal in their configuration -- parse the
-    // primary and realm from it.
-    final String serverPrincipal = conf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
-
-    final KerberosName krbName;
-    try {
-      krbName = new KerberosName(serverPrincipal);
-      clientProperties.put(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey(),
-          krbName.getServiceName());
-    } catch (Exception e) {
-      // bad value or empty, assume we're not using kerberos
-    }
-
-    HashSet<String> clientKeys = new HashSet<>();
-    for (ClientConfiguration.ClientProperty prop : ClientConfiguration.ClientProperty.values()) {
-      clientKeys.add(prop.getKey());
-    }
-
-    String key;
-    for (Entry<String,String> entry : conf) {
-      key = entry.getKey();
-      if (clientKeys.contains(key)) {
-        clientProperties.put(key, entry.getValue());
-      }
-    }
-
-    return clientProperties;
-  }
 
   protected void updatePrincipalFromUgi() {
     // Ensure we're using Kerberos auth for Hadoop UGI

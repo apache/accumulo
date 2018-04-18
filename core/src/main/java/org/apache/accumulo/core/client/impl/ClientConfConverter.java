@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
+import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +112,14 @@ public class ClientConfConverter {
     return props;
   }
 
+  public static Properties toProperties(AccumuloConfiguration config) {
+    return toProperties(toClientConf(config));
+  }
+
+  public static AccumuloConfiguration toAccumuloConf(Properties properties) {
+    return toAccumuloConf(toClientConf(properties));
+  }
+
   /**
    * A utility method for converting client configuration to a standard configuration object for use
    * internally.
@@ -118,7 +128,7 @@ public class ClientConfConverter {
    *          the original {@link ClientConfiguration}
    * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
    */
-  public static AccumuloConfiguration convertClientConfig(final ClientConfiguration config) {
+  public static AccumuloConfiguration toAccumuloConf(final ClientConfiguration config) {
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
@@ -229,6 +239,37 @@ public class ClientConfConverter {
         return null;
       }
     };
-
   }
+
+  public static ClientConfiguration toClientConf(AccumuloConfiguration conf) {
+    ClientConfiguration clientConf = ClientConfiguration.create();
+
+    // Servers will only have the full principal in their configuration -- parse the
+    // primary and realm from it.
+    final String serverPrincipal = conf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+
+    final KerberosName krbName;
+    try {
+      krbName = new KerberosName(serverPrincipal);
+      clientConf.setProperty(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY, krbName.getServiceName());
+    } catch (Exception e) {
+      // bad value or empty, assume we're not using kerberos
+    }
+
+    HashSet<String> clientKeys = new HashSet<>();
+    for (ClientConfiguration.ClientProperty prop : ClientConfiguration.ClientProperty.values()) {
+      clientKeys.add(prop.getKey());
+    }
+
+    String key;
+    for (Map.Entry<String,String> entry : conf) {
+      key = entry.getKey();
+      if (clientKeys.contains(key)) {
+        clientConf.setProperty(key, entry.getValue());
+      }
+    }
+    return clientConf;
+  }
+
+
 }

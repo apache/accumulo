@@ -256,7 +256,7 @@ public class Proxy implements KeywordExecutable {
     switch (serverType) {
       case SSL:
         sslParams = SslConnectionParams
-            .forClient(ClientConfConverter.convertClientConfig(clientConf));
+            .forClient(ClientConfConverter.toAccumuloConf(clientConf));
         break;
       case SASL:
         if (!clientConf.hasSasl()) {
@@ -292,7 +292,7 @@ public class Proxy implements KeywordExecutable {
         clientConf.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY, shortName);
 
         KerberosToken token = new KerberosToken();
-        saslParams = new SaslServerConnectionParams(clientConf, token, null);
+        saslParams = new SaslServerConnectionParams(ClientConfConverter.toProperties(clientConf), token, null);
 
         processor = new UGIAssumingProcessor(processor);
 

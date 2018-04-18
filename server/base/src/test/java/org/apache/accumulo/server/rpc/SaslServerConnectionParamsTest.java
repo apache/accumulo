@@ -25,14 +25,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.security.sasl.Sasl;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.QualityOfProtection;
@@ -50,7 +50,7 @@ public class SaslServerConnectionParamsTest {
   private String username;
 
   @Before
-  public void setup() throws Exception {
+  public void setup() {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");
     Configuration conf = new Configuration(false);
@@ -62,40 +62,36 @@ public class SaslServerConnectionParamsTest {
 
   @Test
   public void testDefaultParamsAsServer() throws Exception {
-    testUser.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    testUser.doAs((PrivilegedExceptionAction<Void>) () -> {
+      Properties clientProps = new Properties();
+      clientProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+      final String primary = "accumulo";
+      clientProps.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), primary);
 
-        // The primary is the first component of the principal
-        final String primary = "accumulo";
-        clientConf.withSasl(true, primary);
+      final AccumuloConfiguration rpcConf = ClientConfConverter.toAccumuloConf(clientProps);
+      assertEquals("true", rpcConf.get(Property.INSTANCE_RPC_SASL_ENABLED));
 
-        final AccumuloConfiguration rpcConf = ClientConfConverter.convertClientConfig(clientConf);
-        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+      // Deal with SystemToken being private
+      PasswordToken pw = new PasswordToken("fake");
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      pw.write(new DataOutputStream(baos));
+      SystemToken token = new SystemToken();
+      token.readFields(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
 
-        // Deal with SystemToken being private
-        PasswordToken pw = new PasswordToken("fake");
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        pw.write(new DataOutputStream(baos));
-        SystemToken token = new SystemToken();
-        token.readFields(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
+      final SaslConnectionParams saslParams = new SaslServerConnectionParams(rpcConf, token);
+      assertEquals(primary, saslParams.getKerberosServerPrimary());
+      assertEquals(SaslMechanism.GSSAPI, saslParams.getMechanism());
+      assertNull(saslParams.getCallbackHandler());
 
-        final SaslConnectionParams saslParams = new SaslServerConnectionParams(rpcConf, token);
-        assertEquals(primary, saslParams.getKerberosServerPrimary());
-        assertEquals(SaslMechanism.GSSAPI, saslParams.getMechanism());
-        assertNull(saslParams.getCallbackHandler());
+      final QualityOfProtection defaultQop = QualityOfProtection
+          .get(Property.RPC_SASL_QOP.getDefaultValue());
+      assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
-        assertEquals(defaultQop, saslParams.getQualityOfProtection());
-
-        Map<String,String> properties = saslParams.getSaslProperties();
-        assertEquals(1, properties.size());
-        assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
-        assertEquals(username, saslParams.getPrincipal());
-        return null;
-      }
+      Map<String,String> properties = saslParams.getSaslProperties();
+      assertEquals(1, properties.size());
+      assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
+      assertEquals(username, saslParams.getPrincipal());
+      return null;
     });
   }
 

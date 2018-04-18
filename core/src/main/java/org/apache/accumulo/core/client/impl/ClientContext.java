@@ -87,7 +87,7 @@ public class ClientContext {
   public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf,
       BatchWriterConfig batchWriterConfig) {
     this(instance, credentials,
-        ClientConfConverter.convertClientConfig(requireNonNull(clientConf, "clientConf is null")));
+        ClientConfConverter.toAccumuloConf(requireNonNull(clientConf, "clientConf is null")));
     this.clientConf = clientConf;
     this.batchWriterConfig = batchWriterConfig;
   }
@@ -109,7 +109,7 @@ public class ClientContext {
         if (!clientConf.hasSasl()) {
           return null;
         }
-        return new SaslConnectionParams(clientConf, getCredentials().getToken());
+        return new SaslConnectionParams(ClientConfConverter.toProperties(clientConf), getCredentials().getToken());
       }
       AccumuloConfiguration conf = getConfiguration();
       if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
