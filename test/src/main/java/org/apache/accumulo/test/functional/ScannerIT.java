@@ -70,7 +70,7 @@ public class ScannerIT extends AccumuloClusterHarness {
 
       cfg = new IteratorSetting(100, SlowIterator.class);
       // A batch size of one will end up calling seek() for each element with no calls to next()
-      SlowIterator.setSeekSleepTime(cfg, 100l);
+      SlowIterator.setSeekSleepTime(cfg, 100L);
 
       s.addScanIterator(cfg);
       // Never start readahead
@@ -86,7 +86,7 @@ public class ScannerIT extends AccumuloClusterHarness {
         sw.stop();
 
         // While we "do work" in the client, we should be fetching the next result
-        UtilWaitThread.sleep(100l);
+        UtilWaitThread.sleep(100L);
         iterator.next();
         sw.start();
       }
@@ -99,7 +99,7 @@ public class ScannerIT extends AccumuloClusterHarness {
       s.addScanIterator(cfg);
       s.setRange(new Range());
       s.setBatchSize(1);
-      s.setReadaheadThreshold(0l);
+      s.setReadaheadThreshold(0L);
 
       sw = new Stopwatch();
       iterator = s.iterator();
@@ -109,7 +109,7 @@ public class ScannerIT extends AccumuloClusterHarness {
         sw.stop();
 
         // While we "do work" in the client, we should be fetching the next result
-        UtilWaitThread.sleep(100l);
+        UtilWaitThread.sleep(100L);
         iterator.next();
         sw.start();
       }

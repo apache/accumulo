@@ -168,7 +168,7 @@ public class ReplicationResource {
         // instead of just file-based
         Long count = targetCounts.get(target);
         if (null == count) {
-          targetCounts.put(target, 1l);
+          targetCounts.put(target, 1L);
         } else {
           targetCounts.put(target, count + 1);
         }

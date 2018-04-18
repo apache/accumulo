@@ -238,7 +238,7 @@ public class MockTableOperationsTest {
     List<Pair<Key,Value>> keyVals = new ArrayList<>();
     for (int i = 0; i < 5; i++) {
       keyVals
-          .add(new Pair<>(new Key("a" + i, "b" + i, "c" + i, new ColumnVisibility(""), 1000l + i),
+          .add(new Pair<>(new Key("a" + i, "b" + i, "c" + i, new ColumnVisibility(""), 1000L + i),
               new Value(Integer.toString(i).getBytes())));
     }
     for (Pair<Key,Value> keyVal : keyVals) {

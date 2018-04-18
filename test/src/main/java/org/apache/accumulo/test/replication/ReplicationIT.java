@@ -116,7 +116,7 @@ import com.google.protobuf.TextFormat;
  */
 public class ReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
-  private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000l;
+  private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000L;
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -1196,7 +1196,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           s.setRange(Range.prefix(ReplicationSection.getRowPrefix()));
           Iterator<Entry<Key,Value>> iter = s.iterator();
 
-          long recordsFound = 0l;
+          long recordsFound = 0L;
           while (allClosed && iter.hasNext()) {
             Entry<Key,Value> entry = iter.next();
             String wal = entry.getKey().getRow().toString();
@@ -1233,7 +1233,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         try (Scanner s = ReplicationTable.getScanner(conn)) {
           Iterator<Entry<Key,Value>> iter = s.iterator();
 
-          long recordsFound = 0l;
+          long recordsFound = 0L;
           while (allClosed && iter.hasNext()) {
             Entry<Key,Value> entry = iter.next();
             String wal = entry.getKey().getRow().toString();

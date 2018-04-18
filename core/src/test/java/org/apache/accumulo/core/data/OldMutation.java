@@ -246,12 +246,12 @@ public class OldMutation implements Writable {
   }
 
   public void put(Text columnFamily, Text columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -266,12 +266,12 @@ public class OldMutation implements Writable {
   }
 
   public void putDelete(Text columnFamily, Text columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   public void putDelete(Text columnFamily, Text columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -286,12 +286,12 @@ public class OldMutation implements Writable {
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -307,12 +307,12 @@ public class OldMutation implements Writable {
   }
 
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -327,12 +327,12 @@ public class OldMutation implements Writable {
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, CharSequence value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false, value);
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,

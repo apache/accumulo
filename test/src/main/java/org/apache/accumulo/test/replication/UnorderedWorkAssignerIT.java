@@ -132,9 +132,9 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
             + target2.getSourceTableId();
 
     Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
-        .setClosed(false).setCreatedTime(5l);
+        .setClosed(false).setCreatedTime(5L);
     Status status1 = builder.build();
-    builder.setCreatedTime(10l);
+    builder.setCreatedTime(10L);
     Status status2 = builder.build();
 
     // Create two mutations, both of which need replication work done

@@ -66,7 +66,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private static final List<KeyValue> EMPTY_LIST = Collections.emptyList();
 
-  private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3l,
+  private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3L,
       TimeUnit.SECONDS, new SynchronousQueue<>(),
       new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
@@ -126,7 +126,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         options.getSamplerConfiguration(), options.batchTimeOut, options.classLoaderContext);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
-    if (0l == readaheadThreshold) {
+    if (0L == readaheadThreshold) {
       initiateReadAhead();
     }
     iter = null;

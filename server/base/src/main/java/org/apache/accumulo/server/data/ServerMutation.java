@@ -30,7 +30,7 @@ import org.apache.hadoop.io.WritableUtils;
  * Mutation that holds system time as computed by the tablet server when not provided by the user.
  */
 public class ServerMutation extends Mutation {
-  private long systemTime = 0l;
+  private long systemTime = 0L;
 
   public ServerMutation(TMutation tmutation) {
     super(tmutation);

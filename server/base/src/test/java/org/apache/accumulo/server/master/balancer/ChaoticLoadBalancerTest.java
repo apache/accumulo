@@ -73,7 +73,7 @@ public class ChaoticLoadBalancerTest {
       List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
         if (extent.getTableId().equals(table)) {
-          result.add(new TabletStats(extent.toThrift(), null, null, null, 0l, 0., 0., 0));
+          result.add(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0));
         }
       }
       return result;

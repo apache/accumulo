@@ -51,11 +51,11 @@ public class Metrics2TabletServerUpdateMetrics
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
 
     permissionErrorsCounter = registry
-        .newCounter(Interns.info(PERMISSION_ERRORS, "Permission Errors"), 0l);
+        .newCounter(Interns.info(PERMISSION_ERRORS, "Permission Errors"), 0L);
     unknownTabletErrorsCounter = registry
-        .newCounter(Interns.info(UNKNOWN_TABLET_ERRORS, "Unknown Tablet Errors"), 0l);
+        .newCounter(Interns.info(UNKNOWN_TABLET_ERRORS, "Unknown Tablet Errors"), 0L);
     constraintViolationsCounter = registry
-        .newCounter(Interns.info(CONSTRAINT_VIOLATIONS, "Table Constraint Violations"), 0l);
+        .newCounter(Interns.info(CONSTRAINT_VIOLATIONS, "Table Constraint Violations"), 0L);
 
     commitPrepStat = registry.newStat(COMMIT_PREP, "preparing to commit mutations", "Ops", "Time",
         true);

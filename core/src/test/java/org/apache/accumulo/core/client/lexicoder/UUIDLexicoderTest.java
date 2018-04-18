@@ -30,8 +30,8 @@ public class UUIDLexicoderTest extends AbstractLexicoderTest {
 
     ArrayList<UUID> uuids = new ArrayList<>();
 
-    for (long ms = -260l; ms < 260l; ms++) {
-      for (long ls = -2l; ls < 2; ls++) {
+    for (long ms = -260L; ms < 260L; ms++) {
+      for (long ls = -2L; ls < 2; ls++) {
         uuids.add(new UUID(ms, ls));
       }
     }

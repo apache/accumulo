@@ -54,7 +54,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     c.tableOperations().create(tableName);
 
-    insertData(tableName, 1l);
+    insertData(tableName, 1L);
 
     TreeSet<Text> splits = new TreeSet<>();
     splits.add(new Text(String.format("%09d", 333)));
@@ -70,8 +70,8 @@ public class AddSplitIT extends AccumuloClusterHarness {
       throw new Exception(splits + " != " + actualSplits);
     }
 
-    verifyData(tableName, 1l);
-    insertData(tableName, 2l);
+    verifyData(tableName, 1L);
+    insertData(tableName, 2L);
 
     // did not clear splits on purpose, it should ignore existing split points
     // and still create the three additional split points
@@ -90,7 +90,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
       throw new Exception(splits + " != " + actualSplits);
     }
 
-    verifyData(tableName, 2l);
+    verifyData(tableName, 2L);
   }
 
   private void verifyData(String tableName, long ts) throws Exception {

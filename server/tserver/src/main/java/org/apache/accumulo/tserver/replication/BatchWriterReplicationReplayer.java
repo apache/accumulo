@@ -62,7 +62,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         .getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
 
     BatchWriter bw = null;
-    long mutationsApplied = 0l;
+    long mutationsApplied = 0L;
     try {
       for (ByteBuffer edit : data.getEdits()) {
         DataInputStream dis = new DataInputStream(ByteBufferUtil.toByteArrayInputStream(edit));
@@ -97,7 +97,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         // otherwise
         // the local system will assign a new timestamp.
         List<Mutation> mutationsCopy = new ArrayList<>(value.mutations.size());
-        long mutationsCopied = 0l;
+        long mutationsCopied = 0L;
         for (Mutation orig : value.mutations) {
           if (orig instanceof ServerMutation) {
             mutationsCopied++;

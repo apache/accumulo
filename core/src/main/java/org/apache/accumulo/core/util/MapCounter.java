@@ -24,7 +24,7 @@ import java.util.Set;
 public class MapCounter<KT> {
 
   static class MutableLong {
-    long l = 0l;
+    long l = 0L;
   }
 
   private HashMap<KT,MutableLong> map;

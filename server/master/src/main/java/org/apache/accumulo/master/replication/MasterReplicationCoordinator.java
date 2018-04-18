@@ -59,7 +59,7 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
 
   protected MasterReplicationCoordinator(Master master, ZooReader reader) {
     this.master = master;
-    this.rand = new Random(358923462l);
+    this.rand = new Random(358923462L);
     this.inst = master.getInstance();
     this.reader = reader;
     this.security = SecurityOperation.getInstance(master, false);

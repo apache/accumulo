@@ -207,7 +207,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
         // Write some data to table1
         BatchWriter bw = primaryConn.createBatchWriter(primaryTable1, new BatchWriterConfig());
-        long masterTable1Records = 0l;
+        long masterTable1Records = 0L;
         for (int rows = 0; rows < 2500; rows++) {
           Mutation m = new Mutation(primaryTable1 + rows);
           for (int cols = 0; cols < 100; cols++) {
@@ -239,7 +239,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
         log.info("Waiting for {} for {}", filesFor1, primaryTable1);
         primaryConn.replicationOperations().drain(primaryTable1, filesFor1);
 
-        long countTable = 0l;
+        long countTable = 0L;
         for (Entry<Key,Value> entry : peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
           Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "

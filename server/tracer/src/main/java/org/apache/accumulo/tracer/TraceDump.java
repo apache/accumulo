@@ -42,7 +42,7 @@ import org.apache.htrace.Span;
 import com.beust.jcommander.Parameter;
 
 public class TraceDump {
-  static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000l;
+  static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000L;
 
   static class Opts extends ClientOnDefaultTable {
     @Parameter(names = {"-r", "--recent"}, description = "List recent traces")

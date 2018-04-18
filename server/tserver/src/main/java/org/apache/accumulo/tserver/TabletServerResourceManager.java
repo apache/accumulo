@@ -321,7 +321,7 @@ public class TabletServerResourceManager {
         log.warn("Caught exception checking active assignments", e);
       } finally {
         // Don't run more often than every 5s
-        long delay = Math.max((long) (millisBeforeWarning * 0.5), 5000l);
+        long delay = Math.max((long) (millisBeforeWarning * 0.5), 5000L);
         if (log.isTraceEnabled()) {
           log.trace("Rescheduling assignment watcher to run in {}ms", delay);
         }

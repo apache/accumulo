@@ -186,7 +186,7 @@ public class RecoveryManager {
             if (delay == null) {
               delay = aconf.getTimeInMillis(Property.MASTER_RECOVERY_DELAY);
             } else {
-              delay = Math.min(2 * delay, 1000 * 60 * 5l);
+              delay = Math.min(2 * delay, 1000 * 60 * 5L);
             }
 
             log.info("Starting recovery of {} (in : {}s), tablet {} holds a reference", filename,

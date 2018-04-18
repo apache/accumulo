@@ -82,7 +82,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       throw new IllegalArgumentException("no type specified");
     if (type.startsWith(CLASS_PREFIX)) {
       setEncoder(type.substring(CLASS_PREFIX.length()));
-      testEncoder(42l);
+      testEncoder(42L);
     } else {
       switch (Type.valueOf(type)) {
         case VARLEN:

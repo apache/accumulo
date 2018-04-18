@@ -227,9 +227,9 @@ public class Proxy implements KeywordExecutable {
     final int simpleTimerThreadpoolSize = Integer
         .parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
     // How frequently to try to resize the thread pool
-    final long threadpoolResizeInterval = 1000l * 5;
+    final long threadpoolResizeInterval = 1000L * 5;
     // No timeout
-    final long serverSocketTimeout = 0l;
+    final long serverSocketTimeout = 0L;
     // Use the new hadoop metrics2 support
     final MetricsFactory metricsFactory = new MetricsFactory(false);
     final String serverName = "Proxy", threadName = "Accumulo Thrift Proxy";

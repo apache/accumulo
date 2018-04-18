@@ -40,7 +40,7 @@ public class ShutdownTServerTest {
     final ShutdownTServer op = new ShutdownTServer(tserver, force);
 
     final Master master = EasyMock.createMock(Master.class);
-    final long tid = 1l;
+    final long tid = 1L;
 
     final TServerConnection tserverCnxn = EasyMock.createMock(TServerConnection.class);
     final TabletServerStatus status = new TabletServerStatus();

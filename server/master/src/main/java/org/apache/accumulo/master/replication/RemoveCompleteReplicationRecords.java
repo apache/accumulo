@@ -167,7 +167,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
       // If a column in the row isn't ready for removal, we keep the whole row
       if (!StatusUtil.isSafeForRemoval(status)) {
-        return 0l;
+        return 0L;
       }
 
       Key k = entry.getKey();
@@ -221,7 +221,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       bw.flush();
     } catch (MutationsRejectedException e) {
       log.error("Could not submit mutation to remove columns for {} in replication table", row, e);
-      return 0l;
+      return 0L;
     }
 
     return recordsRemoved;

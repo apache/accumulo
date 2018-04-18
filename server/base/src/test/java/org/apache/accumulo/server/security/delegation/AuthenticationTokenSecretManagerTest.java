@@ -321,7 +321,7 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 10s lifetime
-    long tokenLifetime = 10 * 1000l;
+    long tokenLifetime = 10 * 1000L;
     AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
         tokenLifetime);
 

@@ -76,7 +76,7 @@ public class ThriftTransportPool {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
 
-  private static final Long ERROR_THRESHOLD = 20l;
+  private static final Long ERROR_THRESHOLD = 20L;
   private static final int STUCK_THRESHOLD = 2 * 60 * 1000;
 
   private static class CachedConnection {
@@ -545,7 +545,7 @@ public class ThriftTransportPool {
 
             Long ecount = errorCount.get(ctsc.getCacheKey());
             if (ecount == null)
-              ecount = 0l;
+              ecount = 0L;
             ecount++;
             errorCount.put(ctsc.getCacheKey(), ecount);
 

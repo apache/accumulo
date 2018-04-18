@@ -218,7 +218,7 @@ public class ContinuousIngest {
   }
 
   public static final long genLong(long min, long max, Random r) {
-    return ((r.nextLong() & 0x7fffffffffffffffl) % (max - min)) + min;
+    return ((r.nextLong() & 0x7fffffffffffffffL) % (max - min)) + min;
   }
 
   static final byte[] genRow(long min, long max, Random r) {

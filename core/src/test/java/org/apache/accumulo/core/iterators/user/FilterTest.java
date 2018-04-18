@@ -196,8 +196,8 @@ public class FilterTest {
 
     SortedKeyValueIterator<Key,Value> a = new AgeOffFilter();
     IteratorSetting is = new IteratorSetting(1, AgeOffFilter.class);
-    AgeOffFilter.setTTL(is, 101l);
-    AgeOffFilter.setCurrentTime(is, 1001l);
+    AgeOffFilter.setTTL(is, 101L);
+    AgeOffFilter.setCurrentTime(is, 1001L);
     AgeOffFilter.setNegate(is, true);
     assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
     try {
@@ -220,7 +220,7 @@ public class FilterTest {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901L);
     long ts = System.currentTimeMillis();
 
     for (long i = 0; i < 1000; i++) {
@@ -236,7 +236,7 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(902, size(a));
 
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -260,7 +260,7 @@ public class FilterTest {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901L);
     ColumnAgeOffFilter.setNegate(is, true);
     long ts = System.currentTimeMillis();
 
@@ -277,7 +277,7 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(98, size(a));
 
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -302,7 +302,7 @@ public class FilterTest {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate"), 901l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate"), 901L);
     long ts = System.currentTimeMillis();
 
     for (long i = 0; i < 1000; i++) {
@@ -318,7 +318,7 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(902, size(a));
 
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate", "b"), 101l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate", "b"), 101L);
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -354,7 +354,7 @@ public class FilterTest {
         colq = colq2;
       }
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
-      k.setTimestamp(157l);
+      k.setTimestamp(157L);
       tm.put(k, dv);
     }
     assertEquals(1000, tm.size());
@@ -544,7 +544,7 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(31, size(a));
 
-    TimestampFilter.setEnd(is, 253402300800001l, true);
+    TimestampFilter.setEnd(is, 253402300800001L, true);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
 
     is.clearOptions();

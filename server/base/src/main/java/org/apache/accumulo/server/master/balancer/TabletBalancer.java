@@ -122,9 +122,9 @@ public abstract class TabletBalancer {
   public abstract long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut);
 
-  private static final long ONE_SECOND = 1000l;
+  private static final long ONE_SECOND = 1000L;
   private boolean stuck = false;
-  private long stuckNotificationTime = -1l;
+  private long stuckNotificationTime = -1L;
 
   protected static final long TIME_BETWEEN_BALANCER_WARNINGS = 60 * ONE_SECOND;
 

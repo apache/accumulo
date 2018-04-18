@@ -36,11 +36,11 @@ public class RangeTest extends TestCase {
   private Range newRange(String k1, String k2) {
     Key ik1 = null;
     if (k1 != null)
-      ik1 = new Key(new Text(k1), 0l);
+      ik1 = new Key(new Text(k1), 0L);
 
     Key ik2 = null;
     if (k2 != null)
-      ik2 = new Key(new Text(k2), 0l);
+      ik2 = new Key(new Text(k2), 0L);
 
     return new Range(ik1, ik2);
   }
@@ -724,15 +724,15 @@ public class RangeTest extends TestCase {
     assertFalse(r.contains(new Key("abc", "def", "ghj")));
 
     r = Range.exact("abc", "def", "ghi", "j&k");
-    assertTrue(r.contains(new Key("abc", "def", "ghi", "j&k", 7l)));
+    assertTrue(r.contains(new Key("abc", "def", "ghi", "j&k", 7L)));
     assertFalse(r.contains(new Key("abc", "def", "ghi", "j&kl")));
     assertFalse(r.contains(new Key("abc", "def", "ghi", "j&j")));
     assertFalse(r.contains(new Key("abc", "def", "ghi", "j&l")));
 
-    r = Range.exact("abc", "def", "ghi", "j&k", 7l);
-    assertTrue(r.contains(new Key("abc", "def", "ghi", "j&k", 7l)));
-    assertFalse(r.contains(new Key("abc", "def", "ghi", "j&k", 6l)));
-    assertFalse(r.contains(new Key("abc", "def", "ghi", "j&k", 8l)));
+    r = Range.exact("abc", "def", "ghi", "j&k", 7L);
+    assertTrue(r.contains(new Key("abc", "def", "ghi", "j&k", 7L)));
+    assertFalse(r.contains(new Key("abc", "def", "ghi", "j&k", 6L)));
+    assertFalse(r.contains(new Key("abc", "def", "ghi", "j&k", 8L)));
   }
 
   public void testPrefixRange() {
@@ -756,7 +756,7 @@ public class RangeTest extends TestCase {
     assertFalse(r.contains(new Key("abc", "def", "ghj")));
 
     r = Range.prefix("abc", "def", "ghi", "j&k");
-    assertTrue(r.contains(new Key("abc", "def", "ghi", "j&k", 7l)));
+    assertTrue(r.contains(new Key("abc", "def", "ghi", "j&k", 7L)));
     assertTrue(r.contains(new Key("abc", "def", "ghi", "j&kl")));
     assertFalse(r.contains(new Key("abc", "def", "ghi", "j&j")));
     assertFalse(r.contains(new Key("abc", "def", "ghi", "j&l")));

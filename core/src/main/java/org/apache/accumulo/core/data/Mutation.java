@@ -388,7 +388,7 @@ public class Mutation implements Writable {
    *          cell value
    */
   public void put(Text columnFamily, Text columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   /**
@@ -406,7 +406,7 @@ public class Mutation implements Writable {
    */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -457,7 +457,7 @@ public class Mutation implements Writable {
    *          column qualifier
    */
   public void putDelete(Text columnFamily, Text columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   /**
@@ -472,7 +472,7 @@ public class Mutation implements Writable {
    */
   public void putDelete(Text columnFamily, Text columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -519,7 +519,7 @@ public class Mutation implements Writable {
    *          column qualifier
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   /**
@@ -537,7 +537,7 @@ public class Mutation implements Writable {
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -589,7 +589,7 @@ public class Mutation implements Writable {
    *          column qualifier
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   /**
@@ -605,7 +605,7 @@ public class Mutation implements Writable {
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -654,7 +654,7 @@ public class Mutation implements Writable {
    *          cell value
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
   }
 
   /**
@@ -672,7 +672,7 @@ public class Mutation implements Writable {
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, CharSequence value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false, value);
   }
 
   /**
@@ -726,7 +726,7 @@ public class Mutation implements Writable {
    * @since 1.5.0
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, byte[] value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
   }
 
   /**
@@ -745,7 +745,7 @@ public class Mutation implements Writable {
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility,
       byte[] value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false, value);
   }
 
   /**
@@ -798,7 +798,7 @@ public class Mutation implements Writable {
    * @since 1.5.0
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   /**
@@ -814,7 +814,7 @@ public class Mutation implements Writable {
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 

@@ -848,11 +848,11 @@ public class MultiLevelIndex {
         Map<Integer,Long> countsByLevel) throws IOException {
       Long size = sizesByLevel.get(ib.getLevel());
       if (size == null)
-        size = 0l;
+        size = 0L;
 
       Long count = countsByLevel.get(ib.getLevel());
       if (count == null)
-        count = 0l;
+        count = 0L;
 
       List<IndexEntry> index = ib.getIndex();
       size += ((SerializedIndex) index).sizeInBytes();

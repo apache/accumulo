@@ -44,7 +44,7 @@ public class NumSummationTest {
   @Test
   public void test1() {
     try {
-      long[] la = {1l, 2l, 3l};
+      long[] la = {1L, 2L, 3L};
       byte[] b = NumArraySummation.longArrayToBytes(la);
       long[] la2 = NumArraySummation.bytesToLongArray(b);
 
@@ -61,9 +61,9 @@ public class NumSummationTest {
   public void test2() {
     try {
       NumArraySummation nas = new NumArraySummation();
-      long[] la = {1l, 2l, 3l};
+      long[] la = {1L, 2L, 3L};
       nas.collect(new Value(NumArraySummation.longArrayToBytes(la)));
-      long[] la2 = {3l, 2l, 1l, 0l};
+      long[] la2 = {3L, 2L, 1L, 0L};
       nas.collect(new Value(NumArraySummation.longArrayToBytes(la2)));
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
       assertTrue(la.length == 4);
@@ -84,9 +84,9 @@ public class NumSummationTest {
   public void test3() {
     try {
       NumArraySummation nas = new NumArraySummation();
-      long[] la = {Long.MAX_VALUE, Long.MIN_VALUE, 3l, -5l, 5l, 5l};
+      long[] la = {Long.MAX_VALUE, Long.MIN_VALUE, 3L, -5L, 5L, 5L};
       nas.collect(new Value(NumArraySummation.longArrayToBytes(la)));
-      long[] la2 = {1l, -3l, 2l, 10l};
+      long[] la2 = {1L, -3L, 2L, 10L};
       nas.collect(new Value(NumArraySummation.longArrayToBytes(la2)));
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
       assertTrue(la.length == 6);
@@ -103,7 +103,7 @@ public class NumSummationTest {
   @Test
   public void test4() {
     try {
-      long l = 5l;
+      long l = 5L;
       byte[] b = NumSummation.longToBytes(l);
       long l2 = NumSummation.bytesToLong(b);
 
@@ -117,7 +117,7 @@ public class NumSummationTest {
   public void test5() {
     try {
       NumSummation ns = new NumSummation();
-      for (long l = -5l; l < 8l; l++) {
+      for (long l = -5L; l < 8L; l++) {
         ns.collect(new Value(NumSummation.longToBytes(l)));
       }
       long l = NumSummation.bytesToLong(ns.aggregate().get());

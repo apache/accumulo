@@ -37,10 +37,10 @@ import org.apache.hadoop.util.StringUtils;
  */
 public class BatchWriterConfig implements Writable {
 
-  private static final Long DEFAULT_MAX_MEMORY = 50 * 1024 * 1024l;
+  private static final Long DEFAULT_MAX_MEMORY = 50 * 1024 * 1024L;
   private Long maxMemory = null;
 
-  private static final Long DEFAULT_MAX_LATENCY = 2 * 60 * 1000l;
+  private static final Long DEFAULT_MAX_LATENCY = 2 * 60 * 1000L;
   private Long maxLatency = null;
 
   private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;

@@ -39,8 +39,8 @@ public class PairLexicoderTest extends AbstractLexicoderTest {
         new StringLexicoder());
 
     assertSortOrder(plexc2,
-        Arrays.asList(new ComparablePair<>(0x100l, "a"), new ComparablePair<>(0x100l, "ab"),
-            new ComparablePair<>(0xf0l, "a"), new ComparablePair<>(0xf0l, "ab")));
+        Arrays.asList(new ComparablePair<>(0x100L, "a"), new ComparablePair<>(0x100L, "ab"),
+            new ComparablePair<>(0xf0L, "a"), new ComparablePair<>(0xf0L, "ab")));
   }
 
   public void testDecodes() {

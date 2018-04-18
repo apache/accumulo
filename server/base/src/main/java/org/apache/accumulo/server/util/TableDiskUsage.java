@@ -114,7 +114,7 @@ public class TableDiskUsage {
 
       Long tablesUsage = usage.get(key);
       if (tablesUsage == null)
-        tablesUsage = 0l;
+        tablesUsage = 0L;
 
       tablesUsage += size;
 

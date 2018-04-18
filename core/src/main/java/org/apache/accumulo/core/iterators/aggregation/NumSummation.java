@@ -32,7 +32,7 @@ import org.apache.hadoop.io.WritableUtils;
  */
 @Deprecated
 public class NumSummation implements Aggregator {
-  long sum = 0l;
+  long sum = 0L;
 
   @Override
   public Value aggregate() {
@@ -86,7 +86,7 @@ public class NumSummation implements Aggregator {
 
   @Override
   public void reset() {
-    sum = 0l;
+    sum = 0L;
   }
 
 }

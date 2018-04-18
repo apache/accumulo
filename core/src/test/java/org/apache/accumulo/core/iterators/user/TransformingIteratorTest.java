@@ -387,7 +387,7 @@ public class TransformingIteratorTest {
       assertEquals("cf1", key.getColumnFamily().toString());
       assertEquals("cq1", key.getColumnQualifier().toString());
       assertEquals("", key.getColumnVisibility().toString());
-      assertEquals(5l, key.getTimestamp());
+      assertEquals(5L, key.getTimestamp());
       count++;
     }
 

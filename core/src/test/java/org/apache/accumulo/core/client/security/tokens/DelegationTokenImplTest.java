@@ -33,8 +33,8 @@ public class DelegationTokenImplTest {
 
   @Test
   public void testSerialization() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000l,
-        2000l, "instanceid");
+    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000L,
+        2000L, "instanceid");
     // We don't need a real serialized Token for the password
     DelegationTokenImpl token = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'},
         identifier);
@@ -53,14 +53,14 @@ public class DelegationTokenImplTest {
 
   @Test
   public void testEquality() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000l,
-        2000l, "instanceid");
+    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000L,
+        2000L, "instanceid");
     // We don't need a real serialized Token for the password
     DelegationTokenImpl token = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'},
         identifier);
 
-    AuthenticationTokenIdentifier identifier2 = new AuthenticationTokenIdentifier("user1", 1, 1000l,
-        2000l, "instanceid");
+    AuthenticationTokenIdentifier identifier2 = new AuthenticationTokenIdentifier("user1", 1, 1000L,
+        2000L, "instanceid");
     // We don't need a real serialized Token for the password
     DelegationTokenImpl token2 = new DelegationTokenImpl(new byte[] {'f', 'a', 'k', 'e'},
         identifier2);

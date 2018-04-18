@@ -44,7 +44,7 @@ public class ZooTraceClientTest {
   public void testConnectFailureRetries() throws Exception {
     ZooTraceClient client = EasyMock.createMockBuilder(ZooTraceClient.class)
         .addMockedMethod("updateHostsFromZooKeeper").createStrictMock();
-    client.setRetryPause(0l);
+    client.setRetryPause(0L);
     AtomicBoolean done = new AtomicBoolean(false);
 
     client.updateHostsFromZooKeeper();

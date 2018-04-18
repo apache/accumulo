@@ -96,8 +96,8 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testBaseNodeCreatedWithChildren() throws Exception {
     WatchedEvent event = new WatchedEvent(EventType.NodeCreated, null, baseNode);
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     byte[] serializedKey1 = serialize(key1), serializedKey2 = serialize(key2);
     List<String> children = Arrays.asList("1", "2");
 
@@ -117,8 +117,8 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testBaseNodeChildrenChanged() throws Exception {
     WatchedEvent event = new WatchedEvent(EventType.NodeChildrenChanged, null, baseNode);
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     byte[] serializedKey1 = serialize(key1), serializedKey2 = serialize(key2);
     List<String> children = Arrays.asList("1", "2");
 
@@ -138,8 +138,8 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testBaseNodeDeleted() throws Exception {
     WatchedEvent event = new WatchedEvent(EventType.NodeDeleted, null, baseNode);
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
     secretManager.addKey(key1);
     secretManager.addKey(key2);
@@ -170,8 +170,8 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testChildChanged() throws Exception {
     WatchedEvent event = new WatchedEvent(EventType.NodeCreated, null, baseNode + "/2");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
     assertEquals(1, secretManager.getKeys().size());
     byte[] serializedKey2 = serialize(key2);
@@ -191,8 +191,8 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testChildDeleted() throws Exception {
     WatchedEvent event = new WatchedEvent(EventType.NodeDeleted, null, baseNode + "/1");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
     secretManager.addKey(key2);
     assertEquals(2, secretManager.getKeys().size());
@@ -210,8 +210,8 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testChildChildrenChanged() throws Exception {
     WatchedEvent event = new WatchedEvent(EventType.NodeChildrenChanged, null, baseNode + "/2");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
     secretManager.addKey(key2);
     assertEquals(2, secretManager.getKeys().size());
@@ -244,8 +244,8 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testInitialUpdateWithKeys() throws Exception {
     List<String> children = Arrays.asList("1", "5");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
     expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
@@ -281,8 +281,8 @@ public class ZooAuthenticationKeyWatcherTest {
       throws Exception {
 
     List<String> children = Arrays.asList("1", "5");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey()),
-        key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
+        key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
     expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
@@ -329,7 +329,7 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void missingKeyAfterGetChildren() throws Exception {
     List<String> children = Arrays.asList("1");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0l, 10000l, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
 
     expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
     // We saw key1

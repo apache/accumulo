@@ -2368,7 +2368,7 @@ public class Tablet implements TabletCommitter {
     List<String> files = new ArrayList<>();
 
     for (Entry<FileRef,MapFileInfo> entry : fileMap.entrySet()) {
-      entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0l));
+      entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
       files.add(entry.getKey().path().toString());
     }
 

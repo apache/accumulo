@@ -380,7 +380,7 @@ public class KerberosIT extends AccumuloITBase {
         // Make sure we can actually use the table we made
 
         // Write data
-        final long ts = 1000l;
+        final long ts = 1000L;
         BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
         Mutation m = new Mutation("a");
         m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");

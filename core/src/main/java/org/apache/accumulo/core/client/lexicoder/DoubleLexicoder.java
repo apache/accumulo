@@ -33,7 +33,7 @@ public class DoubleLexicoder extends AbstractLexicoder<Double> {
     if (l < 0)
       l = ~l;
     else
-      l = l ^ 0x8000000000000000l;
+      l = l ^ 0x8000000000000000L;
 
     return longEncoder.encode(l);
   }
@@ -49,7 +49,7 @@ public class DoubleLexicoder extends AbstractLexicoder<Double> {
   protected Double decodeUnchecked(byte[] data, int offset, int len) {
     long l = longEncoder.decodeUnchecked(data, offset, len);
     if (l < 0)
-      l = l ^ 0x8000000000000000l;
+      l = l ^ 0x8000000000000000L;
     else
       l = ~l;
     return Double.longBitsToDouble(l);

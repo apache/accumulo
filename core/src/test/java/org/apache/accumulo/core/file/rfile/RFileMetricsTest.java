@@ -526,8 +526,8 @@ public class RFileMetricsTest {
 
     for (int row = 0; row < 1100; row++) {
       String rs = String.format("%06x", row);
-      trf.writer.append(new Key(rs, fam1, "q4", "A", 42l), new Value("v".getBytes()));
-      trf.writer.append(new Key(rs, fam2, "q4", "A|B", 42l), new Value("v".getBytes()));
+      trf.writer.append(new Key(rs, fam1, "q4", "A", 42L), new Value("v".getBytes()));
+      trf.writer.append(new Key(rs, fam2, "q4", "A|B", 42L), new Value("v".getBytes()));
     }
 
     trf.writer.startDefaultLocalityGroup();
@@ -539,7 +539,7 @@ public class RFileMetricsTest {
       String rs = String.format("%06x", row);
       for (int v = 0; v < 5; v++) {
         String fs = String.format("%06x", fam++);
-        trf.writer.append(new Key(rs, fs, "q4", vis[v], 42l), new Value("v".getBytes()));
+        trf.writer.append(new Key(rs, fs, "q4", vis[v], 42L), new Value("v".getBytes()));
       }
     }
 
@@ -552,18 +552,18 @@ public class RFileMetricsTest {
     Map<String,Long> expected = new HashMap<>();
     Map<String,Long> expectedBlocks = new HashMap<>();
     for (String v : vis) {
-      expected.put(v, 1000l);
-      expectedBlocks.put(v, 71l);
+      expected.put(v, 1000L);
+      expectedBlocks.put(v, 71L);
     }
     assertEquals(expected, vmg.metric.get(null).asMap());
     assertEquals(expectedBlocks, vmg.blocks.get(null).asMap());
 
     expected.clear();
     expectedBlocks.clear();
-    expected.put("A", 1100l);
-    expected.put("A|B", 1100l);
-    expectedBlocks.put("A", 32l);
-    expectedBlocks.put("A|B", 32l);
+    expected.put("A", 1100L);
+    expected.put("A|B", 1100L);
+    expectedBlocks.put("A", 32L);
+    expectedBlocks.put("A|B", 32L);
     assertEquals(expected, vmg.metric.get("lg1").asMap());
     assertEquals(expectedBlocks, vmg.blocks.get("lg1").asMap());
 

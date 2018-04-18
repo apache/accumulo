@@ -223,7 +223,7 @@ public class RegExFilterTest {
     String multiByteText = new String("\u6d67" + "\u6F68" + "\u7067");
     String multiByteRegex = new String(".*" + "\u6F68" + ".*");
 
-    Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1l);
+    Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1L);
     Value inVal = new Value(multiByteText.getBytes(UTF_8));
     tm.put(k4, inVal);
 

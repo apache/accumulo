@@ -29,7 +29,7 @@ public class Totals {
   public double ingestrate = 0.0;
   public double queryrate = 0.0;
   public double diskrate = 0.0;
-  public long numentries = 0l;
+  public long numentries = 0L;
 
   public Totals() {}
 

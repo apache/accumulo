@@ -72,9 +72,9 @@ public class StatusCombinerTest {
     Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
-    Assert.assertEquals(10l, ret.getBegin());
-    Assert.assertEquals(20l, ret.getEnd());
-    Assert.assertEquals(100l, ret.getCreatedTime());
+    Assert.assertEquals(10L, ret.getBegin());
+    Assert.assertEquals(20L, ret.getEnd());
+    Assert.assertEquals(100L, ret.getCreatedTime());
     Assert.assertEquals(false, ret.getClosed());
   }
 
@@ -83,9 +83,9 @@ public class StatusCombinerTest {
     Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(builder, 10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
-    Assert.assertEquals(10l, ret.getBegin());
-    Assert.assertEquals(20l, ret.getEnd());
-    Assert.assertEquals(100l, ret.getCreatedTime());
+    Assert.assertEquals(10L, ret.getBegin());
+    Assert.assertEquals(20L, ret.getEnd());
+    Assert.assertEquals(100L, ret.getCreatedTime());
     Assert.assertEquals(false, ret.getClosed());
   }
 

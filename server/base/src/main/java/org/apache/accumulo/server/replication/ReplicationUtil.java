@@ -185,7 +185,7 @@ public class ReplicationUtil {
         // instead of just file-based
         Long count = counts.get(target);
         if (null == count) {
-          counts.put(target, 1l);
+          counts.put(target, 1L);
         } else {
           counts.put(target, count + 1);
         }

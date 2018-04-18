@@ -111,7 +111,7 @@ public class ZooReaderWriterTest {
     zk.create(path, value, acls, CreateMode.PERSISTENT);
     EasyMock.expectLastCall().andThrow(new SessionExpiredException()).once();
     EasyMock.expect(retry.canRetry()).andReturn(false);
-    EasyMock.expect(retry.retriesCompleted()).andReturn(1l).once();
+    EasyMock.expect(retry.retriesCompleted()).andReturn(1L).once();
 
     EasyMock.replay(zk, zrw, retryFactory, retry);
 

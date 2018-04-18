@@ -122,7 +122,7 @@ public class SaslConnectionParamsTest {
   @Test
   public void testDelegationTokenImpl() throws Exception {
     final DelegationTokenImpl token = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
+        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
     testUser.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
@@ -197,7 +197,7 @@ public class SaslConnectionParamsTest {
     assertEquals(params1.hashCode(), params2.hashCode());
 
     final DelegationTokenImpl delToken1 = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
+        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
     SaslConnectionParams params3 = testUser
         .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
           @Override
@@ -221,7 +221,7 @@ public class SaslConnectionParamsTest {
     assertNotEquals(params2.hashCode(), params3.hashCode());
 
     final DelegationTokenImpl delToken2 = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
+        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
     SaslConnectionParams params4 = testUser
         .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
           @Override

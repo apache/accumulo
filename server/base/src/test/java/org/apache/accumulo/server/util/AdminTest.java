@@ -52,7 +52,7 @@ public class AdminTest {
 
     String root = "/accumulo/id/tservers";
     String server = "localhost:12345";
-    final long session = 123456789l;
+    final long session = 123456789L;
 
     String serverPath = root + "/" + server;
     EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.singletonList("child"));

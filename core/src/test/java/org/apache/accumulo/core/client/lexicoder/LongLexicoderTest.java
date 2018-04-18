@@ -24,18 +24,18 @@ public class LongLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
 
     assertSortOrder(new LongLexicoder(),
-        Arrays.asList(Long.MIN_VALUE, 0xff1234567890abcdl, 0xffff1234567890abl, 0xffffff567890abcdl,
-            0xffffffff7890abcdl, 0xffffffffff90abcdl, 0xffffffffffffabcdl, 0xffffffffffffffcdl, -1l,
-            0l, 0x01l, 0x1234l, 0x123456l, 0x12345678l, 0x1234567890l, 0x1234567890abl,
-            0x1234567890abcdl, 0x1234567890abcdefl, Long.MAX_VALUE));
+        Arrays.asList(Long.MIN_VALUE, 0xff1234567890abcdL, 0xffff1234567890abL, 0xffffff567890abcdL,
+            0xffffffff7890abcdL, 0xffffffffff90abcdL, 0xffffffffffffabcdL, 0xffffffffffffffcdL, -1L,
+            0L, 0x01L, 0x1234L, 0x123456L, 0x12345678L, 0x1234567890L, 0x1234567890abL,
+            0x1234567890abcdL, 0x1234567890abcdefL, Long.MAX_VALUE));
   }
 
   public void testDecodes() {
     assertDecodes(new LongLexicoder(), Long.MIN_VALUE);
-    assertDecodes(new LongLexicoder(), -1l);
-    assertDecodes(new LongLexicoder(), 0l);
-    assertDecodes(new LongLexicoder(), 1l);
-    assertDecodes(new LongLexicoder(), 2l);
+    assertDecodes(new LongLexicoder(), -1L);
+    assertDecodes(new LongLexicoder(), 0L);
+    assertDecodes(new LongLexicoder(), 1L);
+    assertDecodes(new LongLexicoder(), 2L);
     assertDecodes(new LongLexicoder(), Long.MAX_VALUE);
   }
 }

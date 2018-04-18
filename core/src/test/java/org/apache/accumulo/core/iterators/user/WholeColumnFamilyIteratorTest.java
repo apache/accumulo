@@ -57,27 +57,27 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     SortedMap<Key,Value> map = new TreeMap<>();
     SortedMap<Key,Value> map2 = new TreeMap<>();
     final Map<Text,Boolean> toInclude = new HashMap<>();
-    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 1l),
+    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 1L),
         new Value("val1".getBytes()));
-    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq2"), new Text("cv1"), 2l),
+    map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq2"), new Text("cv1"), 2L),
         new Value("val2".getBytes()));
-    map.put(new Key(new Text("r2"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 3l),
+    map.put(new Key(new Text("r2"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 3L),
         new Value("val3".getBytes()));
-    map.put(new Key(new Text("r2"), new Text("cf2"), new Text("cq1"), new Text("cv1"), 4l),
+    map.put(new Key(new Text("r2"), new Text("cf2"), new Text("cq1"), new Text("cv1"), 4L),
         new Value("val4".getBytes()));
-    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 5l),
+    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 5L),
         new Value("val4".getBytes()));
-    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv2"), 6l),
+    map.put(new Key(new Text("r3"), new Text("cf1"), new Text("cq1"), new Text("cv2"), 6L),
         new Value("val4".getBytes()));
-    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 7l),
+    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 7L),
         new Value("".getBytes()));
-    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text(""), 8l),
+    map.put(new Key(new Text("r4"), new Text("cf1"), new Text("cq1"), new Text(""), 8L),
         new Value("val1".getBytes()));
-    map.put(new Key(new Text("r4"), new Text("cf1"), new Text(""), new Text("cv1"), 9l),
+    map.put(new Key(new Text("r4"), new Text("cf1"), new Text(""), new Text("cv1"), 9L),
         new Value("val1".getBytes()));
-    map.put(new Key(new Text("r4"), new Text(""), new Text("cq1"), new Text("cv1"), 10l),
+    map.put(new Key(new Text("r4"), new Text(""), new Text("cq1"), new Text("cv1"), 10L),
         new Value("val1".getBytes()));
-    map.put(new Key(new Text(""), new Text("cf1"), new Text("cq1"), new Text("cv1"), 11l),
+    map.put(new Key(new Text(""), new Text("cf1"), new Text("cq1"), new Text("cv1"), 11L),
         new Value("val1".getBytes()));
     boolean b = true;
     int trueCount = 0;
