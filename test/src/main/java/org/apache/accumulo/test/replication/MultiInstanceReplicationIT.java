@@ -408,7 +408,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
-      long masterTable1Records = 0l;
+      long masterTable1Records = 0L;
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(masterTable1 + rows);
         for (int cols = 0; cols < 100; cols++) {
@@ -423,7 +423,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       // Write some data to table2
       bw = connMaster.createBatchWriter(masterTable2, new BatchWriterConfig());
-      long masterTable2Records = 0l;
+      long masterTable2Records = 0L;
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(masterTable2 + rows);
         for (int cols = 0; cols < 100; cols++) {
@@ -467,7 +467,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       log.info("Waiting for {} for {}", filesFor2, masterTable2);
       connMaster.replicationOperations().drain(masterTable2, filesFor2);
 
-      long countTable = 0l;
+      long countTable = 0L;
       for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
         countTable++;
         Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
@@ -477,7 +477,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       log.info("Found {} records in {}", countTable, peerTable1);
       Assert.assertEquals(masterTable1Records, countTable);
 
-      countTable = 0l;
+      countTable = 0L;
       for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
         countTable++;
         Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
@@ -744,7 +744,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       // We have to wait for the master to assign the replication work, a local tserver to process
       // it, and then the remote tserver to replay it
       // Be cautious in how quickly we assert that the data is present on the peer
-      long countTable = 0l;
+      long countTable = 0L;
       for (int i = 0; i < 10; i++) {
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
@@ -754,7 +754,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
         log.info("Found {} records in {}", countTable, peerTable1);
 
-        if (0l == countTable) {
+        if (0L == countTable) {
           Thread.sleep(5000);
         } else {
           break;
@@ -768,7 +768,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       // it, and then the remote tserver to replay it
       // Be cautious in how quickly we assert that the data is present on the peer
       for (int i = 0; i < 10; i++) {
-        countTable = 0l;
+        countTable = 0L;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
           Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
@@ -777,7 +777,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
         log.info("Found {} records in {}", countTable, peerTable2);
 
-        if (0l == countTable) {
+        if (0L == countTable) {
           Thread.sleep(5000);
         } else {
           break;

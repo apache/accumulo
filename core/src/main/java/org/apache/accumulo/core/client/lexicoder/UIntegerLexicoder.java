@@ -71,7 +71,7 @@ public class UIntegerLexicoder extends AbstractLexicoder<Integer> {
     int shift = 0;
 
     for (int idx = (offset + len) - 1; idx >= offset + 1; idx--) {
-      i += (data[idx] & 0xffl) << shift;
+      i += (data[idx] & 0xffL) << shift;
       shift += 8;
     }
 

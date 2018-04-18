@@ -407,7 +407,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
-      long masterTable1Records = 0l;
+      long masterTable1Records = 0L;
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(masterTable1 + rows);
         for (int cols = 0; cols < 100; cols++) {
@@ -422,7 +422,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       // Write some data to table2
       bw = connMaster.createBatchWriter(masterTable2, new BatchWriterConfig());
-      long masterTable2Records = 0l;
+      long masterTable2Records = 0L;
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(masterTable2 + rows);
         for (int cols = 0; cols < 100; cols++) {
@@ -462,9 +462,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       log.info("Waiting for {} for {}", filesFor2, masterTable2);
       connMaster.replicationOperations().drain(masterTable2, filesFor2);
 
-      long countTable = 0l;
+      long countTable = 0L;
       for (int i = 0; i < 5; i++) {
-        countTable = 0l;
+        countTable = 0L;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
           Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
@@ -482,7 +482,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       Assert.assertEquals(masterTable1Records, countTable);
 
       for (int i = 0; i < 5; i++) {
-        countTable = 0l;
+        countTable = 0L;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
           Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
@@ -750,11 +750,11 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       Assert.assertNotEquals(0, fullyReplicated);
 
-      long countTable = 0l;
+      long countTable = 0L;
 
       // Check a few times
       for (int i = 0; i < 10; i++) {
-        countTable = 0l;
+        countTable = 0L;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
           Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
@@ -770,7 +770,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       Assert.assertTrue("Did not find any records in " + peerTable1 + " on peer", countTable > 0);
 
       for (int i = 0; i < 10; i++) {
-        countTable = 0l;
+        countTable = 0L;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
           Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "

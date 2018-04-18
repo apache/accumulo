@@ -34,8 +34,8 @@ public class NumUtilTest {
     assertEquals("1.50M", bigNumberForSize(1024 * 1024 + (1024 * 1024 / 2)));
     assertEquals("1,024.00M", bigNumberForSize(1073741823));
     assertEquals("1.00G", bigNumberForSize(1073741824));
-    assertEquals("1,024.00G", bigNumberForSize(1099511627775l));
-    assertEquals("1.00T", bigNumberForSize(1099511627776l));
+    assertEquals("1,024.00G", bigNumberForSize(1099511627775L));
+    assertEquals("1.00T", bigNumberForSize(1099511627776L));
   }
 
   @Test
@@ -46,7 +46,7 @@ public class NumUtilTest {
     assertEquals("5.00K", bigNumberForQuantity(5000));
     assertEquals("50.00K", bigNumberForQuantity(50000));
     assertEquals("5.00M", bigNumberForQuantity(5000000));
-    assertEquals("5.00B", bigNumberForQuantity(5000000000l));
-    assertEquals("5.00T", bigNumberForQuantity(5000000000000l));
+    assertEquals("5.00B", bigNumberForQuantity(5000000000L));
+    assertEquals("5.00T", bigNumberForQuantity(5000000000000L));
   }
 }

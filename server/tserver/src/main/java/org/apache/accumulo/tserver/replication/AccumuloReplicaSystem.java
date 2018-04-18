@@ -592,7 +592,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
 
       // No data sent (bytes nor records) and no progress made
-      return new ReplicationStats(0l, 0l, 0l);
+      return new ReplicationStats(0L, 0L, 0L);
     }
   }
 
@@ -634,7 +634,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
 
       // No data sent (bytes nor records) and no progress made
-      return new ReplicationStats(0l, 0l, 0l);
+      return new ReplicationStats(0L, 0L, 0L);
     }
   }
 
@@ -746,9 +746,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       Status status, long sizeLimit, Set<Integer> desiredTids) throws IOException {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<>();
-    long size = 0l;
-    long entriesConsumed = 0l;
-    long numUpdates = 0l;
+    long size = 0L;
+    long entriesConsumed = 0L;
+    long numUpdates = 0L;
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 

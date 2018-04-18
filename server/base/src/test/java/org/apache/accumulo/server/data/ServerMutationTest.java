@@ -49,7 +49,7 @@ public class ServerMutationTest {
     assertEquals("cq1", new String(cu.getColumnQualifier()));
     assertEquals("", new String(cu.getColumnVisibility()));
     assertFalse(cu.hasTimestamp());
-    assertEquals(42l, cu.getTimestamp());
+    assertEquals(42L, cu.getTimestamp());
 
     ServerMutation m2 = new ServerMutation();
     ReflectionUtils.copy(CachedConfiguration.getInstance(), m, m2);
@@ -63,7 +63,7 @@ public class ServerMutationTest {
     assertEquals("cf1", new String(cu.getColumnFamily()));
     assertEquals("cq1", new String(cu.getColumnQualifier()));
     assertFalse(cu.hasTimestamp());
-    assertEquals(42l, cu.getTimestamp());
+    assertEquals(42L, cu.getTimestamp());
 
     cu = updates.get(1);
 

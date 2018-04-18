@@ -879,7 +879,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           } else {
             // not serving tablet, so report all mutations as
             // failures
-            us.failures.put(keyExtent, 0l);
+            us.failures.put(keyExtent, 0L);
             if (updateMetrics.isEnabled())
               updateMetrics.add(TabletServerUpdateMetrics.UNKNOWN_TABLET_ERRORS, 0);
           }
@@ -2519,7 +2519,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         }
         log.warn("failed to open tablet {} reporting failure to master", extent);
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
-        long reschedule = Math.min((1l << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000l);
+        long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
         log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
         SimpleTimer.getInstance(getConfiguration()).schedule(new TimerTask() {
           @Override

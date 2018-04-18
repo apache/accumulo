@@ -25,11 +25,11 @@ package org.apache.accumulo.core.client.lexicoder;
 public class LongLexicoder extends ULongLexicoder {
   @Override
   public byte[] encode(Long l) {
-    return super.encode(l ^ 0x8000000000000000l);
+    return super.encode(l ^ 0x8000000000000000L);
   }
 
   @Override
   protected Long decodeUnchecked(byte[] data, int offset, int len) {
-    return super.decodeUnchecked(data, offset, len) ^ 0x8000000000000000l;
+    return super.decodeUnchecked(data, offset, len) ^ 0x8000000000000000L;
   }
 }

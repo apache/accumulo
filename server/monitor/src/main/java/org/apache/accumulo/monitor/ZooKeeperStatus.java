@@ -110,7 +110,7 @@ public class ZooKeeperStatus implements Runnable {
           else
             addr = HostAndPort.fromParts(parts[0], 2181);
 
-          transport = TTimeoutTransport.create(addr, 10 * 1000l);
+          transport = TTimeoutTransport.create(addr, 10 * 1000L);
           transport.write("stat\n".getBytes(UTF_8), 0, 5);
           StringBuilder response = new StringBuilder();
           try {

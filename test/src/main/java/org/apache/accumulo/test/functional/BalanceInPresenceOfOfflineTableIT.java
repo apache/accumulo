@@ -181,7 +181,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       }
 
       long[] tabletsPerServer = new long[stats.getTServerInfoSize()];
-      Arrays.fill(tabletsPerServer, 0l);
+      Arrays.fill(tabletsPerServer, 0L);
       for (int i = 0; i < stats.getTServerInfoSize(); i++) {
         for (Map.Entry<String,TableInfo> entry : stats.getTServerInfo().get(i).getTableMap()
             .entrySet()) {

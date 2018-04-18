@@ -78,7 +78,7 @@ public class BatchWriterReplicationReplayerTest {
     final String tableName = "foo";
     final long systemTimestamp = 1000;
     final BatchWriterConfig bwCfg = new BatchWriterConfig();
-    bwCfg.setMaxMemory(1l);
+    bwCfg.setMaxMemory(1L);
 
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
@@ -144,7 +144,7 @@ public class BatchWriterReplicationReplayerTest {
     final long systemTimestamp = 1000;
     final String peerName = "peer";
     final BatchWriterConfig bwCfg = new BatchWriterConfig();
-    bwCfg.setMaxMemory(1l);
+    bwCfg.setMaxMemory(1L);
 
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;

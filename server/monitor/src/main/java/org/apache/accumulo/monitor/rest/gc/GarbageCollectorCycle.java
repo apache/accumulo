@@ -30,12 +30,12 @@ public class GarbageCollectorCycle {
   private static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
 
   // Variable names become JSON key
-  public long started = 0l;
-  public long finished = 0l;
-  public long candidates = 0l;
-  public long inUse = 0l;
-  public long deleted = 0l;
-  public long errors = 0l;
+  public long started = 0L;
+  public long finished = 0L;
+  public long candidates = 0L;
+  public long inUse = 0L;
+  public long deleted = 0L;
+  public long errors = 0L;
 
   public GarbageCollectorCycle() {}
 

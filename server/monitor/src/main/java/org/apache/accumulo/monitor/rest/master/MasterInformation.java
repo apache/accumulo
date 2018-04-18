@@ -42,13 +42,13 @@ public class MasterInformation {
   public Integer tablets = 0;
   public Integer unassignedTablets = 0;
 
-  public long numentries = 0l;
-  public double osload = 0l;
+  public long numentries = 0L;
+  public double osload = 0L;
   public double ingestrate = 0d;
   public double entriesRead = 0d;
   public double queryrate = 0d; // entriesReturned same as queryrate
 
-  public long holdTime = 0l;
+  public long holdTime = 0L;
 
   public int tables;
   public int deadTabletServersCount;

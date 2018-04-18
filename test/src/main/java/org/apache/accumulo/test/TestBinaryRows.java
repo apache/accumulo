@@ -165,7 +165,7 @@ public class TestBinaryRows {
       long t1 = System.currentTimeMillis();
 
       for (int i = 0; i < numLookups; i++) {
-        long row = ((r.nextLong() & 0x7fffffffffffffffl) % opts.num) + opts.start;
+        long row = ((r.nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
 
         try (Scanner s = connector.createScanner(opts.getTableName(), opts.auths)) {
           s.setBatchSize(scanOpts.scanBatchSize);

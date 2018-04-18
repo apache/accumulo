@@ -45,8 +45,8 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> {
       byte ret[] = new byte[16];
       DataOutputStream out = new DataOutputStream(new FixedByteArrayOutputStream(ret));
 
-      out.writeLong(uuid.getMostSignificantBits() ^ 0x8000000000000000l);
-      out.writeLong(uuid.getLeastSignificantBits() ^ 0x8000000000000000l);
+      out.writeLong(uuid.getMostSignificantBits() ^ 0x8000000000000000L);
+      out.writeLong(uuid.getLeastSignificantBits() ^ 0x8000000000000000L);
 
       out.close();
 
@@ -67,7 +67,7 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> {
   protected UUID decodeUnchecked(byte[] b, int offset, int len) throws ValueFormatException {
     try {
       DataInputStream in = new DataInputStream(new ByteArrayInputStream(b, offset, len));
-      return new UUID(in.readLong() ^ 0x8000000000000000l, in.readLong() ^ 0x8000000000000000l);
+      return new UUID(in.readLong() ^ 0x8000000000000000L, in.readLong() ^ 0x8000000000000000L);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

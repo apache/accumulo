@@ -57,14 +57,14 @@ public class AuthenticationTokenIdentifierTest {
     String principal = "user";
     AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
     assertEquals(token, token);
-    AuthenticationTokenIdentifier newToken = new AuthenticationTokenIdentifier(principal, 1, 5l,
-        10l, "uuid");
+    AuthenticationTokenIdentifier newToken = new AuthenticationTokenIdentifier(principal, 1, 5L,
+        10L, "uuid");
     assertNotEquals(token, newToken);
     assertNotEquals(token.hashCode(), newToken.hashCode());
     AuthenticationTokenIdentifier dblNewToken = new AuthenticationTokenIdentifier(principal);
     dblNewToken.setKeyId(1);
-    dblNewToken.setIssueDate(5l);
-    dblNewToken.setExpirationDate(10l);
+    dblNewToken.setIssueDate(5L);
+    dblNewToken.setExpirationDate(10L);
     dblNewToken.setInstanceId("uuid");
   }
 

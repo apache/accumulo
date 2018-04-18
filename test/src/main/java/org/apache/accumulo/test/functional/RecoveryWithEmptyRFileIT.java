@@ -101,12 +101,12 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
     log.debug("make sure we can still scan");
     try (Scanner scan = connector.createScanner(tableName, Authorizations.EMPTY)) {
       scan.setRange(new Range());
-      long cells = 0l;
+      long cells = 0L;
       for (Entry<Key,Value> entry : scan) {
         if (entry != null)
           cells++;
       }
-      assertEquals(0l, cells);
+      assertEquals(0L, cells);
     }
   }
 

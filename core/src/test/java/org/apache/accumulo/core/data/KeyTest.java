@@ -53,8 +53,8 @@ public class KeyTest {
     byte cq[] = "cq".getBytes();
     byte cv[] = "cv".getBytes();
 
-    Key k1 = new Key(row, cf, cq, cv, 5l, false, false);
-    Key k2 = new Key(row, cf, cq, cv, 5l, false, true);
+    Key k1 = new Key(row, cf, cq, cv, 5L, false, false);
+    Key k2 = new Key(row, cf, cq, cv, 5L, false, true);
 
     assertSame(row, k1.getRowBytes());
     assertSame(cf, k1.getColFamily());

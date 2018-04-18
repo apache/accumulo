@@ -122,9 +122,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -187,9 +187,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -249,13 +249,13 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4L, encoder);
 
     // keys that do not aggregate
-    newKeyValue(tm1, 2, 2, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 2, 2, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 2, 2, 1, 2, false, 3L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -315,13 +315,13 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4L, encoder);
 
     // keys that do not aggregate
-    newKeyValue(tm1, 2, 2, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 2, 2, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 2, 2, 1, 2, false, 3L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -383,16 +383,16 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
-    newKeyValue(tm1, 0, 0, 1, 1, false, 7l, encoder);
+    newKeyValue(tm1, 0, 0, 1, 1, false, 7L, encoder);
 
     // keys that aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4L, encoder);
 
     // keys that do not aggregate
-    newKeyValue(tm1, 2, 2, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 2, 2, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 2, 2, 1, 2, false, 3L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -486,13 +486,13 @@ public class CombinerTest {
     // the exact same keys w/ different values
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
-    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2L, encoder);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>();
-    newKeyValue(tm2, 1, 1, 1, 1, false, 3l, encoder);
+    newKeyValue(tm2, 1, 1, 1, 1, false, 3L, encoder);
 
     TreeMap<Key,Value> tm3 = new TreeMap<>();
-    newKeyValue(tm3, 1, 1, 1, 1, false, 4l, encoder);
+    newKeyValue(tm3, 1, 1, 1, 1, false, 4L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -520,9 +520,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -548,9 +548,9 @@ public class CombinerTest {
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
-    newKeyValue(tm1, 1, 1, 1, 2, true, 0l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 4, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, true, 0L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 4, false, 3L, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -575,7 +575,7 @@ public class CombinerTest {
     assertFalse(ai.hasTop());
 
     tm1 = new TreeMap<>();
-    newKeyValue(tm1, 1, 1, 1, 2, true, 0l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, true, 0L, encoder);
     ai = new SummingCombiner();
     ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
 
@@ -644,9 +644,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, 4l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    newKeyValue(tm1, 1, 1, 1, 3, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 4L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3L, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 2L, encoder);
 
     Combiner ai = new MaxCombiner();
 
@@ -701,8 +701,8 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    newKeyValue(tm1, 1, 1, 1, 1, false, nal(1l, 2l), encoder);
-    newKeyValue(tm1, 1, 1, 1, 2, false, nal(3l, 4l, 5l), encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, nal(1L, 2L), encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, nal(3L, 4L, 5L), encoder);
     newKeyValue(tm1, 1, 1, 1, 3, false, nal(), encoder);
 
     Combiner ai = new SummingArrayCombiner();
@@ -716,7 +716,7 @@ public class CombinerTest {
 
     assertTrue(ai.hasTop());
     assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
-    assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
+    assertBytesEqual(encoder.encode(nal(4L, 6L, 5L)), ai.getTopValue().get());
 
     ai.next();
 
@@ -731,7 +731,7 @@ public class CombinerTest {
 
     assertTrue(ai.hasTop());
     assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
-    assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
+    assertBytesEqual(encoder.encode(nal(4L, 6L, 5L)), ai.getTopValue().get());
 
     ai.next();
 
@@ -746,7 +746,7 @@ public class CombinerTest {
 
     assertTrue(ai.hasTop());
     assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
-    assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
+    assertBytesEqual(encoder.encode(nal(4L, 6L, 5L)), ai.getTopValue().get());
 
     ai.next();
 
@@ -799,26 +799,26 @@ public class CombinerTest {
   public void testEncoders() {
     TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, Long.MAX_VALUE);
     TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, Long.MIN_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, -42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 42L);
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, -42L);
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 0L);
     TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, Long.MAX_VALUE);
     TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, Long.MIN_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, -42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 42L);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, -42L);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 0L);
     TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, Long.MAX_VALUE);
     TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, Long.MIN_VALUE);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, -42l);
-    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 42L);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, -42L);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 0L);
 
     TypedValueCombiner.testEncoder(SummingArrayCombiner.FIXED_LONG_ARRAY_ENCODER,
-        Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+        Arrays.asList(0L, -1L, 10L, Long.MAX_VALUE, Long.MIN_VALUE));
     TypedValueCombiner.testEncoder(SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER,
-        Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+        Arrays.asList(0L, -1L, 10L, Long.MAX_VALUE, Long.MIN_VALUE));
     TypedValueCombiner.testEncoder(SummingArrayCombiner.STRING_ARRAY_ENCODER,
-        Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+        Arrays.asList(0L, -1L, 10L, Long.MAX_VALUE, Long.MIN_VALUE));
   }
 
   @Test
@@ -914,15 +914,15 @@ public class CombinerTest {
     IteratorEnvironment fullMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, true);
 
     // keys that aggregate
-    newKeyValue(input, 1, 1, 1, 1, false, 4l, encoder);
-    newKeyValue(input, 1, 1, 1, 2, true, 0l, encoder);
-    newKeyValue(input, 1, 1, 1, 3, false, 2l, encoder);
-    newKeyValue(input, 1, 1, 1, 4, false, 9l, encoder);
+    newKeyValue(input, 1, 1, 1, 1, false, 4L, encoder);
+    newKeyValue(input, 1, 1, 1, 2, true, 0L, encoder);
+    newKeyValue(input, 1, 1, 1, 3, false, 2L, encoder);
+    newKeyValue(input, 1, 1, 1, 4, false, 9L, encoder);
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    newKeyValue(expected, 1, 1, 1, 1, false, 4l, encoder);
-    newKeyValue(expected, 1, 1, 1, 2, true, 0l, encoder);
-    newKeyValue(expected, 1, 1, 1, 4, false, 11l, encoder);
+    newKeyValue(expected, 1, 1, 1, 1, false, 4L, encoder);
+    newKeyValue(expected, 1, 1, 1, 2, true, 0L, encoder);
+    newKeyValue(expected, 1, 1, 1, 4, false, 11L, encoder);
 
     runDeleteHandlingTest(input, input, true, paritalMajcIe);
     runDeleteHandlingTest(input, expected, true, fullMajcIe);
@@ -951,7 +951,7 @@ public class CombinerTest {
 
     // keys that aggregate
     tm1.put(newKey(1, 1, 1, 1, false), new Value("badValue"));
-    newKeyValue(tm1, 1, 1, 1, 2, false, nal(3l, 4l, 5l), encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, nal(3L, 4L, 5L), encoder);
     newKeyValue(tm1, 1, 1, 1, 3, false, nal(), encoder);
 
     SummingArrayCombiner summingArrayCombiner = new SummingArrayCombiner();
@@ -969,7 +969,7 @@ public class CombinerTest {
 
     assertTrue(summingArrayCombiner.hasTop());
     assertEquals(newKey(1, 1, 1, 3), summingArrayCombiner.getTopKey());
-    assertBytesEqual(encoder.encode(nal(3l, 4l, 5l)), summingArrayCombiner.getTopValue().get());
+    assertBytesEqual(encoder.encode(nal(3L, 4L, 5L)), summingArrayCombiner.getTopValue().get());
 
     summingArrayCombiner.next();
 

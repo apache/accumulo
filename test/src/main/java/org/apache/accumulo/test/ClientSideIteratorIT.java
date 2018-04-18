@@ -50,13 +50,13 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
   @Before
   public void setupData() {
     resultSet1 = new ArrayList<>();
-    resultSet1.add(new Key("row1", "colf", "colq", 4l));
-    resultSet1.add(new Key("row1", "colf", "colq", 3l));
+    resultSet1.add(new Key("row1", "colf", "colq", 4L));
+    resultSet1.add(new Key("row1", "colf", "colq", 3L));
     resultSet2 = new ArrayList<>();
-    resultSet2.add(new Key("row1", "colf", "colq", 4l));
-    resultSet2.add(new Key("row1", "colf", "colq", 3l));
-    resultSet2.add(new Key("row1", "colf", "colq", 2l));
-    resultSet2.add(new Key("row1", "colf", "colq", 1l));
+    resultSet2.add(new Key("row1", "colf", "colq", 4L));
+    resultSet2.add(new Key("row1", "colf", "colq", 3L));
+    resultSet2.add(new Key("row1", "colf", "colq", 2L));
+    resultSet2.add(new Key("row1", "colf", "colq", 1L));
     resultSet3 = new ArrayList<>();
     resultSet3.add(new Key("part1", "", "doc2"));
     resultSet3.add(new Key("part2", "", "DOC2"));
@@ -117,13 +117,13 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     conn.tableOperations().removeProperty(tableName, "table.iterator.minc.vers");
     final BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row1");
-    m.put("colf", "colq", 1l, "value");
-    m.put("colf", "colq", 2l, "value");
+    m.put("colf", "colq", 1L, "value");
+    m.put("colf", "colq", 2L, "value");
     bw.addMutation(m);
     bw.flush();
     m = new Mutation("row1");
-    m.put("colf", "colq", 3l, "value");
-    m.put("colf", "colq", 4l, "value");
+    m.put("colf", "colq", 3L, "value");
+    m.put("colf", "colq", 4L, "value");
     bw.addMutation(m);
     bw.flush();
 

@@ -323,7 +323,7 @@ public abstract class TestCfCqSlice {
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
-    Range startsAtMinCf = new Range(new Key(LONG_LEX.encode(0l), LONG_LEX.encode(sliceMinCf),
+    Range startsAtMinCf = new Range(new Key(LONG_LEX.encode(0L), LONG_LEX.encode(sliceMinCf),
         LONG_LEX.encode(sliceMinCq), new byte[] {}, Long.MAX_VALUE), null);
     loadKvs(foundKvs, opts, startsAtMinCf);
     for (int i = 0; i < LR_DIM; i++) {

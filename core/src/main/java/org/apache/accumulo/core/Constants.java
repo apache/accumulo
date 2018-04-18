@@ -104,7 +104,7 @@ public class Constants {
 
   // Scanners will default to fetching 3 batches of Key/Value pairs before asynchronously
   // fetching the next batch.
-  public static final long SCANNER_DEFAULT_READAHEAD_THRESHOLD = 3l;
+  public static final long SCANNER_DEFAULT_READAHEAD_THRESHOLD = 3L;
 
   // Security configuration
   public static final String PW_HASH_ALGORITHM = "SHA-256";

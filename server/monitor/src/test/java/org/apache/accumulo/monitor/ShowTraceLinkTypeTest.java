@@ -25,7 +25,7 @@ import org.junit.Test;
 
 public class ShowTraceLinkTypeTest {
   private static RemoteSpan rs(long start, long stop, String description) {
-    return new RemoteSpan("sender", "svc", 0l, 0l, 0l, start, stop, description,
+    return new RemoteSpan("sender", "svc", 0L, 0L, 0L, start, stop, description,
         Collections.emptyMap(), Collections.emptyList());
   }
 
@@ -34,28 +34,28 @@ public class ShowTraceLinkTypeTest {
     ArrayList<RemoteSpan> spans = new ArrayList<>(10), expectedOrdering = new ArrayList<>(10);
 
     // "Random" ordering
-    spans.add(rs(55l, 75l, "desc5"));
-    spans.add(rs(25l, 30l, "desc2"));
-    spans.add(rs(85l, 90l, "desc8"));
-    spans.add(rs(45l, 60l, "desc4"));
-    spans.add(rs(35l, 55l, "desc3"));
-    spans.add(rs(95l, 110l, "desc9"));
-    spans.add(rs(65l, 80l, "desc6"));
-    spans.add(rs(100l, 120l, "desc10"));
-    spans.add(rs(15l, 25l, "desc1"));
-    spans.add(rs(75l, 100l, "desc7"));
+    spans.add(rs(55L, 75L, "desc5"));
+    spans.add(rs(25L, 30L, "desc2"));
+    spans.add(rs(85L, 90L, "desc8"));
+    spans.add(rs(45L, 60L, "desc4"));
+    spans.add(rs(35L, 55L, "desc3"));
+    spans.add(rs(95L, 110L, "desc9"));
+    spans.add(rs(65L, 80L, "desc6"));
+    spans.add(rs(100L, 120L, "desc10"));
+    spans.add(rs(15L, 25L, "desc1"));
+    spans.add(rs(75L, 100L, "desc7"));
 
     // We expect them to be sorted by 'start'
-    expectedOrdering.add(rs(15l, 25l, "desc1"));
-    expectedOrdering.add(rs(25l, 30l, "desc2"));
-    expectedOrdering.add(rs(35l, 55l, "desc3"));
-    expectedOrdering.add(rs(45l, 60l, "desc4"));
-    expectedOrdering.add(rs(55l, 75l, "desc5"));
-    expectedOrdering.add(rs(65l, 80l, "desc6"));
-    expectedOrdering.add(rs(75l, 100l, "desc7"));
-    expectedOrdering.add(rs(85l, 90l, "desc8"));
-    expectedOrdering.add(rs(95l, 110l, "desc9"));
-    expectedOrdering.add(rs(100l, 120l, "desc10"));
+    expectedOrdering.add(rs(15L, 25L, "desc1"));
+    expectedOrdering.add(rs(25L, 30L, "desc2"));
+    expectedOrdering.add(rs(35L, 55L, "desc3"));
+    expectedOrdering.add(rs(45L, 60L, "desc4"));
+    expectedOrdering.add(rs(55L, 75L, "desc5"));
+    expectedOrdering.add(rs(65L, 80L, "desc6"));
+    expectedOrdering.add(rs(75L, 100L, "desc7"));
+    expectedOrdering.add(rs(85L, 90L, "desc8"));
+    expectedOrdering.add(rs(95L, 110L, "desc9"));
+    expectedOrdering.add(rs(100L, 120L, "desc10"));
 
     Collections.sort(spans);
 

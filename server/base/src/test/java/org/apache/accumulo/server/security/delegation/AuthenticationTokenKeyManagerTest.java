@@ -63,13 +63,13 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testIntervalNotPassed() {
-    long updateInterval = 5 * 1000l;
-    long tokenLifetime = 100 * 1000l;
+    long updateInterval = 5 * 1000L;
+    long tokenLifetime = 100 * 1000L;
     AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
         zooDistributor, updateInterval, tokenLifetime);
 
     // Have never updated the key
-    assertEquals(0l, keyManager.getLastKeyUpdate());
+    assertEquals(0L, keyManager.getLastKeyUpdate());
 
     // Always check for expired keys to remove
     expect(secretManager.removeExpiredKeys(zooDistributor)).andReturn(0);
@@ -84,9 +84,9 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testIntervalHasPassed() throws Exception {
-    long updateInterval = 0 * 1000l;
-    long tokenLifetime = 100 * 1000l;
-    long runTime = 10l;
+    long updateInterval = 0 * 1000L;
+    long tokenLifetime = 100 * 1000L;
+    long runTime = 10L;
     SecretKey secretKey = keyGen.generateKey();
 
     AuthenticationKey authKey = new AuthenticationKey(1, runTime, runTime + tokenLifetime,
@@ -95,7 +95,7 @@ public class AuthenticationTokenKeyManagerTest {
         zooDistributor, updateInterval, tokenLifetime);
 
     // Have never updated the key
-    assertEquals(0l, keyManager.getLastKeyUpdate());
+    assertEquals(0L, keyManager.getLastKeyUpdate());
 
     // Always check for expired keys to remove
     expect(secretManager.removeExpiredKeys(zooDistributor)).andReturn(0);
@@ -181,8 +181,8 @@ public class AuthenticationTokenKeyManagerTest {
 
   @Test
   public void testExistingKeysAreAddedAtStartup() throws Exception {
-    long updateInterval = 0 * 1000l;
-    long tokenLifetime = 100 * 1000l;
+    long updateInterval = 0 * 1000L;
+    long tokenLifetime = 100 * 1000L;
     SecretKey secretKey1 = keyGen.generateKey(), secretKey2 = keyGen.generateKey();
 
     AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1),
@@ -191,7 +191,7 @@ public class AuthenticationTokenKeyManagerTest {
         zooDistributor, updateInterval, tokenLifetime);
 
     // Have never updated the key
-    assertEquals(0l, keyManager.getLastKeyUpdate());
+    assertEquals(0L, keyManager.getLastKeyUpdate());
 
     // Always check for expired keys to remove
     expect(zooDistributor.getCurrentKeys()).andReturn(Arrays.asList(authKey1, authKey2));

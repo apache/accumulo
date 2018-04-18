@@ -74,7 +74,7 @@ public class MetadataBatchScanTest {
     Random r = new Random(42);
 
     while (splits.size() < 99999) {
-      splits.add((r.nextLong() & 0x7fffffffffffffffl) % 1000000000000l);
+      splits.add((r.nextLong() & 0x7fffffffffffffffL) % 1000000000000L);
     }
 
     Table.ID tid = Table.ID.of("8");

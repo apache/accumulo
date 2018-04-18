@@ -22,10 +22,10 @@ package org.apache.accumulo.minicluster;
 
 public enum MemoryUnit {
 
-  BYTE(1l, ""),
-  KILOBYTE(1024l, "K"),
-  MEGABYTE(1024 * 1024l, "M"),
-  GIGABYTE(1024 * 1024 * 1024l, "G");
+  BYTE(1L, ""),
+  KILOBYTE(1024L, "K"),
+  MEGABYTE(1024 * 1024L, "M"),
+  GIGABYTE(1024 * 1024 * 1024L, "G");
 
   private final long multiplier;
   private final String suffix;

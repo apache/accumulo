@@ -478,7 +478,7 @@ public class NativeMapIT {
     for (int i = 0; i < 100000; i++) {
 
       Key k = new Key(getRandomBytes(r, 97), getRandomBytes(r, 13), getRandomBytes(r, 31),
-          getRandomBytes(r, 11), (r.nextLong() & 0x7fffffffffffffffl), false, false);
+          getRandomBytes(r, 11), (r.nextLong() & 0x7fffffffffffffffL), false, false);
       Value v = new Value(getRandomBytes(r, 511));
 
       testData.add(new Pair<>(k, v));

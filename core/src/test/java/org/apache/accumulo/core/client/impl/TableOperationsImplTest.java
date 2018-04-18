@@ -76,7 +76,7 @@ public class TableOperationsImplTest {
     EasyMock.expect(scanner.getTimeout(TimeUnit.MILLISECONDS)).andReturn(Long.MAX_VALUE);
     EasyMock.expect(scanner.getBatchTimeout(TimeUnit.MILLISECONDS)).andReturn(Long.MAX_VALUE);
     EasyMock.expect(scanner.getBatchSize()).andReturn(1000);
-    EasyMock.expect(scanner.getReadaheadThreshold()).andReturn(100l);
+    EasyMock.expect(scanner.getReadaheadThreshold()).andReturn(100L);
 
     EasyMock.replay(instance, credentials, connector, scanner);
 

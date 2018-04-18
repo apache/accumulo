@@ -29,15 +29,15 @@ public class ConfigurationTypeHelperTest {
   public void testGetMemoryInBytes() throws Exception {
     Arrays.<Function<String,Long>> asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
         ConfigurationTypeHelper::getMemoryAsBytes).stream().forEach(memFunc -> {
-          assertEquals(42l, memFunc.apply("42").longValue());
-          assertEquals(42l, memFunc.apply("42b").longValue());
-          assertEquals(42l, memFunc.apply("42B").longValue());
-          assertEquals(42l * 1024l, memFunc.apply("42K").longValue());
-          assertEquals(42l * 1024l, memFunc.apply("42k").longValue());
-          assertEquals(42l * 1024l * 1024l, memFunc.apply("42M").longValue());
-          assertEquals(42l * 1024l * 1024l, memFunc.apply("42m").longValue());
-          assertEquals(42l * 1024l * 1024l * 1024l, memFunc.apply("42G").longValue());
-          assertEquals(42l * 1024l * 1024l * 1024l, memFunc.apply("42g").longValue());
+          assertEquals(42L, memFunc.apply("42").longValue());
+          assertEquals(42L, memFunc.apply("42b").longValue());
+          assertEquals(42L, memFunc.apply("42B").longValue());
+          assertEquals(42L * 1024L, memFunc.apply("42K").longValue());
+          assertEquals(42L * 1024L, memFunc.apply("42k").longValue());
+          assertEquals(42L * 1024L * 1024L, memFunc.apply("42M").longValue());
+          assertEquals(42L * 1024L * 1024L, memFunc.apply("42m").longValue());
+          assertEquals(42L * 1024L * 1024L * 1024L, memFunc.apply("42G").longValue());
+          assertEquals(42L * 1024L * 1024L * 1024L, memFunc.apply("42g").longValue());
         });
     assertEquals(Runtime.getRuntime().maxMemory() / 10,
         ConfigurationTypeHelper.getMemoryAsBytes("10%"));

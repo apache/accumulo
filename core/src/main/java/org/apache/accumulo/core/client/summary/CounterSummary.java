@@ -76,14 +76,14 @@ public class CounterSummary {
    * @return statistic for {@link CountingSummarizer#SEEN_STAT}
    */
   public long getSeen() {
-    return stats.getOrDefault(CountingSummarizer.SEEN_STAT, 0l);
+    return stats.getOrDefault(CountingSummarizer.SEEN_STAT, 0L);
   }
 
   /**
    * @return statistic for {@link CountingSummarizer#EMITTED_STAT}
    */
   public long getEmitted() {
-    return stats.getOrDefault(CountingSummarizer.EMITTED_STAT, 0l);
+    return stats.getOrDefault(CountingSummarizer.EMITTED_STAT, 0L);
   }
 
   /**
@@ -97,21 +97,21 @@ public class CounterSummary {
    * @return statistic for {@link CountingSummarizer#TOO_LONG_STAT}
    */
   public long getTooLong() {
-    return stats.getOrDefault(CountingSummarizer.TOO_LONG_STAT, 0l);
+    return stats.getOrDefault(CountingSummarizer.TOO_LONG_STAT, 0L);
   }
 
   /**
    * @return statistic for {@link CountingSummarizer#TOO_MANY_STAT}
    */
   public long getTooMany() {
-    return stats.getOrDefault(CountingSummarizer.TOO_MANY_STAT, 0l);
+    return stats.getOrDefault(CountingSummarizer.TOO_MANY_STAT, 0L);
   }
 
   /**
    * @return statistic for {@link CountingSummarizer#DELETES_IGNORED_STAT}
    */
   public long getDeletesIgnored() {
-    return stats.getOrDefault(CountingSummarizer.DELETES_IGNORED_STAT, 0l);
+    return stats.getOrDefault(CountingSummarizer.DELETES_IGNORED_STAT, 0L);
   }
 
   /**

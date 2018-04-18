@@ -64,13 +64,13 @@ public class ULongLexicoder extends AbstractLexicoder<Long> {
       throw new IllegalArgumentException("Unexpected length " + (0xff & data[offset]));
 
     for (int i = (offset + len) - 1; i >= offset + 1; i--) {
-      l += (data[i] & 0xffl) << shift;
+      l += (data[i] & 0xffL) << shift;
       shift += 8;
     }
 
     // fill in 0xff prefix
     if (data[offset] > 8)
-      l |= -1l << ((16 - data[offset]) << 3);
+      l |= -1L << ((16 - data[offset]) << 3);
 
     return l;
   }

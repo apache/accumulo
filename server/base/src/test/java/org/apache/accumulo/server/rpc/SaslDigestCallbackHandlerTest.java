@@ -78,8 +78,8 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testIdentifierSerialization() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 100l,
-        1000l, "instanceid");
+    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 100L,
+        1000L, "instanceid");
     byte[] serialized = identifier.getBytes();
     String name = handler.encodeIdentifier(serialized);
 
@@ -96,12 +96,12 @@ public class SaslDigestCallbackHandlerTest {
   public void testTokenSerialization() throws Exception {
     Instance instance = createMock(Instance.class);
     AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        1000l);
+        1000L);
     expect(instance.getInstanceID()).andReturn("instanceid");
 
     replay(instance);
 
-    secretManager.addKey(new AuthenticationKey(1, 0l, 100l, keyGen.generateKey()));
+    secretManager.addKey(new AuthenticationKey(1, 0L, 100L, keyGen.generateKey()));
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
         .generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
@@ -118,12 +118,12 @@ public class SaslDigestCallbackHandlerTest {
   public void testTokenAndIdentifierSerialization() throws Exception {
     Instance instance = createMock(Instance.class);
     AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        1000l);
+        1000L);
     expect(instance.getInstanceID()).andReturn("instanceid");
 
     replay(instance);
 
-    secretManager.addKey(new AuthenticationKey(1, 0l, 1000 * 100l, keyGen.generateKey()));
+    secretManager.addKey(new AuthenticationKey(1, 0L, 1000 * 100L, keyGen.generateKey()));
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
         .generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();

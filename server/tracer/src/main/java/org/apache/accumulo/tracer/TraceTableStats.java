@@ -47,14 +47,14 @@ public class TraceTableStats {
 
   static class SpanTypeCount {
     String type;
-    long nonzeroCount = 0l;
-    long zeroCount = 0l;
+    long nonzeroCount = 0L;
+    long zeroCount = 0L;
     ArrayList<Long> log10SpanLength = new ArrayList<>();
     Set<Long> traceIds = new HashSet<>();
 
     public SpanTypeCount() {
       for (int i = 0; i < 7; i++)
-        log10SpanLength.add(0l);
+        log10SpanLength.add(0L);
     }
 
     @Override

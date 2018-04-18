@@ -55,7 +55,7 @@ public class TabletTest {
     Tablet tablet = new Tablet(time, "", 0, new Path("/foo"), dfm, tserver, tserverResourceManager,
         tabletMemory, tableConf, extent, obs);
 
-    long hdfsBlockSize = 10000l, blockSize = 5000l, indexBlockSize = 500l;
+    long hdfsBlockSize = 10000L, blockSize = 5000L, indexBlockSize = 500L;
     int replication = 5;
     String compressType = "snappy";
 

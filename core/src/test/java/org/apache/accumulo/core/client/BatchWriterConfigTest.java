@@ -37,8 +37,8 @@ public class BatchWriterConfigTest {
 
   @Test
   public void testReasonableDefaults() {
-    long expectedMaxMemory = 50 * 1024 * 1024l;
-    long expectedMaxLatency = 120000l;
+    long expectedMaxMemory = 50 * 1024 * 1024L;
+    long expectedMaxLatency = 120000L;
     long expectedTimeout = Long.MAX_VALUE;
     int expectedMaxWriteThreads = 3;
     Durability expectedDurability = Durability.DEFAULT;
@@ -54,15 +54,15 @@ public class BatchWriterConfigTest {
   @Test
   public void testOverridingDefaults() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxMemory(1123581321l);
+    bwConfig.setMaxMemory(1123581321L);
     bwConfig.setMaxLatency(22, TimeUnit.HOURS);
     bwConfig.setTimeout(33, TimeUnit.DAYS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setDurability(Durability.NONE);
 
-    assertEquals(1123581321l, bwConfig.getMaxMemory());
-    assertEquals(22 * 60 * 60 * 1000l, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertEquals(33 * 24 * 60 * 60 * 1000l, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    assertEquals(1123581321L, bwConfig.getMaxMemory());
+    assertEquals(22 * 60 * 60 * 1000L, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(33 * 24 * 60 * 60 * 1000L, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(42, bwConfig.getMaxWriteThreads());
     assertEquals(Durability.NONE, bwConfig.getDurability());
   }
@@ -134,18 +134,18 @@ public class BatchWriterConfigTest {
   public void testSerialize() throws IOException {
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
-    assertNotEquals(7654321l, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertNotEquals(9898989l, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
+    assertNotEquals(7654321L, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertNotEquals(9898989L, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
     assertNotEquals(42, bwDefaults.getMaxWriteThreads());
-    assertNotEquals(1123581321l, bwDefaults.getMaxMemory());
+    assertNotEquals(1123581321L, bwDefaults.getMaxMemory());
     assertNotEquals(Durability.FLUSH, bwDefaults.getDurability());
 
     // test setting all fields
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxLatency(7654321l, TimeUnit.MILLISECONDS);
-    bwConfig.setTimeout(9898989l, TimeUnit.MILLISECONDS);
+    bwConfig.setMaxLatency(7654321L, TimeUnit.MILLISECONDS);
+    bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
-    bwConfig.setMaxMemory(1123581321l);
+    bwConfig.setMaxMemory(1123581321L);
     bwConfig.setDurability(Durability.FLUSH);
     byte[] bytes = createBytes(bwConfig);
     checkBytes(bwConfig, bytes);

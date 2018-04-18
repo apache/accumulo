@@ -70,7 +70,7 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1l;
+    key.seq = 1L;
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
@@ -178,7 +178,7 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1l;
+    key.seq = 1L;
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
@@ -384,7 +384,7 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1l;
+    key.seq = 1L;
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
@@ -432,7 +432,7 @@ public class AccumuloReplicaSystemTest {
 
     // Only consume the first mutation, not the second
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", Table.ID.of("1")), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+        new Path("/accumulo/wals/tserver+port/wal"), status, 1L, tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(2, repl.entriesConsumed);
@@ -444,7 +444,7 @@ public class AccumuloReplicaSystemTest {
 
     // Consume the rest of the mutations
     repl = ars.getWalEdits(new ReplicationTarget("peer", "1", Table.ID.of("1")), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+        new Path("/accumulo/wals/tserver+port/wal"), status, 1L, tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(1, repl.entriesConsumed);
@@ -480,7 +480,7 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    Assert.assertEquals(new ReplicationStats(0l, 0l, 0l), stats);
+    Assert.assertEquals(new ReplicationStats(0L, 0L, 0L), stats);
   }
 
   @Test
@@ -510,7 +510,7 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    Assert.assertEquals(new ReplicationStats(0l, 0l, 5l), stats);
+    Assert.assertEquals(new ReplicationStats(0L, 0L, 5L), stats);
   }
 
   @Test

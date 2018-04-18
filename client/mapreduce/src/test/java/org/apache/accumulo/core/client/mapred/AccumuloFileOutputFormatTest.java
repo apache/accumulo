@@ -41,9 +41,9 @@ public class AccumuloFileOutputFormatTest {
   public void validateConfiguration() throws IOException, InterruptedException {
 
     int a = 7;
-    long b = 300l;
-    long c = 50l;
-    long d = 10l;
+    long b = 300L;
+    long c = 50L;
+    long d = 10L;
     String e = "snappy";
     SamplerConfiguration samplerConfig = new SamplerConfiguration(RowSampler.class.getName());
     samplerConfig.addOption("hasher", "murmur3_32");
@@ -67,9 +67,9 @@ public class AccumuloFileOutputFormatTest {
         .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
-    assertEquals(300l, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));
-    assertEquals(50l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-    assertEquals(10l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
+    assertEquals(300L, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));
+    assertEquals(50L, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    assertEquals(10L, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
     assertEquals(new SamplerConfigurationImpl(samplerConfig),
         SamplerConfigurationImpl.newSamplerConfig(acuconf));
@@ -81,9 +81,9 @@ public class AccumuloFileOutputFormatTest {
     assertTrue(summarizerConfigs.contains(sc2));
 
     a = 17;
-    b = 1300l;
-    c = 150l;
-    d = 110l;
+    b = 1300L;
+    c = 150L;
+    d = 110L;
     e = "lzo";
     samplerConfig = new SamplerConfiguration(RowSampler.class.getName());
     samplerConfig.addOption("hasher", "md5");
@@ -100,9 +100,9 @@ public class AccumuloFileOutputFormatTest {
     acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
-    assertEquals(1300l, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));
-    assertEquals(150l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-    assertEquals(110l, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
+    assertEquals(1300L, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));
+    assertEquals(150L, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    assertEquals(110L, acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
     assertEquals(new SamplerConfigurationImpl(samplerConfig),
         SamplerConfigurationImpl.newSamplerConfig(acuconf));

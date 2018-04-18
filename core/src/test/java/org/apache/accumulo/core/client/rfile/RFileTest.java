@@ -552,12 +552,12 @@ public class RFileTest {
       CounterSummary counterSummary = new CounterSummary(summary);
       if (className.equals(FamilySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("0000", 200l, "0001", 200l, "0002", 200l,
-            "0003", 200l);
+        Map<String,Long> expected = ImmutableMap.of("0000", 200L, "0001", 200L, "0002", 200L,
+            "0003", 200L);
         Assert.assertEquals(expected, counters);
       } else if (className.equals(VisibilitySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("A&B", 400l, "A&B&C", 400l);
+        Map<String,Long> expected = ImmutableMap.of("A&B", 400L, "A&B&C", 400L);
         Assert.assertEquals(expected, counters);
       } else {
         Assert.fail("Unexpected classname " + className);
@@ -587,12 +587,12 @@ public class RFileTest {
       CounterSummary counterSummary = new CounterSummary(summary);
       if (className.equals(FamilySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("0000", 400l, "0001", 400l, "0002", 400l,
-            "0003", 400l);
+        Map<String,Long> expected = ImmutableMap.of("0000", 400L, "0001", 400L, "0002", 400L,
+            "0003", 400L);
         Assert.assertEquals(expected, counters);
       } else if (className.equals(VisibilitySummarizer.class.getName())) {
         Map<String,Long> counters = counterSummary.getCounters();
-        Map<String,Long> expected = ImmutableMap.of("A&B", 800l, "A&B&C", 800l);
+        Map<String,Long> expected = ImmutableMap.of("A&B", 800L, "A&B&C", 800L);
         Assert.assertEquals(expected, counters);
       } else {
         Assert.fail("Unexpected classname " + className);
@@ -602,56 +602,56 @@ public class RFileTest {
     // verify reading a subset of summaries works
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 0);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 0);
 
     // the following test check boundry conditions for start row and end row
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(99)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400l, "A&B&C", 400l), 0);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(98)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(0)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow("#").read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 0);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(100)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400l, "A&B&C", 400l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(99)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400l, "A&B&C", 400l), 0);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(100)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(199)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 0);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 0);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(50)).endRow(rowStr(150)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 2);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 2);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(120)).endRow(rowStr(150)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400l, "A&B&C", 400l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(50)).endRow(rowStr(199)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow("#").endRow(rowStr(150)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 800l, "A&B&C", 800l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 1);
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(199)).read();
@@ -666,7 +666,7 @@ public class RFileTest {
 
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).endRow(rowStr(0)).read();
-    checkSummaries(summaries, ImmutableMap.of("A&B", 400l, "A&B&C", 400l), 1);
+    checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 1);
   }
 
   private void checkSummaries(Collection<Summary> summaries, Map<String,Long> expected, int extra) {

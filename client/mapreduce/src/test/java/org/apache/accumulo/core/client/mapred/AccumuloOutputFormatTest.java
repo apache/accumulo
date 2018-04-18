@@ -35,16 +35,16 @@ public class AccumuloOutputFormatTest {
 
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
-    assertNotEquals(7654321l, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertNotEquals(9898989l, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
+    assertNotEquals(7654321L, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertNotEquals(9898989L, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
     assertNotEquals(42, bwDefaults.getMaxWriteThreads());
-    assertNotEquals(1123581321l, bwDefaults.getMaxMemory());
+    assertNotEquals(1123581321L, bwDefaults.getMaxMemory());
 
     final BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxLatency(7654321l, TimeUnit.MILLISECONDS);
-    bwConfig.setTimeout(9898989l, TimeUnit.MILLISECONDS);
+    bwConfig.setMaxLatency(7654321L, TimeUnit.MILLISECONDS);
+    bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
-    bwConfig.setMaxMemory(1123581321l);
+    bwConfig.setMaxMemory(1123581321L);
     AccumuloOutputFormat.setBatchWriterOptions(job, bwConfig);
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
@@ -61,10 +61,10 @@ public class AccumuloOutputFormatTest {
         assertEquals(bwConfig.getMaxMemory(), bwOpts.getMaxMemory());
 
         // explicit check
-        assertEquals(7654321l, bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
-        assertEquals(9898989l, bwOpts.getTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(7654321L, bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
+        assertEquals(9898989L, bwOpts.getTimeout(TimeUnit.MILLISECONDS));
         assertEquals(42, bwOpts.getMaxWriteThreads());
-        assertEquals(1123581321l, bwOpts.getMaxMemory());
+        assertEquals(1123581321L, bwOpts.getMaxMemory());
 
       }
     };

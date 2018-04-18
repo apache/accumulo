@@ -48,12 +48,12 @@ public class AssignmentWatcherTest {
   public void testAssignmentWarning() {
     ActiveAssignmentRunnable task = EasyMock.createMock(ActiveAssignmentRunnable.class);
     RunnableStartedAt run = new RunnableStartedAt(task, System.currentTimeMillis());
-    EasyMock.expect(conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING)).andReturn(0l);
+    EasyMock.expect(conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING)).andReturn(0L);
 
     assignments.put(new KeyExtent(Table.ID.of("1"), null, null), run);
 
     EasyMock.expect(task.getException()).andReturn(new Exception("Assignment warning happened"));
-    EasyMock.expect(timer.schedule(watcher, 5000l)).andReturn(null);
+    EasyMock.expect(timer.schedule(watcher, 5000L)).andReturn(null);
 
     EasyMock.replay(timer, conf, task);
 

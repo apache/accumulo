@@ -71,9 +71,9 @@ public class CountingSummarizerTest {
         for (String qual : new String[] {"mad", "lad", "lab", "map"}) {
           collector.accept(new Key(row, fam, qual), val);
 
-          expected.merge("rp:" + row.substring(0, 2), 1l, Long::sum);
-          expected.merge("fp:" + fam.substring(0, 2), 1l, Long::sum);
-          expected.merge("qp:" + qual.substring(0, 2), 1l, Long::sum);
+          expected.merge("rp:" + row.substring(0, 2), 1L, Long::sum);
+          expected.merge("fp:" + fam.substring(0, 2), 1L, Long::sum);
+          expected.merge("qp:" + qual.substring(0, 2), 1L, Long::sum);
         }
       }
     }
@@ -113,16 +113,16 @@ public class CountingSummarizerTest {
     String p = COUNTER_STAT_PREFIX;
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put(p + "f1", 4l);
-    expected.put(p + "f2", 2l);
-    expected.put(p + "f3", 2l);
-    expected.put(p + "f4", 1l);
-    expected.put(p + "f5", 1l);
-    expected.put(TOO_LONG_STAT, 2l);
-    expected.put(TOO_MANY_STAT, 3l);
-    expected.put(SEEN_STAT, 16l);
-    expected.put(EMITTED_STAT, 15l);
-    expected.put(DELETES_IGNORED_STAT, 1l);
+    expected.put(p + "f1", 4L);
+    expected.put(p + "f2", 2L);
+    expected.put(p + "f3", 2L);
+    expected.put(p + "f4", 1L);
+    expected.put(p + "f5", 1L);
+    expected.put(TOO_LONG_STAT, 2L);
+    expected.put(TOO_MANY_STAT, 3L);
+    expected.put(SEEN_STAT, 16L);
+    expected.put(EMITTED_STAT, 15L);
+    expected.put(DELETES_IGNORED_STAT, 1L);
 
     Assert.assertEquals(expected, stats);
 
@@ -135,11 +135,11 @@ public class CountingSummarizerTest {
     Assert.assertEquals(1, csum.getDeletesIgnored());
 
     expected.clear();
-    expected.put("f1", 4l);
-    expected.put("f2", 2l);
-    expected.put("f3", 2l);
-    expected.put("f4", 1l);
-    expected.put("f5", 1l);
+    expected.put("f1", 4L);
+    expected.put("f2", 2L);
+    expected.put("f3", 2L);
+    expected.put("f4", 1L);
+    expected.put("f5", 1L);
     Assert.assertEquals(expected, csum.getCounters());
 
   }
@@ -153,66 +153,66 @@ public class CountingSummarizerTest {
     String p = COUNTER_STAT_PREFIX;
 
     HashMap<String,Long> sm1 = new HashMap<>();
-    sm1.put(p + "f001", 9l);
-    sm1.put(p + "f002", 4l);
-    sm1.put(p + "f003", 2l);
-    sm1.put(p + "f004", 1l);
-    sm1.put(p + "f005", 19l);
-    sm1.put(EMITTED_STAT, 15l);
-    sm1.put(SEEN_STAT, 5l);
-    sm1.put(DELETES_IGNORED_STAT, 1l);
+    sm1.put(p + "f001", 9L);
+    sm1.put(p + "f002", 4L);
+    sm1.put(p + "f003", 2L);
+    sm1.put(p + "f004", 1L);
+    sm1.put(p + "f005", 19L);
+    sm1.put(EMITTED_STAT, 15L);
+    sm1.put(SEEN_STAT, 5L);
+    sm1.put(DELETES_IGNORED_STAT, 1L);
 
     HashMap<String,Long> sm2 = new HashMap<>();
-    sm2.put(p + "f001", 1l);
-    sm2.put(p + "f002", 2l);
-    sm2.put(p + "f00a", 7l);
-    sm2.put(p + "f00b", 1l);
-    sm2.put(p + "f00c", 17l);
-    sm2.put(EMITTED_STAT, 18l);
-    sm2.put(SEEN_STAT, 6l);
-    sm2.put(DELETES_IGNORED_STAT, 2l);
+    sm2.put(p + "f001", 1L);
+    sm2.put(p + "f002", 2L);
+    sm2.put(p + "f00a", 7L);
+    sm2.put(p + "f00b", 1L);
+    sm2.put(p + "f00c", 17L);
+    sm2.put(EMITTED_STAT, 18L);
+    sm2.put(SEEN_STAT, 6L);
+    sm2.put(DELETES_IGNORED_STAT, 2L);
 
     countSum.combiner(sc).merge(sm1, sm2);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put(p + "f001", 10l);
-    expected.put(p + "f002", 6l);
-    expected.put(p + "f005", 19l);
-    expected.put(p + "f00a", 7l);
-    expected.put(p + "f00c", 17l);
-    expected.put(TOO_LONG_STAT, 0l);
-    expected.put(TOO_MANY_STAT, 4l);
-    expected.put(EMITTED_STAT, 18l + 15l);
-    expected.put(SEEN_STAT, 6l + 5l);
-    expected.put(DELETES_IGNORED_STAT, 3l);
+    expected.put(p + "f001", 10L);
+    expected.put(p + "f002", 6L);
+    expected.put(p + "f005", 19L);
+    expected.put(p + "f00a", 7L);
+    expected.put(p + "f00c", 17L);
+    expected.put(TOO_LONG_STAT, 0L);
+    expected.put(TOO_MANY_STAT, 4L);
+    expected.put(EMITTED_STAT, 18L + 15L);
+    expected.put(SEEN_STAT, 6L + 5L);
+    expected.put(DELETES_IGNORED_STAT, 3L);
 
     Assert.assertEquals(expected, sm1);
 
     sm2.clear();
-    sm2.put(p + "f001", 19l);
-    sm2.put(p + "f002", 2l);
-    sm2.put(p + "f003", 3l);
-    sm2.put(p + "f00b", 13l);
-    sm2.put(p + "f00c", 2l);
-    sm2.put(TOO_LONG_STAT, 1l);
-    sm2.put(TOO_MANY_STAT, 3l);
-    sm2.put(EMITTED_STAT, 21l);
-    sm2.put(SEEN_STAT, 7l);
-    sm2.put(DELETES_IGNORED_STAT, 5l);
+    sm2.put(p + "f001", 19L);
+    sm2.put(p + "f002", 2L);
+    sm2.put(p + "f003", 3L);
+    sm2.put(p + "f00b", 13L);
+    sm2.put(p + "f00c", 2L);
+    sm2.put(TOO_LONG_STAT, 1L);
+    sm2.put(TOO_MANY_STAT, 3L);
+    sm2.put(EMITTED_STAT, 21L);
+    sm2.put(SEEN_STAT, 7L);
+    sm2.put(DELETES_IGNORED_STAT, 5L);
 
     countSum.combiner(sc).merge(sm1, sm2);
 
     expected.clear();
-    expected.put(p + "f001", 29l);
-    expected.put(p + "f002", 8l);
-    expected.put(p + "f005", 19l);
-    expected.put(p + "f00b", 13l);
-    expected.put(p + "f00c", 19l);
-    expected.put(TOO_LONG_STAT, 1l);
-    expected.put(TOO_MANY_STAT, 17l);
-    expected.put(EMITTED_STAT, 21l + 18 + 15);
-    expected.put(SEEN_STAT, 7l + 6 + 5);
-    expected.put(DELETES_IGNORED_STAT, 8l);
+    expected.put(p + "f001", 29L);
+    expected.put(p + "f002", 8L);
+    expected.put(p + "f005", 19L);
+    expected.put(p + "f00b", 13L);
+    expected.put(p + "f00c", 19L);
+    expected.put(TOO_LONG_STAT, 1L);
+    expected.put(TOO_MANY_STAT, 17L);
+    expected.put(EMITTED_STAT, 21L + 18 + 15);
+    expected.put(SEEN_STAT, 7L + 6 + 5);
+    expected.put(DELETES_IGNORED_STAT, 8L);
   }
 
   @Test
@@ -234,13 +234,13 @@ public class CountingSummarizerTest {
     String p = COUNTER_STAT_PREFIX;
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put(p + "f1", 2l);
-    expected.put(p + "f2", 1l);
-    expected.put(TOO_LONG_STAT, 0l);
-    expected.put(TOO_MANY_STAT, 0l);
-    expected.put(SEEN_STAT, 3l);
-    expected.put(EMITTED_STAT, 3l);
-    expected.put(DELETES_IGNORED_STAT, 0l);
+    expected.put(p + "f1", 2L);
+    expected.put(p + "f2", 1L);
+    expected.put(TOO_LONG_STAT, 0L);
+    expected.put(TOO_MANY_STAT, 0L);
+    expected.put(SEEN_STAT, 3L);
+    expected.put(EMITTED_STAT, 3L);
+    expected.put(DELETES_IGNORED_STAT, 0L);
 
     HashMap<String,Long> stats = new HashMap<>();
     collector.summarize(stats::put);
@@ -255,8 +255,8 @@ public class CountingSummarizerTest {
     Assert.assertEquals(0, csum.getDeletesIgnored());
 
     expected.clear();
-    expected.put("f1", 2l);
-    expected.put("f2", 1l);
+    expected.put("f1", 2L);
+    expected.put("f2", 1L);
     Assert.assertEquals(expected, csum.getCounters());
   }
 }

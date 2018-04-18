@@ -38,57 +38,57 @@ public class TimeSettingIteratorTest {
   public void test1() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
-    tm1.put(new Key("r0", "cf1", "cq1", 9l), new Value("v0".getBytes()));
+    tm1.put(new Key("r0", "cf1", "cq1", 9L), new Value("v0".getBytes()));
     tm1.put(new Key("r1", "cf1", "cq1", Long.MAX_VALUE), new Value("v1".getBytes()));
-    tm1.put(new Key("r1", "cf1", "cq1", 90l), new Value("v2".getBytes()));
-    tm1.put(new Key("r1", "cf1", "cq1", 0l), new Value("v3".getBytes()));
-    tm1.put(new Key("r2", "cf1", "cq1", 6l), new Value("v4".getBytes()));
+    tm1.put(new Key("r1", "cf1", "cq1", 90L), new Value("v2".getBytes()));
+    tm1.put(new Key("r1", "cf1", "cq1", 0L), new Value("v3".getBytes()));
+    tm1.put(new Key("r2", "cf1", "cq1", 6L), new Value("v4".getBytes()));
 
     TimeSettingIterator tsi = new TimeSettingIterator(new SortedMapIterator(tm1), 50);
 
     tsi.seek(
-        new Range(new Key("r1", "cf1", "cq1", 50l), true, new Key("r1", "cf1", "cq1", 50l), true),
+        new Range(new Key("r1", "cf1", "cq1", 50L), true, new Key("r1", "cf1", "cq1", 50L), true),
         new HashSet<>(), false);
 
     assertTrue(tsi.hasTop());
-    assertEquals(new Key("r1", "cf1", "cq1", 50l), tsi.getTopKey());
+    assertEquals(new Key("r1", "cf1", "cq1", 50L), tsi.getTopKey());
     assertEquals("v1", tsi.getTopValue().toString());
     tsi.next();
 
     assertTrue(tsi.hasTop());
-    assertEquals(new Key("r1", "cf1", "cq1", 50l), tsi.getTopKey());
+    assertEquals(new Key("r1", "cf1", "cq1", 50L), tsi.getTopKey());
     assertEquals("v2", tsi.getTopValue().toString());
     tsi.next();
 
     assertTrue(tsi.hasTop());
-    assertEquals(new Key("r1", "cf1", "cq1", 50l), tsi.getTopKey());
+    assertEquals(new Key("r1", "cf1", "cq1", 50L), tsi.getTopKey());
     assertEquals("v3", tsi.getTopValue().toString());
     tsi.next();
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), false, null, true), new HashSet<>(),
+    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50L), false, null, true), new HashSet<>(),
         false);
 
     assertTrue(tsi.hasTop());
-    assertEquals(new Key("r2", "cf1", "cq1", 50l), tsi.getTopKey());
+    assertEquals(new Key("r2", "cf1", "cq1", 50L), tsi.getTopKey());
     assertEquals("v4", tsi.getTopValue().toString());
     tsi.next();
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(null, true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<>(),
+    tsi.seek(new Range(null, true, new Key("r1", "cf1", "cq1", 50L), false), new HashSet<>(),
         false);
 
     assertTrue(tsi.hasTop());
-    assertEquals(new Key("r0", "cf1", "cq1", 50l), tsi.getTopKey());
+    assertEquals(new Key("r0", "cf1", "cq1", 50L), tsi.getTopKey());
     assertEquals("v0", tsi.getTopValue().toString());
     tsi.next();
 
     assertFalse(tsi.hasTop());
 
     tsi.seek(
-        new Range(new Key("r1", "cf1", "cq1", 51l), true, new Key("r1", "cf1", "cq1", 50l), false),
+        new Range(new Key("r1", "cf1", "cq1", 51L), true, new Key("r1", "cf1", "cq1", 50L), false),
         new HashSet<>(), false);
     assertFalse(tsi.hasTop());
   }
@@ -96,7 +96,7 @@ public class TimeSettingIteratorTest {
   @Test
   public void testAvoidKeyCopy() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
-    final Key k = new Key("r0", "cf1", "cq1", 9l);
+    final Key k = new Key("r0", "cf1", "cq1", 9L);
 
     tm1.put(k, new Value("v0".getBytes()));
 
@@ -107,7 +107,7 @@ public class TimeSettingIteratorTest {
     assertTrue(tsi.hasTop());
     final Key topKey = tsi.getTopKey();
     assertTrue("Expected the topKey to be the same object", k == topKey);
-    assertEquals(new Key("r0", "cf1", "cq1", 50l), topKey);
+    assertEquals(new Key("r0", "cf1", "cq1", 50L), topKey);
     assertEquals("v0", tsi.getTopValue().toString());
     tsi.next();
 

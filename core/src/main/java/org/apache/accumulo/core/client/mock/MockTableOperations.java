@@ -402,7 +402,7 @@ class MockTableOperations extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException {
 
     List<DiskUsage> diskUsages = new ArrayList<>();
-    diskUsages.add(new DiskUsage(new TreeSet<>(tables), 0l));
+    diskUsages.add(new DiskUsage(new TreeSet<>(tables), 0L));
 
     return diskUsages;
   }

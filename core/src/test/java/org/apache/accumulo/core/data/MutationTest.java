@@ -190,13 +190,13 @@ public class MutationTest {
 
     m.put(nt("cf1"), nt("cq1"), nv("v1"));
     m.put(nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), nv("v2"));
-    m.put(nt("cf3"), nt("cq3"), 3l, nv("v3"));
-    m.put(nt("cf4"), nt("cq4"), new ColumnVisibility("cv4"), 4l, nv("v4"));
+    m.put(nt("cf3"), nt("cq3"), 3L, nv("v3"));
+    m.put(nt("cf4"), nt("cq4"), new ColumnVisibility("cv4"), 4L, nv("v4"));
 
     m.putDelete(nt("cf5"), nt("cq5"));
     m.putDelete(nt("cf6"), nt("cq6"), new ColumnVisibility("cv6"));
-    m.putDelete(nt("cf7"), nt("cq7"), 7l);
-    m.putDelete(nt("cf8"), nt("cq8"), new ColumnVisibility("cv8"), 8l);
+    m.putDelete(nt("cf7"), nt("cq7"), 7L);
+    m.putDelete(nt("cf8"), nt("cq8"), new ColumnVisibility("cv8"), 8L);
 
     assertEquals(8, m.size());
 
@@ -205,15 +205,15 @@ public class MutationTest {
     assertEquals(8, m.size());
     assertEquals(8, updates.size());
 
-    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
-    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
+    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3L, true, false, "v3");
+    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4L, true, false, "v4");
 
-    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
-    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7L, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
 
   }
 
@@ -223,13 +223,13 @@ public class MutationTest {
 
     m.put("cf1", "cq1", nv("v1"));
     m.put("cf2", "cq2", new ColumnVisibility("cv2"), nv("v2"));
-    m.put("cf3", "cq3", 3l, nv("v3"));
-    m.put("cf4", "cq4", new ColumnVisibility("cv4"), 4l, nv("v4"));
+    m.put("cf3", "cq3", 3L, nv("v3"));
+    m.put("cf4", "cq4", new ColumnVisibility("cv4"), 4L, nv("v4"));
 
     m.putDelete("cf5", "cq5");
     m.putDelete("cf6", "cq6", new ColumnVisibility("cv6"));
-    m.putDelete("cf7", "cq7", 7l);
-    m.putDelete("cf8", "cq8", new ColumnVisibility("cv8"), 8l);
+    m.putDelete("cf7", "cq7", 7L);
+    m.putDelete("cf8", "cq8", new ColumnVisibility("cv8"), 8L);
 
     assertEquals(8, m.size());
 
@@ -238,15 +238,15 @@ public class MutationTest {
     assertEquals(8, m.size());
     assertEquals(8, updates.size());
 
-    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
-    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
+    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3L, true, false, "v3");
+    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4L, true, false, "v4");
 
-    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
-    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7L, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
   }
 
   @Test
@@ -255,13 +255,13 @@ public class MutationTest {
 
     m.put("cf1", "cq1", "v1");
     m.put("cf2", "cq2", new ColumnVisibility("cv2"), "v2");
-    m.put("cf3", "cq3", 3l, "v3");
-    m.put("cf4", "cq4", new ColumnVisibility("cv4"), 4l, "v4");
+    m.put("cf3", "cq3", 3L, "v3");
+    m.put("cf4", "cq4", new ColumnVisibility("cv4"), 4L, "v4");
 
     m.putDelete("cf5", "cq5");
     m.putDelete("cf6", "cq6", new ColumnVisibility("cv6"));
-    m.putDelete("cf7", "cq7", 7l);
-    m.putDelete("cf8", "cq8", new ColumnVisibility("cv8"), 8l);
+    m.putDelete("cf7", "cq7", 7L);
+    m.putDelete("cf8", "cq8", new ColumnVisibility("cv8"), 8L);
 
     assertEquals(8, m.size());
     assertEquals("r1", new String(m.getRow()));
@@ -271,15 +271,15 @@ public class MutationTest {
     assertEquals(8, m.size());
     assertEquals(8, updates.size());
 
-    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
-    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
+    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3L, true, false, "v3");
+    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4L, true, false, "v4");
 
-    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
-    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7L, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
   }
 
   public void testByteArrays() {
@@ -287,13 +287,13 @@ public class MutationTest {
 
     m.put("cf1".getBytes(), "cq1".getBytes(), "v1".getBytes());
     m.put("cf2".getBytes(), "cq2".getBytes(), new ColumnVisibility("cv2"), "v2".getBytes());
-    m.put("cf3".getBytes(), "cq3".getBytes(), 3l, "v3".getBytes());
-    m.put("cf4".getBytes(), "cq4".getBytes(), new ColumnVisibility("cv4"), 4l, "v4".getBytes());
+    m.put("cf3".getBytes(), "cq3".getBytes(), 3L, "v3".getBytes());
+    m.put("cf4".getBytes(), "cq4".getBytes(), new ColumnVisibility("cv4"), 4L, "v4".getBytes());
 
     m.putDelete("cf5".getBytes(), "cq5".getBytes());
     m.putDelete("cf6".getBytes(), "cq6".getBytes(), new ColumnVisibility("cv6"));
-    m.putDelete("cf7".getBytes(), "cq7".getBytes(), 7l);
-    m.putDelete("cf8".getBytes(), "cq8".getBytes(), new ColumnVisibility("cv8"), 8l);
+    m.putDelete("cf7".getBytes(), "cq7".getBytes(), 7L);
+    m.putDelete("cf8".getBytes(), "cq8".getBytes(), new ColumnVisibility("cv8"), 8L);
 
     assertEquals(8, m.size());
 
@@ -302,15 +302,15 @@ public class MutationTest {
     assertEquals(8, m.size());
     assertEquals(8, updates.size());
 
-    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
-    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
+    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3L, true, false, "v3");
+    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4L, true, false, "v4");
 
-    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
-    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
-    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7L, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
   }
 
   /**
@@ -414,8 +414,8 @@ public class MutationTest {
     assertEquals("r1", new String(m2.getRow()));
     assertEquals(2, m2.getUpdates().size());
     assertEquals(2, m2.size());
-    verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
   }
 
   Mutation convert(OldMutation old) throws IOException {
@@ -452,18 +452,18 @@ public class MutationTest {
     assertEquals("r1", new String(m2.getRow()));
     assertEquals(3, m2.getUpdates().size());
     assertEquals(3, m2.size());
-    verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    verifyColumnUpdate(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
+    verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
+    verifyColumnUpdate(m2.getUpdates().get(2), "cf3", "cq3", "", 0L, false, true, "");
 
     Mutation m1 = convert(m2);
 
     assertEquals("r1", new String(m1.getRow()));
     assertEquals(3, m1.getUpdates().size());
     assertEquals(3, m1.size());
-    verifyColumnUpdate(m1.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(m1.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    verifyColumnUpdate(m1.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
+    verifyColumnUpdate(m1.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(m1.getUpdates().get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
+    verifyColumnUpdate(m1.getUpdates().get(2), "cf3", "cq3", "", 0L, false, true, "");
 
     Text exampleRow = new Text(" 123456789 123456789 123456789 123456789 123456789");
     int exampleLen = exampleRow.getLength();
@@ -524,10 +524,10 @@ public class MutationTest {
     assertEquals("r1", new String(m1.getRow()));
     assertEquals(4, m2.getUpdates().size());
     assertEquals(4, m2.size());
-    verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    verifyColumnUpdate(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
-    verifyColumnUpdate(m2.getUpdates().get(3), "cf2", "big", "", 0l, false, false,
+    verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");
+    verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
+    verifyColumnUpdate(m2.getUpdates().get(2), "cf3", "cq3", "", 0L, false, true, "");
+    verifyColumnUpdate(m2.getUpdates().get(3), "cf2", "big", "", 0L, false, false,
         bigVal.toString());
   }
 

@@ -84,13 +84,13 @@ public class MiniAccumuloConfigImplTest {
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
         .initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
-    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
-    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));
-    assertEquals(96 * 1024 * 1024l, config.getDefaultMemory());
+    assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.MASTER));
+    assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.TABLET_SERVER));
+    assertEquals(96 * 1024 * 1024L, config.getDefaultMemory());
     config.setMemory(ServerType.MASTER, 256, MemoryUnit.MEGABYTE);
-    assertEquals(256 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
-    assertEquals(96 * 1024 * 1024l, config.getDefaultMemory());
-    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));
+    assertEquals(256 * 1024 * 1024L, config.getMemory(ServerType.MASTER));
+    assertEquals(96 * 1024 * 1024L, config.getDefaultMemory());
+    assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.TABLET_SERVER));
   }
 
   @AfterClass

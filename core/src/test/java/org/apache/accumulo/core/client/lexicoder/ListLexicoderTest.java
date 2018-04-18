@@ -35,20 +35,20 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
   @Override
   public void setUp() {
 
-    data1.add(1l);
-    data1.add(2l);
+    data1.add(1L);
+    data1.add(2L);
 
-    data2.add(1l);
+    data2.add(1L);
 
-    data3.add(1l);
-    data3.add(3l);
+    data3.add(1L);
+    data3.add(3L);
 
-    data4.add(1l);
-    data4.add(2l);
-    data4.add(3l);
+    data4.add(1L);
+    data4.add(2L);
+    data4.add(3L);
 
-    data5.add(2l);
-    data5.add(1l);
+    data5.add(2L);
+    data5.add(1L);
   }
 
   public void testSortOrder() {

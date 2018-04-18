@@ -72,8 +72,8 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
 
     Summary summary = summaries.get(0);
 
-    Assert.assertEquals(1000l, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
-    Assert.assertEquals(0l, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
+    Assert.assertEquals(1000L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
+    Assert.assertEquals(0L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
 
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
       for (int i = 0; i < 100; i++) {
@@ -88,8 +88,8 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
 
     summary = summaries.get(0);
 
-    Assert.assertEquals(1100l, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
-    Assert.assertEquals(100l, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
+    Assert.assertEquals(1100L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
+    Assert.assertEquals(100L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
 
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
       for (int i = 100; i < 300; i++) {

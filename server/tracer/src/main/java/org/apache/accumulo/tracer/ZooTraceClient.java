@@ -52,7 +52,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   boolean pathExists = false;
   final Random random = new Random();
   final List<String> hosts = new ArrayList<>();
-  long retryPause = 5000l;
+  long retryPause = 5000L;
 
   // Visible for testing
   ZooTraceClient() {}

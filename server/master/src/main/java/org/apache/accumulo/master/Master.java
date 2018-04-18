@@ -270,7 +270,7 @@ public class Master extends AccumuloServerContext
           Master.this.nextEvent.event("stopped event loop");
         }
 
-      }, 100l, 1000l);
+      }, 100L, 1000L);
     }
 
     if (oldState != newState && (newState == MasterState.HAVE_LOCK)) {

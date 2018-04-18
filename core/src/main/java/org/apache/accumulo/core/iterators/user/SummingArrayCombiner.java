@@ -106,7 +106,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       throw new IllegalArgumentException("no type specified");
     if (type.startsWith(CLASS_PREFIX)) {
       setEncoder(type.substring(CLASS_PREFIX.length()));
-      testEncoder(Arrays.asList(0l, 1l));
+      testEncoder(Arrays.asList(0L, 1L));
     } else {
       switch (Type.valueOf(options.get(TYPE))) {
         case VARLEN:
@@ -240,7 +240,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       List<Long> la = new ArrayList<>(longstrs.length);
       for (String s : longstrs) {
         if (s.length() == 0)
-          la.add(0l);
+          la.add(0L);
         else
           try {
             la.add(Long.parseLong(s));

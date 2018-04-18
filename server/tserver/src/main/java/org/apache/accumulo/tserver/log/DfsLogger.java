@@ -96,7 +96,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * happen when the tserver dies as described.
    */
   public static class LogHeaderIncompleteException extends IOException {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 1L;
 
     public LogHeaderIncompleteException(Throwable cause) {
       super(cause);

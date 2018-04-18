@@ -186,6 +186,6 @@ public class SummaryCollection {
       summaries.add(entry.getValue().toThrift(entry.getKey()));
     }
 
-    return new TSummaries(true, -1l, totalFiles, deletedFiles, summaries);
+    return new TSummaries(true, -1L, totalFiles, deletedFiles, summaries);
   }
 }

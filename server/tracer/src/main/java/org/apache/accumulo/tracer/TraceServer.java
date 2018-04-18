@@ -282,7 +282,7 @@ public class TraceServer implements Watcher {
         if (!connector.tableOperations().exists(tableName)) {
           connector.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
-          AgeOffFilter.setTTL(setting, 7 * 24 * 60 * 60 * 1000l);
+          AgeOffFilter.setTTL(setting, 7 * 24 * 60 * 60 * 1000L);
           connector.tableOperations().attachIterator(tableName, setting);
         }
         connector.tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),

@@ -288,7 +288,7 @@ public abstract class CountingSummarizer<K> implements Summarizer {
       public void merge(Map<String,Long> summary1, Map<String,Long> summary2) {
 
         for (String key : ALL_STATS) {
-          summary1.merge(key, summary2.getOrDefault(key, 0l), Long::sum);
+          summary1.merge(key, summary2.getOrDefault(key, 0L), Long::sum);
         }
 
         for (Entry<String,Long> entry : summary2.entrySet()) {

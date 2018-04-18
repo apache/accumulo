@@ -196,7 +196,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       bs.addScanIterator(cfg);
 
       try {
-        Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
+        Assert.assertEquals(0L, rcrr.removeCompleteRecords(conn, bs, replBw));
       } finally {
         replBw.close();
       }
@@ -282,7 +282,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       bs.addScanIterator(cfg);
 
       try {
-        Assert.assertEquals(4l, rcrr.removeCompleteRecords(conn, bs, replBw));
+        Assert.assertEquals(4L, rcrr.removeCompleteRecords(conn, bs, replBw));
       } finally {
         replBw.close();
       }
@@ -345,7 +345,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       bs.addScanIterator(cfg);
 
       try {
-        Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
+        Assert.assertEquals(0L, rcrr.removeCompleteRecords(conn, bs, replBw));
       } finally {
         replBw.close();
       }
