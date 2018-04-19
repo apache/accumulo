@@ -22,7 +22,6 @@ import static org.easymock.EasyMock.replay;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -54,7 +53,6 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,28 +100,17 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
     EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
-        .andAnswer(new IAnswer<String>() {
-          @Override
-          public String answer() {
-            Object[] args = EasyMock.getCurrentArguments();
-            return systemConf.get((Property) args[0]);
-          }
+        .andAnswer(() -> {
+          Object[] args = EasyMock.getCurrentArguments();
+          return systemConf.get((Property) args[0]);
         }).anyTimes();
     EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class)))
-        .andAnswer(new IAnswer<Boolean>() {
-          @Override
-          public Boolean answer() {
-            Object[] args = EasyMock.getCurrentArguments();
-            return systemConf.getBoolean((Property) args[0]);
-          }
+        .andAnswer(() -> {
+          Object[] args = EasyMock.getCurrentArguments();
+          return systemConf.getBoolean((Property) args[0]);
         }).anyTimes();
 
-    EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
-      @Override
-      public Iterator<Entry<String,String>> answer() {
-        return systemConf.iterator();
-      }
-    }).anyTimes();
+    EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
 
     replay(mockInst, factory, siteConfig);
     refs = new WrappedCloseWriteAheadLogReferences(new AccumuloServerContext(mockInst, factory));

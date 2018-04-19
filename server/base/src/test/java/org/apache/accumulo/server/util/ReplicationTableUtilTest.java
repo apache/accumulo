@@ -55,7 +55,6 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -68,12 +67,9 @@ public class ReplicationTableUtilTest {
     final List<Mutation> mutations = new ArrayList<>();
 
     // Mock a Writer to just add the mutation to a list
-    EasyMock.expectLastCall().andAnswer(new IAnswer<Object>() {
-      @Override
-      public Object answer() {
-        mutations.add(((Mutation) EasyMock.getCurrentArguments()[0]));
-        return null;
-      }
+    EasyMock.expectLastCall().andAnswer(() -> {
+      mutations.add(((Mutation) EasyMock.getCurrentArguments()[0]));
+      return null;
     });
 
     EasyMock.replay(writer);

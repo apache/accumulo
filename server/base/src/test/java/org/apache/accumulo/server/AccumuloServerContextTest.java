@@ -21,8 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.security.PrivilegedExceptionAction;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
@@ -40,7 +38,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,21 +99,13 @@ public class AccumuloServerContextTest {
         // AccumuloConfiguration)
         // Presently, we only need get(Property) and iterator().
         EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
-            .andAnswer(new IAnswer<String>() {
-              @Override
-              public String answer() {
-                Object[] args = EasyMock.getCurrentArguments();
-                return conf.get((Property) args[0]);
-              }
+            .andAnswer(() -> {
+              Object[] args = EasyMock.getCurrentArguments();
+              return conf.get((Property) args[0]);
             }).anyTimes();
 
         EasyMock.expect(siteConfig.iterator())
-            .andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
-              @Override
-              public Iterator<Entry<String,String>> answer() {
-                return conf.iterator();
-              }
-            }).anyTimes();
+            .andAnswer(() -> conf.iterator()).anyTimes();
 
         EasyMock.replay(factory, context, siteConfig);
 
