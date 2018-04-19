@@ -108,8 +108,9 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   static void runAdminStopTest(Connector c, MiniAccumuloClusterImpl cluster)
       throws InterruptedException, IOException {
-    assertEquals(0, cluster.exec(TestIngest.class, "--config-file",
-        cluster.getConfig().getClientPropsFile().getAbsolutePath(), "--createTable").waitFor());
+    String confPath = cluster.getConfig().getClientPropsFile().getAbsolutePath();
+    int x = cluster.exec(TestIngest.class, "--config-file", confPath, "--createTable").waitFor();
+    assertEquals(0, x);
     List<String> tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(2, tabletServers.size());
     String doomed = tabletServers.get(0);

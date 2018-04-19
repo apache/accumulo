@@ -202,7 +202,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   }
 
   public static void ingest(Connector connector, ConnectionInfo info, int rows, int cols, int width,
-                            int offset, String tableName) throws Exception {
+      int offset, String tableName) throws Exception {
     ingest(connector, info, rows, cols, width, offset, COLF, tableName);
   }
 
@@ -226,8 +226,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     verify(connector, info, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(Connector connector, ConnectionInfo info, int rows, int cols, int width,
-      int offset, String colf, String tableName) throws Exception {
+  private static void verify(Connector connector, ConnectionInfo info, int rows, int cols,
+      int width, int offset, String colf, String tableName) throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
