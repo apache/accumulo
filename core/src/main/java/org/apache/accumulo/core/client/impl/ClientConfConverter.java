@@ -35,6 +35,8 @@ import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY;
+
 @SuppressWarnings("deprecation")
 public class ClientConfConverter {
 
@@ -68,7 +70,7 @@ public class ClientConfConverter {
     propsConf.put(ClientProperty.SASL_QOP.getKey(),
         ClientConfiguration.ClientProperty.RPC_SASL_QOP.getKey());
     propsConf.put(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
-        ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+        KERBEROS_SERVER_PRIMARY.getKey());
 
     for (Map.Entry<String,String> entry : propsConf.entrySet()) {
       confProps.put(entry.getValue(), entry.getKey());
@@ -164,11 +166,9 @@ public class ClientConfConverter {
         else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
-            if (config
-                .containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+            if (config.containsKey(KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config
-                  .getString(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())
+              return config.getString(KERBEROS_SERVER_PRIMARY.getKey())
                   + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
             }
           }
@@ -190,10 +190,8 @@ public class ClientConfConverter {
         // Two client props that don't exist on the server config. Client doesn't need to know about
         // the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
-        if (props
-            .containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary = props
-              .remove(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+        if (props.containsKey(KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props.remove(KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
@@ -249,11 +247,9 @@ public class ClientConfConverter {
     final String serverPrincipal = conf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
 
     final KerberosName krbName;
-    try {
+    if (serverPrincipal != null && !serverPrincipal.isEmpty()) {
       krbName = new KerberosName(serverPrincipal);
-      clientConf.setProperty(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY, krbName.getServiceName());
-    } catch (Exception e) {
-      // bad value or empty, assume we're not using kerberos
+      clientConf.setProperty(KERBEROS_SERVER_PRIMARY, krbName.getServiceName());
     }
 
     HashSet<String> clientKeys = new HashSet<>();
