@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -190,16 +189,13 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {
       try {
-        loggedMsgCache.get(this.getClass().getName(), new Callable<Boolean>() {
-          @Override
-          public Boolean call() throws Exception {
-            sawDeleteLog.error("Combiner of type {} saw a delete during a"
-                + " partial compaction. This could cause undesired results. See"
-                + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
-                Combiner.this.getClass().getSimpleName());
-            // the value is not used and does not matter
-            return Boolean.TRUE;
-          }
+        loggedMsgCache.get(this.getClass().getName(), () -> {
+          sawDeleteLog.error("Combiner of type {} saw a delete during a"
+              + " partial compaction. This could cause undesired results. See"
+              + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
+              Combiner.this.getClass().getSimpleName());
+          // the value is not used and does not matter
+          return Boolean.TRUE;
         });
       } catch (ExecutionException e) {
         throw new RuntimeException(e);

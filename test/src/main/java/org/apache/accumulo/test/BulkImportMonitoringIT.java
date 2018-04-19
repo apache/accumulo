@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -90,25 +89,22 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
     List<Future<Pair<String,String>>> futures = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       final int which = i;
-      futures.add(es.submit(new Callable<Pair<String,String>>() {
-        @Override
-        public Pair<String,String> call() throws Exception {
-          Path bulkFailures = new Path(base, "failures" + which);
-          Path files = new Path(base, "files" + which);
-          fs.mkdirs(bulkFailures);
-          fs.mkdirs(files);
-          for (int i = 0; i < 10; i++) {
-            FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-                .forFile(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf())
-                .withTableConfiguration(DefaultConfiguration.getInstance()).build();
-            writer.startDefaultLocalityGroup();
-            for (int j = 0x100; j < 0xfff; j += 3) {
-              writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
-            }
-            writer.close();
+      futures.add(es.submit(() -> {
+        Path bulkFailures = new Path(base, "failures" + which);
+        Path files = new Path(base, "files" + which);
+        fs.mkdirs(bulkFailures);
+        fs.mkdirs(files);
+        for (int i1 = 0; i1 < 10; i1++) {
+          FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
+              .forFile(files.toString() + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf())
+              .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+          writer.startDefaultLocalityGroup();
+          for (int j = 0x100; j < 0xfff; j += 3) {
+            writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
           }
-          return new Pair<>(files.toString(), bulkFailures.toString());
+          writer.close();
         }
+        return new Pair<>(files.toString(), bulkFailures.toString());
       }));
     }
     List<Pair<String,String>> dirs = new ArrayList<>();
@@ -121,12 +117,9 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
     for (Pair<String,String> entry : dirs) {
       final String dir = entry.getFirst();
       final String err = entry.getSecond();
-      errs.add(es.submit(new Callable<Object>() {
-        @Override
-        public Object call() throws Exception {
-          c.tableOperations().importDirectory(tableName, dir, err, false);
-          return null;
-        }
+      errs.add(es.submit(() -> {
+        c.tableOperations().importDirectory(tableName, dir, err, false);
+        return null;
       }));
     }
     es.shutdown();

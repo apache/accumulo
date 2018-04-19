@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -114,15 +113,13 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
       final List<Future<Boolean>> callables = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(10);
       for (int i = 0; i < 10; i++) {
-        Future<Boolean> callable = service.submit(new Callable<Boolean>() {
-          public Boolean call() {
-            latch.countDown();
-            while (slow.hasNext()) {
+        Future<Boolean> callable = service.submit(() -> {
+          latch.countDown();
+          while (slow.hasNext()) {
 
-              slow.next();
-            }
-            return slow.hasNext();
+            slow.next();
           }
+          return slow.hasNext();
         });
         callables.add(callable);
       }

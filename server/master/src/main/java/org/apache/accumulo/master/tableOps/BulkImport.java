@@ -22,7 +22,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -200,62 +199,59 @@ public class BulkImport extends MasterRepo {
 
     for (FileStatus file : mapFiles) {
       final FileStatus fileStatus = file;
-      results.add(workers.submit(new Callable<Exception>() {
-        @Override
-        public Exception call() throws Exception {
-          try {
-            String sa[] = fileStatus.getPath().getName().split("\\.");
-            String extension = "";
-            if (sa.length > 1) {
-              extension = sa[sa.length - 1];
+      results.add(workers.submit(() -> {
+        try {
+          String sa[] = fileStatus.getPath().getName().split("\\.");
+          String extension = "";
+          if (sa.length > 1) {
+            extension = sa[sa.length - 1];
 
-              if (!FileOperations.getValidExtensions().contains(extension)) {
-                log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
-                return null;
-              }
-            } else {
-              // assume it is a map file
-              extension = Constants.MAPFILE_EXTENSION;
+            if (!FileOperations.getValidExtensions().contains(extension)) {
+              log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
+              return null;
             }
-
-            if (extension.equals(Constants.MAPFILE_EXTENSION)) {
-              if (!fileStatus.isDirectory()) {
-                log.warn("{} is not a map file, ignoring", fileStatus.getPath());
-                return null;
-              }
-
-              if (fileStatus.getPath().getName().equals("_logs")) {
-                log.info("{} is probably a log directory from a map/reduce task, skipping",
-                    fileStatus.getPath());
-                return null;
-              }
-              try {
-                FileStatus dataStatus = fs
-                    .getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
-                if (dataStatus.isDirectory()) {
-                  log.warn("{} is not a map file, ignoring", fileStatus.getPath());
-                  return null;
-                }
-              } catch (FileNotFoundException fnfe) {
-                log.warn("{} is not a map file, ignoring", fileStatus.getPath());
-                return null;
-              }
-            }
-
-            String newName = "I" + namer.getNextName() + "." + extension;
-            Path newPath = new Path(bulkDir, newName);
-            try {
-              fs.rename(fileStatus.getPath(), newPath);
-              log.debug("Moved {} to {}", fileStatus.getPath(), newPath);
-            } catch (IOException E1) {
-              log.error("Could not move: {} {}", fileStatus.getPath().toString(), E1.getMessage());
-            }
-
-          } catch (Exception ex) {
-            return ex;
+          } else {
+            // assume it is a map file
+            extension = Constants.MAPFILE_EXTENSION;
           }
-          return null;
+
+          if (extension.equals(Constants.MAPFILE_EXTENSION)) {
+            if (!fileStatus.isDirectory()) {
+              log.warn("{} is not a map file, ignoring", fileStatus.getPath());
+              return null;
+            }
+
+            if (fileStatus.getPath().getName().equals("_logs")) {
+              log.info("{} is probably a log directory from a map/reduce task, skipping",
+                  fileStatus.getPath());
+              return null;
+            }
+            try {
+              FileStatus dataStatus = fs
+                  .getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
+              if (dataStatus.isDirectory()) {
+                log.warn("{} is not a map file, ignoring", fileStatus.getPath());
+                return null;
+              }
+            } catch (FileNotFoundException fnfe) {
+              log.warn("{} is not a map file, ignoring", fileStatus.getPath());
+              return null;
+            }
+          }
+
+          String newName = "I" + namer.getNextName() + "." + extension;
+          Path newPath = new Path(bulkDir, newName);
+          try {
+            fs.rename(fileStatus.getPath(), newPath);
+            log.debug("Moved {} to {}", fileStatus.getPath(), newPath);
+          } catch (IOException E1) {
+            log.error("Could not move: {} {}", fileStatus.getPath().toString(), E1.getMessage());
+          }
+
+        } catch (Exception ex) {
+          return ex;
         }
+        return null;
       }));
     }
     workers.shutdown();

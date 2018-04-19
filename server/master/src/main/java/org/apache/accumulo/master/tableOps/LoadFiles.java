@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -157,39 +156,33 @@ class LoadFiles extends MasterRepo {
       }
       if (servers.length > 0) {
         for (final String file : filesToLoad) {
-          results.add(executor.submit(new Callable<List<String>>() {
-            @Override
-            public List<String> call() {
-              List<String> failures = new ArrayList<>();
-              ClientService.Client client = null;
-              HostAndPort server = null;
-              try {
-                // get a connection to a random tablet server, do not prefer cached connections
-                // because
-                // this is running on the master and there are lots of connections to tablet servers
-                // serving the metadata tablets
-                long timeInMillis = master.getConfiguration()
-                    .getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-                // Pair<String,Client> pair = ServerClient.getConnection(master, false,
-                // timeInMillis);
-                server = servers[random.nextInt(servers.length)].getLocation();
-                client = ThriftUtil.getTServerClient(server, master, timeInMillis);
-                List<String> attempt = Collections.singletonList(file);
-                log.debug("Asking " + server + " to bulk import " + file);
-                List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(),
-                    tid, tableId.canonicalID(), attempt, errorDir, setTime);
-                if (fail.isEmpty()) {
-                  loaded.add(file);
-                } else {
-                  failures.addAll(fail);
-                }
-              } catch (Exception ex) {
-                log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
-              } finally {
-                ThriftUtil.returnClient(client);
+          results.add(executor.submit(() -> {
+            List<String> failures = new ArrayList<>();
+            ClientService.Client client = null;
+            HostAndPort server = null;
+            try {
+              // get a connection to a random tablet server, do not prefer cached connections
+              // because this is running on the master and there are lots of connections to tablet
+              // servers serving the metadata tablets
+              long timeInMillis = master.getConfiguration()
+                  .getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              server = servers[random.nextInt(servers.length)].getLocation();
+              client = ThriftUtil.getTServerClient(server, master, timeInMillis);
+              List<String> attempt1 = Collections.singletonList(file);
+              log.debug("Asking " + server + " to bulk import " + file);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(),
+                  tid, tableId.canonicalID(), attempt1, errorDir, setTime);
+              if (fail.isEmpty()) {
+                loaded.add(file);
+              } else {
+                failures.addAll(fail);
               }
-              return failures;
+            } catch (Exception ex) {
+              log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
+            } finally {
+              ThriftUtil.returnClient(client);
             }
+            return failures;
           }));
         }
       }

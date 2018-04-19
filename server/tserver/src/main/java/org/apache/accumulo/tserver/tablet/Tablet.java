@@ -38,7 +38,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -2422,12 +2421,7 @@ public class Tablet implements TabletCommitter {
           this.notifyAll();
 
         try {
-          bulkImported.get(tid, new Callable<List<FileRef>>() {
-            @Override
-            public List<FileRef> call() throws Exception {
-              return new ArrayList<>();
-            }
-          }).addAll(fileMap.keySet());
+          bulkImported.get(tid, ArrayList::new).addAll(fileMap.keySet());
         } catch (Exception ex) {
           log.info(ex.toString(), ex);
         }

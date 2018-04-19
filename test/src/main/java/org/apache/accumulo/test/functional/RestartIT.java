@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Map.Entry;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -129,15 +128,12 @@ public class RestartIT extends AccumuloClusterHarness {
     }
     OPTS.setConnectionInfo(getConnectionInfo());
 
-    Future<Integer> ret = svc.submit(new Callable<Integer>() {
-      @Override
-      public Integer call() {
-        try {
-          return control.exec(TestIngest.class, args);
-        } catch (IOException e) {
-          log.error("Error running TestIngest", e);
-          return -1;
-        }
+    Future<Integer> ret = svc.submit(() -> {
+      try {
+        return control.exec(TestIngest.class, args);
+      } catch (IOException e) {
+        log.error("Error running TestIngest", e);
+        return -1;
       }
     });
 
@@ -224,15 +220,12 @@ public class RestartIT extends AccumuloClusterHarness {
     OPTS.setConnectionInfo(getConnectionInfo());
     VOPTS.setConnectionInfo(getConnectionInfo());
 
-    Future<Integer> ret = svc.submit(new Callable<Integer>() {
-      @Override
-      public Integer call() {
-        try {
-          return control.exec(TestIngest.class, args);
-        } catch (Exception e) {
-          log.error("Error running TestIngest", e);
-          return -1;
-        }
+    Future<Integer> ret = svc.submit(() -> {
+      try {
+        return control.exec(TestIngest.class, args);
+      } catch (Exception e) {
+        log.error("Error running TestIngest", e);
+        return -1;
       }
     });
 

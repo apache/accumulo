@@ -31,7 +31,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -295,13 +294,10 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       while (true) {
         try {
-          FutureTask<TabletLocations> tlsFuture = new FutureTask<>(new Callable<TabletLocations>() {
-            @Override
-            public TabletLocations call() throws Exception {
-              TabletLocations answer = new TabletLocations();
-              answer.scan(ctx, tableName);
-              return answer;
-            }
+          FutureTask<TabletLocations> tlsFuture = new FutureTask<>(() -> {
+            TabletLocations answer = new TabletLocations();
+            answer.scan(ctx, tableName);
+            return answer;
           });
           THREAD_POOL.submit(tlsFuture);
           return tlsFuture.get(5, SECONDS);

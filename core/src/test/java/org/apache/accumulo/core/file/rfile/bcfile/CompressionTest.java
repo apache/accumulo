@@ -128,14 +128,9 @@ public class CompressionTest {
         ArrayList<Future<Boolean>> results = new ArrayList<>();
 
         for (int i = 0; i < 30; i++) {
-          results.add(service.submit(new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() throws Exception {
-              Assert.assertNotNull(al + " should not be null", al.getCodec());
-              return true;
-            }
-
+          results.add(service.submit(() -> {
+            Assert.assertNotNull(al + " should not be null", al.getCodec());
+            return true;
           }));
         }
 
@@ -173,14 +168,9 @@ public class CompressionTest {
 
         for (int i = 0; i < 30; i++) {
 
-          results.add(service.submit(new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() throws Exception {
-              Assert.assertNotNull(al + " should have a non-null codec", al.getCodec());
-              return true;
-            }
-
+          results.add(service.submit(() -> {
+            Assert.assertNotNull(al + " should have a non-null codec", al.getCodec());
+            return true;
           }));
         }
 
@@ -218,18 +208,14 @@ public class CompressionTest {
         final HashSet<Integer> testSet = new HashSet<>();
 
         for (int i = 0; i < 40; i++) {
-          list.add(new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() throws Exception {
-              CompressionCodec codec = al.getCodec();
-              Assert.assertNotNull(al + " resulted in a non-null codec", codec);
-              // add the identity hashcode to the set.
-              synchronized (testSet) {
-                testSet.add(System.identityHashCode(codec));
-              }
-              return true;
+          list.add(() -> {
+            CompressionCodec codec = al.getCodec();
+            Assert.assertNotNull(al + " resulted in a non-null codec", codec);
+            // add the identity hashcode to the set.
+            synchronized (testSet) {
+              testSet.add(System.identityHashCode(codec));
             }
+            return true;
           });
         }
 

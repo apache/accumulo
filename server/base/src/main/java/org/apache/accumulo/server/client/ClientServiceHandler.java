@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -345,15 +344,12 @@ public class ClientServiceHandler implements ClientService.Iface {
       bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
       log.debug("Got request to bulk import files to table({}): {}", tableId, files);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid,
-          new Callable<List<String>>() {
-            @Override
-            public List<String> call() throws Exception {
-              bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
-              try {
-                return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
-              } finally {
-                bulkImportStatus.removeBulkImportStatus(files);
-              }
+          () -> {
+            bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
+            try {
+              return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
+            } finally {
+              bulkImportStatus.removeBulkImportStatus(files);
             }
           });
     } catch (AccumuloSecurityException e) {

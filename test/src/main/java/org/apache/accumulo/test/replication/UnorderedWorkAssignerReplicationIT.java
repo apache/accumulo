@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -266,15 +265,10 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
             ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       }
 
-      Future<Boolean> future = executor.submit(new Callable<Boolean>() {
-
-        @Override
-        public Boolean call() throws Exception {
-          connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
-          log.info("Drain completed");
-          return true;
-        }
-
+      Future<Boolean> future = executor.submit(() -> {
+        connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
+        log.info("Drain completed");
+        return true;
       });
 
       long timeoutSeconds = timeoutFactor * 30;

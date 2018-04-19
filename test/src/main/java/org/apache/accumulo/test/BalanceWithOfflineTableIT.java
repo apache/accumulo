@@ -18,7 +18,6 @@ package org.apache.accumulo.test;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -75,12 +74,9 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
     log.info("Waiting for balance");
 
     SimpleThreadPool pool = new SimpleThreadPool(1, "waitForBalance");
-    Future<Boolean> wait = pool.submit(new Callable<Boolean>() {
-      @Override
-      public Boolean call() throws Exception {
-        c.instanceOperations().waitForBalance();
-        return true;
-      }
+    Future<Boolean> wait = pool.submit(() -> {
+      c.instanceOperations().waitForBalance();
+      return true;
     });
     wait.get(20, TimeUnit.SECONDS);
     log.info("Balance succeeded with an offline table");

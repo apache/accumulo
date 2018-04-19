@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -265,17 +264,12 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
             ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       }
 
-      Future<Boolean> future = executor.submit(new Callable<Boolean>() {
-
-        @Override
-        public Boolean call() throws Exception {
-          long then = System.currentTimeMillis();
-          connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
-          long now = System.currentTimeMillis();
-          log.info("Drain completed in " + (now - then) + "ms");
-          return true;
-        }
-
+      Future<Boolean> future = executor.submit(() -> {
+        long then = System.currentTimeMillis();
+        connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
+        long now = System.currentTimeMillis();
+        log.info("Drain completed in " + (now - then) + "ms");
+        return true;
       });
 
       try {

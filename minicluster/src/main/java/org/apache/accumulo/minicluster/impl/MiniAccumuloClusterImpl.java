@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -815,12 +814,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
-    FutureTask<Integer> future = new FutureTask<>(new Callable<Integer>() {
-      @Override
-      public Integer call() throws InterruptedException {
-        proc.destroy();
-        return proc.waitFor();
-      }
+    FutureTask<Integer> future = new FutureTask<>(() -> {
+      proc.destroy();
+      return proc.waitFor();
     });
 
     executor.execute(future);

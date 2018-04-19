@@ -21,7 +21,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -120,15 +119,12 @@ public class RestartStressIT extends AccumuloClusterHarness {
       throw new RuntimeException("Unrecognized token");
     }
 
-    Future<Integer> retCode = svc.submit(new Callable<Integer>() {
-      @Override
-      public Integer call() {
-        try {
-          return control.exec(TestIngest.class, args);
-        } catch (Exception e) {
-          log.error("Error running TestIngest", e);
-          return -1;
-        }
+    Future<Integer> retCode = svc.submit(() -> {
+      try {
+        return control.exec(TestIngest.class, args);
+      } catch (Exception e) {
+        log.error("Error running TestIngest", e);
+        return -1;
       }
     });
 
