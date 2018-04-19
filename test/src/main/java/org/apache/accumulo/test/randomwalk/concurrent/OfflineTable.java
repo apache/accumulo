@@ -23,6 +23,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.test.randomwalk.Environment;
@@ -50,7 +51,12 @@ public class OfflineTable extends Test {
       log.debug("Onlined " + tableName);
     } catch (TableNotFoundException tne) {
       log.debug("offline or online failed " + tableName + ", doesnt exist");
+    } catch (AccumuloException ae) {
+      if (ae.getMessage().startsWith("Unexpected table state")) {
+        log.debug("offline or online failed " + tableName + ", unexpected table state");
+      } else {
+        throw ae;
+      }
     }
-
   }
 }
