@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -3346,12 +3345,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       throws IOException {
     List<Path> recoveryLogs = new ArrayList<>();
     List<LogEntry> sorted = new ArrayList<>(logEntries);
-    Collections.sort(sorted, new Comparator<LogEntry>() {
-      @Override
-      public int compare(LogEntry e1, LogEntry e2) {
-        return (int) (e1.timestamp - e2.timestamp);
-      }
-    });
+    Collections.sort(sorted, (e1, e2) -> (int) (e1.timestamp - e2.timestamp));
     for (LogEntry entry : sorted) {
       Path recovery = null;
       Path finished = RecoveryPath.getRecoveryPath(fs,

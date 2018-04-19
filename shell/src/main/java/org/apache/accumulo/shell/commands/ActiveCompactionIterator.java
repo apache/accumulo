@@ -18,7 +18,6 @@ package org.apache.accumulo.shell.commands;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -64,12 +63,7 @@ class ActiveCompactionIterator implements Iterator<String> {
 
         acl = new ArrayList<>(acl);
 
-        Collections.sort(acl, new Comparator<ActiveCompaction>() {
-          @Override
-          public int compare(ActiveCompaction o1, ActiveCompaction o2) {
-            return (int) (o2.getAge() - o1.getAge());
-          }
-        });
+        Collections.sort(acl, (o1, o2) -> (int) (o2.getAge() - o1.getAge()));
 
         for (ActiveCompaction ac : acl) {
           String output = ac.getOutputFile();

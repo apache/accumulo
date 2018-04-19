@@ -17,7 +17,6 @@
 package org.apache.accumulo.tserver.compaction;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -69,17 +68,14 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
 
     if (request.getFiles().size() <= 1)
       return null;
-    TreeSet<CompactionFile> candidateFiles = new TreeSet<>(new Comparator<CompactionFile>() {
-      @Override
-      public int compare(CompactionFile o1, CompactionFile o2) {
-        if (o1 == o2)
-          return 0;
-        if (o1.size < o2.size)
-          return -1;
-        if (o1.size > o2.size)
-          return 1;
-        return o1.file.compareTo(o2.file);
-      }
+    TreeSet<CompactionFile> candidateFiles = new TreeSet<>((o1, o2) -> {
+      if (o1 == o2)
+        return 0;
+      if (o1.size < o2.size)
+        return -1;
+      if (o1.size > o2.size)
+        return 1;
+      return o1.file.compareTo(o2.file);
     });
 
     double ratio = Double.parseDouble(request.getTableConfig(Property.TABLE_MAJC_RATIO.getKey()));

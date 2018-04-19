@@ -185,12 +185,7 @@ public class LogSorter {
       try (MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path),
           MapFile.Writer.keyClass(LogFileKey.class),
           MapFile.Writer.valueClass(LogFileValue.class))) {
-        Collections.sort(buffer, new Comparator<Pair<LogFileKey,LogFileValue>>() {
-          @Override
-          public int compare(Pair<LogFileKey,LogFileValue> o1, Pair<LogFileKey,LogFileValue> o2) {
-            return o1.getFirst().compareTo(o2.getFirst());
-          }
-        });
+        Collections.sort(buffer, Comparator.comparing(Pair::getFirst));
         for (Pair<LogFileKey,LogFileValue> entry : buffer) {
           output.append(entry.getFirst(), entry.getSecond());
         }

@@ -492,12 +492,7 @@ public class NativeMapIT {
     for (int i = 0; i < 2; i++) {
 
       // sort data
-      Collections.sort(testData, new Comparator<Pair<Key,Value>>() {
-        @Override
-        public int compare(Pair<Key,Value> o1, Pair<Key,Value> o2) {
-          return o1.getFirst().compareTo(o2.getFirst());
-        }
-      });
+      Collections.sort(testData, Comparator.comparing(Pair::getFirst));
 
       // verify
       Iterator<Entry<Key,Value>> iter1 = nm.iterator();

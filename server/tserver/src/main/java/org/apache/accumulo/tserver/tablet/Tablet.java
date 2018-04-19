@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -2057,15 +2056,12 @@ public class Tablet implements TabletCommitter {
     }
 
     PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<>(filesToCompact.size(),
-        new Comparator<Pair<FileRef,Long>>() {
-          @Override
-          public int compare(Pair<FileRef,Long> o1, Pair<FileRef,Long> o2) {
-            if (o1.getSecond() == o2.getSecond())
-              return o1.getFirst().compareTo(o2.getFirst());
-            if (o1.getSecond() < o2.getSecond())
-              return -1;
-            return 1;
-          }
+        (o1, o2) -> {
+          if (o1.getSecond() == o2.getSecond())
+            return o1.getFirst().compareTo(o2.getFirst());
+          if (o1.getSecond() < o2.getSecond())
+            return -1;
+          return 1;
         });
 
     for (Iterator<Entry<FileRef,DataFileValue>> iterator = filesToCompact.entrySet()
