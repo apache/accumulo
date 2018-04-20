@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -100,12 +99,9 @@ public class TransactionWatcherTest {
     }
     txw.isActive(txid);
     Assert.assertFalse(txw.isActive(txid));
-    txw.run(txType, txid, new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        Assert.assertTrue(txw.isActive(txid));
-        return null;
-      }
+    txw.run(txType, txid, () -> {
+      Assert.assertTrue(txw.isActive(txid));
+      return null;
     });
     Assert.assertFalse(txw.isActive(txid));
     Assert.assertFalse(sa.transactionComplete(txType, txid));
@@ -115,12 +111,9 @@ public class TransactionWatcherTest {
     sa.cleanup(txType, txid);
     Assert.assertTrue(sa.transactionComplete(txType, txid));
     try {
-      txw.run(txType, txid, new Callable<Object>() {
-        @Override
-        public Object call() throws Exception {
-          Assert.fail("Should not be able to start a new work on a discontinued transaction");
-          return null;
-        }
+      txw.run(txType, txid, () -> {
+        Assert.fail("Should not be able to start a new work on a discontinued transaction");
+        return null;
       });
       Assert.fail("work against stopped transaction should fail");
     } catch (Exception ex) {
@@ -128,26 +121,20 @@ public class TransactionWatcherTest {
     }
     final long txid2 = 9;
     sa.start(txType, txid2);
-    txw.run(txType, txid2, new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        Assert.assertTrue(txw.isActive(txid2));
-        sa.stop(txType, txid2);
-        try {
-          txw.run(txType, txid2, new Callable<Object>() {
-            @Override
-            public Object call() throws Exception {
-              Assert.fail("Should not be able to start a new work on a discontinued transaction");
-              return null;
-            }
-          });
-          Assert.fail("work against a stopped transaction should fail");
-        } catch (Exception ex) {
-          // expected
-        }
-        Assert.assertTrue(txw.isActive(txid2));
-        return null;
+    txw.run(txType, txid2, () -> {
+      Assert.assertTrue(txw.isActive(txid2));
+      sa.stop(txType, txid2);
+      try {
+        txw.run(txType, txid2, () -> {
+          Assert.fail("Should not be able to start a new work on a discontinued transaction");
+          return null;
+        });
+        Assert.fail("work against a stopped transaction should fail");
+      } catch (Exception ex) {
+        // expected
       }
+      Assert.assertTrue(txw.isActive(txid2));
+      return null;
     });
 
   }

@@ -252,12 +252,7 @@ public class TabletServerBatchWriter {
 
     checkForFailures();
 
-    waitRTE(new WaitCondition() {
-      @Override
-      public boolean shouldWait() {
-        return (totalMemUsed > maxMem || flushing) && !somethingFailed;
-      }
-    });
+    waitRTE(() -> (totalMemUsed > maxMem || flushing) && !somethingFailed);
 
     // do checks again since things could have changed while waiting and not holding lock
     if (closed)
@@ -316,12 +311,7 @@ public class TabletServerBatchWriter {
 
       if (flushing) {
         // some other thread is currently flushing, so wait
-        waitRTE(new WaitCondition() {
-          @Override
-          public boolean shouldWait() {
-            return flushing && !somethingFailed;
-          }
-        });
+        waitRTE(() -> flushing && !somethingFailed);
 
         checkForFailures();
 
@@ -333,12 +323,7 @@ public class TabletServerBatchWriter {
       startProcessing();
       checkForFailures();
 
-      waitRTE(new WaitCondition() {
-        @Override
-        public boolean shouldWait() {
-          return totalMemUsed > 0 && !somethingFailed;
-        }
-      });
+      waitRTE(() -> totalMemUsed > 0 && !somethingFailed);
 
       flushing = false;
       this.notifyAll();
@@ -361,12 +346,7 @@ public class TabletServerBatchWriter {
 
       startProcessing();
 
-      waitRTE(new WaitCondition() {
-        @Override
-        public boolean shouldWait() {
-          return totalMemUsed > 0 && !somethingFailed;
-        }
-      });
+      waitRTE(() -> totalMemUsed > 0 && !somethingFailed);
 
       logStats();
 

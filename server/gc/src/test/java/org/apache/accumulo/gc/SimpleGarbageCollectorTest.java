@@ -30,9 +30,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -47,7 +45,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,28 +74,17 @@ public class SimpleGarbageCollectorTest {
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
     EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
-        .andAnswer(new IAnswer<String>() {
-          @Override
-          public String answer() {
-            Object[] args = EasyMock.getCurrentArguments();
-            return systemConfig.get((Property) args[0]);
-          }
+        .andAnswer(() -> {
+          Object[] args = EasyMock.getCurrentArguments();
+          return systemConfig.get((Property) args[0]);
         }).anyTimes();
     EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class)))
-        .andAnswer(new IAnswer<Boolean>() {
-          @Override
-          public Boolean answer() {
-            Object[] args = EasyMock.getCurrentArguments();
-            return systemConfig.getBoolean((Property) args[0]);
-          }
+        .andAnswer(() -> {
+          Object[] args = EasyMock.getCurrentArguments();
+          return systemConfig.getBoolean((Property) args[0]);
         }).anyTimes();
 
-    EasyMock.expect(siteConfig.iterator()).andAnswer(new IAnswer<Iterator<Entry<String,String>>>() {
-      @Override
-      public Iterator<Entry<String,String>> answer() {
-        return systemConfig.iterator();
-      }
-    }).anyTimes();
+    EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConfig.iterator()).anyTimes();
 
     replay(instance, factory, siteConfig);
 

@@ -53,12 +53,7 @@ public class SyncingTabletLocator extends TabletLocator {
   }
 
   public SyncingTabletLocator(final ClientContext context, final Table.ID tableId) {
-    this(new Callable<TabletLocator>() {
-      @Override
-      public TabletLocator call() throws Exception {
-        return TabletLocator.getLocator(context, tableId);
-      }
-    });
+    this(() -> TabletLocator.getLocator(context, tableId));
   }
 
   private TabletLocator syncLocator() {

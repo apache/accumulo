@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -253,66 +252,60 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     final ClusterControl control = cluster.getClusterControl();
     final String prefix = getClass().getSimpleName() + "_" + testName.getMethodName();
     ExecutorService svc = Executors.newFixedThreadPool(2);
-    Future<Integer> p1 = svc.submit(new Callable<Integer>() {
-      @Override
-      public Integer call() {
-        try {
-          // Invocation is different for SASL. We're only logged in via this processes memory (not
-          // via some credentials cache on disk)
-          // Need to pass along the keytab because of that.
-          if (saslEnabled()) {
-            String principal = getAdminPrincipal();
-            AuthenticationToken token = getAdminToken();
-            assertTrue("Expected KerberosToken, but was " + token.getClass(),
-                token instanceof KerberosToken);
-            KerberosToken kt = (KerberosToken) token;
-            assertNotNull("Expected keytab in token", kt.getKeytab());
-            return control.exec(TestMultiTableIngest.class,
-                args("--count", Integer.toString(ROWS), "-i", instance, "-z", keepers,
-                    "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
-                    principal));
-          }
-
+    Future<Integer> p1 = svc.submit(() -> {
+      try {
+        // Invocation is different for SASL. We're only logged in via this processes memory (not
+        // via some credentials cache on disk)
+        // Need to pass along the keytab because of that.
+        if (saslEnabled()) {
+          String principal = getAdminPrincipal();
+          AuthenticationToken token = getAdminToken();
+          assertTrue("Expected KerberosToken, but was " + token.getClass(),
+              token instanceof KerberosToken);
+          KerberosToken kt = (KerberosToken) token;
+          assertNotNull("Expected keytab in token", kt.getKeytab());
           return control.exec(TestMultiTableIngest.class,
-              args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance,
-                  "-z", keepers, "-p",
-                  new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
-                  "--tablePrefix", prefix));
-        } catch (IOException e) {
-          log.error("Error running MultiTableIngest", e);
-          return -1;
+              args("--count", Integer.toString(ROWS), "-i", instance, "-z", keepers,
+                  "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
+                  principal));
         }
+
+        return control.exec(TestMultiTableIngest.class,
+            args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance,
+                "-z", keepers, "-p",
+                new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
+                "--tablePrefix", prefix));
+      } catch (IOException e) {
+        log.error("Error running MultiTableIngest", e);
+        return -1;
       }
     });
-    Future<Integer> p2 = svc.submit(new Callable<Integer>() {
-      @Override
-      public Integer call() {
-        try {
-          // Invocation is different for SASL. We're only logged in via this processes memory (not
-          // via some credentials cache on disk)
-          // Need to pass along the keytab because of that.
-          if (saslEnabled()) {
-            String principal = getAdminPrincipal();
-            AuthenticationToken token = getAdminToken();
-            assertTrue("Expected KerberosToken, but was " + token.getClass(),
-                token instanceof KerberosToken);
-            KerberosToken kt = (KerberosToken) token;
-            assertNotNull("Expected keytab in token", kt.getKeytab());
-            return control.exec(TestMultiTableIngest.class,
-                args("--count", Integer.toString(ROWS), "--readonly", "-i", instance, "-z", keepers,
-                    "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
-                    principal));
-          }
-
+    Future<Integer> p2 = svc.submit(() -> {
+      try {
+        // Invocation is different for SASL. We're only logged in via this processes memory (not
+        // via some credentials cache on disk)
+        // Need to pass along the keytab because of that.
+        if (saslEnabled()) {
+          String principal = getAdminPrincipal();
+          AuthenticationToken token = getAdminToken();
+          assertTrue("Expected KerberosToken, but was " + token.getClass(),
+              token instanceof KerberosToken);
+          KerberosToken kt = (KerberosToken) token;
+          assertNotNull("Expected keytab in token", kt.getKeytab());
           return control.exec(TestMultiTableIngest.class,
-              args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i",
-                  instance, "-z", keepers, "-p",
-                  new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
-                  "--tablePrefix", prefix));
-        } catch (IOException e) {
-          log.error("Error running MultiTableIngest", e);
-          return -1;
+              args("--count", Integer.toString(ROWS), "--readonly", "-i", instance, "-z", keepers,
+                  "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
+                  principal));
         }
+
+        return control.exec(TestMultiTableIngest.class,
+            args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i",
+                instance, "-z", keepers, "-p",
+                new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
+                "--tablePrefix", prefix));
+      } catch (IOException e) {
+        log.error("Error running MultiTableIngest", e);
+        return -1;
       }
     });
     svc.shutdown();

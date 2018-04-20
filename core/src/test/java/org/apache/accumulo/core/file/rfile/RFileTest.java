@@ -2186,12 +2186,7 @@ public class RFileTest {
         allSampleData.addAll(sampleDataLG1);
         allSampleData.addAll(sampleDataLG2);
 
-        Collections.sort(allSampleData, new Comparator<Entry<Key,Value>>() {
-          @Override
-          public int compare(Entry<Key,Value> o1, Entry<Key,Value> o2) {
-            return o1.getKey().compareTo(o2.getKey());
-          }
-        });
+        Collections.sort(allSampleData, Comparator.comparing(Entry::getKey));
 
         checkSample(sample, allSampleData, newColFamByteSequence("dataA", "metaA"), true);
         checkSample(sample, allSampleData, EMPTY_COL_FAMS, false);

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -184,12 +183,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
 
     assertTrue(f.exists());
-    File[] files = f.listFiles(new FileFilter() {
-      @Override
-      public boolean accept(File file) {
-        return file.getName().startsWith("part-m-");
-      }
-    });
+    File[] files = f.listFiles(file -> file.getName().startsWith("part-m-"));
     assertNotNull(files);
     if (content) {
       assertEquals(1, files.length);

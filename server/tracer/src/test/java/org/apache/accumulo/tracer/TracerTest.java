@@ -201,11 +201,8 @@ public class TracerTest {
 
   @Before
   public void setup() {
-    callable = new Callable<Object>() {
-      @Override
-      public Object call() throws IOException {
-        throw new IOException();
-      }
+    callable = () -> {
+      throw new IOException();
     };
   }
 

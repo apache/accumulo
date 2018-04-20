@@ -22,7 +22,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
@@ -75,12 +74,7 @@ public class TraceDump {
 
   public static List<RemoteSpan> sortByStart(Collection<RemoteSpan> spans) {
     List<RemoteSpan> spanList = new ArrayList<>(spans);
-    Collections.sort(spanList, new Comparator<RemoteSpan>() {
-      @Override
-      public int compare(RemoteSpan o1, RemoteSpan o2) {
-        return (int) (o1.start - o2.start);
-      }
-    });
+    Collections.sort(spanList, (o1, o2) -> (int) (o1.start - o2.start));
     return spanList;
   }
 

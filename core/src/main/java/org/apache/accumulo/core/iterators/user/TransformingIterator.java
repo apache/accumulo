@@ -109,12 +109,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   private LRUMap parsedVisibilitiesCache = null;
   private long maxBufferSize;
 
-  private static Comparator<Pair<Key,Value>> keyComparator = new Comparator<Pair<Key,Value>>() {
-    @Override
-    public int compare(Pair<Key,Value> o1, Pair<Key,Value> o2) {
-      return o1.getFirst().compareTo(o2.getFirst());
-    }
-  };
+  private static Comparator<Pair<Key,Value>> keyComparator = Comparator.comparing(Pair::getFirst);
 
   public TransformingIterator() {}
 
