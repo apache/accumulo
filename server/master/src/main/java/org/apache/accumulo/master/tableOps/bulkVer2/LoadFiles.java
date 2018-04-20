@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.MapFileInfo;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -50,13 +49,12 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
- * and will return a linear sleep value based on the number of load calls remaining.
+ * and will return a linear sleep value based on the largest number of Tablets on a TabletServer.
  */
 class LoadFiles extends MasterRepo {
 
@@ -76,7 +74,6 @@ class LoadFiles extends MasterRepo {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = " + tid + ")");
       return 100;
     }
-    master.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     VolumeManager fs = master.getFileSystem();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     try (LoadMappingIterator lmi = BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(),
@@ -98,9 +95,10 @@ class LoadFiles extends MasterRepo {
   }
 
   /**
-   * Make asynchronous load calls to each overlapping Tablet in the bulk mapping. Return the number
-   * of load calls remaining. This method will scan the metadata table getting Tablet range and
-   * location information. It will also check if the file has been loaded in that Tablet.
+   * Make asynchronous load calls to each overlapping Tablet in the bulk mapping. Return a sleep
+   * time to isReady based on a factor of the TabletServer with the most Tablets. This method will
+   * scan the metadata table getting Tablet range and location information. It will return 0 when
+   * all files have been loaded.
    */
   private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator lmi, Master master,
       long tid) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {

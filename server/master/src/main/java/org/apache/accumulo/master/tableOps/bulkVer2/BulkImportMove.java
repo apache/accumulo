@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.impl.BulkSerialize;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -81,18 +80,15 @@ class BulkImportMove extends MasterRepo {
     VolumeManager fs = master.getFileSystem();
 
     ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
-    master.updateBulkImportStatus(sourceDir.toString(), BulkImportState.PROCESSING);
 
     try {
       Map<String,String> oldToNewNameMap = BulkSerialize.readRenameMap(bulkDir.toString(),
-          bulkInfo.tableId, p -> fs.open(p));
+          p -> fs.open(p));
       moveFiles(String.format("%016x", tid), sourceDir, bulkDir, master, fs, oldToNewNameMap);
 
       // TODO figure out where to delete the renaming file
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
-      // TODO why do this logging and throw exception?
-      log.error("error preparing the bulkDir import directory", ex);
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY,
           bulkInfo.sourceDir + ": " + ex);
@@ -109,41 +105,32 @@ class BulkImportMove extends MasterRepo {
 
     int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulkDir move");
-    List<Future<Exception>> results = new ArrayList<>();
+    List<Future<Boolean>> results = new ArrayList<>();
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {
       results.add(workers.submit(() -> {
-        try {
-          final Path originalPath = new Path(sourceDir, renameEntry.getKey());
-          boolean success;
-          String errorMsg = "";
-          Path newPath = null;
-          try {
-            newPath = new Path(bulkDir, renameEntry.getValue());
-            success = fs.rename(originalPath, newPath);
-            log.trace("tid {} moved {} to {}", fmtTid, originalPath, newPath);
-          } catch (IOException ioe) {
-            errorMsg = ioe.getMessage();
-            success = false;
-          }
-          if (!success) {
-            // TODO must retry or fail fate op if a move failed
-            if (errorMsg.isEmpty())
-              errorMsg = "HDFS rename returned false";
-            log.warn("Could not move: {} to {} {}", originalPath.toString(), newPath, errorMsg);
-          }
-          return null;
-        } catch (Exception e) {
-          return e;
-        }
+        final Path originalPath = new Path(sourceDir, renameEntry.getKey());
+        Path newPath = new Path(bulkDir, renameEntry.getValue());
+        Boolean success = fs.rename(originalPath, newPath);
+        if (success && log.isTraceEnabled())
+          log.trace("tid {} moved {} to {}", fmtTid, originalPath, newPath);
+        return success;
       }));
     }
     workers.shutdown();
     while (!workers.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
 
-    for (Future<Exception> ex : results) {
-      if (ex.get() != null) {
-        throw ex.get();
+    for (Future<Boolean> future : results) {
+      try {
+        if (!future.get()) {
+          throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
+              TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
+              "Failed to move files from " + bulkInfo.sourceDir);
+        }
+      } catch (ExecutionException ee) {
+        throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
+            TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
+            ee.getCause().getMessage());
       }
     }
   }

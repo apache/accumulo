@@ -223,7 +223,6 @@ public class Bulk {
   }
 
   public static KeyExtent toKeyExtent(Table.ID tableId, Tablet tablet) {
-    // TODO table id
     return new KeyExtent(tableId, tablet.getEndRow(), tablet.getPrevEndRow());
   }
 }

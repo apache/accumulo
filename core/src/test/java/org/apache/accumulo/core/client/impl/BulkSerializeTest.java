@@ -45,7 +45,7 @@ public class BulkSerializeTest {
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-    BulkSerialize.writeLoadMapping(mapping, "/some/dir", tableId, "table3", p -> baos);
+    BulkSerialize.writeLoadMapping(mapping, "/some/dir", p -> baos);
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
 
@@ -62,15 +62,14 @@ public class BulkSerializeTest {
     Map<String,String> renames = new HashMap<>();
     for (String f : "f1 f2 f3 f4 f5".split(" "))
       renames.put("old_" + f + ".rf", "new_" + f + ".rf");
-    Table.ID tableId = Table.ID.of("3");
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-    BulkSerialize.writeRenameMap(renames, "/some/dir", tableId, p -> baos);
+    BulkSerialize.writeRenameMap(renames, "/some/dir", p -> baos);
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
 
-    Map<String,String> readMap = BulkSerialize.readRenameMap("/some/dir", tableId, p -> bais);
+    Map<String,String> readMap = BulkSerialize.readRenameMap("/some/dir", p -> bais);
 
     assertEquals("Read renames file wrong size", renames.size(), readMap.size());
     assertEquals("Read renames file different from what was written.", renames, readMap);
@@ -98,8 +97,8 @@ public class BulkSerializeTest {
     ByteArrayOutputStream mappingBaos = new ByteArrayOutputStream();
     ByteArrayOutputStream nameBaos = new ByteArrayOutputStream();
 
-    BulkSerialize.writeRenameMap(nameMap, "/some/dir", tableId, p -> nameBaos);
-    BulkSerialize.writeLoadMapping(mapping, "/some/dir", tableId, "table3", p -> mappingBaos);
+    BulkSerialize.writeRenameMap(nameMap, "/some/dir", p -> nameBaos);
+    BulkSerialize.writeLoadMapping(mapping, "/some/dir", p -> mappingBaos);
 
     Input input = p -> {
       if (p.getName().equals(Constants.BULK_LOAD_MAPPING)) {

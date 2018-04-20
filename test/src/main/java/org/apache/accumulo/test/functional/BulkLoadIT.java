@@ -17,12 +17,15 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
+import java.io.FileNotFoundException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -40,6 +43,8 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -54,6 +59,9 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
     cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
+
+    // use raw local file system
+    conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   @Override
@@ -61,18 +69,116 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     return 4 * 60;
   }
 
-  // TODO add a test with a single file being imported to a single tablet... saw some bus with this
-  // in manual testing
+  @Test
+  public void testSingleTabletSingleFile() throws Exception {
+    Connector c = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    addSplits(tableName, "0333");
+
+    Configuration conf = new Configuration();
+    AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance())
+        .getSystemConfiguration();
+    FileSystem fs = getCluster().getFileSystem();
+    String rootPath = cluster.getTemporaryPath().toString();
+
+    String dir = rootPath + "/testSingleTabletSingleFileNoSplits-" + getUniqueNames(1)[0];
+    Path bulkDir = new Path(dir);
+
+    fs.delete(bulkDir, true);
+
+    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/f1." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
+    writer1.startDefaultLocalityGroup();
+    writeData(writer1, 0, 332);
+    writer1.close();
+
+    c.tableOperations().addFilesTo(tableName).from(dir).load();
+  }
+
+  @Test
+  public void testSingleTabletSingleFileNoSplits() throws Exception {
+    Connector c = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+
+    Configuration conf = new Configuration();
+    AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance())
+        .getSystemConfiguration();
+    FileSystem fs = getCluster().getFileSystem();
+    String rootPath = cluster.getTemporaryPath().toString();
+
+    String dir = rootPath + "/testSingleTabletSingleFileNoSplits-" + getUniqueNames(1)[0];
+    Path bulkDir = new Path(dir);
+
+    fs.delete(bulkDir, true);
+
+    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/f1." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
+    writer1.startDefaultLocalityGroup();
+    writeData(writer1, 0, 333);
+    writer1.close();
+
+    c.tableOperations().addFilesTo(tableName).from(dir).load();
+  }
+
+  @Test
+  public void testBadPermissions() throws Exception {
+    Connector c = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    addSplits(tableName, "0333");
+
+    Configuration conf = new Configuration();
+    AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance())
+        .getSystemConfiguration();
+    FileSystem fs = getCluster().getFileSystem();
+    String rootPath = cluster.getTemporaryPath().toString();
+
+    String dir = rootPath + "/testBadPermissions-" + getUniqueNames(1)[0];
+    Path bulkDir = new Path(dir);
+
+    fs.delete(bulkDir, true);
+
+    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/f1." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
+    writer1.startDefaultLocalityGroup();
+    writeData(writer1, 0, 333);
+    writer1.close();
+
+    Path rFilePath = new Path(dir, "f1." + RFile.EXTENSION);
+    FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
+    fs.setPermission(rFilePath, FsPermission.valueOf("----------"));
+    try {
+      c.tableOperations().addFilesTo(tableName).from(dir).load();
+    } catch (Exception e) {
+      Throwable cause = e.getCause();
+      if (!(cause instanceof FileNotFoundException)
+          && !(cause.getCause() instanceof FileNotFoundException))
+        fail("Expected FileNotFoundException but threw " + e.getCause());
+    } finally {
+      fs.setPermission(rFilePath, originalPerms);
+    }
+
+    originalPerms = fs.getFileStatus(bulkDir).getPermission();
+    fs.setPermission(bulkDir, FsPermission.valueOf("dr--r--r--"));
+    try {
+      c.tableOperations().addFilesTo(tableName).from(dir).load();
+    } catch (AccumuloException ae) {
+      if (!(ae.getCause() instanceof FileNotFoundException))
+        fail("Expected FileNotFoundException but threw " + ae.getCause());
+    } finally {
+      fs.setPermission(bulkDir, originalPerms);
+    }
+  }
 
   @Test
   public void testBulkFile() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<>();
-    for (String split : "0333 0666 0999 1333 1666".split(" "))
-      splits.add(new Text(split));
-    c.tableOperations().addSplits(tableName, splits);
+    addSplits(tableName, "0333 0666 0999 1333 1666");
+
     Configuration conf = new Configuration();
     AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance())
         .getSystemConfiguration();
@@ -118,6 +224,13 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     c.tableOperations().addFilesTo(tableName).from(dir).load();
 
     verifyData(tableName, 0, 1999);
+  }
+
+  private void addSplits(String tableName, String splitString) throws Exception {
+    SortedSet<Text> splits = new TreeSet<>();
+    for (String split : splitString.split(" "))
+      splits.add(new Text(split));
+    getConnector().tableOperations().addSplits(tableName, splits);
   }
 
   private void verifyData(String table, int s, int e) throws Exception {

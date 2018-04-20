@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -36,7 +35,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.fate.Repo;
@@ -75,7 +73,6 @@ public class PrepBulkImport extends MasterRepo {
     info.tableId = tableId;
     info.sourceDir = sourceDir;
     info.setTime = setTime;
-    info.retries = 0;
     this.bulkInfo = info;
   }
 
@@ -118,7 +115,12 @@ public class PrepBulkImport extends MasterRepo {
       TabletMetadata currentTablet = tabletIter.next();
 
       // TODO refactor this code to make it unit testable....
+      // handle only one tablet
+      if (!tabletIter.hasNext() && equals(currentTablet.getEndRow(), currentRange.getEndRow()))
+        currentRange = null;
+
       while (tabletIter.hasNext()) {
+
         if (currentRange == null) {
           if (!lmi.hasNext()) {
             break;
@@ -148,7 +150,7 @@ public class PrepBulkImport extends MasterRepo {
         // acquired
         throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
             TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
-            "Conncurrent merge happened"); // TODO need to handle this on the client side
+            "Concurrent merge happened"); // TODO need to handle this on the client side
       }
     }
   }
@@ -158,8 +160,6 @@ public class PrepBulkImport extends MasterRepo {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(master);
 
-    master.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.MOVING); // TODO this status
-                                                                               // seems incorrect
     VolumeManager fs = master.getFileSystem();
     final UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
     Path sourceDir = new Path(bulkInfo.sourceDir);
@@ -194,8 +194,7 @@ public class PrepBulkImport extends MasterRepo {
     // also have to move mapping file
     Path newMappingFile = new Path(bulkDir, mappingFile.getName());
     oldToNewNameMap.put(mappingFile.getName(), newMappingFile.getName());
-    BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), bulkInfo.tableId,
-        p -> fs.create(p));
+    BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), p -> fs.create(p));
 
     bulkInfo.bulkDir = bulkDir.toString();
     // return the next step, which will move files

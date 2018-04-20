@@ -539,7 +539,6 @@ class FateServiceHandler implements FateService.Iface {
         if (!canBulkImport)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.updateBulkImportStatus(dir, BulkImportState.INITIAL);
         master.fate.seedTransaction(opid,
             new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup);
         break;

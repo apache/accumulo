@@ -62,8 +62,9 @@ public enum ClientProperty {
 
   // Bulk load
   BULK_LOAD_THREADS("bulk.threads", "8C",
-      "The number of threads used to inspect bulk load files to determine where files go.  If the value ends with C, then it will be multiplied by the number of cores on the system. This property "
-          + "is only used by the bulk import API introduced in 2.0.0."),
+      "The number of threads used to inspect bulk load files to determine where files go.  "
+          + "If the value ends with C, then it will be multiplied by the number of cores on the "
+          + "system. This property is only used by the bulk import API introduced in 2.0.0."),
 
   // SSL
   SSL_ENABLED("ssl.enabled", "false", "Enable SSL for client RPC"),

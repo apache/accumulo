@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -48,7 +49,6 @@ public class CleanUpBulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    master.updateBulkImportStatus(source, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
     MetadataTableUtil.removeBulkLoadInProgressFlag(master,
@@ -60,9 +60,18 @@ public class CleanUpBulkImport extends MasterRepo {
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
     Utils.unreserveHdfsDirectory(source, tid);
     Utils.getReadLock(tableId, tid).unlock();
+    // delete json renames and mapping files
+    Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
+    Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
+    try {
+      master.getFileSystem().delete(renamingFile);
+      master.getFileSystem().delete(mappingFile);
+    } catch (IOException ioe) {
+      log.debug("Failed to delete renames and/or loadmap", ioe);
+    }
+
     log.debug("completing bulkDir import transaction " + tid);
     ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
-    master.removeBulkImportStatus(source);
     return null;
   }
 }

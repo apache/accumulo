@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -137,17 +136,13 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       SortedMap<KeyExtent,Bulk.Files> mappings = computeFileToTabletMappings(fs, tableId, srcPath,
           executor, context);
 
-      // TOOD need to handle case of file existing
-      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), tableId, tableName,
-          p -> fs.create(p));
+      // TODO need to handle case of file existing
+      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), p -> fs.create(p));
 
       List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
           ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
           ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
       doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(), tableName);
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      throw new RuntimeException(e);
     } finally {
       if (service != null) {
         service.shutdown();
@@ -156,8 +151,10 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     }
   }
 
-  private Path checkPath(FileSystem fs, String dir)
-      throws IOException, AccumuloException, AccumuloSecurityException {
+  /**
+   * Check path of bulk directory and permissions
+   */
+  private Path checkPath(FileSystem fs, String dir) throws IOException, AccumuloException {
     Path ret;
 
     if (dir.contains(":")) {
@@ -170,8 +167,14 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       if (!fs.getFileStatus(ret).isDirectory()) {
         throw new AccumuloException("Bulk import directory " + dir + " is not a directory!");
       }
+      Path tmpFile = new Path(ret, "isWritable");
+      if (fs.createNewFile(tmpFile))
+        fs.delete(tmpFile, true);
+      else
+        throw new AccumuloException("Bulk import directory " + dir + " is not writable.");
     } catch (FileNotFoundException fnf) {
-      throw new AccumuloException("Bulk import directory " + dir + " does not exist!");
+      throw new AccumuloException(
+          "Bulk import directory " + dir + " does not exist or has bad permissions", fnf);
     }
     return ret;
   }
@@ -297,8 +300,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   }
 
   public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
-      Table.ID tableId, Path dirPath, Executor executor, ClientContext context)
-      throws IOException, URISyntaxException {
+      Table.ID tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
     TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
     // TODO see how current code filters files in dir

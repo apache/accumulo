@@ -30,16 +30,4 @@ class BulkInfo implements Serializable {
   String sourceDir;
   String bulkDir;
   boolean setTime;
-  int retries;
-
-  BulkInfo deepCopy() {
-    BulkInfo newInfo = new BulkInfo();
-    newInfo.tableId = tableId;
-    newInfo.sourceDir = sourceDir;
-    newInfo.bulkDir = bulkDir;
-    newInfo.setTime = setTime;
-    newInfo.retries = retries;
-    return newInfo;
-  }
-
 }
