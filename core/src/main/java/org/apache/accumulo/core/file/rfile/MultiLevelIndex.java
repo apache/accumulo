@@ -607,7 +607,8 @@ public class MultiLevelIndex {
       }
 
       private Node lookup(Key key) throws IOException {
-        int pos = Collections.binarySearch(indexBlock.getKeyIndex(), key, Comparator.naturalOrder());
+        int pos = Collections.binarySearch(indexBlock.getKeyIndex(), key,
+            Comparator.naturalOrder());
 
         if (pos < 0)
           pos = (pos * -1) - 1;

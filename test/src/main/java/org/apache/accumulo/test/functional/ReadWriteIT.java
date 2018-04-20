@@ -271,9 +271,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         }
 
         return control.exec(TestMultiTableIngest.class,
-            args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance,
-                "-z", keepers, "-p",
-                new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
+            args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance, "-z",
+                keepers, "-p", new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
                 "--tablePrefix", prefix));
       } catch (IOException e) {
         log.error("Error running MultiTableIngest", e);
@@ -301,8 +300,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         return control.exec(TestMultiTableIngest.class,
             args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i",
                 instance, "-z", keepers, "-p",
-                new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
-                "--tablePrefix", prefix));
+                new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8), "--tablePrefix",
+                prefix));
       } catch (IOException e) {
         log.error("Error running MultiTableIngest", e);
         return -1;

@@ -190,9 +190,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {
       try {
         loggedMsgCache.get(this.getClass().getName(), () -> {
-          sawDeleteLog.error("Combiner of type {} saw a delete during a"
-              + " partial compaction. This could cause undesired results. See"
-              + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
+          sawDeleteLog.error(
+              "Combiner of type {} saw a delete during a"
+                  + " partial compaction. This could cause undesired results. See"
+                  + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
               Combiner.this.getClass().getSimpleName());
           // the value is not used and does not matter
           return Boolean.TRUE;

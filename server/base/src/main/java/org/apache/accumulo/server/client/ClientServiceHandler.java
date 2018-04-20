@@ -343,15 +343,14 @@ public class ClientServiceHandler implements ClientService.Iface {
             SecurityErrorCode.PERMISSION_DENIED);
       bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
       log.debug("Got request to bulk import files to table({}): {}", tableId, files);
-      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid,
-          () -> {
-            bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
-            try {
-              return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
-            } finally {
-              bulkImportStatus.removeBulkImportStatus(files);
-            }
-          });
+      return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+        bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
+        try {
+          return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
+        } finally {
+          bulkImportStatus.removeBulkImportStatus(files);
+        }
+      });
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (Exception ex) {

@@ -99,16 +99,14 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
-    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
-        .andAnswer(() -> {
-          Object[] args = EasyMock.getCurrentArguments();
-          return systemConf.get((Property) args[0]);
-        }).anyTimes();
-    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class)))
-        .andAnswer(() -> {
-          Object[] args = EasyMock.getCurrentArguments();
-          return systemConf.getBoolean((Property) args[0]);
-        }).anyTimes();
+    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(() -> {
+      Object[] args = EasyMock.getCurrentArguments();
+      return systemConf.get((Property) args[0]);
+    }).anyTimes();
+    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class))).andAnswer(() -> {
+      Object[] args = EasyMock.getCurrentArguments();
+      return systemConf.getBoolean((Property) args[0]);
+    }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
 

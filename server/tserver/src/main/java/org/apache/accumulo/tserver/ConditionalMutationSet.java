@@ -82,8 +82,8 @@ public class ConditionalMutationSet {
 
   static void sortConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates) {
     for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : updates.entrySet()) {
-      Collections.sort(entry.getValue(), (o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0, o1.getRow().length, o2.getRow(), 0,
-          o2.getRow().length));
+      Collections.sort(entry.getValue(), (o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
+          o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
     }
   }
 }

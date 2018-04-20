@@ -73,16 +73,14 @@ public class SimpleGarbageCollectorTest {
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
     // Presently, we only need get(Property) and iterator().
-    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
-        .andAnswer(() -> {
-          Object[] args = EasyMock.getCurrentArguments();
-          return systemConfig.get((Property) args[0]);
-        }).anyTimes();
-    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class)))
-        .andAnswer(() -> {
-          Object[] args = EasyMock.getCurrentArguments();
-          return systemConfig.getBoolean((Property) args[0]);
-        }).anyTimes();
+    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(() -> {
+      Object[] args = EasyMock.getCurrentArguments();
+      return systemConfig.get((Property) args[0]);
+    }).anyTimes();
+    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class))).andAnswer(() -> {
+      Object[] args = EasyMock.getCurrentArguments();
+      return systemConfig.getBoolean((Property) args[0]);
+    }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConfig.iterator()).anyTimes();
 

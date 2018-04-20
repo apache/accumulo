@@ -208,8 +208,8 @@ public class TabletLocatorImpl extends TabletLocator {
     }
 
     if (notInCache.size() > 0) {
-      Collections.sort(notInCache, (o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0, o1.getRow().length, o2.getRow(), 0,
-          o2.getRow().length));
+      Collections.sort(notInCache, (o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
+          o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
 
       wLock.lock();
       try {
