@@ -21,13 +21,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.security.PrivilegedExceptionAction;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -48,7 +48,7 @@ public class AccumuloServerContextTest {
   private String username;
 
   @Before
-  public void setup() throws Exception {
+  public void setup() {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");
     Configuration conf = new Configuration(false);
@@ -61,61 +61,58 @@ public class AccumuloServerContextTest {
   @Test
   public void testSasl() throws Exception {
 
-    testUser.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
+    testUser.doAs((PrivilegedExceptionAction<Void>) () -> {
 
-        ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-        clientConf.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
-        clientConf.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY, "accumulo");
-        final AccumuloConfiguration conf = ClientContext.convertClientConfig(clientConf);
-        SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
+      Properties clientProps = new Properties();
+      clientProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+      clientProps.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), "accumulo");
+      final AccumuloConfiguration conf = ClientConfConverter.toAccumuloConf(clientProps);
+      SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
 
-        EasyMock.expect(siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)).andReturn(true);
+      EasyMock.expect(siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)).andReturn(true);
 
-        // Deal with SystemToken being private
-        PasswordToken pw = new PasswordToken("fake");
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        pw.write(new DataOutputStream(baos));
-        SystemToken token = new SystemToken();
-        token.readFields(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
+      // Deal with SystemToken being private
+      PasswordToken pw = new PasswordToken("fake");
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      pw.write(new DataOutputStream(baos));
+      SystemToken token = new SystemToken();
+      token.readFields(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
 
-        ServerConfigurationFactory factory = EasyMock.createMock(ServerConfigurationFactory.class);
-        EasyMock.expect(factory.getSystemConfiguration()).andReturn(conf).anyTimes();
-        EasyMock.expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+      ServerConfigurationFactory factory = EasyMock.createMock(ServerConfigurationFactory.class);
+      EasyMock.expect(factory.getSystemConfiguration()).andReturn(conf).anyTimes();
+      EasyMock.expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
-        AccumuloServerContext context = EasyMock.createMockBuilder(AccumuloServerContext.class)
-            .addMockedMethod("enforceKerberosLogin").addMockedMethod("getConfiguration")
-            .addMockedMethod("getServerConfigurationFactory").addMockedMethod("getCredentials")
-            .createMock();
-        context.enforceKerberosLogin();
-        EasyMock.expectLastCall().anyTimes();
-        EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
-        EasyMock.expect(context.getServerConfigurationFactory()).andReturn(factory).anyTimes();
-        EasyMock.expect(context.getCredentials())
-            .andReturn(new Credentials("accumulo/hostname@FAKE.COM", token)).once();
+      AccumuloServerContext context = EasyMock.createMockBuilder(AccumuloServerContext.class)
+          .addMockedMethod("enforceKerberosLogin").addMockedMethod("getConfiguration")
+          .addMockedMethod("getServerConfigurationFactory").addMockedMethod("getCredentials")
+          .createMock();
+      context.enforceKerberosLogin();
+      EasyMock.expectLastCall().anyTimes();
+      EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
+      EasyMock.expect(context.getServerConfigurationFactory()).andReturn(factory).anyTimes();
+      EasyMock.expect(context.getCredentials())
+          .andReturn(new Credentials("accumulo/hostname@FAKE.COM", token)).once();
 
-        // Just make the SiteConfiguration delegate to our ClientConfiguration (by way of the
-        // AccumuloConfiguration)
-        // Presently, we only need get(Property) and iterator().
-        EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(() -> {
-          Object[] args = EasyMock.getCurrentArguments();
-          return conf.get((Property) args[0]);
-        }).anyTimes();
+      // Just make the SiteConfiguration delegate to our ClientConfiguration (by way of the
+      // AccumuloConfiguration)
+      // Presently, we only need get(Property) and iterator().
+      EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(() -> {
+        Object[] args = EasyMock.getCurrentArguments();
+        return conf.get((Property) args[0]);
+      }).anyTimes();
 
-        EasyMock.expect(siteConfig.iterator()).andAnswer(() -> conf.iterator()).anyTimes();
+      EasyMock.expect(siteConfig.iterator()).andAnswer(conf::iterator).anyTimes();
 
-        EasyMock.replay(factory, context, siteConfig);
+      EasyMock.replay(factory, context, siteConfig);
 
-        Assert.assertEquals(ThriftServerType.SASL, context.getThriftServerType());
-        SaslServerConnectionParams saslParams = context.getSaslParams();
-        Assert.assertEquals(new SaslServerConnectionParams(conf, token), saslParams);
-        Assert.assertEquals(username, saslParams.getPrincipal());
+      Assert.assertEquals(ThriftServerType.SASL, context.getThriftServerType());
+      SaslServerConnectionParams saslParams = context.getSaslParams();
+      Assert.assertEquals(new SaslServerConnectionParams(conf, token), saslParams);
+      Assert.assertEquals(username, saslParams.getPrincipal());
 
-        EasyMock.verify(factory, context, siteConfig);
+      EasyMock.verify(factory, context, siteConfig);
 
-        return null;
-      }
+      return null;
     });
   }
 

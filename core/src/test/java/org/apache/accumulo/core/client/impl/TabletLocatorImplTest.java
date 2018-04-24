@@ -30,13 +30,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
@@ -175,8 +175,7 @@ public class TabletLocatorImplTest {
   @Before
   public void setUp() {
     testInstance = new TestInstance("instance1", "tserver1");
-    context = new ClientContext(testInstance, new Credentials("test", null),
-        ClientConfiguration.create());
+    context = new ClientContext(testInstance, new Credentials("test", null), new Properties());
   }
 
   private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache,

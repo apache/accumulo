@@ -26,15 +26,17 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.junit.Test;
 
+@Deprecated
 public class ClientConfigurationTest {
+
   @Test
-  public void testOverrides() throws Exception {
+  public void testOverrides() {
     ClientConfiguration clientConfig = createConfig();
     assertExpectedConfig(clientConfig);
   }
 
   @Test
-  public void testSerialization() throws Exception {
+  public void testSerialization() {
     ClientConfiguration clientConfig = createConfig();
     // sanity check that we're starting with what we're expecting
     assertExpectedConfig(clientConfig);

@@ -22,16 +22,15 @@ import static org.junit.Assert.assertNotNull;
 
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.security.sasl.Sasl;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.QualityOfProtection;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
@@ -46,9 +45,10 @@ public class SaslConnectionParamsTest {
 
   private UserGroupInformation testUser;
   private String username;
+  private static final String primary = "accumulo";
 
   @Before
-  public void setup() throws Exception {
+  public void setup() {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");
     Configuration conf = new Configuration(false);
@@ -58,64 +58,48 @@ public class SaslConnectionParamsTest {
     username = testUser.getUserName();
   }
 
+  private static SaslConnectionParams createSaslParams(AuthenticationToken token) {
+    Properties props = new Properties();
+    props.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), primary);
+    props.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+    return new SaslConnectionParams(props, token);
+  }
+
   @Test
   public void testDefaultParamsAsClient() throws Exception {
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
-    testUser.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    testUser.doAs((PrivilegedExceptionAction<Void>) () -> {
+      final SaslConnectionParams saslParams = createSaslParams(token);
+      assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-        // The primary is the first component of the principal
-        final String primary = "accumulo";
-        clientConf.withSasl(true, primary);
+      final QualityOfProtection defaultQop = QualityOfProtection
+          .get(Property.RPC_SASL_QOP.getDefaultValue());
+      assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
-        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-        final SaslConnectionParams saslParams = new SaslConnectionParams(clientConf, token);
-        assertEquals(primary, saslParams.getKerberosServerPrimary());
-
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
-        assertEquals(defaultQop, saslParams.getQualityOfProtection());
-
-        Map<String,String> properties = saslParams.getSaslProperties();
-        assertEquals(1, properties.size());
-        assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
-        assertEquals(username, saslParams.getPrincipal());
-        return null;
-      }
+      Map<String,String> properties = saslParams.getSaslProperties();
+      assertEquals(1, properties.size());
+      assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
+      assertEquals(username, saslParams.getPrincipal());
+      return null;
     });
   }
 
   @Test
   public void testDefaultParams() throws Exception {
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
-    testUser.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    testUser.doAs((PrivilegedExceptionAction<Void>) () -> {
+      final SaslConnectionParams saslParams = createSaslParams(token);
+      assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-        // The primary is the first component of the principal
-        final String primary = "accumulo";
-        clientConf.withSasl(true, primary);
+      final QualityOfProtection defaultQop = QualityOfProtection
+          .get(Property.RPC_SASL_QOP.getDefaultValue());
+      assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
-        final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
-        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-        final SaslConnectionParams saslParams = new SaslConnectionParams(rpcConf, token);
-        assertEquals(primary, saslParams.getKerberosServerPrimary());
-
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
-        assertEquals(defaultQop, saslParams.getQualityOfProtection());
-
-        Map<String,String> properties = saslParams.getSaslProperties();
-        assertEquals(1, properties.size());
-        assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
-        assertEquals(username, saslParams.getPrincipal());
-        return null;
-      }
+      Map<String,String> properties = saslParams.getSaslProperties();
+      assertEquals(1, properties.size());
+      assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
+      assertEquals(username, saslParams.getPrincipal());
+      return null;
     });
   }
 
@@ -123,36 +107,24 @@ public class SaslConnectionParamsTest {
   public void testDelegationTokenImpl() throws Exception {
     final DelegationTokenImpl token = new DelegationTokenImpl(new byte[0],
         new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
-    testUser.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
+    testUser.doAs((PrivilegedExceptionAction<Void>) () -> {
+      final SaslConnectionParams saslParams = createSaslParams(token);
+      assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-        // The primary is the first component of the principal
-        final String primary = "accumulo";
-        clientConf.withSasl(true, primary);
+      final QualityOfProtection defaultQop = QualityOfProtection
+          .get(Property.RPC_SASL_QOP.getDefaultValue());
+      assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
-        final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
-        assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+      assertEquals(SaslMechanism.DIGEST_MD5, saslParams.getMechanism());
+      assertNotNull(saslParams.getCallbackHandler());
+      assertEquals(SaslClientDigestCallbackHandler.class,
+          saslParams.getCallbackHandler().getClass());
 
-        final SaslConnectionParams saslParams = new SaslConnectionParams(rpcConf, token);
-        assertEquals(primary, saslParams.getKerberosServerPrimary());
-
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
-        assertEquals(defaultQop, saslParams.getQualityOfProtection());
-
-        assertEquals(SaslMechanism.DIGEST_MD5, saslParams.getMechanism());
-        assertNotNull(saslParams.getCallbackHandler());
-        assertEquals(SaslClientDigestCallbackHandler.class,
-            saslParams.getCallbackHandler().getClass());
-
-        Map<String,String> properties = saslParams.getSaslProperties();
-        assertEquals(1, properties.size());
-        assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
-        assertEquals(username, saslParams.getPrincipal());
-        return null;
-      }
+      Map<String,String> properties = saslParams.getSaslProperties();
+      assertEquals(1, properties.size());
+      assertEquals(defaultQop.getQuality(), properties.get(Sasl.QOP));
+      assertEquals(username, saslParams.getPrincipal());
+      return null;
     });
   }
 
@@ -160,38 +132,10 @@ public class SaslConnectionParamsTest {
   public void testEquality() throws Exception {
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
     SaslConnectionParams params1 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-
-            // The primary is the first component of the principal
-            final String primary = "accumulo";
-            clientConf.withSasl(true, primary);
-
-            final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
-            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-            return new SaslConnectionParams(rpcConf, token);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     SaslConnectionParams params2 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-
-            // The primary is the first component of the principal
-            final String primary = "accumulo";
-            clientConf.withSasl(true, primary);
-
-            final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
-            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-            return new SaslConnectionParams(rpcConf, token);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     assertEquals(params1, params2);
     assertEquals(params1.hashCode(), params2.hashCode());
@@ -199,21 +143,7 @@ public class SaslConnectionParamsTest {
     final DelegationTokenImpl delToken1 = new DelegationTokenImpl(new byte[0],
         new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
     SaslConnectionParams params3 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-
-            // The primary is the first component of the principal
-            final String primary = "accumulo";
-            clientConf.withSasl(true, primary);
-
-            final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
-            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-            return new SaslConnectionParams(rpcConf, delToken1);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(delToken1));
 
     assertNotEquals(params1, params3);
     assertNotEquals(params1.hashCode(), params3.hashCode());
@@ -223,21 +153,7 @@ public class SaslConnectionParamsTest {
     final DelegationTokenImpl delToken2 = new DelegationTokenImpl(new byte[0],
         new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
     SaslConnectionParams params4 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-
-            // The primary is the first component of the principal
-            final String primary = "accumulo";
-            clientConf.withSasl(true, primary);
-
-            final AccumuloConfiguration rpcConf = ClientContext.convertClientConfig(clientConf);
-            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-            return new SaslConnectionParams(rpcConf, delToken2);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(delToken2));
 
     assertNotEquals(params1, params4);
     assertNotEquals(params1.hashCode(), params4.hashCode());

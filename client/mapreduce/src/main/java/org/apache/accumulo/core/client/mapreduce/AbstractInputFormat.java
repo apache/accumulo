@@ -274,7 +274,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(Job, ClientConfiguration)
    */
   protected static Instance getInstance(JobContext context) {
     return InputConfigurator.getInstance(CLASS, context.getConfiguration());

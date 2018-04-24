@@ -21,23 +21,20 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.sasl.Sasl;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,16 +126,16 @@ public class SaslConnectionParams {
   protected final Map<String,String> saslProperties;
 
   public SaslConnectionParams(AccumuloConfiguration conf, AuthenticationToken token) {
-    this(ClientConfiguration.fromMap(getProperties(conf)), token);
+    this(ClientConfConverter.toProperties(conf), token);
   }
 
-  public SaslConnectionParams(ClientConfiguration conf, AuthenticationToken token) {
-    requireNonNull(conf, "Configuration was null");
+  public SaslConnectionParams(Properties properties, AuthenticationToken token) {
+    requireNonNull(properties, "Properties was null");
     requireNonNull(token, "AuthenticationToken was null");
 
     saslProperties = new HashMap<>();
     updatePrincipalFromUgi();
-    updateFromConfiguration(conf);
+    updateFromConfiguration(properties);
     updateFromToken(token);
   }
 
@@ -154,38 +151,6 @@ public class SaslConnectionParams {
       throw new IllegalArgumentException(
           "Cannot determine SASL mechanism for token class: " + token.getClass());
     }
-  }
-
-  protected static Map<String,String> getProperties(AccumuloConfiguration conf) {
-    final Map<String,String> clientProperties = new HashMap<>();
-
-    // Servers will only have the full principal in their configuration -- parse the
-    // primary and realm from it.
-    final String serverPrincipal = conf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
-
-    final KerberosName krbName;
-    try {
-      krbName = new KerberosName(serverPrincipal);
-      clientProperties.put(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey(),
-          krbName.getServiceName());
-    } catch (Exception e) {
-      // bad value or empty, assume we're not using kerberos
-    }
-
-    HashSet<String> clientKeys = new HashSet<>();
-    for (ClientProperty prop : ClientProperty.values()) {
-      clientKeys.add(prop.getKey());
-    }
-
-    String key;
-    for (Entry<String,String> entry : conf) {
-      key = entry.getKey();
-      if (clientKeys.contains(key)) {
-        clientProperties.put(key, entry.getValue());
-      }
-    }
-
-    return clientProperties;
   }
 
   protected void updatePrincipalFromUgi() {
@@ -210,16 +175,17 @@ public class SaslConnectionParams {
 
   }
 
-  protected void updateFromConfiguration(ClientConfiguration conf) {
+  protected void updateFromConfiguration(Properties properties) {
     // Get the quality of protection to use
-    final String qopValue = conf.get(ClientProperty.RPC_SASL_QOP);
+    final String qopValue = ClientProperty.SASL_QOP.getValue(properties);
     this.qop = QualityOfProtection.get(qopValue);
 
     // Add in the SASL properties to a map so we don't have to repeatedly construct this map
     this.saslProperties.put(Sasl.QOP, this.qop.getQuality());
 
     // The primary from the KRB principal on each server (e.g. primary/instance@realm)
-    this.kerberosServerPrimary = conf.get(ClientProperty.KERBEROS_SERVER_PRIMARY);
+    this.kerberosServerPrimary = properties
+        .getProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey());
   }
 
   public Map<String,String> getSaslProperties() {

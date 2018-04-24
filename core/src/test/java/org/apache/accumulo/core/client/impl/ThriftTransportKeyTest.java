@@ -26,10 +26,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -42,13 +43,22 @@ import org.junit.Test;
 
 public class ThriftTransportKeyTest {
 
+  private static final String primary = "accumulo";
+
   @Before
-  public void setup() throws Exception {
+  public void setup() {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");
     Configuration conf = new Configuration(false);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
     UserGroupInformation.setConfiguration(conf);
+  }
+
+  private static SaslConnectionParams createSaslParams(AuthenticationToken token) {
+    Properties props = new Properties();
+    props.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), primary);
+    props.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+    return new SaslConnectionParams(props, token);
   }
 
   @Test(expected = RuntimeException.class)
@@ -74,28 +84,14 @@ public class ThriftTransportKeyTest {
   public void testConnectionCaching() throws IOException, InterruptedException {
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", new String[0]);
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
-    final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-    // The primary is the first component of the principal
-    final String primary = "accumulo";
-    clientConf.withSasl(true, primary);
 
     // A first instance of the SASL cnxn params
     SaslConnectionParams saslParams1 = user1
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            return new SaslConnectionParams(clientConf, token);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     // A second instance of what should be the same SaslConnectionParams
     SaslConnectionParams saslParams2 = user1
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            return new SaslConnectionParams(clientConf, token);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L,
         null, saslParams1),
@@ -112,37 +108,11 @@ public class ThriftTransportKeyTest {
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", new String[0]);
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
     SaslConnectionParams saslParams1 = user1
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-
-            // The primary is the first component of the principal
-            final String primary = "accumulo";
-            clientConf.withSasl(true, primary);
-
-            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-            return new SaslConnectionParams(clientConf, token);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     UserGroupInformation user2 = UserGroupInformation.createUserForTesting("user2", new String[0]);
     SaslConnectionParams saslParams2 = user2
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
-          @Override
-          public SaslConnectionParams run() throws Exception {
-            final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-
-            // The primary is the first component of the principal
-            final String primary = "accumulo";
-            clientConf.withSasl(true, primary);
-
-            assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-
-            return new SaslConnectionParams(clientConf, token);
-          }
-        });
+        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L,
         null, saslParams1),
@@ -167,5 +137,4 @@ public class ThriftTransportKeyTest {
 
     assertTrue("Normal ThriftTransportKey doesn't equal itself", ttk.equals(ttk));
   }
-
 }

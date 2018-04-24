@@ -238,7 +238,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(Job, ClientConfiguration)
    */
   protected static Instance getInstance(JobContext context) {
     return OutputConfigurator.getInstance(CLASS, context.getConfiguration());

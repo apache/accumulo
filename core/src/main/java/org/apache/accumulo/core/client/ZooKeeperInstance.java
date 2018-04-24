@@ -26,7 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -75,6 +75,7 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
+  @SuppressWarnings("deprecation")
   private ClientConfiguration clientConf;
 
   /**
@@ -85,6 +86,7 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an
    *          optional port, of the format host:port.
    */
+  @SuppressWarnings("deprecation")
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
   }
@@ -137,17 +139,18 @@ public class ZooKeeperInstance implements Instance {
         .withZkTimeout(sessionTimeout));
   }
 
+  @SuppressWarnings("deprecation")
   ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
     this.clientConf = config;
-    this.instanceId = clientConf.get(ClientProperty.INSTANCE_ID);
-    this.instanceName = clientConf.get(ClientProperty.INSTANCE_NAME);
+    this.instanceId = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ID);
+    this.instanceName = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_NAME);
     if ((instanceId == null) == (instanceName == null))
       throw new IllegalArgumentException(
           "Expected exactly one of instanceName and instanceId to be set");
-    this.zooKeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
+    this.zooKeepers = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST);
     this.zooKeepersSessionTimeOut = (int) ConfigurationTypeHelper
-        .getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
+        .getTimeInMillis(clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT));
     zooCache = zcf.getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     if (null != instanceName) {
       // Validates that the provided instanceName actually exists
@@ -162,6 +165,7 @@ public class ZooKeeperInstance implements Instance {
    *          specific to Accumulo.
    * @since 1.9.0
    */
+  @SuppressWarnings("deprecation")
   public ZooKeeperInstance(ClientConfiguration config) {
     this(config, new ZooCacheFactory());
   }
@@ -282,8 +286,8 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public Connector getConnector(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(
-        new ClientContext(this, new Credentials(principal, token), clientConf));
+    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token),
+        ClientConfConverter.toProperties(clientConf)));
   }
 
   @Override

@@ -91,8 +91,8 @@ public class DistributedTrace {
    * Enable tracing by setting up SpanReceivers for the current process. If host name is null, it
    * will be determined. If service name is null, the simple name of the class will be used.
    * Properties required in the client configuration include
-   * {@link org.apache.accumulo.core.client.ClientConfiguration.ClientProperty#TRACE_SPAN_RECEIVERS}
-   * and any properties specific to the span receiver.
+   * {@link org.apache.accumulo.core.conf.ClientProperty#TRACE_SPAN_RECEIVERS} and any properties
+   * specific to the span receiver.
    */
   public static void enable(String hostname, String service, Properties properties) {
     String spanReceivers = ClientProperty.TRACE_SPAN_RECEIVERS.getValue(properties);
