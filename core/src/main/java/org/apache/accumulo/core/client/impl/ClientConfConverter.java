@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,8 +36,6 @@ import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY;
 
 @SuppressWarnings("deprecation")
 public class ClientConfConverter {
@@ -168,8 +168,8 @@ public class ClientConfConverter {
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
             if (config.containsKey(KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config.getString(KERBEROS_SERVER_PRIMARY.getKey())
-                  + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+              return config.getString(KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@"
+                  + SaslConnectionParams.getDefaultRealm();
             }
           }
           return defaults.get(property);
@@ -266,6 +266,5 @@ public class ClientConfConverter {
     }
     return clientConf;
   }
-
 
 }

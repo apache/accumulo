@@ -96,11 +96,10 @@ public class AccumuloServerContextTest {
       // Just make the SiteConfiguration delegate to our ClientConfiguration (by way of the
       // AccumuloConfiguration)
       // Presently, we only need get(Property) and iterator().
-      EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class)))
-          .andAnswer(() -> {
-            Object[] args = EasyMock.getCurrentArguments();
-            return conf.get((Property) args[0]);
-          }).anyTimes();
+      EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(() -> {
+        Object[] args = EasyMock.getCurrentArguments();
+        return conf.get((Property) args[0]);
+      }).anyTimes();
 
       EasyMock.expect(siteConfig.iterator()).andAnswer(conf::iterator).anyTimes();
 

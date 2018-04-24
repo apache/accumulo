@@ -16,23 +16,24 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -68,10 +69,15 @@ public class ZooKeeperInstance implements Instance {
 
   private String instanceId = null;
   private String instanceName = null;
+
   private final ZooCache zooCache;
+
   private final String zooKeepers;
+
   private final int zooKeepersSessionTimeOut;
-  private Properties clientProps = new Properties();
+
+  @SuppressWarnings("deprecation")
+  private ClientConfiguration clientConf;
 
   /**
    *
@@ -82,7 +88,8 @@ public class ZooKeeperInstance implements Instance {
    *          optional port, of the format host:port.
    */
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
-    this(instanceName, null, zooKeepers, -1, new ZooCacheFactory());
+    // noinspection deprecation
+    this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -98,7 +105,8 @@ public class ZooKeeperInstance implements Instance {
    */
   @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
-    this(instanceName, null, zooKeepers, sessionTimeout, new ZooCacheFactory());
+    this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers)
+        .withZkTimeout(sessionTimeout));
   }
 
   /**
@@ -112,7 +120,7 @@ public class ZooKeeperInstance implements Instance {
    */
   @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
-    this(null, instanceId.toString(), zooKeepers, -1, new ZooCacheFactory());
+    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers));
   }
 
   /**
@@ -128,35 +136,22 @@ public class ZooKeeperInstance implements Instance {
    */
   @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
-    this(null, instanceId.toString(), zooKeepers, sessionTimeout, new ZooCacheFactory());
+    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers)
+        .withZkTimeout(sessionTimeout));
   }
 
   @SuppressWarnings("deprecation")
   ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
-    this(config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME), config.get(ClientConfiguration.ClientProperty.INSTANCE_ID),
-        config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),
-        (int)ConfigurationTypeHelper.getTimeInMillis(config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT)), zcf);
-  }
-
-  private ZooKeeperInstance(String instanceName, String instanceId, String zooKeepers, int sessionTimeout, ZooCacheFactory zcf) {
-    this.instanceName = instanceName;
-    this.instanceId = instanceId;
-    if ((instanceId == null) == (instanceName == null)) {
-      throw new IllegalArgumentException("Expected exactly one of instanceName and instanceId to be set");
-    }
-    if (instanceName != null) {
-      clientProps.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
-    }
-    this.zooKeepers = zooKeepers;
-    if (zooKeepers != null) {
-      clientProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zooKeepers);
-    }
-    if (sessionTimeout == -1) {
-      zooKeepersSessionTimeOut = (int) ConfigurationTypeHelper.getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getDefaultValue());
-    } else {
-      zooKeepersSessionTimeOut = sessionTimeout;
-    }
-    clientProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey(), String.valueOf(zooKeepersSessionTimeOut / 1000));
+    checkArgument(config != null, "config is null");
+    this.clientConf = config;
+    this.instanceId = clientConf.get(ClientProperty.INSTANCE_ID);
+    this.instanceName = clientConf.get(ClientProperty.INSTANCE_NAME);
+    if ((instanceId == null) == (instanceName == null))
+      throw new IllegalArgumentException(
+          "Expected exactly one of instanceName and instanceId to be set");
+    this.zooKeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
+    this.zooKeepersSessionTimeOut = (int) ConfigurationTypeHelper
+        .getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
     zooCache = zcf.getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     if (null != instanceName) {
       // Validates that the provided instanceName actually exists
@@ -292,8 +287,8 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public Connector getConnector(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(
-        new ClientContext(this, new Credentials(principal, token), clientProps));
+    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token),
+        ClientConfConverter.toProperties(clientConf)));
   }
 
   @Override

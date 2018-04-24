@@ -153,8 +153,6 @@ public class SaslConnectionParams {
     }
   }
 
-
-
   protected void updatePrincipalFromUgi() {
     // Ensure we're using Kerberos auth for Hadoop UGI
     if (!UserGroupInformation.isSecurityEnabled()) {

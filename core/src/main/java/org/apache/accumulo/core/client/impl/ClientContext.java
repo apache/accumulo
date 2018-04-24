@@ -109,7 +109,8 @@ public class ClientContext {
         if (!clientConf.hasSasl()) {
           return null;
         }
-        return new SaslConnectionParams(ClientConfConverter.toProperties(clientConf), getCredentials().getToken());
+        return new SaslConnectionParams(ClientConfConverter.toProperties(clientConf),
+            getCredentials().getToken());
       }
       AccumuloConfiguration conf = getConfiguration();
       if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {

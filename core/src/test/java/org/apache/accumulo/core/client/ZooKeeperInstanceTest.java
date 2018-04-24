@@ -58,7 +58,7 @@ public class ZooKeeperInstanceTest {
 
   @Before
   public void setUp() {
-    //noinspection deprecation
+    // noinspection deprecation
     config = createMock(ClientConfiguration.class);
     mockNameConstruction(config);
     replay(config);
@@ -75,7 +75,7 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidConstruction() {
-    //noinspection deprecation
+    // noinspection deprecation
     config = createMock(ClientConfiguration.class);
     expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(IID_STRING);
     mockNameConstruction(config);
@@ -85,7 +85,7 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidConstruction2() {
-    //noinspection deprecation
+    // noinspection deprecation
     config = createMock(ClientConfiguration.class);
     expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(null);
     expect(config.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
@@ -113,7 +113,7 @@ public class ZooKeeperInstanceTest {
 
   @Test
   public void testGetInstanceID_Direct() {
-    //noinspection deprecation
+    // noinspection deprecation
     config = createMock(ClientConfiguration.class);
     mockIdConstruction(config);
     replay(config);
@@ -142,7 +142,7 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = RuntimeException.class)
   public void testGetInstanceID_IDMissingForID() {
-    //noinspection deprecation
+    // noinspection deprecation
     config = createMock(ClientConfiguration.class);
     mockIdConstruction(config);
     replay(config);
@@ -154,7 +154,7 @@ public class ZooKeeperInstanceTest {
 
   @Test
   public void testGetInstanceName() {
-    //noinspection deprecation
+    // noinspection deprecation
     config = createMock(ClientConfiguration.class);
     mockIdConstruction(config);
     replay(config);
@@ -182,7 +182,7 @@ public class ZooKeeperInstanceTest {
         .andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
     replay(zc, factory);
-    //noinspection deprecation
+    // noinspection deprecation
     ClientConfiguration cfg = ClientConfiguration.loadDefault().withInstance(instanceName)
         .withZkHosts(zookeepers);
     ZooKeeperInstance zki = new ZooKeeperInstance(cfg, factory);
