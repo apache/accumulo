@@ -25,7 +25,7 @@ Apache Accumulo® User Manual Version ${parsedVersion.majorVersion}.${parsedVers
 
 image::accumulo-logo.png[]
 
-Copyright © 2011-2017 The Apache Software Foundation, Licensed under the Apache
+Copyright © 2011-2018 The Apache Software Foundation, Licensed under the Apache
 License, Version 2.0.  Apache Accumulo, Accumulo, Apache, and the Apache
 Accumulo project logo are trademarks of the Apache Software Foundation.
 
