@@ -27,7 +27,6 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
@@ -134,7 +133,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public ClientConfiguration getClientConfig() {
+  @Deprecated
+  public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
     return ClientConfConverter.toClientConf(info.getProperties());
   }
 

@@ -22,7 +22,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.Pair;
@@ -122,10 +122,18 @@ public class MiniAccumuloCluster {
 
   /**
    * @since 1.6.0
-   * @deprecated since 2.0.0
+   * @deprecated since 2.0.0, replaced by {{@link #getConnectionInfo()}}
    */
   @Deprecated
-  public ClientConfiguration getClientConfig() {
+  public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
     return impl.getClientConfig();
+  }
+
+  /**
+   * @return Connection info for cluster
+   * @since 2.0.0
+   */
+  public ConnectionInfo getConnectionInfo() {
+    return impl.getConnectionInfo();
   }
 }

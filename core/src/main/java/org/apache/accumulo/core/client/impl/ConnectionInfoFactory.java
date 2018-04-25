@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Durability;
@@ -80,7 +79,9 @@ public class ConnectionInfoFactory {
     return batchWriterConfig;
   }
 
-  public static ClientConfiguration getClientConfiguration(ConnectionInfo info) {
+  @SuppressWarnings("deprecation")
+  public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
+      ConnectionInfo info) {
     return ClientConfConverter.toClientConf(info.getProperties());
   }
 }
