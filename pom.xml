@@ -122,7 +122,7 @@
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- extra release args for testing -->
-    <extraReleaseArgs />
+    <extraReleaseArguments />
     <failsafe.excludedGroups />
     <failsafe.groups />
     <findbugs.version>3.0.5</findbugs.version>
@@ -704,7 +704,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P !autoformat,thrift,sunny -Dtimeout.factor=2 ${extraReleaseArgs}</arguments>
+            <arguments>-P !autoformat,thrift,sunny -Dtimeout.factor=2 ${extraReleaseArguments}</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>

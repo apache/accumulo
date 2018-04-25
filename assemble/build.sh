@@ -17,6 +17,13 @@
 
 cd "$(dirname "$0")/.." || exit 1
 scriptname=$(basename "$0")
+export tlpName=accumulo
+export projName="$tlpName"
+export projNameLong="Apache ${projName^}"
+export stagingRepoPrefix="https://repository.apache.org/content/repositories/orgapache$tlpName"
+export srcQualifier="src"
+export relTestingUrl="https://$tlpName.apache.org/contributor/verifying-release"
+export tagPrefix="rel/"
 
 # check for gpg2
 hash gpg2 2>/dev/null && gpgCommand=gpg2 || gpgCommand=gpg
@@ -67,13 +74,15 @@ gitSubject() { pretty %s "$@"; }
 
 createEmail() {
   # $1 version (optional); $2 rc seqence num (optional); $3 staging repo num (optional)
-  local ver; [[ -n $1 ]] && ver=$1 || ver=$(prompter 'version to be released (eg. x.y.z)' '[0-9]+[.][0-9]+[.][0-9]+')
-  local rc; [[ -n $2 ]] && rc=$2 || rc=$(prompter 'release candidate sequence number (eg. 1, 2, etc.)' '[0-9]+')
-  local stagingrepo; [[ -n $3 ]] && stagingrepo=$3 || stagingrepo=$(prompter 'staging repository number from https://repository.apache.org/#stagingRepositories' '[0-9]+')
+  local ver; [[ -n "$1" ]] && ver=$1 || ver=$(prompter 'version to be released (eg. x.y.z)' '[0-9]+[.][0-9]+[.][0-9]+')
+  local rc; [[ -n "$2" ]] && rc=$2 || rc=$(prompter 'release candidate sequence number (eg. 1, 2, etc.)' '[0-9]+')
+  local stagingrepo; [[ -n "$3" ]] && stagingrepo=$3 || stagingrepo=$(prompter 'staging repository number from https://repository.apache.org/#stagingRepositories' '[0-9]+')
+  local srcSha; [[ -n "$4" ]] && srcSha=$4 || srcSha=$(prompter 'SHA512 for source tarball' '[0-9a-f]{128}')
+  local binSha; [[ -n "$5" ]] && binSha=$5 || binSha=$(prompter 'SHA512 for binary tarball' '[0-9a-f]{128}')
 
   local branch; branch=$ver-rc$rc
   local commit; commit=$(gitCommit "$branch") || exit 1
-  local tag; tag=rel/$ver
+  local tag; tag=$tagPrefix$ver
   echo
   yellow  "IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!!"
   echo
@@ -83,7 +92,7 @@ createEmail() {
   echo
   echo    "    Remember, $(red DO NOT PUSH) the $(red "$tag") tag until after the vote"
   echo    "    passes and the tag is re-made with a gpg signature using:"
-  echo    "      $(red "git tag -f -m 'Apache Accumulo $ver' -s $tag ${commit:0:7}")"
+  echo    "      $(red "git tag -f -m '$projNameLong $ver' -s $tag ${commit:0:7}")"
   echo
   yellow  "IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!!"
   echo
@@ -105,11 +114,11 @@ createEmail() {
 
   cat <<EOF
 $(yellow '============================================================')
-Subject: $(green [VOTE] Accumulo "$branch")
+Subject: $(green [VOTE] "$projNameLong $branch")
 $(yellow '============================================================')
-Accumulo Developers,
+${tlpName^} Developers,
 
-Please consider the following candidate for Accumulo $(green "$ver").
+Please consider the following candidate for $projNameLong $(green "$ver").
 
 Git Commit:
     $(green "$commit")
@@ -117,36 +126,44 @@ Branch:
     $(green "$branch")
 
 If this vote passes, a gpg-signed tag will be created using:
-    $(green "git tag -f -m 'Apache Accumulo $ver' -s $tag $commit")
+    $(green "git tag -f -m '$projNameLong $ver' -s $tag") \\
+    $(green "$commit")
 
-Staging repo: $(green "https://repository.apache.org/content/repositories/orgapacheaccumulo-$stagingrepo")
-Source (official release artifact): $(green "https://repository.apache.org/content/repositories/orgapacheaccumulo-$stagingrepo/org/apache/accumulo/accumulo/$ver/accumulo-$ver-src.tar.gz")
-Binary: $(green "https://repository.apache.org/content/repositories/orgapacheaccumulo-$stagingrepo/org/apache/accumulo/accumulo/$ver/accumulo-$ver-bin.tar.gz")
+Staging repo: $(green "$stagingRepoPrefix-$stagingrepo")
+Source (official release artifact): $(green "$stagingRepoPrefix-$stagingrepo/org/apache/$tlpName/$projName/$ver/$projName-$ver-$srcQualifier.tar.gz")
+Binary: $(green "$stagingRepoPrefix-$stagingrepo/org/apache/$tlpName/$projName/$ver/$projName-$ver-bin.tar.gz")
 (Append ".sha1", ".md5", or ".asc" to download the signature/hash for a given artifact.)
 
-All artifacts were built and staged with:
-    mvn release:prepare && mvn release:perform
+In addition to the tarballs, and their signatures, the following checksum
+files will be added to the dist/release SVN area after release:
+$(yellow "$projName-$ver-$srcQualifier.tar.gz.sha512") will contain:
+SHA512 ($(green "$projName-$ver-$srcQualifier.tar.gz")) = $(yellow "$srcSha")
+$(yellow "$projName-$ver-bin.tar.gz.sha512") will contain:
+SHA512 ($(green "$projName-$ver-bin.tar.gz")) = $(yellow "$binSha")
 
-Signing keys are available at https://www.apache.org/dist/accumulo/KEYS
+Signing keys are available at https://www.apache.org/dist/$tlpName/KEYS
 (Expected fingerprint: $(green "$fingerprint"))
 
-Release notes (in progress) can be found at: $(green "https://accumulo.apache.org/release_notes/$ver")
+Release notes (in progress) can be found at: $(green "https://$tlpName.apache.org/release/$projName-$ver/")
+
+Release testing instructions: $relTestingUrl
 
 Please vote one of:
 [ ] +1 - I have verified and accept...
 [ ] +0 - I have reservations, but not strong enough to vote against...
 [ ] -1 - Because..., I do not accept...
-... these artifacts as the $(green "$ver") release of Apache Accumulo.
+... these artifacts as the $(green "$ver") release of $projNameLong.
 
-This vote will remain open until at least $(green "$votedate")
-($(green "$edtvotedate") / $(green "$pdtvotedate")).
-Voting continues until the release manager sends an email closing the vote.
+This vote will remain open until at least $(green "$votedate").
+($(green "$edtvotedate") / $(green "$pdtvotedate"))
+Voting can continue after this deadline until the release manager
+sends an email ending the vote.
 
 Thanks!
 
 P.S. Hint: download the whole staging repo with
     wget -erobots=off -r -l inf -np -nH \\
-    $(green "https://repository.apache.org/content/repositories/orgapacheaccumulo-$stagingrepo/")
+    $(green "$stagingRepoPrefix-$stagingrepo/")
     # note the trailing slash is needed
 $(yellow '============================================================')
 EOF
@@ -175,7 +192,8 @@ cleanUpAndFail() {
 
   # de-duplicate branches
   local a
-  branches=($(printf "%s\n" "${branches[@]}" | sort -u))
+  local tmpArray; tmpArray=("${branches[@]}")
+  IFS=$'\n' read -d '' -r -a branches < <(printf '%s\n' "${tmpArray[@]}" | sort -u)
   for x in "${branches[@]}"; do
     echo "Do you wish to clean up (delete) the branch $(yellow "$x")?"
     a=$(prompter "letter 'y' or 'n'" '[yn]')
@@ -206,15 +224,19 @@ createReleaseCandidate() {
     red "You added '${extraReleaseArgs[*]}'"
   fi
   [[ ${#extraReleaseArgs[@]} -eq 0 ]] && [[ $gpgCommand != 'gpg' ]] && extraReleaseArgs=("-Dgpg.executable=$gpgCommand")
-  extraReleaseArgs="-DextraReleaseArgs='${extraReleaseArgs[*]}'"
+  local extraReleaseArgsFlat; extraReleaseArgsFlat="-DextraReleaseArguments='${extraReleaseArgs[*]}'"
 
   local ver
   ver=$(xmllint --shell pom.xml <<<'xpath /*[local-name()="project"]/*[local-name()="version"]/text()' | grep content= | cut -f2 -d=)
   ver=${ver%%-SNAPSHOT}
   echo "Building release candidate for version: $(green "$ver")"
+  local tag; tag=$tagPrefix$ver
 
   local cBranch; cBranch=$(currentBranch) || fail "$(red Failure)" to get current branch from git
   local rc; rc=$(prompter 'release candidate sequence number (eg. 1, 2, etc.)' '[0-9]+')
+  local tmpNextVer; tmpNextVer="${ver%.*}.$((${ver##*.}+1))"
+  local nextVer; nextVer=$(prompter "next snapshot version to be released [$tmpNextVer]" '([0-9]+[.][0-9]+[.][0-9]+)?')
+  [[ -n $nextVer ]] || nextVer=$tmpNextVer
   local rcBranch; rcBranch=$ver-rc$rc
   local nBranch; nBranch=$rcBranch-next
 
@@ -226,14 +248,14 @@ createReleaseCandidate() {
   } || fail "Unable to create working branch $(red "$nBranch") from $(red "$cBranch")!"
 
   # create a release candidate from a branch
-  local oFile; oFile=$(mktemp --tmpdir "accumulo-build-$rcBranch-XXXXXXXX.log")
+  local oFile; oFile=$(mktemp --tmpdir "$projName-build-$rcBranch-XXXXXXXX.log")
   {
     [[ -w $oFile ]] && runLog "$oFile" mvn clean release:clean
   } || cleanUpAndFail 'mvn clean release:clean' "$oFile" "$cBranch" "$nBranch"
-  runLog "$oFile" mvn -B release:prepare "${extraReleaseArgs}" || \
-    cleanUpAndFail "mvn release:prepare ${extraReleaseArgs}" "$oFile" "$cBranch" "$nBranch"
-  runLog "$oFile" mvn release:perform "${extraReleaseArgs}" || \
-    cleanUpAndFail "mvn release:perform ${extraReleaseArgs}" "$oFile" "$cBranch" "$nBranch"
+  runLog "$oFile" mvn -B release:prepare -DdevelopmentVersion="${nextVer}-SNAPSHOT" "${extraReleaseArgsFlat}" || \
+    cleanUpAndFail "mvn -B release:prepare -DdevelopmentVersion=${nextVer}-SNAPSHOT ${extraReleaseArgsFlat}" "$oFile" "$cBranch" "$nBranch"
+  runLog "$oFile" mvn release:perform "${extraReleaseArgsFlat}" || \
+    cleanUpAndFail "mvn release:perform ${extraReleaseArgsFlat}" "$oFile" "$cBranch" "$nBranch"
 
   # switch back to original branch
   run git checkout "${cBranch}"
@@ -243,16 +265,16 @@ createReleaseCandidate() {
     [[ $(gitCommits "${cBranch}..${nBranch}" | wc -l) -eq 2 ]] && \
       [[ $(gitCommit  "${nBranch}~2") ==  $(gitCommit "${cBranch}") ]] && \
       [[ $(gitSubject "${nBranch}")   =~ ^\[maven-release-plugin\]\ prepare\ for\ next ]] && \
-      [[ $(gitSubject "${nBranch}~1") =~ ^\[maven-release-plugin\]\ prepare\ release\ rel[/]$ver ]]
+      [[ $(gitSubject "${nBranch}~1") =~ ^\[maven-release-plugin\]\ prepare\ release\ rel[/] ]]
   } || cleanUpAndFail "verifying that $nBranch contains only logs from release plugin"
 
   # verify the tag is one behind $nBranch and one ahead of $cBranch
-  [[ $(gitCommit "${nBranch}~1") == $(gitCommit "refs/tags/rel/$ver") ]] || \
-    cleanUpAndFail "verifying that ${nBranch}~1 == refs/tags/rel/$ver"
+  [[ $(gitCommit "${nBranch}~1") == $(gitCommit "refs/tags/$tag") ]] || \
+    cleanUpAndFail "verifying that ${nBranch}~1 == refs/tags/$tag"
 
   # remove tag which was created
-  run git tag -d "rel/$ver" || \
-    cleanUpAndFail "removing unused git tag rel/$ver"
+  run git tag -d "$tag" || \
+    cleanUpAndFail "removing unused git tag $tag"
 
   # create release candidate branch to vote on
   run git branch "$rcBranch" "${nBranch}~1" || \
@@ -269,9 +291,17 @@ createReleaseCandidate() {
       run git push -u origin "refs/heads/$nBranch" "refs/heads/$rcBranch"
   } || red "Did not push branches; you'll need to perform this step manually."
 
+  local numSrc; numSrc=$(find target/checkout/ -type f -name "$projName-$ver-source-release.tar.gz" | wc -l)
+  local numBin; numBin=$(find target/checkout/ -type f -name "$projName-$ver-bin.tar.gz" | wc -l)
+  shopt -s globstar
+  local srcSha; srcSha=""
+  local binSha; binSha=""
+  [[ $numSrc = "1" ]] && srcSha=$(sha512sum target/checkout/**/"$projName-$ver-source-release.tar.gz" | cut -f1 -d" ")
+  [[ $numBin = "1" ]] && binSha=$(sha512sum target/checkout/**/"$projName-$ver-bin.tar.gz" | cut -f1 -d" ")
+
   # continue to creating email notification
   echo "$(red Running)" "$(yellow "$scriptname" --create-email "$ver" "$rc")"
-  createEmail "$ver" "$rc"
+  createEmail "$ver" "$rc" "" "$srcSha" "$binSha"
 }
 
 if [[ $1 == '--create-release-candidate' ]]; then
