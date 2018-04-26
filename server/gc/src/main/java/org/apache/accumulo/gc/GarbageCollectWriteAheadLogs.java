@@ -258,7 +258,7 @@ public class GarbageCollectWriteAheadLogs {
       }
       return 1;
     } catch (FileNotFoundException ex) {
-      // ignored
+      log.debug("Attempted to delete WAL {} that did not exists : {}", path, ex.getMessage());
     } catch (IOException ex) {
       log.error("Unable to delete wal {}", path, ex);
     }
