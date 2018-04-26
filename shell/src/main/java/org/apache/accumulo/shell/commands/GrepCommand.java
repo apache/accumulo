@@ -37,6 +37,7 @@ import org.apache.commons.cli.Options;
 public class GrepCommand extends ScanCommand {
 
   private Option numThreadsOpt;
+  private Option negateOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -57,6 +58,11 @@ public class GrepCommand extends ScanCommand {
       if (cl.hasOption(numThreadsOpt.getOpt())) {
         numThreads = Integer.parseInt(cl.getOptionValue(numThreadsOpt.getOpt()));
       }
+
+      boolean negate = false;
+      if (cl.hasOption(negateOpt.getOpt())) {
+        negate = true;
+      }
       final Authorizations auths = getAuths(cl, shellState);
       final BatchScanner scanner = shellState.getConnector().createBatchScanner(tableName, auths,
           numThreads);
@@ -68,7 +74,7 @@ public class GrepCommand extends ScanCommand {
 
       for (int i = 0; i < cl.getArgs().length; i++) {
         setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i],
-            scanner, cl);
+            scanner, cl, negate);
       }
       try {
         // handle columns
@@ -87,12 +93,13 @@ public class GrepCommand extends ScanCommand {
   }
 
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl) throws IOException {
+      final BatchScanner scanner, CommandLine cl, boolean negate) throws IOException {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
     final IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
     GrepIterator.setTerm(grep, term);
+    GrepIterator.setNegate(grep, negate);
     scanner.addScanIterator(grep);
   }
 
@@ -106,7 +113,9 @@ public class GrepCommand extends ScanCommand {
   public Options getOptions() {
     final Options opts = super.getOptions();
     numThreadsOpt = new Option("nt", "num-threads", true, "number of threads to use");
+    negateOpt = new Option("v", "negate", false, "only include rows without search term");
     opts.addOption(numThreadsOpt);
+    opts.addOption(negateOpt);
     return opts;
   }
 
