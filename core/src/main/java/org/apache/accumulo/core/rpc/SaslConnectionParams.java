@@ -184,8 +184,7 @@ public class SaslConnectionParams {
     this.saslProperties.put(Sasl.QOP, this.qop.getQuality());
 
     // The primary from the KRB principal on each server (e.g. primary/instance@realm)
-    this.kerberosServerPrimary = properties
-        .getProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey());
+    this.kerberosServerPrimary = ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getValue(properties);
   }
 
   public Map<String,String> getSaslProperties() {
