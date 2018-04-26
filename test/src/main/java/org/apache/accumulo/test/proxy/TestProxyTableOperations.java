@@ -59,7 +59,7 @@ public class TestProxyTableOperations {
     prop.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
-        new TCompactProtocol.Factory(), prop).server;
+        new TCompactProtocol.Factory(), prop, null).server;
     while (!proxy.isServing()) {
       Thread.sleep(500);
     }

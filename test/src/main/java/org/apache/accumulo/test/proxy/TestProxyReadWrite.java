@@ -64,7 +64,7 @@ public class TestProxyReadWrite {
     prop.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
-        new TCompactProtocol.Factory(), prop).server;
+        new TCompactProtocol.Factory(), prop, null).server;
     tpc = new TestProxyClient("localhost", port);
     userpass = tpc.proxy().login("root", Collections.singletonMap("password", ""));
   }
