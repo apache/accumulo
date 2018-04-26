@@ -31,13 +31,14 @@ public class EGrepCommand extends GrepCommand {
 
   @Override
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl) throws IOException {
+      final BatchScanner scanner, CommandLine cl, boolean negate) throws IOException {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
     final IteratorSetting si = new IteratorSetting(prio, name, RegExFilter.class);
     RegExFilter.setRegexs(si, term, term, term, term, true,
         cl.hasOption(matchSubstringOption.getOpt()));
+    RegExFilter.setNegate(si, negate);
     scanner.addScanIterator(si);
   }
 
