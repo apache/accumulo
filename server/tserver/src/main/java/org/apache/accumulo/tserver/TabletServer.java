@@ -3439,7 +3439,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       candidates = new HashSet<>(closedLogs);
     }
     for (Tablet tablet : getOnlineTablets()) {
-      candidates.removeAll(tablet.getCurrentLogFiles());
+      tablet.removeInUseLogs(candidates);
+      if (candidates.isEmpty()) {
+        break;
+      }
     }
     try {
       TServerInstance session = this.getTabletSession();
