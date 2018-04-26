@@ -2457,11 +2457,13 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private ConcurrentSkipListSet<DfsLogger> currentLogs = new ConcurrentSkipListSet<>();
+  private Set<DfsLogger> currentLogs = new HashSet<>();
 
-  // currentLogs may be updated while a tablet is otherwise locked
-  public Set<DfsLogger> getCurrentLogFiles() {
-    return new HashSet<>(currentLogs);
+  public synchronized void removeInUseLogs(Set<DfsLogger> candidates) {
+    // remove logs related to minor compacting data
+    candidates.removeAll(otherLogs);
+    // remove logs related to tablets in memory data
+    candidates.removeAll(currentLogs);
   }
 
   Set<String> beginClearingUnusedLogs() {
@@ -2520,7 +2522,7 @@ public class Tablet implements TabletCommitter {
   // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
 
-  public int getLogCount() {
+  public synchronized int getLogCount() {
     return currentLogs.size();
   }
 
