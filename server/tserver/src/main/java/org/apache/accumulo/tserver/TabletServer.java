@@ -3353,7 +3353,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
     for (Tablet tablet : getOnlineTablets()) {
       tablet.removeInUseLogs(candidates);
-      if (candidates.size() == 0) {
+      if (candidates.isEmpty()) {
         break;
       }
     }
