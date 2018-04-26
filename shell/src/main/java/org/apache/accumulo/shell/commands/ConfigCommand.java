@@ -47,8 +47,8 @@ import org.apache.commons.cli.Options;
 import jline.console.ConsoleReader;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt,
-      namespaceOpt;
+  private Option tableOpt, deleteOpt, setOpt, filterOpt, filterWithValuesOpt, disablePaginationOpt,
+      outputFileOpt, namespaceOpt;
 
   private int COL1 = 10, COL2 = 7;
   private ConsoleReader reader;
@@ -70,7 +70,7 @@ public class ConfigCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
-      ClassNotFoundException, NamespaceNotFoundException {
+      NamespaceNotFoundException {
     reader = shellState.getReader();
 
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
@@ -189,10 +189,11 @@ public class ConfigCommand extends Command {
 
       for (Entry<String,String> propEntry : acuconf) {
         final String key = propEntry.getKey();
-        // only show properties with similar names to that
-        // specified, or all of them if none specified
-        if (cl.hasOption(filterOpt.getOpt())
-            && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
+        final String value = propEntry.getValue();
+        // only show properties which names or values
+        // match the filter text
+
+        if (matchTheFilterText(cl, key, value)) {
           continue;
         }
         if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
@@ -206,11 +207,11 @@ public class ConfigCommand extends Command {
 
       for (Entry<String,String> propEntry : sortedConf.entrySet()) {
         final String key = propEntry.getKey();
+        final String value = propEntry.getValue();
+        // only show properties which names or values
+        // match the filter text
 
-        // only show properties with similar names to that
-        // specified, or all of them if none specified
-        if (cl.hasOption(filterOpt.getOpt())
-            && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
+        if (matchTheFilterText(cl, key, value)) {
           continue;
         }
         if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
@@ -266,6 +267,18 @@ public class ConfigCommand extends Command {
     return 0;
   }
 
+  private boolean matchTheFilterText(CommandLine cl, String key, String value) {
+    if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
+      return true;
+    }
+    if (cl.hasOption(filterWithValuesOpt.getOpt())
+        && !(key.contains(cl.getOptionValue(filterWithValuesOpt.getOpt()))
+            || value.contains(cl.getOptionValue(filterWithValuesOpt.getOpt())))) {
+      return true;
+    }
+    return false;
+  }
+
   private void printConfHeader(List<String> output) {
     printConfFooter(output);
     output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", "SCOPE", "NAME", "VALUE"));
@@ -302,7 +315,10 @@ public class ConfigCommand extends Command {
         "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
     setOpt = new Option("s", "set", true, "set a per-table property");
-    filterOpt = new Option("f", "filter", true, "show only properties that contain this string");
+    filterOpt = new Option("f", "filter", true,
+        "show only properties that contain this string in their name.");
+    filterWithValuesOpt = new Option("fv", "filter-with-values", true,
+        "show only properties that contain this string in their name or value");
     disablePaginationOpt = new Option("np", "no-pagination", false,
         "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
@@ -313,12 +329,14 @@ public class ConfigCommand extends Command {
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
     filterOpt.setArgName("string");
+    filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
+    og.addOption(filterWithValuesOpt);
 
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
