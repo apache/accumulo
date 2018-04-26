@@ -315,10 +315,6 @@ public enum Property {
       "org.apache.accumulo.server.master.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions."),
-  MASTER_RECOVERY_MAXAGE("master.recovery.max.age", "60m", PropertyType.TIMEDURATION,
-      "Recovery files older than this age will be removed."),
-  MASTER_RECOVERY_MAXTIME("master.recovery.time.max", "30m", PropertyType.TIMEDURATION,
-      "The maximum time to attempt recovery before giving up"),
   MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up."),
   MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT,

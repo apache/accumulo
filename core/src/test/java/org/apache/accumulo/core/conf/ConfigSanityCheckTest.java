@@ -41,7 +41,6 @@ public class ConfigSanityCheckTest {
     m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MASTER_TABLET_BALANCER.getKey(),
         "org.apache.accumulo.server.master.balancer.TableLoadBalancer");
-    m.put(Property.MASTER_RECOVERY_MAXAGE.getKey(), "60m");
     m.put(Property.MASTER_BULK_RETRIES.getKey(), "3");
     ConfigSanityCheck.validate(m.entrySet());
   }
@@ -69,13 +68,6 @@ public class ConfigSanityCheckTest {
   public void testFail_Prefix() {
     m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MASTER_PREFIX.getKey(), "oops");
-    ConfigSanityCheck.validate(m.entrySet());
-  }
-
-  @Test(expected = SanityCheckException.class)
-  public void testFail_InvalidFormat() {
-    m.put(Property.MASTER_CLIENTPORT.getKey(), "9999");
-    m.put(Property.MASTER_RECOVERY_MAXAGE.getKey(), "60breem");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
