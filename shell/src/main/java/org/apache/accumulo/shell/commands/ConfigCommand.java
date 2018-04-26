@@ -189,10 +189,13 @@ public class ConfigCommand extends Command {
 
       for (Entry<String,String> propEntry : acuconf) {
         final String key = propEntry.getKey();
-        // only show properties with similar names to that
-        // specified, or all of them if none specified
+        final String value = propEntry.getValue();
+        // only show properties which names or values
+        // match the filter text
+
         if (cl.hasOption(filterOpt.getOpt())
-            && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
+            && !(key.contains(cl.getOptionValue(filterOpt.getOpt()))
+                || value.contains(cl.getOptionValue(filterOpt.getOpt())))) {
           continue;
         }
         if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
@@ -206,11 +209,13 @@ public class ConfigCommand extends Command {
 
       for (Entry<String,String> propEntry : sortedConf.entrySet()) {
         final String key = propEntry.getKey();
+        final String value = propEntry.getValue();
+        // only show properties which names or values
+        // match the filter text
 
-        // only show properties with similar names to that
-        // specified, or all of them if none specified
         if (cl.hasOption(filterOpt.getOpt())
-            && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
+            && !(key.contains(cl.getOptionValue(filterOpt.getOpt()))
+                || value.contains(cl.getOptionValue(filterOpt.getOpt())))) {
           continue;
         }
         if ((tableName != null || namespace != null) && !Property.isValidTablePropertyKey(key)) {
