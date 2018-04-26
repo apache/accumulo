@@ -414,7 +414,7 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @return map of log uuids to paths
    */
-  private Map<UUID,Path> getSortedWALogs() throws IOException {
+  protected Map<UUID,Path> getSortedWALogs() throws IOException {
     Map<UUID,Path> result = new HashMap<>();
 
     for (String dir : ServerConstants.getRecoveryDirs()) {
