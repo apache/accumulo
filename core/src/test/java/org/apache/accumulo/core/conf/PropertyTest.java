@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -90,23 +89,6 @@ public class PropertyTest {
       }
   }
 
-  @Test
-  public void testRawDefaultValues() {
-    AccumuloConfiguration conf = DefaultConfiguration.getInstance();
-    assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
-        Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
-    assertEquals(
-        new File(System.getProperty("java.io.tmpdir"),
-            "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
-        conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
-  }
-
-  @Test
-  public void testGetDefaultValue_AbsolutePath() {
-    // should not expand because default is ""
-    assertEquals("", Property.GENERAL_MAVEN_PROJECT_BASEDIR.getDefaultValue());
-  }
-
   // This test verifies all "sensitive" properties are properly marked as sensitive
   @Test
   public void testSensitiveKeys() {
@@ -152,7 +134,6 @@ public class PropertyTest {
 
   @Test
   public void testAnnotations() {
-    assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
     assertFalse(Property.TABLE_SAMPLER.isExperimental());
 
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
