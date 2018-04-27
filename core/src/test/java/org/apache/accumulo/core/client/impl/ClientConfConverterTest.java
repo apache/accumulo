@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,15 +41,5 @@ public class ClientConfConverterTest {
 
     Properties after = ClientConfConverter.toProperties(ClientConfConverter.toClientConf(before));
     Assert.assertEquals(before, after);
-
-    AccumuloConfiguration aconf = ClientConfConverter.toAccumuloConf(before);
-    Assert.assertEquals("password", aconf.get("auth.method"));
-    after = ClientConfConverter.toProperties(aconf);
-    Assert.assertEquals("password", after.get("auth.method"));
-    for (Object keyObj : before.keySet()) {
-      String key = (String) keyObj;
-      Assert.assertTrue(after.containsKey(key));
-      Assert.assertEquals(before.getProperty(key), after.getProperty(key));
-    }
   }
 }

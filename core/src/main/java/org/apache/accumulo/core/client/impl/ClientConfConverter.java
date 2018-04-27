@@ -20,6 +20,7 @@ import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -251,10 +252,19 @@ public class ClientConfConverter {
       clientConf.setProperty(KERBEROS_SERVER_PRIMARY, krbName.getServiceName());
     }
 
+    HashSet<String> clientKeys = new HashSet<>();
+    for (ClientConfiguration.ClientProperty prop : ClientConfiguration.ClientProperty.values()) {
+      clientKeys.add(prop.getKey());
+    }
+
+    String key;
     for (Map.Entry<String,String> entry : conf) {
-      String key = entry.getKey();
-      clientConf.setProperty(key, entry.getValue());
+      key = entry.getKey();
+      if (clientKeys.contains(key)) {
+        clientConf.setProperty(key, entry.getValue());
+      }
     }
     return clientConf;
   }
+
 }
