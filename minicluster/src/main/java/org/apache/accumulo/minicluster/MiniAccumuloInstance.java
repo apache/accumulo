@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
@@ -36,9 +35,11 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
    * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster}
    * directory
    */
+  @SuppressWarnings("deprecation")
   public MiniAccumuloInstance(String instanceName, File directory) throws FileNotFoundException {
-    super(ClientConfiguration.fromFile(new File(new File(directory, "conf"), "client.conf"))
-        .withInstance(instanceName).withZkHosts(getZooKeepersFromDir(directory)));
+    super(org.apache.accumulo.core.client.ClientConfiguration
+        .fromFile(new File(new File(directory, "conf"), "client.conf")).withInstance(instanceName)
+        .withZkHosts(getZooKeepersFromDir(directory)));
   }
 
   // Keep this private to avoid bringing it into the public API

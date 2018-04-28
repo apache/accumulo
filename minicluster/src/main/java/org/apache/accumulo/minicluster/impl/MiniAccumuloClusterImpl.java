@@ -56,7 +56,6 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -444,8 +443,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File clientConfFile = config.getClientConfFile();
     // Write only the properties that correspond to ClientConfiguration properties
-    writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(),
-        v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
+    writeConfigProperties(clientConfFile,
+        Maps.filterEntries(config.getSiteConfig(),
+            v -> org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
+                .getPropertyByKey(v.getKey()) != null));
 
     Map<String,String> clientProps = config.getClientProps();
     clientProps.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), config.getZooKeepers());
@@ -774,10 +775,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return instance.getConnector(user, token);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
-  public ClientConfiguration getClientConfig() {
-    return ClientConfiguration.fromMap(config.getSiteConfig()).withInstance(this.getInstanceName())
-        .withZkHosts(this.getZooKeepers());
+  public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
+    return org.apache.accumulo.core.client.ClientConfiguration.fromMap(config.getSiteConfig())
+        .withInstance(this.getInstanceName()).withZkHosts(this.getZooKeepers());
   }
 
   @Override
