@@ -34,14 +34,14 @@ public enum FateOperation implements org.apache.thrift.TEnum {
   TABLE_MERGE(6),
   TABLE_DELETE_RANGE(7),
   TABLE_BULK_IMPORT(8),
-  TABLE_BULK_IMPORT2(9),
-  TABLE_COMPACT(10),
-  TABLE_IMPORT(11),
-  TABLE_EXPORT(12),
-  TABLE_CANCEL_COMPACT(13),
-  NAMESPACE_CREATE(14),
-  NAMESPACE_DELETE(15),
-  NAMESPACE_RENAME(16);
+  TABLE_COMPACT(9),
+  TABLE_IMPORT(10),
+  TABLE_EXPORT(11),
+  TABLE_CANCEL_COMPACT(12),
+  NAMESPACE_CREATE(13),
+  NAMESPACE_DELETE(14),
+  NAMESPACE_RENAME(15),
+  TABLE_BULK_IMPORT2(16);
 
   private final int value;
 
@@ -81,21 +81,21 @@ public enum FateOperation implements org.apache.thrift.TEnum {
       case 8:
         return TABLE_BULK_IMPORT;
       case 9:
-        return TABLE_BULK_IMPORT2;
-      case 10:
         return TABLE_COMPACT;
-      case 11:
+      case 10:
         return TABLE_IMPORT;
-      case 12:
+      case 11:
         return TABLE_EXPORT;
-      case 13:
+      case 12:
         return TABLE_CANCEL_COMPACT;
-      case 14:
+      case 13:
         return NAMESPACE_CREATE;
-      case 15:
+      case 14:
         return NAMESPACE_DELETE;
-      case 16:
+      case 15:
         return NAMESPACE_RENAME;
+      case 16:
+        return TABLE_BULK_IMPORT2;
       default:
         return null;
     }

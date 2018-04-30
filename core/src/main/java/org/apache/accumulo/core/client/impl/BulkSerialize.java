@@ -58,7 +58,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 /**
- * Place for all bulk import serialization
+ * Place for all bulk import serialization code. For the objects being serialized see {@link Bulk}
  */
 public class BulkSerialize {
 
@@ -94,8 +94,7 @@ public class BulkSerialize {
   }
 
   /**
-   * Convert the SortedMap to a SortedSet of Json friendly Bulk.Mapping objects and serialize to
-   * json
+   * Serialize bulk load mapping to {@link Constants.BULK_LOAD_MAPPING}
    */
   public static void writeLoadMapping(SortedMap<KeyExtent,Bulk.Files> loadMapping, String sourceDir,
       Output output) throws IOException {
@@ -160,7 +159,7 @@ public class BulkSerialize {
   }
 
   /**
-   * Read Json array of Bulk.Mapping objects and return SortedMap of the bulk load mapping
+   * Read Json array of Bulk.Mapping into LoadMappingIterator
    */
   public static LoadMappingIterator readLoadMapping(String bulkDir, Table.ID tableId, Input input)
       throws IOException {

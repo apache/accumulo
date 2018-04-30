@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -118,18 +119,8 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       executor = service = Executors.newFixedThreadPool(numThreads);
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      if (threads == null) {
-        threads = ClientProperty.BULK_LOAD_THREADS.getDefaultValue();
-      }
-
-      int nThreads;
-      if (threads.toUpperCase().endsWith("C")) {
-        nThreads = Runtime.getRuntime().availableProcessors()
-            * Integer.parseInt(threads.substring(0, threads.length() - 1));
-      } else {
-        nThreads = Integer.parseInt(threads);
-      }
-      executor = service = Executors.newFixedThreadPool(nThreads);
+      executor = service = Executors
+          .newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
     }
 
     try {
@@ -139,7 +130,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       // TODO need to handle case of file existing
       BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), p -> fs.create(p));
 
-      List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
+      List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()),
           ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
           ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
       doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(), tableName);
