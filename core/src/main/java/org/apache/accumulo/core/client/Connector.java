@@ -314,6 +314,23 @@ public abstract class Connector {
   public abstract ReplicationOperations replicationOperations();
 
   /**
+   * @return {@link ConnectionInfo} which contains information about Connection to Accumulo
+   * @since 2.0.0
+   */
+  public abstract ConnectionInfo info();
+
+  /**
+   * Creates new Connector for new user with principal and token
+   *
+   * @param principal User name/principal
+   * @param token Authentication token
+   *
+   * @return Connector for new user
+   * @since 2.0.0
+   */
+  public abstract Connector createConnector(String principal, AuthenticationToken token) throws AccumuloSecurityException, AccumuloException;
+
+  /**
    * Builds ConnectionInfo after all options have been specified
    *
    * @since 2.0.0

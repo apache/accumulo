@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.mock;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -25,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.security.Authorizations;
 
@@ -187,4 +190,13 @@ public class MockConnector extends Connector {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public ConnectionInfo info() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Connector createConnector(String principal, AuthenticationToken token) throws AccumuloSecurityException, AccumuloException {
+    return instance.getConnector(principal, token);
+  }
 }
