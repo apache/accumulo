@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.UGIAssumingTransport;
 import org.apache.accumulo.core.security.Authorizations;
@@ -231,7 +232,9 @@ public class KerberosProxyIT extends AccumuloITBase {
    */
   private Process startProxy(MiniAccumuloConfigImpl cfg) throws IOException {
     File proxyPropertiesFile = generateNewProxyConfiguration(cfg);
-    return mac.exec(Proxy.class, "-p", proxyPropertiesFile.getCanonicalPath());
+    File clientPropsFile = generateNewAccumuloClientConfiguration(cfg);
+    return mac.exec(Proxy.class, "-p", proxyPropertiesFile.getCanonicalPath(), "-c",
+        clientPropsFile.getCanonicalPath());
   }
 
   /**
@@ -258,11 +261,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     proxyProperties.setProperty("tokenClass", KerberosToken.class.getName());
     proxyProperties.setProperty("port", Integer.toString(proxyPort));
     proxyProperties.setProperty("maxFrameSize", "16M");
-    proxyProperties.setProperty("instance", mac.getInstanceName());
-    proxyProperties.setProperty("zookeepers", mac.getZooKeepers());
     proxyProperties.setProperty("thriftServerType", "sasl");
-    proxyProperties.setProperty("kerberosPrincipal", proxyPrincipal);
-    proxyProperties.setProperty("kerberosKeytab", proxyKeytab.getCanonicalPath());
 
     // Write out the proxy.properties file
     FileWriter writer = new FileWriter(proxyPropertiesFile);
@@ -272,6 +271,31 @@ public class KerberosProxyIT extends AccumuloITBase {
     log.info("Created configuration for proxy listening on {}", proxyPort);
 
     return proxyPropertiesFile;
+  }
+
+  private File generateNewAccumuloClientConfiguration(MiniAccumuloConfigImpl cfg) throws IOException {
+    // Proxy configuration
+    File propsFile = new File(cfg.getConfDir(), "accumulo-client-proxy.properties");
+    if (propsFile.exists()) {
+      assertTrue("Failed to delete proxy.properties file", propsFile.delete());
+    }
+    Properties clientProps = new Properties();
+    clientProps.setProperty(ClientProperty.INSTANCE_NAME.getKey(), cfg.getInstanceName());
+    clientProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), cfg.getZooKeepers());
+    clientProps.setProperty(ClientProperty.AUTH_METHOD.getKey(), "kerberos");
+    clientProps.setProperty(ClientProperty.AUTH_USERNAME.getKey(), proxyPrincipal);
+    clientProps.setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getKey(),
+        proxyKeytab.getCanonicalPath());
+    clientProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+
+    // Write out the proxy.properties file
+    FileWriter writer = new FileWriter(propsFile);
+    clientProps.store(writer, "Configuration for Accumulo proxy");
+    writer.close();
+
+    log.info("Created Accumulo client configuration for proxy listening on {}", proxyPort);
+
+    return propsFile;
   }
 
   /**

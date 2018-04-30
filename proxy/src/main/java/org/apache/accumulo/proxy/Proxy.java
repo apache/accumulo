@@ -134,8 +134,8 @@ public class Proxy implements KeywordExecutable {
         .parseBoolean(proxyProps.getProperty(USE_MOCK_INSTANCE_KEY, USE_MOCK_INSTANCE_DEFAULT));
 
     if (!useMini && !useMock && clientProps == null) {
-      System.err.println("Properties file must contain one of : useMiniAccumulo=true,"
-          + " useMockInstance=true, or instance=<instance name>");
+      System.err.println("The '-c' option must be set with an accumulo-client.properties file or"
+          + " proxy.properties must contain either useMiniAccumulo=true or useMockInstance=true");
       System.exit(1);
     }
 
@@ -249,13 +249,14 @@ public class Proxy implements KeywordExecutable {
 
         // Login via principal and keytab
         final String kerberosPrincipal = clientProps
-            .getProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), "");
-        final String kerberosKeytab = proxyProps
+            .getProperty(ClientProperty.AUTH_USERNAME.getKey(), "");
+        final String kerberosKeytab = clientProps
             .getProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getKey(), "");
         if (StringUtils.isBlank(kerberosPrincipal) || StringUtils.isBlank(kerberosKeytab)) {
-          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
-          log.error("FATAL: Kerberos principal and keytab must be provided");
-          throw new RuntimeException();
+          String msg = String.format("Kerberos principal '%s' and keytab '%s' must be provided",
+              kerberosPrincipal, kerberosKeytab);
+          log.error(msg);
+          throw new RuntimeException(msg);
         }
         UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
