@@ -151,14 +151,19 @@ public class AccumuloVFSClassLoader {
         case IMAGINARY:
           // assume its a pattern
           String pattern = fo.getName().getBaseName();
-          if (fo.getParent() != null && fo.getParent().getType() == FileType.FOLDER) {
+          if (fo.getParent() != null) {
+            // still monitor the parent
             pathsToMonitor.add(fo.getParent());
-            FileObject[] children = fo.getParent().getChildren();
-            for (FileObject child : children) {
-              if (child.getType() == FileType.FILE
-                  && child.getName().getBaseName().matches(pattern)) {
-                classpath.add(child);
+            if (fo.getParent().getType() == FileType.FOLDER) {
+              FileObject[] children = fo.getParent().getChildren();
+              for (FileObject child : children) {
+                if (child.getType() == FileType.FILE
+                    && child.getName().getBaseName().matches(pattern)) {
+                  classpath.add(child);
+                }
               }
+            } else {
+              log.debug("classpath entry " + fo.getParent() + " is " + fo.getParent().getType());
             }
           } else {
             log.warn("ignoring classpath entry {}", fo);
