@@ -103,6 +103,9 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
 
+    // set retry settings sufficiently low that not everything is reloaded in the first round
+    arvcl.setMaxRetries(1);
+
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
@@ -130,6 +133,57 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     // This is false because they are loaded by a different classloader
     Assert.assertFalse(clazz1.equals(clazz2));
+    Assert.assertFalse(o1.equals(o2));
+
+    arvcl.close();
+  }
+
+  @Test
+  public void testReloadingWithLongerTimeout() throws Exception {
+    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject[] dirContents = testDir.getChildren();
+
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
+        new ReloadingClassLoader() {
+          @Override
+          public ClassLoader getClassLoader() {
+            return ClassLoader.getSystemClassLoader();
+          }
+        }, 1000, true);
+
+    FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
+    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+
+    // set retry settings sufficiently high such that reloading happens in the first rounds
+    arvcl.setMaxRetries(3);
+
+    Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Object o1 = clazz1.newInstance();
+    Assert.assertEquals("Hello World!", o1.toString());
+
+    // Check that the class is the same before the update
+    Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Assert.assertEquals(clazz1, clazz1_5);
+
+    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
+
+    // VFS-487 significantly wait to avoid failure
+    Thread.sleep(7000);
+
+    // Update the class
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
+        folder1.newFile("HelloWorld2.jar"));
+
+    // Wait for the monitor to notice
+    // VFS-487 significantly wait to avoid failure
+    Thread.sleep(7000);
+
+    Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Object o2 = clazz2.newInstance();
+    Assert.assertEquals("Hello World!", o2.toString());
+
+    // This is true because they are loaded by the same classloader due to the new retry
+    Assert.assertTrue(clazz1.equals(clazz2));
     Assert.assertFalse(o1.equals(o2));
 
     arvcl.close();
