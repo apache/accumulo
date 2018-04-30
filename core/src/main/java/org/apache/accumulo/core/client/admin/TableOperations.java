@@ -456,7 +456,8 @@ public interface TableOperations {
       TableNotFoundException, AccumuloException, TableExistsException;
 
   /**
-   * Initiate a flush of a table's data that is in memory
+   * Initiate a flush of a table's data that is in memory. To specify a range or to wait for flush
+   * to complete use {@link #flush(String, Text, Text, boolean)}.
    *
    * @param tableName
    *          the name of the table
@@ -464,10 +465,7 @@ public interface TableOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission
-   *
-   * @deprecated since 1.4; use {@link #flush(String, Text, Text, boolean)} instead
    */
-  @Deprecated
   void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
 
   /**
