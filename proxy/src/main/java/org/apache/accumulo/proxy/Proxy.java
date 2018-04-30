@@ -177,7 +177,8 @@ public class Proxy implements KeywordExecutable {
     String hostname = proxyProps.getProperty(THRIFT_SERVER_HOSTNAME,
         THRIFT_SERVER_HOSTNAME_DEFAULT);
     HostAndPort address = HostAndPort.fromParts(hostname, port);
-    ServerAddress server = createProxyServer(address, protoFactory, proxyProps, clientProps);
+    proxyProps.putAll(clientProps);
+    ServerAddress server = createProxyServer(address, protoFactory, proxyProps);
     // Wait for the server to come up
     while (!server.server.isServing()) {
       Thread.sleep(100);
@@ -193,12 +194,12 @@ public class Proxy implements KeywordExecutable {
   }
 
   public static ServerAddress createProxyServer(HostAndPort address,
-      TProtocolFactory protocolFactory, Properties proxyProps, Properties clientProps)
+                                                TProtocolFactory protocolFactory, Properties props)
       throws Exception {
     final int numThreads = Integer.parseInt(
-        proxyProps.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
+        props.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
     final long maxFrameSize = ConfigurationTypeHelper.getFixedMemoryAsBytes(
-        proxyProps.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
+        props.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
     final int simpleTimerThreadpoolSize = Integer
         .parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
     // How frequently to try to resize the thread pool
@@ -210,7 +211,7 @@ public class Proxy implements KeywordExecutable {
     final String serverName = "Proxy", threadName = "Accumulo Thrift Proxy";
 
     // create the implementation of the proxy interface
-    ProxyServer impl = new ProxyServer(proxyProps, clientProps);
+    ProxyServer impl = new ProxyServer(props);
 
     // Wrap the implementation -- translate some exceptions
     AccumuloProxy.Iface wrappedImpl = RpcWrapper.service(impl);
@@ -219,7 +220,7 @@ public class Proxy implements KeywordExecutable {
     TProcessor processor = new AccumuloProxy.Processor<>(wrappedImpl);
 
     // Get the type of thrift server to instantiate
-    final String serverTypeStr = proxyProps.getProperty(THRIFT_SERVER_TYPE,
+    final String serverTypeStr = props.getProperty(THRIFT_SERVER_TYPE,
         THRIFT_SERVER_TYPE_DEFAULT);
     ThriftServerType serverType = DEFAULT_SERVER_TYPE;
     if (!THRIFT_SERVER_TYPE_DEFAULT.equals(serverTypeStr)) {
@@ -230,33 +231,25 @@ public class Proxy implements KeywordExecutable {
     SaslServerConnectionParams saslParams = null;
     switch (serverType) {
       case SSL:
-        sslParams = SslConnectionParams.forClient(ClientConfConverter.toAccumuloConf(clientProps));
+        sslParams = SslConnectionParams.forClient(ClientConfConverter.toAccumuloConf(props));
         break;
       case SASL:
-        if (!ClientProperty.SASL_ENABLED.getBoolean(clientProps)) {
-          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
-          log.error(
-              "FATAL: SASL thrift server was requested but it is disabled in client configuration");
-          throw new RuntimeException("SASL is not enabled in configuration");
+        if (!ClientProperty.SASL_ENABLED.getBoolean(props)) {
+          throw new IllegalStateException("SASL thrift server was requested but 'sasl.enabled' is"
+              + " not set to true in configuration");
         }
 
         // Kerberos needs to be enabled to use it
         if (!UserGroupInformation.isSecurityEnabled()) {
-          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
-          log.error("FATAL: Hadoop security is not enabled");
-          throw new RuntimeException();
+          throw new IllegalStateException("Hadoop security is not enabled");
         }
 
         // Login via principal and keytab
-        final String kerberosPrincipal = clientProps
-            .getProperty(ClientProperty.AUTH_USERNAME.getKey(), "");
-        final String kerberosKeytab = clientProps
-            .getProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getKey(), "");
+        final String kerberosPrincipal = ClientProperty.AUTH_USERNAME.getValue(props);
+        final String kerberosKeytab = ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getValue(props);
         if (StringUtils.isBlank(kerberosPrincipal) || StringUtils.isBlank(kerberosKeytab)) {
-          String msg = String.format("Kerberos principal '%s' and keytab '%s' must be provided",
-              kerberosPrincipal, kerberosKeytab);
-          log.error(msg);
-          throw new RuntimeException(msg);
+          throw new IllegalStateException(String.format("Kerberos principal '%s' and keytab '%s'"
+              + " must be provided", kerberosPrincipal, kerberosKeytab));
         }
         UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
@@ -266,10 +259,10 @@ public class Proxy implements KeywordExecutable {
         // as.
         final String shortName = ugi.getShortUserName();
         log.info("Setting server primary to {}", shortName);
-        clientProps.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), shortName);
+        props.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), shortName);
 
         KerberosToken token = new KerberosToken();
-        saslParams = new SaslServerConnectionParams(clientProps, token, null);
+        saslParams = new SaslServerConnectionParams(props, token, null);
         processor = new UGIAssumingProcessor(processor);
 
         break;

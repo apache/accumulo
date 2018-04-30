@@ -51,7 +51,7 @@ public class TestProxyInstanceOperations {
     proxyProps.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
-        new TCompactProtocol.Factory(), proxyProps, null).server;
+        new TCompactProtocol.Factory(), proxyProps).server;
     log.info("Waiting for proxy to start");
     while (!proxy.isServing()) {
       Thread.sleep(500);

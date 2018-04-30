@@ -188,23 +188,23 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   private final ThriftServerType serverType;
 
-  public ProxyServer(Properties proxyProps, Properties clientProps) {
+  public ProxyServer(Properties props) {
 
-    String useMock = proxyProps.getProperty("useMockInstance");
+    String useMock = props.getProperty("useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = DeprecationUtil.makeMockInstance(this.getClass().getName());
     else {
-      instance = new ZooKeeperInstance(ClientConfConverter.toClientConf(clientProps));
+      instance = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
     }
 
     try {
-      String tokenProp = proxyProps.getProperty("tokenClass", PasswordToken.class.getName());
+      String tokenProp = props.getProperty("tokenClass", PasswordToken.class.getName());
       tokenClass = Class.forName(tokenProp).asSubclass(AuthenticationToken.class);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    final String serverTypeStr = proxyProps.getProperty(Proxy.THRIFT_SERVER_TYPE,
+    final String serverTypeStr = props.getProperty(Proxy.THRIFT_SERVER_TYPE,
         Proxy.THRIFT_SERVER_TYPE_DEFAULT);
     ThriftServerType tempServerType = Proxy.DEFAULT_SERVER_TYPE;
     if (!Proxy.THRIFT_SERVER_TYPE_DEFAULT.equals(serverTypeStr)) {
