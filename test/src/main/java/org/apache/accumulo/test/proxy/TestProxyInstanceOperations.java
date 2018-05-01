@@ -46,12 +46,12 @@ public class TestProxyInstanceOperations {
 
   @BeforeClass
   public static void setup() throws Exception {
-    Properties prop = new Properties();
-    prop.setProperty("useMockInstance", "true");
-    prop.put("tokenClass", PasswordToken.class.getName());
+    Properties proxyProps = new Properties();
+    proxyProps.setProperty("useMockInstance", "true");
+    proxyProps.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
-        new TCompactProtocol.Factory(), prop).server;
+        new TCompactProtocol.Factory(), proxyProps).server;
     log.info("Waiting for proxy to start");
     while (!proxy.isServing()) {
       Thread.sleep(500);

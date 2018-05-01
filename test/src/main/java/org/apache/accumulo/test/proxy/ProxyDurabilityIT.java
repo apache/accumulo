@@ -80,20 +80,18 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
   @Test
   public void testDurability() throws Exception {
     Connector c = getConnector();
-    Properties props = new Properties();
+    Properties proxyProps = new Properties();
     // Avoid issues with locally installed client configuration files with custom properties
     File emptyFile = Files.createTempFile(null, null).toFile();
     emptyFile.deleteOnExit();
-    props.put("instance", c.getInstance().getInstanceName());
-    props.put("zookeepers", c.getInstance().getZooKeepers());
-    props.put("tokenClass", PasswordToken.class.getName());
-    props.put("clientConfigurationFile", emptyFile.toString());
+    proxyProps.put("tokenClass", PasswordToken.class.getName());
+    proxyProps.putAll(getConnectionInfo().getProperties());
 
     TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
 
     int proxyPort = PortUtils.getRandomFreePort();
-    final TServer proxyServer = Proxy
-        .createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol, props).server;
+    final TServer proxyServer = Proxy.createProxyServer(
+        HostAndPort.fromParts("localhost", proxyPort), protocol, proxyProps).server;
     while (!proxyServer.isServing())
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();

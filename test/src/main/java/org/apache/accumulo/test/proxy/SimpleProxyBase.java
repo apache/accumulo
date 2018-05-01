@@ -45,7 +45,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -227,16 +226,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     }
 
     props.put("tokenClass", tokenClass);
-
-    ClientConfiguration clientConfig = SharedMiniClusterBase.getCluster().getClientConfig();
-    String clientConfPath = new File(SharedMiniClusterBase.getCluster().getConfig().getConfDir(),
-        "client.conf").getAbsolutePath();
-    props.put("clientConfigurationFile", clientConfPath);
-    properties.put("clientConfigurationFile", clientConfPath);
-
+    props.putAll(SharedMiniClusterBase.getCluster().getConnectionInfo().getProperties());
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(HostAndPort.fromParts(hostname, proxyPort), factory,
-        props, clientConfig).server;
+        props).server;
     while (!proxyServer.isServing())
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
   }

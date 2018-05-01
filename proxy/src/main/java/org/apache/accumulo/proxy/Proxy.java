@@ -24,10 +24,9 @@ import java.nio.file.Files;
 import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -64,8 +63,6 @@ public class Proxy implements KeywordExecutable {
   public static final String USE_MINI_ACCUMULO_DEFAULT = "false";
   public static final String USE_MOCK_INSTANCE_KEY = "useMockInstance";
   public static final String USE_MOCK_INSTANCE_DEFAULT = "false";
-  public static final String ACCUMULO_INSTANCE_NAME_KEY = "instance";
-  public static final String ZOOKEEPERS_KEY = "zookeepers";
   public static final String THRIFT_THREAD_POOL_SIZE_KEY = "numThreads";
   // Default number of threads from THsHaServer.Args
   public static final String THRIFT_THREAD_POOL_SIZE_DEFAULT = "5";
@@ -76,9 +73,6 @@ public class Proxy implements KeywordExecutable {
   public static final String THRIFT_SERVER_TYPE = "thriftServerType";
   public static final String THRIFT_SERVER_TYPE_DEFAULT = "";
   public static final ThriftServerType DEFAULT_SERVER_TYPE = ThriftServerType.getDefault();
-
-  public static final String KERBEROS_PRINCIPAL = "kerberosPrincipal";
-  public static final String KERBEROS_KEYTAB = "kerberosKeytab";
 
   public static final String THRIFT_SERVER_HOSTNAME = "thriftServerHostname";
   public static final String THRIFT_SERVER_HOSTNAME_DEFAULT = "0.0.0.0";
@@ -103,9 +97,12 @@ public class Proxy implements KeywordExecutable {
   }
 
   public static class Opts extends Help {
-    @Parameter(names = "-p", description = "properties file name",
+    @Parameter(names = "-p", description = "proxy.properties path",
         converter = PropertiesConverter.class)
-    Properties prop;
+    Properties proxyProps;
+    @Parameter(names = "-c", description = "accumulo-client.properties path",
+        converter = PropertiesConverter.class)
+    Properties clientProps;
   }
 
   @Override
@@ -128,41 +125,21 @@ public class Proxy implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(Proxy.class.getName(), args);
 
-    Properties props = new Properties();
-    if (opts.prop != null) {
-      props = opts.prop;
-    } else {
-      try (InputStream is = this.getClass().getClassLoader()
-          .getResourceAsStream("proxy.properties")) {
-        if (is != null) {
-          props.load(is);
-        } else {
-          System.err.println("proxy.properties needs to be specified as"
-              + " argument (using -p) or on the classpath (by putting the file in conf/)");
-          System.exit(-1);
-        }
-      }
-    }
+    Properties proxyProps = opts.proxyProps;
+    Properties clientProps = opts.clientProps;
 
     boolean useMini = Boolean
-        .parseBoolean(props.getProperty(USE_MINI_ACCUMULO_KEY, USE_MINI_ACCUMULO_DEFAULT));
+        .parseBoolean(proxyProps.getProperty(USE_MINI_ACCUMULO_KEY, USE_MINI_ACCUMULO_DEFAULT));
     boolean useMock = Boolean
-        .parseBoolean(props.getProperty(USE_MOCK_INSTANCE_KEY, USE_MOCK_INSTANCE_DEFAULT));
-    String instance = props.getProperty(ACCUMULO_INSTANCE_NAME_KEY);
-    String zookeepers = props.getProperty(ZOOKEEPERS_KEY);
+        .parseBoolean(proxyProps.getProperty(USE_MOCK_INSTANCE_KEY, USE_MOCK_INSTANCE_DEFAULT));
 
-    if (!useMini && !useMock && instance == null) {
-      System.err.println("Properties file must contain one of : useMiniAccumulo=true,"
-          + " useMockInstance=true, or instance=<instance name>");
+    if (!useMini && !useMock && clientProps == null) {
+      System.err.println("The '-c' option must be set with an accumulo-client.properties file or"
+          + " proxy.properties must contain either useMiniAccumulo=true or useMockInstance=true");
       System.exit(1);
     }
 
-    if (instance != null && zookeepers == null) {
-      System.err.println("When instance is set in properties file, zookeepers must also be set.");
-      System.exit(1);
-    }
-
-    if (!props.containsKey("port")) {
+    if (!proxyProps.containsKey("port")) {
       System.err.println("No port property");
       System.exit(1);
     }
@@ -172,8 +149,10 @@ public class Proxy implements KeywordExecutable {
       final File folder = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
-      props.setProperty("instance", accumulo.getConfig().getInstanceName());
-      props.setProperty("zookeepers", accumulo.getZooKeepers());
+      clientProps.setProperty(ClientProperty.INSTANCE_NAME.getKey(),
+          accumulo.getConfig().getInstanceName());
+      clientProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(),
+          accumulo.getZooKeepers());
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void start() {
@@ -190,13 +169,16 @@ public class Proxy implements KeywordExecutable {
     }
 
     Class<? extends TProtocolFactory> protoFactoryClass = Class
-        .forName(props.getProperty("protocolFactory", TCompactProtocol.Factory.class.getName()))
+        .forName(
+            proxyProps.getProperty("protocolFactory", TCompactProtocol.Factory.class.getName()))
         .asSubclass(TProtocolFactory.class);
     TProtocolFactory protoFactory = protoFactoryClass.newInstance();
-    int port = Integer.parseInt(props.getProperty("port"));
-    String hostname = props.getProperty(THRIFT_SERVER_HOSTNAME, THRIFT_SERVER_HOSTNAME_DEFAULT);
+    int port = Integer.parseInt(proxyProps.getProperty("port"));
+    String hostname = proxyProps.getProperty(THRIFT_SERVER_HOSTNAME,
+        THRIFT_SERVER_HOSTNAME_DEFAULT);
     HostAndPort address = HostAndPort.fromParts(hostname, port);
-    ServerAddress server = createProxyServer(address, protoFactory, props);
+    proxyProps.putAll(clientProps);
+    ServerAddress server = createProxyServer(address, protoFactory, proxyProps);
     // Wait for the server to come up
     while (!server.server.isServing()) {
       Thread.sleep(100);
@@ -212,18 +194,12 @@ public class Proxy implements KeywordExecutable {
   }
 
   public static ServerAddress createProxyServer(HostAndPort address,
-      TProtocolFactory protocolFactory, Properties properties) throws Exception {
-    return createProxyServer(address, protocolFactory, properties,
-        ClientConfiguration.loadDefault());
-  }
-
-  public static ServerAddress createProxyServer(HostAndPort address,
-      TProtocolFactory protocolFactory, Properties properties, ClientConfiguration clientConf)
+                                                TProtocolFactory protocolFactory, Properties props)
       throws Exception {
     final int numThreads = Integer.parseInt(
-        properties.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
+        props.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
     final long maxFrameSize = ConfigurationTypeHelper.getFixedMemoryAsBytes(
-        properties.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
+        props.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
     final int simpleTimerThreadpoolSize = Integer
         .parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
     // How frequently to try to resize the thread pool
@@ -235,7 +211,7 @@ public class Proxy implements KeywordExecutable {
     final String serverName = "Proxy", threadName = "Accumulo Thrift Proxy";
 
     // create the implementation of the proxy interface
-    ProxyServer impl = new ProxyServer(properties);
+    ProxyServer impl = new ProxyServer(props);
 
     // Wrap the implementation -- translate some exceptions
     AccumuloProxy.Iface wrappedImpl = RpcWrapper.service(impl);
@@ -244,7 +220,7 @@ public class Proxy implements KeywordExecutable {
     TProcessor processor = new AccumuloProxy.Processor<>(wrappedImpl);
 
     // Get the type of thrift server to instantiate
-    final String serverTypeStr = properties.getProperty(THRIFT_SERVER_TYPE,
+    final String serverTypeStr = props.getProperty(THRIFT_SERVER_TYPE,
         THRIFT_SERVER_TYPE_DEFAULT);
     ThriftServerType serverType = DEFAULT_SERVER_TYPE;
     if (!THRIFT_SERVER_TYPE_DEFAULT.equals(serverTypeStr)) {
@@ -255,30 +231,25 @@ public class Proxy implements KeywordExecutable {
     SaslServerConnectionParams saslParams = null;
     switch (serverType) {
       case SSL:
-        sslParams = SslConnectionParams.forClient(ClientConfConverter.toAccumuloConf(clientConf));
+        sslParams = SslConnectionParams.forClient(ClientConfConverter.toAccumuloConf(props));
         break;
       case SASL:
-        if (!clientConf.hasSasl()) {
-          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
-          log.error(
-              "FATAL: SASL thrift server was requested but it is disabled in client configuration");
-          throw new RuntimeException("SASL is not enabled in configuration");
+        if (!ClientProperty.SASL_ENABLED.getBoolean(props)) {
+          throw new IllegalStateException("SASL thrift server was requested but 'sasl.enabled' is"
+              + " not set to true in configuration");
         }
 
         // Kerberos needs to be enabled to use it
         if (!UserGroupInformation.isSecurityEnabled()) {
-          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
-          log.error("FATAL: Hadoop security is not enabled");
-          throw new RuntimeException();
+          throw new IllegalStateException("Hadoop security is not enabled");
         }
 
         // Login via principal and keytab
-        final String kerberosPrincipal = properties.getProperty(KERBEROS_PRINCIPAL, ""),
-            kerberosKeytab = properties.getProperty(KERBEROS_KEYTAB, "");
+        final String kerberosPrincipal = ClientProperty.AUTH_USERNAME.getValue(props);
+        final String kerberosKeytab = ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getValue(props);
         if (StringUtils.isBlank(kerberosPrincipal) || StringUtils.isBlank(kerberosKeytab)) {
-          // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
-          log.error("FATAL: Kerberos principal and keytab must be provided");
-          throw new RuntimeException();
+          throw new IllegalStateException(String.format("Kerberos principal '%s' and keytab '%s'"
+              + " must be provided", kerberosPrincipal, kerberosKeytab));
         }
         UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
@@ -288,12 +259,10 @@ public class Proxy implements KeywordExecutable {
         // as.
         final String shortName = ugi.getShortUserName();
         log.info("Setting server primary to {}", shortName);
-        clientConf.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY, shortName);
+        props.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), shortName);
 
         KerberosToken token = new KerberosToken();
-        saslParams = new SaslServerConnectionParams(ClientConfConverter.toProperties(clientConf),
-            token, null);
-
+        saslParams = new SaslServerConnectionParams(props, token, null);
         processor = new UGIAssumingProcessor(processor);
 
         break;

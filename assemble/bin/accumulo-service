@@ -23,7 +23,6 @@ Services:
   gc          Accumulo garbage collector
   monitor     Accumulo monitor
   master      Accumulo master
-  proxy       Accumulo proxy
   tserver     Accumulo tserver
   tracer      Accumulo tracter
 
@@ -136,7 +135,7 @@ function main() {
   service="$1"
   pid_file="${basedir}/run/accumulo-${service}.pid"
   case "$service" in
-    gc|master|monitor|proxy|tserver|tracer)
+    gc|master|monitor|tserver|tracer)
       if [[ -z $2 ]]; then
         invalid_args "<command> cannot be empty"
       fi

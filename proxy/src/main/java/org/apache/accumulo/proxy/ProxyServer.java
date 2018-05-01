@@ -18,7 +18,6 @@ package org.apache.accumulo.proxy;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +42,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
@@ -64,6 +62,7 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -195,15 +194,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = DeprecationUtil.makeMockInstance(this.getClass().getName());
     else {
-      ClientConfiguration clientConf;
-      if (props.containsKey("clientConfigurationFile")) {
-        String clientConfFile = props.getProperty("clientConfigurationFile");
-        clientConf = ClientConfiguration.fromFile(new File(clientConfFile));
-      } else {
-        clientConf = ClientConfiguration.loadDefault();
-      }
-      instance = new ZooKeeperInstance(clientConf.withInstance(props.getProperty("instance"))
-          .withZkHosts(props.getProperty("zookeepers")));
+      instance = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
     }
 
     try {
