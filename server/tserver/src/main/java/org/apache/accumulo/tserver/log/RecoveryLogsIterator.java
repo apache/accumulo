@@ -19,8 +19,6 @@ package org.apache.accumulo.tserver.log;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -28,76 +26,34 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.Path;
-import org.mortbay.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 
 /**
- * Iterates over multiple recovery logs merging them into a single sorted stream.
+ * Iterates over multiple sorted recovery logs merging them into a single sorted stream.
  */
 public class RecoveryLogsIterator
     implements Iterator<Entry<LogFileKey,LogFileValue>>, AutoCloseable {
 
-  private List<MultiReader> readers;
+  private static final Logger LOG = LoggerFactory.getLogger(RecoveryLogsIterator.class);
+
+  private List<RecoveryLogReader> readers;
   private UnmodifiableIterator<Entry<LogFileKey,LogFileValue>> iter;
 
-  private static class MultiReaderIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
-
-    private MultiReader reader;
-    private LogFileKey key = new LogFileKey();
-    private LogFileValue value = new LogFileValue();
-    private boolean hasNext;
-    private LogFileKey end;
-
-    MultiReaderIterator(MultiReader reader, LogFileKey start, LogFileKey end) throws IOException {
-      this.reader = reader;
-      this.end = end;
-
-      reader.seek(start);
-
-      hasNext = reader.next(key, value);
-
-      if (hasNext && key.compareTo(start) < 0) {
-        throw new IllegalStateException("First key is less than start " + key + " " + start);
-      }
-
-      if (hasNext && key.compareTo(end) > 0) {
-        hasNext = false;
-      }
-    }
-
-    @Override
-    public boolean hasNext() {
-      return hasNext;
-    }
-
-    @Override
-    public Entry<LogFileKey,LogFileValue> next() {
-      Preconditions.checkState(hasNext);
-      Entry<LogFileKey,LogFileValue> entry = new AbstractMap.SimpleImmutableEntry<>(key, value);
-
-      key = new LogFileKey();
-      value = new LogFileValue();
-      try {
-        hasNext = reader.next(key, value);
-        if (hasNext && key.compareTo(end) > 0) {
-          hasNext = false;
-        }
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-
-      return entry;
-    }
-  }
-
+  /**
+   * Ensures source iterator provides data in sorted order
+   */
+  // TODO add unit test and move to RecoveryLogReader
+  @VisibleForTesting
   static class SortCheckIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
 
     private PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
@@ -125,8 +81,9 @@ public class RecoveryLogsIterator
     }
   }
 
-  private MultiReader open(VolumeManager fs, Path log) throws IOException {
-    MultiReader reader = new MultiReader(fs, log);
+  // TODO get rid of this (push down into iterator in RecoveryLogReader)
+  private RecoveryLogReader open(VolumeManager fs, Path log) throws IOException {
+    RecoveryLogReader reader = new RecoveryLogReader(fs, log);
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
     if (!reader.next(key, value)) {
@@ -134,56 +91,17 @@ public class RecoveryLogsIterator
       return null;
     }
     if (key.event != OPEN) {
-      reader.close();
-      throw new RuntimeException("First log entry value is not OPEN");
+      RuntimeException e = new IllegalStateException(
+          "First log entry value is not OPEN (" + log + ")");
+      try {
+        reader.close();
+      } catch (Exception e2) {
+        e.addSuppressed(e2);
+      }
+      throw e;
     }
 
     return reader;
-  }
-
-  static LogFileKey maxKey(LogEvents event) {
-    LogFileKey key = new LogFileKey();
-    key.event = event;
-    key.tid = Integer.MAX_VALUE;
-    key.seq = Long.MAX_VALUE;
-    return key;
-  }
-
-  static LogFileKey maxKey(LogEvents event, int tid) {
-    LogFileKey key = maxKey(event);
-    key.tid = tid;
-    return key;
-  }
-
-  static LogFileKey minKey(LogEvents event) {
-    LogFileKey key = new LogFileKey();
-    key.event = event;
-    key.tid = 0;
-    key.seq = 0;
-    return key;
-  }
-
-  static LogFileKey minKey(LogEvents event, int tid) {
-    LogFileKey key = minKey(event);
-    key.tid = tid;
-    return key;
-  }
-
-  /**
-   * Iterates only over keys with the specified event (some events are equivalent for sorting) and
-   * tid type.
-   */
-  RecoveryLogsIterator(VolumeManager fs, List<Path> recoveryLogPaths, LogEvents event, int tid)
-      throws IOException {
-    this(fs, recoveryLogPaths, minKey(event, tid), maxKey(event, tid));
-  }
-
-  /**
-   * Iterates only over keys with the specified event (some events are equivalent for sorting).
-   */
-  RecoveryLogsIterator(VolumeManager fs, List<Path> recoveryLogPaths, LogEvents event)
-      throws IOException {
-    this(fs, recoveryLogPaths, minKey(event), maxKey(event));
   }
 
   /**
@@ -197,11 +115,10 @@ public class RecoveryLogsIterator
 
     try {
       for (Path log : recoveryLogPaths) {
-        MultiReader reader = open(fs, log);
+        RecoveryLogReader reader = open(fs, log);
         if (reader != null) {
           readers.add(reader);
-          iterators.add(
-              new SortCheckIterator(log.getName(), new MultiReaderIterator(reader, start, end)));
+          iterators.add(new SortCheckIterator(log.getName(), reader.getIterator(start, end)));
         }
       }
 
@@ -213,7 +130,11 @@ public class RecoveryLogsIterator
       });
 
     } catch (RuntimeException | IOException e) {
-      close();
+      try {
+        close();
+      } catch (Exception e2) {
+        e.addSuppressed(e2);
+      }
       throw e;
     }
   }
@@ -230,11 +151,11 @@ public class RecoveryLogsIterator
 
   @Override
   public void close() {
-    for (MultiReader reader : readers) {
+    for (RecoveryLogReader reader : readers) {
       try {
         reader.close();
       } catch (IOException e) {
-        Log.debug("Failed to close reader", e);
+        LOG.debug("Failed to close reader", e);
       }
     }
   }

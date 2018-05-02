@@ -18,10 +18,15 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.commons.collections.buffer.PriorityBuffer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,23 +37,23 @@ import org.apache.hadoop.io.MapFile.Reader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
+import com.google.common.base.Preconditions;
+
 /**
- * Provide simple Map.Reader methods over multiple Maps.
+ * A class which reads sorted recovery logs produced from a single WAL.
  *
  * Presently only supports next() and seek() and works on all the Map directories within a
  * directory. The primary purpose of this class is to merge the results of multiple Reduce jobs that
  * result in Map output files.
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
-public class MultiReader {
+public class RecoveryLogReader {
 
   /**
    * Group together the next key/value from a Reader with the Reader
-   *
    */
   private static class Index implements Comparable<Index> {
     Reader reader;
-    WritableComparable key;
+    WritableComparable<?> key;
     Writable value;
     boolean cached = false;
 
@@ -62,7 +67,7 @@ public class MultiReader {
 
     public Index(Reader reader) {
       this.reader = reader;
-      key = (WritableComparable) create(reader.getKeyClass());
+      key = (WritableComparable<?>) create(reader.getKeyClass());
       value = (Writable) create(reader.getValueClass());
     }
 
@@ -92,7 +97,9 @@ public class MultiReader {
           return 1;
         if (!o.cached)
           return -1;
-        return key.compareTo(o.key);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        int result = ((WritableComparable) key).compareTo(o.key);
+        return result;
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
@@ -101,7 +108,7 @@ public class MultiReader {
 
   private PriorityBuffer heap = new PriorityBuffer();
 
-  public MultiReader(VolumeManager fs, Path directory) throws IOException {
+  public RecoveryLogReader(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
@@ -127,7 +134,7 @@ public class MultiReader {
     dest.readFields(input);
   }
 
-  public synchronized boolean next(WritableComparable key, Writable val) throws IOException {
+  public synchronized boolean next(WritableComparable<?> key, Writable val) throws IOException {
     Index elt = (Index) heap.remove();
     try {
       elt.cache();
@@ -144,13 +151,13 @@ public class MultiReader {
     return true;
   }
 
-  public synchronized boolean seek(WritableComparable key) throws IOException {
+  synchronized boolean seek(WritableComparable<?> key) throws IOException {
     PriorityBuffer reheap = new PriorityBuffer(heap.size());
     boolean result = false;
     for (Object obj : heap) {
       Index index = (Index) obj;
       try {
-        WritableComparable found = index.reader.getClosest(key, index.value, true);
+        WritableComparable<?> found = index.reader.getClosest(key, index.value, true);
         if (found != null && found.equals(key)) {
           result = true;
         }
@@ -164,7 +171,7 @@ public class MultiReader {
     return result;
   }
 
-  public void close() throws IOException {
+  void close() throws IOException {
     IOException problem = null;
     for (Object obj : heap) {
       Index index = (Index) obj;
@@ -177,6 +184,68 @@ public class MultiReader {
     if (problem != null)
       throw problem;
     heap = null;
+  }
+
+  volatile boolean returnedIterator = false;
+
+  // TODO make this primary entry into this class, and remove volatile boolean and make rest private
+  Iterator<Entry<LogFileKey,LogFileValue>> getIterator(LogFileKey start, LogFileKey end)
+      throws IOException {
+    Preconditions.checkState(!returnedIterator, "Each reader can have only one iterator");
+    returnedIterator = true;
+    return new RecoveryLogReaderIterator(this, start, end);
+  }
+
+  private static class RecoveryLogReaderIterator
+      implements Iterator<Entry<LogFileKey,LogFileValue>> {
+
+    private RecoveryLogReader reader;
+    private LogFileKey key = new LogFileKey();
+    private LogFileValue value = new LogFileValue();
+    private boolean hasNext;
+    private LogFileKey end;
+
+    RecoveryLogReaderIterator(RecoveryLogReader reader, LogFileKey start, LogFileKey end)
+        throws IOException {
+      this.reader = reader;
+      this.end = end;
+
+      reader.seek(start);
+
+      hasNext = reader.next(key, value);
+
+      if (hasNext && key.compareTo(start) < 0) {
+        throw new IllegalStateException("First key is less than start " + key + " " + start);
+      }
+
+      if (hasNext && key.compareTo(end) > 0) {
+        hasNext = false;
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      return hasNext;
+    }
+
+    @Override
+    public Entry<LogFileKey,LogFileValue> next() {
+      Preconditions.checkState(hasNext);
+      Entry<LogFileKey,LogFileValue> entry = new AbstractMap.SimpleImmutableEntry<>(key, value);
+
+      key = new LogFileKey();
+      value = new LogFileValue();
+      try {
+        hasNext = reader.next(key, value);
+        if (hasNext && key.compareTo(end) > 0) {
+          hasNext = false;
+        }
+      } catch (IOException e) {
+        throw new IllegalStateException(e);
+      }
+
+      return entry;
+    }
   }
 
 }

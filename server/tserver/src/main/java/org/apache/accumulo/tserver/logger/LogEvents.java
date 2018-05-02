@@ -17,6 +17,9 @@
 package org.apache.accumulo.tserver.logger;
 
 public enum LogEvents {
+  // TODO add unit test to verify ordinals, rather than rely on dubious comments
+  // TODO if possible, rename COMPACTION to "FLUSH" (or at least "MINC") without changing
+  // serialization
   // DO NOT CHANGE ORDER OF ENUMS, ORDER IS USED IN SERIALIZATION
   OPEN, DEFINE_TABLET, MUTATION, MANY_MUTATIONS, COMPACTION_START, COMPACTION_FINISH;
 }
