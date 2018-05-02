@@ -66,7 +66,8 @@ public class ConnectorIT extends AccumuloClusterHarness {
     final String password2 = "testpassword2";
     c.securityOperations().createLocalUser(user2, new PasswordToken(password2));
 
-    Connector conn2 = conn.createConnector(user2, new PasswordToken(password2));
+    Connector conn2 = Connector.builder().usingConnectionInfo(conn.info())
+        .usingToken(user2, new PasswordToken(password2)).build();
     Assert.assertEquals(instanceName, conn2.getInstance().getInstanceName());
     Assert.assertEquals(zookeepers, conn2.getInstance().getZooKeepers());
     Assert.assertEquals(user2, conn2.whoami());

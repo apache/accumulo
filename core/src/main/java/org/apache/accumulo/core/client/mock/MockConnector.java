@@ -194,9 +194,4 @@ public class MockConnector extends Connector {
   public ConnectionInfo info() {
     throw new UnsupportedOperationException();
   }
-
-  @Override
-  public Connector createConnector(String principal, AuthenticationToken token) throws AccumuloSecurityException, AccumuloException {
-    return instance.getConnector(principal, token);
-  }
 }

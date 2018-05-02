@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
@@ -82,13 +81,10 @@ public class ConnectorImpl extends Connector {
     // server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
-      ServerClient.executeVoid(context, new ClientExec<ClientService.Client>() {
-        @Override
-        public void execute(ClientService.Client iface) throws Exception {
-          if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
-            throw new AccumuloSecurityException("Authentication failed, access denied",
-                SecurityErrorCode.BAD_CREDENTIALS);
-        }
+      ServerClient.executeVoid(context, iface -> {
+        if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
+          throw new AccumuloSecurityException("Authentication failed, access denied",
+              SecurityErrorCode.BAD_CREDENTIALS);
       });
     }
 
@@ -248,13 +244,6 @@ public class ConnectorImpl extends Connector {
     return this.context.getConnectionInfo();
   }
 
-  @Override
-  public Connector createConnector(String principal, AuthenticationToken token) throws AccumuloSecurityException, AccumuloException {
-    Properties props = this.context.getConnectionInfo().getProperties();
-    setAuthenticationProperties(props, principal, token);
-    return ConnectionInfoFactory.getConnector(new ConnectionInfoImpl(props, token));
-  }
-
   private static void setAuthenticationProperties(Properties props, String principal, AuthenticationToken token) {
     props.setProperty(ClientProperty.AUTH_USERNAME.getKey(), principal);
     if (token instanceof CredentialProviderToken) {
@@ -275,7 +264,7 @@ public class ConnectorImpl extends Connector {
 
   public static class ConnectorBuilderImpl
       implements InstanceArgs, PropertyOptions, ConnectionInfoOptions, AuthenticationArgs,
-      ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory {
+      ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory, FromOptions {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
@@ -467,7 +456,7 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public ConnectorFactory usingConnectionInfo(ConnectionInfo connectionInfo) {
+    public FromOptions usingConnectionInfo(ConnectionInfo connectionInfo) {
       this.properties = connectionInfo.getProperties();
       this.token = connectionInfo.getAuthenticationToken();
       return this;
