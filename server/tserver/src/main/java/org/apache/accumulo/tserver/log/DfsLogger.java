@@ -601,7 +601,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     final LogFileKey key = new LogFileKey();
     key.event = DEFINE_TABLET;
     key.seq = seq;
-    key.tid = tid;
+    key.tabletId = tid;
     key.tablet = tablet;
     try {
       write(key, EMPTY);
@@ -662,7 +662,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       LogFileKey key = new LogFileKey();
       key.event = MANY_MUTATIONS;
       key.seq = tabletMutations.getSeq();
-      key.tid = tabletMutations.getTid();
+      key.tabletId = tabletMutations.getTid();
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
       data.add(new Pair<>(key, value));
@@ -688,7 +688,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;
-    key.tid = tid;
+    key.tabletId = tid;
     return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
   }
 
@@ -697,7 +697,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_START;
     key.seq = seq;
-    key.tid = tid;
+    key.tabletId = tid;
     key.filename = fqfn;
     return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
   }

@@ -14,9 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.logger;
+package org.apache.accumulo.tserver.log;
 
-public enum LogEvents {
-  // DO NOT CHANGE ORDER OF ENUMS, ORDER IS USED IN SERIALIZATION
-  OPEN, DEFINE_TABLET, MUTATION, MANY_MUTATIONS, COMPACTION_START, COMPACTION_FINISH;
+import org.apache.accumulo.tserver.logger.LogEvents;
+import org.junit.Assert;
+import org.junit.Test;
+
+public class LogEventsTest {
+  @Test
+  public void testOrdinals() {
+    // Ordinals are used for persistence, so its important they are stable.
+
+    LogEvents[] expectedOrder = new LogEvents[] {LogEvents.OPEN, LogEvents.DEFINE_TABLET,
+        LogEvents.MUTATION, LogEvents.MANY_MUTATIONS, LogEvents.COMPACTION_START,
+        LogEvents.COMPACTION_FINISH};
+
+    for (int i = 0; i < expectedOrder.length; i++) {
+      Assert.assertEquals(i, expectedOrder[i].ordinal());
+    }
+  }
 }

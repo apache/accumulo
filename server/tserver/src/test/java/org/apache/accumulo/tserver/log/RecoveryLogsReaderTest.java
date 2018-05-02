@@ -22,9 +22,17 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.tserver.log.RecoveryLogReader.SortCheckIterator;
+import org.apache.accumulo.tserver.logger.LogEvents;
+import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -142,6 +150,31 @@ public class RecoveryLogsReaderTest {
     assertEquals(1, key.get());
     reader.close();
 
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testSortCheck() {
+
+    List<Entry<LogFileKey,LogFileValue>> unsorted = new ArrayList<>();
+
+    LogFileKey k1 = new LogFileKey();
+    k1.event = LogEvents.MANY_MUTATIONS;
+    k1.tabletId = 2;
+    k1.seq = 55;
+
+    LogFileKey k2 = new LogFileKey();
+    k2.event = LogEvents.MANY_MUTATIONS;
+    k2.tabletId = 9;
+    k2.seq = 9;
+
+    unsorted.add(new AbstractMap.SimpleEntry<>(k2, (LogFileValue) null));
+    unsorted.add(new AbstractMap.SimpleEntry<>(k1, (LogFileValue) null));
+
+    SortCheckIterator iter = new SortCheckIterator(unsorted.iterator());
+
+    while (iter.hasNext()) {
+      iter.next();
+    }
   }
 
 }
