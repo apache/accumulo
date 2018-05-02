@@ -83,7 +83,7 @@ public class BatchWriterReplicationReplayerTest {
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
     key.seq = 1;
-    key.tid = 1;
+    key.tabletId = 1;
 
     WalEdits edits = new WalEdits();
 
@@ -149,7 +149,7 @@ public class BatchWriterReplicationReplayerTest {
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
     key.seq = 1;
-    key.tid = 1;
+    key.tabletId = 1;
 
     WalEdits edits = new WalEdits();
 

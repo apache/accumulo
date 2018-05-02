@@ -64,28 +64,28 @@ public class SortedLogRecovery {
   static LogFileKey maxKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
     key.event = event;
-    key.tid = Integer.MAX_VALUE;
+    key.tabletId = Integer.MAX_VALUE;
     key.seq = Long.MAX_VALUE;
     return key;
   }
 
   static LogFileKey maxKey(LogEvents event, int tabletId) {
     LogFileKey key = maxKey(event);
-    key.tid = tabletId;
+    key.tabletId = tabletId;
     return key;
   }
 
   static LogFileKey minKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
     key.event = event;
-    key.tid = 0;
+    key.tabletId = 0;
     key.seq = 0;
     return key;
   }
 
   static LogFileKey minKey(LogEvents event, int tabletId) {
     LogFileKey key = minKey(event);
-    key.tid = tabletId;
+    key.tabletId = tabletId;
     return key;
   }
 
@@ -106,12 +106,12 @@ public class SortedLogRecovery {
         checkState(key.event == DEFINE_TABLET); // should only fail if bug elsewhere
 
         if (key.tablet.equals(extent) || key.tablet.equals(alternative)) {
-          checkState(key.tid >= 0, "Tid %s for %s is negative", key.tid, extent);
-          checkState(tabletId == -1 || key.tid >= tabletId); // should only fail if bug in
+          checkState(key.tabletId >= 0, "tabletId %s for %s is negative", key.tabletId, extent);
+          checkState(tabletId == -1 || key.tabletId >= tabletId); // should only fail if bug in
           // RecoveryLogsIterator
 
-          if (tabletId != key.tid) {
-            tabletId = key.tid;
+          if (tabletId != key.tabletId) {
+            tabletId = key.tabletId;
           }
         }
       }
@@ -175,7 +175,7 @@ public class SortedLogRecovery {
         LogFileKey key = ddi.next().getKey();
 
         checkState(key.seq >= 0, "Unexpected negative seq %s for tabletId %s", key.seq, tabletId);
-        checkState(key.tid == tabletId); // should only fail if bug elsewhere
+        checkState(key.tabletId == tabletId); // should only fail if bug elsewhere
 
         if (key.event == COMPACTION_START) {
           checkState(key.seq >= lastStart); // should only fail if bug elsewhere
@@ -186,7 +186,7 @@ public class SortedLogRecovery {
             firstEventWasFinish = true;
           } else if (lastEvent == COMPACTION_FINISH) {
             throw new IllegalStateException(
-                "Saw consecutive COMPACTION_FINISH events " + key.tid + " " + key.seq);
+                "Saw consecutive COMPACTION_FINISH events " + key.tabletId + " " + key.seq);
           } else {
             if (key.seq <= lastStart) {
               throw new IllegalStateException(
@@ -230,7 +230,7 @@ public class SortedLogRecovery {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
 
-        checkState(entry.getKey().tid == tabletId); // should only fail if bug elsewhere
+        checkState(entry.getKey().tabletId == tabletId); // should only fail if bug elsewhere
         checkState(entry.getKey().seq >= recoverySeq); // should only fail if bug elsewhere
 
         if (entry.getKey().event == MUTATION) {

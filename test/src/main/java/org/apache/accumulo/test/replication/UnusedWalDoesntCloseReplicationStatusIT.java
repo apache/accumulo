@@ -118,7 +118,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Integer.toString(fakeTableId), null, null);
     key.seq = 1l;
-    key.tid = 1;
+    key.tabletId = 1;
 
     key.write(dos);
     value.write(dos);

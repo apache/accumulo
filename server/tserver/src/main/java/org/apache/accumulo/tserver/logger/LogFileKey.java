@@ -34,7 +34,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   public String filename = null;
   public KeyExtent tablet = null;
   public long seq = -1;
-  public int tid = -1; // TODO rename to tabletId
+  public int tabletId = -1;
   public static final int VERSION = 2;
   public String tserverSession;
 
@@ -48,35 +48,35 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     event = LogEvents.values()[value];
     switch (event) {
       case OPEN:
-        tid = in.readInt();
+        tabletId = in.readInt();
         tserverSession = in.readUTF();
-        if (tid != VERSION) {
-          throw new RuntimeException(String
-              .format("Bad version number for log file: expected %d, but saw %d", VERSION, tid));
+        if (tabletId != VERSION) {
+          throw new RuntimeException(String.format(
+              "Bad version number for log file: expected %d, but saw %d", VERSION, tabletId));
         }
         break;
       case COMPACTION_FINISH:
         seq = in.readLong();
-        tid = in.readInt();
+        tabletId = in.readInt();
         break;
       case COMPACTION_START:
         seq = in.readLong();
-        tid = in.readInt();
+        tabletId = in.readInt();
         filename = in.readUTF();
         break;
       case DEFINE_TABLET:
         seq = in.readLong();
-        tid = in.readInt();
+        tabletId = in.readInt();
         tablet = new KeyExtent();
         tablet.readFields(in);
         break;
       case MANY_MUTATIONS:
         seq = in.readLong();
-        tid = in.readInt();
+        tabletId = in.readInt();
         break;
       case MUTATION:
         seq = in.readLong();
-        tid = in.readInt();
+        tabletId = in.readInt();
         break;
       default:
         throw new RuntimeException("Unknown log event type: " + event);
@@ -90,32 +90,32 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     switch (event) {
       case OPEN:
         seq = -1;
-        tid = -1;
+        tabletId = -1;
         out.writeInt(VERSION);
         out.writeUTF(tserverSession);
         // out.writeUTF(Accumulo.getInstanceID());
         break;
       case COMPACTION_FINISH:
         out.writeLong(seq);
-        out.writeInt(tid);
+        out.writeInt(tabletId);
         break;
       case COMPACTION_START:
         out.writeLong(seq);
-        out.writeInt(tid);
+        out.writeInt(tabletId);
         out.writeUTF(filename);
         break;
       case DEFINE_TABLET:
         out.writeLong(seq);
-        out.writeInt(tid);
+        out.writeInt(tabletId);
         tablet.write(out);
         break;
       case MANY_MUTATIONS:
         out.writeLong(seq);
-        out.writeInt(tid);
+        out.writeInt(tabletId);
         break;
       case MUTATION:
         out.writeLong(seq);
-        out.writeInt(tid);
+        out.writeInt(tabletId);
         break;
       default:
         throw new IllegalArgumentException("Bad value for LogFileEntry type");
@@ -151,8 +151,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     }
     if (this.event == OPEN)
       return 0;
-    if (this.tid != o.tid) {
-      return this.tid - o.tid;
+    if (this.tabletId != o.tabletId) {
+      return this.tabletId - o.tabletId;
     }
     return sign(this.seq - o.seq);
   }
@@ -176,15 +176,15 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
       case OPEN:
         return String.format("OPEN %s", tserverSession);
       case COMPACTION_FINISH:
-        return String.format("COMPACTION_FINISH %d %d", tid, seq);
+        return String.format("COMPACTION_FINISH %d %d", tabletId, seq);
       case COMPACTION_START:
-        return String.format("COMPACTION_START %d %d %s", tid, seq, filename);
+        return String.format("COMPACTION_START %d %d %s", tabletId, seq, filename);
       case MUTATION:
-        return String.format("MUTATION %d %d", tid, seq);
+        return String.format("MUTATION %d %d", tabletId, seq);
       case MANY_MUTATIONS:
-        return String.format("MANY_MUTATIONS %d %d", tid, seq);
+        return String.format("MANY_MUTATIONS %d %d", tabletId, seq);
       case DEFINE_TABLET:
-        return String.format("DEFINE_TABLET %d %d %s", tid, seq, tablet);
+        return String.format("DEFINE_TABLET %d %d %s", tabletId, seq, tablet);
     }
     throw new RuntimeException("Unknown type of entry: " + event);
   }

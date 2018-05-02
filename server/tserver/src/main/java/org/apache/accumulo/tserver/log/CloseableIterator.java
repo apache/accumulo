@@ -14,9 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.logger;
+package org.apache.accumulo.tserver.log;
 
-public enum LogEvents {
-  // DO NOT CHANGE ORDER OF ENUMS, ORDER IS USED IN SERIALIZATION
-  OPEN, DEFINE_TABLET, MUTATION, MANY_MUTATIONS, COMPACTION_START, COMPACTION_FINISH;
+import java.io.IOException;
+import java.util.Iterator;
+
+public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
+  @Override
+  public void close() throws IOException;
 }

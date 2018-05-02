@@ -25,6 +25,7 @@ import java.util.Objects;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.commons.collections.buffer.PriorityBuffer;
@@ -37,7 +38,10 @@ import org.apache.hadoop.io.MapFile.Reader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 /**
  * A class which reads sorted recovery logs produced from a single WAL.
@@ -46,7 +50,7 @@ import com.google.common.base.Preconditions;
  * directory. The primary purpose of this class is to merge the results of multiple Reduce jobs that
  * result in Map output files.
  */
-public class RecoveryLogReader {
+public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,LogFileValue>> {
 
   /**
    * Group together the next key/value from a Reader with the Reader
@@ -107,8 +111,14 @@ public class RecoveryLogReader {
   }
 
   private PriorityBuffer heap = new PriorityBuffer();
+  private Iterator<Entry<LogFileKey,LogFileValue>> iter;
 
   public RecoveryLogReader(VolumeManager fs, Path directory) throws IOException {
+    this(fs, directory, null, null);
+  }
+
+  public RecoveryLogReader(VolumeManager fs, Path directory, LogFileKey start, LogFileKey end)
+      throws IOException {
     boolean foundFinish = false;
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
@@ -123,6 +133,8 @@ public class RecoveryLogReader {
     if (!foundFinish)
       throw new IOException(
           "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
+
+    iter = new SortCheckIterator(new RangeIterator(start, end));
   }
 
   private static void copy(Writable src, Writable dest) throws IOException {
@@ -134,7 +146,8 @@ public class RecoveryLogReader {
     dest.readFields(input);
   }
 
-  public synchronized boolean next(WritableComparable<?> key, Writable val) throws IOException {
+  @VisibleForTesting
+  synchronized boolean next(WritableComparable<?> key, Writable val) throws IOException {
     Index elt = (Index) heap.remove();
     try {
       elt.cache();
@@ -151,6 +164,7 @@ public class RecoveryLogReader {
     return true;
   }
 
+  @VisibleForTesting
   synchronized boolean seek(WritableComparable<?> key) throws IOException {
     PriorityBuffer reheap = new PriorityBuffer(heap.size());
     boolean result = false;
@@ -171,7 +185,8 @@ public class RecoveryLogReader {
     return result;
   }
 
-  void close() throws IOException {
+  @Override
+  public void close() throws IOException {
     IOException problem = null;
     for (Object obj : heap) {
       Index index = (Index) obj;
@@ -186,39 +201,75 @@ public class RecoveryLogReader {
     heap = null;
   }
 
-  volatile boolean returnedIterator = false;
+  /**
+   * Ensures source iterator provides data in sorted order
+   */
+  @VisibleForTesting
+  static class SortCheckIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
 
-  // TODO make this primary entry into this class, and remove volatile boolean and make rest private
-  Iterator<Entry<LogFileKey,LogFileValue>> getIterator(LogFileKey start, LogFileKey end)
-      throws IOException {
-    Preconditions.checkState(!returnedIterator, "Each reader can have only one iterator");
-    returnedIterator = true;
-    return new RecoveryLogReaderIterator(this, start, end);
+    private PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
+
+    SortCheckIterator(Iterator<Entry<LogFileKey,LogFileValue>> source) {
+      this.source = Iterators.peekingIterator(source);
+
+    }
+
+    @Override
+    public boolean hasNext() {
+      return source.hasNext();
+    }
+
+    @Override
+    public Entry<LogFileKey,LogFileValue> next() {
+      Entry<LogFileKey,LogFileValue> next = source.next();
+      if (source.hasNext()) {
+        Preconditions.checkState(next.getKey().compareTo(source.peek().getKey()) <= 0,
+            "Keys not in order %s %s", next.getKey(), source.peek().getKey());
+      }
+      return next;
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException("remove");
+    }
   }
 
-  private static class RecoveryLogReaderIterator
-      implements Iterator<Entry<LogFileKey,LogFileValue>> {
+  private class RangeIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
 
-    private RecoveryLogReader reader;
     private LogFileKey key = new LogFileKey();
     private LogFileValue value = new LogFileValue();
     private boolean hasNext;
     private LogFileKey end;
 
-    RecoveryLogReaderIterator(RecoveryLogReader reader, LogFileKey start, LogFileKey end)
-        throws IOException {
-      this.reader = reader;
+    private boolean next(LogFileKey key, LogFileValue value) throws IOException {
+      try {
+        return RecoveryLogReader.this.next(key, value);
+      } catch (EOFException e) {
+        return false;
+      }
+    }
+
+    RangeIterator(LogFileKey start, LogFileKey end) throws IOException {
       this.end = end;
 
-      reader.seek(start);
+      if (start != null) {
+        hasNext = next(key, value);
 
-      hasNext = reader.next(key, value);
+        if (hasNext && key.event != LogEvents.OPEN) {
+          throw new IllegalStateException("First log entry value is not OPEN");
+        }
 
-      if (hasNext && key.compareTo(start) < 0) {
+        seek(start);
+      }
+
+      hasNext = next(key, value);
+
+      if (hasNext && start != null && key.compareTo(start) < 0) {
         throw new IllegalStateException("First key is less than start " + key + " " + start);
       }
 
-      if (hasNext && key.compareTo(end) > 0) {
+      if (hasNext && end != null && key.compareTo(end) > 0) {
         hasNext = false;
       }
     }
@@ -236,8 +287,8 @@ public class RecoveryLogReader {
       key = new LogFileKey();
       value = new LogFileValue();
       try {
-        hasNext = reader.next(key, value);
-        if (hasNext && key.compareTo(end) > 0) {
+        hasNext = next(key, value);
+        if (hasNext && end != null && key.compareTo(end) > 0) {
           hasNext = false;
         }
       } catch (IOException e) {
@@ -246,6 +297,26 @@ public class RecoveryLogReader {
 
       return entry;
     }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException("remove");
+    }
+  }
+
+  @Override
+  public boolean hasNext() {
+    return iter.hasNext();
+  }
+
+  @Override
+  public Entry<LogFileKey,LogFileValue> next() {
+    return iter.next();
+  }
+
+  @Override
+  public void remove() {
+    throw new UnsupportedOperationException("remove");
   }
 
 }
