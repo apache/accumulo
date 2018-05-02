@@ -35,7 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class MultiReaderTest {
+public class RecoveryLogsReaderTest {
 
   VolumeManager fs;
   TemporaryFolder root = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -73,7 +73,7 @@ public class MultiReaderTest {
     root.create();
   }
 
-  private void scan(MultiReader reader, int start) throws IOException {
+  private void scan(RecoveryLogReader reader, int start) throws IOException {
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
 
@@ -85,7 +85,7 @@ public class MultiReaderTest {
     }
   }
 
-  private void scanOdd(MultiReader reader, int start) throws IOException {
+  private void scanOdd(RecoveryLogReader reader, int start) throws IOException {
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
 
@@ -98,7 +98,7 @@ public class MultiReaderTest {
   @Test
   public void testMultiReader() throws IOException {
     Path manyMaps = new Path("file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
-    MultiReader reader = new MultiReader(fs, manyMaps);
+    RecoveryLogReader reader = new RecoveryLogReader(fs, manyMaps);
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
 
@@ -128,7 +128,7 @@ public class MultiReaderTest {
     reader.close();
 
     fs.deleteRecursively(new Path(manyMaps, "even"));
-    reader = new MultiReader(fs, manyMaps);
+    reader = new RecoveryLogReader(fs, manyMaps);
     key.set(501);
     assertTrue(reader.seek(key));
     scanOdd(reader, 501);

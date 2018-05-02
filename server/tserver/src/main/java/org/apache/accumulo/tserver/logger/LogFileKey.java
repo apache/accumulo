@@ -34,7 +34,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   public String filename = null;
   public KeyExtent tablet = null;
   public long seq = -1;
-  public int tid = -1;
+  public int tid = -1; // TODO rename to tabletId
   public static final int VERSION = 2;
   public String tserverSession;
 
