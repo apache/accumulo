@@ -39,7 +39,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.rfile.bcfile.CompareUtils.Scalar;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
@@ -456,25 +455,6 @@ public final class BCFile {
     }
 
     /**
-     * Create a Meta Block and obtain an output stream for adding data into the block. There can
-     * only be one BlockAppender stream active at any time. Regular Blocks may not be created after
-     * the first Meta Blocks. The caller must call BlockAppender.close() to conclude the block
-     * creation.
-     *
-     * @param name
-     *          The name of the Meta Block. The name must not conflict with existing Meta Blocks.
-     * @param compressionName
-     *          The name of the compression algorithm to be used.
-     * @return The BlockAppender stream
-     * @throws MetaBlockAlreadyExists
-     *           If the meta block with the name already exists.
-     */
-    public BlockAppender prepareMetaBlock(String name, String compressionName)
-        throws IOException, MetaBlockAlreadyExists {
-      return prepareMetaBlock(name, Compression.getCompressionAlgorithmByName(compressionName));
-    }
-
-    /**
      * Create a Meta Block and obtain an output stream for adding data into the block. The Meta
      * Block will be compressed with the same compression algorithm as data blocks. There can only
      * be one BlockAppender stream active at any time. Regular Blocks may not be created after the
@@ -646,7 +626,7 @@ public final class BCFile {
 
       public <InputStreamType extends InputStream & Seekable> RBlockState(Algorithm compressionAlgo,
           InputStreamType fsin, BlockRegion region, Configuration conf, CryptoModule cryptoModule,
-          Version bcFileVersion, CryptoModuleParameters cryptoParams) throws IOException {
+          CryptoModuleParameters cryptoParams) throws IOException {
         this.compressAlgo = compressionAlgo;
         this.region = region;
         this.decompressor = compressionAlgo.getDecompressor();
@@ -693,10 +673,6 @@ public final class BCFile {
        */
       public InputStream getInputStream() {
         return in;
-      }
-
-      public String getCompressionName() {
-        return compressAlgo.getName();
       }
 
       public BlockRegion getBlockRegion() {
@@ -753,39 +729,12 @@ public final class BCFile {
       }
 
       /**
-       * Get the name of the compression algorithm used to compress the block.
-       *
-       * @return name of the compression algorithm.
-       */
-      public String getCompressionName() {
-        return rBlkState.getCompressionName();
-      }
-
-      /**
        * Get the uncompressed size of the block.
        *
        * @return uncompressed size of the block.
        */
       public long getRawSize() {
         return rBlkState.getBlockRegion().getRawSize();
-      }
-
-      /**
-       * Get the compressed size of the block.
-       *
-       * @return compressed size of the block.
-       */
-      public long getCompressedSize() {
-        return rBlkState.getBlockRegion().getCompressedSize();
-      }
-
-      /**
-       * Get the starting position of the block in the file.
-       *
-       * @return the starting position of the block in the file.
-       */
-      public long getStartPos() {
-        return rBlkState.getBlockRegion().getOffset();
       }
     }
 
@@ -914,8 +863,7 @@ public final class BCFile {
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata,
-        InputStreamType fin, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+        InputStreamType fin, Configuration conf) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -950,33 +898,6 @@ public final class BCFile {
         cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy
             .decryptSecretKey(params);
       }
-    }
-
-    /**
-     * Get the name of the default compression algorithm.
-     *
-     * @return the name of the default compression algorithm.
-     */
-    public String getDefaultCompressionName() {
-      return dataIndex.getDefaultCompressionAlgorithm().getName();
-    }
-
-    /**
-     * Get version of BCFile file being read.
-     *
-     * @return version of BCFile file being read.
-     */
-    public Version getBCFileVersion() {
-      return version;
-    }
-
-    /**
-     * Get version of BCFile API.
-     *
-     * @return version of BCFile API.
-     */
-    public Version getAPIVersion() {
-      return API_VERSION;
     }
 
     /**
@@ -1058,8 +979,7 @@ public final class BCFile {
 
     private BlockReader createReader(Algorithm compressAlgo, BlockRegion region)
         throws IOException {
-      RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, cryptoModule, version,
-          cryptoParams);
+      RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, cryptoModule, cryptoParams);
       return new BlockReader(rbs);
     }
   }
@@ -1244,7 +1164,7 @@ public final class BCFile {
   /**
    * Block region.
    */
-  static final class BlockRegion implements Scalar {
+  static final class BlockRegion {
     private final long offset;
     private final long compressedSize;
     private final long rawSize;
@@ -1277,11 +1197,6 @@ public final class BCFile {
 
     public long getRawSize() {
       return rawSize;
-    }
-
-    @Override
-    public long magnitude() {
-      return offset;
     }
   }
 }

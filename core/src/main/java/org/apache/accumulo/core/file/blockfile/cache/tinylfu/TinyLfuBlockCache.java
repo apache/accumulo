@@ -200,7 +200,7 @@ public final class TinyLfuBlockCache implements BlockCache {
     }
   }
 
-  private Block load(String key, Loader loader, Map<String,byte[]> resolvedDeps) {
+  private Block load(Loader loader, Map<String,byte[]> resolvedDeps) {
     byte[] data = loader.load((int) Math.min(Integer.MAX_VALUE, policy.getMaximum()), resolvedDeps);
     if (data == null) {
       return null;
@@ -235,7 +235,7 @@ public final class TinyLfuBlockCache implements BlockCache {
     Map<String,Loader> deps = loader.getDependencies();
     Block block;
     if (deps.size() == 0) {
-      block = cache.get(blockName, k -> load(blockName, loader, Collections.emptyMap()));
+      block = cache.get(blockName, k -> load(loader, Collections.emptyMap()));
     } else {
       // This code path exist to handle the case where dependencies may need to be loaded. Loading
       // dependencies will access the cache. Cache load functions
@@ -252,8 +252,7 @@ public final class TinyLfuBlockCache implements BlockCache {
         // Use asMap because it will not increment stats, getIfPresent recorded a miss above. Use
         // computeIfAbsent because it is possible another thread loaded
         // the data since this thread called getIfPresent.
-        block = cache.asMap().computeIfAbsent(blockName,
-            k -> load(blockName, loader, resolvedDeps));
+        block = cache.asMap().computeIfAbsent(blockName, k -> load(loader, resolvedDeps));
       }
     }
 

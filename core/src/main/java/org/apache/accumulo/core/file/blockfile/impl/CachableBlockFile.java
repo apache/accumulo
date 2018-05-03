@@ -189,7 +189,7 @@ public class CachableBlockFile {
         if (serializedMetadata == null) {
           tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, accumuloConfiguration);
         } else {
-          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, accumuloConfiguration);
+          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf);
         }
 
         if (!bcfr.compareAndSet(null, tmpReader)) {
@@ -424,7 +424,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile(null).getMetaBlock(blockName);
-      return new BlockRead(_currBlock, _currBlock.getRawSize());
+      return new BlockRead(_currBlock);
     }
 
     @Override
@@ -440,7 +440,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile(null).getDataBlock(offset, compressedSize, rawSize);
-      return new BlockRead(_currBlock, _currBlock.getRawSize());
+      return new BlockRead(_currBlock);
     }
 
     /**
@@ -462,7 +462,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(blockIndex);
-      return new BlockRead(_currBlock, _currBlock.getRawSize());
+      return new BlockRead(_currBlock);
     }
 
     @Override
@@ -478,7 +478,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(offset, compressedSize, rawSize);
-      return new BlockRead(_currBlock, _currBlock.getRawSize());
+      return new BlockRead(_currBlock);
     }
 
     @Override
@@ -508,11 +508,11 @@ public class CachableBlockFile {
     private final CacheEntry cb;
 
     public CachedBlockRead(CacheEntry cb, byte buf[]) {
-      this(new SeekableByteArrayInputStream(buf), buf.length, cb);
+      this(new SeekableByteArrayInputStream(buf), cb);
     }
 
-    private CachedBlockRead(SeekableByteArrayInputStream seekableInput, long size, CacheEntry cb) {
-      super(seekableInput, size);
+    private CachedBlockRead(SeekableByteArrayInputStream seekableInput, CacheEntry cb) {
+      super(seekableInput);
       this.seekableInput = seekableInput;
       this.cb = cb;
     }
@@ -558,7 +558,7 @@ public class CachableBlockFile {
    */
   public static class BlockRead extends DataInputStream implements ABlockReader {
 
-    public BlockRead(InputStream in, long size) {
+    public BlockRead(InputStream in) {
       super(in);
     }
 

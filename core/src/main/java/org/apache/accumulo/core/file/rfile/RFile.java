@@ -1470,10 +1470,6 @@ public class RFile {
       return getSample(this.samplerConfig);
     }
 
-    public void printInfo() throws IOException {
-      printInfo(false);
-    }
-
     public void printInfo(boolean includeIndexDetails) throws IOException {
 
       System.out.printf("%-24s : %d\n", "RFile Version", rfileVersion);
