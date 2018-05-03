@@ -835,6 +835,10 @@ public enum Property {
           + " table.summarizer.<unique id>.opt.<key>=<value>."),
 
   // VFS ClassLoader properties
+  VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
+      AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
+      "Configuration for a system level vfs classloader. Accumulo jar can be"
+          + " configured here and loaded out of HDFS."),
   VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null,
       PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
@@ -846,6 +850,14 @@ public enum Property {
           + " general.vfs.context.classpath.<name>.delegation=post, where <name> is"
           + " your context name. If delegation is not specified, it defaults to loading"
           + " from parent classloader first."),
+  @Interpolated
+  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR,
+      "${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
+      PropertyType.ABSOLUTEPATH,
+      "Directory to use for the vfs cache. The cache will keep a soft reference"
+          + " to all of the classes loaded in the VM. This should be on local disk on"
+          + " each node with sufficient space. It defaults to"
+          + " ${java.io.tmpdir}/accumulo-vfs-cache-${user.name}"),
 
   // General properties for configuring replication
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX,
@@ -1154,10 +1166,9 @@ public enum Property {
       Property.MASTER_METADATA_SUSPENDABLE, Property.TABLE_FAILURES_IGNORE,
       Property.TABLE_SCAN_MAXMEM);
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(
-      Property.TSERV_SCAN_MAX_OPENFILES, Property.TSERV_CLIENTPORT,
-      Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES, Property.GC_PORT,
-      Property.MASTER_CLIENTPORT);
+  private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
+      Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
+      Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
