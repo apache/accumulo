@@ -273,7 +273,8 @@ public class KerberosProxyIT extends AccumuloITBase {
     return proxyPropertiesFile;
   }
 
-  private File generateNewAccumuloClientConfiguration(MiniAccumuloConfigImpl cfg) throws IOException {
+  private File generateNewAccumuloClientConfiguration(MiniAccumuloConfigImpl cfg)
+      throws IOException {
     // Proxy configuration
     File propsFile = new File(cfg.getConfDir(), "accumulo-client-proxy.properties");
     if (propsFile.exists()) {

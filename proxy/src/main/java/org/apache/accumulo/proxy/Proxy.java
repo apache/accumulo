@@ -194,10 +194,9 @@ public class Proxy implements KeywordExecutable {
   }
 
   public static ServerAddress createProxyServer(HostAndPort address,
-                                                TProtocolFactory protocolFactory, Properties props)
-      throws Exception {
-    final int numThreads = Integer.parseInt(
-        props.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
+      TProtocolFactory protocolFactory, Properties props) throws Exception {
+    final int numThreads = Integer
+        .parseInt(props.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
     final long maxFrameSize = ConfigurationTypeHelper.getFixedMemoryAsBytes(
         props.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
     final int simpleTimerThreadpoolSize = Integer
@@ -220,8 +219,7 @@ public class Proxy implements KeywordExecutable {
     TProcessor processor = new AccumuloProxy.Processor<>(wrappedImpl);
 
     // Get the type of thrift server to instantiate
-    final String serverTypeStr = props.getProperty(THRIFT_SERVER_TYPE,
-        THRIFT_SERVER_TYPE_DEFAULT);
+    final String serverTypeStr = props.getProperty(THRIFT_SERVER_TYPE, THRIFT_SERVER_TYPE_DEFAULT);
     ThriftServerType serverType = DEFAULT_SERVER_TYPE;
     if (!THRIFT_SERVER_TYPE_DEFAULT.equals(serverTypeStr)) {
       serverType = ThriftServerType.get(serverTypeStr);
@@ -248,8 +246,9 @@ public class Proxy implements KeywordExecutable {
         final String kerberosPrincipal = ClientProperty.AUTH_USERNAME.getValue(props);
         final String kerberosKeytab = ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getValue(props);
         if (StringUtils.isBlank(kerberosPrincipal) || StringUtils.isBlank(kerberosKeytab)) {
-          throw new IllegalStateException(String.format("Kerberos principal '%s' and keytab '%s'"
-              + " must be provided", kerberosPrincipal, kerberosKeytab));
+          throw new IllegalStateException(
+              String.format("Kerberos principal '%s' and keytab '%s'" + " must be provided",
+                  kerberosPrincipal, kerberosKeytab));
         }
         UserGroupInformation.loginUserFromKeytab(kerberosPrincipal, kerberosKeytab);
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
