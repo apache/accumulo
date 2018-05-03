@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import java.util.Enumeration;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -168,11 +169,13 @@ public class AccumuloMonitorAppenderTest {
   }
 
   private static void updateLocAndVerify(AtomicLong currentLoc, AccumuloMonitorAppender parent,
-      int newLoc) {
+      int newLoc) throws InterruptedException {
     // set the new location
     currentLoc.set(newLoc);
     // wait for the appender to notice the change
-    while (!verifyAppender(parent, newLoc == 0 ? null : ("loc" + newLoc))) {}
+    while (!verifyAppender(parent, newLoc == 0 ? null : ("loc" + newLoc))) {
+      Thread.sleep(10);
+    }
   }
 
   private static boolean verifyAppender(AccumuloMonitorAppender parent, String newLocName) {
@@ -183,7 +186,13 @@ public class AccumuloMonitorAppenderTest {
     if (childAppenders == null || !childAppenders.hasMoreElements()) {
       return false;
     }
-    AppenderSkeleton child = (AppenderSkeleton) childAppenders.nextElement();
+    AppenderSkeleton child = null;
+    try {
+      child = (AppenderSkeleton) childAppenders.nextElement();
+    } catch (NoSuchElementException e) {
+      // Enumeration not thread safe; appender for old loc was removed after we did hasMoreElements
+      return false;
+    }
     if (childAppenders.hasMoreElements()) {
       Assert.fail("Appender should never have more than one child");
     }
