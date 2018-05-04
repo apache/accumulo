@@ -106,6 +106,11 @@ public class GarbageCollectWriteAheadLogsTest {
           throws IOException, KeeperException, InterruptedException {
         return 0;
       }
+
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+        return Collections.emptyMap();
+      }
     };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet);
@@ -130,6 +135,11 @@ public class GarbageCollectWriteAheadLogsTest {
       protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates)
           throws IOException, KeeperException, InterruptedException {
         return 0;
+      }
+
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+        return Collections.emptyMap();
       }
     };
     gc.collect(status);
@@ -172,7 +182,12 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expectLastCall().once();
     EasyMock.replay(context, fs, marker, tserverSet, conn, rscanner, mscanner);
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
-        tserverSet, marker, tabletOnServer1List);
+        tserverSet, marker, tabletOnServer1List) {
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+        return Collections.emptyMap();
+      }
+    };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet, conn, rscanner, mscanner);
   }
@@ -208,7 +223,12 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
     EasyMock.replay(context, fs, marker, tserverSet, conn, rscanner, mscanner);
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
-        tserverSet, marker, tabletOnServer2List);
+        tserverSet, marker, tabletOnServer2List) {
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+        return Collections.emptyMap();
+      }
+    };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet, conn, rscanner, mscanner);
   }
@@ -250,7 +270,12 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(mscanner.iterator()).andReturn(replicationWork.entrySet().iterator());
     EasyMock.replay(context, fs, marker, tserverSet, conn, rscanner, mscanner);
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
-        tserverSet, marker, tabletOnServer1List);
+        tserverSet, marker, tabletOnServer1List) {
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+        return Collections.emptyMap();
+      }
+    };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet, conn, rscanner, mscanner);
   }

@@ -47,6 +47,7 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -59,6 +60,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -142,6 +144,8 @@ public class GarbageCollectWriteAheadLogs {
     try {
       status.currentLog.started = System.currentTimeMillis();
 
+      Map<UUID,Path> recoveryLogs = getSortedWALogs();
+
       Map<TServerInstance,Set<UUID>> logsByServer = new HashMap<>();
       Map<UUID,Pair<WalState,Path>> logsState = new HashMap<>();
       // Scan for log file info first: the order is important
@@ -164,7 +168,7 @@ public class GarbageCollectWriteAheadLogs {
       Map<UUID,TServerInstance> uuidToTServer;
       span = Trace.start("removeEntriesInUse");
       try {
-        uuidToTServer = removeEntriesInUse(logsByServer, currentServers, logsState);
+        uuidToTServer = removeEntriesInUse(logsByServer, currentServers, logsState, recoveryLogs);
         count = uuidToTServer.size();
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
@@ -199,6 +203,9 @@ public class GarbageCollectWriteAheadLogs {
       long removeStop = System.currentTimeMillis();
       log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count,
           logsByServer.size(), (removeStop - logEntryScanStop) / 1000.));
+
+      count = removeFiles(recoveryLogs.values());
+      log.info("{} recovery logs removed", count);
       span.stop();
 
       span = Trace.start("removeMarkers");
@@ -244,22 +251,37 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
+  private long removeFile(Path path) {
+    try {
+      if (!useTrash || !fs.moveToTrash(path)) {
+        fs.deleteRecursively(path);
+      }
+      return 1;
+    } catch (FileNotFoundException ex) {
+      // ignored
+    } catch (IOException ex) {
+      log.error("Unable to delete wal {}", path, ex);
+    }
+
+    return 0;
+  }
+
   private long removeFiles(Collection<Pair<WalState,Path>> collection, final GCStatus status) {
     for (Pair<WalState,Path> stateFile : collection) {
       Path path = stateFile.getSecond();
       log.debug("Removing {} WAL {}", stateFile.getFirst(), path);
-      try {
-        if (!useTrash || !fs.moveToTrash(path)) {
-          fs.deleteRecursively(path);
-        }
-        status.currentLog.deleted++;
-      } catch (FileNotFoundException ex) {
-        // ignored
-      } catch (IOException ex) {
-        log.error("Unable to delete wal {}", path, ex);
-      }
+      status.currentLog.deleted += removeFile(path);
     }
     return status.currentLog.deleted;
+  }
+
+  private long removeFiles(Collection<Path> values) {
+    long count = 0;
+    for (Path path : values) {
+      log.debug("Removing recovery log {}", path);
+      count += removeFile(path);
+    }
+    return count;
   }
 
   private UUID path2uuid(Path path) {
@@ -267,13 +289,15 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates,
-      Set<TServerInstance> liveServers, Map<UUID,Pair<WalState,Path>> logsState)
-      throws IOException, KeeperException, InterruptedException {
+      Set<TServerInstance> liveServers, Map<UUID,Pair<WalState,Path>> logsState,
+      Map<UUID,Path> recoveryLogs) throws IOException, KeeperException, InterruptedException {
 
     Map<UUID,TServerInstance> result = new HashMap<>();
     for (Entry<TServerInstance,Set<UUID>> entry : candidates.entrySet()) {
       for (UUID id : entry.getValue()) {
-        result.put(id, entry.getKey());
+        if (result.put(id, entry.getKey()) != null) {
+          throw new IllegalArgumentException("WAL " + id + " owned by multiple tservers");
+        }
       }
     }
 
@@ -287,9 +311,8 @@ public class GarbageCollectWriteAheadLogs {
       if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
         Set<UUID> idsToIgnore = candidates.remove(state.current);
         if (idsToIgnore != null) {
-          for (UUID id : idsToIgnore) {
-            result.remove(id);
-          }
+          result.keySet().removeAll(idsToIgnore);
+          recoveryLogs.keySet().removeAll(idsToIgnore);
         }
       }
       // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
@@ -301,9 +324,8 @@ public class GarbageCollectWriteAheadLogs {
           // There's a reference to a log file, so skip that server's logs
           Set<UUID> idsToIgnore = candidates.remove(dead);
           if (idsToIgnore != null) {
-            for (UUID id : idsToIgnore) {
-              result.remove(id);
-            }
+            result.keySet().removeAll(idsToIgnore);
+            recoveryLogs.keySet().removeAll(idsToIgnore);
           }
         }
       }
@@ -320,6 +342,8 @@ public class GarbageCollectWriteAheadLogs {
             result.remove(id);
           }
         }
+
+        recoveryLogs.keySet().removeAll(idsForServer);
       }
     }
     return result;
@@ -381,6 +405,31 @@ public class GarbageCollectWriteAheadLogs {
         result++;
       }
       logsByServer.put(entry.getKey(), ids);
+    }
+    return result;
+  }
+
+  /**
+   * Looks for write-ahead logs in recovery directories.
+   *
+   * @return map of log uuids to paths
+   */
+  protected Map<UUID,Path> getSortedWALogs() throws IOException {
+    Map<UUID,Path> result = new HashMap<>();
+
+    for (String dir : ServerConstants.getRecoveryDirs()) {
+      Path recoveryDir = new Path(dir);
+      if (fs.exists(recoveryDir)) {
+        for (FileStatus status : fs.listStatus(recoveryDir)) {
+          try {
+            UUID logId = path2uuid(status.getPath());
+            result.put(logId, status.getPath());
+          } catch (IllegalArgumentException iae) {
+            log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
+          }
+
+        }
+      }
     }
     return result;
   }
