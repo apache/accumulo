@@ -192,8 +192,7 @@ public final class Compression {
           bis1 = downStream;
         }
         CompressionInputStream cis = codec.createInputStream(bis1, decompressor);
-        BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
-        return bis2;
+        return new BufferedInputStream(cis, DATA_IBUF_SIZE);
       }
 
       @Override
@@ -210,9 +209,7 @@ public final class Compression {
           bos1 = downStream;
         }
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(
-            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
-        return bos2;
+        return new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
       }
 
     },
@@ -275,8 +272,7 @@ public final class Compression {
           }
         }
         CompressionInputStream cis = decomCodec.createInputStream(downStream, decompressor);
-        BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
-        return bis2;
+        return new BufferedInputStream(cis, DATA_IBUF_SIZE);
       }
 
       @Override
@@ -290,9 +286,7 @@ public final class Compression {
         }
         // always uses the default buffer size
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(
-            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
-        return bos2;
+        return new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
       }
 
       @Override
@@ -422,9 +416,7 @@ public final class Compression {
         }
         // use the default codec
         CompressionOutputStream cos = snappyCodec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 = new BufferedOutputStream(
-            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
-        return bos2;
+        return new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
       }
 
       @Override
@@ -447,8 +439,7 @@ public final class Compression {
         }
 
         CompressionInputStream cis = decomCodec.createInputStream(downStream, decompressor);
-        BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
-        return bis2;
+        return new BufferedInputStream(cis, DATA_IBUF_SIZE);
       }
 
       @Override

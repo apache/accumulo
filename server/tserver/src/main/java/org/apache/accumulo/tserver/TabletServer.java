@@ -847,8 +847,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials),
           credentials, durability);
-      long sid = sessionManager.createSession(us, false);
-      return sid;
+      return sessionManager.createSession(us, false);
     }
 
     private void setUpdateTablet(UpdateSession us, KeyExtent keyExtent) {
@@ -2587,10 +2586,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (address == null) {
         return null;
       }
-      MasterClientService.Client client = ThriftUtil
-          .getClient(new MasterClientService.Client.Factory(), address, this);
       // log.info("Listener API to master has been opened");
-      return client;
+      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, this);
     } catch (Exception e) {
       log.warn("Issue with masterConnection (" + address + ") " + e, e);
     }
@@ -3322,8 +3319,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       conf = confFactory.getTableConfiguration(MetadataTable.ID);
     }
-    Durability durability = DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
-    return durability;
+    return DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
   }
 
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, long walogSeq)

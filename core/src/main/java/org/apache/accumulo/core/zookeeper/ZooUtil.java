@@ -72,8 +72,7 @@ public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
         throw new RuntimeException(
             "Accumulo found multiple possible instance ids in " + instanceDirectory);
       } else {
-        String result = files[0].getPath().getName();
-        return result;
+        return files[0].getPath().getName();
       }
     } catch (IOException e) {
       log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);

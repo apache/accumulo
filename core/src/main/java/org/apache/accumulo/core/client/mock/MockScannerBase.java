@@ -142,10 +142,8 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     SortedKeyValueIterator<Key,Value> vf = VisibilityFilter.wrap(cqf, auths, defaultLabels);
     AccumuloConfiguration conf = new MockConfiguration(table.settings);
     MockIteratorEnvironment iterEnv = new MockIteratorEnvironment(auths);
-    SortedKeyValueIterator<Key,Value> result = iterEnv
-        .getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null, conf,
-            serverSideIteratorList, serverSideIteratorOptions, iterEnv, false));
-    return result;
+    return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null,
+        conf, serverSideIteratorList, serverSideIteratorOptions, iterEnv, false));
   }
 
   @Override

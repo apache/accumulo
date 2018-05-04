@@ -601,8 +601,7 @@ public class FileManager {
       }
 
       for (FileDataSource fds : dataSources) {
-        FileSKVIterator reader = map.get(fds.file).remove(0);
-        FileSKVIterator source = reader;
+        FileSKVIterator source = map.get(fds.file).remove(0);
         if (samplerConfig != null) {
           source = source.getSample(samplerConfig);
           if (source == null) {

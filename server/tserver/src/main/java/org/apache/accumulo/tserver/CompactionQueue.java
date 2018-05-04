@@ -65,8 +65,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
     if (task.size() == 0)
       return null;
 
-    TraceRunnable min = Collections.min(task, comparator);
-    return min;
+    return Collections.min(task, comparator);
   }
 
   @Override

@@ -354,8 +354,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         opid = null;
         return null;
       }
-      String ret = waitForFateOperation(opid);
-      return ret;
+      return waitForFateOperation(opid);
     } catch (ThriftSecurityException e) {
       switch (e.getCode()) {
         case TABLE_DOESNT_EXIST:

@@ -101,9 +101,7 @@ public class Main {
   public static synchronized ClassLoader getClassLoader() {
     if (classLoader == null) {
       try {
-        ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader")
-            .invoke(null);
-        classLoader = clTmp;
+        classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         Thread.currentThread().setContextClassLoader(classLoader);
       } catch (ClassNotFoundException | IOException | IllegalAccessException
           | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
@@ -119,9 +117,8 @@ public class Main {
       throws IOException, ClassNotFoundException {
     if (vfsClassLoader == null) {
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-      Class<?> vfsClassLoaderTmp = AccumuloClassLoader.getClassLoader()
+      vfsClassLoader = AccumuloClassLoader.getClassLoader()
           .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
-      vfsClassLoader = vfsClassLoaderTmp;
     }
     return vfsClassLoader;
   }
@@ -166,8 +163,7 @@ public class Main {
     final Method finalMain = main;
     Runnable r = () -> {
       try {
-        final Object thisIsJustOneArgument = args;
-        finalMain.invoke(null, thisIsJustOneArgument);
+        finalMain.invoke(null, (Object) args);
       } catch (InvocationTargetException e) {
         if (e.getCause() != null) {
           die(e.getCause());

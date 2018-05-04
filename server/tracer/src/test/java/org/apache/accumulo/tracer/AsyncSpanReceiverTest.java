@@ -66,9 +66,8 @@ public class AsyncSpanReceiverTest {
 
   Span createSpan(long length) {
     long time = System.currentTimeMillis();
-    Span span = new MilliSpan.Builder().begin(time).end(time + length).description("desc")
+    return new MilliSpan.Builder().begin(time).end(time + length).description("desc")
         .parents(Collections.emptyList()).spanId(1).traceId(2).build();
-    return span;
   }
 
   @Test

@@ -203,8 +203,7 @@ public class LocalityGroupUtil {
         sb.append("\\x").append(String.format("%02X", c));
     }
 
-    String ecf = sb.toString();
-    return ecf;
+    return sb.toString();
   }
 
   public static class PartitionedMutation extends Mutation {

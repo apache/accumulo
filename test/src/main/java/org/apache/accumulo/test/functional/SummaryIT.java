@@ -99,9 +99,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
       Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-      LongSummaryStatistics stats = stream.mapToLong(e -> e.getKey().getTimestamp())
-          .summaryStatistics();
-      return stats;
+      return stream.mapToLong(e -> e.getKey().getTimestamp()).summaryStatistics();
     }
   }
 
@@ -110,9 +108,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new Range(startRow, false, endRow, true));
       Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-      LongSummaryStatistics stats = stream.mapToLong(e -> e.getKey().getTimestamp())
-          .summaryStatistics();
-      return stats;
+      return stream.mapToLong(e -> e.getKey().getTimestamp()).summaryStatistics();
     }
   }
 

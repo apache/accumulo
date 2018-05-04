@@ -607,8 +607,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       metadataPrevRow.append(getPrevEndRow().getBytes(), 0, getPrevEndRow().getLength());
     }
 
-    Range range = new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
-    return range;
+    return new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
   }
 
   public static SortedSet<KeyExtent> findChildren(KeyExtent ke, SortedSet<KeyExtent> tablets) {

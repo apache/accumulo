@@ -90,8 +90,7 @@ public class SharedRateLimiterFactory {
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {
       if (activeLimiters.containsKey(name)) {
-        SharedRateLimiter limiter = activeLimiters.get(name);
-        return limiter;
+        return activeLimiters.get(name);
       } else {
         long initialRate;
         initialRate = rateProvider.getDesiredRate();

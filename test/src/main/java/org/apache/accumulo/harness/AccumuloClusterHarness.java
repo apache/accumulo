@@ -39,7 +39,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.conf.AccumuloClusterConfiguration;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.conf.Configuration;
@@ -120,8 +119,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
         // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and
         // core-site.xml
-        MiniAccumuloClusterImpl impl = miniClusterHarness.create(this, getAdminToken(), krb);
-        cluster = impl;
+        cluster = miniClusterHarness.create(this, getAdminToken(), krb);
         // Login as the "root" user
         if (null != krb) {
           ClusterUser rootUser = krb.getRootUser();

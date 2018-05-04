@@ -193,11 +193,10 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     final List<Set<Mutation>> allMuts = new LinkedList<>();
     List<Mutation> data = new ArrayList<>();
     for (int i = 0; i < NUM_THREADS; i++) {
-      final int thread = i;
       for (int j = 0; j < NUM_TO_FLUSH; j++) {
-        int row = thread * NUM_TO_FLUSH + j;
+        int row = i * NUM_TO_FLUSH + j;
         Mutation m = new Mutation(new Text(String.format("%10d", row)));
-        m.put(new Text("cf" + thread), new Text("cq"), new Value(("" + row).getBytes()));
+        m.put(new Text("cf" + i), new Text("cq"), new Value(("" + row).getBytes()));
         data.add(m);
       }
     }

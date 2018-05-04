@@ -213,18 +213,15 @@ public class ScanRangeIT extends AccumuloClusterHarness {
   }
 
   private static Text createCF(int cf) {
-    Text tcf = new Text(String.format("cf_%03d", cf));
-    return tcf;
+    return new Text(String.format("cf_%03d", cf));
   }
 
   private static Text createCQ(int cf) {
-    Text tcf = new Text(String.format("cq_%03d", cf));
-    return tcf;
+    return new Text(String.format("cq_%03d", cf));
   }
 
   private static Text createRow(int row) {
-    Text trow = new Text(String.format("r_%06d", row));
-    return trow;
+    return new Text(String.format("r_%06d", row));
   }
 
   private void insertData(Connector c, String table) throws Exception {

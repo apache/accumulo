@@ -153,8 +153,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     put(tm2, "r2", "cf1", "cq1", 5, "v6");
 
     SortedMapIterator smi2 = new SortedMapIterator(tm2);
-    TestDataSource tds2 = new TestDataSource(smi2);
-    tds.next = tds2;
+    tds.next = new TestDataSource(smi2);
 
     testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
     testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v6", true);
@@ -186,8 +185,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
     // setup a new data source, but it should not switch until the current row is finished
     SortedMapIterator smi2 = new SortedMapIterator(tm2);
-    TestDataSource tds2 = new TestDataSource(smi2);
-    tds.next = tds2;
+    tds.next = new TestDataSource(smi2);
 
     testAndCallNext(ssi, "r1", "cf1", "cq2", 5, "v2", true);
     testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v3", true);
@@ -213,8 +211,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     put(tm2, "r1", "cf1", "cq2", 6, "v4");
 
     SortedMapIterator smi2 = new SortedMapIterator(tm2);
-    TestDataSource tds2 = new TestDataSource(smi2);
-    tds.next = tds2;
+    tds.next = new TestDataSource(smi2);
 
     ssi.seek(new Range(), new ArrayList<>(), false);
 

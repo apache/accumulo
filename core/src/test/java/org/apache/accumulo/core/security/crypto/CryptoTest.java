@@ -619,8 +619,7 @@ public class CryptoTest {
     encryptedDataStream.writeUTF(MARKER_STRING);
     encryptedDataStream.writeInt(MARKER_INT);
     encryptedDataStream.close();
-    byte[] encryptedBytes = encryptedByteStream.toByteArray();
-    return (encryptedBytes);
+    return (encryptedByteStream.toByteArray());
   }
 
   /**

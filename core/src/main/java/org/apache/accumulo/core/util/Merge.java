@@ -230,7 +230,7 @@ public class Merge {
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     final Iterator<Entry<Key,Value>> iterator = scanner.iterator();
 
-    Iterator<Size> result = new Iterator<Size>() {
+    return new Iterator<Size>() {
       Size next = fetch();
 
       @Override
@@ -255,9 +255,9 @@ public class Merge {
 
       @Override
       public Size next() {
-        Size result = next;
+        Size result1 = next;
         next = fetch();
-        return result;
+        return result1;
       }
 
       @Override
@@ -265,7 +265,6 @@ public class Merge {
         throw new UnsupportedOperationException();
       }
     };
-    return result;
   }
 
 }

@@ -80,8 +80,7 @@ public class UGIAssumingProcessor implements TProcessor {
     }
     TSaslServerTransport saslTrans = (TSaslServerTransport) trans;
     SaslServer saslServer = saslTrans.getSaslServer();
-    String authId = saslServer.getAuthorizationID();
-    String endUser = authId;
+    String endUser = saslServer.getAuthorizationID();
 
     SaslMechanism mechanism;
     try {

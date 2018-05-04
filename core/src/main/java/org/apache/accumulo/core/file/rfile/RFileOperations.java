@@ -132,8 +132,6 @@ public class RFileOperations extends FileOperations {
         new RateLimitedOutputStream(outputStream, options.getRateLimiter()), compression, conf,
         acuconf);
 
-    RFile.Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize,
-        samplerConfig, sampler);
-    return writer;
+    return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }
 }

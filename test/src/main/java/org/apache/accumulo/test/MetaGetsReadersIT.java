@@ -56,28 +56,24 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
 
   private static Thread slowScan(final Connector c, final String tableName,
       final AtomicBoolean stop) {
-    Thread thread = new Thread() {
-      @Override
-      public void run() {
-        try {
-          while (!stop.get()) {
-            try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
-              IteratorSetting is = new IteratorSetting(50, SlowIterator.class);
-              SlowIterator.setSleepTime(is, 10);
-              s.addScanIterator(is);
-              Iterator<Entry<Key,Value>> iterator = s.iterator();
-              while (iterator.hasNext() && !stop.get()) {
-                iterator.next();
-              }
+    return new Thread(() -> {
+      try {
+        while (!stop.get()) {
+          try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
+            IteratorSetting is = new IteratorSetting(50, SlowIterator.class);
+            SlowIterator.setSleepTime(is, 10);
+            s.addScanIterator(is);
+            Iterator<Entry<Key,Value>> iterator = s.iterator();
+            while (iterator.hasNext() && !stop.get()) {
+              iterator.next();
             }
           }
-        } catch (Exception ex) {
-          log.trace("{}", ex.getMessage(), ex);
-          stop.set(true);
         }
+      } catch (Exception ex) {
+        log.trace("{}", ex.getMessage(), ex);
+        stop.set(true);
       }
-    };
-    return thread;
+    });
   }
 
   @Test(timeout = 2 * 60 * 1000)

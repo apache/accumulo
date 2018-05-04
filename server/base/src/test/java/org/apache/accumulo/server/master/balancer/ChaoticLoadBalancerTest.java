@@ -131,8 +131,7 @@ public class ChaoticLoadBalancerTest {
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
       HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", c);
-      String fakeInstance = cString;
-      TServerInstance tsi = new TServerInstance(fakeAddress, fakeInstance);
+      TServerInstance tsi = new TServerInstance(fakeAddress, cString);
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsi, fakeTServer);
       fakeTServer.extents.add(makeExtent(cString, null, null));

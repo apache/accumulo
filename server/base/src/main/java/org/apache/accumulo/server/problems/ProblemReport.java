@@ -180,9 +180,8 @@ public class ProblemReport {
     dos.close();
     baos.close();
 
-    String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/"
+    return ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/"
         + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
-    return zpath;
   }
 
   static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
