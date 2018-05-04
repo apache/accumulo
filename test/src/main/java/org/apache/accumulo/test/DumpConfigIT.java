@@ -55,8 +55,7 @@ public class DumpConfigIT extends ConfigurableMacBase {
     File siteFileBackup = new File(folder.getRoot(), "accumulo-site.xml.bak");
     assertFalse(siteFileBackup.exists());
     assertEquals(0,
-        exec(Admin.class, new String[] {"dumpConfig", "-a", "-d", folder.getRoot().getPath()})
-            .waitFor());
+        exec(Admin.class, "dumpConfig", "-a", "-d", folder.getRoot().getPath()).waitFor());
     assertTrue(siteFileBackup.exists());
     String site = FunctionalTestUtils.readAll(new FileInputStream(siteFileBackup));
     assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));

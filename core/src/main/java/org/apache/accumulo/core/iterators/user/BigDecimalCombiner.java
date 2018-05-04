@@ -55,9 +55,7 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
-      return false;
-    return true;
+    return super.validateOptions(options);
   }
 
   public static class BigDecimalSummingCombiner extends BigDecimalCombiner {

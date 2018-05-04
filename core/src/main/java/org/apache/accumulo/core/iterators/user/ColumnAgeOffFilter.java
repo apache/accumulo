@@ -71,9 +71,7 @@ public class ColumnAgeOffFilter extends Filter {
     Long threshold = ttls.getObject(k);
     if (threshold == null)
       return true;
-    if (currentTime - k.getTimestamp() > threshold)
-      return false;
-    return true;
+    return currentTime - k.getTimestamp() <= threshold;
   }
 
   @Override

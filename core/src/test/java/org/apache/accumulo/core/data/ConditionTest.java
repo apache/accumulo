@@ -193,7 +193,7 @@ public class ConditionTest {
     assertFalse(c.equals(c2));
     assertFalse(c2.equals(c));
     c2.setTimestamp(1234L);
-    c2.setIterators(new IteratorSetting[0]);
+    c2.setIterators();
     assertFalse(c.equals(c2));
     assertFalse(c2.equals(c));
     c2.setIterators(ITERATORS);

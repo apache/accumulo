@@ -2965,11 +2965,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       tableToVerify = RootTable.ID;
 
     List<ColumnFQ> columnsToFetch = Arrays
-        .asList(new ColumnFQ[] {TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+        .asList(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
             TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
             TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
             TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
-            TabletsSection.ServerColumnFamily.TIME_COLUMN});
+            TabletsSection.ServerColumnFamily.TIME_COLUMN);
 
     TreeMap<Key,Value> tkv = new TreeMap<>();
     try (ScannerImpl scanner = new ScannerImpl(context, tableToVerify, Authorizations.EMPTY)) {

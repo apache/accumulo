@@ -87,13 +87,9 @@ public class CredentialProviderFactoryShim {
     // If we already found the class
     if (null != hadoopClassesAvailable) {
       // Make sure everything is initialized as expected
-      if (hadoopClassesAvailable && null != getProvidersMethod && null != hadoopCredProviderFactory
-          && null != getCredentialEntryMethod && null != getCredentialMethod) {
-        return true;
-      } else {
-        // Otherwise we failed to load it
-        return false;
-      }
+      // Otherwise we failed to load it
+      return hadoopClassesAvailable && null != getProvidersMethod && null != hadoopCredProviderFactory
+          && null != getCredentialEntryMethod && null != getCredentialMethod;
     }
 
     hadoopClassesAvailable = false;

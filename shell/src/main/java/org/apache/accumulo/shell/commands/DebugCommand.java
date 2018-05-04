@@ -60,7 +60,7 @@ public class DebugCommand extends Command {
   public void registerCompletion(final Token root,
       final Map<Command.CompletionSet,Set<String>> special) {
     final Token debug_command = new Token(getName());
-    debug_command.addSubcommand(Arrays.asList(new String[] {"on", "off"}));
+    debug_command.addSubcommand(Arrays.asList("on", "off"));
     root.addSubcommand(debug_command);
   }
 

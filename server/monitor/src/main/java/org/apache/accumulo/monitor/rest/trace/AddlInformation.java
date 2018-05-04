@@ -33,11 +33,6 @@ public class AddlInformation {
   public List<AnnotationInformation> annotations = new ArrayList<>();
 
   /**
-   * Initializes data and annotation array lists
-   */
-  public AddlInformation() {}
-
-  /**
    * Add a new data
    *
    * @param data

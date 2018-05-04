@@ -1256,8 +1256,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     private final static String tab = "\t";
     private final static String newline = "\n";
 
-    public HexFormatter() {}
-
     @Override
     public boolean hasNext() {
       return this.iter.hasNext();

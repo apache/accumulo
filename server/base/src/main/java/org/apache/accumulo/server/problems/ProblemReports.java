@@ -258,12 +258,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           if (getIter1().hasNext()) {
             return true;
           }
-
-          if (getIter2().hasNext()) {
-            return true;
-          }
-
-          return false;
+          return getIter2().hasNext();
         }
 
         @Override

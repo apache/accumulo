@@ -32,11 +32,6 @@ public class DeadLoggerList {
   public List<DeadLoggerInformation> deadLogger = new ArrayList<>();
 
   /**
-   * Creates the array list
-   */
-  public DeadLoggerList() {}
-
-  /**
    * Adds a new dead logger to the list
    *
    * @param deadLogger

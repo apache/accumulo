@@ -32,11 +32,6 @@ public class ProblemDetail {
   public List<ProblemDetailInformation> problemDetails = new ArrayList<>();
 
   /**
-   * Creates the array list
-   */
-  public ProblemDetail() {}
-
-  /**
    * Adds a new problem detail to the list
    *
    * @param problemDetail

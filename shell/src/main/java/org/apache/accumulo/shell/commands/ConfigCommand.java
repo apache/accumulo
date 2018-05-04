@@ -271,12 +271,9 @@ public class ConfigCommand extends Command {
     if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
       return true;
     }
-    if (cl.hasOption(filterWithValuesOpt.getOpt())
+    return cl.hasOption(filterWithValuesOpt.getOpt())
         && !(key.contains(cl.getOptionValue(filterWithValuesOpt.getOpt()))
-            || value.contains(cl.getOptionValue(filterWithValuesOpt.getOpt())))) {
-      return true;
-    }
-    return false;
+        || value.contains(cl.getOptionValue(filterWithValuesOpt.getOpt())));
   }
 
   private void printConfHeader(List<String> output) {

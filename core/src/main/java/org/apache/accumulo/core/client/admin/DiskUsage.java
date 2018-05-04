@@ -47,10 +47,7 @@ public class DiskUsage {
 
     if (tables != null ? !tables.equals(diskUsage.tables) : diskUsage.tables != null)
       return false;
-    if (usage != null ? !usage.equals(diskUsage.usage) : diskUsage.usage != null)
-      return false;
-
-    return true;
+    return usage != null ? usage.equals(diskUsage.usage) : diskUsage.usage == null;
   }
 
   @Override

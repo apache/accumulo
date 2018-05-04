@@ -467,7 +467,7 @@ public class CollectTabletStats {
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.path().toString(), ns, ns.getConf()).withTableConfiguration(aconf).build();
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
-      reader.seek(range, columnSet, columnSet.size() == 0 ? false : true);
+      reader.seek(range, columnSet, columnSet.size() != 0);
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
         count++;
         reader.next();
@@ -510,7 +510,7 @@ public class CollectTabletStats {
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
     reader.seek(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true), columnSet,
-        columnSet.size() == 0 ? false : true);
+        columnSet.size() != 0);
 
     int count = 0;
 

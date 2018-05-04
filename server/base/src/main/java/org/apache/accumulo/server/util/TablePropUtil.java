@@ -49,11 +49,8 @@ public class TablePropUtil {
 
   public static boolean isPropertyValid(String property, String value) {
     Property p = Property.getPropertyByKey(property);
-    if ((p != null && !p.getType().isValidFormat(value))
-        || !Property.isValidTablePropertyKey(property))
-      return false;
-
-    return true;
+    return (p == null || p.getType().isValidFormat(value))
+        && Property.isValidTablePropertyKey(property);
   }
 
   public static void removeTableProperty(Table.ID tableId, String property)

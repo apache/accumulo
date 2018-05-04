@@ -29,11 +29,6 @@ public class OpTimer {
   private long currentElapsedNanos;
 
   /**
-   * Create an OpTimer instance. The timer is not running.
-   */
-  public OpTimer() {}
-
-  /**
    * Returns timer running state
    *
    * @return true if timer is running

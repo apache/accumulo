@@ -30,8 +30,6 @@ public class SpanTree {
   final Map<Long,List<Long>> parentChildren = new HashMap<>();
   public final Map<Long,RemoteSpan> nodes = new HashMap<>();
 
-  public SpanTree() {}
-
   public void addNode(RemoteSpan span) {
     nodes.put(span.spanId, span);
     if (parentChildren.get(span.parentId) == null)

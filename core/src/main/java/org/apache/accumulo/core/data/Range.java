@@ -481,10 +481,8 @@ public class Range implements WritableComparable<Range> {
         startKeysEqual = true;
       } else if (currentRange.infiniteStartKey) {
         startKeysEqual = false;
-      } else if (currentRange.start.equals(range.start)) {
-        startKeysEqual = true;
       } else {
-        startKeysEqual = false;
+        startKeysEqual = currentRange.start.equals(range.start);
       }
 
       if (startKeysEqual || currentRange.contains(range.start) || (!currentRange.stopKeyInclusive

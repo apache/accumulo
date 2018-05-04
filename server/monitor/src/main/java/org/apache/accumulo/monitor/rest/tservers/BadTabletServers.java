@@ -32,11 +32,6 @@ public class BadTabletServers {
   public List<BadTabletServerInformation> badTabletServer = new ArrayList<>();
 
   /**
-   * Initializes bad tserver list
-   */
-  public BadTabletServers() {}
-
-  /**
    * Adds a new bad tserver to the list
    *
    * @param badTabletServer

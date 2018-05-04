@@ -218,9 +218,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       if (!iterator.hasNext())
         throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
             + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
-      if (iterator.next().getKey().equals(entry))
-        return true;
-      return false;
+      return iterator.next().getKey().equals(entry);
     }
   }
 

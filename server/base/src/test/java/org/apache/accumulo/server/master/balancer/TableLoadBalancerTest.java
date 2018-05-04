@@ -113,10 +113,6 @@ public class TableLoadBalancerTest {
   // ugh... so wish I had provided mock objects to the LoadBalancer in the master
   class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
 
-    TableLoadBalancer() {
-      super();
-    }
-
     // use our new classname to test class loading
     @Override
     protected String getLoadBalancerClassNameForTable(Table.ID table) {

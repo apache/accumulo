@@ -191,13 +191,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   private boolean looksLikeRelativePath(String uri) {
     if (uri.startsWith("/" + Constants.BULK_PREFIX)) {
-      if ('/' == uri.charAt(10)) {
-        return true;
-      }
-    } else if (uri.startsWith("/" + Constants.CLONE_PREFIX)) {
-      return true;
+      return '/' == uri.charAt(10);
+    } else {
+      return uri.startsWith("/" + Constants.CLONE_PREFIX);
     }
-
-    return false;
   }
 }

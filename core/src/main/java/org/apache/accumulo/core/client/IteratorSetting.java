@@ -326,11 +326,10 @@ public class IteratorSetting implements Writable {
     if (priority != other.priority)
       return false;
     if (properties == null) {
-      if (other.properties != null)
-        return false;
-    } else if (!properties.equals(other.properties))
-      return false;
-    return true;
+      return other.properties == null;
+    } else {
+      return properties.equals(other.properties);
+    }
   }
 
   @Override

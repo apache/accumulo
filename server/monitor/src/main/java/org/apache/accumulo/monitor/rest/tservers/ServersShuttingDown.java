@@ -32,11 +32,6 @@ public class ServersShuttingDown {
   public List<ServerShuttingDownInformation> server = new ArrayList<>();
 
   /**
-   * Initalizes tservers list
-   */
-  public ServersShuttingDown() {}
-
-  /**
    * Adds a new tserver to the list
    *
    * @param server

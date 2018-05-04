@@ -142,9 +142,8 @@ public class ZooUtil {
         if (null != auth) {
           if (null == other.auth) {
             return false;
-          } else if (!Arrays.equals(auth, other.auth)) {
-            // both non-null but not equal
-            return false;
+          } else {
+            return Arrays.equals(auth, other.auth);
           }
         }
 

@@ -32,11 +32,6 @@ public class TabletServersRecovery {
   public List<TabletServerRecoveryInformation> recoveryList = new ArrayList<>();
 
   /**
-   * Initializes tserver recovery list
-   */
-  public TabletServersRecovery() {}
-
-  /**
    * Adds a new tserver recovery to the list
    *
    * @param tabletServerRecovery

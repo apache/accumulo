@@ -46,9 +46,7 @@ public class AgeOffFilter extends Filter {
    */
   @Override
   public boolean accept(Key k, Value v) {
-    if (currentTime - k.getTimestamp() > threshold)
-      return false;
-    return true;
+    return currentTime - k.getTimestamp() <= threshold;
   }
 
   @Override

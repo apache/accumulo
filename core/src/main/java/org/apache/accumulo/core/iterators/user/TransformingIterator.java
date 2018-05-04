@@ -111,8 +111,6 @@ abstract public class TransformingIterator extends WrappingIterator implements O
 
   private static Comparator<Pair<Key,Value>> keyComparator = Comparator.comparing(Pair::getFirst);
 
-  public TransformingIterator() {}
-
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {

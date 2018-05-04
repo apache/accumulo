@@ -32,11 +32,6 @@ public class RecentTracesList {
   public List<RecentTracesInformation> recentTraces = new ArrayList<>();
 
   /**
-   * Initializes recent traces array list
-   */
-  public RecentTracesList() {}
-
-  /**
    * Adds a new trace to the list
    *
    * @param trace

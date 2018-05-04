@@ -32,11 +32,6 @@ public class ZKInformation {
   public List<ZooKeeper> zkServers = new ArrayList<>();
 
   /**
-   * Initializes zk servers list
-   */
-  public ZKInformation() {}
-
-  /**
    * Adds a new zk server to the list
    *
    * @param server
