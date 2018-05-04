@@ -25,10 +25,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,8 +42,6 @@ import org.w3c.dom.NodeList;
 public class AccumuloClassLoader {
 
   public static final String GENERAL_CLASSPATHS = "general.classpaths";
-  public static final String MAVEN_PROJECT_BASEDIR_PROPERTY_NAME = "general.maven.project.basedir";
-  public static final String DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE = "";
 
   private static URL accumuloConfigUrl;
   private static URLClassLoader classloader;
@@ -206,40 +201,12 @@ public class AccumuloClassLoader {
     log.warn("'{}' is deprecated but was set to '{}' ", GENERAL_CLASSPATHS, cp);
     String[] cps = replaceEnvVars(cp, System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<>();
-    for (String classpath : getMavenClasspaths())
-      addUrl(classpath, urls);
     for (String classpath : cps) {
       if (!classpath.startsWith("#")) {
         addUrl(classpath, urls);
       }
     }
     return urls;
-  }
-
-  private static Set<String> getMavenClasspaths() {
-    String baseDirname = AccumuloClassLoader.getAccumuloProperty(
-        MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE);
-    if (baseDirname == null || baseDirname.trim().isEmpty())
-      return Collections.emptySet();
-    Set<String> paths = new TreeSet<>();
-    findMavenTargetClasses(paths, new File(baseDirname.trim()), 0);
-    return paths;
-  }
-
-  private static void findMavenTargetClasses(Set<String> paths, File file, int depth) {
-    if (depth > 3)
-      return;
-    if (file.isDirectory()) {
-      File[] children = file.listFiles();
-      if (children != null) {
-        for (File child : children) {
-          findMavenTargetClasses(paths, child, depth + 1);
-        }
-      }
-    } else if ("pom.xml".equals(file.getName())) {
-      paths.add(file.getParentFile().getAbsolutePath() + File.separator + "target" + File.separator
-          + "classes");
-    }
   }
 
   public static synchronized ClassLoader getClassLoader() throws IOException {
