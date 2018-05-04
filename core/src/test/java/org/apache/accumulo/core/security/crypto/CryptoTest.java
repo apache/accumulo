@@ -17,47 +17,33 @@
 
 package org.apache.accumulo.core.security.crypto;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.apache.accumulo.core.file.rfile.RFileTest.setAndGetAccumuloConfig;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SecureRandom;
+import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map.Entry;
-import java.util.Random;
 
-import javax.crypto.AEADBadTagException;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.SecretKeySpec;
-
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import com.google.common.primitives.Bytes;
 
 public class CryptoTest {
 
@@ -65,604 +51,144 @@ public class CryptoTest {
   private static final String MARKER_STRING = "1 2 3 a b c";
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
-  // @formatter:off
-  public static final String CRYPTO_ON_KEK_OFF_CONF =
-    "crypto-on-no-key-encryption-accumulo-site.xml";
-  // @formatter:on
-
-  // Used for kek file testing
-  private static File kekWorks;
-  private static File kekTooLong;
-  private static File kekTooShort;
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
 
   @Test
-  public void testNoCryptoStream() throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_OFF_CONF);
+  public void testAESEncryptionStrategy() throws Exception {
+    byte[] resultingBytes = encrypt(AESCBCEncryptionStrategy.class, CRYPTO_ON_CONF);
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    String stringifiedBytes = Arrays.toString(resultingBytes);
+    String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
 
-    assertNotNull(params);
-    assertEquals("NullCipher", params.getCipherSuite());
+    assertNotEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    assertNotNull(cryptoModule);
-    assertTrue(cryptoModule instanceof CryptoModuleFactory.NullCryptoModule);
-
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-    params.setPlaintextOutputStream(out);
-
-    params = cryptoModule.getEncryptingOutputStream(params);
-    assertNotNull(params.getEncryptedOutputStream());
-    assertEquals(out, params.getEncryptedOutputStream());
+    decrypt(resultingBytes, CRYPTO_ON_CONF);
   }
 
   @Test
-  public void testCryptoModuleParamsParsing() {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+  public void testNoEncryption() throws Exception {
+    byte[] resultingBytes = encrypt(NoEncryptionStrategy.class, CRYPTO_OFF_CONF);
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    String stringifiedBytes = Arrays.toString(resultingBytes);
+    String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
 
-    assertNotNull(params);
-    assertEquals("AES/GCM/NoPadding", params.getCipherSuite());
-    assertEquals("AES/CBC/NoPadding",
-        params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()));
-    assertEquals("GCM", params.getCipherSuiteEncryptionMode());
-    assertEquals("AES", params.getKeyAlgorithmName());
-    assertEquals(128, params.getKeyLength());
-    assertEquals("SHA1PRNG", params.getRandomNumberGenerator());
-    assertEquals("SUN", params.getRandomNumberGeneratorProvider());
-    assertEquals("SunJCE", params.getSecurityProvider());
-    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy",
-        params.getKeyEncryptionStrategyClass());
+    assertEquals(stringifiedBytes, stringifiedMarkerBytes);
+
+    decrypt(resultingBytes, CRYPTO_OFF_CONF);
   }
 
   @Test
-  public void testCryptoModuleDoesntLeakSensitive() throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+  public void testRFileEncrypted() throws Exception {
+    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    ArrayList<Key> keys = testData();
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    params.setPlaintextOutputStream(baos);
-
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-
-    cryptoModule.getEncryptingOutputStream(params);
-    params.getEncryptedOutputStream().close();
-
-    // If we get here, we have encrypted bytes
-    byte[] streamBytes = baos.toByteArray();
-    for (Property prop : Property.values()) {
-      if (prop.isSensitive()) {
-        byte[] toCheck = prop.getKey().getBytes();
-        assertEquals(-1, Bytes.indexOf(streamBytes, toCheck));
+    String file = "target/testFile.rf";
+    fs.delete(new Path(file), true);
+    try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
+        .withTableProperties(cryptoOnConf).build()) {
+      Value empty = new Value(new byte[] {});
+      writer.startDefaultLocalityGroup();
+      for (Key key : keys) {
+        writer.append(key, empty);
       }
     }
 
+    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
+        .withTableProperties(cryptoOnConf).build();
+    ArrayList<Key> keysRead = new ArrayList<>();
+    iter.forEach(e -> keysRead.add(e.getKey()));
+    assertEquals(keys, keysRead);
   }
 
   @Test
-  public void testCryptoModuleParamsValidation1() throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+  public void testRFileEncryptedDiffConf() throws Exception {
+    String exceptionMsg = "File encrypted with different encryption";
+    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    AccumuloConfiguration cryptoOffConf = setAndGetAccumuloConfig(CRYPTO_OFF_CONF);
+    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    ArrayList<Key> keys = testData();
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
+    String file = "target/testFile.rf";
+    fs.delete(new Path(file), true);
+    try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
+        .withTableProperties(cryptoOnConf).build()) {
+      Value empty = new Value(new byte[] {});
+      writer.startDefaultLocalityGroup();
+      for (Key key : keys) {
+        writer.append(key, empty);
+      }
+    }
 
-    assertTrue(cryptoModule instanceof DefaultCryptoModule);
-
-    exception.expect(RuntimeException.class);
-    cryptoModule.getEncryptingOutputStream(params);
+    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
+        .withTableProperties(cryptoOffConf).build();
+    ArrayList<Key> keysRead = new ArrayList<>();
+    try {
+      iter.forEach(e -> keysRead.add(e.getKey()));
+      assertTrue("Scanner should have thrown exception " + exceptionMsg, false);
+    } catch (RuntimeException re) {
+      if (!re.getMessage().startsWith(exceptionMsg))
+        throw re;
+    }
   }
 
-  @Test
-  public void testCryptoModuleParamsValidation2() throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-
-    assertTrue(cryptoModule instanceof DefaultCryptoModule);
-
-    exception.expect(RuntimeException.class);
-    cryptoModule.getDecryptingInputStream(params);
+  private ArrayList<Key> testData() {
+    ArrayList<Key> keys = new ArrayList<>();
+    keys.add(new Key("a", "cf", "cq"));
+    keys.add(new Key("a1", "cf", "cq"));
+    keys.add(new Key("a2", "cf", "cq"));
+    keys.add(new Key("a3", "cf", "cq"));
+    return keys;
   }
 
-  private String getStringifiedBytes(String s) throws IOException {
+  private byte[] encrypt(Class strategyClass, String configFile) throws Exception {
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
+    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(conf,
+        EncryptionStrategy.Scope.RFILE);
+
+    assertEquals(strategyClass, strategy.getClass());
+    // test init on other scope to be sure, even though this test has no scope
+    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL, conf));
+
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    OutputStream encrypted = strategy.encryptStream(new NoFlushOutputStream(out));
+    assertNotNull(encrypted);
+
+    DataOutputStream dataOut = new DataOutputStream(encrypted);
+    dataOut.writeUTF(MARKER_STRING);
+    dataOut.writeInt(MARKER_INT);
+    dataOut.close();
+    return out.toByteArray();
+  }
+
+  private void decrypt(byte[] resultingBytes, String configFile) throws Exception {
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
+    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(conf,
+        EncryptionStrategy.Scope.RFILE);
+
+    // test init on other scope to be sure, even though this test has no scope
+    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL, conf));
+
+    ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
+    DataInputStream decrypted = new DataInputStream(strategy.decryptStream(in));
+    String markerString = decrypted.readUTF();
+    int markerInt = decrypted.readInt();
+
+    assertEquals(MARKER_STRING, markerString);
+    assertEquals(MARKER_INT, markerInt);
+  }
+
+  private String getStringifiedBytes(String s, int i) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
 
     dataOut.writeUTF(s);
-    dataOut.close();
-    byte[] stringMarkerBytes = out.toByteArray();
-    return Arrays.toString(stringMarkerBytes);
-
-  }
-
-  private String getStringifiedBytes(int i) throws IOException {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    DataOutputStream dataOut = new DataOutputStream(out);
-
     dataOut.writeInt(i);
     dataOut.close();
     byte[] stringMarkerBytes = out.toByteArray();
     return Arrays.toString(stringMarkerBytes);
-
   }
 
-  @Test
-  public void testCryptoModuleBasicReadWrite() throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_KEK_OFF_CONF);
-
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-
-    assertTrue(cryptoModule instanceof DefaultCryptoModule);
-
-    byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
-
-    // If we get here, we have encrypted bytes
-    ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
-
-    params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    params.setEncryptedInputStream(in);
-
-    params = cryptoModule.getDecryptingInputStream(params);
-
-    InputStream plaintextIn = params.getPlaintextInputStream();
-
-    assertNotNull(plaintextIn);
-    assertNotSame(plaintextIn, in);
-    DataInputStream dataIn = new DataInputStream(plaintextIn);
-    String markerString = dataIn.readUTF();
-    int markerInt = dataIn.readInt();
-
-    assertEquals(MARKER_STRING, markerString);
-    assertEquals(MARKER_INT, markerInt);
-  }
-
-  private byte[] setUpSampleEncryptedBytes(CryptoModule cryptoModule, CryptoModuleParameters params)
-      throws IOException {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-    params.setPlaintextOutputStream(new NoFlushOutputStream(out));
-
-    params = cryptoModule.getEncryptingOutputStream(params);
-
-    assertNotNull(params.getEncryptedOutputStream());
-    assertNotSame(params.getEncryptedOutputStream(), out);
-
-    DataOutputStream dataOut = new DataOutputStream(params.getEncryptedOutputStream());
-    dataOut.writeUTF(MARKER_STRING);
-    dataOut.writeInt(MARKER_INT);
-    dataOut.close();
-
-    byte[] resultingBytes = out.toByteArray();
-    String stringifiedBytes = Arrays.toString(resultingBytes);
-
-    String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING);
-    String stringifiedOtherBytes = getStringifiedBytes(MARKER_INT);
-
-    // OK, let's make sure it's encrypted
-    assertFalse(stringifiedBytes.contains(stringifiedMarkerBytes));
-    assertFalse(stringifiedBytes.contains(stringifiedOtherBytes));
-    return resultingBytes;
-  }
-
-  @Test
-  public void testKeyEncryptionAndCheckThatFileCannotBeReadWithoutKEK() throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-
-    // CRYPTO_ON_CONF uses AESWrap which produces wrapped keys that are too large and require a
-    // change to
-    // JCE Unlimited Strength Jurisdiction. Using AES/ECB/NoPadding should avoid this problem.
-    params.getAllOptions().put(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey(),
-        "AES/ECB/NoPadding");
-    assertTrue(cryptoModule instanceof DefaultCryptoModule);
-    assertNotNull(params.getKeyEncryptionStrategyClass());
-    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy",
-        params.getKeyEncryptionStrategyClass());
-
-    byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
-
-    // So now that we have bytes encrypted by a key encrypted to a KEK, turn off the KEK
-    // configuration and try
-    // to decrypt. We expect this to fail. This also tests our ability to override the key
-    // encryption strategy.
-    conf = setAndGetAccumuloConfig(CRYPTO_ON_KEK_OFF_CONF);
-    params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    params.setOverrideStreamsSecretKeyEncryptionStrategy(true);
-
-    ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
-    params.setEncryptedInputStream(in);
-
-    params = cryptoModule.getDecryptingInputStream(params);
-
-    assertNotNull(params.getPlaintextInputStream());
-    DataInputStream dataIn = new DataInputStream(params.getPlaintextInputStream());
-    // We expect the following operation to fail and throw an exception
-    exception.expect(IOException.class);
-    @SuppressWarnings("unused")
-    String markerString = dataIn.readUTF();
-  }
-
-  @Test
-  public void testKeyEncryptionNormalPath() throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-
-    assertTrue(cryptoModule instanceof DefaultCryptoModule);
-    assertNotNull(params.getKeyEncryptionStrategyClass());
-    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy",
-        params.getKeyEncryptionStrategyClass());
-
-    byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
-
-    params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    params.setOverrideStreamsSecretKeyEncryptionStrategy(true);
-
-    ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
-    params.setEncryptedInputStream(in);
-
-    params = cryptoModule.getDecryptingInputStream(params);
-
-    assertNotNull(params.getPlaintextInputStream());
-    DataInputStream dataIn = new DataInputStream(params.getPlaintextInputStream());
-
-    String markerString = dataIn.readUTF();
-    int markerInt = dataIn.readInt();
-
-    assertEquals(MARKER_STRING, markerString);
-    assertEquals(MARKER_INT, markerInt);
-  }
-
-  @Test
-  public void testChangingCryptoParamsAndCanStillDecryptPreviouslyEncryptedFiles()
-      throws IOException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-
-    assertTrue(cryptoModule instanceof DefaultCryptoModule);
-    assertNotNull(params.getKeyEncryptionStrategyClass());
-    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy",
-        params.getKeyEncryptionStrategyClass());
-
-    byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
-
-    // Now we're going to create a params object and set its algorithm and key length different
-    // from those configured within the site configuration. After doing this, we should
-    // still be able to read the file that was created with a different set of parameters.
-    params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    params.setKeyAlgorithmName("DESede");
-    params.setKeyLength(24 * 8);
-
-    ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
-    params.setEncryptedInputStream(in);
-
-    params = cryptoModule.getDecryptingInputStream(params);
-
-    assertNotNull(params.getPlaintextInputStream());
-    DataInputStream dataIn = new DataInputStream(params.getPlaintextInputStream());
-    String markerString = dataIn.readUTF();
-    int markerInt = dataIn.readInt();
-
-    assertEquals(MARKER_STRING, markerString);
-    assertEquals(MARKER_INT, markerInt);
-  }
-
-  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    Configuration conf = new Configuration(false);
-    conf.addResource(cryptoConfSetting);
-    for (Entry<String,String> e : conf) {
-      result.set(e.getKey(), e.getValue());
-    }
-    return result;
-  }
-
-  @Test
-  public void testKeyWrapAndUnwrap() throws NoSuchAlgorithmException, NoSuchPaddingException,
-      NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-    Cipher keyWrapCipher = Cipher.getInstance("AESWrap/ECB/NoPadding");
-    SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
-
-    byte[] kek = new byte[16];
-    random.nextBytes(kek);
-    byte[] randomKey = new byte[16];
-    random.nextBytes(randomKey);
-
-    keyWrapCipher.init(Cipher.WRAP_MODE, new SecretKeySpec(kek, "AES"));
-
-    Key randKey = new SecretKeySpec(randomKey, "AES");
-
-    byte[] wrappedKey = keyWrapCipher.wrap(randKey);
-
-    assertNotNull(wrappedKey);
-    // AESWrap will produce 24 bytes given 128 bits of key data with a 128-bit KEK
-    assertEquals(wrappedKey.length, randomKey.length + 8);
-
-    Cipher keyUnwrapCipher = Cipher.getInstance("AESWrap/ECB/NoPadding");
-    keyUnwrapCipher.init(Cipher.UNWRAP_MODE, new SecretKeySpec(kek, "AES"));
-    Key unwrappedKey = keyUnwrapCipher.unwrap(wrappedKey, "AES", Cipher.SECRET_KEY);
-
-    byte[] unwrappedKeyBytes = unwrappedKey.getEncoded();
-    assertArrayEquals(unwrappedKeyBytes, randomKey);
-
-  }
-
-  @Test
-  public void testKeyEncryptionKeyCatchCorrectlyUsesValidKEKFile() throws IOException {
-    kekWorks = createKekFile("kekWorks.kek", 16);
-    testKekFile(kekWorks);
-  }
-
-  @Test
-  public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidLongKEKFile() throws IOException {
-    kekTooLong = createKekFile("kekTooLong.kek", 8);
-    exception.expect(IOException.class);
-    testKekFile(kekTooLong);
-  }
-
-  @Test
-  public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidShortKEKFile() throws IOException {
-    kekTooShort = createKekFile("kekTooShort.kek", 32);
-    exception.expect(IOException.class);
-    testKekFile(kekTooShort);
-  }
-
-  // Used to check reading of KEK files
-  @SuppressWarnings("deprecation")
-  private void testKekFile(File testFile) throws IOException {
-    assertTrue(testFile.exists());
-    assertFalse(testFile.isDirectory());
-
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-    // TODO ACCUMULO-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is
-    // fixed
-    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), testFile.getParent());
-    byte[] ptk = new byte[16];
-    params.setPlaintextKey(ptk);
-    CachingHDFSSecretKeyEncryptionStrategy skc = new CachingHDFSSecretKeyEncryptionStrategy();
-    params.getAllOptions().put(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey(),
-        testFile.getName());
-    skc.encryptSecretKey(params);
-  }
-
-  private File createKekFile(String filename, Integer size) throws IOException {
-    File dir = new File(System.getProperty("user.dir") + "/target/cryptoTest");
-    // must do something with return value to avoid findbugs
-    boolean foilFindbugs = dir.mkdirs(); // if the directories don't already exist, it'll return 1.
-                                         // If they do, 0. Both cases can be fine.
-    // must do something with java var to avoid java warning
-    foilFindbugs = !foilFindbugs;
-
-    File testFile = File.createTempFile(filename, ".kek", dir);
-    DataOutputStream os = new DataOutputStream(new FileOutputStream(testFile));
-    Integer kl = 16;
-    byte[] key = new byte[kl];
-    Random rand = new Random();
-    rand.nextBytes(key);
-    os.writeInt(size);
-    os.write(key);
-    os.flush();
-    os.close();
-
-    return testFile;
-
-  }
-
-  public void AESGCM_Encryption_Test_Correct_Encryption_And_Decryption()
-      throws IOException, AEADBadTagException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-    byte[] encryptedBytes = testEncryption(conf, new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20});
-    Integer result = testDecryption(conf, encryptedBytes);
-    assertEquals(result, Integer.valueOf(1));
-  }
-
-  @Test
-  public void AESGCM_Encryption_Test_Tag_Integrity_Compromised()
-      throws IOException, AEADBadTagException {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-    byte[] encryptedBytes = testEncryption(conf, new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20});
-
-    encryptedBytes[encryptedBytes.length - 1]++; // modify the tag
-    exception.expect(AEADBadTagException.class);
-    testDecryption(conf, encryptedBytes);
-    encryptedBytes[encryptedBytes.length - 1]--;
-    encryptedBytes[1486]++; // modify the data
-    exception.expect(AEADBadTagException.class);
-    testDecryption(conf, encryptedBytes);
-  }
-
-  @Test
-  public void testIVIncrements() {
-    // One byte
-    byte[] testIv1 = new byte[1];
-    // 11111110
-    testIv1[0] = (byte) 0xFE;
-
-    // 11111111
-    CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
-    assertArrayEquals(testIv1, new byte[] {(byte) 0xff});
-
-    // 00000000
-    CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
-    assertArrayEquals(testIv1, new byte[] {(byte) 0x00});
-
-    // Two bytes
-    byte[] testIv2 = new byte[2];
-    // 00000000 11111110
-    testIv2[0] = (byte) 0x00;
-    testIv2[1] = (byte) 0xFE;
-
-    // 00000000 11111111
-    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0xFF});
-
-    // 00000001 00000000
-    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x00});
-
-    // 00000001 00000001
-    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x01});
-
-    // 11111111 11111111
-    testIv2[0] = (byte) 0xFF;
-    testIv2[1] = (byte) 0xFF;
-
-    // 00000000 00000000
-    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0x00});
-
-    // Three bytes
-    byte[] testIv3 = new byte[3];
-    // 00000000 00000000 11111110
-    testIv3[0] = (byte) 0x00;
-    testIv3[1] = (byte) 0x00;
-    testIv3[2] = (byte) 0xFE;
-
-    // 00000000 00000000 11111111
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0xFF});
-
-    // 00000000 00000001 00000000
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x00});
-
-    // 00000000 00000001 00000001
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x01});
-
-    // 00000000 11111111 11111110
-    testIv3[0] = (byte) 0x00;
-    testIv3[1] = (byte) 0xFF;
-    testIv3[2] = (byte) 0xFE;
-
-    // 00000000 11111111 11111111
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0xFF, (byte) 0xFF});
-
-    // 00000001 00000000 00000000
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x00});
-
-    // 00000001 00000000 00000001
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x01});
-
-    // 11111111 11111111 11111110
-    testIv3[0] = (byte) 0xFF;
-    testIv3[1] = (byte) 0xFF;
-    testIv3[2] = (byte) 0xFE;
-
-    // 11111111 11111111 11111111
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
-
-    // 00000000 00000000 00000000
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x00});
-
-    // 00000000 00000000 00000001
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x01});
-
-  }
-
-  /**
-   * Used in AESGCM unit tests to encrypt data. Uses MARKER_STRING and MARKER_INT
-   *
-   * @param conf
-   *          The accumulo configuration
-   * @param initVector
-   *          The IV to be used in encryption
-   * @return the encrypted string
-   * @throws IOException
-   *           if DataOutputStream fails
-   */
-  private static byte[] testEncryption(AccumuloConfiguration conf, byte[] initVector)
-      throws IOException {
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    params.getAllOptions().put(Property.CRYPTO_WAL_CIPHER_SUITE.getKey(), "AES/GCM/NoPadding");
-    params.setInitializationVector(initVector);
-
-    /*
-     * Now lets encrypt this data!
-     */
-    ByteArrayOutputStream encryptedByteStream = new ByteArrayOutputStream();
-    params.setPlaintextOutputStream(new NoFlushOutputStream(encryptedByteStream));
-    params = cryptoModule.getEncryptingOutputStream(params);
-    DataOutputStream encryptedDataStream = new DataOutputStream(params.getEncryptedOutputStream());
-    encryptedDataStream.writeUTF(MARKER_STRING);
-    encryptedDataStream.writeInt(MARKER_INT);
-    encryptedDataStream.close();
-    return (encryptedByteStream.toByteArray());
-  }
-
-  /**
-   * Used in AESGCM unit tests to decrypt data. Uses MARKER_STRING and MARKER_INT
-   *
-   * @param conf
-   *          The accumulo configuration
-   * @param encryptedBytes
-   *          The encrypted bytes
-   * @return 0 if data is incorrectly decrypted, 1 if decrypted data matches input
-   * @throws IOException
-   *           if DataInputStream fails
-   * @throws AEADBadTagException
-   *           if the encrypted stream has been modified
-   */
-  private static Integer testDecryption(AccumuloConfiguration conf, byte[] encryptedBytes)
-      throws IOException, AEADBadTagException {
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
-    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    ByteArrayInputStream decryptedByteStream = new ByteArrayInputStream(encryptedBytes);
-    params.setEncryptedInputStream(decryptedByteStream);
-    params = cryptoModule.getDecryptingInputStream(params);
-    DataInputStream decryptedDataStream = new DataInputStream(params.getPlaintextInputStream());
-
-    String utf;
-    Integer in;
-    try {
-      utf = decryptedDataStream.readUTF();
-      in = decryptedDataStream.readInt();
-    } catch (IOException e) {
-      if (e.getCause().getClass().equals(AEADBadTagException.class)) {
-        throw new AEADBadTagException();
-      } else {
-        throw e;
-      }
-    }
-
-    decryptedDataStream.close();
-    if (utf.equals(MARKER_STRING) && in.equals(MARKER_INT)) {
-      return 1;
-    } else {
-      return 0;
-    }
-  }
 }

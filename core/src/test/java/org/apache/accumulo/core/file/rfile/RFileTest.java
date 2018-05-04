@@ -292,7 +292,7 @@ public class RFileTest {
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
-          dataCache, indexCache, DefaultConfiguration.getInstance());
+          dataCache, indexCache, accumuloConfiguration);
       reader = new RFile.Reader(_cbr);
       if (cfsi)
         iter = new ColumnFamilySkippingIterator(reader);
@@ -1759,7 +1759,7 @@ public class RFileTest {
     reader.close();
   }
 
-  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
+  public static AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
     ConfigurationCopy result = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);

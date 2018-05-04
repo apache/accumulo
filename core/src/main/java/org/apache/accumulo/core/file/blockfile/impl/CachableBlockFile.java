@@ -121,7 +121,7 @@ public class CachableBlockFile {
             }
           }
         } else {
-          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf);
+          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, accumuloConfiguration);
         }
 
         if (!bcfr.compareAndSet(null, tmpReader)) {
