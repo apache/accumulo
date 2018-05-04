@@ -375,7 +375,8 @@ public class InputTableConfig implements Writable {
       return false;
     if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
       return false;
-    return samplerConfig != null ? samplerConfig.equals(that.samplerConfig) : that.samplerConfig == null;
+    return samplerConfig != null ? samplerConfig.equals(that.samplerConfig)
+        : that.samplerConfig == null;
   }
 
   @Override

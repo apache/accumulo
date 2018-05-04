@@ -273,7 +273,7 @@ public class ConfigCommand extends Command {
     }
     return cl.hasOption(filterWithValuesOpt.getOpt())
         && !(key.contains(cl.getOptionValue(filterWithValuesOpt.getOpt()))
-        || value.contains(cl.getOptionValue(filterWithValuesOpt.getOpt())));
+            || value.contains(cl.getOptionValue(filterWithValuesOpt.getOpt())));
   }
 
   private void printConfHeader(List<String> output) {

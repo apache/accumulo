@@ -388,8 +388,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
         throw new RuntimeException(e);
       }
 
-      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families,
-          families.size() != 0);
+      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, families.size() != 0);
       return new IteratorAdapter(iterator);
 
     } catch (IOException e) {
