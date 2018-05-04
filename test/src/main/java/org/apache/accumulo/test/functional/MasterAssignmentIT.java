@@ -93,8 +93,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
     ClientContext context = new ClientContext(getConnectionInfo());
     try (MetaDataTableScanner s = new MetaDataTableScanner(context,
         new Range(KeyExtent.getMetadataEntry(Table.ID.of(tableId), null)))) {
-      TabletLocationState tlState = s.next();
-      return tlState;
+      return s.next();
     }
   }
 }

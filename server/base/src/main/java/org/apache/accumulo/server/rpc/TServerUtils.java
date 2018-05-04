@@ -162,8 +162,7 @@ public class TServerUtils {
         HostAndPort last = addresses[addresses.length - 1];
         // Attempt to allocate a port outside of the specified port property
         // Search sequentially over the next 1000 ports
-        for (int i = last.getPort() + 1; i < last.getPort() + 1001; i++) {
-          int port = i;
+        for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
           if (port > 65535) {
             break;
           }

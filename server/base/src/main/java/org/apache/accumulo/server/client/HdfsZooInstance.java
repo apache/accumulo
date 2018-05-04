@@ -156,8 +156,7 @@ public class HdfsZooInstance implements Instance {
       }
       Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
       log.trace("Looking for instanceId from {}", instanceIdPath);
-      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, acuConf);
-      instanceId = instanceIdFromFile;
+      instanceId = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, acuConf);
     }
   }
 

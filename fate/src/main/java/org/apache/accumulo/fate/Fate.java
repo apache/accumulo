@@ -194,8 +194,7 @@ public class Fate<T> {
 
   // get a transaction id back to the requester before doing any work
   public long startTransaction() {
-    long dir = store.create();
-    return dir;
+    return store.create();
   }
 
   // start work in the transaction.. it is safe to call this

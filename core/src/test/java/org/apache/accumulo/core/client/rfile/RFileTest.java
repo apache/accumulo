@@ -809,10 +809,9 @@ public class RFileTest {
   }
 
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
-    Reader reader = (Reader) FileOperations.getInstance().newReaderBuilder().forFile(testFile)
+    return (Reader) FileOperations.getInstance().newReaderBuilder().forFile(testFile)
         .inFileSystem(localFs, localFs.getConf())
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
-    return reader;
   }
 
   @Test

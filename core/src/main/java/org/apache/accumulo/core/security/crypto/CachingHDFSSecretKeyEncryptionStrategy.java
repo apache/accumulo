@@ -219,8 +219,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         pathToKeyName = "/" + pathToKeyName;
       }
 
-      String fullPath = instanceDirectory + pathToKeyName;
-      return fullPath;
+      return instanceDirectory + pathToKeyName;
     }
 
     public byte[] getKeyEncryptionKey() {

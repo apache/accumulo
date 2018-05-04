@@ -96,9 +96,7 @@ public class GarbageCollectionTest {
       String row = new KeyExtent(Table.ID.of(tableId), endRow == null ? null : new Text(endRow),
           null).getMetadataEntry().toString();
       String cf = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString();
-      String cq = file;
-      Key key = new Key(row, cf, cq);
-      return key;
+      return new Key(row, cf, file);
     }
 
     public Value addFileReference(String tableId, String endRow, String file) {
@@ -118,8 +116,7 @@ public class GarbageCollectionTest {
           .getColumnFamily().toString();
       String cq = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
           .getColumnQualifier().toString();
-      Key key = new Key(row, cf, cq);
-      return key;
+      return new Key(row, cf, cq);
     }
 
     public Value addDirReference(String tableId, String endRow, String dir) {

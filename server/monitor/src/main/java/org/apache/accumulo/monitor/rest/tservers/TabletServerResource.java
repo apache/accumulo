@@ -232,10 +232,7 @@ public class TabletServerResource {
     CurrentTabletResults currentRes = doCurrentTabletResults(currentMinorAvg, currentMinorStdDev,
         currentMajorAvg, currentMajorStdDev);
 
-    TabletServerSummary tserverDetails = new TabletServerSummary(details, allTime, currentRes,
-        currentOps);
-
-    return tserverDetails;
+    return new TabletServerSummary(details, allTime, currentRes, currentOps);
   }
 
   private static final int concurrentScans = Monitor.getContext().getConfiguration()

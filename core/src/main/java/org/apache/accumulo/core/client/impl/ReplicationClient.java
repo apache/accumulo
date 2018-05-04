@@ -109,9 +109,8 @@ public class ReplicationClient {
 
     try {
       // Master requests can take a long time: don't ever time out
-      ReplicationCoordinator.Client client = ThriftUtil.getClientNoTimeout(
-          new ReplicationCoordinator.Client.Factory(), coordinatorAddr, context);
-      return client;
+      return ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(),
+          coordinatorAddr, context);
     } catch (TTransportException tte) {
       log.debug("Failed to connect to master coordinator service ({})", coordinatorAddr, tte);
       return null;

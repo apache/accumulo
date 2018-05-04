@@ -150,8 +150,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       pathToKeyName = "/" + pathToKeyName;
     }
 
-    String fullPath = instanceDirectory + pathToKeyName;
-    return fullPath;
+    return instanceDirectory + pathToKeyName;
   }
 
   @SuppressWarnings("deprecation")

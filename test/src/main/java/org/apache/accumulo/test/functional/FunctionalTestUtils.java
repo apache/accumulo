@@ -220,9 +220,8 @@ public class FunctionalTestUtils {
       IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
           instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-      FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null, null);
-      return fateStatus;
+      return admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null,
+          null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

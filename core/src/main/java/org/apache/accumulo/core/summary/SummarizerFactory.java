@@ -56,8 +56,7 @@ public class SummarizerFactory {
 
   public Summarizer getSummarizer(SummarizerConfiguration conf) {
     try {
-      Summarizer summarizer = newSummarizer(conf.getClassName());
-      return summarizer;
+      return newSummarizer(conf.getClassName());
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IOException e) {
       throw new RuntimeException(e);

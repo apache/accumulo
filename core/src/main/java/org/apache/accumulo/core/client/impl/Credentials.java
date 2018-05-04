@@ -167,9 +167,7 @@ public class Credentials {
         : (getPrincipal().equals(other.getPrincipal()));
     if (!pEq)
       return false;
-    boolean tEq = getToken() == null ? (other.getToken() == null)
-        : (getToken().equals(other.getToken()));
-    return tEq;
+    return getToken() == null ? (other.getToken() == null) : (getToken().equals(other.getToken()));
   }
 
   @Override

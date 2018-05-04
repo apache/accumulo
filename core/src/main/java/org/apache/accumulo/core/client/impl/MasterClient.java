@@ -67,9 +67,8 @@ public class MasterClient {
 
     try {
       // Master requests can take a long time: don't ever time out
-      MasterClientService.Client client = ThriftUtil
-          .getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
-      return client;
+      return ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master,
+          context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
       if (null != cause && cause instanceof UnknownHostException) {

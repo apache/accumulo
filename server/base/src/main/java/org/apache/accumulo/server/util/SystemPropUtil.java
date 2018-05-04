@@ -63,10 +63,9 @@ public class SystemPropUtil {
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/"
         + property;
-    boolean result = ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
-        NodeExistsPolicy.OVERWRITE);
 
-    return result;
+    return ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
+        NodeExistsPolicy.OVERWRITE);
   }
 
   public static void removeSystemProperty(String property)

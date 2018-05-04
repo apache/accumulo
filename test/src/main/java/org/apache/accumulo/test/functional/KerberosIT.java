@@ -454,8 +454,7 @@ public class KerberosIT extends AccumuloITBase {
 
         try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
           bs.setRanges(Collections.singleton(new Range()));
-          int recordsSeen = Iterables.size(bs);
-          return recordsSeen;
+          return Iterables.size(bs);
         }
       }
     });

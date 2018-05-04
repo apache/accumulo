@@ -130,8 +130,7 @@ public class InMemoryMapTest {
 
   static Key newKey(String row, String column, long ts) {
     String[] sa = column.split(":");
-    Key k = new Key(new Text(row), new Text(sa[0]), new Text(sa[1]), ts);
-    return k;
+    return new Key(new Text(row), new Text(sa[0]), new Text(sa[1]), ts);
   }
 
   static void testAndCallNext(SortedKeyValueIterator<Key,Value> dc, String row, String column,

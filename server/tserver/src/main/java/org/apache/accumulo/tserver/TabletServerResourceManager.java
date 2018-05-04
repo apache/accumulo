@@ -600,8 +600,7 @@ public class TabletServerResourceManager {
 
   public synchronized TabletResourceManager createTabletResourceManager(KeyExtent extent,
       AccumuloConfiguration conf) {
-    TabletResourceManager trm = new TabletResourceManager(extent, conf);
-    return trm;
+    return new TabletResourceManager(extent, conf);
   }
 
   public class TabletResourceManager {

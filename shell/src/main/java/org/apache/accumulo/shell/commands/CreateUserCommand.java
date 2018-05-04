@@ -78,8 +78,7 @@ public class CreateUserCommand extends Command {
 
   @Override
   public Options getOptions() {
-    final Options o = new Options();
-    return o;
+    return new Options();
   }
 
   @Override

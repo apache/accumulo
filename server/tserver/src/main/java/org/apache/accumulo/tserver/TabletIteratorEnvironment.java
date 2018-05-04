@@ -180,8 +180,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
       throw new SampleNotPresentException();
     }
 
-    TabletIteratorEnvironment te = new TabletIteratorEnvironment(scope, config, trm, files,
-        authorizations, sci, topLevelIterators);
-    return te;
+    return new TabletIteratorEnvironment(scope, config, trm, files, authorizations, sci,
+        topLevelIterators);
   }
 }

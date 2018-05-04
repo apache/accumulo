@@ -275,11 +275,9 @@ public class Proxy implements KeywordExecutable {
         threadName);
 
     // Create the thrift server with our processor and properties
-    ServerAddress serverAddr = TServerUtils.startTServer(serverType, timedProcessor,
-        protocolFactory, serverName, threadName, numThreads, simpleTimerThreadpoolSize,
-        threadpoolResizeInterval, maxFrameSize, sslParams, saslParams, serverSocketTimeout,
-        address);
 
-    return serverAddr;
+    return TServerUtils.startTServer(serverType, timedProcessor, protocolFactory, serverName,
+        threadName, numThreads, simpleTimerThreadpoolSize, threadpoolResizeInterval, maxFrameSize,
+        sslParams, saslParams, serverSocketTimeout, address);
   }
 }

@@ -232,8 +232,7 @@ public final class BCFile {
        * Current size of compressed data.
        */
       long getCompressedSize() throws IOException {
-        long ret = getCurrentPos() - posStart;
-        return ret;
+        return getCurrentPos() - posStart;
       }
 
       /**

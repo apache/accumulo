@@ -77,8 +77,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   @Override
   synchronized protected String getSpanKey(Map<String,String> data) {
     if (hosts.size() > 0) {
-      String host = hosts.get(random.nextInt(hosts.size()));
-      return host;
+      return hosts.get(random.nextInt(hosts.size()));
     }
     return null;
   }

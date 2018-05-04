@@ -69,9 +69,8 @@ public class NativeMapIT {
 
   public static File nativeMapLocation() {
     File projectDir = new File(System.getProperty("user.dir")).getParentFile();
-    File nativeMapDir = new File(projectDir, "server/native/target/accumulo-native-"
-        + Constants.VERSION + "/accumulo-native-" + Constants.VERSION);
-    return nativeMapDir;
+    return new File(projectDir, "server/native/target/accumulo-native-" + Constants.VERSION
+        + "/accumulo-native-" + Constants.VERSION);
   }
 
   @BeforeClass

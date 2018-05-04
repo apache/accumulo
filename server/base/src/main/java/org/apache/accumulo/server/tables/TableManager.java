@@ -135,9 +135,7 @@ public class TableManager {
       if (StringUtils.isNotEmpty(message))
         this.message = message;
       else {
-        String defaultMessage = "Error transitioning from " + oldState + " state to " + newState
-            + " state";
-        this.message = defaultMessage;
+        this.message = "Error transitioning from " + oldState + " state to " + newState + " state";
       }
     }
 
