@@ -224,7 +224,7 @@ public class SummaryReader {
   private static void print(FileSKVIterator fsi, String indent, PrintStream out)
       throws IOException {
 
-    out.printf("Summary data : \n");
+    out.print("Summary data : \n");
 
     List<SummarySerializer> stores = load(name -> fsi.getMetaStore(name), conf -> true);
     int i = 1;

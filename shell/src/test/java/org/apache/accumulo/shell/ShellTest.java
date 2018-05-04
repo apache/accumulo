@@ -327,7 +327,7 @@ public class ShellTest {
         org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
     String expected = String.format("r f:q [] %s    v", dateFormat.format(new Date(0)));
     // historically, showing few did not pertain to ColVis or Timestamp
-    String expectedNoTimestamp = String.format("r f:q []    v");
+    String expectedNoTimestamp = "r f:q []    v";
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 1000", true,
         expected);

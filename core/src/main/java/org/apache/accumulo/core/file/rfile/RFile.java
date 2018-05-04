@@ -355,7 +355,7 @@ public class RFile {
 
       if (includeIndexDetails) {
         out.printf("\t%-22s :\nIndex Entries", lastKey);
-        String prefix = String.format("\t   ");
+        String prefix = "\t   ";
         indexReader.printIndex(prefix, out);
       }
     }

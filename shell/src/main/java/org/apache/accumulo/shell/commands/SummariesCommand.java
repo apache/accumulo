@@ -74,7 +74,7 @@ public class SummariesCommand extends TableOperation {
       addEmpty = true;
       lines.add(String.format(" Summarizer         : %s", summary.getSummarizerConfiguration()));
       lines.add(String.format(" File Statistics    : %s", summary.getFileStatistics()));
-      lines.add(String.format(" Summary Statistics : "));
+      lines.add(" Summary Statistics : ");
 
       Map<String,Long> stats = summary.getStatistics();
       ArrayList<String> keys = new ArrayList<>(stats.keySet());
