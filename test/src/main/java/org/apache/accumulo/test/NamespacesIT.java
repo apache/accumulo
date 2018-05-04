@@ -1458,9 +1458,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
   public static class SimpleFilter extends Filter {
     @Override
     public boolean accept(Key k, Value v) {
-      if (k.getColumnFamily().toString().equals("a"))
-        return false;
-      return true;
+      return !k.getColumnFamily().toString().equals("a");
     }
   }
 

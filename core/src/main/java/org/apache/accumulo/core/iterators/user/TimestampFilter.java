@@ -62,9 +62,7 @@ public class TimestampFilter extends Filter {
       return false;
     if (hasStart && !startInclusive && ts == start)
       return false;
-    if (hasEnd && !endInclusive && ts == end)
-      return false;
-    return true;
+    return !hasEnd || endInclusive || ts != end;
   }
 
   @Override

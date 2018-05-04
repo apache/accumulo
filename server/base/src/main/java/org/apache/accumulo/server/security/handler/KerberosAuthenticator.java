@@ -139,10 +139,7 @@ public class KerberosAuthenticator implements Authenticator {
     }
 
     // User is authenticated at the transport layer -- nothing extra is necessary
-    if (token instanceof KerberosToken || token instanceof DelegationTokenImpl) {
-      return true;
-    }
-    return false;
+    return token instanceof KerberosToken || token instanceof DelegationTokenImpl;
   }
 
   @Override

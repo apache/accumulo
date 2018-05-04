@@ -451,10 +451,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     byte[] bytes = Base64.getDecoder().decode(flags);
     boolean[] bFlags = new boolean[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
-      if (bytes[i] == 1)
-        bFlags[i] = true;
-      else
-        bFlags[i] = false;
+      bFlags[i] = bytes[i] == 1;
     }
     return bFlags;
   }

@@ -576,11 +576,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       }
     };
 
-    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0)
-        && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
-      return true;
-    }
-    return false;
+    return (this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0)
+        && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0);
   }
 
   public boolean contains(BinaryComparable row) {
@@ -589,11 +586,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
           "Passing null to contains is ambiguous, could be in first or last extent of table");
     }
 
-    if ((this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0)
-        && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0)) {
-      return true;
-    }
-    return false;
+    return (this.getPrevEndRow() == null || this.getPrevEndRow().compareTo(row) < 0)
+        && (this.getEndRow() == null || this.getEndRow().compareTo(row) >= 0);
   }
 
   public Range toDataRange() {

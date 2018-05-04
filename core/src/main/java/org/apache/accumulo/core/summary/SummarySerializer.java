@@ -440,12 +440,7 @@ class SummarySerializer {
           && startRow.compareTo(lastRow) < 0) {
         return true;
       }
-
-      if (endRow != null && endRow.compareTo(firstRow) >= 0 && lastRow.compareTo(endRow) > 0) {
-        return true;
-      }
-
-      return false;
+      return endRow != null && endRow.compareTo(firstRow) >= 0 && lastRow.compareTo(endRow) > 0;
     }
 
     void print(String prefix, String indent, PrintStream out) {

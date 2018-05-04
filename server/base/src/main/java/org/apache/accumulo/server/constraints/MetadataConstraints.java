@@ -86,10 +86,7 @@ public class MetadataConstraints implements Constraint {
     if (validColumnFams.contains(new Text(cu.getColumnFamily())))
       return true;
 
-    if (validColumnQuals.contains(new ColumnFQ(cu)))
-      return true;
-
-    return false;
+    return validColumnQuals.contains(new ColumnFQ(cu));
   }
 
   static private ArrayList<Short> addViolation(ArrayList<Short> lst, int violation) {

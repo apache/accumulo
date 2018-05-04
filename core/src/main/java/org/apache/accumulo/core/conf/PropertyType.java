@@ -264,10 +264,7 @@ public enum PropertyType {
       if (number < lowerBound || (!lowerInclusive && number == lowerBound)) {
         return false;
       }
-      if (number > upperBound || (!upperInclusive && number == upperBound)) {
-        return false;
-      }
-      return true;
+      return number <= upperBound && (upperInclusive || number != upperBound);
     }
 
   }

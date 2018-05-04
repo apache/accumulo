@@ -55,18 +55,14 @@ public class FilterTest {
     @Override
     public boolean accept(Key k, Value v) {
       // System.out.println(k.getRow());
-      if (k.getRow().toString().endsWith("0"))
-        return true;
-      return false;
+      return k.getRow().toString().endsWith("0");
     }
   }
 
   public static class SimpleFilter2 extends Filter {
     @Override
     public boolean accept(Key k, Value v) {
-      if (k.getColumnFamily().toString().equals("a"))
-        return false;
-      return true;
+      return !k.getColumnFamily().toString().equals("a");
     }
   }
 

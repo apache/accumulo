@@ -328,10 +328,7 @@ public class Condition {
     if (!(c.ts == null ? ts == null : c.ts.equals(ts))) {
       return false;
     }
-    if (!(Arrays.equals(c.iterators, iterators))) {
-      return false;
-    }
-    return true;
+    return Arrays.equals(c.iterators, iterators);
   }
 
   @Override

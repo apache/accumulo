@@ -54,12 +54,7 @@ public class ZooLockTest {
 
     @Override
     public synchronized void process(WatchedEvent event) {
-      if (event.getState() == KeeperState.SyncConnected) { // For ZK >3.4.... || event.getState() ==
-                                                           // KeeperState.ConnectedReadOnly) {
-        connected = true;
-      } else {
-        connected = false;
-      }
+      connected = event.getState() == KeeperState.SyncConnected;
     }
 
     public synchronized boolean isConnected() {

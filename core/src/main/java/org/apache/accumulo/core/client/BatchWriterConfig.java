@@ -311,11 +311,7 @@ public class BatchWriterConfig implements Writable {
           return false;
         }
       }
-      if (durability != other.durability) {
-        return false;
-      }
-
-      return true;
+      return durability == other.durability;
     }
 
     return false;

@@ -310,13 +310,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         && (host.equals("192.168.0.6") || host.equals("192.168.0.7") || host.equals("192.168.0.8")
             || host.equals("192.168.0.9") || host.equals("192.168.0.10"))) {
       return true;
-    } else if (tid.equals("3") && (host.equals("192.168.0.11") || host.equals("192.168.0.12")
+    } else return tid.equals("3") && (host.equals("192.168.0.11") || host.equals("192.168.0.12")
         || host.equals("192.168.0.13") || host.equals("192.168.0.14")
-        || host.equals("192.168.0.15"))) {
-      return true;
-    } else {
-      return false;
-    }
+        || host.equals("192.168.0.15"));
   }
 
   protected String idToTableName(Table.ID id) {
