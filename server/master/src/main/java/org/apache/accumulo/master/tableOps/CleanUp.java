@@ -242,7 +242,7 @@ class CleanUp extends MasterRepo {
     }
 
     // Get the file archive directory on this volume
-    final Path fileArchiveDir = new Path(basePath, ServerConstants.FILE_ARCHIVE_DIR);
+    final Path fileArchiveDir = new Path(basePath, ServerConstants.ARCHIVE_DIR);
 
     // Make sure it exists just to be safe
     fs.mkdirs(fileArchiveDir);

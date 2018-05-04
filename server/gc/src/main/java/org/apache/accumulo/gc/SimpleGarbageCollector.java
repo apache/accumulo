@@ -81,6 +81,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.gc.GarbageCollectWriteAheadLogs.RemovalPolicy;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
@@ -608,8 +609,18 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       Span waLogs = Trace.start("walogs");
       try {
+        RemovalPolicy removalPolicy = RemovalPolicy.DELETE;
+        if (shouldArchiveFiles()) {
+          if (isUsingTrash()) {
+            removalPolicy = RemovalPolicy.ARCHIVE_TRASH;
+          } else {
+            removalPolicy = RemovalPolicy.ARCHIVE;
+          }
+        } else if (isUsingTrash()) {
+          removalPolicy = RemovalPolicy.TRASH;
+        }
         GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs,
-            isUsingTrash());
+            removalPolicy);
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
@@ -651,7 +662,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    */
   boolean archiveOrMoveToTrash(Path path) throws IOException {
     if (shouldArchiveFiles()) {
-      return archiveFile(path);
+      return archiveFile(fs, path);
     } else {
       if (!isUsingTrash())
         return false;
@@ -670,12 +681,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    *          Path to file that is to be archived
    * @return True if the file was successfully moved to the file archive directory, false otherwise
    */
-  boolean archiveFile(Path fileToArchive) throws IOException {
+  static boolean archiveFile(VolumeManager fs, Path fileToArchive) throws IOException {
     // Figure out what the base path this volume uses on this FileSystem
     Volume sourceVolume = fs.getVolumeByPath(fileToArchive);
     String sourceVolumeBasePath = sourceVolume.getBasePath();
-
-    log.debug("Base path for volume: " + sourceVolumeBasePath);
 
     // Get the path for the file we want to archive
     String sourcePathBasePath = fileToArchive.toUri().getPath();
@@ -690,20 +699,11 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       }
     }
 
-    log.debug("Computed relative path for file to archive: " + relativeVolumePath);
-
     // The file archive path on this volume (we can't archive this file to a different volume)
-    Path archivePath = new Path(sourceVolumeBasePath, ServerConstants.FILE_ARCHIVE_DIR);
-
-    log.debug("File archive path: " + archivePath);
-
-    fs.mkdirs(archivePath);
+    Path archivePath = new Path(sourceVolumeBasePath, ServerConstants.ARCHIVE_DIR);
 
     // Preserve the path beneath the Volume's base directory (e.g. tables/1/A_0000001.rf)
     Path fileArchivePath = new Path(archivePath, relativeVolumePath);
-
-    log.debug("Create full path of " + fileArchivePath + " from " + archivePath + " and "
-        + relativeVolumePath);
 
     // Make sure that it doesn't already exist, something is wrong.
     if (fs.exists(fileArchivePath)) {
@@ -711,8 +711,14 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       return false;
     }
 
-    log.debug("Moving " + fileToArchive + " to " + fileArchivePath);
-    return fs.rename(fileToArchive, fileArchivePath);
+    fs.mkdirs(fileArchivePath.getParent());
+
+    log.debug("Archiving {} to {}", fileToArchive, fileArchivePath);
+    boolean renamed = fs.rename(fileToArchive, fileArchivePath);
+    if (!renamed) {
+      log.warn("Failed to archive {} to {}", fileToArchive, fileArchivePath);
+    }
+    return renamed;
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {

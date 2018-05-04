@@ -75,10 +75,14 @@ public class GarbageCollectWriteAheadLogs {
 
   private final AccumuloServerContext context;
   private final VolumeManager fs;
-  private final boolean useTrash;
+  private final RemovalPolicy removalPolicy;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
   private final Iterable<TabletLocationState> store;
+
+  enum RemovalPolicy {
+    ARCHIVE, ARCHIVE_TRASH, TRASH, DELETE
+  }
 
   /**
    * Creates a new GC WAL object.
@@ -91,10 +95,10 @@ public class GarbageCollectWriteAheadLogs {
    *          true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(final AccumuloServerContext context, VolumeManager fs,
-      boolean useTrash) throws IOException {
+      RemovalPolicy removalPolicy) throws IOException {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
+    this.removalPolicy = removalPolicy;
     this.liveServers = new LiveTServerSet(context, new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
@@ -127,12 +131,12 @@ public class GarbageCollectWriteAheadLogs {
    *          a started LiveTServerSet instance
    */
   @VisibleForTesting
-  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash,
-      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletLocationState> store)
-      throws IOException {
+  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs,
+      RemovalPolicy removalPolicy, LiveTServerSet liveTServerSet, WalStateManager walMarker,
+      Iterable<TabletLocationState> store) throws IOException {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
+    this.removalPolicy = removalPolicy;
     this.liveServers = liveTServerSet;
     this.walMarker = walMarker;
     this.store = store;
@@ -253,8 +257,29 @@ public class GarbageCollectWriteAheadLogs {
 
   private long removeFile(Path path) {
     try {
-      if (!useTrash || !fs.moveToTrash(path)) {
-        fs.deleteRecursively(path);
+      switch (removalPolicy) {
+        case TRASH:
+          if (!fs.moveToTrash(path)) {
+            fs.deleteRecursively(path);
+          }
+          break;
+        case ARCHIVE:
+          if (!SimpleGarbageCollector.archiveFile(fs, path)) {
+            fs.deleteRecursively(path);
+          }
+          break;
+        case ARCHIVE_TRASH:
+          if (!SimpleGarbageCollector.archiveFile(fs, path)) {
+            if (!fs.moveToTrash(path)) {
+              fs.deleteRecursively(path);
+            }
+          }
+          break;
+        case DELETE:
+          fs.deleteRecursively(path);
+          break;
+        default:
+          throw new IllegalStateException();
       }
       return 1;
     } catch (FileNotFoundException ex) {
