@@ -53,8 +53,6 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
 
   private boolean filterInvalid;
 
-  public VisibilityFilter() {}
-
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {

@@ -68,8 +68,6 @@ public class DefaultCryptoModule implements CryptoModule {
 
   private static final Logger log = LoggerFactory.getLogger(DefaultCryptoModule.class);
 
-  public DefaultCryptoModule() {}
-
   @Override
   public CryptoModuleParameters initializeCipher(CryptoModuleParameters params) {
 

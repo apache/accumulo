@@ -32,8 +32,6 @@ import org.junit.Test;
 
 public class FileOperationsTest {
 
-  public FileOperationsTest() {}
-
   /**
    * Test for filenames with +1 dot
    */

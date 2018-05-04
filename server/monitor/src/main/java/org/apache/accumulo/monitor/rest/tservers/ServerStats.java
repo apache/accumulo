@@ -32,11 +32,6 @@ public class ServerStats {
   public List<ServerStat> serverStats = new ArrayList<>();
 
   /**
-   * Initializes stats list
-   */
-  public ServerStats() {}
-
-  /**
    * Adds a new stat to the list
    *
    * @param stat

@@ -32,11 +32,6 @@ public class DeadServerList {
   public List<DeadServerInformation> deadTabletServer = new ArrayList<>();
 
   /**
-   * Initializes the dead tserver list
-   */
-  public DeadServerList() {}
-
-  /**
    * Adds a new dead tserver to the list
    *
    * @param deadTabletServer

@@ -32,11 +32,6 @@ public class ProblemSummary {
   public List<ProblemSummaryInformation> problemSummary = new ArrayList<>();
 
   /**
-   * Creates the array list
-   */
-  public ProblemSummary() {}
-
-  /**
    * Adds a new problem summary to the list
    *
    * @param problemSummary

@@ -32,11 +32,6 @@ public class Scans {
   public List<ScanInformation> scans = new ArrayList<>();
 
   /**
-   * Initializes the array list
-   */
-  public Scans() {}
-
-  /**
    * Adds a new scan to the list
    *
    * @param scan

@@ -37,7 +37,6 @@ import org.apache.hadoop.io.Text;
  */
 @Deprecated
 public class MockTabletLocator extends TabletLocator {
-  public MockTabletLocator() {}
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,

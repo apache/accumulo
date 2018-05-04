@@ -53,8 +53,6 @@ public class TimestampFilter extends Filter {
   private boolean hasStart;
   private boolean hasEnd;
 
-  public TimestampFilter() {}
-
   @Override
   public boolean accept(Key k, Value v) {
     long ts = k.getTimestamp();

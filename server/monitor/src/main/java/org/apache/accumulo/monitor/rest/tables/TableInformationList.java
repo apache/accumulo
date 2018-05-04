@@ -32,11 +32,6 @@ public class TableInformationList {
   public List<TableInformation> table = new ArrayList<>();
 
   /**
-   * Initializes the array list
-   */
-  public TableInformationList() {}
-
-  /**
    * Adds a new table to the list
    *
    * @param table

@@ -31,8 +31,6 @@ public class BulkImport {
   public List<BulkImportInformation> bulkImport = new ArrayList<>();
   public List<TabletServerBulkImportInformation> tabletServerBulkImport = new ArrayList<>();
 
-  public BulkImport() {}
-
   /**
    * Adds a new bulk import to the array
    *

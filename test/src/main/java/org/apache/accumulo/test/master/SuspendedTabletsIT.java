@@ -285,8 +285,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     public int assignedCount = 0;
     public int suspendedCount = 0;
 
-    private TabletLocations() {}
-
     public static TabletLocations retrieve(final ClientContext ctx, final String tableName)
         throws Exception {
       int sleepTime = 200;

@@ -32,11 +32,6 @@ public class TablesList {
   public List<TableNamespace> tables = new ArrayList<>();
 
   /**
-   * Initializes array list
-   */
-  public TablesList() {}
-
-  /**
    * Add a table to the list
    *
    * @param table
