@@ -286,7 +286,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     iter = createIterator(extent, absFiles);
     iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns),
-        options.fetchedColumns.size() == 0 ? false : true);
+        options.fetchedColumns.size() != 0);
     currentExtent = extent;
 
   }

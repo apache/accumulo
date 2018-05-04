@@ -56,7 +56,7 @@ public class DUCommand extends Command {
       tables.addAll(Namespaces.getTableNames(instance, namespaceId));
     }
 
-    boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt()) ? true : false;
+    boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt());
 
     // Add any patterns
     if (cl.hasOption(optTablePattern.getOpt())) {
