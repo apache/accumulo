@@ -20,8 +20,6 @@ package org.apache.accumulo.core.file.rfile.bcfile;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
 
 import org.apache.hadoop.io.Text;
 
@@ -309,24 +307,6 @@ public final class Utils {
     }
 
     /**
-     * Get the major version.
-     *
-     * @return Major version.
-     */
-    public int getMajor() {
-      return major;
-    }
-
-    /**
-     * Get the minor version.
-     *
-     * @return The minor version.
-     */
-    public int getMinor() {
-      return minor;
-    }
-
-    /**
      * Get the size of the serialized Version object.
      *
      * @return serialized size of the version object.
@@ -372,36 +352,6 @@ public final class Utils {
     public int hashCode() {
       return ((major << 16) + minor);
     }
-  }
-
-  /**
-   * Lower bound binary search. Find the index to the first element in the list that compares
-   * greater than or equal to key.
-   *
-   * @param <T>
-   *          Type of the input key.
-   * @param list
-   *          The list
-   * @param key
-   *          The input key.
-   * @param cmp
-   *          Comparator for the key.
-   * @return The index to the desired element if it exists; or list.size() otherwise.
-   */
-  public static <T> int lowerBound(List<? extends T> list, T key, Comparator<? super T> cmp) {
-    int low = 0;
-    int high = list.size();
-
-    while (low < high) {
-      int mid = (low + high) >>> 1;
-      T midVal = list.get(mid);
-      int ret = cmp.compare(midVal, key);
-      if (ret < 0)
-        low = mid + 1;
-      else
-        high = mid;
-    }
-    return low;
   }
 
 }
