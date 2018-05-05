@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.client;
+package org.apache.accumulo.server.client.deprecated;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
@@ -75,10 +75,12 @@ import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class BulkImporter {
 
   private static final Logger log = LoggerFactory.getLogger(BulkImporter.class);
 
+  @Deprecated
   public static List<String> bulkLoad(ClientContext context, long tid, String tableId,
       List<String> files, String errorDir, boolean setTime) throws IOException, AccumuloException,
       AccumuloSecurityException, ThriftTableOperationException {

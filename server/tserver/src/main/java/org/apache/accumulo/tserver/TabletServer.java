@@ -513,6 +513,34 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     @Override
+    public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, TKeyExtent tke,
+        String dir, Map<String,MapFileInfo> fileMap, boolean setTime)
+        throws ThriftSecurityException {
+      if (!security.canPerformSystemActions(credentials))
+        throw new ThriftSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED);
+
+      Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+      for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
+        Path path = new Path(dir, mapping.getKey());
+        FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+        path = ns.makeQualified(path);
+        fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+      }
+
+      Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
+
+      if (importTablet != null) {
+        try {
+          importTablet.importMapFiles(tid, fileRefMap, setTime);
+        } catch (IOException ioe) {
+          log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
+              ioe.getMessage());
+        }
+      }
+    }
+
+    @Override
     public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
         TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,

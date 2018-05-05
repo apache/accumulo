@@ -213,4 +213,22 @@ public class ConfigurationTypeHelper {
 
     return instance;
   }
+
+  /**
+   * Get the number of threads from string property. If the value ends with C, then it will be
+   * multiplied by the number of cores.
+   */
+  public static int getNumThreads(String threads) {
+    if (threads == null) {
+      threads = ClientProperty.BULK_LOAD_THREADS.getDefaultValue();
+    }
+    int nThreads;
+    if (threads.toUpperCase().endsWith("C")) {
+      nThreads = Runtime.getRuntime().availableProcessors()
+          * Integer.parseInt(threads.substring(0, threads.length() - 1));
+    } else {
+      nThreads = Integer.parseInt(threads);
+    }
+    return nThreads;
+  }
 }

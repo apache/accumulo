@@ -158,6 +158,7 @@ enum FateOperation {
   NAMESPACE_CREATE
   NAMESPACE_DELETE
   NAMESPACE_RENAME
+  TABLE_BULK_IMPORT2
 }
 
 service FateService {

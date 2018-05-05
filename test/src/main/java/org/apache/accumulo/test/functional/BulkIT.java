@@ -16,10 +16,15 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -62,11 +67,18 @@ public class BulkIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     runTest(getConnector(), getConnectionInfo(), getCluster().getFileSystem(),
         getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
-        testName.getMethodName());
+        testName.getMethodName(), false);
+  }
+
+  @Test
+  public void testOld() throws Exception {
+    runTest(getConnector(), getConnectionInfo(), getCluster().getFileSystem(),
+        getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
+        testName.getMethodName(), true);
   }
 
   static void runTest(Connector c, ConnectionInfo info, FileSystem fs, Path basePath,
-      String tableName, String filePrefix, String dirSuffix) throws Exception {
+      String tableName, String filePrefix, String dirSuffix, boolean useOld) throws Exception {
     c.tableOperations().create(tableName);
 
     Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
@@ -98,9 +110,7 @@ public class BulkIT extends AccumuloClusterHarness {
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, fs, opts, BWOPTS);
 
-    // Make sure the server can modify the files
-    c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(),
-        false);
+    bulkLoad(c, tableName, bulkFailures, files, useOld);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);
     vopts.random = 56;
@@ -113,6 +123,20 @@ public class BulkIT extends AccumuloClusterHarness {
     vopts.startRow = N;
     vopts.rows = 1;
     VerifyIngest.verifyIngest(c, vopts, SOPTS);
+  }
+
+  @SuppressWarnings("deprecation")
+  private static void bulkLoad(Connector c, String tableName, Path bulkFailures, Path files,
+      boolean useOld)
+      throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
+    // Make sure the server can modify the files
+    if (useOld) {
+      c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(),
+          false);
+    } else {
+      c.tableOperations().addFilesTo(tableName).from(files.toString()).load();
+    }
+
   }
 
 }

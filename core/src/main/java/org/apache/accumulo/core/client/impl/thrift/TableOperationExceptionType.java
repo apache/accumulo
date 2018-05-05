@@ -34,7 +34,8 @@ public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
   OTHER(6),
   NAMESPACE_EXISTS(7),
   NAMESPACE_NOTFOUND(8),
-  INVALID_NAME(9);
+  INVALID_NAME(9),
+  BULK_BAD_LOAD_MAPPING(10);
 
   private final int value;
 
@@ -75,6 +76,8 @@ public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
         return NAMESPACE_NOTFOUND;
       case 9:
         return INVALID_NAME;
+      case 10:
+        return BULK_BAD_LOAD_MAPPING;
       default:
         return null;
     }

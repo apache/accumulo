@@ -23,12 +23,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.impl.BulkImport;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -543,59 +543,12 @@ public class FileUtil {
 
   }
 
-  private static class MLong {
-    public MLong(long i) {
-      l = i;
-    }
-
-    long l;
-  }
-
   public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path mapFile,
       long fileSize, List<KeyExtent> extents, Configuration conf, VolumeManager fs)
       throws IOException {
 
-    long totalIndexEntries = 0;
-    Map<KeyExtent,MLong> counts = new TreeMap<>();
-    for (KeyExtent keyExtent : extents)
-      counts.put(keyExtent, new MLong(0));
-
-    Text row = new Text();
     FileSystem ns = fs.getVolumeByPath(mapFile).getFileSystem();
-    FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder()
-        .forFile(mapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).build();
-
-    try {
-      while (index.hasTop()) {
-        Key key = index.getTopKey();
-        totalIndexEntries++;
-        key.getRow(row);
-
-        for (Entry<KeyExtent,MLong> entry : counts.entrySet())
-          if (entry.getKey().contains(row))
-            entry.getValue().l++;
-
-        index.next();
-      }
-    } finally {
-      try {
-        if (index != null)
-          index.close();
-      } catch (IOException e) {
-        // continue with next file
-        log.error("{}", e.getMessage(), e);
-      }
-    }
-
-    Map<KeyExtent,Long> results = new TreeMap<>();
-    for (KeyExtent keyExtent : extents) {
-      double numEntries = counts.get(keyExtent).l;
-      if (numEntries == 0)
-        numEntries = 1;
-      long estSize = (long) ((numEntries / totalIndexEntries) * fileSize);
-      results.put(keyExtent, estSize);
-    }
-    return results;
+    return BulkImport.estimateSizes(acuConf, mapFile, fileSize, extents, ns);
   }
 
   public static Collection<String> toPathStrings(Collection<FileRef> refs) {

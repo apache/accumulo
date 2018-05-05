@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.tableOps;
+package org.apache.accumulo.master.tableOps.bulkVer1;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -22,13 +22,15 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.master.tableOps.MasterRepo;
+import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CleanUpBulkImport extends MasterRepo {
+public class CleanUpBulkImport extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -39,7 +41,7 @@ class CleanUpBulkImport extends MasterRepo {
   private String bulk;
   private String error;
 
-  public CleanUpBulkImport(Table.ID tableId, String source, String bulk, String error) {
+  CleanUpBulkImport(Table.ID tableId, String source, String bulk, String error) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;
@@ -49,7 +51,7 @@ class CleanUpBulkImport extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     master.updateBulkImportStatus(source, BulkImportState.CLEANUP);
-    log.debug("removing the bulk processing flag file in " + bulk);
+    log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
     MetadataTableUtil.removeBulkLoadInProgressFlag(master,
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
@@ -61,7 +63,7 @@ class CleanUpBulkImport extends MasterRepo {
     Utils.unreserveHdfsDirectory(source, tid);
     Utils.unreserveHdfsDirectory(error, tid);
     Utils.getReadLock(tableId, tid).unlock();
-    log.debug("completing bulk import transaction " + tid);
+    log.debug("completing bulkDir import transaction " + tid);
     ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
     master.removeBulkImportStatus(source);
     return null;

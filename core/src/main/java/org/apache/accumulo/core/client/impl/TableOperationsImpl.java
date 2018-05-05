@@ -1946,4 +1946,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     return new ArrayList<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
   }
+
+  @Override
+  public ImportSourceArguments addFilesTo(String tableName) {
+    return new BulkImport(tableName, context);
+  }
 }

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -612,9 +613,76 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           when the table no longer exists
    *
+   * @deprecated since 2.0.0 use {@link #addFilesTo(String)} instead.
    */
+  @Deprecated
   void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * @since 2.0.0
+   */
+  public static interface ImportSourceOptions {
+    ImportSourceOptions settingLogicalTime();
+
+    void load()
+        throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  public static interface ImportExecutorOptions extends ImportSourceOptions {
+    /**
+     * Files are examined to determine where to load them. This examination is done in the current
+     * process using multiple threads. If this property is not set, then the client property
+     * {@code bulk.threads} is used to create a thread pool.
+     *
+     * @param service
+     *          Use this executor to run file examination task
+     * @return ImportSourceOptions
+     */
+    ImportSourceOptions usingExecutor(Executor service);
+
+    /**
+     * Files are examined to determine where to load them. This examination is done in the current
+     * process using multiple threads. If this property is not set, then the client property
+     * {@code bulk.threads} is used to create a thread pool.
+     *
+     * @param numThreads
+     *          Create a thread pool with this many thread to run file examination task.
+     * @return ImportSourceOptions
+     */
+    ImportSourceOptions usingThreads(int numThreads);
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  public static interface ImportSourceArguments {
+    /**
+     *
+     * @param directory
+     *          Load files from this directory
+     * @return ImportSourceOptions
+     */
+    ImportExecutorOptions from(String directory);
+  }
+
+  /**
+   * Bulk import the files in a directory into a table. Files can be created using
+   * {@link AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
+   *
+   * <p>
+   * This new method of bulk import examines files in the current process outside of holding a table
+   * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
+   * examines files on the server side while holding a table read lock.
+   *
+   * @since 2.0.0
+   */
+  default ImportSourceArguments addFilesTo(String tableName) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Initiates taking a table offline, but does not wait for action to complete

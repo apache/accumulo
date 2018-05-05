@@ -56,7 +56,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.master.tableOps.BulkImport;
 import org.apache.accumulo.master.tableOps.CancelCompactions;
 import org.apache.accumulo.master.tableOps.ChangeTableState;
 import org.apache.accumulo.master.tableOps.CloneTable;
@@ -71,6 +70,7 @@ import org.apache.accumulo.master.tableOps.RenameNamespace;
 import org.apache.accumulo.master.tableOps.RenameTable;
 import org.apache.accumulo.master.tableOps.TableRangeOp;
 import org.apache.accumulo.master.tableOps.TraceRepo;
+import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.util.TablePropUtil;
@@ -412,7 +412,9 @@ class FateServiceHandler implements FateService.Iface {
 
         master.updateBulkImportStatus(dir, BulkImportState.INITIAL);
         master.fate.seedTransaction(opid,
-            new TraceRepo<>(new BulkImport(tableId, dir, failDir, setTime)), autoCleanup);
+            new TraceRepo<>(new org.apache.accumulo.master.tableOps.bulkVer1.BulkImport(tableId,
+                dir, failDir, setTime)),
+            autoCleanup);
         break;
       }
       case TABLE_COMPACT: {
@@ -513,6 +515,30 @@ class FateServiceHandler implements FateService.Iface {
         master.fate.seedTransaction(opid,
             new TraceRepo<>(new ExportTable(namespaceId, tableName, tableId, exportDir)),
             autoCleanup);
+        break;
+      }
+      case TABLE_BULK_IMPORT2: {
+        TableOperation tableOp = TableOperation.BULK_IMPORT;
+        Table.ID tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
+        String dir = ByteBufferUtil.toString(arguments.get(1));
+
+        boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
+
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+
+        final boolean canBulkImport;
+        try {
+          canBulkImport = master.security.canBulkImport(c, tableId, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, "", TableOperation.BULK_IMPORT);
+          throw e;
+        }
+
+        if (!canBulkImport)
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
+        master.fate.seedTransaction(opid,
+            new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup);
         break;
       }
       default:

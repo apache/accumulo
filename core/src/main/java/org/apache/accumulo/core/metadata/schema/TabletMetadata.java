@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -42,6 +43,7 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 
 public class TabletMetadata {
@@ -51,6 +53,7 @@ public class TabletMetadata {
   private Text endRow;
   private Location location;
   private List<String> files;
+  private Set<String> loadedFiles;
   private EnumSet<FetchedColumns> fetchedColumns;
   private KeyExtent extent;
   private Location last;
@@ -60,7 +63,7 @@ public class TabletMetadata {
   }
 
   public static enum FetchedColumns {
-    LOCATION, PREV_ROW, FILES, LAST
+    LOCATION, PREV_ROW, FILES, LAST, LOADED
   }
 
   public static class Location {
@@ -114,6 +117,12 @@ public class TabletMetadata {
     return location;
   }
 
+  public Set<String> getLoaded() {
+    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LOADED),
+        "Requested loaded when it was not fetched");
+    return loadedFiles;
+  }
+
   public Location getLast() {
     Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LAST),
         "Requested last when it was not fetched");
@@ -133,6 +142,7 @@ public class TabletMetadata {
     TabletMetadata te = new TabletMetadata();
 
     Builder<String> filesBuilder = ImmutableList.builder();
+    final ImmutableSet.Builder<String> loadedFilesBuilder = ImmutableSet.builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -154,9 +164,10 @@ public class TabletMetadata {
       if (PREV_ROW_COLUMN.hasColumns(k)) {
         te.prevEndRow = KeyExtent.decodePrevEndRow(v);
       }
-
       if (fam.equals(DataFileColumnFamily.NAME)) {
         filesBuilder.add(k.getColumnQualifier().toString());
+      } else if (fam.equals(MetadataSchema.TabletsSection.BulkFileColumnFamily.NAME)) {
+        loadedFilesBuilder.add(k.getColumnQualifier().toString());
       } else if (fam.equals(CurrentLocationColumnFamily.NAME)) {
         if (te.location != null) {
           throw new IllegalArgumentException(
@@ -178,6 +189,7 @@ public class TabletMetadata {
     }
 
     te.files = filesBuilder.build();
+    te.loadedFiles = loadedFilesBuilder.build();
     te.fetchedColumns = fetchedColumns;
     return te;
   }
