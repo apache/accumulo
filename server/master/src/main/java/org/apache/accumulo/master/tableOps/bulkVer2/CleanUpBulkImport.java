@@ -56,7 +56,6 @@ public class CleanUpBulkImport extends MasterRepo {
     MetadataTableUtil.addDeleteEntry(master, tableId, bulkDir.toString());
     log.debug("removing the metadata table markers for loaded files");
     Connector conn = master.getConnector();
-    // TODO pass row range so entire metadata table is not scanned
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
     Utils.unreserveHdfsDirectory(source, tid);
     Utils.getReadLock(tableId, tid).unlock();

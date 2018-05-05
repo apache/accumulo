@@ -86,7 +86,6 @@ class BulkImportMove extends MasterRepo {
           p -> fs.open(p));
       moveFiles(String.format("%016x", tid), sourceDir, bulkDir, master, fs, oldToNewNameMap);
 
-      // TODO figure out where to delete the renaming file
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,

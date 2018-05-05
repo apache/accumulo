@@ -40,6 +40,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
@@ -127,7 +128,6 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       SortedMap<KeyExtent,Bulk.Files> mappings = computeFileToTabletMappings(fs, tableId, srcPath,
           executor, context);
 
-      // TODO need to handle case of file existing
       BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), p -> fs.create(p));
 
       List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()),
@@ -137,7 +137,6 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     } finally {
       if (service != null) {
         service.shutdown();
-        // TODO wait
       }
     }
   }
@@ -185,13 +184,10 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   }
 
   @Override
-  public ImportSourceOptions from(String directory) {
+  public ImportExecutorOptions from(String directory) {
     this.dir = Objects.requireNonNull(directory);
     return this;
   }
-
-  // TODO this code opens files multiple times... each time a file is opened the file len is
-  // retrieved from NN. This could be done once and cached.
 
   private final static byte[] byte0 = {0};
 
@@ -234,8 +230,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
         if (index != null)
           index.close();
       } catch (IOException e) {
-        // continue with next file
-        // TODO this was logging
+        log.debug("Failed to close " + mapFile, e);
       }
     }
 
@@ -294,8 +289,8 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       Table.ID tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
     TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
-    // TODO see how current code filters files in dir
-    FileStatus[] files = fs.listStatus(dirPath, p -> p.getName().endsWith(".rf"));
+    FileStatus[] files = fs.listStatus(dirPath,
+        p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING));
 
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 
@@ -335,11 +330,9 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
           mappings.computeIfAbsent(extent, k -> new Bulk.Files()).add(path);
         });
       } catch (InterruptedException e) {
-        // TODO is this ok
         Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       } catch (ExecutionException e) {
-        // TODO better exception handling
         throw new RuntimeException(e);
       }
     }
@@ -368,7 +361,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
         if (containsPrevRow && containsEndRow) {
           mappings.get(ke).merge(mappings.remove(oke));
         } else {
-          // TODO evidence of a merge
+          throw new RuntimeException("TODO handle merges");
         }
       }
     }

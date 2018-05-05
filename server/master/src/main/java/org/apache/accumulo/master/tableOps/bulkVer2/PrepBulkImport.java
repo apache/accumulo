@@ -51,6 +51,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterators;
+
 /**
  * Prepare bulk import directory. This REPO creates a bulk directory in Accumulo, list all the files
  * in the original directory and creates a renaming file for moving the files (which happens next in
@@ -96,6 +99,63 @@ public class PrepBulkImport extends MasterRepo {
     return LoadFiles.equals(t1, t2);
   }
 
+  @VisibleForTesting
+  static interface TabletIterFactory {
+    Iterator<KeyExtent> newTabletIter(Text startRow) throws Exception;
+  }
+
+  @VisibleForTesting
+  static void checkForMerge(String tableId, Iterator<KeyExtent> lmi,
+      TabletIterFactory tabletIterFactory) throws Exception {
+    KeyExtent currentRange = lmi.next();
+
+    Text startRow = currentRange.getPrevEndRow();
+
+    Iterator<KeyExtent> tabletIter = tabletIterFactory.newTabletIter(startRow);
+
+    KeyExtent currentTablet = tabletIter.next();
+
+    if (!tabletIter.hasNext() && equals(currentTablet.getPrevEndRow(), currentRange.getPrevEndRow())
+        && equals(currentTablet.getEndRow(), currentRange.getEndRow()))
+      currentRange = null;
+
+    while (tabletIter.hasNext()) {
+
+      if (currentRange == null) {
+        if (!lmi.hasNext()) {
+          break;
+        }
+        currentRange = lmi.next();
+      }
+
+      while (!equals(currentTablet.getPrevEndRow(), currentRange.getPrevEndRow())
+          && tabletIter.hasNext()) {
+        currentTablet = tabletIter.next();
+      }
+
+      boolean matchedPrevRow = equals(currentTablet.getPrevEndRow(), currentRange.getPrevEndRow());
+
+      while (!equals(currentTablet.getEndRow(), currentRange.getEndRow()) && tabletIter.hasNext()) {
+        currentTablet = tabletIter.next();
+      }
+
+      if (!matchedPrevRow || !equals(currentTablet.getEndRow(), currentRange.getEndRow())) {
+        break;
+      }
+
+      currentRange = null;
+    }
+
+    if (currentRange != null || lmi.hasNext()) {
+      // a merge happened between the time the mapping was generated and the table lock was
+      // acquired
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.OTHER, "Concurrent merge happened"); // TODO need to handle
+                                                                           // this on the client
+                                                                           // side
+    }
+  }
+
   private void checkForMerge(final Master master) throws Exception {
 
     VolumeManager fs = master.getFileSystem();
@@ -103,55 +163,16 @@ public class PrepBulkImport extends MasterRepo {
     try (LoadMappingIterator lmi = BulkSerialize.readLoadMapping(bulkDir.toString(),
         bulkInfo.tableId, p -> fs.open(p))) {
 
-      KeyExtent currentRange = lmi.next().getKey();
+      Iterators.transform(lmi, entry -> entry.getKey());
 
-      Text startRow = currentRange.getPrevEndRow();
+      TabletIterFactory tabletIterFactory = startRow -> {
+        Iterable<TabletMetadata> tableMetadata = MetadataScanner.builder().from(master)
+            .overUserTableId(bulkInfo.tableId, startRow, null).build();
+        return Iterators.transform(tableMetadata.iterator(), tm -> tm.getExtent());
+      };
 
-      Iterable<TabletMetadata> tableMetadata = MetadataScanner.builder().from(master)
-          .overUserTableId(bulkInfo.tableId, startRow, null).build();
-
-      Iterator<TabletMetadata> tabletIter = tableMetadata.iterator();
-
-      TabletMetadata currentTablet = tabletIter.next();
-
-      // TODO refactor this code to make it unit testable....
-      // handle only one tablet
-      if (!tabletIter.hasNext() && equals(currentTablet.getEndRow(), currentRange.getEndRow()))
-        currentRange = null;
-
-      while (tabletIter.hasNext()) {
-
-        if (currentRange == null) {
-          if (!lmi.hasNext()) {
-            break;
-          }
-          currentRange = lmi.next().getKey();
-        }
-
-        while (!equals(currentTablet.getPrevEndRow(), currentRange.getPrevEndRow())
-            && tabletIter.hasNext()) {
-          currentTablet = tabletIter.next();
-        }
-
-        while (!equals(currentTablet.getEndRow(), currentRange.getEndRow())
-            && tabletIter.hasNext()) {
-          currentTablet = tabletIter.next();
-        }
-
-        if (!equals(currentTablet.getEndRow(), currentRange.getEndRow())) {
-          break;
-        }
-
-        currentRange = null;
-      }
-
-      if (currentRange != null || lmi.hasNext()) {
-        // a merge happened between the time the mapping was generated and the table lock was
-        // acquired
-        throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
-            TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
-            "Concurrent merge happened"); // TODO need to handle this on the client side
-      }
+      checkForMerge(bulkInfo.tableId.canonicalID(),
+          Iterators.transform(lmi, entry -> entry.getKey()), tabletIterFactory);
     }
   }
 
