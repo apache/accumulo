@@ -125,6 +125,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
       this.cdl = cdl;
     }
 
+    @Override
     public void run() {
       try {
         cdl.countDown();

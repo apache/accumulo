@@ -80,6 +80,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   ExecutorService service = Executors.newFixedThreadPool(10);
 
   @Test
+  @Override
   public void run() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];

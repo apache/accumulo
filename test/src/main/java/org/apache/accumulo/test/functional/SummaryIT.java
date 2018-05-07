@@ -446,6 +446,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       return true;
     }
 
+    @Override
     public void gatherInformation(MajorCompactionRequest request) throws IOException {
       List<Summary> summaries = request.getSummaries(request.getFiles().keySet(),
           conf -> conf.getClassName().contains("FooCounter"));

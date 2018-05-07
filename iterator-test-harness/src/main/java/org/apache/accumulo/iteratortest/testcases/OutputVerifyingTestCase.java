@@ -24,6 +24,7 @@ import org.apache.accumulo.iteratortest.IteratorTestOutput;
  */
 public abstract class OutputVerifyingTestCase implements IteratorTestCase {
 
+  @Override
   public boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {
     return expected.equals(actual);
   }

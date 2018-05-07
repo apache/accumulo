@@ -77,6 +77,7 @@ public abstract class SeekingFilter extends WrappingIterator {
       return accept ? PASSES.get(advance) : FAILS.get(advance);
     }
 
+    @Override
     public String toString() {
       return "Acc: " + accept + " Adv: " + advance;
     }

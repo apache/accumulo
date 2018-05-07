@@ -175,6 +175,7 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkIteratorConflicts(iteratorProps, setting, scopes);
   }
 
+  @Override
   public int addConstraint(String tableName, String constraintClassName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TreeSet<Integer> constraintNumbers = new TreeSet<>();
