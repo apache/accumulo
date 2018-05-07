@@ -57,6 +57,8 @@ public class LogFileKeyTest {
     // add keys in expected sort order
     keys.add(nk(LogEvents.OPEN, 0, 0));
 
+    // there was a bug that was putting -1 in WAL for tabletId, ensure this data sorts as expected
+    keys.add(nk(LogEvents.DEFINE_TABLET, -1, 0));
     keys.add(nk(LogEvents.DEFINE_TABLET, 3, 6));
     keys.add(nk(LogEvents.DEFINE_TABLET, 3, 7));
     keys.add(nk(LogEvents.DEFINE_TABLET, 4, 2));
