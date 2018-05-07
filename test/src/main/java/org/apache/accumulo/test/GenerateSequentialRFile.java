@@ -53,6 +53,7 @@ public class GenerateSequentialRFile implements Runnable {
     long valuesPerRow = 42000;
   }
 
+  @Override
   public void run() {
     try {
       final Configuration conf = new Configuration();

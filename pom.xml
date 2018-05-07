@@ -1776,6 +1776,41 @@
         <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
       </properties>
     </profile>
+    <profile>
+      <id>overrides</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <compilerId>javac-with-errorprone</compilerId>
+              <forceJavacCompilerUse>true</forceJavacCompilerUse>
+              <source>1.8</source>
+              <target>1.8</target>
+              <compilerArgs>
+                <arg>-XepDisableAllChecks</arg>
+                <arg>-Xep:MissingOverride:ERROR</arg>
+                <arg>-XepExcludedPaths:.*/(proto|thrift|generated-sources)/.*</arg>
+              </compilerArgs>
+              <showWarnings>true</showWarnings>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_core</artifactId>
+                <version>2.3.1</version>
+              </dependency>
+              <dependency>
+                <groupId>org.codehaus.plexus</groupId>
+                <artifactId>plexus-compiler-javac-errorprone</artifactId>
+                <version>2.8</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <!-- Active by default, build against Hadoop 2 -->
     <profile>
       <id>hadoop-default</id>
