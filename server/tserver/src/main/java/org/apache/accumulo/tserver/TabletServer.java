@@ -3276,12 +3276,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
   }
 
-  public int createLogId(KeyExtent tablet) {
-    AccumuloConfiguration acuTableConf = getTableConfiguration(tablet);
-    if (DurabilityImpl.fromString(acuTableConf.get(Property.TABLE_DURABILITY)) != Durability.NONE) {
-      return logIdGenerator.incrementAndGet();
+  public int createLogId() {
+    int logId = logIdGenerator.incrementAndGet();
+    if (logId < 0) {
+      throw new IllegalStateException("Log Id rolled");
     }
-    return -1;
+    return logId;
   }
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {

@@ -78,7 +78,10 @@ public class SortedLogRecovery {
   static LogFileKey minKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
     key.event = event;
-    key.tabletId = 0;
+    // see GitHub issue #477. There was a bug that caused -1 to end up in tabletId. If this happens
+    // want to detect it and fail since recovery is dubious in this situation . Other code should
+    // fail if the id is actually -1 in data.
+    key.tabletId = -1;
     key.seq = 0;
     return key;
   }
