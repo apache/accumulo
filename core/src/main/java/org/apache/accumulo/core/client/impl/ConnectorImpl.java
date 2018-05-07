@@ -244,24 +244,6 @@ public class ConnectorImpl extends Connector {
     return this.context.getConnectionInfo();
   }
 
-  private static void setAuthenticationProperties(Properties props, String principal, AuthenticationToken token) {
-    props.setProperty(ClientProperty.AUTH_USERNAME.getKey(), principal);
-    if (token instanceof CredentialProviderToken) {
-      props.setProperty(ClientProperty.AUTH_METHOD.getKey(), "provider");
-      CredentialProviderToken cpt = (CredentialProviderToken) token;
-      props.setProperty(ClientProperty.AUTH_PROVIDER_NAME.getKey(), cpt.getName());
-      props.setProperty(ClientProperty.AUTH_PROVIDER_URLS.getKey(), cpt.getCredentialProviders());
-    } else if (token instanceof PasswordToken) {
-      props.setProperty(ClientProperty.AUTH_METHOD.getKey(), "password");
-    } else if (token instanceof KerberosToken) {
-      props.setProperty(ClientProperty.AUTH_METHOD.getKey(), "kerberos");
-      props.setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getKey(),
-          ((KerberosToken) token).getKeytab().getAbsolutePath());
-    } else {
-      props.setProperty(ClientProperty.AUTH_METHOD.getKey(), "unknown");
-    }
-  }
-
   public static class ConnectorBuilderImpl
       implements InstanceArgs, PropertyOptions, ConnectionInfoOptions, AuthenticationArgs,
       ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory, FromOptions {
@@ -451,7 +433,21 @@ public class ConnectorImpl extends Connector {
     @Override
     public ConnectionOptions usingToken(String principal, AuthenticationToken token) {
       this.token = token;
-      setAuthenticationProperties(this.properties, principal, token);
+      setProperty(ClientProperty.AUTH_USERNAME, principal);
+      if (token instanceof CredentialProviderToken) {
+        setProperty(ClientProperty.AUTH_METHOD, "provider");
+        CredentialProviderToken cpt = (CredentialProviderToken) token;
+        setProperty(ClientProperty.AUTH_PROVIDER_NAME, cpt.getName());
+        setProperty(ClientProperty.AUTH_PROVIDER_URLS, cpt.getCredentialProviders());
+      } else if (token instanceof PasswordToken) {
+        setProperty(ClientProperty.AUTH_METHOD, "password");
+      } else if (token instanceof KerberosToken) {
+        setProperty(ClientProperty.AUTH_METHOD, "kerberos");
+        setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH,
+            ((KerberosToken) token).getKeytab().getAbsolutePath());
+      } else {
+        setProperty(ClientProperty.AUTH_METHOD, "unknown");
+      }
       return this;
     }
 
