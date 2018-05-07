@@ -671,7 +671,7 @@ public interface TableOperations {
 
   /**
    * Bulk import the files in a directory into a table. Files can be created using
-   * {@link AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
+   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
    *
    * <p>
    * This new method of bulk import examines files in the current process outside of holding a table
