@@ -94,7 +94,7 @@ public class BulkSerialize {
   }
 
   /**
-   * Serialize bulk load mapping to {@link Constants.BULK_LOAD_MAPPING}
+   * Serialize bulk load mapping to {@value Constants#BULK_LOAD_MAPPING}
    */
   public static void writeLoadMapping(SortedMap<KeyExtent,Bulk.Files> loadMapping, String sourceDir,
       Output output) throws IOException {

@@ -57,9 +57,9 @@ import com.google.common.collect.Iterators;
 /**
  * Prepare bulk import directory. This REPO creates a bulk directory in Accumulo, list all the files
  * in the original directory and creates a renaming file for moving the files (which happens next in
- * BulkImportMove). The renaming file has a mapping of originalPath -> newPath. The newPath will be
- * the bulk directory in Accumulo. The renaming file is called {@link Constants.BULK_RENAME_FILE}
- * and is written to the {@link Constants.BULK_PREFIX} bulk directory generated here.
+ * BulkImportMove). The renaming file has a mapping of originalPath to newPath. The newPath will be
+ * the bulk directory in Accumulo. The renaming file is called {@value Constants#BULK_RENAME_FILE}
+ * and is written to the {@value Constants#BULK_PREFIX} bulk directory generated here.
  *
  * @since 2.0.0
  */
