@@ -73,7 +73,7 @@ public class VolumeConfiguration {
 
     if (dfsUri == null || dfsUri.isEmpty()) {
       try {
-        baseDir = FileSystem.get(hadoopConfig).getUri().toString() + singleNamespace;
+        baseDir = FileSystem.get(hadoopConfig).getUri() + singleNamespace;
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

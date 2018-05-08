@@ -102,7 +102,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           continue;
         }
         Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
-            + " Start: " + session.startTime + " Tablet: " + entry.getKey().toString());
+            + " Start: " + session.startTime + " Tablet: " + entry.getKey());
 
         LookupResult lookupResult;
         try {

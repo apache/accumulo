@@ -114,7 +114,7 @@ public class FileUtilTest {
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<>();
-    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
+    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
@@ -147,7 +147,7 @@ public class FileUtilTest {
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<>();
-    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
+    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
@@ -174,7 +174,7 @@ public class FileUtilTest {
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<>();
-    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
+    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
@@ -204,7 +204,7 @@ public class FileUtilTest {
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
     HashMap<Property,String> testProps = new HashMap<>();
-    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
+    testProps.put(Property.INSTANCE_VOLUMES, v1.toURI() + "," + v2.toURI());
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 

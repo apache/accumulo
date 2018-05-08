@@ -106,7 +106,7 @@ public class RootFiles {
         if (fs.exists(new Path(expectedCompactedFile))) {
           // compaction finished, but did not finish deleting compacted files.. so delete it
           if (!fs.deleteRecursively(file.getPath()))
-            log.warn("Delete of file: {} return false", file.getPath().toString());
+            log.warn("Delete of file: {} return false", file.getPath());
           continue;
         }
         // compaction did not finish, so put files back
@@ -122,7 +122,7 @@ public class RootFiles {
         if (deleteTmp) {
           log.warn("cleaning up old tmp file: {}", path);
           if (!fs.deleteRecursively(file.getPath()))
-            log.warn("Delete of tmp file: {} return false", file.getPath().toString());
+            log.warn("Delete of tmp file: {} return false", file.getPath());
 
         }
         continue;

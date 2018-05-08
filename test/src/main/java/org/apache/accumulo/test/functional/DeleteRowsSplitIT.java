@@ -90,7 +90,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
         public void run() {
           try {
             // split the table
-            final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end.toString() + "\0"));
+            final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end + "\0"));
             conn.tableOperations().addSplits(tableName, afterEnd);
           } catch (Exception ex) {
             log.error("Exception", ex);

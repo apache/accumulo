@@ -246,7 +246,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
             break;
           }
         }
-        Assert.assertTrue("Mutation not found: " + m.toString(), found);
+        Assert.assertTrue("Mutation not found: " + m, found);
       }
 
       for (int m = 0; m < NUM_THREADS; m++) {

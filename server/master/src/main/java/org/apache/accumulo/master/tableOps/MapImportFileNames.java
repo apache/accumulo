@@ -67,7 +67,7 @@ class MapImportFileNames extends MasterRepo {
 
       for (FileStatus fileStatus : files) {
         String fileName = fileStatus.getPath().getName();
-        log.info("filename " + fileStatus.getPath().toString());
+        log.info("filename " + fileStatus.getPath());
         String sa[] = fileName.split("\\.");
         String extension = "";
         if (sa.length > 1) {

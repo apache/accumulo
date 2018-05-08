@@ -104,7 +104,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     v3 = new Path("file://" + v3f.getAbsolutePath());
     v4 = new Path("file://" + v4f.getAbsolutePath());
 
-    systemPreferredVolumes = v1.toString() + "," + v2.toString();
+    systemPreferredVolumes = v1 + "," + v2;
     // exclude v4
     siteConfig.put(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
@@ -117,8 +117,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
     // the options list when they are choosing
-    cfg.setProperty(Property.INSTANCE_VOLUMES,
-        v1.toString() + "," + v2.toString() + "," + v4.toString());
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v4);
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -181,13 +180,15 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             inVolume = true;
           }
         }
-        assertTrue("Data not written to the correct volumes.  "
-            + entry.getKey().getColumnQualifier().toString(), inVolume);
+        assertTrue(
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
+            inVolume);
         fileCount++;
       }
     }
-    assertEquals("Did not see all the volumes. volumes: " + volumes.toString() + " volumes seen: "
-        + volumesSeen.toString(), volumes.size(), volumesSeen.size());
+    assertEquals(
+        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen,
+        volumes.size(), volumesSeen.size());
     assertEquals("Wrong number of files", 26, fileCount);
   }
 
@@ -197,7 +198,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
-        fail("Data incorrectly written to " + entry.getKey().getColumnQualifier().toString());
+        fail("Data incorrectly written to " + entry.getKey().getColumnQualifier());
       }
     }
   }
@@ -245,8 +246,9 @@ public class VolumeChooserIT extends ConfigurableMacBase {
             volumesSeen.add(volume);
           inVolume = true;
         }
-        assertTrue("Data not written to the correct volumes.  "
-            + entry.getKey().getColumnQualifier().toString(), inVolume);
+        assertTrue(
+            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier(),
+            inVolume);
       }
     }
   }
@@ -307,8 +309,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     writeAndReadData(connector, tableName);
     // Verify the new files are written to the Volumes specified
 
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID),
-        v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1 + "," + v2 + "," + v4);
 
     connector.namespaceOperations().create(namespace2);
 
@@ -327,7 +328,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     writeAndReadData(connector, tableName2);
     // Verify the new files are written to the Volumes specified
     verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2),
-        v1.toString() + "," + v2.toString() + "," + v4.toString());
+        v1 + "," + v2 + "," + v4);
   }
 
   // Test that uses two tables with 10 split points each. The first uses the RandomVolumeChooser and
@@ -346,8 +347,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     // Create table1 on namespace1
-    verifyVolumesForWritesToNewTable(connector, namespace1,
-        v1.toString() + "," + v2.toString() + "," + v4.toString());
+    verifyVolumesForWritesToNewTable(connector, namespace1, v1 + "," + v2 + "," + v4);
     connector.namespaceOperations().create(namespace2);
 
     connector.namespaceOperations().setProperty(namespace2,

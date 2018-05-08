@@ -41,7 +41,7 @@ public class SuspendingTServer {
   }
 
   public Value toValue() {
-    return new Value(server.toString() + "|" + suspensionTime);
+    return new Value(server + "|" + suspensionTime);
   }
 
   @Override
@@ -68,6 +68,6 @@ public class SuspendingTServer {
 
   @Override
   public String toString() {
-    return server.toString() + "[" + suspensionTime + "]";
+    return server + "[" + suspensionTime + "]";
   }
 }

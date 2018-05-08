@@ -48,9 +48,9 @@ public class CountingSummarizerTest {
     @Override
     protected Converter<String> converter() {
       return (k, v, c) -> {
-        c.accept("rp:" + k.getRowData().subSequence(0, 2).toString());
-        c.accept("fp:" + k.getColumnFamilyData().subSequence(0, 2).toString());
-        c.accept("qp:" + k.getColumnQualifierData().subSequence(0, 2).toString());
+        c.accept("rp:" + k.getRowData().subSequence(0, 2));
+        c.accept("fp:" + k.getColumnFamilyData().subSequence(0, 2));
+        c.accept("qp:" + k.getColumnQualifierData().subSequence(0, 2));
       };
     }
   }

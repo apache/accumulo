@@ -64,7 +64,7 @@ public class ContextManagerTest {
         folder2.newFile("HelloWorld.jar"));
 
     uri1 = new File(folder1.getRoot(), "HelloWorld.jar").toURI().toString();
-    uri2 = folder2.getRoot().toURI().toString() + ".*";
+    uri2 = folder2.getRoot().toURI() + ".*";
 
   }
 

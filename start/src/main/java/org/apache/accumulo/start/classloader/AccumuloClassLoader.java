@@ -248,7 +248,7 @@ public class AccumuloClassLoader {
 
       ClassLoader parentClassLoader = AccumuloClassLoader.class.getClassLoader();
 
-      log.debug("Create 2nd tier ClassLoader using URLs: {}", urls.toString());
+      log.debug("Create 2nd tier ClassLoader using URLs: {}", urls);
       classloader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
         @Override
         protected synchronized Class<?> loadClass(String name, boolean resolve)

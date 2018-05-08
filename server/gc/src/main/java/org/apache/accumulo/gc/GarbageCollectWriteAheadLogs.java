@@ -244,7 +244,7 @@ public class GarbageCollectWriteAheadLogs {
         try {
           walMarker.forget(entry.getKey());
         } catch (WalMarkerException ex) {
-          log.info("Error removing znode for " + entry.getKey() + " " + ex.toString());
+          log.info("Error removing znode for " + entry.getKey() + " " + ex);
         }
       }
     }

@@ -87,7 +87,7 @@ public class HexFormatter implements Formatter, ScanInterpreter {
     sb.append("  ");
     toHex(sb, entry.getKey().getColumnQualifierData().toArray());
     sb.append(" [");
-    sb.append(entry.getKey().getColumnVisibilityData().toString());
+    sb.append(entry.getKey().getColumnVisibilityData());
     sb.append("] ");
     if (config.willPrintTimestamps()) {
       sb.append(Long.toString(entry.getKey().getTimestamp()));

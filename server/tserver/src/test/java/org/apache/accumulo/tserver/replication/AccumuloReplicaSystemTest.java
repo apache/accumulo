@@ -461,7 +461,7 @@ public class AccumuloReplicaSystemTest {
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", Table.ID.of("1"));
     DataInputStream input = null;
-    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
+    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID());
     Status status = null;
     long sizeLimit = Long.MAX_VALUE;
     String remoteTableId = target.getRemoteIdentifier();
@@ -491,7 +491,7 @@ public class AccumuloReplicaSystemTest {
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", Table.ID.of("1"));
     DataInputStream input = null;
-    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
+    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID());
     Status status = null;
     long sizeLimit = Long.MAX_VALUE;
     String remoteTableId = target.getRemoteIdentifier();

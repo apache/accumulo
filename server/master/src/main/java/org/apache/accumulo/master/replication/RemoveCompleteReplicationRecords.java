@@ -205,7 +205,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     mutations.add(m);
     for (Entry<Table.ID,Long> entry : tableToTimeCreated.entrySet()) {
       log.info("Removing order mutation for table {} at {} for {}", entry.getKey(),
-          entry.getValue(), row.toString());
+          entry.getValue(), row);
       Mutation orderMutation = OrderSection.createMutation(row.toString(), entry.getValue());
       orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey().getUtf8()));
       mutations.add(orderMutation);

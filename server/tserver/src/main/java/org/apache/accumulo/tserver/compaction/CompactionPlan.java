@@ -38,7 +38,7 @@ public class CompactionPlan {
   @Override
   public String toString() {
     StringBuilder b = new StringBuilder();
-    b.append(inputFiles.toString());
+    b.append(inputFiles);
     if (!deleteFiles.isEmpty()) {
       b.append(" files to be deleted ");
       b.append(deleteFiles);

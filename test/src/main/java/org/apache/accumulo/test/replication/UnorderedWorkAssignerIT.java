@@ -225,7 +225,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
 
-    queuedWork.add("wal1|" + serializedTarget.toString());
+    queuedWork.add("wal1|" + serializedTarget);
 
     // Create two mutations, both of which need replication work done
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);

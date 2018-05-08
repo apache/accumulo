@@ -289,7 +289,7 @@ public class StatusMaker {
     }
 
     Status status = Status.newBuilder().setCreatedTime(createdTime).build();
-    Mutation m = new Mutation(new Text(ReplicationSection.getRowPrefix() + file.toString()));
+    Mutation m = new Mutation(new Text(ReplicationSection.getRowPrefix() + file));
     m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId), ProtobufUtil.toValue(status));
     replicationWriter.addMutation(m);
     replicationWriter.flush();

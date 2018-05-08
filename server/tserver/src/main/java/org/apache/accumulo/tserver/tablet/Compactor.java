@@ -193,7 +193,7 @@ public class Compactor implements Callable<CompactionStats> {
     final Path outputFilePath = outputFile.path();
     final String outputFilePathName = outputFilePath.toString();
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName = "MajC compacting " + extent.toString() + " started "
+    String newThreadName = "MajC compacting " + extent + " started "
         + dateFormatter.format(new Date()) + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
     thread = Thread.currentThread();

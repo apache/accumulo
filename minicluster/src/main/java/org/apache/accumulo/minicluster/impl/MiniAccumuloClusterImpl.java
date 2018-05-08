@@ -329,7 +329,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     log.info("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
-        + "\n, environment: " + builder.environment().toString());
+        + "\n, environment: " + builder.environment());
     Process process = builder.start();
 
     LogWriter lw;

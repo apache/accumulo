@@ -412,7 +412,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       List<IteratorSetting> compactIterators = new ArrayList<>();
       compactIterators.add(slow);
 
-      log.trace("Slow iterator {}", slow.toString());
+      log.trace("Slow iterator {}", slow);
 
       try {
 

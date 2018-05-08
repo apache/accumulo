@@ -77,7 +77,7 @@ public class ConstraintChecker {
       loader = null;
       constrains.add(new UnsatisfiableConstraint((short) -1,
           "Failed to load constraints, not accepting mutations."));
-      log.error("Failed to load constraints " + conf.getTableId() + " " + e.toString(), e);
+      log.error("Failed to load constraints " + conf.getTableId() + " " + e, e);
     }
   }
 

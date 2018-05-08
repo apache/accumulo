@@ -197,7 +197,7 @@ public abstract class TabletLocator {
     @Override
     public int hashCode() {
       throw new UnsupportedOperationException(
-          "hashcode is not implemented for class " + this.getClass().toString());
+          "hashcode is not implemented for class " + this.getClass());
     }
 
     @Override

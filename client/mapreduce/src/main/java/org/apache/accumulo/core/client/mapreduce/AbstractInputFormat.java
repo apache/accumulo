@@ -468,7 +468,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
 
       split = (RangeInputSplit) inSplit;
-      log.debug("Initializing input split: " + split.toString());
+      log.debug("Initializing input split: " + split);
 
       Instance instance = split.getInstance(getClientConfiguration(attempt));
       if (null == instance) {

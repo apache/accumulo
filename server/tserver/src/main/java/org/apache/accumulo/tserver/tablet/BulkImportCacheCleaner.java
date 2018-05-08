@@ -54,7 +54,7 @@ public class BulkImportCacheCleaner implements Runnable {
       }
     } catch (KeeperException | InterruptedException e) {
       // we'll just clean it up again later
-      log.debug("Error reading bulk import live transactions {}", e.toString());
+      log.debug("Error reading bulk import live transactions {}", e);
     }
   }
 

@@ -263,18 +263,18 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(2,
         findAuditMessage(auditMessages, "action: createUser; targetUser: " + AUDIT_USER_2));
     assertEquals(1, findAuditMessage(auditMessages, "action: grantSystemPermission; permission: "
-        + SystemPermission.ALTER_TABLE.toString() + "; targetUser: " + AUDIT_USER_2));
+        + SystemPermission.ALTER_TABLE + "; targetUser: " + AUDIT_USER_2));
     assertEquals(1, findAuditMessage(auditMessages, "action: revokeSystemPermission; permission: "
-        + SystemPermission.ALTER_TABLE.toString() + "; targetUser: " + AUDIT_USER_2));
+        + SystemPermission.ALTER_TABLE + "; targetUser: " + AUDIT_USER_2));
     assertEquals(1, findAuditMessage(auditMessages, "action: grantTablePermission; permission: "
-        + TablePermission.READ.toString() + "; targetTable: " + NEW_TEST_TABLE_NAME));
+        + TablePermission.READ + "; targetTable: " + NEW_TEST_TABLE_NAME));
     assertEquals(1, findAuditMessage(auditMessages, "action: revokeTablePermission; permission: "
-        + TablePermission.READ.toString() + "; targetTable: " + NEW_TEST_TABLE_NAME));
+        + TablePermission.READ + "; targetTable: " + NEW_TEST_TABLE_NAME));
     // changePassword is allowed and succeeded
     assertEquals(2, findAuditMessage(auditMessages,
         "action: changePassword; targetUser: " + AUDIT_USER_2 + ""));
     assertEquals(1, findAuditMessage(auditMessages, "action: changeAuthorizations; targetUser: "
-        + AUDIT_USER_2 + "; authorizations: " + auths.toString()));
+        + AUDIT_USER_2 + "; authorizations: " + auths));
 
     // allowed to dropUser and succeeded
     assertEquals(2,
@@ -305,14 +305,14 @@ public class AuditMessageIT extends ConfigurableMacBase {
     bw.close();
 
     // Prepare to export the table
-    File exportDir = new File(getCluster().getConfig().getDir().toString() + "/export");
+    File exportDir = new File(getCluster().getConfig().getDir() + "/export");
 
     auditConnector.tableOperations().offline(OLD_TEST_TABLE_NAME);
     auditConnector.tableOperations().exportTable(OLD_TEST_TABLE_NAME, exportDir.toString());
 
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path
     // to re-import it
-    File distCpTxt = new File(exportDir.toString() + "/distcp.txt");
+    File distCpTxt = new File(exportDir + "/distcp.txt");
     File importFile = null;
 
     // Just grab the first rf file, it will do for now.
@@ -354,14 +354,13 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME,
-                filePrefix + exportDir.toString())));
+                filePrefix + exportDir)));
     assertEquals(1, findAuditMessage(auditMessages, String
         .format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME)));
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_BULK_IMPORT_AUDIT_TEMPLATE,
-                THIRD_TEST_TABLE_NAME, filePrefix + exportDir.toString(),
-                filePrefix + failDir.toString())));
+                THIRD_TEST_TABLE_NAME, filePrefix + exportDir, filePrefix + failDir)));
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,

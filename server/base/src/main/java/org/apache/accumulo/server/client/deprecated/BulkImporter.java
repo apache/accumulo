@@ -154,7 +154,7 @@ public class BulkImporter {
             try {
               tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile);
             } catch (Exception ex) {
-              log.warn("Unable to find tablets that overlap file " + mapFile.toString(), ex);
+              log.warn("Unable to find tablets that overlap file " + mapFile, ex);
             }
             log.debug("Map file {} found to overlap {} tablets", mapFile,
                 tabletsToAssignMapFileTo.size());

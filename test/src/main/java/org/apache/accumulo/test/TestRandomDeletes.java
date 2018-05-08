@@ -75,7 +75,7 @@ public class TestRandomDeletes {
 
     @Override
     public String toString() {
-      return row.toString() + ":" + column.toString();
+      return row + ":" + column;
     }
   }
 

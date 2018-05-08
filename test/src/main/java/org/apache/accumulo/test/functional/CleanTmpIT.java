@@ -102,7 +102,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
     Path tmp = new Path(tabletDir, "junk.rf_tmp");
     // Make the file
     fs.create(tmp).close();
-    log.info("Created tmp file {}", tmp.toString());
+    log.info("Created tmp file {}", tmp);
     getCluster().stop();
     getCluster().start();
 

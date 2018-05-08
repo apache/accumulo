@@ -55,7 +55,7 @@ public class BulkImportVolumeIT extends AccumuloClusterHarness {
     v2 = new Path("file://" + v2f.getAbsolutePath());
 
     // Run MAC on two locations in the local file system
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2);
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

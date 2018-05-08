@@ -335,7 +335,7 @@ public class InMemoryMapIT {
 
     for (MemKey mk : memkeys) {
       sb.append("  ");
-      sb.append(mk.toString());
+      sb.append(mk);
       sb.append("\n");
     }
 

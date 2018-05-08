@@ -185,8 +185,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       bw.addMutation(m);
 
       // Add a replication entry for our fake WAL
-      m = new Mutation(
-          MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri).toString());
+      m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri));
       m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.getUtf8()),
           new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
       bw.addMutation(m);

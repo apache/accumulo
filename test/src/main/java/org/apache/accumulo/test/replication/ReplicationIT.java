@@ -477,8 +477,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> metadata : s) {
         records.add(metadata);
-        log.debug("Meta: {} => {}", metadata.getKey().toStringNoTruncate(),
-            metadata.getValue().toString());
+        log.debug("Meta: {} => {}", metadata.getKey().toStringNoTruncate(), metadata.getValue());
       }
 
       Assert.assertEquals("Expected to find 2 records, but actually found " + records, 2,

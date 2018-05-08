@@ -897,7 +897,7 @@ abstract class TabletGroupWatcher extends Daemon {
             // Don't let the log message get too gigantic
             if (builder.length() > ASSINGMENT_BUFFER_MAX_LENGTH) {
               builder.append("]");
-              Master.log.debug("{} assigning tablets: [{}", store.name(), builder.toString());
+              Master.log.debug("{} assigning tablets: [{}", store.name(), builder);
               builder.setLength(0);
             }
 
@@ -913,7 +913,7 @@ abstract class TabletGroupWatcher extends Daemon {
       if (builder.length() > 0) {
         // Make sure to log any leftover assignments
         builder.append("]");
-        Master.log.debug("{} assigning tablets: [{}", store.name(), builder.toString());
+        Master.log.debug("{} assigning tablets: [{}", store.name(), builder);
       }
 
       if (!unassigned.isEmpty() && assignedOut.isEmpty())

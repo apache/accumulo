@@ -897,7 +897,7 @@ public class MultiLevelIndex {
         sb.append(" RawSize : ");
         sb.append(ie.rawSize);
 
-        out.println(sb.toString());
+        out.println(sb);
 
         if (ib.getLevel() > 0) {
           IndexBlock cib = getIndexBlock(ie);

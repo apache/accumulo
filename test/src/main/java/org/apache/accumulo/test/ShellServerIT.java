@@ -347,11 +347,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
     ts.exec("offline " + table, true);
     File exportDir = new File(rootPath, "ShellServerIT.export");
-    String exportUri = "file://" + exportDir.toString();
-    String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp").toString();
+    String exportUri = "file://" + exportDir;
+    String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
     ts.exec("exporttable -t " + table + " " + exportUri, true);
     DistCp cp = newDistCp(new Configuration(false));
-    String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
+    String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
     if (getCluster().getConnectionInfo().saslEnabled()) {
       // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
       // ourselves by hand.
@@ -718,7 +718,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
                 try {
                   Connector c = getConnector();
                   return "Current auths for root are: "
-                      + c.securityOperations().getUserAuthorizations("root").toString();
+                      + c.securityOperations().getUserAuthorizations("root");
                 } catch (Exception e) {
                   return "Could not check authorizations";
                 }
@@ -1619,7 +1619,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fooConstraintJar.deleteOnExit();
 
     ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1="
-        + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(), true);
+        + fooFilterJar.toURI() + "," + fooConstraintJar.toURI(), true);
 
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);

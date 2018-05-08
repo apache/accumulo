@@ -119,8 +119,7 @@ public class IteratorUtil {
       }
     }
 
-    props.put(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1",
-        DefaultKeySizeConstraint.class.getName());
+    props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", DefaultKeySizeConstraint.class.getName());
 
     return props;
   }

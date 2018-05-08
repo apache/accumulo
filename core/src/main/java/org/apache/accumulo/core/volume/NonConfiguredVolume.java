@@ -75,7 +75,7 @@ public class NonConfiguredVolume implements Volume {
 
   @Override
   public String toString() {
-    return "NonConfiguredVolume: " + this.fs.toString();
+    return "NonConfiguredVolume: " + this.fs;
   }
 
   @Override
