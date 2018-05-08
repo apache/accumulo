@@ -18,7 +18,6 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -55,12 +54,7 @@ public class RecoveryLogsIterator implements CloseableIterator<Entry<LogFileKey,
         iterators.add(new RecoveryLogReader(fs, log, start, end));
       }
 
-      iter = Iterators.mergeSorted(iterators, new Comparator<Entry<LogFileKey,LogFileValue>>() {
-        @Override
-        public int compare(Entry<LogFileKey,LogFileValue> o1, Entry<LogFileKey,LogFileValue> o2) {
-          return o1.getKey().compareTo(o2.getKey());
-        }
-      });
+      iter = Iterators.mergeSorted(iterators, (o1, o2) -> o1.getKey().compareTo(o2.getKey()));
 
     } catch (RuntimeException | IOException e) {
       try {

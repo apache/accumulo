@@ -42,7 +42,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -250,12 +249,7 @@ public class SortedLogRecovery {
   }
 
   Collection<String> asNames(List<Path> recoveryLogs) {
-    return Collections2.transform(recoveryLogs, new Function<Path,String>() {
-      @Override
-      public String apply(Path input) {
-        return input.getName();
-      }
-    });
+    return Collections2.transform(recoveryLogs, Path::getName);
   }
 
   public void recover(KeyExtent extent, List<Path> recoveryLogs, Set<String> tabletFiles,
