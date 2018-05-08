@@ -94,7 +94,10 @@
   </Match>
   <Match>
     <!-- admin classes can call System.exit -->
-    <Class name="org.apache.accumulo.core.file.rfile.PrintInfo" />
+    <Or>
+      <Class name="org.apache.accumulo.core.file.rfile.PrintInfo" />
+      <Class name="org.apache.accumulo.fate.AdminUtil" />
+    </Or>
     <Bug code="DM" pattern="DM_EXIT" />
   </Match>
   <Match>
