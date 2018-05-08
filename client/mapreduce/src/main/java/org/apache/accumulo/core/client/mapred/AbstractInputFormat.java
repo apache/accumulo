@@ -461,7 +461,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
       baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
-      log.debug("Initializing input split: " + baseSplit.toString());
+      log.debug("Initializing input split: " + baseSplit);
 
       Instance instance = baseSplit.getInstance(getClientConfiguration(job));
       if (null == instance) {
@@ -559,8 +559,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         scanner.setRange(baseSplit.getRange());
         scannerBase = scanner;
       } else {
-        throw new IllegalArgumentException(
-            "Can not initialize from " + baseSplit.getClass().toString());
+        throw new IllegalArgumentException("Can not initialize from " + baseSplit.getClass());
       }
 
       Collection<Pair<Text,Text>> columns = baseSplit.getFetchedColumns();

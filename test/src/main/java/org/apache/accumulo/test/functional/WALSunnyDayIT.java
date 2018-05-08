@@ -243,8 +243,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       }
     }
 
-    fail("Unable to get the correct number of WALs, expected " + expectedCount + " but got "
-        + wals.toString());
+    fail(
+        "Unable to get the correct number of WALs, expected " + expectedCount + " but got " + wals);
     return new HashMap<>();
   }
 

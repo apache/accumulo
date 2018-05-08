@@ -182,21 +182,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   @Override
   public void fileCreated(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} created, recreating classloader", event.getFile().getURL().toString());
+      log.debug("{} created, recreating classloader", event.getFile().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} deleted, recreating classloader", event.getFile().getURL().toString());
+      log.debug("{} deleted, recreating classloader", event.getFile().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug("{} changed, recreating classloader", event.getFile().getURL().toString());
+      log.debug("{} changed, recreating classloader", event.getFile().getURL());
     scheduleRefresh();
   }
 
@@ -206,7 +206,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
     for (FileObject f : files) {
       try {
-        buf.append("\t").append(f.getURL().toString()).append("\n");
+        buf.append("\t").append(f.getURL()).append("\n");
       } catch (FileSystemException e) {
         log.error("Error getting URL for file", e);
       }

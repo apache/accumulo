@@ -184,7 +184,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         .getProperties(tableName);
     Map<String,String> props = propsToMap(itrProps);
     assertEquals(DefaultKeySizeConstraint.class.getName(),
-        props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
+        props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     connector.tableOperations().delete(tableName);
   }
 

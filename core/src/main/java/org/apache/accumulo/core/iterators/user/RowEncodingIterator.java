@@ -119,8 +119,8 @@ public abstract class RowEncodingIterator
         values.add(new Value(sourceTopValue));
         kvBufSize += sourceTopKey.getSize() + sourceTopValue.getSize() + 128;
         if (kvBufSize > maxBufferSize) {
-          throw new BufferOverflowException("Exceeded buffer size of " + maxBufferSize
-              + " for row: " + sourceTopKey.getRow().toString());
+          throw new BufferOverflowException(
+              "Exceeded buffer size of " + maxBufferSize + " for row: " + sourceTopKey.getRow());
         }
         sourceIter.next();
       }

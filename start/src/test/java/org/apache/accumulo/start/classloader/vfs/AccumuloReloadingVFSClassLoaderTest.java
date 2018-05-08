@@ -48,7 +48,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     vfs = ContextManagerTest.getVFS();
 
     folder1.create();
-    folderPath = folder1.getRoot().toURI().toString() + ".*";
+    folderPath = folder1.getRoot().toURI() + ".*";
 
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
         folder1.newFile("HelloWorld.jar"));

@@ -155,8 +155,8 @@ public class ConfiguratorBase {
       // Avoid serializing the DelegationToken secret in the configuration -- the Job will do that
       // work for us securely
       DelegationTokenImpl delToken = (DelegationTokenImpl) token;
-      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.JOB.prefix()
-          + token.getClass().getName() + ":" + delToken.getServiceName().toString());
+      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
+          TokenSource.JOB.prefix() + token.getClass().getName() + ":" + delToken.getServiceName());
     } else {
       conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
           TokenSource.INLINE.prefix() + token.getClass().getName() + ":"

@@ -90,8 +90,7 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
     // the options list when they are choosing
-    cfg.setProperty(Property.INSTANCE_VOLUMES,
-        v1.toString() + "," + v2.toString() + "," + v4.toString());
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v4);
     // no not set preferred volumes
 
     // use raw local file system so walogs sync and flush will work

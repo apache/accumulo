@@ -164,7 +164,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
       StringBuilder result = new StringBuilder("\n");
       for (Text test : tests) {
         result.append("   ");
-        result.append(test.toString());
+        result.append(test);
         result.append("\n");
       }
       context.write(code, new Text(result.toString()));

@@ -269,8 +269,8 @@ public class Tablet implements TabletCommitter {
   FileRef getNextMapFilename(String prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
     checkTabletDir();
-    return new FileRef(location.toString() + "/" + prefix
-        + UniqueNameAllocator.getInstance().getNextName() + "." + extension);
+    return new FileRef(location + "/" + prefix + UniqueNameAllocator.getInstance().getNextName()
+        + "." + extension);
   }
 
   private void checkTabletDir() throws IOException {
@@ -381,7 +381,7 @@ public class Tablet implements TabletCommitter {
         try {
           setupDefaultSecurityLabels(extent);
         } catch (Exception e) {
-          log.error("Failed to reload default security labels for extent: {}", extent.toString());
+          log.error("Failed to reload default security labels for extent: {}", extent);
         }
       }
 
@@ -391,10 +391,10 @@ public class Tablet implements TabletCommitter {
           reloadConstraints();
         else if (prop.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           try {
-            log.info("Default security labels changed for extent: {}", extent.toString());
+            log.info("Default security labels changed for extent: {}", extent);
             setupDefaultSecurityLabels(extent);
           } catch (Exception e) {
-            log.error("Failed to reload default security labels for extent: {}", extent.toString());
+            log.error("Failed to reload default security labels for extent: {}", extent);
           }
         }
 
@@ -1066,7 +1066,7 @@ public class Tablet implements TabletCommitter {
 
           logMessage = new StringBuilder();
 
-          logMessage.append(extent.toString());
+          logMessage.append(extent);
           logMessage.append(" closeState " + closeState);
           logMessage.append(" majorCompactionState " + majorCompactionState);
           if (getTabletMemory() != null)
@@ -1943,7 +1943,7 @@ public class Tablet implements TabletCommitter {
 
         FileRef fileName = getNextMapFilename(
             (filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
-        FileRef compactTmpName = new FileRef(fileName.path().toString() + "_tmp");
+        FileRef compactTmpName = new FileRef(fileName.path() + "_tmp");
 
         AccumuloConfiguration tableConf = createTableConfiguration(tableConfiguration, plan);
 
@@ -2469,7 +2469,7 @@ public class Tablet implements TabletCommitter {
 
     // do debug logging outside tablet lock
     for (String logger : otherLogsCopy) {
-      log.debug("Logs for memory compacted: {} {}", getExtent(), logger.toString());
+      log.debug("Logs for memory compacted: {} {}", getExtent(), logger);
     }
 
     for (String logger : currentLogsCopy) {

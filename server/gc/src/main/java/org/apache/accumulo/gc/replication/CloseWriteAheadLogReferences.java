@@ -110,7 +110,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       findWalsSpan.stop();
     }
 
-    log.info("Found {} WALs referenced in metadata in {}", closed.size(), sw.toString());
+    log.info("Found {} WALs referenced in metadata in {}", closed.size(), sw);
     sw.reset();
 
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
@@ -123,8 +123,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       updateReplicationSpan.stop();
     }
 
-    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed,
-        sw.toString());
+    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw);
   }
 
   /**
@@ -142,7 +141,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
         if (entry.getValue() == WalState.UNREFERENCED || entry.getValue() == WalState.CLOSED) {
           Path path = entry.getKey();
-          log.debug("Found closed WAL " + path.toString());
+          log.debug("Found closed WAL " + path);
           result.add(path.toString());
         }
       }

@@ -82,7 +82,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
 
     Path rfile = new Path(bulk, "file.rf");
 
-    log.info("Generating RFile {}", rfile.toUri().toString());
+    log.info("Generating RFile {}", rfile.toUri());
 
     GenerateSequentialRFile.main(new String[] {"-f", rfile.toUri().toString(), "-nr",
         Long.toString(NR), "-nv", Long.toString(NV)});

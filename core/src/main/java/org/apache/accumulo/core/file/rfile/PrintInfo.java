@@ -160,8 +160,8 @@ public class PrintInfo implements KeywordExecutable {
             "Attempting to find file across filesystems. Consider providing URI instead of path");
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       }
-      System.out.println(
-          "Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()).toString());
+      System.out
+          .println("Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
 
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
           SiteConfiguration.getInstance());

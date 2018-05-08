@@ -281,7 +281,7 @@ public class ZooStore<T> implements TStore<T> {
         byte[] ser = zk.getData(txpath + "/" + top, null);
         return (Repo<T>) deserialize(ser);
       } catch (KeeperException.NoNodeException ex) {
-        log.debug("zookeeper error reading " + txpath + ": " + ex.toString(), ex);
+        log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         continue;
       } catch (Exception e) {

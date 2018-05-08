@@ -133,7 +133,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
       Configuration conf = new Configuration(false);
       conf.addResource(
           new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
-      conf.set(Property.INSTANCE_VOLUMES.getKey(), v1.toString() + "," + v2.toString());
+      conf.set(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2);
       BufferedOutputStream fos = new BufferedOutputStream(
           new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
       conf.writeXml(fos);

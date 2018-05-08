@@ -120,7 +120,7 @@ public class MultiThreadedRFileTest {
     public void close() throws IOException {
       if (rfile != null) {
         FileSystem fs = FileSystem.newInstance(conf);
-        Path path = new Path("file://" + rfile.toString());
+        Path path = new Path("file://" + rfile);
         fs.delete(path, false);
       }
     }
@@ -145,7 +145,7 @@ public class MultiThreadedRFileTest {
         rfile = File.createTempFile("TestRFile", ".rf");
       }
       FileSystem fs = FileSystem.newInstance(conf);
-      Path path = new Path("file://" + rfile.toString());
+      Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos),
           "gz", conf, accumuloConfiguration);
@@ -177,7 +177,7 @@ public class MultiThreadedRFileTest {
 
     public void openReader() throws IOException {
       FileSystem fs = FileSystem.newInstance(conf);
-      Path path = new Path("file://" + rfile.toString());
+      Path path = new Path("file://" + rfile);
 
       // the caches used to obfuscate the multithreaded issues
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null,

@@ -155,7 +155,7 @@ class ScanDataSource implements DataSource {
 
       if (interruptFlag.get())
         throw new IterationInterruptedException(
-            tablet.getExtent().toString() + " " + interruptFlag.hashCode());
+            tablet.getExtent() + " " + interruptFlag.hashCode());
 
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {

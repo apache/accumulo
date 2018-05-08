@@ -102,7 +102,7 @@ public class MergeInfo implements Writable {
   @Override
   public String toString() {
     if (!state.equals(MergeState.NONE))
-      return "Merge " + operation.toString() + " of " + extent + " State: " + state;
+      return "Merge " + operation + " of " + extent + " State: " + state;
     return "No Merge in progress";
   }
 }

@@ -279,7 +279,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
 
     if (options.getUnrecognizedOptions() != null) {
-      logError("Unrecognized Options: " + options.getUnrecognizedOptions().toString());
+      logError("Unrecognized Options: " + options.getUnrecognizedOptions());
       jc.usage();
       exitCode = 1;
       return false;

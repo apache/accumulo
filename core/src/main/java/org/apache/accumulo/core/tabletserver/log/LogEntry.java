@@ -51,7 +51,7 @@ public class LogEntry {
 
   @Override
   public String toString() {
-    return extent.toString() + " " + filename;
+    return extent + " " + filename;
   }
 
   public String getName() {

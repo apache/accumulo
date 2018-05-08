@@ -44,7 +44,7 @@ public class AddAuthsCommand extends Command {
         .getUserAuthorizations(user);
     StringBuilder userAuths = new StringBuilder();
     if (!auths.isEmpty()) {
-      userAuths.append(auths.toString());
+      userAuths.append(auths);
       userAuths.append(",");
     }
     userAuths.append(scanOpts);

@@ -242,7 +242,7 @@ public class GarbageCollectWriteAheadLogsTest {
     Connector conn = EasyMock.createMock(Connector.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
     Scanner rscanner = EasyMock.createMock(Scanner.class);
-    String row = MetadataSchema.ReplicationSection.getRowPrefix() + path.toString();
+    String row = MetadataSchema.ReplicationSection.getRowPrefix() + path;
     String colf = MetadataSchema.ReplicationSection.COLF.toString();
     String colq = "1";
     Map<Key,Value> replicationWork = Collections.singletonMap(new Key(row, colf, colq),

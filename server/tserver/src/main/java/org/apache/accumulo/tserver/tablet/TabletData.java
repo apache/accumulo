@@ -145,7 +145,7 @@ public class TabletData {
     for (String good : goodPaths) {
       Path path = new Path(good);
       String filename = path.getName();
-      FileRef ref = new FileRef(location.toString() + "/" + filename, path);
+      FileRef ref = new FileRef(location + "/" + filename, path);
       DataFileValue dfv = new DataFileValue(0, 0);
       dataFiles.put(ref, dfv);
 

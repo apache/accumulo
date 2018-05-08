@@ -192,8 +192,7 @@ public class ReplicationTableUtil {
 
   static Mutation createUpdateMutation(Path file, Value v, KeyExtent extent) {
     // Need to normalize the file path so we can assuredly find it again later
-    return createUpdateMutation(new Text(ReplicationSection.getRowPrefix() + file.toString()), v,
-        extent);
+    return createUpdateMutation(new Text(ReplicationSection.getRowPrefix() + file), v, extent);
   }
 
   private static Mutation createUpdateMutation(Text row, Value v, KeyExtent extent) {

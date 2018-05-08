@@ -61,8 +61,7 @@ public class ReplicaSystemHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try (BatchWriter bw = context.getConnector().createBatchWriter(ReplicationTable.NAME,
         new BatchWriterConfig())) {
-      log.debug("Recording new status for {}, {}", filePath.toString(),
-          ProtobufUtil.toString(status));
+      log.debug("Recording new status for {}, {}", filePath, ProtobufUtil.toString(status));
       Mutation m = new Mutation(filePath.toString());
       WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));
       bw.addMutation(m);

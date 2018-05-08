@@ -105,7 +105,7 @@ public class ThriftTransportKey {
     if (isSsl()) {
       prefix = "ssl:";
     } else if (isSasl()) {
-      prefix = saslParams.toString() + ":";
+      prefix = saslParams + ":";
     }
     return prefix + server + " (" + Long.toString(timeout) + ")";
   }

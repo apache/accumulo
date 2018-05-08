@@ -156,7 +156,7 @@ public class AuthenticationTokenKeyManager extends Daemon {
       AuthenticationKey newKey = new AuthenticationKey(++idSeq, now, now + tokenMaxLifetime,
           secretManager.generateSecret());
 
-      log.debug("Created new {}", newKey.toString());
+      log.debug("Created new {}", newKey);
 
       // Will set to be the current key given the idSeq
       secretManager.addKey(newKey);

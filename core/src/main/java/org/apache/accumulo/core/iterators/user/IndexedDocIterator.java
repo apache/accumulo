@@ -98,22 +98,22 @@ public class IndexedDocIterator extends IntersectingIterator {
     Text colq = key.getColumnQualifier();
     int firstZeroIndex = colq.find("\0");
     if (firstZeroIndex < 0) {
-      throw new IllegalArgumentException("bad docid: " + key.toString());
+      throw new IllegalArgumentException("bad docid: " + key);
     }
     int secondZeroIndex = colq.find("\0", firstZeroIndex + 1);
     if (secondZeroIndex < 0) {
-      throw new IllegalArgumentException("bad docid: " + key.toString());
+      throw new IllegalArgumentException("bad docid: " + key);
     }
     int thirdZeroIndex = colq.find("\0", secondZeroIndex + 1);
     if (thirdZeroIndex < 0) {
-      throw new IllegalArgumentException("bad docid: " + key.toString());
+      throw new IllegalArgumentException("bad docid: " + key);
     }
     Text docID = new Text();
     try {
       docID.set(colq.getBytes(), firstZeroIndex + 1, thirdZeroIndex - 1 - firstZeroIndex);
     } catch (ArrayIndexOutOfBoundsException e) {
-      throw new IllegalArgumentException("bad indices for docid: " + key.toString() + " "
-          + firstZeroIndex + " " + secondZeroIndex + " " + thirdZeroIndex);
+      throw new IllegalArgumentException("bad indices for docid: " + key + " " + firstZeroIndex
+          + " " + secondZeroIndex + " " + thirdZeroIndex);
     }
     return docID;
   }
@@ -167,14 +167,14 @@ public class IndexedDocIterator extends IntersectingIterator {
     if (topKey == null)
       return;
     if (log.isTraceEnabled())
-      log.trace("using top key to seek for doc: {}", topKey.toString());
+      log.trace("using top key to seek for doc: {}", topKey);
     Key docKey = buildDocKey();
     docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
-    log.debug("got doc key: {}", docSource.getTopKey().toString());
+    log.debug("got doc key: {}", docSource.getTopKey());
     if (docSource.hasTop() && docKey.equals(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL)) {
       value = docSource.getTopValue();
     }
-    log.debug("got doc value: {}", value.toString());
+    log.debug("got doc value: {}", value);
   }
 
   protected Key buildDocKey() {
@@ -193,7 +193,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 1);
     Key k = new Key(currentPartition, colf, colq);
     if (log.isTraceEnabled())
-      log.trace("built doc key for seek: {}", k.toString());
+      log.trace("built doc key for seek: {}", k);
     return k;
   }
 

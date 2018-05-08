@@ -2669,8 +2669,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // Advertise the host and port for replication service given the host and port for the
       // tserver.
       ZooReaderWriter.getInstance().putPersistentData(
-          ZooUtil.getRoot(getInstance()) + ReplicationConstants.ZOO_TSERVERS + "/"
-              + clientAddress.toString(),
+          ZooUtil.getRoot(getInstance()) + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress,
           sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       log.error("Could not advertise replication service port", e);

@@ -187,7 +187,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
           i = Integer.parseInt(
               property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length()));
         } catch (NumberFormatException e) {
-          throw new AccumuloException("Bad key for existing constraint: " + property.toString());
+          throw new AccumuloException("Bad key for existing constraint: " + property);
         }
         constraintNumbers.add(i);
         constraintClasses.put(property.getValue(), i);
@@ -225,7 +225,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
           constraints.put(property.getValue(), Integer.parseInt(
               property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length())));
         } catch (NumberFormatException e) {
-          throw new AccumuloException("Bad key for existing constraint: " + property.toString());
+          throw new AccumuloException("Bad key for existing constraint: " + property);
         }
       }
     }

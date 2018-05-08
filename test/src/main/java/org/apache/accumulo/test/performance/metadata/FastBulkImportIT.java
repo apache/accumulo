@@ -91,7 +91,7 @@ public class FastBulkImportIT extends ConfigurableMacBase {
     fs.mkdirs(files);
     for (int i = 0; i < 100; i++) {
       FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf())
+          .forFile(files + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf())
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
       for (int j = 0x100; j < 0xfff; j += 3) {

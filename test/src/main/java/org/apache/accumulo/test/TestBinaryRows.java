@@ -122,7 +122,7 @@ public class TestBinaryRows {
 
         for (Entry<Key,Value> entry : s) {
           throw new Exception("ERROR : saw entries in range that should be deleted ( first value : "
-              + entry.getValue().toString() + ")");
+              + entry.getValue() + ")");
         }
       }
     } else if (opts.mode.equals("verify")) {
@@ -225,7 +225,7 @@ public class TestBinaryRows {
     }
 
     if (!v.toString().equals("" + expected)) {
-      throw new Exception("ERROR : expected value " + expected + " saw " + v.toString());
+      throw new Exception("ERROR : expected value " + expected + " saw " + v);
     }
   }
 

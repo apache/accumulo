@@ -64,7 +64,7 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
         log.setLevel(level);
       }
     } else {
-      throw new IllegalArgumentException("No RecordReader for " + split.getClass().toString());
+      throw new IllegalArgumentException("No RecordReader for " + split.getClass());
     }
 
     RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<Key,Value>() {

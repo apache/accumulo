@@ -70,7 +70,7 @@ public class InsertCommand extends Command {
 
     if (cl.hasOption(insertOptAuths.getOpt())) {
       final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
-      Shell.log.debug("Authorization label will be set to: " + le.toString());
+      Shell.log.debug("Authorization label will be set to: " + le);
 
       if (cl.hasOption(timestampOpt.getOpt()))
         m.put(colf, colq, le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), val);
@@ -120,7 +120,7 @@ public class InsertCommand extends Command {
         lines.add("\tConstraint Failures:");
       }
       for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
-        lines.add("\t\t" + cvs.toString());
+        lines.add("\t\t" + cvs);
       }
 
       if (lines.size() == 0 || e.getUnknownExceptions() > 0) {

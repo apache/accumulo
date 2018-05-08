@@ -108,7 +108,7 @@ public class VolumeIT extends ConfigurableMacBase {
     URI v1Uri = v1.toUri();
     cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
     cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
 
     // use raw local file system so walogs sync and flush will work
@@ -267,7 +267,7 @@ public class VolumeIT extends ConfigurableMacBase {
       for (Entry<Key,Value> entry : metaScanner) {
         String cq = entry.getKey().getColumnQualifier().toString();
         Path path = new Path(cq);
-        Assert.assertTrue("relative path not deleted " + path.toString(), path.depth() > 2);
+        Assert.assertTrue("relative path not deleted " + path, path.depth() > 2);
       }
     }
   }
@@ -293,8 +293,7 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(),
-        v1.toString() + "," + v2.toString() + "," + v3.toString());
+    conf.set(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
     BufferedOutputStream fos = new BufferedOutputStream(
         new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
@@ -339,7 +338,7 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString() + "," + v3.toString());
+    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
     BufferedOutputStream fos = new BufferedOutputStream(
         new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);

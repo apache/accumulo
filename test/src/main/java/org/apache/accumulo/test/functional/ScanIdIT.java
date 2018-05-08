@@ -151,7 +151,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
     List<String> tservers = conn.instanceOperations().getTabletServers();
 
-    log.debug("tablet servers {}", tservers.toString());
+    log.debug("tablet servers {}", tservers);
 
     for (String tserver : tservers) {
 
@@ -248,7 +248,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
           Text row = entry.getKey().getRow();
 
-          log.debug("worker {}, row {}", workerIndex, row.toString());
+          log.debug("worker {}, row {}", workerIndex, row);
 
           if (entry.getValue() != null) {
 

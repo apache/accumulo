@@ -90,7 +90,7 @@ public class Bulk {
 
     @Override
     public String toString() {
-      return getEndRow().toString() + ";" + getPrevEndRow().toString();
+      return getEndRow() + ";" + getPrevEndRow();
     }
   }
 

@@ -380,8 +380,7 @@ public class MetadataTableUtil {
   public static Mutation createDeleteMutation(Table.ID tableId, String pathToRemove)
       throws IOException {
     Path path = VolumeManagerImpl.get().getFullPath(tableId, pathToRemove);
-    Mutation delFlag = new Mutation(
-        new Text(MetadataSchema.DeletesSection.getRowPrefix() + path.toString()));
+    Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.getRowPrefix() + path));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
     return delFlag;
   }
