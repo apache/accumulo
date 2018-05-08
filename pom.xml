@@ -1777,7 +1777,9 @@
       </properties>
     </profile>
     <profile>
-      <id>overrides</id>
+      <!-- This profile uses the google errorprone compiler to enforce use of the Override
+      annotation where needed. Auto-generated code is not checked. -->
+      <id>use-errorprone</id>
       <build>
         <plugins>
           <plugin>
@@ -1786,14 +1788,11 @@
             <configuration>
               <compilerId>javac-with-errorprone</compilerId>
               <forceJavacCompilerUse>true</forceJavacCompilerUse>
-              <source>1.8</source>
-              <target>1.8</target>
               <compilerArgs>
                 <arg>-XepDisableAllChecks</arg>
                 <arg>-Xep:MissingOverride:ERROR</arg>
                 <arg>-XepExcludedPaths:.*/(proto|thrift|generated-sources)/.*</arg>
               </compilerArgs>
-              <showWarnings>true</showWarnings>
             </configuration>
             <dependencies>
               <dependency>
