@@ -607,7 +607,8 @@ public class Initialize implements KeywordExecutable {
       zoo.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
     zoo.putPersistentData(instanceNamePath, uuid.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
-    final byte[] EMPTY_BYTE_ARRAY = new byte[0], ZERO_CHAR_ARRAY = new byte[] {'0'};
+    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    final byte[] ZERO_CHAR_ARRAY = {'0'};
 
     // setup the instance
     String zkInstanceRoot = Constants.ZROOT + "/" + uuid;

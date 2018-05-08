@@ -56,7 +56,7 @@ public class TableManager {
   private static final Set<TableObserver> observers = Collections.synchronizedSet(new HashSet<>());
   private static final Map<Table.ID,TableState> tableStateCache = Collections
       .synchronizedMap(new HashMap<>());
-  private static final byte[] ZERO_BYTE = new byte[] {'0'};
+  private static final byte[] ZERO_BYTE = {'0'};
 
   private static TableManager tableManager = null;
 

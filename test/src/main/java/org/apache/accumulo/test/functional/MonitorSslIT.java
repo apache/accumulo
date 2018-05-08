@@ -51,7 +51,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
   @BeforeClass
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("SSL");
-    TrustManager[] tm = new TrustManager[] {new TestTrustManager()};
+    TrustManager[] tm = {new TestTrustManager()};
     ctx.init(new KeyManager[0], tm, new SecureRandom());
     SSLContext.setDefault(ctx);
     HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());

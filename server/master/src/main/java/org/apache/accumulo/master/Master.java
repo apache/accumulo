@@ -351,7 +351,7 @@ public class Master extends AccumuloServerContext
         zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
 
-        final byte[] zero = new byte[] {'0'};
+        final byte[] zero = {'0'};
         log.debug("Initializing recovery area.");
         zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
 

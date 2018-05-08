@@ -99,7 +99,7 @@ public class ZooReaderWriterTest {
   @Test(expected = SessionExpiredException.class)
   public void testMutateNodeCreationFails() throws Exception {
     final String path = "/foo";
-    final byte[] value = new byte[] {0};
+    final byte[] value = {0};
     final List<ACL> acls = Collections.emptyList();
     Mutator mutator = new Mutator() {
       @Override
@@ -121,9 +121,9 @@ public class ZooReaderWriterTest {
   @Test
   public void testMutateWithBadVersion() throws Exception {
     final String path = "/foo";
-    final byte[] value = new byte[] {0};
+    final byte[] value = {0};
     final List<ACL> acls = Collections.emptyList();
-    final byte[] mutatedBytes = new byte[] {1};
+    final byte[] mutatedBytes = {1};
     Mutator mutator = new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
@@ -159,9 +159,9 @@ public class ZooReaderWriterTest {
   @Test
   public void testMutateWithRetryOnSetData() throws Exception {
     final String path = "/foo";
-    final byte[] value = new byte[] {0};
+    final byte[] value = {0};
     final List<ACL> acls = Collections.emptyList();
-    final byte[] mutatedBytes = new byte[] {1};
+    final byte[] mutatedBytes = {1};
     Mutator mutator = new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {

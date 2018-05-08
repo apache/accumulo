@@ -161,7 +161,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
               accumuloSite);
           scheme = "https://";
           SSLContext ctx = SSLContext.getInstance("SSL");
-          TrustManager[] tm = new TrustManager[] {new TestTrustManager()};
+          TrustManager[] tm = {new TestTrustManager()};
           ctx.init(new KeyManager[0], tm, new SecureRandom());
           SSLContext.setDefault(ctx);
           HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
@@ -476,7 +476,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     TableOperations to = connector.tableOperations();
     to.create(table);
-    String[] config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf,xyz;lg2:c1,c2"};
+    String[] config = {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf,xyz;lg2:c1,c2"};
     int i = 0;
     for (String cfg : config) {
       to.setLocalityGroups(table, getGroups(cfg));

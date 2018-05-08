@@ -37,7 +37,7 @@ public class RecentTracesInformation {
   public long max = Long.MIN_VALUE;
 
   private long totalMS = 0L;
-  public long histogram[] = new long[] {0L, 0L, 0L, 0L, 0L, 0L};
+  public long histogram[] = {0L, 0L, 0L, 0L, 0L, 0L};
 
   public RecentTracesInformation() {}
 

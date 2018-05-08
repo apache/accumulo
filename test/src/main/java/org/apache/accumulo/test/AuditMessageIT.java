@@ -155,9 +155,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   private void grantEverySystemPriv(Connector conn, String user)
       throws AccumuloSecurityException, AccumuloException {
-    SystemPermission[] arrayOfP = new SystemPermission[] {SystemPermission.SYSTEM,
-        SystemPermission.ALTER_TABLE, SystemPermission.ALTER_USER, SystemPermission.CREATE_TABLE,
-        SystemPermission.CREATE_USER, SystemPermission.DROP_TABLE, SystemPermission.DROP_USER};
+    SystemPermission[] arrayOfP = {SystemPermission.SYSTEM, SystemPermission.ALTER_TABLE,
+        SystemPermission.ALTER_USER, SystemPermission.CREATE_TABLE, SystemPermission.CREATE_USER,
+        SystemPermission.DROP_TABLE, SystemPermission.DROP_USER};
     for (SystemPermission p : arrayOfP) {
       conn.securityOperations().grantSystemPermission(user, p);
     }

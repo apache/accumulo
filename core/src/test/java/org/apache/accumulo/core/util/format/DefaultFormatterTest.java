@@ -57,7 +57,7 @@ public class DefaultFormatterTest {
   @Test
   public void testAppendBytes() {
     StringBuilder sb = new StringBuilder();
-    byte[] data = new byte[] {0, '\\', 'x', -0x01};
+    byte[] data = {0, '\\', 'x', -0x01};
 
     DefaultFormatter.appendValue(sb, new Value());
     assertEquals("", sb.toString());

@@ -34,8 +34,8 @@ import com.google.common.primitives.Bytes;
 public class KeyShortener {
 
   private static final byte[] EMPTY = new byte[0];
-  private static final byte[] B00 = new byte[] {(byte) 0x00};
-  private static final byte[] BFF = new byte[] {(byte) 0xff};
+  private static final byte[] B00 = {(byte) 0x00};
+  private static final byte[] BFF = {(byte) 0xff};
 
   private static final Logger log = LoggerFactory.getLogger(KeyShortener.class);
 

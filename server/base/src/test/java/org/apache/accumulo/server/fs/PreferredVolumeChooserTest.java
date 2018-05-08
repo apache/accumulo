@@ -41,7 +41,7 @@ import org.junit.rules.ExpectedException;
 
 public class PreferredVolumeChooserTest {
 
-  private static final String[] ALL_OPTIONS = new String[] {"1", "2", "3"};
+  private static final String[] ALL_OPTIONS = {"1", "2", "3"};
 
   private ServerConfigurationFactory confFactory;
   private TableConfiguration tableConf;

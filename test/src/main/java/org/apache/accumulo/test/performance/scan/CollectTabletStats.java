@@ -102,7 +102,7 @@ public class CollectTabletStats {
     final ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(CollectTabletStats.class.getName(), args, scanOpts);
 
-    String columnsTmp[] = new String[] {};
+    String columnsTmp[] = {};
     if (opts.columns != null)
       columnsTmp = opts.columns.split(",");
     final String columns[] = columnsTmp;

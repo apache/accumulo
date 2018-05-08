@@ -37,8 +37,8 @@ import org.apache.hadoop.io.Text;
 
 public class NativeMapPerformanceTest {
 
-  private static final byte ROW_PREFIX[] = new byte[] {'r'};
-  private static final byte COL_PREFIX[] = new byte[] {'c'};
+  private static final byte ROW_PREFIX[] = {'r'};
+  private static final byte COL_PREFIX[] = {'c'};
 
   static Key newKey(int r, int c) {
     return new Key(new Text(FastFormat.toZeroPaddedString(r, 9, 10, ROW_PREFIX)),

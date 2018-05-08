@@ -65,7 +65,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
     conn.tableOperations().create(tableName);
     final BatchWriter writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
-      byte[] row = new byte[] {(byte) (START_ROW + i)};
+      byte[] row = {(byte) (START_ROW + i)};
       Mutation m = new Mutation(new Text(row));
       m.put(new Text(), new Text(), new Value());
       writer.addMutation(m);
@@ -121,7 +121,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
     conn.tableOperations().create(tableName);
     final BatchWriter writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
-      byte[] row = new byte[] {(byte) (START_ROW + i)};
+      byte[] row = {(byte) (START_ROW + i)};
       Mutation m = new Mutation(new Text(row));
       m.put(new Text(), new Text(), new Value());
       writer.addMutation(m);

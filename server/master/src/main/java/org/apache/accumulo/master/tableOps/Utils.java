@@ -46,7 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Utils {
-  private static final byte[] ZERO_BYTE = new byte[] {'0'};
+  private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
   static void checkTableDoesNotExist(Instance instance, String tableName, Table.ID tableId,

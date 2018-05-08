@@ -33,7 +33,7 @@ public class Constants {
   public static final String ZINSTANCES = "/instances";
 
   public static final String ZTABLES = "/tables";
-  public static final byte[] ZTABLES_INITIAL_ID = new byte[] {'0'};
+  public static final byte[] ZTABLES_INITIAL_ID = {'0'};
   public static final String ZTABLE_NAME = "/name";
   public static final String ZTABLE_CONF = "/conf";
   public static final String ZTABLE_STATE = "/state";

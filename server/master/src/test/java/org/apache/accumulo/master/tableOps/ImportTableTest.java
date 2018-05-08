@@ -37,7 +37,7 @@ public class ImportTableTest {
     iti.tableId = Table.ID.of("5");
 
     // Different volumes with different paths
-    String[] tableDirs = new String[] {"hdfs://nn1:8020/apps/accumulo1/tables",
+    String[] tableDirs = {"hdfs://nn1:8020/apps/accumulo1/tables",
         "hdfs://nn2:8020/applications/accumulo/tables"};
     // This needs to be unique WRT the importtable command
     String tabletDir = "/c-00000001";

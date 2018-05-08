@@ -536,8 +536,8 @@ public class NativeMapIT {
 
     for (int i = 0; i < 256; i++) {
       for (int j = 0; j < 256; j++) {
-        byte row[] = new byte[] {'r', (byte) (0xff & i), (byte) (0xff & j)};
-        byte data[] = new byte[] {'v', (byte) (0xff & i), (byte) (0xff & j)};
+        byte row[] = {'r', (byte) (0xff & i), (byte) (0xff & j)};
+        byte data[] = {'v', (byte) (0xff & i), (byte) (0xff & j)};
 
         Key k = new Key(row, emptyBytes, emptyBytes, emptyBytes, 1);
         Value v = new Value(data);
@@ -549,8 +549,8 @@ public class NativeMapIT {
     Iterator<Entry<Key,Value>> iter = nm.iterator();
     for (int i = 0; i < 256; i++) {
       for (int j = 0; j < 256; j++) {
-        byte row[] = new byte[] {'r', (byte) (0xff & i), (byte) (0xff & j)};
-        byte data[] = new byte[] {'v', (byte) (0xff & i), (byte) (0xff & j)};
+        byte row[] = {'r', (byte) (0xff & i), (byte) (0xff & j)};
+        byte data[] = {'v', (byte) (0xff & i), (byte) (0xff & j)};
 
         Key k = new Key(row, emptyBytes, emptyBytes, emptyBytes, 1);
         Value v = new Value(data);
@@ -568,8 +568,8 @@ public class NativeMapIT {
 
     for (int i = 0; i < 256; i++) {
       for (int j = 0; j < 256; j++) {
-        byte row[] = new byte[] {'r', (byte) (0xff & i), (byte) (0xff & j)};
-        byte data[] = new byte[] {'v', (byte) (0xff & i), (byte) (0xff & j)};
+        byte row[] = {'r', (byte) (0xff & i), (byte) (0xff & j)};
+        byte data[] = {'v', (byte) (0xff & i), (byte) (0xff & j)};
 
         Key k = new Key(row, emptyBytes, emptyBytes, emptyBytes, 1);
         Value v = new Value(data);

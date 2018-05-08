@@ -58,7 +58,7 @@ public class StandaloneClusterControlTest {
         .addMockedMethod("getAccumuloUtilPath").addMockedMethod("getJarFromClass", Class.class)
         .createMock();
 
-    final String[] toolArgs = new String[] {"-u", "user", "-p", "password"};
+    final String[] toolArgs = {"-u", "user", "-p", "password"};
     final String[] expectedCommands = new String[4 + toolArgs.length];
 
     int i = 0;
