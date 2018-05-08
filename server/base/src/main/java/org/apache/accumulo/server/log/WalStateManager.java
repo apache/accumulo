@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Even when a log is UNREFERENCED by the tablet server, the replication mechanism may still need
  * the log. The GC will defer log removal until replication is finished with it.
- *
  */
 public class WalStateManager {
 

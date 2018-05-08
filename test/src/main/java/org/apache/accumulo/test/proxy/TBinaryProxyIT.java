@@ -20,9 +20,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.junit.BeforeClass;
 
-/**
- *
- */
 public class TBinaryProxyIT extends SimpleProxyBase {
 
   @BeforeClass

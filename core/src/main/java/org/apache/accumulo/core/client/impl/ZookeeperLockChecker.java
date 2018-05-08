@@ -25,9 +25,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.zookeeper.KeeperException;
 
-/**
- *
- */
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   private final ZooCache zc;

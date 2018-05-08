@@ -88,9 +88,7 @@ import com.beust.jcommander.Parameter;
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null.
  * NullTserver modifies the metadata location entries for a table to point to it. This allows thrift
  * performance to be measured by running any client code that writes to a table.
- *
  */
-
 public class NullTserver {
 
   public static class ThriftClientHandler extends ClientServiceHandler

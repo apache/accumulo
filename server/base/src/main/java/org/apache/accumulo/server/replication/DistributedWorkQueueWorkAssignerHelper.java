@@ -26,9 +26,6 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 
 import com.google.common.collect.Maps;
 
-/**
- *
- */
 public class DistributedWorkQueueWorkAssignerHelper {
 
   public static final String KEY_SEPARATOR = "|";

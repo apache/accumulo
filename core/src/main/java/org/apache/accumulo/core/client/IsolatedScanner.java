@@ -37,9 +37,7 @@ import org.apache.hadoop.io.Text;
  * the client side. If you think your rows may not fit into memory, then you can provide an
  * alternative row buffer factory to the constructor. This would allow rows to be buffered to disk
  * for example.
- *
  */
-
 public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   private static class RowBufferingIterator implements Iterator<Entry<Key,Value>> {

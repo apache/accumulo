@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.tables;
 
 /**
- *
  * Generates a list of compactions based on type
  *
  * @since 2.0.0
- *
  */
 public class CompactionsTypes {
 

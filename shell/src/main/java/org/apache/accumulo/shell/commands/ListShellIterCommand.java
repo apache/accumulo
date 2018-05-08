@@ -27,9 +27,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-/**
- *
- */
 public class ListShellIterCommand extends Command {
 
   private Option nameOpt, profileOpt;

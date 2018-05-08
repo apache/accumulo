@@ -61,11 +61,9 @@ import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 
 /**
- *
  * Generates tserver lists as JSON objects
  *
  * @since 2.0.0
- *
  */
 @Path("/tservers")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

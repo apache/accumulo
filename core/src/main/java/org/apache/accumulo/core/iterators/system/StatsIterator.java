@@ -28,9 +28,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.ServerWrappingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-/**
- *
- */
 public class StatsIterator extends ServerWrappingIterator {
 
   private int numRead = 0;

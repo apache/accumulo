@@ -24,7 +24,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.HostAndPort;
 
-/** For a suspended tablet, the time of suspension and the server it was suspended from. */
+/**
+ * For a suspended tablet, the time of suspension and the server it was suspended from.
+ */
 public class SuspendingTServer {
   public final HostAndPort server;
   public final long suspensionTime;

@@ -77,9 +77,6 @@ import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 
-/**
- *
- */
 class FateServiceHandler implements FateService.Iface {
 
   protected final Master master;

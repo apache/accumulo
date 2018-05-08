@@ -59,7 +59,6 @@ import com.google.gson.JsonSerializer;
 
 /**
  * Manage FATE transactions
- *
  */
 public class FateCommand extends Command {
 

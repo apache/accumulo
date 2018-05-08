@@ -18,9 +18,6 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 
-/**
- *
- */
 public class ActionStatsUpdator {
 
   public static void update(ActionStats summary, ActionStats td) {

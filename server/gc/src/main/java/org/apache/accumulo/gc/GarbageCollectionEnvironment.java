@@ -36,9 +36,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 
-/**
- *
- */
 public interface GarbageCollectionEnvironment {
 
   /**

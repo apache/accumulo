@@ -31,8 +31,10 @@ import org.apache.commons.lang.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// A ReadWriteLock that can be implemented in ZooKeeper.  Features the ability to store data
-// with the lock, and recover the lock using that data to find the lock.
+/**
+ * A ReadWriteLock that can be implemented in ZooKeeper. Features the ability to store data
+ * with the lock, and recover the lock using that data to find the lock.
+ */
 public class DistributedReadWriteLock implements java.util.concurrent.locks.ReadWriteLock {
 
   static enum LockType {

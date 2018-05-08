@@ -18,9 +18,6 @@ package org.apache.accumulo.core.replication;
 
 import org.apache.accumulo.core.client.TableOfflineException;
 
-/**
- *
- */
 public class ReplicationTableOfflineException extends Exception {
 
   private static final long serialVersionUID = 1L;

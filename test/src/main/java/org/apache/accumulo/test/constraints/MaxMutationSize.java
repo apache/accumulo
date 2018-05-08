@@ -24,7 +24,6 @@ import org.apache.accumulo.core.data.Mutation;
 
 /**
  * Ensure that mutations are a reasonable size: we must be able to fit several in memory at a time.
- *
  */
 public class MaxMutationSize implements Constraint {
   static final long MAX_SIZE = Runtime.getRuntime().maxMemory() >> 8;

@@ -44,7 +44,6 @@ import org.apache.hadoop.io.Text;
  * metadata table, may want to set this higher for large tables.
  * </ul>
  */
-
 public class RegexGroupBalancer extends GroupBalancer {
 
   public static final String REGEX_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()

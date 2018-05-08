@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.core.replication;
 
-/**
- *
- */
 public class ReplicationConstants {
 
   // Constants for replication information in zookeeper

@@ -27,9 +27,6 @@ import org.junit.Test;
 
 import jline.console.ConsoleReader;
 
-/**
- *
- */
 public class DeleteAuthsCommandTest {
 
   private DeleteAuthsCommand cmd;

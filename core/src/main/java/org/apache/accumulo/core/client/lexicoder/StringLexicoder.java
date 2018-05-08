@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
  *
  * @since 1.6.0
  */
-
 public class StringLexicoder extends AbstractLexicoder<String> {
 
   @Override

@@ -21,9 +21,6 @@ import java.util.Arrays;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 
-/**
- *
- */
 public class BigIntegerLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
     assertSortOrder(new BigIntegerLexicoder(), Arrays.asList(new BigInteger("-1"),

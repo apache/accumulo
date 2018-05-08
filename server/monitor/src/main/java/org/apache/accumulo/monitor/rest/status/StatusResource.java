@@ -32,11 +32,9 @@ import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.Level;
 
 /**
- *
  * Generates the status for master, gc, and tservers as well as log and problem reports
  *
  * @since 2.0.0
- *
  */
 @Path("/status")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

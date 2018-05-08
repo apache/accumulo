@@ -67,7 +67,6 @@ import org.slf4j.LoggerFactory;
 /**
  * A class that sits on top of different accumulo file formats and provides bloom filter
  * functionality.
- *
  */
 public class BloomFilterLayer {
   private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayer.class);

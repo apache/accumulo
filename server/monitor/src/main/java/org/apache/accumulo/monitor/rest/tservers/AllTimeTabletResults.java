@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.tservers;
 
 /**
- *
  * Generates a tablets all time results
  *
  * @since 2.0.0
- *
  */
 public class AllTimeTabletResults {
 

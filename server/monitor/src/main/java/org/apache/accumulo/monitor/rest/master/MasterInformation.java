@@ -22,11 +22,9 @@ import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
 import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 
 /**
- *
  * Responsible for storing master information as a JSON object
  *
  * @since 2.0.0
- *
  */
 public class MasterInformation {
 

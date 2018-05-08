@@ -33,9 +33,6 @@ import org.apache.commons.vfs2.provider.VfsComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
   private static final char[] TMP_RESERVED_CHARS = {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#',

@@ -22,9 +22,6 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class FileRefTest {
 
   private void testBadTableSuffix(String badPath) {

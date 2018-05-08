@@ -21,9 +21,6 @@ import java.util.HashSet;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class SecurityErrorCodeTest {
 
   @Test

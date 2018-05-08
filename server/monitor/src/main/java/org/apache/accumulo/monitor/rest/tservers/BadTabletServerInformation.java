@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.tservers;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
- *
  * Generates a bad tserver information
  *
  * @since 2.0.0
- *
  */
 public class BadTabletServerInformation {
 

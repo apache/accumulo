@@ -31,9 +31,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
  * instance.
  *
  * This is useful for filenames because it makes caching easy.
- *
  */
-
 public class UniqueNameAllocator {
   private long next = 0;
   private long maxAllocated = 0;

@@ -32,7 +32,6 @@ import org.apache.accumulo.monitor.Monitor;
  * tablet server bulk import from the Monitor and creating the JSON objects with each
  *
  * @since 2.0.0
- *
  */
 @Path("/bulkImports")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

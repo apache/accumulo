@@ -22,7 +22,6 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
  * Stores bulk import in a JSON object
  *
  * @since 2.0.0
- *
  */
 public class BulkImportInformation {
 

@@ -29,9 +29,6 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 
-/**
- *
- */
 public class BlockIndex implements Weighbable {
 
   public static BlockIndex getIndex(ABlockReader cacheBlock, IndexEntry indexEntry)

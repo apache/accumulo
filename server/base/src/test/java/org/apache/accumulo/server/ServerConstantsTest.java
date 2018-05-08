@@ -32,9 +32,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-/**
- *
- */
 public class ServerConstantsTest {
   @Rule
   public TemporaryFolder folder = new TemporaryFolder(

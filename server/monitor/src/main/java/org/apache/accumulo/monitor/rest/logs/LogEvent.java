@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.logs;
 
 /**
- *
  * A single message logged
  *
  * @since 2.0.0
- *
  */
 public class LogEvent {
 

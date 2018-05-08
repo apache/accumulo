@@ -49,7 +49,6 @@ import org.apache.hadoop.io.Text;
  * be re-executed because the iterator stack is reseeked for each batch. The batch size may be
  * increased to reduce the number of times the test is executed. With the normal Scanner, if
  * isolation is enabled then it will read an entire row w/o seeking this iterator.
- *
  */
 public abstract class RowFilter extends WrappingIterator {
 

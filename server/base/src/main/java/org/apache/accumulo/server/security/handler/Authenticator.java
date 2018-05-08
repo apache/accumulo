@@ -28,7 +28,6 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  * implementation does not support configuration through Accumulo, it should throw an
  * AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  */
-
 public interface Authenticator {
 
   void initialize(String instanceId, boolean initialize);

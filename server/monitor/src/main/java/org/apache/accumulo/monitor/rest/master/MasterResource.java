@@ -44,11 +44,9 @@ import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 import org.apache.accumulo.server.master.state.TabletServerState;
 
 /**
- *
  * Responsible for generating a new Master information JSON object
  *
  * @since 2.0.0
- *
  */
 @Path("/master")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

@@ -24,9 +24,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.Mutation;
 
-/**
- *
- */
 public class SlowConstraint implements Constraint {
 
   @Override

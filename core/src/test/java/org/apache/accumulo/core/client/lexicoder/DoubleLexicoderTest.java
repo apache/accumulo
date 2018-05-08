@@ -20,9 +20,6 @@ import java.util.Arrays;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 
-/**
- *
- */
 public class DoubleLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
     assertSortOrder(new DoubleLexicoder(),

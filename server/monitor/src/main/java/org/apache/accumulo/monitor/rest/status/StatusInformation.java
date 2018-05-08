@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.status;
 
 /**
- *
  * Generates status of master, gc, and tservers, as well as log and problem report
  *
  * @since 2.0.0
- *
  */
 public class StatusInformation {
 

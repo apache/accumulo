@@ -25,11 +25,9 @@ import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
- *
  * GarbageCollector metrics
  *
  * @since 2.0.0
- *
  */
 @Path("/gc")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

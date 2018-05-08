@@ -20,9 +20,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.thrift.protocol.TTupleProtocol;
 import org.junit.BeforeClass;
 
-/**
- *
- */
 public class TTupleProxyIT extends SimpleProxyBase {
 
   @BeforeClass

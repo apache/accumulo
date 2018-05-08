@@ -40,9 +40,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-/**
- *
- */
 public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
 
   @Override

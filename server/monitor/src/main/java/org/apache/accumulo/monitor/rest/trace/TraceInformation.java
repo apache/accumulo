@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.trace;
 
 /**
- *
  * Generates a list of traces for an ID
  *
  * @since 2.0.0
- *
  */
 public class TraceInformation {
 

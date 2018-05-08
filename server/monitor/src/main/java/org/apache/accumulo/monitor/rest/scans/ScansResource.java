@@ -29,11 +29,9 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.ScanStats;
 
 /**
- *
  * Generate a new Scan list JSON object
  *
  * @since 2.0.0
- *
  */
 @Path("/scans")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

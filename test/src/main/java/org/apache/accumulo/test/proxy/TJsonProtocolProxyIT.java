@@ -20,9 +20,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.thrift.protocol.TJSONProtocol;
 import org.junit.BeforeClass;
 
-/**
- *
- */
 public class TJsonProtocolProxyIT extends SimpleProxyBase {
 
   @BeforeClass

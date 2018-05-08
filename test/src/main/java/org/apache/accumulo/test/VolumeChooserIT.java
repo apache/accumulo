@@ -57,9 +57,6 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-/**
- *
- */
 public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final Text EMPTY = new Text();

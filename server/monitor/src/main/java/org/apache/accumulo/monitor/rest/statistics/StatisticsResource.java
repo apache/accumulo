@@ -29,11 +29,9 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
- *
  * Generates a list of statistics as a JSON object
  *
  * @since 2.0.0
- *
  */
 @Path("/statistics")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.trace;
 
 /**
- *
  * Generates annotation information for the trace
  *
  * @since 2.0.0
- *
  */
 public class AnnotationInformation {
 

@@ -21,7 +21,6 @@ package org.apache.accumulo.fate;
  *
  * By definition, these methods are safe to call without impacting the state of FATE. They should
  * also be safe to call without impacting the state of system components.
- *
  */
 public interface ReadOnlyRepo<T> {
 

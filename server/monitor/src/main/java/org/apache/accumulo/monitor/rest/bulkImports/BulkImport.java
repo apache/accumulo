@@ -23,7 +23,6 @@ import java.util.List;
  * BulkImport stores the bulk import and tserver bulk imports
  *
  * @since 2.0.0
- *
  */
 public class BulkImport {
 

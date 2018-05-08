@@ -38,9 +38,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
-/**
- *
- */
 public class TimeoutIT extends AccumuloClusterHarness {
 
   @Override

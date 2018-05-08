@@ -31,7 +31,6 @@ import java.util.Map;
  * OptionDescribers will need to implement two methods: {@code describeOptions()} which returns an
  * instance of {@link IteratorOptions} and {@code validateOptions(Map<String,String> options)} which
  * is intended to throw an exception or return false if the options are not acceptable.
- *
  */
 public interface OptionDescriber {
   public class IteratorOptions {

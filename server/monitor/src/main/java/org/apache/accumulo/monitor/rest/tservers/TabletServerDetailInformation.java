@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.tservers;
 
 /**
- *
  * Generates tserver detail as JSON object
  *
  * @since 2.0.0
- *
  */
 public class TabletServerDetailInformation {
 

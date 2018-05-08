@@ -37,9 +37,6 @@ import org.junit.Test;
 
 import com.google.common.base.Stopwatch;
 
-/**
- *
- */
 public class ScannerIT extends AccumuloClusterHarness {
 
   @Override

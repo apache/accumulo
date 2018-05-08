@@ -40,7 +40,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*
+/**
  * Bulk import makes requests of tablet servers, and those requests can take a
  * long time. Our communications to the tablet server may fail, so we won't know
  * the status of the request. The master will repeat failed requests so now
@@ -57,7 +57,6 @@ import org.slf4j.LoggerFactory;
  * before it has made any bookkeeping about the request. To prevent problems
  * like this, an Arbitrator is used. Before starting any new request, the tablet
  * server checks the Arbitrator to see if the request is still valid.
- *
  */
 class BulkImportMove extends MasterRepo {
 

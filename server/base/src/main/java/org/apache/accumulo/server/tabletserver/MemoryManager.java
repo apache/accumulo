@@ -25,11 +25,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
  * A MemoryManager in accumulo currently determines when minor compactions should occur and when
  * ingest should be put on hold. The goal of a memory manager implementation is to maximize ingest
  * throughput and minimize the number of minor compactions.
- *
- *
- *
  */
-
 public interface MemoryManager {
 
   /**

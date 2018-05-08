@@ -39,7 +39,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- *
  * The WholeColumnFamilyIterator is designed to provide row/cf-isolation so that queries see
  * mutations as atomic. It does so by grouping row/Column family (as key) and rest of data as Value
  * into a single key/value pair, which is returned through the client as an atomic operation.

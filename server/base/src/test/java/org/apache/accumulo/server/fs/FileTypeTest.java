@@ -21,9 +21,6 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class FileTypeTest {
   @Test
   public void testVolumeExtraction() {

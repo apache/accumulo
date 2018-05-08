@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Generates a new scan list as a JSON object
  *
  * @since 2.0.0
- *
  */
 public class Scans {
 

@@ -19,7 +19,6 @@ package org.apache.accumulo.minicluster;
 /**
  * @since 1.6.0
  */
-
 public enum MemoryUnit {
 
   BYTE(1L, ""),

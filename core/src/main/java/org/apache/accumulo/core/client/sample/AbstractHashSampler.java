@@ -49,7 +49,6 @@ import com.google.common.hash.Hashing;
  *
  * @since 1.8.0
  */
-
 public abstract class AbstractHashSampler implements Sampler {
 
   private HashFunction hashFunction;

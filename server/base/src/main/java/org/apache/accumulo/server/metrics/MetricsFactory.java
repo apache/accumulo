@@ -20,9 +20,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.metrics2.MetricsSystem;
 
-/**
- *
- */
 public class MetricsFactory {
 
   private final boolean useOldMetrics;

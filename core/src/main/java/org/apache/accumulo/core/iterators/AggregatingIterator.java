@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
  *
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.Combiner}
  */
-
 @Deprecated
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 

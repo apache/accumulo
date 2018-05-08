@@ -26,7 +26,6 @@ import org.apache.hadoop.io.Text;
  *
  * @since 1.6.0
  */
-
 public class TextLexicoder extends AbstractLexicoder<Text> {
 
   @Override

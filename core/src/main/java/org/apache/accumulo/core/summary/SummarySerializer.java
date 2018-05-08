@@ -53,9 +53,7 @@ import com.google.common.collect.ImmutableMap;
  * summaries are merged to 5 and summaries are then created for every 2000 key values. The code
  * keeps merging summaries and doubling the amount of key values per summary. This results in each
  * summary covering about the same number of key values.
- *
  */
-
 class SummarySerializer {
 
   private SummarizerConfiguration sconf;

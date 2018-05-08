@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.gc;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 
 /**
- *
  * Metrics about a single cycle of the garbage collector
  *
  * @since 2.0.0
- *
  */
 public class GarbageCollectorCycle {
 

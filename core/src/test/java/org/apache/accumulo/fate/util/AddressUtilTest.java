@@ -25,7 +25,6 @@ import junit.framework.TestCase;
 
 /**
  * Test the AddressUtil class.
- *
  */
 public class AddressUtilTest extends TestCase {
 

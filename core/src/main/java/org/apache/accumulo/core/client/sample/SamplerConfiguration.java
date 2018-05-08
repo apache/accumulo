@@ -30,7 +30,6 @@ import java.util.Map.Entry;
  *
  * @since 1.8.0
  */
-
 public class SamplerConfiguration {
 
   private String className;

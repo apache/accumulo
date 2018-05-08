@@ -30,11 +30,9 @@ import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
 /**
- *
  * Generate summary of Monitor
  *
  * @since 2.0.0
- *
  */
 @XmlRootElement(name = "stats")
 public class SummaryInformation {

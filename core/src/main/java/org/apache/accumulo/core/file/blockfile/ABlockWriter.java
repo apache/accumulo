@@ -19,12 +19,9 @@ package org.apache.accumulo.core.file.blockfile;
 import java.io.DataOutput;
 import java.io.IOException;
 
-/*
- * Minimal interface to write a block to a
- * block based file
- *
+/**
+ * Minimal interface to write a block to a block based file
  */
-
 public interface ABlockWriter extends DataOutput {
 
   long getCompressedSize() throws IOException;

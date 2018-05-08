@@ -22,9 +22,6 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.fate.Repo;
 
-/**
- *
- */
 public class TraceRepo<T> implements Repo<T> {
 
   private static final long serialVersionUID = 1L;

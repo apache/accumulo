@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.tservers;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
- *
  * Generates a tserver shutting down
  *
  * @since 2.0.0
- *
  */
 public class ServerShuttingDownInformation {
 

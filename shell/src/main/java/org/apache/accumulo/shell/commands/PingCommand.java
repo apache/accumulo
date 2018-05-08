@@ -26,9 +26,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-/**
- *
- */
 public class PingCommand extends Command {
 
   private Option tserverOption, disablePaginationOpt;

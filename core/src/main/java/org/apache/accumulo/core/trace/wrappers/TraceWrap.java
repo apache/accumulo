@@ -36,7 +36,6 @@ import java.lang.reflect.Proxy;
  *
  * Note that the result of these calls is a Proxy object that conforms to the basic interfaces, but
  * is not your concrete instance.
- *
  */
 public class TraceWrap {
 

@@ -30,11 +30,9 @@ import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**
- *
  * Responsible for generating a new log JSON object
  *
  * @since 2.0.0
- *
  */
 @Path("/logs")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

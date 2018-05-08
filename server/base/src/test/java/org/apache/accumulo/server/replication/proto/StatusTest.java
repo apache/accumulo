@@ -20,9 +20,6 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class StatusTest {
 
   @Test

@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A special iterator for the metadata table that removes inactive bulk load flags
- *
  */
 public class MetadataBulkLoadFilter extends Filter {
   private static final Logger log = LoggerFactory.getLogger(MetadataBulkLoadFilter.class);

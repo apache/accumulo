@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.tservers;
 
 /**
- *
  * Generates the current results of the tablet
  *
  * @since 2.0.0
- *
  */
 public class CurrentTabletResults {
 

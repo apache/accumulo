@@ -22,9 +22,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
 
-/**
- *
- */
 public class RecoveryPath {
 
   // given a wal path, transform it to a recovery path

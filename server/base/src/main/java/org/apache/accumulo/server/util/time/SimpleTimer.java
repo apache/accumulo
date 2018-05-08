@@ -32,7 +32,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 /**
  * Generic singleton timer. Don't use this if you are going to do anything that will take very long.
  * Please use it to reduce the number of threads dedicated to simple events.
- *
  */
 public class SimpleTimer {
   private static final Logger log = LoggerFactory.getLogger(SimpleTimer.class);

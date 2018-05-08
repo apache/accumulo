@@ -25,11 +25,9 @@ import org.apache.accumulo.monitor.ZooKeeperStatus;
 import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
 
 /**
- *
  * Generates a new ZooKeeper information as a JSON object
  *
  * @since 2.0.0
- *
  */
 @Path("/zk")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

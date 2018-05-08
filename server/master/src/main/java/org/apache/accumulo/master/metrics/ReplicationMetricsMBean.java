@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.master.metrics;
 
-/**
- *
- */
 public interface ReplicationMetricsMBean {
 
   /**

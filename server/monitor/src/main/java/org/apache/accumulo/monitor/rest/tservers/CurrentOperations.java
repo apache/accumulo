@@ -22,11 +22,9 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
- *
  * Generates the current operations for the tablet
  *
  * @since 2.0.0
- *
  */
 public class CurrentOperations {
 

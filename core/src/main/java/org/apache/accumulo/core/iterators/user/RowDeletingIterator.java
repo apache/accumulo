@@ -49,9 +49,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * metadata locality group. Therefore, you would want to put the empty column family in the locality
  * group that contains the metadata. Another option is to put the empty column in its own locality
  * group. Which is best depends on your data.
- *
  */
-
 public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
 
   public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW".getBytes(UTF_8));

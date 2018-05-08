@@ -25,9 +25,6 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class ViewFSUtilsTest {
 
   private String[] shuffle(String... inputs) {

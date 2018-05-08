@@ -23,12 +23,9 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 
-/*
- * Minimal interface to read a block from a
- * block based file
- *
+/**
+ * Minimal interface to read a block from a block based file
  */
-
 public interface ABlockReader extends DataInput {
 
   DataInputStream getStream() throws IOException;

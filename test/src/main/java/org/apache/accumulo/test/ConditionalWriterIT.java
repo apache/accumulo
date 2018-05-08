@@ -106,9 +106,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-/**
- *
- */
 public class ConditionalWriterIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 

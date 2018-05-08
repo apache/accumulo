@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client;
 
 /**
  * A generic Accumulo Exception for general accumulo failures.
- *
  */
 public class AccumuloException extends Exception {
 

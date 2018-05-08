@@ -38,7 +38,6 @@ import java.util.ServiceLoader;
  * If the implementing class also wishes to have a redundant main method, it may be useful to simply
  * implement main as:<br>
  * {@code new MyImplementingClass().execute(args);}
- *
  */
 public interface KeywordExecutable {
 

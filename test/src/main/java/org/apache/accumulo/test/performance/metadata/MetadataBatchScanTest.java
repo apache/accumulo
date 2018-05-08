@@ -55,10 +55,7 @@ import com.google.common.collect.Iterators;
 /**
  * This little program can be used to write a lot of metadata entries and measure the performance of
  * varying numbers of threads doing metadata lookups using the batch scanner.
- *
- *
  */
-
 public class MetadataBatchScanTest {
 
   private static final Logger log = LoggerFactory.getLogger(MetadataBatchScanTest.class);

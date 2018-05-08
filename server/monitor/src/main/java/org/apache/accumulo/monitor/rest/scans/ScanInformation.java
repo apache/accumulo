@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.scans;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
 /**
- *
  * Generates a scan JSON object
  *
  * @since 2.0.0
- *
  */
 public class ScanInformation {
 

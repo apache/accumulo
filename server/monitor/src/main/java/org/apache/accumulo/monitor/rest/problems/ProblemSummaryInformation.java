@@ -22,11 +22,9 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
- *
  * Generates a problem summary object
  *
  * @since 2.0.0
- *
  */
 public class ProblemSummaryInformation {
 

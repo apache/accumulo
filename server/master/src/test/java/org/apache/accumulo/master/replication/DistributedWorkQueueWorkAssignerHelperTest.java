@@ -27,9 +27,6 @@ import org.apache.zookeeper.common.PathUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class DistributedWorkQueueWorkAssignerHelperTest {
 
   @Test

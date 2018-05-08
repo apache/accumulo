@@ -50,7 +50,6 @@ import org.apache.accumulo.core.util.ComparablePair;
  *
  * @since 1.6.0
  */
-
 public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>>
     extends AbstractLexicoder<ComparablePair<A,B>> {
 

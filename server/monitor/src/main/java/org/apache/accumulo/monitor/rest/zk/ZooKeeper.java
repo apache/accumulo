@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.zk;
 
 /**
- *
  * Generates a new zookeeper information as a JSON object
  *
  * @since 2.0.0
- *
  */
 public class ZooKeeper {
 

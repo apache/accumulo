@@ -22,11 +22,9 @@ import java.util.List;
 import org.apache.accumulo.monitor.rest.master.MasterInformation;
 
 /**
- *
  * Generates a list of servers, bad servers, and dead servers
  *
  * @since 2.0.0
- *
  */
 public class TabletServers {
 

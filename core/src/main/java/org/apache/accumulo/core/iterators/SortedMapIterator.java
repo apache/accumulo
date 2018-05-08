@@ -40,9 +40,7 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
  * CFs, construct a new ColumnFamilySkippingIterator(new SortedMapIterator(map)).
  *
  * @see org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator
- *
  */
-
 public class SortedMapIterator implements InterruptibleIterator {
   private Iterator<Entry<Key,Value>> iter;
   private Entry<Key,Value> entry;

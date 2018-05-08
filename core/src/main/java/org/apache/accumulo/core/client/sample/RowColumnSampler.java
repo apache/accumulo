@@ -61,7 +61,6 @@ import com.google.common.collect.ImmutableSet;
  *
  * @since 1.8.0
  */
-
 public class RowColumnSampler extends AbstractHashSampler {
 
   private boolean row = true;

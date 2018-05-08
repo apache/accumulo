@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.bulkImports;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
 /**
- *
  * Stores tserver bulk import information
  *
  * @since 2.0.0
- *
  */
 public class TabletServerBulkImportInformation {
 

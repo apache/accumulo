@@ -54,9 +54,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class AuditedSecurityOperation extends SecurityOperation {
 
   public static final String AUDITLOG = "org.apache.accumulo.audit";

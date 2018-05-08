@@ -34,7 +34,6 @@ import org.apache.hadoop.fs.Path;
  *
  * @since 1.6.0
  */
-
 public interface AccumuloCluster {
 
   /**

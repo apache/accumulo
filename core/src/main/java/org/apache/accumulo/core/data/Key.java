@@ -39,7 +39,6 @@ import org.apache.hadoop.io.WritableUtils;
  * of a row, column family, column qualifier, column visibility, timestamp, and delete marker.
  *
  * Keys are comparable and therefore have a sorted order defined by {@link #compareTo(Key)}.
- *
  */
 public class Key implements WritableComparable<Key>, Cloneable {
 

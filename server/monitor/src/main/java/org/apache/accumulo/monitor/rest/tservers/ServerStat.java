@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.tservers;
 
 /**
- *
  * Stores the server stats
  *
  * @since 2.0.0
- *
  */
 public class ServerStat {
 

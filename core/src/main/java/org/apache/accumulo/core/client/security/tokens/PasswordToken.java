@@ -36,7 +36,6 @@ import org.apache.hadoop.io.WritableUtils;
 /**
  * @since 1.5.0
  */
-
 public class PasswordToken implements AuthenticationToken {
   private byte[] password = null;
 

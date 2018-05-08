@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
- *
  * @since 1.5.0
  */
 public abstract class ActiveCompaction {

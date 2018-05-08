@@ -31,11 +31,9 @@ import org.apache.accumulo.monitor.rest.tables.TablesResource;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
 /**
- *
  * Responsible for generating a JSON and XML summary of the Monitor
  *
  * @since 2.0.0
- *
  */
 @Path("/")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

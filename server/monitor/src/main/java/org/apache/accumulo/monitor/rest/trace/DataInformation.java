@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.trace;
 
 /**
- *
  * Generate a new data information for a trace
  *
  * @since 2.0.0
- *
  */
 public class DataInformation {
 

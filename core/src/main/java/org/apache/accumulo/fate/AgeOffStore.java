@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
  * than a configurable time period.
  *
  * No external time source is used. It starts tracking idle time when its created.
- *
  */
 public class AgeOffStore<T> implements TStore<T> {
 

@@ -57,7 +57,6 @@ import com.google.common.base.Preconditions;
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
  * and metadatablocks
  */
-
 public class CachableBlockFile {
 
   private CachableBlockFile() {}

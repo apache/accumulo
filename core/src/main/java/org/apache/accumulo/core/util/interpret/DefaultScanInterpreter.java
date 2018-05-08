@@ -18,9 +18,6 @@ package org.apache.accumulo.core.util.interpret;
 
 import org.apache.hadoop.io.Text;
 
-/**
- *
- */
 public class DefaultScanInterpreter implements ScanInterpreter {
 
   @Override

@@ -73,7 +73,6 @@ import org.slf4j.LoggerFactory;
  * The result is a list of IT classes that pass or fail. Those classes that fail will be annotated
  * with the particular test that failed within the class.
  */
-
 public class IntegrationTestMapReduce extends Configured implements Tool {
 
   private static final Logger log = LoggerFactory.getLogger(IntegrationTestMapReduce.class);
