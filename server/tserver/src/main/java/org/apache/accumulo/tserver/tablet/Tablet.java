@@ -329,7 +329,7 @@ public class Tablet implements TabletCommitter {
     this.splitCreationTime = data.getSplitTime();
     this.tabletTime = TabletTime.getInstance(data.getTime());
     this.persistedTime = tabletTime.getTime();
-    this.logId = tabletServer.createLogId(extent);
+    this.logId = tabletServer.createLogId();
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {

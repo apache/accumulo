@@ -18,10 +18,16 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.logger.LogEvents;
+import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.commons.collections.buffer.PriorityBuffer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,23 +38,26 @@ import org.apache.hadoop.io.MapFile.Reader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
+
 /**
- * Provide simple Map.Reader methods over multiple Maps.
+ * A class which reads sorted recovery logs produced from a single WAL.
  *
  * Presently only supports next() and seek() and works on all the Map directories within a
  * directory. The primary purpose of this class is to merge the results of multiple Reduce jobs that
  * result in Map output files.
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
-public class MultiReader {
+public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,LogFileValue>> {
 
   /**
    * Group together the next key/value from a Reader with the Reader
-   *
    */
   private static class Index implements Comparable<Index> {
     Reader reader;
-    WritableComparable key;
+    WritableComparable<?> key;
     Writable value;
     boolean cached = false;
 
@@ -62,7 +71,7 @@ public class MultiReader {
 
     public Index(Reader reader) {
       this.reader = reader;
-      key = (WritableComparable) create(reader.getKeyClass());
+      key = (WritableComparable<?>) create(reader.getKeyClass());
       value = (Writable) create(reader.getValueClass());
     }
 
@@ -92,7 +101,9 @@ public class MultiReader {
           return 1;
         if (!o.cached)
           return -1;
-        return key.compareTo(o.key);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        int result = ((WritableComparable) key).compareTo(o.key);
+        return result;
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
@@ -100,8 +111,14 @@ public class MultiReader {
   }
 
   private PriorityBuffer heap = new PriorityBuffer();
+  private Iterator<Entry<LogFileKey,LogFileValue>> iter;
 
-  public MultiReader(VolumeManager fs, Path directory) throws IOException {
+  public RecoveryLogReader(VolumeManager fs, Path directory) throws IOException {
+    this(fs, directory, null, null);
+  }
+
+  public RecoveryLogReader(VolumeManager fs, Path directory, LogFileKey start, LogFileKey end)
+      throws IOException {
     boolean foundFinish = false;
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
@@ -116,6 +133,8 @@ public class MultiReader {
     if (!foundFinish)
       throw new IOException(
           "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
+
+    iter = new SortCheckIterator(new RangeIterator(start, end));
   }
 
   private static void copy(Writable src, Writable dest) throws IOException {
@@ -127,7 +146,8 @@ public class MultiReader {
     dest.readFields(input);
   }
 
-  public synchronized boolean next(WritableComparable key, Writable val) throws IOException {
+  @VisibleForTesting
+  synchronized boolean next(WritableComparable<?> key, Writable val) throws IOException {
     Index elt = (Index) heap.remove();
     try {
       elt.cache();
@@ -144,13 +164,14 @@ public class MultiReader {
     return true;
   }
 
-  public synchronized boolean seek(WritableComparable key) throws IOException {
+  @VisibleForTesting
+  synchronized boolean seek(WritableComparable<?> key) throws IOException {
     PriorityBuffer reheap = new PriorityBuffer(heap.size());
     boolean result = false;
     for (Object obj : heap) {
       Index index = (Index) obj;
       try {
-        WritableComparable found = index.reader.getClosest(key, index.value, true);
+        WritableComparable<?> found = index.reader.getClosest(key, index.value, true);
         if (found != null && found.equals(key)) {
           result = true;
         }
@@ -164,6 +185,7 @@ public class MultiReader {
     return result;
   }
 
+  @Override
   public void close() throws IOException {
     IOException problem = null;
     for (Object obj : heap) {
@@ -177,6 +199,124 @@ public class MultiReader {
     if (problem != null)
       throw problem;
     heap = null;
+  }
+
+  /**
+   * Ensures source iterator provides data in sorted order
+   */
+  @VisibleForTesting
+  static class SortCheckIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
+
+    private PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
+
+    SortCheckIterator(Iterator<Entry<LogFileKey,LogFileValue>> source) {
+      this.source = Iterators.peekingIterator(source);
+
+    }
+
+    @Override
+    public boolean hasNext() {
+      return source.hasNext();
+    }
+
+    @Override
+    public Entry<LogFileKey,LogFileValue> next() {
+      Entry<LogFileKey,LogFileValue> next = source.next();
+      if (source.hasNext()) {
+        Preconditions.checkState(next.getKey().compareTo(source.peek().getKey()) <= 0,
+            "Keys not in order %s %s", next.getKey(), source.peek().getKey());
+      }
+      return next;
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException("remove");
+    }
+  }
+
+  private class RangeIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
+
+    private LogFileKey key = new LogFileKey();
+    private LogFileValue value = new LogFileValue();
+    private boolean hasNext;
+    private LogFileKey end;
+
+    private boolean next(LogFileKey key, LogFileValue value) throws IOException {
+      try {
+        return RecoveryLogReader.this.next(key, value);
+      } catch (EOFException e) {
+        return false;
+      }
+    }
+
+    RangeIterator(LogFileKey start, LogFileKey end) throws IOException {
+      this.end = end;
+
+      if (start != null) {
+        hasNext = next(key, value);
+
+        if (hasNext && key.event != LogEvents.OPEN) {
+          throw new IllegalStateException("First log entry value is not OPEN");
+        }
+
+        seek(start);
+      }
+
+      hasNext = next(key, value);
+
+      if (hasNext && start != null && key.compareTo(start) < 0) {
+        throw new IllegalStateException("First key is less than start " + key + " " + start);
+      }
+
+      if (hasNext && end != null && key.compareTo(end) > 0) {
+        hasNext = false;
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      return hasNext;
+    }
+
+    @Override
+    public Entry<LogFileKey,LogFileValue> next() {
+      Preconditions.checkState(hasNext);
+      Entry<LogFileKey,LogFileValue> entry = new AbstractMap.SimpleImmutableEntry<>(key, value);
+
+      key = new LogFileKey();
+      value = new LogFileValue();
+      try {
+        hasNext = next(key, value);
+        if (hasNext && end != null && key.compareTo(end) > 0) {
+          hasNext = false;
+        }
+      } catch (IOException e) {
+        throw new IllegalStateException(e);
+      }
+
+      return entry;
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException("remove");
+    }
+  }
+
+  @Override
+  public boolean hasNext() {
+    return iter.hasNext();
+  }
+
+  @Override
+  public Entry<LogFileKey,LogFileValue> next() {
+    return iter.next();
+  }
+
+  @Override
+  public void remove() {
+    throw new UnsupportedOperationException("remove");
   }
 
 }

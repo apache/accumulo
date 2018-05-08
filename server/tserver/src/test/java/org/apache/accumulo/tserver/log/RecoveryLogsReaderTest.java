@@ -22,9 +22,17 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.tserver.log.RecoveryLogReader.SortCheckIterator;
+import org.apache.accumulo.tserver.logger.LogEvents;
+import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -35,7 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class MultiReaderTest {
+public class RecoveryLogsReaderTest {
 
   VolumeManager fs;
   TemporaryFolder root = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -73,7 +81,7 @@ public class MultiReaderTest {
     root.create();
   }
 
-  private void scan(MultiReader reader, int start) throws IOException {
+  private void scan(RecoveryLogReader reader, int start) throws IOException {
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
 
@@ -85,7 +93,7 @@ public class MultiReaderTest {
     }
   }
 
-  private void scanOdd(MultiReader reader, int start) throws IOException {
+  private void scanOdd(RecoveryLogReader reader, int start) throws IOException {
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
 
@@ -98,7 +106,7 @@ public class MultiReaderTest {
   @Test
   public void testMultiReader() throws IOException {
     Path manyMaps = new Path("file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
-    MultiReader reader = new MultiReader(fs, manyMaps);
+    RecoveryLogReader reader = new RecoveryLogReader(fs, manyMaps);
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
 
@@ -128,7 +136,7 @@ public class MultiReaderTest {
     reader.close();
 
     fs.deleteRecursively(new Path(manyMaps, "even"));
-    reader = new MultiReader(fs, manyMaps);
+    reader = new RecoveryLogReader(fs, manyMaps);
     key.set(501);
     assertTrue(reader.seek(key));
     scanOdd(reader, 501);
@@ -142,6 +150,31 @@ public class MultiReaderTest {
     assertEquals(1, key.get());
     reader.close();
 
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testSortCheck() {
+
+    List<Entry<LogFileKey,LogFileValue>> unsorted = new ArrayList<>();
+
+    LogFileKey k1 = new LogFileKey();
+    k1.event = LogEvents.MANY_MUTATIONS;
+    k1.tabletId = 2;
+    k1.seq = 55;
+
+    LogFileKey k2 = new LogFileKey();
+    k2.event = LogEvents.MANY_MUTATIONS;
+    k2.tabletId = 9;
+    k2.seq = 9;
+
+    unsorted.add(new AbstractMap.SimpleEntry<>(k2, (LogFileValue) null));
+    unsorted.add(new AbstractMap.SimpleEntry<>(k1, (LogFileValue) null));
+
+    SortCheckIterator iter = new SortCheckIterator(unsorted.iterator());
+
+    while (iter.hasNext()) {
+      iter.next();
+    }
   }
 
 }

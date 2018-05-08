@@ -47,7 +47,7 @@ public class LogFileTest {
     LogFileKey key = new LogFileKey();
     key.event = event;
     key.seq = seq;
-    key.tid = tid;
+    key.tabletId = tid;
     key.filename = filename;
     key.tablet = tablet;
     key.tserverSession = keyResult.tserverSession;
@@ -76,24 +76,24 @@ public class LogFileTest {
     readWrite(COMPACTION_FINISH, 1, 2, null, null, null, key, value);
     assertEquals(key.event, COMPACTION_FINISH);
     assertEquals(key.seq, 1);
-    assertEquals(key.tid, 2);
+    assertEquals(key.tabletId, 2);
     readWrite(COMPACTION_START, 3, 4, "some file", null, null, key, value);
     assertEquals(key.event, COMPACTION_START);
     assertEquals(key.seq, 3);
-    assertEquals(key.tid, 4);
+    assertEquals(key.tabletId, 4);
     assertEquals(key.filename, "some file");
     KeyExtent tablet = new KeyExtent(Table.ID.of("table"), new Text("bbbb"), new Text("aaaa"));
     readWrite(DEFINE_TABLET, 5, 6, null, tablet, null, key, value);
     assertEquals(key.event, DEFINE_TABLET);
     assertEquals(key.seq, 5);
-    assertEquals(key.tid, 6);
+    assertEquals(key.tabletId, 6);
     assertEquals(key.tablet, tablet);
     Mutation m = new ServerMutation(new Text("row"));
     m.put(new Text("cf"), new Text("cq"), new Value("value".getBytes()));
     readWrite(MUTATION, 7, 8, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
     assertEquals(key.seq, 7);
-    assertEquals(key.tid, 8);
+    assertEquals(key.tabletId, 8);
     assertEquals(value.mutations, Arrays.asList(m));
     m = new ServerMutation(new Text("row"));
     m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345,
@@ -104,12 +104,12 @@ public class LogFileTest {
     readWrite(MUTATION, 8, 9, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
     assertEquals(key.seq, 8);
-    assertEquals(key.tid, 9);
+    assertEquals(key.tabletId, 9);
     assertEquals(value.mutations, Arrays.asList(m));
     readWrite(MANY_MUTATIONS, 9, 10, null, null, new Mutation[] {m, m}, key, value);
     assertEquals(key.event, MANY_MUTATIONS);
     assertEquals(key.seq, 9);
-    assertEquals(key.tid, 10);
+    assertEquals(key.tabletId, 10);
     assertEquals(value.mutations, Arrays.asList(m, m));
   }
 

@@ -720,7 +720,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       switch (key.event) {
         case DEFINE_TABLET:
           if (target.getSourceTableId().equals(key.tablet.getTableId())) {
-            desiredTids.add(key.tid);
+            desiredTids.add(key.tabletId);
           }
           break;
         default:
@@ -772,13 +772,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         case DEFINE_TABLET:
           // For new DEFINE_TABLETs, we also need to record the new tids we see
           if (target.getSourceTableId().equals(key.tablet.getTableId())) {
-            desiredTids.add(key.tid);
+            desiredTids.add(key.tabletId);
           }
           break;
         case MUTATION:
         case MANY_MUTATIONS:
           // Only write out mutations for tids that are for the desired tablet
-          if (desiredTids.contains(key.tid)) {
+          if (desiredTids.contains(key.tabletId)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(baos);
 

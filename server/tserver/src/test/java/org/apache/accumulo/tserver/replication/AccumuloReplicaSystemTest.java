@@ -79,8 +79,7 @@ public class AccumuloReplicaSystemTest {
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Table.ID.of("1"), null, null);
-    key.tid = 1;
-
+    key.tabletId = 1;
     key.write(dos);
     value.write(dos);
 
@@ -94,14 +93,14 @@ public class AccumuloReplicaSystemTest {
 
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Table.ID.of("2"), null, null);
-    key.tid = 2;
+    key.tabletId = 2;
     value.mutations = Collections.emptyList();
 
     key.write(dos);
     value.write(dos);
 
     key.event = LogEvents.OPEN;
-    key.tid = LogFileKey.VERSION;
+    key.tabletId = LogFileKey.VERSION;
     key.tserverSession = "foobar";
 
     key.write(dos);
@@ -116,7 +115,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.COMPACTION_START;
-    key.tid = 2;
+    key.tabletId = 2;
     key.filename = "/accumulo/tables/1/t-000001/A000001.rf";
     value.mutations = Collections.emptyList();
 
@@ -125,14 +124,14 @@ public class AccumuloReplicaSystemTest {
 
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Table.ID.of("1"), null, null);
-    key.tid = 3;
+    key.tabletId = 3;
     value.mutations = Collections.emptyList();
 
     key.write(dos);
     value.write(dos);
 
     key.event = LogEvents.COMPACTION_FINISH;
-    key.tid = 6;
+    key.tabletId = 6;
     value.mutations = Collections.emptyList();
 
     key.write(dos);
@@ -140,7 +139,7 @@ public class AccumuloReplicaSystemTest {
 
     key.tablet = null;
     key.event = LogEvents.MUTATION;
-    key.tid = 3;
+    key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
@@ -187,7 +186,7 @@ public class AccumuloReplicaSystemTest {
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Table.ID.of("1"), null, null);
-    key.tid = 1;
+    key.tabletId = 1;
 
     key.write(dos);
     value.write(dos);
@@ -202,14 +201,14 @@ public class AccumuloReplicaSystemTest {
 
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Table.ID.of("2"), null, null);
-    key.tid = 2;
+    key.tabletId = 2;
     value.mutations = Collections.emptyList();
 
     key.write(dos);
     value.write(dos);
 
     key.event = LogEvents.OPEN;
-    key.tid = LogFileKey.VERSION;
+    key.tabletId = LogFileKey.VERSION;
     key.tserverSession = "foobar";
 
     key.write(dos);
@@ -224,7 +223,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.COMPACTION_START;
-    key.tid = 2;
+    key.tabletId = 2;
     key.filename = "/accumulo/tables/1/t-000001/A000001.rf";
     value.mutations = Collections.emptyList();
 
@@ -233,14 +232,14 @@ public class AccumuloReplicaSystemTest {
 
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Table.ID.of("1"), null, null);
-    key.tid = 3;
+    key.tabletId = 3;
     value.mutations = Collections.emptyList();
 
     key.write(dos);
     value.write(dos);
 
     key.event = LogEvents.COMPACTION_FINISH;
-    key.tid = 6;
+    key.tabletId = 6;
     value.mutations = Collections.emptyList();
 
     key.write(dos);
@@ -248,7 +247,7 @@ public class AccumuloReplicaSystemTest {
 
     key.tablet = null;
     key.event = LogEvents.MUTATION;
-    key.tid = 3;
+    key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
@@ -393,7 +392,7 @@ public class AccumuloReplicaSystemTest {
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(Table.ID.of("1"), null, null);
-    key.tid = 1;
+    key.tabletId = 1;
 
     key.write(dos);
     value.write(dos);
@@ -408,7 +407,7 @@ public class AccumuloReplicaSystemTest {
 
     key.tablet = null;
     key.event = LogEvents.MUTATION;
-    key.tid = 1;
+    key.tabletId = 1;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 

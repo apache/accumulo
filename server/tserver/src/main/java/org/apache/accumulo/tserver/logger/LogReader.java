@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,7 +39,7 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
-import org.apache.accumulo.tserver.log.MultiReader;
+import org.apache.accumulo.tserver.log.RecoveryLogReader;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -127,9 +128,12 @@ public class LogReader {
         }
       } else {
         // read the log entries sorted in a map file
-        MultiReader input = new MultiReader(fs, path);
-        while (input.next(key, value)) {
-          printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
+        try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
+          while (input.hasNext()) {
+            Entry<LogFileKey,LogFileValue> entry = input.next();
+            printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
+                opts.maxMutations);
+          }
         }
       }
     }
@@ -141,11 +145,11 @@ public class LogReader {
     if (ke != null) {
       if (key.event == LogEvents.DEFINE_TABLET) {
         if (key.tablet.equals(ke)) {
-          tabletIds.add(key.tid);
+          tabletIds.add(key.tabletId);
         } else {
           return;
         }
-      } else if (!tabletIds.contains(key.tid)) {
+      } else if (!tabletIds.contains(key.tabletId)) {
         return;
       }
     }
