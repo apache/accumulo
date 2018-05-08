@@ -123,7 +123,7 @@ public class TabletServerBatchWriter {
   // latency timers
   private final Timer jtimer = new Timer("BatchWriterLatencyTimer", true);
   private final Map<String,TimeoutTracker> timeoutTrackers = Collections
-      .synchronizedMap(new HashMap<String,TabletServerBatchWriter.TimeoutTracker>());
+      .synchronizedMap(new HashMap<>());
 
   // stats
   private long totalMemUsed = 0;

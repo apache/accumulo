@@ -33,7 +33,7 @@ public abstract class ObservableConfiguration extends AccumuloConfiguration {
    * Creates a new observable configuration.
    */
   public ObservableConfiguration() {
-    observers = Collections.synchronizedSet(new java.util.HashSet<ConfigurationObserver>());
+    observers = Collections.synchronizedSet(new java.util.HashSet<>());
   }
 
   /**

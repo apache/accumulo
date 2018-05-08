@@ -150,8 +150,7 @@ public class ConfigurationTypeHelper {
   }
 
   // This is not a cache for loaded classes, just a way to avoid spamming the debug log
-  private static Map<String,Class<?>> loaded = Collections
-      .synchronizedMap(new HashMap<String,Class<?>>());
+  private static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<>());
 
   /**
    * Loads a class in the given classloader context, suppressing any exceptions, and optionally

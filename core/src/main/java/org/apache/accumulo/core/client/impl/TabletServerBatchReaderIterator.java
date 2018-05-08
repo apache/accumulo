@@ -121,9 +121,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     this.locator = new TimeoutTabletLocator(timeout, context, tableId);
 
-    timeoutTrackers = Collections
-        .synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
-    timedoutServers = Collections.synchronizedSet(new HashSet<String>());
+    timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
+    timedoutServers = Collections.synchronizedSet(new HashSet<>());
     this.timeout = timeout;
 
     if (options.fetchedColumns.size() > 0) {

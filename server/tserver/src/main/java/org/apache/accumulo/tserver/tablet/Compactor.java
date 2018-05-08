@@ -131,7 +131,7 @@ public class Compactor implements Callable<CompactionStats> {
   }
 
   protected static final Set<Compactor> runningCompactions = Collections
-      .synchronizedSet(new HashSet<Compactor>());
+      .synchronizedSet(new HashSet<>());
 
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();

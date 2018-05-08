@@ -132,14 +132,14 @@ public class BulkImporter {
     AssignmentStats assignmentStats = new AssignmentStats(paths.size());
 
     final Map<Path,List<KeyExtent>> completeFailures = Collections
-        .synchronizedSortedMap(new TreeMap<Path,List<KeyExtent>>());
+        .synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getLocator(context, Table.ID.of(tableId));
 
     try {
       final Map<Path,List<TabletLocation>> assignments = Collections
-          .synchronizedSortedMap(new TreeMap<Path,List<TabletLocation>>());
+          .synchronizedSortedMap(new TreeMap<>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
       ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
@@ -367,8 +367,7 @@ public class BulkImporter {
       throw new RuntimeException(e);
     }
 
-    final Map<Path,List<AssignmentInfo>> ais = Collections
-        .synchronizedMap(new TreeMap<Path,List<AssignmentInfo>>());
+    final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
     ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
         new NamingThreadFactory("estimateSizes"));
@@ -553,8 +552,7 @@ public class BulkImporter {
 
     // group assignments by tabletserver
 
-    Map<Path,List<KeyExtent>> assignmentFailures = Collections
-        .synchronizedMap(new TreeMap<Path,List<KeyExtent>>());
+    Map<Path,List<KeyExtent>> assignmentFailures = Collections.synchronizedMap(new TreeMap<>());
 
     TreeMap<String,Map<KeyExtent,List<PathSize>>> assignmentsPerTabletServer = new TreeMap<>();
 

@@ -81,7 +81,7 @@ public class AccumuloVFSClassLoader {
   }
 
   private static List<WeakReference<DefaultFileSystemManager>> vfsInstances = Collections
-      .synchronizedList(new ArrayList<WeakReference<DefaultFileSystemManager>>());
+      .synchronizedList(new ArrayList<>());
 
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
 
