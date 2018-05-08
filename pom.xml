@@ -80,7 +80,6 @@
     <module>assemble</module>
     <module>client/mapreduce</module>
     <module>core</module>
-    <module>fate</module>
     <module>iterator-test-harness</module>
     <module>maven-plugin</module>
     <module>minicluster</module>
@@ -318,11 +317,6 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-fate</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
