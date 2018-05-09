@@ -86,9 +86,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 /**
- * Testing default namespace configuration with inheritance requires altering
- * the system state and restoring it back to normal. Punt on this for now and
- * just let it use a minicluster.
+ * Testing default namespace configuration with inheritance requires altering the system state and
+ * restoring it back to normal. Punt on this for now and just let it use a minicluster.
  */
 @Category(MiniClusterOnlyTests.class)
 public class NamespacesIT extends AccumuloClusterHarness {

@@ -52,22 +52,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Bulk import makes requests of tablet servers, and those requests can take a
- * long time. Our communications to the tablet server may fail, so we won't know
- * the status of the request. The master will repeat failed requests so now
- * there are multiple requests to the tablet server. The tablet server will not
- * execute the request multiple times, so long as the marker it wrote in the
- * metadata table stays there. The master needs to know when all requests have
- * finished so it can remove the markers. Did it start? Did it finish? We can see
- * that *a* request completed by seeing the flag written into the metadata
- * table, but we won't know if some other rogue thread is still waiting to start
- * a thread and repeat the operation.
+ * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
+ * communications to the tablet server may fail, so we won't know the status of the request. The
+ * master will repeat failed requests so now there are multiple requests to the tablet server. The
+ * tablet server will not execute the request multiple times, so long as the marker it wrote in the
+ * metadata table stays there. The master needs to know when all requests have finished so it can
+ * remove the markers. Did it start? Did it finish? We can see that *a* request completed by seeing
+ * the flag written into the metadata table, but we won't know if some other rogue thread is still
+ * waiting to start a thread and repeat the operation.
  *
- * The master can ask the tablet server if it has any requests still running.
- * Except the tablet server might have some thread about to start a request, but
- * before it has made any bookkeeping about the request. To prevent problems
- * like this, an Arbitrator is used. Before starting any new request, the tablet
- * server checks the Arbitrator to see if the request is still valid.
+ * The master can ask the tablet server if it has any requests still running. Except the tablet
+ * server might have some thread about to start a request, but before it has made any bookkeeping
+ * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
+ * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
 public class BulkImport extends MasterRepo {
   public static final String FAILURES_TXT = "failures.txt";

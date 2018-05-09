@@ -22,9 +22,9 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
- * Buffers all input in a growing buffer until flush() is called. Then entire
- * buffer is written, with size information, and padding to force the
- * underlying crypto output stream to also fully flush
+ * Buffers all input in a growing buffer until flush() is called. Then entire buffer is written,
+ * with size information, and padding to force the underlying crypto output stream to also fully
+ * flush
  */
 public class BlockedOutputStream extends OutputStream {
   int blockSize;
