@@ -28,9 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
-import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache.Loader;
@@ -155,7 +153,7 @@ public class CachableBlockFile {
   /**
    * Class wraps the BCFile reader.
    */
-  public static class Reader implements BlockFileReader {
+  public static class Reader {
     private final RateLimiter readLimiter;
     // private BCFile.Reader _bc;
     private final String cacheId;
@@ -402,8 +400,7 @@ public class CachableBlockFile {
      * It is intended that once the BlockRead object is returned to the caller, that the caller will
      * read the entire block and then call close on the BlockRead class.
      */
-    @Override
-    public BlockRead getMetaBlock(String blockName) throws IOException {
+    public CachedBlockRead getMetaBlock(String blockName) throws IOException {
       if (_iCache != null) {
         String _lookup = this.cacheId + "M" + blockName;
         try {
@@ -423,11 +420,10 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile(null).getMetaBlock(blockName);
-      return new BlockRead(_currBlock);
+      return new CachedBlockRead(_currBlock);
     }
 
-    @Override
-    public ABlockReader getMetaBlock(long offset, long compressedSize, long rawSize)
+    public CachedBlockRead getMetaBlock(long offset, long compressedSize, long rawSize)
         throws IOException {
       if (_iCache != null) {
         String _lookup = this.cacheId + "R" + offset;
@@ -439,7 +435,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile(null).getDataBlock(offset, compressedSize, rawSize);
-      return new BlockRead(_currBlock);
+      return new CachedBlockRead(_currBlock);
     }
 
     /**
@@ -450,8 +446,7 @@ public class CachableBlockFile {
      * read from disk and other threads check the cache before it has been inserted.
      */
 
-    @Override
-    public BlockRead getDataBlock(int blockIndex) throws IOException {
+    public CachedBlockRead getDataBlock(int blockIndex) throws IOException {
       if (_dCache != null) {
         String _lookup = this.cacheId + "O" + blockIndex;
         CacheEntry ce = _dCache.getBlock(_lookup, new OffsetBlockLoader(blockIndex, false));
@@ -461,11 +456,10 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(blockIndex);
-      return new BlockRead(_currBlock);
+      return new CachedBlockRead(_currBlock);
     }
 
-    @Override
-    public ABlockReader getDataBlock(long offset, long compressedSize, long rawSize)
+    public CachedBlockRead getDataBlock(long offset, long compressedSize, long rawSize)
         throws IOException {
       if (_dCache != null) {
         String _lookup = this.cacheId + "R" + offset;
@@ -477,10 +471,9 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(offset, compressedSize, rawSize);
-      return new BlockRead(_currBlock);
+      return new CachedBlockRead(_currBlock);
     }
 
-    @Override
     public synchronized void close() throws IOException {
       if (closed)
         return;
@@ -502,9 +495,17 @@ public class CachableBlockFile {
 
   }
 
-  public static class CachedBlockRead extends BlockRead {
+  public static class CachedBlockRead extends DataInputStream {
     private SeekableByteArrayInputStream seekableInput;
     private final CacheEntry cb;
+    boolean indexable;
+
+    public CachedBlockRead(InputStream in) {
+      super(in);
+      cb = null;
+      seekableInput = null;
+      indexable = false;
+    }
 
     public CachedBlockRead(CacheEntry cb, byte buf[]) {
       this(new SeekableByteArrayInputStream(buf), cb);
@@ -514,51 +515,7 @@ public class CachableBlockFile {
       super(seekableInput);
       this.seekableInput = seekableInput;
       this.cb = cb;
-    }
-
-    @Override
-    public void seek(int position) {
-      seekableInput.seek(position);
-    }
-
-    @Override
-    public int getPosition() {
-      return seekableInput.getPosition();
-    }
-
-    @Override
-    public boolean isIndexable() {
-      return true;
-    }
-
-    @Override
-    public byte[] getBuffer() {
-      return seekableInput.getBuffer();
-    }
-
-    @Override
-    public <T extends Weighbable> T getIndex(Supplier<T> indexSupplier) {
-      return cb.getIndex(indexSupplier);
-    }
-
-    @Override
-    public void indexWeightChanged() {
-      cb.indexWeightChanged();
-    }
-  }
-
-  /**
-   *
-   * Class provides functionality to read one block from the underlying BCFile Since We are caching
-   * blocks in the Reader class as bytearrays, this class will wrap a
-   * DataInputStream(ByteArrayStream(cachedBlock)).
-   *
-   *
-   */
-  public static class BlockRead extends DataInputStream implements ABlockReader {
-
-    public BlockRead(InputStream in) {
-      super(in);
+      indexable = true;
     }
 
     /**
@@ -566,44 +523,32 @@ public class CachableBlockFile {
      * this be called once per BlockRead. This method is provide for methods up stream that expect
      * to receive a DataInputStream object.
      */
-    @Override
-    public DataInputStream getStream() throws IOException {
+    public DataInputStream getStream() {
       return this;
     }
 
-    @Override
-    public boolean isIndexable() {
-      return false;
-    }
-
-    @Override
     public void seek(int position) {
-      throw new UnsupportedOperationException();
+      seekableInput.seek(position);
     }
 
-    @Override
     public int getPosition() {
-      throw new UnsupportedOperationException();
+      return seekableInput.getPosition();
     }
 
-    @Override
-    public <T extends Weighbable> T getIndex(Supplier<T> clazz) {
-      throw new UnsupportedOperationException();
+    public boolean isIndexable() {
+      return indexable;
     }
 
-    /**
-     * The byte array returned by this method is only for read optimizations, it should not be
-     * modified.
-     */
-    @Override
     public byte[] getBuffer() {
-      throw new UnsupportedOperationException();
+      return seekableInput.getBuffer();
     }
 
-    @Override
+    public <T extends Weighbable> T getIndex(Supplier<T> indexSupplier) {
+      return cb.getIndex(indexSupplier);
+    }
+
     public void indexWeightChanged() {
-      throw new UnsupportedOperationException();
+      cb.indexWeightChanged();
     }
-
   }
 }

@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.BlockRead;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.BufferedWriter;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader;
@@ -82,7 +81,7 @@ public class MultiLevelIndexTest extends TestCase {
         CachedConfiguration.getInstance(), aconf);
 
     Reader reader = new Reader(_cbr, RFile.RINDEX_VER_8);
-    BlockRead rootIn = _cbr.getMetaBlock("root");
+    CachableBlockFile.CachedBlockRead rootIn = _cbr.getMetaBlock("root");
     reader.readFields(rootIn);
     rootIn.close();
     IndexIterator liter = reader.lookup(new Key("000000"));

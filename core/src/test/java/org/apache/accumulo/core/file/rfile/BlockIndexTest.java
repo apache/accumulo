@@ -23,7 +23,6 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
@@ -80,7 +79,7 @@ public class BlockIndexTest {
 
     CacheEntry ce = new MyCacheEntry(data);
 
-    ABlockReader cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
+    CachableBlockFile.CachedBlockRead cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
     BlockIndex blockIndex = null;
 
     for (int i = 0; i < 129; i++)
@@ -152,7 +151,7 @@ public class BlockIndexTest {
 
     CacheEntry ce = new MyCacheEntry(data);
 
-    ABlockReader cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
+    CachableBlockFile.CachedBlockRead cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
     BlockIndex blockIndex = null;
 
     for (int i = 0; i < 257; i++)

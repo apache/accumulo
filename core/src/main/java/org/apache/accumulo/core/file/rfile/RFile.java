@@ -51,10 +51,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
-import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
-import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
@@ -159,7 +158,7 @@ public class RFile {
     private MultiLevelIndex.Reader indexReader;
     private int version;
 
-    public LocalityGroupMetadata(int version, BlockFileReader br) {
+    public LocalityGroupMetadata(int version, CachableBlockFile.Reader br) {
       columnFamilies = new HashMap<>();
       indexReader = new MultiLevelIndex.Reader(br, version);
       this.version = version;
@@ -748,7 +747,7 @@ public class RFile {
 
   private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
-    private BlockFileReader reader;
+    private CachableBlockFile.Reader reader;
     private MultiLevelIndex.Reader index;
     private int blockCount;
     private Key firstKey;
@@ -757,8 +756,8 @@ public class RFile {
     private int version;
     private boolean checkRange = true;
 
-    private LocalityGroupReader(BlockFileReader reader, LocalityGroupMetadata lgm, int version)
-        throws IOException {
+    private LocalityGroupReader(CachableBlockFile.Reader reader, LocalityGroupMetadata lgm,
+        int version) throws IOException {
       super(lgm.columnFamilies, lgm.isDefaultLG);
       this.firstKey = lgm.firstKey;
       this.index = lgm.indexReader;
@@ -795,7 +794,7 @@ public class RFile {
 
     private IndexIterator iiter;
     private int entriesLeft;
-    private ABlockReader currBlock;
+    private CachableBlockFile.CachedBlockRead currBlock;
     private RelativeKey rk;
     private Value val;
     private Key prevKey = null;
@@ -867,7 +866,8 @@ public class RFile {
         hasTop = !range.afterEndKey(rk.getKey());
     }
 
-    private ABlockReader getDataBlock(IndexEntry indexEntry) throws IOException {
+    private CachableBlockFile.CachedBlockRead getDataBlock(IndexEntry indexEntry)
+        throws IOException {
       if (interruptFlag != null && interruptFlag.get())
         throw new IterationInterruptedException();
 
@@ -1132,7 +1132,7 @@ public class RFile {
 
   public static class Reader extends HeapIterator implements FileSKVIterator {
 
-    private final BlockFileReader reader;
+    private final CachableBlockFile.Reader reader;
 
     private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
     private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
@@ -1152,10 +1152,10 @@ public class RFile {
 
     private int rfileVersion;
 
-    public Reader(BlockFileReader rdr) throws IOException {
+    public Reader(CachableBlockFile.Reader rdr) throws IOException {
       this.reader = rdr;
 
-      ABlockReader mb = reader.getMetaBlock("RFile.index");
+      CachableBlockFile.CachedBlockRead mb = reader.getMetaBlock("RFile.index");
       try {
         int magic = mb.readInt();
         int ver = mb.readInt();
