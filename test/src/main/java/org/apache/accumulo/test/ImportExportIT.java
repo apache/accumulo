@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
  * would be converted to a non-existent absolute path.
  * <p>
  * ACCUMULO-3215
- *
  */
 public class ImportExportIT extends AccumuloClusterHarness {
 

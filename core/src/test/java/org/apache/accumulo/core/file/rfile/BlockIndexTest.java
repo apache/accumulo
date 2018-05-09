@@ -31,9 +31,6 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class BlockIndexTest {
 
   private static class MyCacheEntry implements CacheEntry {

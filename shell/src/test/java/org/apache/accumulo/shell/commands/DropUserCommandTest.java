@@ -26,9 +26,6 @@ import org.junit.Test;
 
 import jline.console.ConsoleReader;
 
-/**
- *
- */
 public class DropUserCommandTest {
 
   private DropUserCommand cmd;

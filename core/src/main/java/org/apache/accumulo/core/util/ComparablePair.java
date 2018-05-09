@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.core.util;
 
-/**
- *
- */
 public class ComparablePair<A extends Comparable<A>,B extends Comparable<B>> extends Pair<A,B>
     implements Comparable<ComparablePair<A,B>> {
 

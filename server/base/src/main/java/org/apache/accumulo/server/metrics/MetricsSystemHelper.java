@@ -22,9 +22,6 @@ import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.metrics2.source.JvmMetrics;
 import org.apache.hadoop.metrics2.source.JvmMetricsInfo;
 
-/**
- *
- */
 public class MetricsSystemHelper {
 
   private static String processName = "Unknown";

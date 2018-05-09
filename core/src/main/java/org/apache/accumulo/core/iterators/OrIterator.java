@@ -79,7 +79,6 @@ import org.slf4j.LoggerFactory;
  * row3 steve:20
  * </pre>
  */
-
 public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
   private static final Logger LOG = LoggerFactory.getLogger(OrIterator.class);
   public static final String COLUMNS_KEY = "or.iterator.columns";

@@ -23,9 +23,6 @@ import javax.security.auth.DestroyFailedException;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class PasswordTokenTest {
 
   @Test

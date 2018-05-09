@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Stores a new dead logger object
  *
  * @since 2.0.0
- *
  */
 public class DeadLoggerList {
 

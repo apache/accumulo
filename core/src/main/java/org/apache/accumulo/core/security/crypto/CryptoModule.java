@@ -31,7 +31,6 @@ import javax.crypto.CipherOutputStream;
  *
  * When implementing CryptoModule, it is recommended that any {@link CipherOutputStream} uses
  * {@link RFileCipherOutputStream} instead.
- *
  */
 public interface CryptoModule {
 

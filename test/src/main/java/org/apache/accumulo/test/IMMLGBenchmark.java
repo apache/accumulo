@@ -46,9 +46,6 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Iterators;
 
-/**
- *
- */
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
 

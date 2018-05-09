@@ -18,7 +18,7 @@ package org.apache.accumulo.server.master.state;
 
 import java.util.List;
 
-/*
+/**
  * An abstract version of ZooKeeper that we can write tests against.
  */
 public interface DistributedStore {

@@ -63,7 +63,6 @@ import org.slf4j.LoggerFactory;
  * AccumuloReloadingVFSClassLoader That loads jars from locations in general.dynamic.classpaths.
  * Used to load jar dynamically.
  * </pre>
- *
  */
 public class AccumuloVFSClassLoader {
 

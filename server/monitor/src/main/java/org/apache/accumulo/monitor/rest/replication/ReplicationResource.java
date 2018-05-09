@@ -57,11 +57,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
  * Generates the replication table with information from the Monitor
  *
  * @since 2.0.0
- *
  */
 @Path("/replication")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

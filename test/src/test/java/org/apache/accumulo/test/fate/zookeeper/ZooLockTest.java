@@ -39,9 +39,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-/**
- *
- */
 public class ZooLockTest {
 
   private static final TemporaryFolder folder = new TemporaryFolder(

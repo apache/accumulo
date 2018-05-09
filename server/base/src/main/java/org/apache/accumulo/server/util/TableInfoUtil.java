@@ -24,9 +24,6 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
-/**
- *
- */
 public class TableInfoUtil {
 
   public static void add(TableInfo total, TableInfo more) {

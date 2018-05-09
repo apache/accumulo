@@ -21,9 +21,6 @@ import java.util.Arrays;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.ComparablePair;
 
-/**
- *
- */
 public class PairLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
     PairLexicoder<String,String> plexc = new PairLexicoder<>(new StringLexicoder(),

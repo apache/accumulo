@@ -42,9 +42,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.google.common.util.concurrent.AtomicLongMap;
 
-/**
- *
- */
 public class RFileMetricsTest {
 
   @Rule

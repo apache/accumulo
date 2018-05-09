@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.tables;
 
 /**
- *
  * Generates a list of compactions as a JSON object
  *
  * @since 2.0.0
- *
  */
 public class CompactionsList {
 

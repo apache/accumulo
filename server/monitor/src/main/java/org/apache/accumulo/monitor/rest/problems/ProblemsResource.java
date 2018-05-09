@@ -46,11 +46,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
  * Generates a problem summary and details as a JSON object
  *
  * @since 2.0.0
- *
  */
 @Path("/problems")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

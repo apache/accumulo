@@ -32,7 +32,6 @@ import org.apache.hadoop.io.Text;
  *
  * @since 1.7.0
  */
-
 public class CompactionConfig {
   private Text start = null;
   private Text end = null;

@@ -36,9 +36,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class MetadataBulkLoadFilterTest {
   static class TestArbitrator implements Arbitrator {
     @Override

@@ -51,9 +51,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
-/**
- *
- */
 public class GarbageCollectionAlgorithm {
 
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);

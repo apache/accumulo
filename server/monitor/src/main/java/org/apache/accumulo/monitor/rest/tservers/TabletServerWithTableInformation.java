@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.tservers;
 import org.apache.accumulo.monitor.rest.tables.TableInformation;
 
 /**
- *
  * Generates a tserver with table information
  *
  * @since 2.0.0
- *
  */
 public class TabletServerWithTableInformation {
 

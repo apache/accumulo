@@ -23,11 +23,9 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
- *
  * Generates table information as a JSON object
  *
  * @since 2.0.0
- *
  */
 public class TableInformation {
   private final String ZERO_COMBO = "0(0)";

@@ -43,9 +43,6 @@ import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
   public static final String NAME = MASTER_NAME + ",sub=Replication",
       DESCRIPTION = "Data-Center Replication Metrics", CONTEXT = "master",

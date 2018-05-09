@@ -54,9 +54,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-/**
- *
- */
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory
       .getLogger(MissingWalHeaderCompletesRecoveryIT.class);

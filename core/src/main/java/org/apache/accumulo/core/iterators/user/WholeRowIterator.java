@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- *
  * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as
  * atomic. It does so by encapsulating an entire row of key/value pairs into a single key/value
  * pair, which is returned through the client as an atomic operation.

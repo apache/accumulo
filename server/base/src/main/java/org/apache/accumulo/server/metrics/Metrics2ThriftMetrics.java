@@ -24,9 +24,6 @@ import org.apache.hadoop.metrics2.impl.MsInfo;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 
-/**
- *
- */
 public class Metrics2ThriftMetrics implements Metrics, MetricsSource, ThriftMetricsKeys {
   public static final String CONTEXT = "thrift";
 

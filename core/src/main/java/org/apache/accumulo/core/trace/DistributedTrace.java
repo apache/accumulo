@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Utility class to enable tracing for Accumulo server processes.
- *
  */
 public class DistributedTrace {
   private static final Logger log = LoggerFactory.getLogger(DistributedTrace.class);

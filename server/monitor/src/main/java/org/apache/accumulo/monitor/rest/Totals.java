@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest;
 
 /**
- *
  * Generates the totals for XML summary
  *
  * @since 2.0.0
- *
  */
 public class Totals {
 

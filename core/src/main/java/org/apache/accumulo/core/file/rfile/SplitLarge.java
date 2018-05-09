@@ -38,7 +38,6 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Split an RFile into large and small key/value files.
- *
  */
 public class SplitLarge {
 

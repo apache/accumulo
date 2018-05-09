@@ -31,11 +31,9 @@ import org.apache.accumulo.monitor.rest.trace.RecoveryStatusInformation;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
 /**
- *
  * Generates tserver information
  *
  * @since 2.0.0
- *
  */
 public class TabletServerInformation {
 

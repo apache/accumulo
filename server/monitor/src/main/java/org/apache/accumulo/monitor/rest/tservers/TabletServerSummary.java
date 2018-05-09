@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.tservers;
 import java.util.List;
 
 /**
- *
  * Generates a summary for the tserver
  *
  * @since 2.0.0
- *
  */
 public class TabletServerSummary {
 

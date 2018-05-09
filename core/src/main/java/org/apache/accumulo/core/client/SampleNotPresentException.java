@@ -23,7 +23,6 @@ package org.apache.accumulo.core.client;
  *
  * @since 1.8.0
  */
-
 public class SampleNotPresentException extends RuntimeException {
 
   public SampleNotPresentException(String message, Exception cause) {

@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.trace;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 
 /**
- *
  * Generates a recent trace
  *
  * @since 2.0.0
- *
  */
 public class RecentTracesInformation {
 

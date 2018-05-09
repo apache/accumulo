@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Generates a list of traces for an ID
  *
  * @since 2.0.0
- *
  */
 public class TraceList {
 

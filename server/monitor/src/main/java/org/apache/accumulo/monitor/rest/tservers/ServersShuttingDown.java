@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Generates a list of servers shutting down
  *
  * @since 2.0.0
- *
  */
 public class ServersShuttingDown {
 

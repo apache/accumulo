@@ -56,11 +56,9 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- *
  * Index is responsible of specifying Monitor paths and setting the templates for the HTML code
  *
  * @since 2.0.0
- *
  */
 @Path("/")
 @Produces(MediaType.TEXT_HTML)

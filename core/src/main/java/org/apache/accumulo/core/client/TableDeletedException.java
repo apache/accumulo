@@ -21,9 +21,7 @@ package org.apache.accumulo.core.client;
  *
  * For example if table A exist when a scan is started, but is deleted during the scan then this
  * exception is thrown.
- *
  */
-
 public class TableDeletedException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;

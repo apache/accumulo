@@ -21,9 +21,6 @@ import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 
-/**
- *
- */
 public class PostDelegatingVFSClassLoader extends VFSClassLoader {
 
   public PostDelegatingVFSClassLoader(FileObject[] files, FileSystemManager manager,

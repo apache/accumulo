@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
  *
  * @since 1.7.0
  */
-
 public interface DelegationToken extends AuthenticationToken {
 
 }

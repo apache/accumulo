@@ -23,9 +23,6 @@ import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 
-/**
- *
- */
 public interface AccumuloReplicationReplayer {
 
   public long replicateLog(ClientContext context, String tableName, WalEdits data)

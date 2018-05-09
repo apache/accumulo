@@ -20,7 +20,6 @@ import java.io.Serializable;
 
 /**
  * Repeatable persisted operation
- *
  */
 public interface Repo<T> extends ReadOnlyRepo<T>, Serializable {
 

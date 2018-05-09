@@ -19,7 +19,6 @@ package org.apache.accumulo.minicluster;
 /**
  * @since 1.6.0
  */
-
 public enum ServerType {
   MASTER("Master"),
   ZOOKEEPER("ZooKeeper"),

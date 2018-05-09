@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Stores maximum and minimum numbers for server stats in a list
  *
  * @since 2.0.0
- *
  */
 public class ServerStats {
 

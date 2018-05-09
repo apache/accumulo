@@ -33,7 +33,6 @@ import org.apache.accumulo.core.security.Authorizations;
  * {@link UnsupportedOperationException} for each operation. This is useful for situations that need
  * to extend {@link IteratorEnvironment} and implement a subset of the methods.
  */
-
 public class BaseIteratorEnvironment implements IteratorEnvironment {
 
   @Override

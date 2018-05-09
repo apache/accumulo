@@ -22,7 +22,6 @@ import org.apache.accumulo.core.data.Range;
 public interface KeyFunctor {
   /**
    * Implementations should return null if a range can not be converted to a bloom key.
-   *
    */
   org.apache.hadoop.util.bloom.Key transform(Range range);
 

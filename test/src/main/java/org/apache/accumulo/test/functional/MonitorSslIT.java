@@ -45,7 +45,6 @@ import org.junit.Test;
 
 /**
  * Check SSL for the Monitor
- *
  */
 public class MonitorSslIT extends ConfigurableMacBase {
   @BeforeClass

@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.server.metrics;
 
-/**
- *
- */
 public interface Metrics {
 
   String PREFIX = "Accumulo";

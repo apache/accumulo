@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
  *   return BaseJUnit4IteratorTest.createParameters(input, expectedOutput, testCases);
  * }
  * </pre>
- *
  */
 @RunWith(Parameterized.class)
 public class BaseJUnit4IteratorTest {

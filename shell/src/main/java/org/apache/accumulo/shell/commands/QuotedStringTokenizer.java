@@ -34,7 +34,6 @@ import org.apache.accumulo.shell.Shell;
  *
  * The behavior is the same for single and double quoted strings. (i.e. '\'' is the same as "\'")
  */
-
 public class QuotedStringTokenizer implements Iterable<String> {
   private ArrayList<String> tokens;
   private String input;

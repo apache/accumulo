@@ -40,9 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-/**
- *
- */
 public class MultiTserverReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiTserverReplicationIT.class);
 

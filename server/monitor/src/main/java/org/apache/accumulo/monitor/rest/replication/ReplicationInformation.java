@@ -17,11 +17,9 @@
 package org.apache.accumulo.monitor.rest.replication;
 
 /**
- *
  * Generates the replication information as a JSON object
  *
  * @since 2.0.0
- *
  */
 public class ReplicationInformation {
 

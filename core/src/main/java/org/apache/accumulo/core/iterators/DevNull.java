@@ -38,9 +38,7 @@ import org.apache.accumulo.core.data.Value;
  * And to make major compactions never write anything
  *
  * config -t ci -s table.iterator.majc.devnull=21,org.apache.accumulo.core.iterators.DevNull
- *
  */
-
 public class DevNull implements SortedKeyValueIterator<Key,Value> {
 
   @Override

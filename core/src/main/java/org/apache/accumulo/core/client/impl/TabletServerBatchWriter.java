@@ -79,7 +79,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 
-/*
+/**
  * Differences from previous TabletServerBatchWriter
  *   + As background threads finish sending mutations to tablet servers they decrement memory usage
  *   + Once the queue of unprocessed mutations reaches 50% it is always pushed
@@ -100,7 +100,6 @@ import com.google.common.base.Joiner;
  *   + when a mutation successfully leaves the system memory is decremented
  *
  */
-
 public class TabletServerBatchWriter {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);

@@ -57,9 +57,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
-/**
- *
- */
 public class CloneTestIT extends AccumuloClusterHarness {
 
   @Override

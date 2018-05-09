@@ -19,11 +19,9 @@ package org.apache.accumulo.monitor.rest.gc;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 
 /**
- *
  * GarbageCollection is responsible for creating the gc JSON object
  *
  * @since 2.0.0
- *
  */
 public class GarbageCollection {
 

@@ -54,9 +54,7 @@ import org.apache.hadoop.io.WritableComparable;
 
 /**
  * keeps track of information needed to identify a tablet
- *
  */
-
 public class KeyExtent implements WritableComparable<KeyExtent> {
 
   private Table.ID tableId;

@@ -35,7 +35,6 @@ import org.apache.hadoop.io.Text;
  * When the tablet server is restarted, the instance information it advertises will change.
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
- *
  */
 public class TServerInstance implements Comparable<TServerInstance>, Serializable {
 

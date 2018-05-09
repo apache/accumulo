@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Generates a list of tables grouped by namespace
  *
  * @since 2.0.0
- *
  */
 public class TableNamespace {
 

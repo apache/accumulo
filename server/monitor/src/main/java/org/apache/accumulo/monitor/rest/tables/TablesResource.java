@@ -55,11 +55,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 
 /**
- *
  * Generates a tables list from the Monitor as a JSON object
  *
  * @since 2.0.0
- *
  */
 @Path("/tables")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

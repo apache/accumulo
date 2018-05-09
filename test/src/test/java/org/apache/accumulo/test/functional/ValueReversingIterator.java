@@ -30,7 +30,6 @@ import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * Iterator used in ScannerContextIT that reverses the bytes of the value
- *
  */
 public class ValueReversingIterator implements SortedKeyValueIterator<Key,Value> {
 

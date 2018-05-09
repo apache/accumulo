@@ -22,9 +22,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.server.replication.PrintReplicationRecords;
 
-/**
- *
- */
 public class ReplicationTablesPrinterThread extends Daemon {
 
   private PrintStream out;

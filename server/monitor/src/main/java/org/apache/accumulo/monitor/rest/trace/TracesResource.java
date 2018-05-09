@@ -69,11 +69,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 
 /**
- *
  * Generates a list of traces with the summary, by type, and trace details
  *
  * @since 2.0.0
- *
  */
 @Path("/trace")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})

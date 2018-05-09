@@ -25,9 +25,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class DeleteTableCommandTest {
 
   @Test

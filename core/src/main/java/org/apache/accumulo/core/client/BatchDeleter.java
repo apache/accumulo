@@ -22,9 +22,7 @@ import org.apache.accumulo.core.data.Range;
 
 /**
  * Implementations of BatchDeleter support efficient deletion of ranges in accumulo.
- *
  */
-
 public interface BatchDeleter extends ScannerBase {
   /**
    * Deletes the ranges specified by {@link #setRanges}.

@@ -23,7 +23,6 @@ import org.apache.commons.lang.StringUtils;
 /**
  * An Accumulo Exception for security violations, authentication failures, authorization failures,
  * etc.
- *
  */
 public class AccumuloSecurityException extends Exception {
   private static final long serialVersionUID = 1L;

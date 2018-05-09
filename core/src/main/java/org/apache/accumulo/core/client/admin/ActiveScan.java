@@ -25,7 +25,6 @@ import org.apache.accumulo.core.security.Authorizations;
 
 /**
  * A class that contains information about an ActiveScan
- *
  */
 public abstract class ActiveScan {
 

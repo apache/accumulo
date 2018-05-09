@@ -27,7 +27,6 @@ import java.util.List;
  *
  * Unlike relying directly on the ReadOnlyTStore interface, this class will not allow subsequent
  * users to cast back to a mutable TStore successfully.
- *
  */
 public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
 

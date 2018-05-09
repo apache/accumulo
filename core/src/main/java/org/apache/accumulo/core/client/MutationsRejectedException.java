@@ -32,7 +32,6 @@ import org.apache.accumulo.core.data.TabletId;
 
 /**
  * Communicate the failed mutations of a BatchWriter back to the client.
- *
  */
 public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;

@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util.time;
  *
  * RelativeTime and BaseRelativeTime are separated to provide unit tests of the core functionality
  * of Relative timekeeping.
- *
  */
 public class BaseRelativeTime implements ProvidesTime {
 

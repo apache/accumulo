@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Stores a new problem summary object
  *
  * @since 2.0.0
- *
  */
 public class ProblemSummary {
 

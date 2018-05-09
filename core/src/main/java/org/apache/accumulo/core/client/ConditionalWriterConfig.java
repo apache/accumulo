@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- *
  * @since 1.6.0
  */
 public class ConditionalWriterConfig {

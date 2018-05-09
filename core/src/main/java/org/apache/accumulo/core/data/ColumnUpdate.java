@@ -20,7 +20,6 @@ import java.util.Arrays;
 
 /**
  * A single column and value pair within a {@link Mutation}.
- *
  */
 public class ColumnUpdate {
 

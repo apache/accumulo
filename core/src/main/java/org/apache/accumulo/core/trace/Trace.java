@@ -26,7 +26,6 @@ import org.apache.htrace.wrappers.TraceRunnable;
 
 /**
  * Utility class for tracing within Accumulo. Not intended for client use!
- *
  */
 public class Trace {
   /**

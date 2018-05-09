@@ -35,9 +35,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class ReplicationSchema {
   private static final Logger log = LoggerFactory.getLogger(ReplicationSchema.class);
 

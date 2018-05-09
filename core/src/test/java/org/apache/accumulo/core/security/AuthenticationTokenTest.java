@@ -30,9 +30,6 @@ import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.junit.Test;
 
-/**
- *
- */
 public class AuthenticationTokenTest {
   @Test
   public void testSerializeDeserializeToken() throws AccumuloSecurityException, IOException {

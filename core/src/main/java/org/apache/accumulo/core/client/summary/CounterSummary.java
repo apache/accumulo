@@ -29,7 +29,6 @@ import com.google.common.annotations.VisibleForTesting;
  *
  * @since 2.0.0
  */
-
 public class CounterSummary {
   private Map<String,Long> stats;
 

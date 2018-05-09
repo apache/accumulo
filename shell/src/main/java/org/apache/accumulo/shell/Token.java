@@ -21,14 +21,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-/*
+/**
  * A token is a word in a command in the shell.  The tree that this builds is used for
  * tab-completion of tables, users, commands and certain other parts of the shell that
  * can be realistically and quickly gathered. Tokens can have multiple commands grouped
  * together and many possible subcommands, although they are stored in a set so duplicates
  * aren't allowed.
  */
-
 public class Token {
   private Set<String> command = new HashSet<>();
   private Set<Token> subcommands = new HashSet<>();

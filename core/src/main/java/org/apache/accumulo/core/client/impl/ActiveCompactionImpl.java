@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 
 /**
- *
  * @since 1.6.0
  */
 public class ActiveCompactionImpl extends ActiveCompaction {

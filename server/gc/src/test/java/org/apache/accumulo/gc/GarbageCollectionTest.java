@@ -42,9 +42,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class GarbageCollectionTest {
   static class TestGCE implements GarbageCollectionEnvironment {
     TreeSet<String> candidates = new TreeSet<>();

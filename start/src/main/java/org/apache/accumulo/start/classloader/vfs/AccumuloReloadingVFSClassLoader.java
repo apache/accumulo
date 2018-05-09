@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
  * Classloader that delegates operations to a VFSClassLoader object. This class also listens for
  * changes in any of the files/directories that are in the classpath and will recreate the delegate
  * object if there is any change in the classpath.
- *
  */
 public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingClassLoader {
 

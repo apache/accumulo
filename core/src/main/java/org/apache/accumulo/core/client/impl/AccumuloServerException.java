@@ -21,9 +21,7 @@ import org.apache.thrift.TApplicationException;
 
 /**
  * This class is intended to encapsulate errors that occurred on the server side.
- *
  */
-
 public class AccumuloServerException extends AccumuloException {
   private static final long serialVersionUID = 1L;
   private String server;

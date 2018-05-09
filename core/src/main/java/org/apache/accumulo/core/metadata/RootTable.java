@@ -20,9 +20,6 @@ import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 
-/**
- *
- */
 public class RootTable {
 
   public static final Table.ID ID = Table.ID.ROOT;

@@ -27,9 +27,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class SecurityUtil {
   private static final Logger log = LoggerFactory.getLogger(SecurityUtil.class);
   private static final Logger renewalLog = LoggerFactory.getLogger("KerberosTicketRenewal");

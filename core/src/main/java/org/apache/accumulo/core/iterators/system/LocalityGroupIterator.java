@@ -38,9 +38,6 @@ import org.apache.commons.lang.mutable.MutableLong;
 
 import com.google.common.collect.ImmutableSet;
 
-/**
- *
- */
 public class LocalityGroupIterator extends HeapIterator implements InterruptibleIterator {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();

@@ -45,9 +45,7 @@ import org.apache.hadoop.io.Text;
 
 /**
  * Provides a class for administering tables
- *
  */
-
 public interface TableOperations {
 
   /**

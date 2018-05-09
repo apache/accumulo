@@ -22,7 +22,6 @@ import junit.framework.TestCase;
 
 /**
  * Test the TextUtil class.
- *
  */
 public class TextUtilTest extends TestCase {
   /**

@@ -30,7 +30,6 @@ import org.apache.hadoop.fs.Path;
  *
  * ZooTabletStateStore: information about the root tablet is stored in ZooKeeper MetaDataStateStore:
  * information about the other tablets are stored in the metadata table
- *
  */
 public abstract class TabletStateStore implements Iterable<TabletLocationState> {
 

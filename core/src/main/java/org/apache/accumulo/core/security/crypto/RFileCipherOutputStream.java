@@ -23,11 +23,9 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
 
 /**
- *
  * This class extends {@link CipherOutputStream} to include a way to track the number of bytes that
  * have been encrypted by the stream. The write method also includes a mechanism to stop writing and
  * throw an exception if exceeding a maximum number of bytes is attempted.
- *
  */
 public class RFileCipherOutputStream extends CipherOutputStream {
 

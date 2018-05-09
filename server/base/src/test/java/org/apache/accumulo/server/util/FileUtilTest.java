@@ -40,9 +40,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-/**
- *
- */
 public class FileUtilTest {
   @SuppressWarnings("deprecation")
   private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;

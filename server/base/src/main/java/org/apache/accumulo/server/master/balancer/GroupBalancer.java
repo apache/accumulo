@@ -69,7 +69,6 @@ import com.google.common.collect.Multimap;
  * To use this balancer you must extend it and implement {@link #getPartitioner()}. See
  * {@link RegexGroupBalancer} as an example.
  */
-
 public abstract class GroupBalancer extends TabletBalancer {
 
   private final Table.ID tableId;

@@ -59,9 +59,7 @@ import org.slf4j.LoggerFactory;
  *
  * If you do not know the instance names then run accumulo
  * org.apache.accumulo.server.util.ListInstances on an accumulo server.
- *
  */
-
 public class ZooKeeperInstance implements Instance {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperInstance.class);

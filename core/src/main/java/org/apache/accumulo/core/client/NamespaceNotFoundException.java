@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 public class NamespaceNotFoundException extends Exception {
   /**
    * Exception to throw if an operation is attempted on a namespace that doesn't exist.
-   *
    */
   private static final long serialVersionUID = 1L;
 

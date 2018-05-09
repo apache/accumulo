@@ -24,9 +24,6 @@ import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class AgeOffStoreTest {
 
   private static class TestTimeSource implements TimeSource {

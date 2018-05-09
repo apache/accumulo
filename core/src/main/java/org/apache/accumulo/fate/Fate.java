@@ -30,10 +30,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Fault tolerant executor
- *
- *
  */
-
 public class Fate<T> {
 
   private static final String DEBUG_PROP = "debug";

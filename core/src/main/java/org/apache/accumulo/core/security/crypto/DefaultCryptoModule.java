@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
  * In general, the module is quite straightforward: provide it with crypto-related settings and an
  * input/output stream, and it will hand back those streams wrapped in encrypting (or decrypting)
  * streams.
- *
  */
 public class DefaultCryptoModule implements CryptoModule {
 

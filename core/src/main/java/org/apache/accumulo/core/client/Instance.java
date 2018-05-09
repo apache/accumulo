@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 /**
  * This class represents the information a client needs to know to connect to an instance of
  * accumulo.
- *
  */
 public interface Instance {
   /**

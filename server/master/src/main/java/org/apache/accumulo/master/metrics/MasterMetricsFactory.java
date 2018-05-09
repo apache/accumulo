@@ -25,9 +25,6 @@ import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.hadoop.metrics2.MetricsSystem;
 
-/**
- *
- */
 public class MasterMetricsFactory {
 
   private final boolean useOldMetrics;

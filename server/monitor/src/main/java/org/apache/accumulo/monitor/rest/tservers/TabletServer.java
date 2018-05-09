@@ -20,11 +20,9 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
 /**
- *
  * To use for XML Resource
  *
  * @since 2.0.0
- *
  */
 public class TabletServer {
 

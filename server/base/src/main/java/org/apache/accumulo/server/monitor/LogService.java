@@ -41,7 +41,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Hijack log4j and capture log events for display.
- *
  */
 public class LogService extends org.apache.log4j.AppenderSkeleton {
 
@@ -49,7 +48,6 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
 
   /**
    * Read logging events forward to us over the net.
-   *
    */
   static class SocketServer implements Runnable {
     private ServerSocket server = null;
