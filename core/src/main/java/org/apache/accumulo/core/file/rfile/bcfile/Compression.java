@@ -76,6 +76,8 @@ public final class Compression {
     }
   }
 
+  /** compression: zStandard */
+  public static final String COMPRESSION_ZSTD = "zstd";
   /** snappy codec **/
   public static final String COMPRESSION_SNAPPY = "snappy";
   /** compression: gzip */
@@ -447,6 +449,122 @@ public final class Compression {
 
         return snappyCodec != null;
       }
+    },
+
+    ZSTANDARD(COMPRESSION_ZSTD) {
+      // Use base type to avoid compile-time dependencies.
+      private transient CompressionCodec zstdCodec = null;
+      /**
+       * determines if we've checked the codec status. ensures we don't recreate the default codec
+       */
+      private final AtomicBoolean checked = new AtomicBoolean(false);
+      private static final String defaultClazz = "org.apache.hadoop.io.compress.ZStandardCodec";
+
+      /**
+       * Buffer size option
+       */
+      private static final String BUFFER_SIZE_OPT = "io.compression.codec.zstd.buffersize";
+
+      /**
+       * Default buffer size value
+       */
+      private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
+
+      @Override
+      public CompressionCodec getCodec() {
+        return zstdCodec;
+      }
+
+      @Override
+      public void initializeDefaultCodec() {
+        if (!checked.get()) {
+          checked.set(true);
+          zstdCodec = createNewCodec(DEFAULT_BUFFER_SIZE);
+        }
+      }
+
+      /**
+       * Creates a new ZStandard codec.
+       *
+       * @param bufferSize
+       *          incoming buffer size
+       * @return new codec or null, depending on if installed
+       */
+      @Override
+      protected CompressionCodec createNewCodec(final int bufferSize) {
+
+        String extClazz = (conf.get(CONF_ZSTD_CLASS) == null ? System.getProperty(CONF_ZSTD_CLASS)
+            : null);
+        String clazz = (extClazz != null) ? extClazz : defaultClazz;
+        try {
+          log.info("Trying to load ZStandard codec class: {}", clazz);
+
+          Configuration myConf = new Configuration(conf);
+          // only use the buffersize if > 0, otherwise we'll use
+          // the default defined within the codec
+          if (bufferSize > 0)
+            myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
+
+          return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+        } catch (ClassNotFoundException e) {
+          // that is okay
+        }
+
+        return null;
+      }
+
+      @Override
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
+          int downStreamBufferSize) throws IOException {
+
+        if (!isSupported()) {
+          throw new IOException(
+              "ZStandard codec class not specified. Did you forget to set property "
+                  + CONF_ZSTD_CLASS + "?");
+        }
+        OutputStream bos1;
+        if (downStreamBufferSize > 0) {
+          bos1 = new BufferedOutputStream(downStream, downStreamBufferSize);
+        } else {
+          bos1 = downStream;
+        }
+        // use the default codec
+        CompressionOutputStream cos = zstdCodec.createOutputStream(bos1, compressor);
+        BufferedOutputStream bos2 = new BufferedOutputStream(
+            new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        return bos2;
+      }
+
+      @Override
+      public InputStream createDecompressionStream(InputStream downStream,
+          Decompressor decompressor, int downStreamBufferSize) throws IOException {
+        if (!isSupported()) {
+          throw new IOException(
+              "ZStandard codec class not specified. Did you forget to set property "
+                  + CONF_ZSTD_CLASS + "?");
+        }
+
+        CompressionCodec decomCodec = zstdCodec;
+        // if we're not using the same buffer size, we'll pull the codec from the loading cache
+        if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
+          Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(ZSTANDARD, downStreamBufferSize);
+          try {
+            decomCodec = codecCache.get(sizeOpt);
+          } catch (ExecutionException e) {
+            throw new IOException(e);
+          }
+        }
+
+        CompressionInputStream cis = decomCodec.createInputStream(downStream, decompressor);
+        BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
+        return bis2;
+      }
+
+      @Override
+      public boolean isSupported() {
+        return zstdCodec != null;
+      }
     };
 
     /**
@@ -493,6 +611,7 @@ public final class Compression {
     private static final int DATA_OBUF_SIZE = 4 * 1024;
     public static final String CONF_LZO_CLASS = "io.compression.codec.lzo.class";
     public static final String CONF_SNAPPY_CLASS = "io.compression.codec.snappy.class";
+    public static final String CONF_ZSTD_CLASS = "io.compression.codec.zstd.class";
 
     Algorithm(String name) {
       this.compressName = name;
