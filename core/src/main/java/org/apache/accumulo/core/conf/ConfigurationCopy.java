@@ -28,7 +28,7 @@ import java.util.function.Predicate;
  */
 public class ConfigurationCopy extends AccumuloConfiguration {
   private long updateCount = 0;
-  final Map<String,String> copy = Collections.synchronizedMap(new HashMap<String,String>());
+  final Map<String,String> copy = Collections.synchronizedMap(new HashMap<>());
 
   /**
    * Creates a new configuration.

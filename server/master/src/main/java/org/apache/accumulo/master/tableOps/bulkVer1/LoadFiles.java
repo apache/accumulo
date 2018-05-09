@@ -119,7 +119,7 @@ class LoadFiles extends MasterRepo {
     }
     fs.delete(writable);
 
-    final Set<String> filesToLoad = Collections.synchronizedSet(new HashSet<String>());
+    final Set<String> filesToLoad = Collections.synchronizedSet(new HashSet<>());
     for (FileStatus f : files)
       filesToLoad.add(f.getPath().toString());
 
@@ -135,7 +135,7 @@ class LoadFiles extends MasterRepo {
       }
 
       // Use the threadpool to assign files one-at-a-time to the server
-      final List<String> loaded = Collections.synchronizedList(new ArrayList<String>());
+      final List<String> loaded = Collections.synchronizedList(new ArrayList<>());
       final Random random = new Random();
       final TServerInstance[] servers;
       String prop = conf.get(Property.MASTER_BULK_TSERVER_REGEX);

@@ -37,8 +37,8 @@ public class NativeMapConcurrencyTest {
 
   private static final Logger log = LoggerFactory.getLogger(NativeMapConcurrencyTest.class);
 
-  private static final byte ROW_PREFIX[] = new byte[] {'r'};
-  private static final byte COL_PREFIX[] = new byte[] {'c'};
+  private static final byte ROW_PREFIX[] = {'r'};
+  private static final byte COL_PREFIX[] = {'c'};
 
   static Mutation nm(int r) {
     return new Mutation(new Text(FastFormat.toZeroPaddedString(r, 6, 10, ROW_PREFIX)));

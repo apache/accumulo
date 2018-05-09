@@ -37,7 +37,7 @@ public class FileSystemMonitorTest {
 
   @Test
   public void testFilteredMountEntries() throws Exception {
-    String[] mountEntries = new String[] {"rootfs / rootfs rw 0 0",
+    String[] mountEntries = {"rootfs / rootfs rw 0 0",
         "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
         "sysfs /sys sysfs rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
         "devtmpfs /dev devtmpfs rw,seclabel,nosuid,size=8119336k,nr_inodes=2029834,mode=755 0 0",

@@ -25,9 +25,8 @@ public class LogEventsTest {
   public void testOrdinals() {
     // Ordinals are used for persistence, so its important they are stable.
 
-    LogEvents[] expectedOrder = new LogEvents[] {LogEvents.OPEN, LogEvents.DEFINE_TABLET,
-        LogEvents.MUTATION, LogEvents.MANY_MUTATIONS, LogEvents.COMPACTION_START,
-        LogEvents.COMPACTION_FINISH};
+    LogEvents[] expectedOrder = {LogEvents.OPEN, LogEvents.DEFINE_TABLET, LogEvents.MUTATION,
+        LogEvents.MANY_MUTATIONS, LogEvents.COMPACTION_START, LogEvents.COMPACTION_FINISH};
 
     for (int i = 0; i < expectedOrder.length; i++) {
       Assert.assertEquals(i, expectedOrder[i].ordinal());

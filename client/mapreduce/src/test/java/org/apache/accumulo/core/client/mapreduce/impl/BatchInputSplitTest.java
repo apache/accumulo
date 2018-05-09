@@ -23,7 +23,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -44,8 +46,8 @@ public class BatchInputSplitTest {
 
   @Test
   public void testSimpleWritable() throws IOException {
-    Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), Arrays.asList(ranges),
+    List<Range> ranges = Collections.singletonList(new Range(new Key("a"), new Key("b")));
+    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), ranges,
         new String[] {"localhost"});
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -66,8 +68,8 @@ public class BatchInputSplitTest {
 
   @Test
   public void testAllFieldsWritable() throws IOException {
-    Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), Arrays.asList(ranges),
+    List<Range> ranges = Collections.singletonList(new Range(new Key("a"), new Key("b")));
+    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), ranges,
         new String[] {"localhost"});
 
     Set<Pair<Text,Text>> fetchedColumns = new HashSet<>();

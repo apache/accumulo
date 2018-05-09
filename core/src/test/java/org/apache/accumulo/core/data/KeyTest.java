@@ -170,22 +170,22 @@ public class KeyTest {
 
   @Test
   public void testBytesText() {
-    byte[] row = new byte[] {1};
+    byte[] row = {1};
     Key bytesRowKey = new Key(row);
     Key textRowKey = new Key(new Text(row));
     assertEquals(bytesRowKey, textRowKey);
 
-    byte[] colFamily = new byte[] {0, 1};
+    byte[] colFamily = {0, 1};
     Key bytesColFamilyKey = new Key(row, colFamily);
     Key textColFamilyKey = new Key(new Text(row), new Text(colFamily));
     assertEquals(bytesColFamilyKey, textColFamilyKey);
 
-    byte[] colQualifier = new byte[] {0, 0, 1};
+    byte[] colQualifier = {0, 0, 1};
     Key bytesColQualifierKey = new Key(row, colFamily, colQualifier);
     Key textColQualifierKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier));
     assertEquals(bytesColQualifierKey, textColQualifierKey);
 
-    byte[] colVisibility = new byte[] {0, 0, 0, 1};
+    byte[] colVisibility = {0, 0, 0, 1};
     Key bytesColVisibilityKey = new Key(row, colFamily, colQualifier, colVisibility);
     Key textColVisibilityKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier),
         new Text(colVisibility));

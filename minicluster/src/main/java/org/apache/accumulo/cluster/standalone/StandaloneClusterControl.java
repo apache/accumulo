@@ -152,7 +152,7 @@ public class StandaloneClusterControl implements ClusterControl {
   @Override
   public void adminStopAll() throws IOException {
     String master = getHosts(MASTER_HOSTS_FILE).get(0);
-    String[] cmd = new String[] {serverCmdPrefix, accumuloPath, Admin.class.getName(), "stopAll"};
+    String[] cmd = {serverCmdPrefix, accumuloPath, Admin.class.getName(), "stopAll"};
     // Directly invoke the RemoteShell
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey()) {
@@ -173,8 +173,7 @@ public class StandaloneClusterControl implements ClusterControl {
     requireNonNull(goalState, "Goal state must not be null");
     checkArgument(MasterGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
     String master = getHosts(MASTER_HOSTS_FILE).get(0);
-    String[] cmd = new String[] {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(),
-        goalState};
+    String[] cmd = {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(), goalState};
     Entry<Integer,String> pair = exec(master, cmd);
     if (0 != pair.getKey()) {
       throw new IOException("SetGoalState did not finish successfully, retcode=" + pair.getKey()
@@ -226,8 +225,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void start(ServerType server, String hostname) throws IOException {
-    String[] cmd = new String[] {serverCmdPrefix, accumuloServicePath, getProcessString(server),
-        "start"};
+    String[] cmd = {serverCmdPrefix, accumuloServicePath, getProcessString(server), "start"};
     Entry<Integer,String> pair = exec(hostname, cmd);
     if (0 != pair.getKey()) {
       throw new IOException(

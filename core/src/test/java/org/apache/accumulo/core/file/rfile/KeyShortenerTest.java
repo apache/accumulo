@@ -26,7 +26,7 @@ import com.google.common.primitives.Bytes;
 public class KeyShortenerTest {
 
   private static final byte[] E = new byte[0];
-  private static final byte[] FF = new byte[] {(byte) 0xff};
+  private static final byte[] FF = {(byte) 0xff};
 
   private void assertBetween(Key p, Key s, Key c) {
     Assert.assertTrue(p.compareTo(s) < 0);

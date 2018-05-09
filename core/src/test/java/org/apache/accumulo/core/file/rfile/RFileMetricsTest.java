@@ -532,7 +532,7 @@ public class RFileMetricsTest {
 
     trf.writer.startDefaultLocalityGroup();
 
-    String vis[] = new String[] {"A", "A&B", "A|C", "B&C", "Boo"};
+    String vis[] = {"A", "A&B", "A|C", "B&C", "Boo"};
 
     int fam = 0;
     for (int row = 0; row < 1000; row++) {

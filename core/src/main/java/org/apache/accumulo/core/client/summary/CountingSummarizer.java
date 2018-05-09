@@ -153,8 +153,8 @@ public abstract class CountingSummarizer<K> implements Summarizer {
   // this default can not be changed as persisted summary data depends on it
   public static final String INGNORE_DELETES_DEFAULT = "true";
 
-  private static final String[] ALL_STATS = new String[] {TOO_LONG_STAT, TOO_MANY_STAT,
-      EMITTED_STAT, SEEN_STAT, DELETES_IGNORED_STAT};
+  private static final String[] ALL_STATS = {TOO_LONG_STAT, TOO_MANY_STAT, EMITTED_STAT, SEEN_STAT,
+      DELETES_IGNORED_STAT};
 
   private int maxCounters;
   private int maxCounterKeyLen;

@@ -256,7 +256,7 @@ public class KeyBuilderTest {
 
   @Test
   public void testKeyBuildingReusingBytes() {
-    byte[] reuse = new byte[] {1, 2, 3};
+    byte[] reuse = {1, 2, 3};
     KeyBuilder.Build keyBuilder = Key.builder(false).row(reuse);
     Key keyBuilt = keyBuilder.build();
     assertSame(reuse, keyBuilt.getRowBytes());
@@ -264,7 +264,7 @@ public class KeyBuilderTest {
 
   @Test
   public void testKeyBuildingCopyBytes() {
-    byte[] reuse = new byte[] {1, 2, 3};
+    byte[] reuse = {1, 2, 3};
     KeyBuilder.Build keyBuilder = Key.builder(true).row(reuse);
     Key keyBuilt = keyBuilder.build();
     assertNotEquals(reuse, keyBuilt.getRowBytes());

@@ -50,7 +50,7 @@ public class RootTabletStateStoreTest {
 
     List<Node> children = new ArrayList<>();
     String name;
-    byte[] value = new byte[] {};
+    byte[] value = {};
 
     Node find(String name) {
       for (Node node : children)

@@ -38,13 +38,13 @@ import org.slf4j.LoggerFactory;
  */
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
-  private static final char[] TMP_RESERVED_CHARS = new char[] {'?', '/', '\\', ' ', '&', '"', '\'',
-      '*', '#', ';', ':', '<', '>', '|'};
+  private static final char[] TMP_RESERVED_CHARS = {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#',
+      ';', ':', '<', '>', '|'};
   private static final Logger log = LoggerFactory.getLogger(UniqueFileReplicator.class);
 
   private File tempDir;
   private VfsComponentContext context;
-  private List<File> tmpFiles = Collections.synchronizedList(new ArrayList<File>());
+  private List<File> tmpFiles = Collections.synchronizedList(new ArrayList<>());
 
   public UniqueFileReplicator(File tempDir) {
     this.tempDir = tempDir;

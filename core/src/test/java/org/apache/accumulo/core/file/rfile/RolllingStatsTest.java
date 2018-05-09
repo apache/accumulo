@@ -91,7 +91,7 @@ public class RolllingStatsTest {
   @Test
   public void testFewSizes() {
     StatTester st = new StatTester(1019);
-    int[] keySizes = new int[] {103, 113, 123, 2345};
+    int[] keySizes = {103, 113, 123, 2345};
     Random rand = new Random(42);
     for (int i = 0; i < 10000; i++) {
       st.addValue(keySizes[rand.nextInt(keySizes.length)]);

@@ -384,7 +384,7 @@ public class TabletServerResourceManager {
     private final Thread minorCompactionInitiatorThread;
 
     MemoryManagementFramework() {
-      tabletReports = Collections.synchronizedMap(new HashMap<KeyExtent,TabletStateImpl>());
+      tabletReports = Collections.synchronizedMap(new HashMap<>());
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = conf.getSystemConfiguration().getAsBytes(Property.TSERV_MAXMEM);
 

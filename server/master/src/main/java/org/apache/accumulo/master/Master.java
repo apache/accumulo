@@ -197,11 +197,10 @@ public class Master extends AccumuloServerContext
   final private List<TabletGroupWatcher> watchers = new ArrayList<>();
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers = Collections
-      .synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
-  final Set<TServerInstance> serversToShutdown = Collections
-      .synchronizedSet(new HashSet<TServerInstance>());
+      .synchronizedMap(new DefaultMap<>(new AtomicInteger()));
+  final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final SortedMap<KeyExtent,TServerInstance> migrations = Collections
-      .synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
+      .synchronizedSortedMap(new TreeMap<>());
   final EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
   private ReplicationDriver replicationWorkDriver;
@@ -223,7 +222,7 @@ public class Master extends AccumuloServerContext
   Fate<Master> fate;
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
-      .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
+      .unmodifiableSortedMap(new TreeMap<>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean masterInitialized = new AtomicBoolean(false);
@@ -352,7 +351,7 @@ public class Master extends AccumuloServerContext
         zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
 
-        final byte[] zero = new byte[] {'0'};
+        final byte[] zero = {'0'};
         log.debug("Initializing recovery area.");
         zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
 
@@ -1314,8 +1313,8 @@ public class Master extends AccumuloServerContext
 
     try {
       final AgeOffStore<Master> store = new AgeOffStore<>(
-          new org.apache.accumulo.fate.ZooStore<Master>(
-              ZooUtil.getRoot(getInstance()) + Constants.ZFATE, ZooReaderWriter.getInstance()),
+          new org.apache.accumulo.fate.ZooStore<>(ZooUtil.getRoot(getInstance()) + Constants.ZFATE,
+              ZooReaderWriter.getInstance()),
           1000 * 60 * 60 * 8);
 
       int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);

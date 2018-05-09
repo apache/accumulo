@@ -193,9 +193,8 @@ public class GroupBalancerTest {
   @Test
   public void testSingleGroup() {
 
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
-        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+    String tests[][] = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
+        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
@@ -217,9 +216,8 @@ public class GroupBalancerTest {
 
   @Test
   public void testTwoGroups() {
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
-        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+    String tests[][] = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
+        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
@@ -247,9 +245,8 @@ public class GroupBalancerTest {
 
   @Test
   public void testThreeGroups() {
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
-        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+    String tests[][] = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
+        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 

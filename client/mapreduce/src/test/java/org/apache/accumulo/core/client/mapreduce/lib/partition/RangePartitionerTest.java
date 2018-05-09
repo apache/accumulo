@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class RangePartitionerTest {
 
-  private static Text[] cutArray = new Text[] {new Text("A"), new Text("B"), new Text("C")};
+  private static Text[] cutArray = {new Text("A"), new Text("B"), new Text("C")};
 
   @Test
   public void testNoSubBins() throws IOException {

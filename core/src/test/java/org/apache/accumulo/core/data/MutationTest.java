@@ -564,7 +564,7 @@ public class MutationTest {
     // m8 uses a different buffer size
     Mutation m8 = new Mutation(r1Bytes, 0, r1Bytes.length, 4242);
 
-    Mutation[] muts = new Mutation[] {m1, m2, m3, m4, m5, m6, m7, m8};
+    Mutation[] muts = {m1, m2, m3, m4, m5, m6, m7, m8};
     populate(muts);
 
     for (Mutation m : muts) {

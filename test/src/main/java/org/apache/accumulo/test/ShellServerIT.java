@@ -380,7 +380,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         }
       }
     } else {
-      String[] distCpArgs = new String[] {"-f", exportUri + "/distcp.txt", import_};
+      String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
       assertEquals("Failed to run distcp: " + Arrays.toString(distCpArgs), 0, cp.run(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);

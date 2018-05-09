@@ -58,7 +58,7 @@ class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
   private final Map<FileRef,DataFileValue> datafileSizes = Collections
-      .synchronizedMap(new TreeMap<FileRef,DataFileValue>());
+      .synchronizedMap(new TreeMap<>());
   private final Tablet tablet;
   private Long maxMergingMinorCompactionFileSize;
 
