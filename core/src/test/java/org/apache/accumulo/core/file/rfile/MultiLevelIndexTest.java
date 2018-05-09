@@ -23,7 +23,6 @@ import java.util.Random;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.BufferedWriter;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.streams.PositionedOutputs;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -66,7 +66,7 @@ public class MultiLevelIndexTest extends TestCase {
 
     mliw.addLast(new Key(String.format("%05d000", num)), num, 0, 0, 0);
 
-    ABlockWriter root = _cbw.prepareMetaBlock("root");
+    BCFile.Writer.BlockAppender root = _cbw.prepareMetaBlock("root");
     mliw.close(root);
     root.close();
 

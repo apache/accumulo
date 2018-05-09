@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.file.blockfile.impl;
 
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,15 +27,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.blockfile.ABlockWriter;
-import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache.Loader;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
-import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.file.streams.PositionedOutput;
 import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
@@ -61,9 +57,9 @@ public class CachableBlockFile {
 
   private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
 
-  public static class Writer implements BlockFileWriter {
+  public static class Writer {
     private BCFile.Writer _bc;
-    private BlockWrite _bw;
+    private BCFile.Writer.BlockAppender _bw;
     private final PositionedOutput fsout;
     private long length = 0;
 
@@ -86,19 +82,16 @@ public class CachableBlockFile {
       _bc = new BCFile.Writer(fsout, compressAlgor, conf, false, accumuloConfiguration);
     }
 
-    @Override
-    public ABlockWriter prepareMetaBlock(String name) throws IOException {
-      _bw = new BlockWrite(_bc.prepareMetaBlock(name));
+    public BCFile.Writer.BlockAppender prepareMetaBlock(String name) throws IOException {
+      _bw = _bc.prepareMetaBlock(name);
       return _bw;
     }
 
-    @Override
-    public ABlockWriter prepareDataBlock() throws IOException {
-      _bw = new BlockWrite(_bc.prepareDataBlock());
+    public BCFile.Writer.BlockAppender prepareDataBlock() throws IOException {
+      _bw = _bc.prepareDataBlock();
       return _bw;
     }
 
-    @Override
     public void close() throws IOException {
 
       _bw.close();
@@ -108,45 +101,13 @@ public class CachableBlockFile {
       ((OutputStream) this.fsout).close();
     }
 
-    @Override
     public long getLength() throws IOException {
       return length;
     }
 
   }
 
-  public static class BlockWrite extends DataOutputStream implements ABlockWriter {
-    BlockAppender _ba;
-
-    public BlockWrite(BlockAppender ba) {
-      super(ba);
-      this._ba = ba;
-    }
-
-    @Override
-    public long getCompressedSize() throws IOException {
-      return _ba.getCompressedSize();
-    }
-
-    @Override
-    public long getRawSize() throws IOException {
-      return _ba.getRawSize();
-    }
-
-    @Override
-    public void close() throws IOException {
-
-      _ba.close();
-    }
-
-    @Override
-    public long getStartPos() throws IOException {
-      return _ba.getStartPos();
-    }
-
-  }
-
-  private interface IoeSupplier<T> {
+  private static interface IoeSupplier<T> {
     T get() throws IOException;
   }
 

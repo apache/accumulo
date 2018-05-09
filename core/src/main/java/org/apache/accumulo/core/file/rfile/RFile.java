@@ -51,13 +51,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
-import org.apache.accumulo.core.file.blockfile.ABlockWriter;
-import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -164,7 +163,8 @@ public class RFile {
       this.version = version;
     }
 
-    public LocalityGroupMetadata(Set<ByteSequence> pcf, int indexBlockSize, BlockFileWriter bfw) {
+    public LocalityGroupMetadata(Set<ByteSequence> pcf, int indexBlockSize,
+        CachableBlockFile.Writer bfw) {
       isDefaultLG = true;
       columnFamilies = new HashMap<>();
       previousColumnFamilies = pcf;
@@ -174,7 +174,7 @@ public class RFile {
     }
 
     public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int indexBlockSize,
-        BlockFileWriter bfw) {
+        CachableBlockFile.Writer bfw) {
       this.name = name;
       isDefaultLG = false;
       columnFamilies = new HashMap<>();
@@ -422,8 +422,8 @@ public class RFile {
 
   private static class LocalityGroupWriter {
 
-    private BlockFileWriter fileWriter;
-    private ABlockWriter blockWriter;
+    private CachableBlockFile.Writer fileWriter;
+    private BCFile.Writer.BlockAppender blockWriter;
 
     // private BlockAppender blockAppender;
     private final long blockSize;
@@ -442,7 +442,7 @@ public class RFile {
     private RollingStats keyLenStats = new RollingStats(2017);
     private double averageKeySize = 0;
 
-    LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize,
+    LocalityGroupWriter(CachableBlockFile.Writer fileWriter, long blockSize, long maxBlockSize,
         LocalityGroupMetadata currentLocalityGroup, SampleLocalityGroupWriter sample) {
       this.fileWriter = fileWriter;
       this.blockSize = blockSize;
@@ -553,7 +553,7 @@ public class RFile {
     public static final int MAX_CF_IN_DLG = 1000;
     private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
-    private BlockFileWriter fileWriter;
+    private CachableBlockFile.Writer fileWriter;
 
     // private BlockAppender blockAppender;
     private final long blockSize;
@@ -577,12 +577,12 @@ public class RFile {
     private SamplerConfigurationImpl samplerConfig;
     private Sampler sampler;
 
-    public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
+    public Writer(CachableBlockFile.Writer bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) DefaultConfiguration.getInstance()
           .getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
     }
 
-    public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize,
+    public Writer(CachableBlockFile.Writer bfw, int blockSize, int indexBlockSize,
         SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
       this.blockSize = blockSize;
       this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
@@ -602,7 +602,7 @@ public class RFile {
 
       closeData();
 
-      ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
+      BCFile.Writer.BlockAppender mba = fileWriter.prepareMetaBlock("RFile.index");
 
       mba.writeInt(RINDEX_MAGIC);
       mba.writeInt(RINDEX_VER_8);

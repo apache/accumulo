@@ -36,10 +36,9 @@ import java.util.Map;
 import java.util.RandomAccess;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.file.blockfile.ABlockWriter;
-import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.hadoop.io.WritableComparable;
 
@@ -508,9 +507,9 @@ public class MultiLevelIndex {
 
     private boolean addedLast = false;
 
-    private BlockFileWriter blockFileWriter;
+    private CachableBlockFile.Writer blockFileWriter;
 
-    Writer(BlockFileWriter blockFileWriter, int maxBlockSize) {
+    Writer(CachableBlockFile.Writer blockFileWriter, int maxBlockSize) {
       this.blockFileWriter = blockFileWriter;
       this.threshold = maxBlockSize;
       levels = new ArrayList<>();
@@ -534,7 +533,7 @@ public class MultiLevelIndex {
 
       IndexBlock iblock = levels.get(level);
       if ((iblock.getSize() > threshold && iblock.offsets.size() > 1) || last) {
-        ABlockWriter out = blockFileWriter.prepareDataBlock();
+        BCFile.Writer.BlockAppender out = blockFileWriter.prepareDataBlock();
         iblock.setHasNext(!last);
         iblock.write(out);
         out.close();
