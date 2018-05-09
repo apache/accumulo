@@ -708,7 +708,7 @@ public enum Property {
           + " to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
       "Compression algorithm used on index and data blocks before they are"
-          + " written. Possible values: zst, gz, snappy, lzo, none"),
+          + " written. Possible values: zstd, gz, snappy, lzo, none"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.BYTES,
       "The maximum size of data blocks in RFiles before they are compressed and written."),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K",

@@ -77,7 +77,7 @@ public final class Compression {
   }
 
   /** compression: zStandard */
-  public static final String COMPRESSION_ZSTD = "zst";
+  public static final String COMPRESSION_ZSTD = "zstd";
   /** snappy codec **/
   public static final String COMPRESSION_SNAPPY = "snappy";
   /** compression: gzip */
@@ -462,7 +462,7 @@ public final class Compression {
 
     ZSTANDARD(COMPRESSION_ZSTD) {
       // Use base type to avoid compile-time dependencies.
-      private transient CompressionCodec zstCodec = null;
+      private transient CompressionCodec zstdCodec = null;
       /**
        * determines if we've checked the codec status. ensures we don't recreate the default codec
        */
@@ -481,14 +481,14 @@ public final class Compression {
 
       @Override
       public CompressionCodec getCodec() {
-        return zstCodec;
+        return zstdCodec;
       }
 
       @Override
       public void initializeDefaultCodec() {
         if (!checked.get()) {
           checked.set(true);
-          zstCodec = createNewCodec(DEFAULT_BUFFER_SIZE);
+          zstdCodec = createNewCodec(DEFAULT_BUFFER_SIZE);
         }
       }
 
@@ -539,7 +539,7 @@ public final class Compression {
           bos1 = downStream;
         }
         // use the default codec
-        CompressionOutputStream cos = zstCodec.createOutputStream(bos1, compressor);
+        CompressionOutputStream cos = zstdCodec.createOutputStream(bos1, compressor);
         BufferedOutputStream bos2 = new BufferedOutputStream(
             new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
@@ -554,7 +554,7 @@ public final class Compression {
                   + CONF_ZSTD_CLASS + "?");
         }
 
-        CompressionCodec decomCodec = zstCodec;
+        CompressionCodec decomCodec = zstdCodec;
         // if we're not using the same buffer size, we'll pull the codec from the loading cache
         if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
           Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(ZSTANDARD, downStreamBufferSize);
@@ -572,7 +572,7 @@ public final class Compression {
 
       @Override
       public boolean isSupported() {
-        return zstCodec != null;
+        return zstdCodec != null;
       }
     };
 
