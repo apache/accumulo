@@ -304,7 +304,7 @@ public class VersioningIteratorTest {
     it.seek(testRange, EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertTrue(it.getTopValue().equals("00".getBytes()));
+    assertTrue(it.getTopValue().equals(new Value("00".getBytes())));
     it.next();
     assertFalse(it.hasTop());
   }

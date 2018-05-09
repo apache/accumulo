@@ -153,6 +153,11 @@ public class SortedLogRecovery {
       return next;
     }
 
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException("remove");
+    }
+
   }
 
   private long findLastStartToFinish(List<Path> recoveryLogs, Set<String> tabletFiles, int tabletId)
