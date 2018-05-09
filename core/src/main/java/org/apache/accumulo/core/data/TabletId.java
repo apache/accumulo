@@ -25,17 +25,17 @@ import org.apache.hadoop.io.Text;
  * @since 1.7.0
  */
 public interface TabletId extends Comparable<TabletId> {
-  public Text getTableId();
+  Text getTableId();
 
-  public Text getEndRow();
+  Text getEndRow();
 
-  public Text getPrevEndRow();
+  Text getPrevEndRow();
 
   /**
    * @return a range based on the row range of the tablet. The range will cover
    *         {@code (<prev end row>, <end row>]}.
    * @since 1.8.0
    */
-  public Range toRange();
+  Range toRange();
 
 }

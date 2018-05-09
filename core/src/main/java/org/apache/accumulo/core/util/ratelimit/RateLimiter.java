@@ -20,8 +20,8 @@ public interface RateLimiter {
   /**
    * Get current QPS of the rate limiter, with a nonpositive rate indicating no limit.
    */
-  public long getRate();
+  long getRate();
 
   /** Sleep until the specified number of queries are available. */
-  public void acquire(long permits);
+  void acquire(long permits);
 }

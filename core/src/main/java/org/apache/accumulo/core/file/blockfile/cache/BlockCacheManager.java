@@ -32,7 +32,7 @@ public abstract class BlockCacheManager {
 
   public static final String CACHE_PROPERTY_BASE = Property.TSERV_PREFIX + "cache.config.";
 
-  public static interface Configuration {
+  public interface Configuration {
 
     /**
      * Before Accumulo's cache implementation was configurable, its built in caches had a

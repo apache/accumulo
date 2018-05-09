@@ -45,7 +45,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
    *
    * @since 1.6.0
    */
-  public static final class AuthenticationTokenSerializer {
+  final class AuthenticationTokenSerializer {
     /**
      * A convenience method to create tokens from serialized bytes, created by
      * {@link #serialize(AuthenticationToken)}
@@ -253,7 +253,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
   }
 
-  static class TokenProperty implements Comparable<TokenProperty> {
+  class TokenProperty implements Comparable<TokenProperty> {
     private String key, description;
     private boolean masked;
 
@@ -298,9 +298,9 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
   }
 
-  public void init(Properties properties);
+  void init(Properties properties);
 
-  public Set<TokenProperty> getProperties();
+  Set<TokenProperty> getProperties();
 
-  public AuthenticationToken clone();
+  AuthenticationToken clone();
 }

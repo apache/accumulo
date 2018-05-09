@@ -90,7 +90,7 @@ public interface ConditionalWriter extends AutoCloseable {
     }
   }
 
-  public static enum Status {
+  enum Status {
     /**
      * conditions were met and mutation was written
      */

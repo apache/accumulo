@@ -167,8 +167,8 @@ import org.apache.accumulo.core.data.Value;
  */
 public interface Summarizer {
 
-  public static interface StatisticConsumer {
-    public void accept(String statistic, long value);
+  interface StatisticConsumer {
+    void accept(String statistic, long value);
   }
 
   /**
@@ -179,7 +179,7 @@ public interface Summarizer {
    *
    * @since 2.0.0
    */
-  public static interface Collector {
+  interface Collector {
     /**
      * During compactions, Accumulo passes each Key Value written to the file to this method.
      */
@@ -201,7 +201,7 @@ public interface Summarizer {
      * @param sc
      *          Emit statistics to this Object.
      */
-    public void summarize(StatisticConsumer sc);
+    void summarize(StatisticConsumer sc);
   }
 
   /**
@@ -211,7 +211,7 @@ public interface Summarizer {
    *
    * @since 2.0.0
    */
-  public static interface Combiner {
+  interface Combiner {
     /**
      * This method should merge the statistics in the second map into the first map. Both maps may
      * have statistics produced by a {@link Collector} or previous calls to this method.
@@ -220,7 +220,7 @@ public interface Summarizer {
      * If first map is too large after this call, then it may not be stored. See the comment on
      * {@link Collector#summarize(Summarizer.StatisticConsumer)}
      */
-    public void merge(Map<String,Long> statistics1, Map<String,Long> statistics2);
+    void merge(Map<String, Long> statistics1, Map<String, Long> statistics2);
   }
 
   /**
@@ -228,11 +228,11 @@ public interface Summarizer {
    * created by this method should be independent and have its own internal state. Accumulo uses a
    * Collector to generate summary statistics about a sequence of key values written to a file.
    */
-  public Collector collector(SummarizerConfiguration sc);
+  Collector collector(SummarizerConfiguration sc);
 
   /**
    * Factory method that creates a {@link Combiner}. Accumulo will only use the created Combiner to
    * merge data from {@link Collector}s created using the same {@link SummarizerConfiguration}.
    */
-  public Combiner combiner(SummarizerConfiguration sc);
+  Combiner combiner(SummarizerConfiguration sc);
 }

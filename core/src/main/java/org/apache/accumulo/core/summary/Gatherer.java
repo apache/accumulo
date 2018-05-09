@@ -497,7 +497,7 @@ public class Gatherer {
     return future;
   }
 
-  public static interface FileSystemResolver {
+  public interface FileSystemResolver {
     FileSystem get(Path file);
   }
 

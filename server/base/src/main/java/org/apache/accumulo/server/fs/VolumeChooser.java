@@ -44,7 +44,7 @@ public interface VolumeChooser {
    */
   String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
 
-  public static class VolumeChooserException extends RuntimeException {
+  class VolumeChooserException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 

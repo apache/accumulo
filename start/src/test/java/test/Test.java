@@ -18,8 +18,8 @@ package test;
 
 public interface Test {
 
-  public String hello();
+  String hello();
 
-  public int add();
+  int add();
 
 }

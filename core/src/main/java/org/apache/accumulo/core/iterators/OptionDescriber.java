@@ -34,7 +34,7 @@ import java.util.Map;
  *
  */
 public interface OptionDescriber {
-  public class IteratorOptions {
+  class IteratorOptions {
     public LinkedHashMap<String,String> namedOptions;
     public ArrayList<String> unnamedOptionDescriptions;
     public String name;

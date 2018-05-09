@@ -253,7 +253,7 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link FileAccessOperation}. */
-  protected static interface FileAccessOperationBuilder<SubbuilderType>
+  protected interface FileAccessOperationBuilder<SubbuilderType>
       extends NeedsFile<SubbuilderType>, NeedsFileSystem<SubbuilderType>,
       NeedsTableConfiguration<SubbuilderType> {
     // no optional/generic methods.
@@ -276,10 +276,10 @@ public abstract class FileOperations {
    * Builder interface for {@link GetFileSizeOperation}, allowing execution of {@code getFileSize()}
    * operations.
    */
-  public static interface GetFileSizeOperationBuilder
+  public interface GetFileSizeOperationBuilder
       extends FileAccessOperationBuilder<GetFileSizeOperationBuilder> {
     /** Return the size of the file. */
-    public long execute() throws IOException;
+    long execute() throws IOException;
   }
 
   /**
@@ -302,10 +302,10 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link FileIOOperation}. */
-  protected static interface FileIOOperationBuilder<SubbuilderType>
+  protected interface FileIOOperationBuilder<SubbuilderType>
       extends FileAccessOperationBuilder<SubbuilderType> {
     /** Specify a rate limiter for this operation. */
-    public SubbuilderType withRateLimiter(RateLimiter rateLimiter);
+    SubbuilderType withRateLimiter(RateLimiter rateLimiter);
   }
 
   /**
@@ -368,10 +368,10 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link OpenWriterOperation}. */
-  public static interface OpenWriterOperationBuilder
+  public interface OpenWriterOperationBuilder
       extends FileIOOperationBuilder<OpenWriterOperationBuilder> {
     /** Set the compression type. */
-    public OpenWriterOperationBuilder withCompression(String compression);
+    OpenWriterOperationBuilder withCompression(String compression);
 
     /**
      * Classes may be instantiated as part of a write operation. For example if BloomFilters,
@@ -380,10 +380,10 @@ public abstract class FileOperations {
      * start should not be used. This method makes it possible to specify if Accumulo Start should
      * be used to load classes. Calling this method is optional and the default is true.
      */
-    public OpenWriterOperationBuilder setAccumuloStartEnabled(boolean enableAccumuloStart);
+    OpenWriterOperationBuilder setAccumuloStartEnabled(boolean enableAccumuloStart);
 
     /** Construct the writer. */
-    public FileSKVWriter build() throws IOException;
+    FileSKVWriter build() throws IOException;
   }
 
   /**
@@ -431,21 +431,21 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link FileReaderOperation}. */
-  protected static interface FileReaderOperationBuilder<SubbuilderType>
+  protected interface FileReaderOperationBuilder<SubbuilderType>
       extends FileIOOperationBuilder<SubbuilderType> {
     /**
      * (Optional) Set the block cache pair to be used to optimize reads within the constructed
      * reader.
      */
-    public SubbuilderType withBlockCache(BlockCache dataCache, BlockCache indexCache);
+    SubbuilderType withBlockCache(BlockCache dataCache, BlockCache indexCache);
 
     /** (Optional) set the data cache to be used to optimize reads within the constructed reader. */
-    public SubbuilderType withDataCache(BlockCache dataCache);
+    SubbuilderType withDataCache(BlockCache dataCache);
 
     /**
      * (Optional) set the index cache to be used to optimize reads within the constructed reader.
      */
-    public SubbuilderType withIndexCache(BlockCache indexCache);
+    SubbuilderType withIndexCache(BlockCache indexCache);
   }
 
   /**
@@ -461,10 +461,10 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link OpenIndexOperation}. */
-  public static interface OpenIndexOperationBuilder
+  public interface OpenIndexOperationBuilder
       extends FileReaderOperationBuilder<OpenIndexOperationBuilder> {
     /** Construct the reader. */
-    public FileSKVIterator build() throws IOException;
+    FileSKVIterator build() throws IOException;
   }
 
   /** Operation object for opening a scan reader. */
@@ -514,11 +514,11 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link OpenScanReaderOperation}. */
-  public static interface OpenScanReaderOperationBuilder
+  public interface OpenScanReaderOperationBuilder
       extends FileReaderOperationBuilder<OpenScanReaderOperationBuilder>,
       NeedsRange<OpenScanReaderOperationBuilder> {
     /** Execute the operation, constructing a scan iterator. */
-    public FileSKVIterator build() throws IOException;
+    FileSKVIterator build() throws IOException;
   }
 
   /** Operation object for opening a full reader. */
@@ -555,64 +555,64 @@ public abstract class FileOperations {
   }
 
   /** Builder parallel to {@link OpenReaderOperation}. */
-  public static interface OpenReaderOperationBuilder
+  public interface OpenReaderOperationBuilder
       extends FileReaderOperationBuilder<OpenReaderOperationBuilder> {
     /**
      * Seek the constructed iterator to the beginning of its domain before returning. Equivalent to
      * {@code seekToBeginning(true)}.
      */
-    public OpenReaderOperationBuilder seekToBeginning();
+    OpenReaderOperationBuilder seekToBeginning();
 
     /** If true, seek the constructed iterator to the beginning of its domain before returning. */
-    public OpenReaderOperationBuilder seekToBeginning(boolean seekToBeginning);
+    OpenReaderOperationBuilder seekToBeginning(boolean seekToBeginning);
 
     /** Execute the operation, constructing the specified file reader. */
-    public FileSKVIterator build() throws IOException;
+    FileSKVIterator build() throws IOException;
   }
 
   /**
    * Type wrapper to ensure that {@code forFile(...)} is called before other methods.
    */
-  public static interface NeedsFile<ReturnType> {
+  public interface NeedsFile<ReturnType> {
     /** Specify the file this operation should apply to. */
-    public NeedsTableConfiguration<ReturnType> forFile(String filename, FileSystem fs,
-        Configuration fsConf);
+    NeedsTableConfiguration<ReturnType> forFile(String filename, FileSystem fs,
+                                                Configuration fsConf);
 
     /** Specify the file this operation should apply to. */
-    public NeedsFileSystem<ReturnType> forFile(String filename);
+    NeedsFileSystem<ReturnType> forFile(String filename);
   }
 
-  public static interface NeedsFileOrOuputStream<ReturnType> extends NeedsFile<ReturnType> {
+  public interface NeedsFileOrOuputStream<ReturnType> extends NeedsFile<ReturnType> {
     /** Specify the file this operation should apply to. */
-    public NeedsTableConfiguration<ReturnType> forOutputStream(String extenstion,
-        FSDataOutputStream out, Configuration fsConf);
+    NeedsTableConfiguration<ReturnType> forOutputStream(String extenstion,
+                                                        FSDataOutputStream out, Configuration fsConf);
   }
 
   /**
    * Type wrapper to ensure that {@code inFileSystem(...)} is called before other methods.
    */
-  public static interface NeedsFileSystem<ReturnType> {
+  public interface NeedsFileSystem<ReturnType> {
     /**
      * Specify the {@link FileSystem} that this operation operates on, along with an alternate
      * configuration.
      */
-    public NeedsTableConfiguration<ReturnType> inFileSystem(FileSystem fs, Configuration fsConf);
+    NeedsTableConfiguration<ReturnType> inFileSystem(FileSystem fs, Configuration fsConf);
   }
 
   /**
    * Type wrapper to ensure that {@code withTableConfiguration(...)} is called before other methods.
    */
-  public static interface NeedsTableConfiguration<ReturnType> {
+  public interface NeedsTableConfiguration<ReturnType> {
     /** Specify the table configuration defining access to this file. */
-    public ReturnType withTableConfiguration(AccumuloConfiguration tableConfiguration);
+    ReturnType withTableConfiguration(AccumuloConfiguration tableConfiguration);
   }
 
   /**
    * Type wrapper to ensure that {@code overRange(...)} is called before other methods.
    */
-  public static interface NeedsRange<ReturnType> {
+  public interface NeedsRange<ReturnType> {
     /** Set the range over which the constructed iterator will search. */
-    public ReturnType overRange(Range range, Set<ByteSequence> columnFamilies, boolean inclusive);
+    ReturnType overRange(Range range, Set<ByteSequence> columnFamilies, boolean inclusive);
   }
 
 }

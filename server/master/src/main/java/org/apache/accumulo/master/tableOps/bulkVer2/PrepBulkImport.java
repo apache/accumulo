@@ -100,7 +100,7 @@ public class PrepBulkImport extends MasterRepo {
   }
 
   @VisibleForTesting
-  static interface TabletIterFactory {
+  interface TabletIterFactory {
     Iterator<KeyExtent> newTabletIter(Text startRow) throws Exception;
   }
 

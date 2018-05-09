@@ -39,7 +39,7 @@ public interface ReplicationOperations {
    * @param replicaType
    *          Class name to use to replicate the data
    */
-  public void addPeer(String name, String replicaType)
+  void addPeer(String name, String replicaType)
       throws AccumuloException, AccumuloSecurityException, PeerExistsException;
 
   /**
@@ -48,7 +48,7 @@ public interface ReplicationOperations {
    * @param name
    *          Name of the cluster to remove
    */
-  public void removePeer(String name)
+  void removePeer(String name)
       throws AccumuloException, AccumuloSecurityException, PeerNotFoundException;
 
   /**
@@ -58,7 +58,7 @@ public interface ReplicationOperations {
    * @param tableName
    *          The table to wait for
    */
-  public void drain(String tableName)
+  void drain(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
@@ -69,7 +69,7 @@ public interface ReplicationOperations {
    * @param tableName
    *          The table to wait for
    */
-  public void drain(String tableName, Set<String> files)
+  void drain(String tableName, Set<String> files)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
@@ -81,6 +81,6 @@ public interface ReplicationOperations {
    * provide that {@link Set} to {@link #drain(String,Set)} to wait for all of those files to be
    * replicated.
    */
-  public Set<String> referencedFiles(String tableName)
+  Set<String> referencedFiles(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 }

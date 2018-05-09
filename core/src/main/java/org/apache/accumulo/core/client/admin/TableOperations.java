@@ -622,7 +622,7 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  public static interface ImportSourceOptions {
+  interface ImportSourceOptions {
     ImportSourceOptions settingLogicalTime();
 
     void load()
@@ -632,7 +632,7 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  public static interface ImportExecutorOptions extends ImportSourceOptions {
+  interface ImportExecutorOptions extends ImportSourceOptions {
     /**
      * Files are examined to determine where to load them. This examination is done in the current
      * process using multiple threads. If this property is not set, then the client property
@@ -659,7 +659,7 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  public static interface ImportSourceArguments {
+  interface ImportSourceArguments {
     /**
      *
      * @param directory

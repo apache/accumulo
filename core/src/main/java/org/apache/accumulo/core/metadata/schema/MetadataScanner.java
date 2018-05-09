@@ -48,13 +48,13 @@ import com.google.common.base.Preconditions;
 
 public class MetadataScanner {
 
-  public static interface SourceOptions {
+  public interface SourceOptions {
     TableOptions from(Scanner scanner);
 
     TableOptions from(ClientContext ctx);
   }
 
-  public static interface TableOptions {
+  public interface TableOptions {
     ColumnOptions overRootTable();
 
     ColumnOptions overMetadataTable();
@@ -64,18 +64,18 @@ public class MetadataScanner {
     ColumnOptions overUserTableId(Table.ID tableId, Text startRow, Text endRow);
   }
 
-  public static interface ColumnOptions {
-    public ColumnOptions fetchFiles();
+  public interface ColumnOptions {
+    ColumnOptions fetchFiles();
 
-    public ColumnOptions fetchLoaded();
+    ColumnOptions fetchLoaded();
 
-    public ColumnOptions fetchLocation();
+    ColumnOptions fetchLocation();
 
-    public ColumnOptions fetchPrev();
+    ColumnOptions fetchPrev();
 
-    public ColumnOptions fetchLast();
+    ColumnOptions fetchLast();
 
-    public Iterable<TabletMetadata> build()
+    Iterable<TabletMetadata> build()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
   }
 

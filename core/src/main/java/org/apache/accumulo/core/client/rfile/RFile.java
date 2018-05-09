@@ -56,7 +56,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface InputArguments {
+  public interface InputArguments {
     /**
      * Specify RFiles to read from. When multiple inputs are specified the {@link Scanner}
      * constructed will present a merged view.
@@ -84,7 +84,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface ScannerFSOptions extends ScannerOptions {
+  public interface ScannerFSOptions extends ScannerOptions {
     /**
      * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be
      * constructed using configuration on the classpath.
@@ -102,7 +102,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface ScannerOptions {
+  public interface ScannerOptions {
 
     /**
      * By default the {@link Scanner} created will setup the default Accumulo system iterators. The
@@ -127,7 +127,7 @@ public class RFile {
      *
      * @return this
      */
-    public ScannerOptions withoutSystemIterators();
+    ScannerOptions withoutSystemIterators();
 
     /**
      * The authorizations passed here will be used to filter Keys, from the {@link Scanner}, based
@@ -137,7 +137,7 @@ public class RFile {
      *          scan with these authorizations
      * @return this
      */
-    public ScannerOptions withAuthorizations(Authorizations auths);
+    ScannerOptions withAuthorizations(Authorizations auths);
 
     /**
      * Enabling this option will cache RFiles data in memory. This option is useful when doing lots
@@ -147,7 +147,7 @@ public class RFile {
      *          the size of the data cache in bytes.
      * @return this
      */
-    public ScannerOptions withDataCache(long cacheSize);
+    ScannerOptions withDataCache(long cacheSize);
 
     /**
      * Enabling this option will cache RFiles indexes in memory. Index data within a RFile is used
@@ -158,7 +158,7 @@ public class RFile {
      *          the size of the index cache in bytes.
      * @return this
      */
-    public ScannerOptions withIndexCache(long cacheSize);
+    ScannerOptions withIndexCache(long cacheSize);
 
     /**
      * This option allows limiting the {@link Scanner} from reading data outside of a given range. A
@@ -167,7 +167,7 @@ public class RFile {
      *
      * @return this
      */
-    public ScannerOptions withBounds(Range range);
+    ScannerOptions withBounds(Range range);
 
     /**
      * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for
@@ -177,7 +177,7 @@ public class RFile {
      *          iterable over Accumulo table key value properties.
      * @return this
      */
-    public ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
+    ScannerOptions withTableProperties(Iterable<Entry<String, String>> props);
 
     /**
      * @see #withTableProperties(Iterable)
@@ -185,12 +185,12 @@ public class RFile {
      *          a map instead of an Iterable
      * @return this
      */
-    public ScannerOptions withTableProperties(Map<String,String> props);
+    ScannerOptions withTableProperties(Map<String, String> props);
 
     /**
      * @return a Scanner over RFile using the specified options.
      */
-    public Scanner build();
+    Scanner build();
   }
 
   /**
@@ -206,7 +206,7 @@ public class RFile {
    *
    * @since 2.0.0
    */
-  public static interface SummaryInputArguments {
+  public interface SummaryInputArguments {
     /**
      * Specify RFiles to read from. When multiple inputs are specified the summary data will be
      * merged.
@@ -233,7 +233,7 @@ public class RFile {
    *
    * @since 2.0.0
    */
-  public static interface SummaryFSOptions extends SummaryOptions {
+  public interface SummaryFSOptions extends SummaryOptions {
     /**
      * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be
      * constructed using configuration on the classpath.
@@ -251,7 +251,7 @@ public class RFile {
    *
    * @since 2.0.0
    */
-  public static interface SummaryOptions {
+  public interface SummaryOptions {
     /**
      * This method allows retrieving a subset of summary data from a file. If a file has lots of
      * separate summaries, reading a subset may be faster.
@@ -330,20 +330,20 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface OutputArguments {
+  public interface OutputArguments {
     /**
      * @param filename
      *          name of file to write RFile data
      * @return this
      */
-    public WriterFSOptions to(String filename);
+    WriterFSOptions to(String filename);
 
     /**
      * @param out
      *          output stream to write RFile data
      * @return this
      */
-    public WriterOptions to(OutputStream out);
+    WriterOptions to(OutputStream out);
   }
 
   /**
@@ -352,7 +352,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface WriterFSOptions extends WriterOptions {
+  public interface WriterFSOptions extends WriterOptions {
     /**
      * Optionally provide a FileSystem to open a file to write a RFile. If not specified, the
      * FileSystem will be constructed using configuration on the classpath.
@@ -370,7 +370,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface WriterOptions {
+  public interface WriterOptions {
 
     /**
      * Enable generating summary data in the created RFile by running {@link Summarizer}'s based on
@@ -380,7 +380,7 @@ public class RFile {
      *          Configuration for summarizer to run.
      * @since 2.0.0
      */
-    public WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf);
+    WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf);
 
     /**
      * An option to store sample data in the generated RFile.
@@ -392,7 +392,7 @@ public class RFile {
      *           a sampler.
      * @return this
      */
-    public WriterOptions withSampler(SamplerConfiguration samplerConf);
+    WriterOptions withSampler(SamplerConfiguration samplerConf);
 
     /**
      * Create an RFile using the same configuration as an Accumulo table. Properties for a table can
@@ -405,12 +405,12 @@ public class RFile {
      *           sampler.
      * @return this
      */
-    public WriterOptions withTableProperties(Iterable<Entry<String,String>> props);
+    WriterOptions withTableProperties(Iterable<Entry<String, String>> props);
 
     /**
      * @see #withTableProperties(Iterable)
      */
-    public WriterOptions withTableProperties(Map<String,String> props);
+    WriterOptions withTableProperties(Map<String, String> props);
 
     /**
      * @param maxSize
@@ -420,12 +420,12 @@ public class RFile {
      *          cache.
      * @return this
      */
-    public WriterOptions withVisibilityCacheSize(int maxSize);
+    WriterOptions withVisibilityCacheSize(int maxSize);
 
     /**
      * @return a new RfileWriter created with the options previously specified.
      */
-    public RFileWriter build() throws IOException;
+    RFileWriter build() throws IOException;
   }
 
   /**

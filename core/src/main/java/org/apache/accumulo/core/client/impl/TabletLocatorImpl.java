@@ -112,7 +112,7 @@ public class TabletLocatorImpl extends TabletLocator {
         throws AccumuloSecurityException, AccumuloException;
   }
 
-  public static interface TabletServerLockChecker {
+  public interface TabletServerLockChecker {
     boolean isLockHeld(String tserver, String session);
 
     void invalidateCache(String server);
