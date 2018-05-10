@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -336,7 +335,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return tableId;
   }
 
-  public Instance getInstance(ClientConfiguration base) {
+  @Deprecated
+  public Instance getInstance(org.apache.accumulo.core.client.ClientConfiguration base) {
     if (null == instanceName) {
       return null;
     }
@@ -381,6 +381,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.token = token;
   }
 
+  @Deprecated
   public void setToken(String tokenFile) {
     this.tokenSource = TokenSource.FILE;
     this.tokenFile = tokenFile;

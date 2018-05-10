@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -38,7 +37,6 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.client.impl.ConnectionInfoFactory;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
@@ -89,10 +87,9 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          Accumulo connection information
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo info)
-      throws AccumuloSecurityException {
-    setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
-    setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
+  public static void setConnectionInfo(JobConf job, ConnectionInfo info) {
+    ConnectionInfo outInfo = OutputConfigurator.updateToken(job.getCredentials(), info);
+    OutputConfigurator.setConnectionInfo(CLASS, job, outInfo);
   }
 
   /**
@@ -225,7 +222,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @deprecated since 2.0.0; Use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead.
    */
   @Deprecated
-  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(JobConf job,
+      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     OutputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
   }
 
