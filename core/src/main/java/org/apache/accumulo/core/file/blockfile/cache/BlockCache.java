@@ -45,7 +45,7 @@ public interface BlockCache {
    */
   CacheEntry getBlock(String blockName);
 
-  public static interface Loader {
+  interface Loader {
     /**
      * The cache blocks that this loader depends on. If a loader has no dependencies, then it should
      * return an empty map. All dependencies must be loaded before calling {@link #load(int, Map)}.

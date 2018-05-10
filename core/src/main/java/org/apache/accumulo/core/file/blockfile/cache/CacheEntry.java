@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 
 public interface CacheEntry {
 
-  public static interface Weighbable {
+  interface Weighbable {
     int weight();
   }
 

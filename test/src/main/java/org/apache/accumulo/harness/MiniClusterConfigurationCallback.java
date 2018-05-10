@@ -25,7 +25,7 @@ import org.apache.hadoop.conf.Configuration;
  */
 public interface MiniClusterConfigurationCallback {
 
-  public static class NoCallback implements MiniClusterConfigurationCallback {
+  class NoCallback implements MiniClusterConfigurationCallback {
 
     private NoCallback() {}
 
@@ -35,7 +35,7 @@ public interface MiniClusterConfigurationCallback {
     }
   }
 
-  public static final MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
+  MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
 
   void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
 

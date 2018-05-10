@@ -28,12 +28,12 @@ public interface Volume {
   /**
    * A {@link FileSystem} that Accumulo will use
    */
-  public FileSystem getFileSystem();
+  FileSystem getFileSystem();
 
   /**
    * The base path which Accumulo will use within the given {@link FileSystem}
    */
-  public String getBasePath();
+  String getBasePath();
 
   /**
    * Convert the given Path into a Path that is relative to the base path for this Volume
@@ -42,7 +42,7 @@ public interface Volume {
    *          The suffix to use
    * @return A Path for this Volume with the provided suffix
    */
-  public Path prefixChild(Path p);
+  Path prefixChild(Path p);
 
   /**
    * Convert the given child path into a Path that is relative to the base path for this Volume
@@ -51,11 +51,11 @@ public interface Volume {
    *          The suffix to use
    * @return A Path for this Volume with the provided suffix
    */
-  public Path prefixChild(String p);
+  Path prefixChild(String p);
 
   /**
    * Determine if the Path is valid on this Volume. A Path is valid if it is contained in the
    * Volume's FileSystem and is rooted beneath the basePath
    */
-  public boolean isValidPath(Path p);
+  boolean isValidPath(Path p);
 }

@@ -68,14 +68,14 @@ public class SharedRateLimiterFactory {
   /**
    * A callback which provides the current rate for a {@link RateLimiter}.
    */
-  public static interface RateProvider {
+  public interface RateProvider {
     /**
      * Calculate the current rate for the {@link RateLimiter}.
      *
      * @return Count of permits which should be provided per second. A nonpositive count is taken to
      *         indicate that no rate limiting should be performed.
      */
-    public long getDesiredRate();
+    long getDesiredRate();
   }
 
   /**

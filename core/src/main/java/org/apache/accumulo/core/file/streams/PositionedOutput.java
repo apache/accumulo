@@ -23,5 +23,5 @@ import java.io.IOException;
  * sunk.
  */
 public interface PositionedOutput {
-  public long position() throws IOException;
+  long position() throws IOException;
 }

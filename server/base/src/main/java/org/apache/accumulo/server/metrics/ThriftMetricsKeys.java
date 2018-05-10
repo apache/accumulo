@@ -18,7 +18,7 @@ package org.apache.accumulo.server.metrics;
 
 public interface ThriftMetricsKeys {
 
-  static String idle = "idle";
-  static String execute = "execute";
+  String idle = "idle";
+  String execute = "execute";
 
 }

@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.permission.FsPermission;
  */
 public interface VolumeManager {
 
-  public static enum FileType {
+  enum FileType {
     TABLE(ServerConstants.TABLE_DIR),
     WAL(ServerConstants.WAL_DIR),
     RECOVERY(ServerConstants.RECOVERY_DIR);
@@ -172,11 +172,11 @@ public interface VolumeManager {
   /**
    * Fetch the default Volume
    */
-  public Volume getDefaultVolume();
+  Volume getDefaultVolume();
 
   /**
    * Fetch the configured Volumes, excluding the default Volume
    */
-  public Collection<Volume> getVolumes();
+  Collection<Volume> getVolumes();
 
 }

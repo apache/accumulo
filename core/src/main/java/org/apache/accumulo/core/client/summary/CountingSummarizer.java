@@ -174,12 +174,12 @@ public abstract class CountingSummarizer<K> implements Summarizer {
    *
    * @since 2.0.0
    */
-  public static interface Converter<K> {
+  public interface Converter<K> {
     /**
      * @param consumer
      *          emit counter objects derived from key and value to this consumer
      */
-    public void convert(Key k, Value v, Consumer<K> consumer);
+    void convert(Key k, Value v, Consumer<K> consumer);
   }
 
   /**

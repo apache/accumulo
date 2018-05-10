@@ -148,7 +148,7 @@ public class CachableBlockFile {
 
   }
 
-  private static interface IoeSupplier<T> {
+  private interface IoeSupplier<T> {
     T get() throws IOException;
   }
 

@@ -46,7 +46,7 @@ import org.apache.hadoop.io.WritableUtils;
 
 public class SummaryReader {
 
-  private static interface BlockReader {
+  private interface BlockReader {
     DataInputStream getMetaBlock(String name) throws IOException;
   }
 

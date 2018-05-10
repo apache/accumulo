@@ -24,7 +24,7 @@ public interface ReplicationMetricsMBean {
    *
    * @return The number of files pending replication across all targets
    */
-  public int getNumFilesPendingReplication();
+  int getNumFilesPendingReplication();
 
   /**
    * The total number of threads available to replicate data to peers. Each TabletServer has a
@@ -33,7 +33,7 @@ public interface ReplicationMetricsMBean {
    *
    * @return The number of threads available to replicate data across the instance
    */
-  public int getMaxReplicationThreads();
+  int getMaxReplicationThreads();
 
   /**
    * Peers are systems which data can be replicated to. This is the number of peers that are
@@ -42,6 +42,6 @@ public interface ReplicationMetricsMBean {
    *
    * @return The number of peers/targets which are defined for data to be replicated to.
    */
-  public int getNumConfiguredPeers();
+  int getNumConfiguredPeers();
 
 }

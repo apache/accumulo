@@ -257,7 +257,7 @@ public class MetadataTableUtil {
     }
   }
 
-  private static interface ZooOperation {
+  private interface ZooOperation {
     void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException;
   }
 

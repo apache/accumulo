@@ -33,7 +33,7 @@ import java.util.Map;
  * is intended to throw an exception or return false if the options are not acceptable.
  */
 public interface OptionDescriber {
-  public class IteratorOptions {
+  class IteratorOptions {
     public LinkedHashMap<String,String> namedOptions;
     public ArrayList<String> unnamedOptionDescriptions;
     public String name;

@@ -171,11 +171,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   }
 
-  public static interface RowBufferFactory {
+  public interface RowBufferFactory {
     RowBuffer newBuffer();
   }
 
-  public static interface RowBuffer extends Iterable<Entry<Key,Value>> {
+  public interface RowBuffer extends Iterable<Entry<Key,Value>> {
     void add(Entry<Key,Value> entry);
 
     @Override

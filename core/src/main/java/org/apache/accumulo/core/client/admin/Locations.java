@@ -35,13 +35,13 @@ public interface Locations {
    * For all of the ranges passed to {@link TableOperations#locate(String, java.util.Collection)},
    * return a map of the tablets each range overlaps.
    */
-  public Map<Range,List<TabletId>> groupByRange();
+  Map<Range,List<TabletId>> groupByRange();
 
   /**
    * For all of the ranges passed to {@link TableOperations#locate(String, java.util.Collection)},
    * return a map of the ranges each tablet overlaps.
    */
-  public Map<TabletId,List<Range>> groupByTablet();
+  Map<TabletId,List<Range>> groupByTablet();
 
   /**
    * For any {@link TabletId} known to this object, the method will return the tablet server
@@ -49,5 +49,5 @@ public interface Locations {
    *
    * @return A tablet server location in the form of {@code <host>:<port>}
    */
-  public String getTabletLocation(TabletId tabletId);
+  String getTabletLocation(TabletId tabletId);
 }

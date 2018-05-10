@@ -21,12 +21,12 @@ package org.apache.accumulo.tserver.metrics;
  */
 public interface TabletServerUpdateMetricsKeys {
 
-  static String PERMISSION_ERRORS = "permissionErrors";
-  static String UNKNOWN_TABLET_ERRORS = "unknownTabletErrors";
-  static String MUTATION_ARRAY_SIZE = "mutationArraysSize";
-  static String COMMIT_PREP = "commitPrep";
-  static String CONSTRAINT_VIOLATIONS = "constraintViolations";
-  static String WALOG_WRITE_TIME = "waLogWriteTime";
-  static String COMMIT_TIME = "commitTime";
+  String PERMISSION_ERRORS = "permissionErrors";
+  String UNKNOWN_TABLET_ERRORS = "unknownTabletErrors";
+  String MUTATION_ARRAY_SIZE = "mutationArraysSize";
+  String COMMIT_PREP = "commitPrep";
+  String CONSTRAINT_VIOLATIONS = "constraintViolations";
+  String WALOG_WRITE_TIME = "waLogWriteTime";
+  String COMMIT_TIME = "commitTime";
 
 }

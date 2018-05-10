@@ -255,8 +255,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         .assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
   }
 
-  private static interface TServerKiller {
-    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+  private interface TServerKiller {
+    void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
         throws Exception;
   }
 

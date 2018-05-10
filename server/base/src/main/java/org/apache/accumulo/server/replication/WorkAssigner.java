@@ -27,15 +27,15 @@ public interface WorkAssigner {
   /**
    * @return The name for this WorkAssigner
    */
-  public String getName();
+  String getName();
 
   /**
    * Configure the WorkAssigner implementation
    */
-  public void configure(AccumuloConfiguration conf, Connector conn);
+  void configure(AccumuloConfiguration conf, Connector conn);
 
   /**
    * Assign work for replication
    */
-  public void assignWork();
+  void assignWork();
 }
