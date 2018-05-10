@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -187,4 +188,8 @@ public class MockConnector extends Connector {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public ConnectionInfo info() {
+    throw new UnsupportedOperationException();
+  }
 }

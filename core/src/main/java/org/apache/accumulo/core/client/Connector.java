@@ -314,6 +314,12 @@ public abstract class Connector {
   public abstract ReplicationOperations replicationOperations();
 
   /**
+   * @return {@link ConnectionInfo} which contains information about Connection to Accumulo
+   * @since 2.0.0
+   */
+  public abstract ConnectionInfo info();
+
+  /**
    * Builds ConnectionInfo after all options have been specified
    *
    * @since 2.0.0
@@ -391,7 +397,7 @@ public abstract class Connector {
      *          ConnectionInfo object
      * @return this builder
      */
-    ConnectorFactory usingConnectionInfo(ConnectionInfo connectionInfo);
+    FromOptions usingConnectionInfo(ConnectionInfo connectionInfo);
   }
 
   /**
@@ -572,6 +578,10 @@ public abstract class Connector {
      * @return this builder
      */
     ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig);
+  }
+
+  public interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
+
   }
 
   /**
