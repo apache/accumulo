@@ -91,11 +91,6 @@ public enum Property {
       "NullSecretKeyEncryptionStrategy", PropertyType.STRING,
       "The class Accumulo should use for its key encryption strategy."),
   @Experimental
-  CRYPTO_DEFAULT_KEY_STRATEGY_HDFS_URI("crypto.default.key.strategy.hdfs.uri", "",
-      PropertyType.STRING,
-      "The path relative to the top level instance directory (instance.dfs.dir) where to store"
-          + " the key encryption key within HDFS."),
-  @Experimental
   CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION("crypto.default.key.strategy.key.location",
       "/crypto/secret/keyEncryptionKey", PropertyType.ABSOLUTEPATH,
       "The path relative to the top level instance directory (instance.dfs.dir) where to store"
@@ -381,16 +376,6 @@ public enum Property {
       "if the ports above are in use, search higher ports until one is available"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers"),
-  @Deprecated
-  TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "1M", PropertyType.BYTES,
-      "This setting is deprecated. See tserver.total.mutation.queue.max. The"
-          + " amount of memory to use to store write-ahead-log mutations-per-session"
-          + " before flushing them. Since the buffer is per write session, consider the"
-          + " max number of concurrent writer when configuring. When using Hadoop 2,"
-          + " Accumulo will call hsync() on the WAL . For a small number of concurrent"
-          + " writers, increasing this buffer size decreases the frequncy of hsync"
-          + " calls. For a large number of concurrent writers a small buffers size is"
-          + " ok because of group commit."),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them."),
   TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300",
@@ -518,8 +503,6 @@ public enum Property {
       "The maximum number of threads to use to sort logs during" + " recovery"),
   TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery."),
-  TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN,
-      "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
           + " used for copying failed bulk import RFiles."),
@@ -586,16 +569,6 @@ public enum Property {
       "The listening port for the monitor's http service"),
   MONITOR_LOG4J_PORT("monitor.port.log4j", "4560", PropertyType.PORT,
       "The listening port for the monitor's log4j logging collection."),
-  @Deprecated
-  MONITOR_BANNER_TEXT("monitor.banner.text", "", PropertyType.STRING,
-      "The banner text displayed on the monitor page."),
-  @Deprecated
-  MONITOR_BANNER_COLOR("monitor.banner.color", "#c4c4c4", PropertyType.STRING,
-      "The color of the banner text displayed on the monitor page."),
-  @Deprecated
-  MONITOR_BANNER_BACKGROUND("monitor.banner.background", "#304065", PropertyType.STRING,
-      "The background color of the banner text displayed on the monitor page."),
-
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH,
       "The keystore for enabling monitor SSL."),
   @Sensitive
@@ -621,9 +594,6 @@ public enum Property {
 
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
-  MONITOR_LOG_DATE_FORMAT("monitor.log.date.format", "yyyy/MM/dd HH:mm:ss,SSS", PropertyType.STRING,
-      "The SimpleDateFormat string used to configure "
-          + "the date shown on the 'Recent Logs' monitor page"),
   MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
       "A JSON Map of Strings. Each String should be an HTML tag of an external"
           + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
@@ -888,12 +858,6 @@ public enum Property {
           + " to all of the classes loaded in the VM. This should be on local disk on"
           + " each node with sufficient space. It defaults to"
           + " ${java.io.tmpdir}/accumulo-vfs-cache-${user.name}"),
-
-  @Interpolated
-  @Experimental
-  GENERAL_MAVEN_PROJECT_BASEDIR(AccumuloClassLoader.MAVEN_PROJECT_BASEDIR_PROPERTY_NAME,
-      AccumuloClassLoader.DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE, PropertyType.ABSOLUTEPATH,
-      "Set this to automatically add maven target/classes directories to your dynamic classpath"),
 
   // General properties for configuring replication
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX,
@@ -1196,11 +1160,11 @@ public enum Property {
    */
   public static final EnumSet<Property> HOT_PATH_PROPERTIES = EnumSet.of(
       Property.TSERV_CLIENT_TIMEOUT, Property.TSERV_TOTAL_MUTATION_QUEUE_MAX,
-      Property.TSERV_ARCHIVE_WALOGS, Property.GC_TRASH_IGNORE, Property.TSERV_MAJC_DELAY,
-      Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
-      Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT,
-      Property.TABLE_CLASSPATH, Property.MASTER_METADATA_SUSPENDABLE,
-      Property.TABLE_FAILURES_IGNORE, Property.TABLE_SCAN_MAXMEM);
+      Property.GC_TRASH_IGNORE, Property.TSERV_MAJC_DELAY, Property.TABLE_MINC_LOGS_MAX,
+      Property.TSERV_MAJC_MAXCONCURRENT, Property.REPLICATION_WORKER_THREADS,
+      Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT, Property.TABLE_CLASSPATH,
+      Property.MASTER_METADATA_SUSPENDABLE, Property.TABLE_FAILURES_IGNORE,
+      Property.TABLE_SCAN_MAXMEM);
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
       Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,

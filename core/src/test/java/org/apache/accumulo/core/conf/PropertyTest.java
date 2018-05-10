@@ -101,12 +101,6 @@ public class PropertyTest {
         conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
   }
 
-  @Test
-  public void testGetDefaultValue_AbsolutePath() {
-    // should not expand because default is ""
-    assertEquals("", Property.GENERAL_MAVEN_PROJECT_BASEDIR.getDefaultValue());
-  }
-
   // This test verifies all "sensitive" properties are properly marked as sensitive
   @Test
   public void testSensitiveKeys() {
