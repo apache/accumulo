@@ -38,8 +38,7 @@ public interface ReplicaSystem {
    *          Instance of ReplicaSystemHelper
    * @return A new Status for the progress that was made
    */
-  Status replicate(Path p, Status status, ReplicationTarget target,
-                   ReplicaSystemHelper helper);
+  Status replicate(Path p, Status status, ReplicationTarget target, ReplicaSystemHelper helper);
 
   /**
    * Configure the implementation with necessary information from the system configuration

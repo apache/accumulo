@@ -177,7 +177,7 @@ public class RFile {
      *          iterable over Accumulo table key value properties.
      * @return this
      */
-    ScannerOptions withTableProperties(Iterable<Entry<String, String>> props);
+    ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
      * @see #withTableProperties(Iterable)
@@ -185,7 +185,7 @@ public class RFile {
      *          a map instead of an Iterable
      * @return this
      */
-    ScannerOptions withTableProperties(Map<String, String> props);
+    ScannerOptions withTableProperties(Map<String,String> props);
 
     /**
      * @return a Scanner over RFile using the specified options.
@@ -405,12 +405,12 @@ public class RFile {
      *           sampler.
      * @return this
      */
-    WriterOptions withTableProperties(Iterable<Entry<String, String>> props);
+    WriterOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
      * @see #withTableProperties(Iterable)
      */
-    WriterOptions withTableProperties(Map<String, String> props);
+    WriterOptions withTableProperties(Map<String,String> props);
 
     /**
      * @param maxSize

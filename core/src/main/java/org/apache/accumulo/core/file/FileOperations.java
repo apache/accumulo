@@ -253,9 +253,8 @@ public abstract class FileOperations {
   }
 
   /** Builder interface parallel to {@link FileAccessOperation}. */
-  protected interface FileAccessOperationBuilder<SubbuilderType>
-      extends NeedsFile<SubbuilderType>, NeedsFileSystem<SubbuilderType>,
-      NeedsTableConfiguration<SubbuilderType> {
+  protected interface FileAccessOperationBuilder<SubbuilderType> extends NeedsFile<SubbuilderType>,
+      NeedsFileSystem<SubbuilderType>, NeedsTableConfiguration<SubbuilderType> {
     // no optional/generic methods.
   }
 
@@ -576,7 +575,7 @@ public abstract class FileOperations {
   public interface NeedsFile<ReturnType> {
     /** Specify the file this operation should apply to. */
     NeedsTableConfiguration<ReturnType> forFile(String filename, FileSystem fs,
-                                                Configuration fsConf);
+        Configuration fsConf);
 
     /** Specify the file this operation should apply to. */
     NeedsFileSystem<ReturnType> forFile(String filename);
@@ -584,8 +583,8 @@ public abstract class FileOperations {
 
   public interface NeedsFileOrOuputStream<ReturnType> extends NeedsFile<ReturnType> {
     /** Specify the file this operation should apply to. */
-    NeedsTableConfiguration<ReturnType> forOutputStream(String extenstion,
-                                                        FSDataOutputStream out, Configuration fsConf);
+    NeedsTableConfiguration<ReturnType> forOutputStream(String extenstion, FSDataOutputStream out,
+        Configuration fsConf);
   }
 
   /**

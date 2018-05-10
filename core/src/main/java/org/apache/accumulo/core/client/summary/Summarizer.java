@@ -220,7 +220,7 @@ public interface Summarizer {
      * If first map is too large after this call, then it may not be stored. See the comment on
      * {@link Collector#summarize(Summarizer.StatisticConsumer)}
      */
-    void merge(Map<String, Long> statistics1, Map<String, Long> statistics2);
+    void merge(Map<String,Long> statistics1, Map<String,Long> statistics2);
   }
 
   /**
