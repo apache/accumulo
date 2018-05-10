@@ -2,29 +2,41 @@ package org.apache.accumulo.core.security.crypto;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 
 public interface EncryptionStrategy {
 
-  public void encryptStream(OutputStream outputStream);
-
-  public void decryptStream(InputStream inputStream);
-
-  public Map<String,String> properties = new HashMap<>();
-
-  default void readProperties(AccumuloConfiguration conf) {
-    this.properties.putAll(conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
+  /**
+   * Where in Accumulo the on-disk file encryption takes place.
+   */
+  enum Scope {
+    WAL, RFILE;
   }
 
-  default void setProperties(Map<String, String> properties) {
-    this.properties.putAll(properties);
-  }
+  /**
+   * Initialize the EncryptionStrategy.
+   *
+   * @param encryptionScope
+   *           where the encryption takes places
+   * @return true
+   *           if initialization was successful
+   * @since 2.0
+   */
+  boolean init(Scope encryptionScope);
 
-  default Map<String,String> getProperties() {
-    return properties;
-  }
+  /**
+   * Encrypts the OutputStream.
+   *
+   * @param outputStream
+   * @since 2.0
+   */
+  void encryptStream(OutputStream outputStream);
+
+  /**
+   * Decrypts the InputStream.
+   *
+   * @param inputStream
+   * @since 2.0
+   */
+  void decryptStream(InputStream inputStream);
+
 }

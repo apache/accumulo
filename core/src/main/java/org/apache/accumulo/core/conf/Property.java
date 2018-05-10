@@ -45,13 +45,12 @@ public enum Property {
   // Crypto-related properties
   @Experimental
   CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX,
-      "Properties related to encryption."),
+      "Properties related to on-disk file encryption."),
   @Experimental
-  CRYPTO_STRATEGY("crypto.strategy", "org.apache.accumulo.core.security.crypto.DefaultEncryptionStrategy", PropertyType.CLASSNAME, "Encryption strategy"),
+  CRYPTO_STRATEGY("crypto.strategy", "org.apache.accumulo.core.security.crypto.DefaultEncryptionStrategy",
+          PropertyType.CLASSNAME, "Encryption strategy"),
   @Experimental
-  CRYPTO_WAL_ENABLED("crypto.wal.enabled", "false", PropertyType.BOOLEAN, "Enable encryption for Write Ahead Logs."),
-  @Experimental
-  CRYPTO_RFILE_ENABLED("crypto.rfile.enabled", "false", PropertyType.BOOLEAN, "Enable encryption for R-Files."),
+  CRYPTO_ENABLED("crypto.enabled", "false", PropertyType.BOOLEAN, "Enable on-disk file encryption."),
 
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
