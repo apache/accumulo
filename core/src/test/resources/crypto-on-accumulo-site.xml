@@ -121,10 +121,6 @@
     </property>
     
     <property>
-      <name>crypto.default.key.strategy.hdfs.uri</name>
-      <value>file:///</value>
-    </property>
-    <property>
       <name>crypto.default.key.strategy.key.location</name>
       <value>test.secret.key</value>
     </property>
