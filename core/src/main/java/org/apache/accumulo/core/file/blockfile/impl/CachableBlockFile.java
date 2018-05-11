@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.file.blockfile.impl;
 
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,7 +58,7 @@ public class CachableBlockFile {
 
   private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
 
-  public static class Writer {
+  public static class Writer implements Closeable {
     private BCFile.Writer _bc;
     private BCFile.Writer.BlockAppender _bw;
     private final PositionedOutput fsout;
@@ -92,6 +93,7 @@ public class CachableBlockFile {
       return _bw;
     }
 
+    @Override
     public void close() throws IOException {
 
       _bw.close();
@@ -114,7 +116,7 @@ public class CachableBlockFile {
   /**
    * Class wraps the BCFile reader.
    */
-  public static class Reader {
+  public static class Reader implements Closeable {
     private final RateLimiter readLimiter;
     // private BCFile.Reader _bc;
     private final String cacheId;
@@ -435,6 +437,7 @@ public class CachableBlockFile {
       return new CachedBlockRead(_currBlock);
     }
 
+    @Override
     public synchronized void close() throws IOException {
       if (closed)
         return;
