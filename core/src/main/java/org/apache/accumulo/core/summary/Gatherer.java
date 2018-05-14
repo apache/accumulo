@@ -38,7 +38,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -162,11 +161,12 @@ public class Gatherer {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
     Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx)
-        .overUserTableId(tableId, startRow, endRow).fetchFiles().fetchLocation().fetchLast()
-        .fetchPrev().build();
+        .overRange(tableId, startRow, endRow).fetchFiles().fetchLocation().fetchLast().fetchPrev()
+        .build();
 
     // get a subset of files
     Map<String,List<TabletMetadata>> files = new HashMap<>();
+
     for (TabletMetadata tm : tmi) {
       for (String file : tm.getFiles()) {
         if (fileSelector.test(file)) {
@@ -522,10 +522,8 @@ public class Gatherer {
   private int countFiles()
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // TODO use a batch scanner + iterator to parallelize counting files
-    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx)
-        .overUserTableId(tableId, startRow, endRow).fetchFiles().fetchPrev().build();
-    return StreamSupport.stream(tmi.spliterator(), false).mapToInt(tm -> tm.getFiles().size())
-        .sum();
+    return MetadataScanner.builder().from(ctx).overRange(tableId, startRow, endRow).fetchFiles()
+        .fetchPrev().build().stream().mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {

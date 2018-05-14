@@ -62,6 +62,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -70,6 +71,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -714,15 +717,12 @@ public class MetadataTableUtil {
     }
   }
 
-  private static void getFiles(Set<String> files, Map<Key,Value> tablet, Table.ID srcTableId) {
-    for (Entry<Key,Value> entry : tablet.entrySet()) {
-      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        String cf = entry.getKey().getColumnQualifier().toString();
-        if (srcTableId != null && !cf.startsWith("../") && !cf.contains(":")) {
-          cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
-        }
-        files.add(cf);
+  private static void getFiles(Set<String> files, List<String> tabletFiles, Table.ID srcTableId) {
+    for (String file : tabletFiles) {
+      if (srcTableId != null && !file.startsWith("../") && !file.contains(":")) {
+        file = "../" + srcTableId + file;
       }
+      files.add(file);
     }
   }
 
@@ -753,37 +753,39 @@ public class MetadataTableUtil {
     return m;
   }
 
-  private static Scanner createCloneScanner(String tableName, Table.ID tableId, Connector conn)
-      throws TableNotFoundException {
-    if (tableId.equals(MetadataTable.ID))
-      tableName = RootTable.NAME;
-    Scanner mscanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
-    mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-    mscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    mscanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    mscanner.fetchColumnFamily(TabletsSection.LastLocationColumnFamily.NAME);
-    mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(mscanner);
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(mscanner);
-    return mscanner;
+  private static Iterable<TabletMetadata> createCloneScanner(String tableName, Table.ID tableId,
+      Connector conn, Range range) throws TableNotFoundException {
+    try {
+      return MetadataScanner.builder().from(conn).scanTable(tableName).overRange(range)
+          .checkConsistency().saveKeyValues().fetchFiles().fetchLocation().fetchLast().fetchCloned()
+          .fetchPrev().fetchTime().build();
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Iterable<TabletMetadata> createCloneScanner(String tableName, Table.ID tableId,
+      Connector conn) throws TableNotFoundException {
+    return createCloneScanner(tableName, tableId, conn, TabletsSection.getRange(tableId));
   }
 
   @VisibleForTesting
   public static void initializeClone(String tableName, Table.ID srcTableId, Table.ID tableId,
       Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
-    TabletIterator ti;
+
+    Range range;
     if (srcTableId.equals(MetadataTable.ID))
-      ti = new TabletIterator(createCloneScanner(tableName, srcTableId, conn), new Range(), true,
-          true);
+      range = TabletsSection.getRange();
     else
-      ti = new TabletIterator(createCloneScanner(tableName, srcTableId, conn),
-          new KeyExtent(srcTableId, null, null).toMetadataRange(), true, true);
+      range = TabletsSection.getRange(srcTableId);
+
+    Iterator<TabletMetadata> ti = createCloneScanner(tableName, srcTableId, conn, range).iterator();
 
     if (!ti.hasNext())
       throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
 
     while (ti.hasNext())
-      bw.addMutation(createCloneMutation(srcTableId, tableId, ti.next()));
+      bw.addMutation(createCloneMutation(srcTableId, tableId, ti.next().getKeyValues()));
 
     bw.flush();
   }
@@ -796,10 +798,9 @@ public class MetadataTableUtil {
   @VisibleForTesting
   public static int checkClone(String tableName, Table.ID srcTableId, Table.ID tableId,
       Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
-    TabletIterator srcIter = new TabletIterator(createCloneScanner(tableName, srcTableId, conn),
-        new KeyExtent(srcTableId, null, null).toMetadataRange(), true, true);
-    TabletIterator cloneIter = new TabletIterator(createCloneScanner(tableName, tableId, conn),
-        new KeyExtent(tableId, null, null).toMetadataRange(), true, true);
+
+    Iterator<TabletMetadata> srcIter = createCloneScanner(tableName, srcTableId, conn).iterator();
+    Iterator<TabletMetadata> cloneIter = createCloneScanner(tableName, tableId, conn).iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext())
       throw new RuntimeException(
@@ -808,50 +809,40 @@ public class MetadataTableUtil {
     int rewrites = 0;
 
     while (cloneIter.hasNext()) {
-      Map<Key,Value> cloneTablet = cloneIter.next();
-      Text cloneEndRow = new KeyExtent(cloneTablet.keySet().iterator().next().getRow(), (Text) null)
-          .getEndRow();
+      TabletMetadata cloneTablet = cloneIter.next();
+      Text cloneEndRow = cloneTablet.getEndRow();
       HashSet<String> cloneFiles = new HashSet<>();
 
-      boolean cloneSuccessful = false;
-      for (Entry<Key,Value> entry : cloneTablet.entrySet()) {
-        if (entry.getKey().getColumnFamily().equals(ClonedColumnFamily.NAME)) {
-          cloneSuccessful = true;
-          break;
-        }
-      }
+      boolean cloneSuccessful = cloneTablet.getCloned() != null;
 
       if (!cloneSuccessful)
-        getFiles(cloneFiles, cloneTablet, null);
+        getFiles(cloneFiles, cloneTablet.getFiles(), null);
 
-      List<Map<Key,Value>> srcTablets = new ArrayList<>();
-      Map<Key,Value> srcTablet = srcIter.next();
+      List<TabletMetadata> srcTablets = new ArrayList<>();
+      TabletMetadata srcTablet = srcIter.next();
       srcTablets.add(srcTablet);
 
-      Text srcEndRow = new KeyExtent(srcTablet.keySet().iterator().next().getRow(), (Text) null)
-          .getEndRow();
-
+      Text srcEndRow = srcTablet.getEndRow();
       int cmp = compareEndRows(cloneEndRow, srcEndRow);
       if (cmp < 0)
-        throw new TabletIterator.TabletDeletedException(
+        throw new TabletDeletedException(
             "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
 
       HashSet<String> srcFiles = new HashSet<>();
       if (!cloneSuccessful)
-        getFiles(srcFiles, srcTablet, srcTableId);
+        getFiles(srcFiles, srcTablet.getFiles(), srcTableId);
 
       while (cmp > 0) {
         srcTablet = srcIter.next();
         srcTablets.add(srcTablet);
-        srcEndRow = new KeyExtent(srcTablet.keySet().iterator().next().getRow(), (Text) null)
-            .getEndRow();
+        srcEndRow = srcTablet.getEndRow();
         cmp = compareEndRows(cloneEndRow, srcEndRow);
         if (cmp < 0)
-          throw new TabletIterator.TabletDeletedException(
+          throw new TabletDeletedException(
               "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
 
         if (!cloneSuccessful)
-          getFiles(srcFiles, srcTablet, srcTableId);
+          getFiles(srcFiles, srcTablet.getFiles(), srcTableId);
       }
 
       if (cloneSuccessful)
@@ -859,22 +850,22 @@ public class MetadataTableUtil {
 
       if (!srcFiles.containsAll(cloneFiles)) {
         // delete existing cloned tablet entry
-        Mutation m = new Mutation(cloneTablet.keySet().iterator().next().getRow());
+        Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
 
-        for (Entry<Key,Value> entry : cloneTablet.entrySet()) {
+        for (Entry<Key,Value> entry : cloneTablet.getKeyValues().entrySet()) {
           Key k = entry.getKey();
           m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
         }
 
         bw.addMutation(m);
 
-        for (Map<Key,Value> st : srcTablets)
-          bw.addMutation(createCloneMutation(srcTableId, tableId, st));
+        for (TabletMetadata st : srcTablets)
+          bw.addMutation(createCloneMutation(srcTableId, tableId, st.getKeyValues()));
 
         rewrites++;
       } else {
         // write out marker that this tablet was successfully cloned
-        Mutation m = new Mutation(cloneTablet.keySet().iterator().next().getRow());
+        Mutation m = new Mutation(cloneTablet.getExtent().getMetadataEntry());
         m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK".getBytes(UTF_8)));
         bw.addMutation(m);
       }
@@ -908,7 +899,7 @@ public class MetadataTableUtil {
           bw.flush();
           break;
 
-        } catch (TabletIterator.TabletDeletedException tde) {
+        } catch (TabletDeletedException tde) {
           // tablets were merged in the src table
           bw.flush();
 

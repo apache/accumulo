@@ -30,6 +30,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -58,10 +59,9 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
@@ -102,7 +102,6 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
-import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -297,18 +296,23 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
 
     @Override
-    public Iterator<Entry<Key,Value>> getReferenceIterator()
+    public Stream<Reference> getReferences()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      IsolatedScanner scanner = new IsolatedScanner(
-          getConnector().createScanner(tableName, Authorizations.EMPTY));
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.fetchColumnFamily(ScanFileColumnFamily.NAME);
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-      TabletIterator tabletIterator = new TabletIterator(scanner,
-          MetadataSchema.TabletsSection.getRange(), false, true);
 
-      return Iterators
-          .concat(Iterators.transform(tabletIterator, input -> input.entrySet().iterator()));
+      Stream<TabletMetadata> tabletStream = MetadataScanner.builder().from(getConnector())
+          .overTabletRange().checkConsistency().fetchDir().fetchFiles().fetchScans().build()
+          .stream();
+
+      Stream<Reference> refStream = tabletStream.flatMap(tm -> {
+        Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
+            .map(f -> new Reference(tm.getTableId(), f, false));
+        if (tm.getDir() != null) {
+          refs = Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDir(), true)));
+        }
+        return refs;
+      });
+
+      return refStream;
     }
 
     @Override

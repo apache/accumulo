@@ -27,28 +27,18 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.server.util.TabletIterator;
-import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class MergeIT extends AccumuloClusterHarness {
 
@@ -215,74 +205,6 @@ public class MergeIT extends AccumuloClusterHarness {
       if (!currentSplits.equals(ess)) {
         throw new Exception("split inconsistency " + table + " " + currentSplits + " != " + ess);
       }
-    }
-  }
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
-
-  private static class TestTabletIterator extends TabletIterator {
-
-    private final Connector conn;
-    private final String metadataTableName;
-
-    public TestTabletIterator(Connector conn, String metadataTableName) throws Exception {
-      super(conn.createScanner(metadataTableName, Authorizations.EMPTY),
-          MetadataSchema.TabletsSection.getRange(), true, true);
-      this.conn = conn;
-      this.metadataTableName = metadataTableName;
-    }
-
-    @Override
-    protected void resetScanner() {
-      try (Scanner ds = conn.createScanner(metadataTableName, Authorizations.EMPTY)) {
-
-        Text tablet = new KeyExtent(Table.ID.of("0"), new Text("m"), null).getMetadataEntry();
-        ds.setRange(new Range(tablet, true, tablet, true));
-
-        Mutation m = new Mutation(tablet);
-
-        BatchWriter bw = conn.createBatchWriter(metadataTableName, new BatchWriterConfig());
-        for (Entry<Key,Value> entry : ds) {
-          Key k = entry.getKey();
-          m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
-        }
-        bw.addMutation(m);
-        bw.close();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-
-      super.resetScanner();
-    }
-
-  }
-
-  // simulate a merge happening while iterating over tablets
-  @Test
-  public void testMerge() throws Exception {
-    // create a fake metadata table
-    String metadataTableName = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(metadataTableName);
-
-    KeyExtent ke1 = new KeyExtent(Table.ID.of("0"), new Text("m"), null);
-    Mutation mut1 = ke1.getPrevRowUpdateMutation();
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut1, new Value("/d1".getBytes()));
-
-    KeyExtent ke2 = new KeyExtent(Table.ID.of("0"), null, null);
-    Mutation mut2 = ke2.getPrevRowUpdateMutation();
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut2, new Value("/d2".getBytes()));
-
-    BatchWriter bw1 = getConnector().createBatchWriter(metadataTableName, new BatchWriterConfig());
-    bw1.addMutation(mut1);
-    bw1.addMutation(mut2);
-    bw1.close();
-
-    TestTabletIterator tabIter = new TestTabletIterator(getConnector(), metadataTableName);
-
-    exception.expect(TabletDeletedException.class);
-    while (tabIter.hasNext()) {
-      tabIter.next();
     }
   }
 }

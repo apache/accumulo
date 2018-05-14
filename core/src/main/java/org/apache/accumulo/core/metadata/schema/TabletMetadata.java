@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.util.EnumSet;
@@ -25,45 +27,61 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
 
 public class TabletMetadata {
 
   private Table.ID tableId;
   private Text prevEndRow;
+  private boolean sawPrevEndRow = false;
   private Text endRow;
   private Location location;
   private List<String> files;
+  private List<String> scans;
   private Set<String> loadedFiles;
-  private EnumSet<FetchedColumns> fetchedColumns;
+  private EnumSet<FetchedColumns> fetchedCols;
   private KeyExtent extent;
   private Location last;
+  private String dir;
+  private String time;
+  private String cloned;
+  private SortedMap<Key,Value> keyValues;
 
   public static enum LocationType {
     CURRENT, FUTURE, LAST
   }
 
   public static enum FetchedColumns {
-    LOCATION, PREV_ROW, FILES, LAST, LOADED
+    LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR, TIME, CLONED
   }
 
   public static class Location {
@@ -101,10 +119,18 @@ public class TabletMetadata {
     return extent;
   }
 
+  private void ensureFetched(FetchedColumns col) {
+    Preconditions.checkState(fetchedCols.contains(col), "%s was not fetched", col);
+  }
+
   public Text getPrevEndRow() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.PREV_ROW),
-        "Requested prev row when it was not fetched");
+    ensureFetched(FetchedColumns.PREV_ROW);
     return prevEndRow;
+  }
+
+  public boolean sawPrevEndRow() {
+    ensureFetched(FetchedColumns.PREV_ROW);
+    return sawPrevEndRow;
   }
 
   public Text getEndRow() {
@@ -112,36 +138,62 @@ public class TabletMetadata {
   }
 
   public Location getLocation() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LOCATION),
-        "Requested location when it was not fetched");
+    ensureFetched(FetchedColumns.LOCATION);
     return location;
   }
 
   public Set<String> getLoaded() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LOADED),
-        "Requested loaded when it was not fetched");
+    ensureFetched(FetchedColumns.LOADED);
     return loadedFiles;
   }
 
   public Location getLast() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.LAST),
-        "Requested last when it was not fetched");
+    ensureFetched(FetchedColumns.LAST);
     return last;
   }
 
   public List<String> getFiles() {
-    Preconditions.checkState(fetchedColumns.contains(FetchedColumns.FILES),
-        "Requested files when it was not fetched");
+    ensureFetched(FetchedColumns.FILES);
     return files;
   }
 
-  public static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
-      EnumSet<FetchedColumns> fetchedColumns) {
+  public List<String> getScans() {
+    ensureFetched(FetchedColumns.SCANS);
+    return scans;
+  }
+
+  public String getDir() {
+    ensureFetched(FetchedColumns.DIR);
+    return dir;
+  }
+
+  public String getTime() {
+    ensureFetched(FetchedColumns.TIME);
+    return time;
+  }
+
+  public String getCloned() {
+    ensureFetched(FetchedColumns.CLONED);
+    return cloned;
+  }
+
+  public SortedMap<Key,Value> getKeyValues() {
+    Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
+    return keyValues;
+  }
+
+  private static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
+      EnumSet<FetchedColumns> fetchedColumns, boolean buildKeyValueMap) {
     Objects.requireNonNull(rowIter);
 
     TabletMetadata te = new TabletMetadata();
+    ImmutableSortedMap.Builder<Key,Value> kvBuilder = null;
+    if (buildKeyValueMap) {
+      kvBuilder = ImmutableSortedMap.naturalOrder();
+    }
 
     Builder<String> filesBuilder = ImmutableList.builder();
+    Builder<String> scansBuilder = ImmutableList.builder();
     final ImmutableSet.Builder<String> loadedFilesBuilder = ImmutableSet.builder();
     ByteSequence row = null;
 
@@ -150,6 +202,10 @@ public class TabletMetadata {
       Key k = kv.getKey();
       Value v = kv.getValue();
       Text fam = k.getColumnFamily();
+
+      if (buildKeyValueMap) {
+        kvBuilder.put(k, v);
+      }
 
       if (row == null) {
         row = k.getRowData();
@@ -161,47 +217,95 @@ public class TabletMetadata {
             "Input contains more than one row : " + row + " " + k.getRowData());
       }
 
-      if (PREV_ROW_COLUMN.hasColumns(k)) {
-        te.prevEndRow = KeyExtent.decodePrevEndRow(v);
-      }
-      if (fam.equals(DataFileColumnFamily.NAME)) {
-        filesBuilder.add(k.getColumnQualifier().toString());
-      } else if (fam.equals(MetadataSchema.TabletsSection.BulkFileColumnFamily.NAME)) {
-        loadedFilesBuilder.add(k.getColumnQualifier().toString());
-      } else if (fam.equals(CurrentLocationColumnFamily.NAME)) {
-        if (te.location != null) {
-          throw new IllegalArgumentException(
-              "Input contains more than one location " + te.location + " " + v);
-        }
-        te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
-            LocationType.CURRENT);
-      } else if (fam.equals(FutureLocationColumnFamily.NAME)) {
-        if (te.location != null) {
-          throw new IllegalArgumentException(
-              "Input contains more than one location " + te.location + " " + v);
-        }
-        te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
-            LocationType.FUTURE);
-      } else if (fam.equals(LastLocationColumnFamily.NAME)) {
-        te.last = new Location(v.toString(), k.getColumnQualifierData().toString(),
-            LocationType.LAST);
+      switch (fam.toString()) {
+        case TabletColumnFamily.STR_NAME:
+          if (PREV_ROW_COLUMN.hasColumns(k)) {
+            te.prevEndRow = KeyExtent.decodePrevEndRow(v);
+            te.sawPrevEndRow = true;
+          }
+          break;
+        case ServerColumnFamily.STR_NAME:
+          if (DIRECTORY_COLUMN.hasColumns(k)) {
+            te.dir = v.toString();
+          } else if (TIME_COLUMN.hasColumns(k)) {
+            te.time = v.toString();
+          }
+          break;
+        case DataFileColumnFamily.STR_NAME:
+          filesBuilder.add(k.getColumnQualifier().toString());
+          break;
+        case BulkFileColumnFamily.STR_NAME:
+          loadedFilesBuilder.add(k.getColumnQualifier().toString());
+          break;
+        case CurrentLocationColumnFamily.STR_NAME:
+          if (te.location != null) {
+            throw new IllegalArgumentException(
+                "Input contains more than one location " + te.location + " " + v);
+          }
+          te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
+              LocationType.CURRENT);
+          break;
+        case FutureLocationColumnFamily.STR_NAME:
+          if (te.location != null) {
+            throw new IllegalArgumentException(
+                "Input contains more than one location " + te.location + " " + v);
+          }
+          te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
+              LocationType.FUTURE);
+          break;
+        case LastLocationColumnFamily.STR_NAME:
+          te.last = new Location(v.toString(), k.getColumnQualifierData().toString(),
+              LocationType.LAST);
+          break;
+        case ScanFileColumnFamily.STR_NAME:
+          scansBuilder.add(k.getColumnQualifierData().toString());
+          break;
+        case ClonedColumnFamily.STR_NAME:
+          te.cloned = v.toString();
+          break;
+        default:
+          throw new IllegalStateException("Unexpected family " + fam);
       }
     }
 
     te.files = filesBuilder.build();
     te.loadedFiles = loadedFilesBuilder.build();
-    te.fetchedColumns = fetchedColumns;
+    te.fetchedCols = fetchedColumns;
+    te.scans = scansBuilder.build();
+    if (buildKeyValueMap) {
+      te.keyValues = kvBuilder.build();
+    }
     return te;
   }
 
-  public static Iterable<TabletMetadata> convert(Scanner input,
-      EnumSet<FetchedColumns> fetchedColumns) {
-    return new Iterable<TabletMetadata>() {
-      @Override
-      public Iterator<TabletMetadata> iterator() {
+  static Iterable<TabletMetadata> convert(Scanner input, EnumSet<FetchedColumns> fetchedColumns,
+      boolean checkConsistency, boolean buildKeyValueMap) {
+
+    Range range = input.getRange();
+
+    Function<Range,Iterator<TabletMetadata>> iterFactory = r -> {
+      synchronized (input) {
+        input.setRange(r);
         RowIterator rowIter = new RowIterator(input);
-        return Iterators.transform(rowIter, ri -> convertRow(ri, fetchedColumns));
+        return Iterators.transform(rowIter, ri -> convertRow(ri, fetchedColumns, buildKeyValueMap));
       }
     };
+
+    if (checkConsistency) {
+      return () -> new MetadataConsistencyCheckIterator(iterFactory, range);
+    } else {
+      return () -> iterFactory.apply(range);
+    }
+  }
+
+  @VisibleForTesting
+  static TabletMetadata create(String id, String prevEndRow, String endRow) {
+    TabletMetadata te = new TabletMetadata();
+    te.tableId = Table.ID.of(id);
+    te.sawPrevEndRow = true;
+    te.prevEndRow = prevEndRow == null ? null : new Text(prevEndRow);
+    te.endRow = endRow == null ? null : new Text(endRow);
+    te.fetchedCols = EnumSet.of(FetchedColumns.PREV_ROW);
+    return te;
   }
 }

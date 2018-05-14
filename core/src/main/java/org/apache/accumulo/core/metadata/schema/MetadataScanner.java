@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.util.ArrayList;
@@ -24,58 +26,89 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.impl.Table.ID;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.FetchedColumns;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Preconditions;
-
-public class MetadataScanner {
+public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable {
 
   public interface SourceOptions {
-    TableOptions from(Scanner scanner);
-
     TableOptions from(ClientContext ctx);
+
+    TableOptions from(Connector conn);
   }
 
-  public interface TableOptions {
-    ColumnOptions overRootTable();
-
-    ColumnOptions overMetadataTable();
-
-    ColumnOptions overUserTableId(Table.ID tableId);
-
-    ColumnOptions overUserTableId(Table.ID tableId, Text startRow, Text endRow);
+  public interface TableOptions extends RangeOptions {
+    /**
+     * Optionally set a table name, defaults to {@value MetadataTable#NAME}
+     */
+    RangeOptions scanTable(String tableName);
   }
 
-  public interface ColumnOptions {
-    ColumnOptions fetchFiles();
+  public interface RangeOptions {
+    Options overTabletRange();
 
-    ColumnOptions fetchLoaded();
+    Options overRange(Range range);
 
-    ColumnOptions fetchLocation();
+    Options overRange(Table.ID tableId);
 
-    ColumnOptions fetchPrev();
+    Options overRange(Table.ID tableId, Text startRow, Text endRow);
+  }
 
-    ColumnOptions fetchLast();
+  public interface Options {
+    /**
+     * Checks that the metadata table forms a linked list and automatically backs up until it does.
+     */
+    Options checkConsistency();
 
-    Iterable<TabletMetadata> build()
+    /**
+     * Saves the key values seen in the metadata table for each tablet.
+     */
+    Options saveKeyValues();
+
+    Options fetchFiles();
+
+    Options fetchLoaded();
+
+    Options fetchLocation();
+
+    Options fetchPrev();
+
+    Options fetchLast();
+
+    Options fetchScans();
+
+    Options fetchDir();
+
+    Options fetchTime();
+
+    Options fetchCloned();
+
+    MetadataScanner build()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
   }
 
@@ -108,34 +141,41 @@ public class MetadataScanner {
     }
   }
 
-  private static class Builder implements SourceOptions, TableOptions, ColumnOptions {
+  private static class Builder implements SourceOptions, TableOptions, RangeOptions, Options {
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
-    private Scanner scanner;
-    private ClientContext ctx;
-    private String table;
-    private Table.ID userTableId;
+    private Connector conn;
+    private String table = MetadataTable.NAME;
+    private Range range;
     private EnumSet<FetchedColumns> fetchedCols = EnumSet.noneOf(FetchedColumns.class);
-    private Text startRow;
     private Text endRow;
+    private boolean checkConsistency = false;
+    private boolean saveKeyValues;
 
     @Override
-    public ColumnOptions fetchFiles() {
+    public Options fetchFiles() {
       fetchedCols.add(FetchedColumns.FILES);
       families.add(DataFileColumnFamily.NAME);
       return this;
     }
 
     @Override
-    public ColumnOptions fetchLoaded() {
-      fetchedCols.add(FetchedColumns.LOADED);
-      families.add(MetadataSchema.TabletsSection.BulkFileColumnFamily.NAME);
+    public Options fetchScans() {
+      fetchedCols.add(FetchedColumns.SCANS);
+      families.add(ScanFileColumnFamily.NAME);
       return this;
     }
 
     @Override
-    public ColumnOptions fetchLocation() {
+    public Options fetchLoaded() {
+      fetchedCols.add(FetchedColumns.LOADED);
+      families.add(BulkFileColumnFamily.NAME);
+      return this;
+    }
+
+    @Override
+    public Options fetchLocation() {
       fetchedCols.add(FetchedColumns.LOCATION);
       families.add(CurrentLocationColumnFamily.NAME);
       families.add(FutureLocationColumnFamily.NAME);
@@ -143,32 +183,46 @@ public class MetadataScanner {
     }
 
     @Override
-    public ColumnOptions fetchPrev() {
+    public Options fetchPrev() {
       fetchedCols.add(FetchedColumns.PREV_ROW);
       qualifiers.add(PREV_ROW_COLUMN);
       return this;
     }
 
     @Override
-    public ColumnOptions fetchLast() {
+    public Options fetchDir() {
+      fetchedCols.add(FetchedColumns.DIR);
+      qualifiers.add(DIRECTORY_COLUMN);
+      return this;
+    }
+
+    @Override
+    public Options fetchLast() {
       fetchedCols.add(FetchedColumns.LAST);
       families.add(LastLocationColumnFamily.NAME);
       return this;
     }
 
     @Override
-    public Iterable<TabletMetadata> build()
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      if (ctx != null) {
-        scanner = new IsolatedScanner(
-            ctx.getConnector().createScanner(table, Authorizations.EMPTY));
-      } else if (!(scanner instanceof IsolatedScanner)) {
-        scanner = new IsolatedScanner(scanner);
-      }
+    public Options fetchTime() {
+      fetchedCols.add(FetchedColumns.TIME);
+      qualifiers.add(TIME_COLUMN);
+      return this;
+    }
 
-      if (userTableId != null) {
-        scanner.setRange(new KeyExtent(userTableId, null, startRow).toMetadataRange());
-      }
+    @Override
+    public Options fetchCloned() {
+      fetchedCols.add(FetchedColumns.CLONED);
+      families.add(ClonedColumnFamily.NAME);
+      return this;
+    }
+
+    @Override
+    public MetadataScanner build()
+        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+
+      Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
+      scanner.setRange(range);
 
       for (Text fam : families) {
         scanner.fetchColumnFamily(fam);
@@ -182,69 +236,109 @@ public class MetadataScanner {
         fetchedCols = EnumSet.allOf(FetchedColumns.class);
       }
 
-      Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols);
+      if (checkConsistency && !fetchedCols.contains(FetchedColumns.PREV_ROW)) {
+        fetchPrev();
+      }
+
+      Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols, checkConsistency,
+          saveKeyValues);
 
       if (endRow != null) {
         // create an iterable that will stop at the tablet which contains the endRow
-        return new Iterable<TabletMetadata>() {
+        return new MetadataScanner(scanner, new Iterable<TabletMetadata>() {
           @Override
           public Iterator<TabletMetadata> iterator() {
             return new TabletMetadataIterator(tmi.iterator(), endRow);
           }
-        };
+        });
       } else {
-        return tmi;
+        return new MetadataScanner(scanner, tmi);
       }
-
-    }
-
-    @Override
-    public ColumnOptions overRootTable() {
-      this.table = RootTable.NAME;
-      return this;
-    }
-
-    @Override
-    public ColumnOptions overMetadataTable() {
-      this.table = MetadataTable.NAME;
-      return this;
-    }
-
-    @Override
-    public ColumnOptions overUserTableId(Table.ID tableId) {
-      Preconditions
-          .checkArgument(!tableId.equals(RootTable.ID) && !tableId.equals(MetadataTable.ID));
-
-      this.table = MetadataTable.NAME;
-      this.userTableId = tableId;
-      return this;
-    }
-
-    @Override
-    public TableOptions from(Scanner scanner) {
-      this.scanner = scanner;
-      return this;
     }
 
     @Override
     public TableOptions from(ClientContext ctx) {
-      this.ctx = ctx;
+      try {
+        this.conn = ctx.getConnector();
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new RuntimeException(e);
+      }
       return this;
     }
 
     @Override
-    public ColumnOptions overUserTableId(Table.ID tableId, Text startRow, Text endRow) {
-      this.table = MetadataTable.NAME;
-      this.userTableId = tableId;
-      this.startRow = startRow;
+    public TableOptions from(Connector conn) {
+      this.conn = conn;
+      return this;
+    }
+
+    @Override
+    public Options checkConsistency() {
+      this.checkConsistency = true;
+      return this;
+    }
+
+    @Override
+    public Options saveKeyValues() {
+      this.saveKeyValues = true;
+      return this;
+    }
+
+    @Override
+    public Options overTabletRange() {
+      this.range = TabletsSection.getRange();
+      return this;
+    }
+
+    @Override
+    public Options overRange(Range range) {
+      this.range = range;
+      return this;
+    }
+
+    @Override
+    public Options overRange(ID tableId) {
+      this.range = TabletsSection.getRange(tableId);
+      return this;
+    }
+
+    @Override
+    public Options overRange(ID tableId, Text startRow, Text endRow) {
+      this.range = new KeyExtent(tableId, null, startRow).toMetadataRange();
       this.endRow = endRow;
       return this;
     }
 
+    @Override
+    public RangeOptions scanTable(String tableName) {
+      this.table = tableName;
+      return this;
+    }
+  }
+
+  private Scanner scanner;
+  private Iterable<TabletMetadata> tablets;
+
+  private MetadataScanner(Scanner scanner, Iterable<TabletMetadata> tmi) {
+    this.scanner = scanner;
+    this.tablets = tmi;
   }
 
   public static SourceOptions builder() {
     return new Builder();
   }
 
+  @Override
+  public Iterator<TabletMetadata> iterator() {
+    return tablets.iterator();
+  }
+
+  public Stream<TabletMetadata> stream() {
+    return StreamSupport.stream(tablets.spliterator(), false);
+  }
+
+  @Override
+  public void close() {
+    scanner.close();
+  }
 }

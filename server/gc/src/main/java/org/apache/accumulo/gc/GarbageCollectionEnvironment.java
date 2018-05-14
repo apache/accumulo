@@ -23,11 +23,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -62,6 +64,18 @@ public interface GarbageCollectionEnvironment {
   Iterator<String> getBlipIterator()
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
+  static class Reference {
+    public final ID id;
+    public final String ref;
+    public final boolean isDir;
+
+    Reference(ID id, String ref, boolean isDir) {
+      this.id = id;
+      this.ref = ref;
+      this.isDir = isDir;
+    }
+  }
+
   /**
    * Fetches the references to files, {@link DataFileColumnFamily#NAME} or
    * {@link ScanFileColumnFamily#NAME}, from tablets
@@ -69,7 +83,7 @@ public interface GarbageCollectionEnvironment {
    * @return An {@link Iterator} of {@link Entry}&lt;{@link Key}, {@link Value}&gt; which constitute
    *         a reference to a file.
    */
-  Iterator<Entry<Key,Value>> getReferenceIterator()
+  Stream<Reference> getReferences()
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
