@@ -27,18 +27,13 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -46,7 +41,7 @@ public class GarbageCollectionTest {
   static class TestGCE implements GarbageCollectionEnvironment {
     TreeSet<String> candidates = new TreeSet<>();
     ArrayList<String> blips = new ArrayList<>();
-    Map<Key,Value> references = new TreeMap<>();
+    Map<String,Reference> references = new TreeMap<>();
     HashSet<Table.ID> tableIds = new HashSet<>();
 
     ArrayList<String> deletes = new ArrayList<>();
@@ -69,8 +64,8 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public Iterator<Entry<Key,Value>> getReferenceIterator() {
-      return references.entrySet().iterator();
+    public Stream<Reference> getReferences() {
+      return references.values().stream();
     }
 
     @Override
@@ -89,41 +84,21 @@ public class GarbageCollectionTest {
       tablesDirsToDelete.add(tableID);
     }
 
-    public Key newFileReferenceKey(String tableId, String endRow, String file) {
-      String row = new KeyExtent(Table.ID.of(tableId), endRow == null ? null : new Text(endRow),
-          null).getMetadataEntry().toString();
-      String cf = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString();
-      return new Key(row, cf, file);
+    public void addFileReference(String tableId, String endRow, String file) {
+      references.put(tableId + ":" + endRow + ":" + file,
+          new Reference(Table.ID.of(tableId), file, false));
     }
 
-    public Value addFileReference(String tableId, String endRow, String file) {
-      Key key = newFileReferenceKey(tableId, endRow, file);
-      Value val = new Value(new DataFileValue(0, 0).encode());
-      return references.put(key, val);
+    public void removeFileReference(String tableId, String endRow, String file) {
+      references.remove(tableId + ":" + endRow + ":" + file);
     }
 
-    public Value removeFileReference(String tableId, String endRow, String file) {
-      return references.remove(newFileReferenceKey(tableId, endRow, file));
+    public void addDirReference(String tableId, String endRow, String dir) {
+      references.put(tableId + ":" + endRow, new Reference(Table.ID.of(tableId), dir, true));
     }
 
-    Key newDirReferenceKey(String tableId, String endRow) {
-      String row = new KeyExtent(Table.ID.of(tableId), endRow == null ? null : new Text(endRow),
-          null).getMetadataEntry().toString();
-      String cf = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
-          .getColumnFamily().toString();
-      String cq = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
-          .getColumnQualifier().toString();
-      return new Key(row, cf, cq);
-    }
-
-    public Value addDirReference(String tableId, String endRow, String dir) {
-      Key key = newDirReferenceKey(tableId, endRow);
-      Value val = new Value(dir.getBytes());
-      return references.put(key, val);
-    }
-
-    public Value removeDirReference(String tableId, String endRow) {
-      return references.remove(newDirReferenceKey(tableId, endRow));
+    public void removeDirReference(String tableId, String endRow) {
+      references.remove(tableId + ":" + endRow);
     }
 
     @Override

@@ -35,10 +35,10 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -389,8 +389,6 @@ public class CloneIT extends AccumuloClusterHarness {
     try {
       MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), conn, bw2);
       fail();
-    } catch (TabletIterator.TabletDeletedException tde) {}
-
+    } catch (TabletDeletedException tde) {}
   }
-
 }

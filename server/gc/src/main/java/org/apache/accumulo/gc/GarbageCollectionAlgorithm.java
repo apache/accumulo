@@ -33,18 +33,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,21 +164,17 @@ public class GarbageCollectionAlgorithm {
 
     }
 
-    Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
+    Iterator<Reference> iter = gce.getReferences().iterator();
     while (iter.hasNext()) {
-      Entry<Key,Value> entry = iter.next();
-      Key key = entry.getKey();
-      Text cft = key.getColumnFamily();
+      Reference ref = iter.next();
 
-      if (cft.equals(DataFileColumnFamily.NAME) || cft.equals(ScanFileColumnFamily.NAME)) {
-        String cq = key.getColumnQualifier().toString();
+      if (!ref.isDir) {
 
-        String reference = cq;
-        if (cq.startsWith("/")) {
-          String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
-          reference = "/" + tableID + cq;
-        } else if (!cq.contains(":") && !cq.startsWith("../")) {
-          throw new RuntimeException("Bad file reference " + cq);
+        String reference = ref.ref;
+        if (reference.startsWith("/")) {
+          reference = "/" + ref.id + reference;
+        } else if (!reference.contains(":") && !reference.startsWith("../")) {
+          throw new RuntimeException("Bad file reference " + reference);
         }
 
         reference = makeRelative(reference, 3);
@@ -198,9 +188,9 @@ public class GarbageCollectionAlgorithm {
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", reference);
 
-      } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-        String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
-        String dir = entry.getValue().toString();
+      } else {
+        String tableID = ref.id.toString();
+        String dir = ref.ref;
         if (!dir.contains(":")) {
           if (!dir.startsWith("/"))
             throw new RuntimeException("Bad directory " + dir);
@@ -211,9 +201,7 @@ public class GarbageCollectionAlgorithm {
 
         if (candidateMap.remove(dir) != null)
           log.debug("Candidate was still in use: {}", dir);
-      } else
-        throw new RuntimeException(
-            "Scanner over metadata table returned unexpected column : " + entry.getKey());
+      }
     }
 
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
