@@ -36,11 +36,9 @@ import java.util.Map;
 import java.util.RandomAccess;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.file.blockfile.ABlockReader;
-import org.apache.accumulo.core.file.blockfile.ABlockWriter;
-import org.apache.accumulo.core.file.blockfile.BlockFileReader;
-import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.hadoop.io.WritableComparable;
 
@@ -321,7 +319,7 @@ public class MultiLevelIndex {
         offset = in.readInt();
         hasNext = in.readBoolean();
 
-        ABlockReader abr = (ABlockReader) in;
+        CachableBlockFile.CachedBlockRead abr = (CachableBlockFile.CachedBlockRead) in;
         if (abr.isIndexable()) {
           // this block is cahced, so avoid copy
           data = abr.getBuffer();
@@ -509,9 +507,9 @@ public class MultiLevelIndex {
 
     private boolean addedLast = false;
 
-    private BlockFileWriter blockFileWriter;
+    private CachableBlockFile.Writer blockFileWriter;
 
-    Writer(BlockFileWriter blockFileWriter, int maxBlockSize) {
+    Writer(CachableBlockFile.Writer blockFileWriter, int maxBlockSize) {
       this.blockFileWriter = blockFileWriter;
       this.threshold = maxBlockSize;
       levels = new ArrayList<>();
@@ -535,7 +533,7 @@ public class MultiLevelIndex {
 
       IndexBlock iblock = levels.get(level);
       if ((iblock.getSize() > threshold && iblock.offsets.size() > 1) || last) {
-        ABlockWriter out = blockFileWriter.prepareDataBlock();
+        BCFile.Writer.BlockAppender out = blockFileWriter.prepareDataBlock();
         iblock.setHasNext(!last);
         iblock.write(out);
         out.close();
@@ -586,7 +584,7 @@ public class MultiLevelIndex {
 
   public static class Reader {
     private IndexBlock rootBlock;
-    private BlockFileReader blockStore;
+    private CachableBlockFile.Reader blockStore;
     private int version;
     private int size;
 
@@ -799,15 +797,15 @@ public class MultiLevelIndex {
 
     }
 
-    public Reader(BlockFileReader blockStore, int version) {
+    public Reader(CachableBlockFile.Reader blockStore, int version) {
       this.version = version;
       this.blockStore = blockStore;
     }
 
     private IndexBlock getIndexBlock(IndexEntry ie) throws IOException {
       IndexBlock iblock = new IndexBlock();
-      ABlockReader in = blockStore.getMetaBlock(ie.getOffset(), ie.getCompressedSize(),
-          ie.getRawSize());
+      CachableBlockFile.CachedBlockRead in = blockStore.getMetaBlock(ie.getOffset(),
+          ie.getCompressedSize(), ie.getRawSize());
       iblock.readFields(in, version);
       in.close();
 

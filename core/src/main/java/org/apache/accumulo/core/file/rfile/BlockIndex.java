@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachedBlockRead;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
@@ -31,7 +32,7 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 
 public class BlockIndex implements Weighbable {
 
-  public static BlockIndex getIndex(ABlockReader cacheBlock, IndexEntry indexEntry)
+  public static BlockIndex getIndex(CachedBlockRead cacheBlock, IndexEntry indexEntry)
       throws IOException {
 
     BlockIndex blockIndex = cacheBlock.getIndex(BlockIndex::new);
@@ -112,7 +113,7 @@ public class BlockIndex implements Weighbable {
     }
   }
 
-  public BlockIndexEntry seekBlock(Key startKey, ABlockReader cacheBlock) {
+  public BlockIndexEntry seekBlock(Key startKey, CachedBlockRead cacheBlock) {
 
     // get a local ref to the index, another thread could change it
     BlockIndexEntry[] blockIndex = this.blockIndex;
@@ -156,7 +157,7 @@ public class BlockIndex implements Weighbable {
     return bie;
   }
 
-  private synchronized void buildIndex(int indexEntries, ABlockReader cacheBlock,
+  private synchronized void buildIndex(int indexEntries, CachedBlockRead cacheBlock,
       IndexEntry indexEntry) throws IOException {
     cacheBlock.seek(0);
 
