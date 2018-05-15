@@ -56,7 +56,7 @@ import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
-import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -423,9 +423,8 @@ public class RFile {
   private static class LocalityGroupWriter {
 
     private CachableBlockFile.Writer fileWriter;
-    private BCFile.Writer.BlockAppender blockWriter;
+    private BlockAppender blockWriter;
 
-    // private BlockAppender blockAppender;
     private final long blockSize;
     private final long maxBlockSize;
     private int entries = 0;
@@ -555,7 +554,6 @@ public class RFile {
 
     private CachableBlockFile.Writer fileWriter;
 
-    // private BlockAppender blockAppender;
     private final long blockSize;
     private final long maxBlockSize;
     private final int indexBlockSize;
@@ -602,7 +600,7 @@ public class RFile {
 
       closeData();
 
-      BCFile.Writer.BlockAppender mba = fileWriter.prepareMetaBlock("RFile.index");
+      BlockAppender mba = fileWriter.prepareMetaBlock("RFile.index");
 
       mba.writeInt(RINDEX_MAGIC);
       mba.writeInt(RINDEX_VER_8);
