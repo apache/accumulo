@@ -136,10 +136,8 @@ public class MetadataConsistencyCheckIterator implements Iterator<TabletMetadata
         if (tmp.sawPrevEndRow()) {
           currTablet = tmp;
         }
-      } else {
-        if (goodTransition(prevTablet, tmp)) {
-          currTablet = tmp;
-        }
+      } else if (goodTransition(prevTablet, tmp)) {
+        currTablet = tmp;
       }
 
       if (currTablet == null) {

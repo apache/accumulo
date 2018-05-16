@@ -245,12 +245,8 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
 
       if (endRow != null) {
         // create an iterable that will stop at the tablet which contains the endRow
-        return new MetadataScanner(scanner, new Iterable<TabletMetadata>() {
-          @Override
-          public Iterator<TabletMetadata> iterator() {
-            return new TabletMetadataIterator(tmi.iterator(), endRow);
-          }
-        });
+        return new MetadataScanner(scanner,
+            () -> new TabletMetadataIterator(tmi.iterator(), endRow));
       } else {
         return new MetadataScanner(scanner, tmi);
       }
