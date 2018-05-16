@@ -42,8 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
-import org.apache.accumulo.core.file.streams.PositionedDataOutputStream;
-import org.apache.accumulo.core.file.streams.PositionedOutput;
+import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
 import org.apache.accumulo.core.security.crypto.CryptoModule;
 import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
@@ -91,7 +90,7 @@ public final class BCFile {
    * BCFile writer, the entry point for creating a new BCFile.
    */
   static public class Writer implements Closeable {
-    private final PositionedDataOutputStream out;
+    private final RateLimitedOutputStream out;
     private final Configuration conf;
     private final CryptoModule cryptoModule;
     private BCFileCryptoModuleParameters cryptoParams;
@@ -106,6 +105,11 @@ public final class BCFile {
     long errorCount = 0;
     // reusable buffers.
     private BytesWritable fsOutputBuffer;
+    private long length = 0;
+
+    public long getLength() {
+      return this.length;
+    }
 
     /**
      * Call-back interface to register a block after a block is closed.
@@ -132,7 +136,7 @@ public final class BCFile {
       private final Algorithm compressAlgo;
       private Compressor compressor; // !null only if using native
       // Hadoop compression
-      private final PositionedDataOutputStream fsOut;
+      private final RateLimitedOutputStream fsOut;
       private final OutputStream cipherOut;
       private final long posStart;
       private final SimpleBufferedOutputStream fsBufferedOutput;
@@ -144,7 +148,7 @@ public final class BCFile {
        * @param cryptoModule
        *          the module to use to obtain cryptographic streams
        */
-      public WBlockState(Algorithm compressionAlgo, PositionedDataOutputStream fsOut,
+      public WBlockState(Algorithm compressionAlgo, RateLimitedOutputStream fsOut,
           BytesWritable fsOutputBuffer, Configuration conf, CryptoModule cryptoModule,
           CryptoModuleParameters cryptoParams) throws IOException {
         this.compressAlgo = compressionAlgo;
@@ -352,14 +356,13 @@ public final class BCFile {
      *          Name of the compression algorithm, which will be used for all data blocks.
      * @see Compression#getSupportedAlgorithms
      */
-    public <OutputStreamType extends OutputStream & PositionedOutput> Writer(OutputStreamType fout,
-        String compressionName, Configuration conf, boolean trackDataBlocks,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
+    public Writer(RateLimitedOutputStream fout, String compressionName, Configuration conf,
+        boolean trackDataBlocks, AccumuloConfiguration accumuloConfiguration) throws IOException {
       if (fout.position() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
 
-      this.out = new PositionedDataOutputStream(fout);
+      this.out = fout;
       this.conf = conf;
       dataIndex = new DataIndex(compressionName, trackDataBlocks);
       metaIndex = new MetaIndex();
@@ -424,6 +427,8 @@ public final class BCFile {
 
           Magic.write(out);
           out.flush();
+          length = out.position();
+          out.close();
         }
       } finally {
         closed = true;
