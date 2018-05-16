@@ -30,7 +30,6 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
-import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -73,12 +72,10 @@ public class SplitLarge {
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (
             Writer small = new RFile.Writer(
-                new BCFile.Writer(new RateLimitedOutputStream(fs.create(new Path(smallName)), null),
-                    "gz", conf, false, aconf),
+                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, aconf),
                 blockSize);
             Writer large = new RFile.Writer(
-                new BCFile.Writer(new RateLimitedOutputStream(fs.create(new Path(largeName)), null),
-                    "gz", conf, false, aconf),
+                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, aconf),
                 blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();

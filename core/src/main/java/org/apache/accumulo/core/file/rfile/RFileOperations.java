@@ -31,7 +31,6 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
-import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -129,9 +128,8 @@ public class RFileOperations extends FileOperations {
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
 
-    BCFile.Writer _cbw = new BCFile.Writer(
-        new RateLimitedOutputStream(outputStream, options.getRateLimiter()), compression, conf,
-        false, acuconf);
+    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
+        conf, acuconf);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

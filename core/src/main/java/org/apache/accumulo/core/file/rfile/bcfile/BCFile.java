@@ -48,9 +48,11 @@ import org.apache.accumulo.core.security.crypto.CryptoModule;
 import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.security.crypto.SecretKeyEncryptionStrategy;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.compress.Compressor;
@@ -109,24 +111,6 @@ public final class BCFile {
 
     public long getLength() {
       return this.length;
-    }
-
-    /**
-     * Call-back interface to register a block after a block is closed.
-     */
-    private interface BlockRegister {
-      /**
-       * Register a block that is fully closed.
-       *
-       * @param raw
-       *          The size of block in terms of uncompressed bytes.
-       * @param offsetStart
-       *          The start offset of the block.
-       * @param offsetEnd
-       *          One byte after the end of the block. Compressed block size is offsetEnd -
-       *          offsetStart.
-       */
-      void register(long raw, long offsetStart, long offsetEnd);
     }
 
     /**
@@ -273,21 +257,27 @@ public final class BCFile {
      *
      */
     public class BlockAppender extends DataOutputStream {
-      private final BlockRegister blockRegister;
+      private final MetaBlockRegister metaBlockRegister;
       private final WBlockState wBlkState;
       private boolean closed = false;
 
       /**
        * Constructor
        *
-       * @param register
+       * @param metaBlockRegister
        *          the block register, which is called when the block is closed.
        * @param wbs
        *          The writable compression block state.
        */
-      BlockAppender(BlockRegister register, WBlockState wbs) {
+      BlockAppender(MetaBlockRegister metaBlockRegister, WBlockState wbs) {
         super(wbs.getOutputStream());
-        this.blockRegister = register;
+        this.metaBlockRegister = metaBlockRegister;
+        this.wBlkState = wbs;
+      }
+
+      BlockAppender(WBlockState wbs) {
+        super(wbs.getOutputStream());
+        this.metaBlockRegister = null;
         this.wBlkState = wbs;
       }
 
@@ -338,7 +328,9 @@ public final class BCFile {
         try {
           ++errorCount;
           wBlkState.finish();
-          blockRegister.register(getRawSize(), wBlkState.getStartPos(), wBlkState.getCurrentPos());
+          if (metaBlockRegister != null)
+            metaBlockRegister.register(getRawSize(), wBlkState.getStartPos(),
+                wBlkState.getCurrentPos());
           --errorCount;
         } finally {
           closed = true;
@@ -356,15 +348,15 @@ public final class BCFile {
      *          Name of the compression algorithm, which will be used for all data blocks.
      * @see Compression#getSupportedAlgorithms
      */
-    public Writer(RateLimitedOutputStream fout, String compressionName, Configuration conf,
-        boolean trackDataBlocks, AccumuloConfiguration accumuloConfiguration) throws IOException {
-      if (fout.position() != 0) {
+    public Writer(FSDataOutputStream fout, RateLimiter writeLimiter, String compressionName,
+        Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+      if (fout.getPos() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
 
-      this.out = fout;
+      this.out = new RateLimitedOutputStream(fout, writeLimiter);
       this.conf = conf;
-      dataIndex = new DataIndex(compressionName, trackDataBlocks);
+      dataIndex = new DataIndex(compressionName);
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
@@ -490,11 +482,9 @@ public final class BCFile {
         throw new IllegalStateException("Cannot create Data Block after Meta Blocks.");
       }
 
-      DataBlockRegister dbr = new DataBlockRegister();
-
       WBlockState wbs = new WBlockState(getDefaultCompressionAlgorithm(), out, fsOutputBuffer, conf,
           cryptoModule, cryptoParams);
-      BlockAppender ba = new BlockAppender(dbr, wbs);
+      BlockAppender ba = new BlockAppender(wbs);
       blkInProgress = true;
       return ba;
     }
@@ -502,7 +492,7 @@ public final class BCFile {
     /**
      * Callback to make sure a meta block is added to the internal list when its stream is closed.
      */
-    private class MetaBlockRegister implements BlockRegister {
+    private class MetaBlockRegister {
       private final String name;
       private final Algorithm compressAlgo;
 
@@ -511,25 +501,9 @@ public final class BCFile {
         this.compressAlgo = compressAlgo;
       }
 
-      @Override
       public void register(long raw, long begin, long end) {
         metaIndex.addEntry(
             new MetaIndexEntry(name, compressAlgo, new BlockRegion(begin, end - begin, raw)));
-      }
-    }
-
-    /**
-     * Callback to make sure a data block is added to the internal list when it's being closed.
-     *
-     */
-    private class DataBlockRegister implements BlockRegister {
-      DataBlockRegister() {
-        // do nothing
-      }
-
-      @Override
-      public void register(long raw, long begin, long end) {
-        dataIndex.addBlockRegion(new BlockRegion(begin, end - begin, raw));
       }
     }
   }
@@ -1088,8 +1062,6 @@ public final class BCFile {
     // and raw size
     private final ArrayList<BlockRegion> listRegions;
 
-    private boolean trackBlocks;
-
     // for read, deserialized from a file
     public DataIndex(DataInput in) throws IOException {
       defaultCompressionAlgorithm = Compression.getCompressionAlgorithmByName(Utils.readString(in));
@@ -1104,8 +1076,7 @@ public final class BCFile {
     }
 
     // for write
-    public DataIndex(String defaultCompressionAlgorithmName, boolean trackBlocks) {
-      this.trackBlocks = trackBlocks;
+    public DataIndex(String defaultCompressionAlgorithmName) {
       this.defaultCompressionAlgorithm = Compression
           .getCompressionAlgorithmByName(defaultCompressionAlgorithmName);
       listRegions = new ArrayList<>();
@@ -1117,11 +1088,6 @@ public final class BCFile {
 
     public ArrayList<BlockRegion> getBlockRegionList() {
       return listRegions;
-    }
-
-    public void addBlockRegion(BlockRegion region) {
-      if (trackBlocks)
-        listRegions.add(region);
     }
 
     public void write(DataOutput out) throws IOException {

@@ -47,7 +47,7 @@ public class RateLimitedOutputStreamTest {
 
   public static class NullOutputStream extends FSDataOutputStream {
     public NullOutputStream() throws IOException {
-      super(new CountingOutputStream(ByteStreams.nullOutputStream()));
+      super(new CountingOutputStream(ByteStreams.nullOutputStream()), null);
     }
   }
 
