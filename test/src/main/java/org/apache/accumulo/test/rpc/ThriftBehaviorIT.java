@@ -60,9 +60,6 @@ public class ThriftBehaviorIT {
 
   private static final String KITTY_MSG = "🐈 Kitty! 🐈";
 
-  // can delete wrapper when tests pass without using it (assuming tests are good enough)
-  private static final boolean USE_RPC_WRAPPER = true;
-
   private static final boolean SUPPRESS_SPAMMY_LOGGERS = true;
 
   @Before
@@ -77,7 +74,7 @@ public class ThriftBehaviorIT {
         });
 
     String threadName = ThriftBehaviorIT.class.getSimpleName() + "." + testName.getMethodName();
-    serviceRunner = new SimpleThriftServiceRunner(threadName, USE_RPC_WRAPPER);
+    serviceRunner = new SimpleThriftServiceRunner(threadName);
     serviceRunner.startService();
     client = serviceRunner.client();
     handler = serviceRunner.handler();

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.rpc;
 
-import org.apache.accumulo.server.rpc.RpcWrapper;
+import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -34,9 +34,9 @@ public class SimpleThriftServiceRunner {
   private final Thread serviceThread;
   private final TServer server;
 
-  public SimpleThriftServiceRunner(String threadName, boolean useWrapper) {
+  public SimpleThriftServiceRunner(String threadName) {
     this.mocket = new Mocket();
-    this.server = createServer(useWrapper);
+    this.server = createServer();
     this.serviceThread = new Thread(() -> server.serve(), threadName);
   }
 
@@ -52,12 +52,9 @@ public class SimpleThriftServiceRunner {
     return new SimpleThriftService.Client(new TBinaryProtocol(mocket.getClientTransport()));
   }
 
-  private TServer createServer(boolean useWrapper) {
+  private TServer createServer() {
     TServer.Args args = new TServer.Args(mocket.getServerTransport());
-    SimpleThriftService.Iface actualHandler = handler;
-    if (useWrapper) {
-      actualHandler = RpcWrapper.<SimpleThriftService.Iface> service(handler);
-    }
+    SimpleThriftService.Iface actualHandler = TraceWrap.service(handler);
     args.processor(new SimpleThriftService.Processor<>(actualHandler));
     args.protocolFactory(new TBinaryProtocol.Factory());
     return new TSimpleServer(args);

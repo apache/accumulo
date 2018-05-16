@@ -150,7 +150,7 @@
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.groups />
     <!-- Thrift version -->
-    <thrift.version>0.10.0</thrift.version>
+    <thrift.version>0.11.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.4.10</zookeeper.version>

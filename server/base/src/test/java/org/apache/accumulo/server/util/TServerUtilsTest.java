@@ -44,10 +44,10 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.thrift.server.TServer;
@@ -342,7 +342,7 @@ public class TServerUtilsTest {
   private ServerAddress startServer() throws Exception {
     AccumuloServerContext ctx = new AccumuloServerContext(instance, factory);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
-    Iface rpcProxy = RpcWrapper.service(clientHandler);
+    Iface rpcProxy = TraceWrap.service(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);
     // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS
     // misconfiguration)
