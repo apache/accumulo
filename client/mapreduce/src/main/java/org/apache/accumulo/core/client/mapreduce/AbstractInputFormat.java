@@ -165,7 +165,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @deprecated since 2.0.0; use {@link #setConnectionInfo(Job, ConnectionInfo)} instead.
    */
   @Deprecated
-  public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) {
+  public static void setConnectorInfo(Job job, String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
