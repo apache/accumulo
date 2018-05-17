@@ -58,6 +58,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+
 public class FileManager {
 
   private static final Logger log = LoggerFactory.getLogger(FileManager.class);
@@ -113,6 +115,7 @@ public class FileManager {
   // null if unallocated
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
+  private Cache<String,Long> fileLenCache;
 
   private long maxIdleTime;
 
@@ -165,13 +168,14 @@ public class FileManager {
    *          : underlying file can and should be able to handle a null cache
    */
   public FileManager(AccumuloServerContext context, VolumeManager fs, int maxOpen,
-      BlockCache dataCache, BlockCache indexCache) {
+      Cache<String,Long> fileLenCache, BlockCache dataCache, BlockCache indexCache) {
 
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
     this.context = context;
     this.dataCache = dataCache;
     this.indexCache = indexCache;
+    this.fileLenCache = fileLenCache;
 
     this.filePermits = new Semaphore(maxOpen, false);
     this.maxOpen = maxOpen;
@@ -322,7 +326,7 @@ public class FileManager {
             .forFile(path.toString(), ns, ns.getConf())
             .withTableConfiguration(
                 context.getServerConfigurationFactory().getTableConfiguration(tablet))
-            .withBlockCache(dataCache, indexCache).build();
+            .withBlockCache(dataCache, indexCache).withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 

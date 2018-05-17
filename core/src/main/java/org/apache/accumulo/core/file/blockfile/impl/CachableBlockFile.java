@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.SoftReference;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.ABlockReader;
@@ -44,6 +46,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.cache.Cache;
 
 /**
  *
@@ -149,11 +153,13 @@ public class CachableBlockFile {
    *
    */
   public static class Reader implements BlockFileReader {
+
     private final RateLimiter readLimiter;
     private BCFile.Reader _bc;
     private final String fileName;
     private BlockCache _dCache = null;
     private BlockCache _iCache = null;
+    private Cache<String,Long> fileLenCache = null;
     private InputStream fin = null;
     private FileSystem fs;
     private Configuration conf;
@@ -238,12 +244,12 @@ public class CachableBlockFile {
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
         BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
-      this(fs, dataFile, conf, data, index, null, accumuloConfiguration);
+      this(fs, dataFile, conf, null, data, index, null, accumuloConfiguration);
     }
 
-    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
-        BlockCache index, RateLimiter readLimiter, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+    public Reader(FileSystem fs, Path dataFile, Configuration conf, Cache<String,Long> fileLenCache,
+        BlockCache data, BlockCache index, RateLimiter readLimiter,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
 
       /*
        * Grab path create input stream grab len create file
@@ -252,6 +258,7 @@ public class CachableBlockFile {
       fileName = dataFile.toString();
       this._dCache = data;
       this._iCache = index;
+      this.fileLenCache = fileLenCache;
       this.fs = fs;
       this.conf = conf;
       this.accumuloConfiguration = accumuloConfiguration;
@@ -281,6 +288,20 @@ public class CachableBlockFile {
       this._bc = new BCFile.Reader(this, fsin, len, conf, accumuloConfiguration);
     }
 
+    private static long getFileLen(Cache<String,Long> fileLenCache, final FileSystem fs,
+        final Path path) throws IOException {
+      try {
+        return fileLenCache.get(path.getName(), new Callable<Long>() {
+          @Override
+          public Long call() throws Exception {
+            return fs.getFileStatus(path).getLen();
+          }
+        });
+      } catch (ExecutionException e) {
+        throw new IOException("Failed to get " + path + " len from cache ", e);
+      }
+    }
+
     private synchronized BCFile.Reader getBCFile(AccumuloConfiguration accumuloConfiguration)
         throws IOException {
       if (closed)
@@ -288,10 +309,26 @@ public class CachableBlockFile {
 
       if (_bc == null) {
         // lazily open file if needed
-        Path path = new Path(fileName);
+        final Path path = new Path(fileName);
+
         RateLimitedInputStream fsIn = new RateLimitedInputStream(fs.open(path), this.readLimiter);
         fin = fsIn;
-        init(fsIn, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
+
+        if (fileLenCache != null) {
+          try {
+            init(fsIn, getFileLen(fileLenCache, fs, path), conf, accumuloConfiguration);
+          } catch (Exception e) {
+            log.debug("Failed to open {}, clearing file length cache and retrying", fileName, e);
+            fileLenCache.invalidate(path.getName());
+          }
+
+          if (_bc == null) {
+            init(fsIn, getFileLen(fileLenCache, fs, path), conf, accumuloConfiguration);
+          }
+        } else {
+          init(fsIn, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
+
+        }
       }
 
       return _bc;

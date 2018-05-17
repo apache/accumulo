@@ -64,6 +64,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
@@ -228,7 +230,10 @@ public class TabletServerResourceManager {
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    fileManager = new FileManager(tserver, fs, maxOpenFiles, _dCache, _iCache);
+    Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
+        .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+
+    fileManager = new FileManager(tserver, fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
         MemoryManager.class, new LargestFirstMemoryManager());
