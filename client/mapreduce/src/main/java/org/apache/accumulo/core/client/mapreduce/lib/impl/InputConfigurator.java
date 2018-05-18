@@ -717,8 +717,6 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param tableId
    *          The table id for which to initialize the {@link TabletLocator}
    * @return an Accumulo tablet locator
-   * @throws TableNotFoundException
-   *           if the table name set on the configuration doesn't exist
    * @since 1.6.0
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
