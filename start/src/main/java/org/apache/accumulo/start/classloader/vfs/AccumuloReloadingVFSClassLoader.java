@@ -36,6 +36,8 @@ import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * Classloader that delegates operations to a VFSClassLoader object. This class also listens for
  * changes in any of the files/directories that are in the classpath and will recreate the delegate
@@ -45,9 +47,15 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloReloadingVFSClassLoader.class);
 
-  // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking
+  // set to 5 mins. The rationale behind this large time is to avoid a gazillion tservers all asking
   // the name node for info too frequently.
   private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
+
+  private volatile long maxWaitInterval = 60000;
+
+  private volatile long maxRetries = -1;
+
+  private volatile long sleepInterval = 5000;
 
   private FileObject[] files;
   private VFSClassLoader cl;
@@ -78,6 +86,35 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
         try {
           FileSystemManager vfs = AccumuloVFSClassLoader.generateVfs();
           FileObject[] files = AccumuloVFSClassLoader.resolve(vfs, uris);
+
+          long retries = 0;
+          long currentSleepMillis = sleepInterval;
+
+          if (files.length == 0) {
+            while (files.length == 0 && retryPermitted(retries)) {
+
+              try {
+                log.debug("VFS path was empty.  Waiting " + currentSleepMillis + " ms to retry");
+                Thread.sleep(currentSleepMillis);
+
+                files = AccumuloVFSClassLoader.resolve(vfs, uris);
+                retries++;
+
+                currentSleepMillis = Math.min(maxWaitInterval, currentSleepMillis + sleepInterval);
+
+              } catch (InterruptedException e) {
+                log.error("VFS Retry Interruped", e);
+                throw new RuntimeException(e);
+              }
+
+            }
+            // There is a chance that the listener was removed from the top level directory or
+            // its children if they were deleted within some time window. Re-add files to be
+            // monitored. The Monitor will ignore files that are already/still being monitored.
+            for (FileObject file : files) {
+              monitor.addFile(file);
+            }
+          }
 
           log.debug("Rebuilding dynamic classloader using files- {}", stringify(files));
 
@@ -214,4 +251,20 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     return buf.toString();
   }
 
+  @VisibleForTesting
+  void setMaxRetries(long maxRetries) {
+    this.maxRetries = maxRetries;
+  }
+
+  long getMaxRetries() {
+    return maxRetries;
+  }
+
+  long getMaxWaitInterval() {
+    return maxWaitInterval;
+  }
+
+  private boolean retryPermitted(long retries) {
+    return (maxRetries < 0 || retries < maxRetries);
+  }
 }
