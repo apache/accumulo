@@ -507,9 +507,9 @@ public class MultiLevelIndex {
 
     private boolean addedLast = false;
 
-    private CachableBlockFile.Writer blockFileWriter;
+    private BCFile.Writer blockFileWriter;
 
-    Writer(CachableBlockFile.Writer blockFileWriter, int maxBlockSize) {
+    Writer(BCFile.Writer blockFileWriter, int maxBlockSize) {
       this.blockFileWriter = blockFileWriter;
       this.threshold = maxBlockSize;
       levels = new ArrayList<>();

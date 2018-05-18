@@ -16,21 +16,22 @@
  */
 package org.apache.accumulo.core.file.streams;
 
-import java.io.FilterOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
 import org.apache.accumulo.core.util.ratelimit.NullRateLimiter;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.hadoop.fs.FSDataOutputStream;
 
 /**
  * A decorator for {@code OutputStream} which limits the rate at which data may be written.
+ * Underlying OutputStream is a FSDataOutputStream.
  */
-public class RateLimitedOutputStream extends FilterOutputStream implements PositionedOutput {
+public class RateLimitedOutputStream extends DataOutputStream {
   private final RateLimiter writeLimiter;
 
-  public RateLimitedOutputStream(OutputStream wrappedStream, RateLimiter writeLimiter) {
-    super(PositionedOutputs.wrap(wrappedStream));
+  public RateLimitedOutputStream(FSDataOutputStream fsDataOutputStream, RateLimiter writeLimiter) {
+    super(fsDataOutputStream);
     this.writeLimiter = writeLimiter == null ? NullRateLimiter.INSTANCE : writeLimiter;
   }
 
@@ -51,8 +52,7 @@ public class RateLimitedOutputStream extends FilterOutputStream implements Posit
     out.close();
   }
 
-  @Override
   public long position() throws IOException {
-    return ((PositionedOutput) out).position();
+    return ((FSDataOutputStream) out).getPos();
   }
 }
