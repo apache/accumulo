@@ -335,6 +335,9 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return tableId;
   }
 
+  /**
+   * @deprecated since 2.0.0
+   */
   @Deprecated
   public Instance getInstance(org.apache.accumulo.core.client.ClientConfiguration base) {
     if (null == instanceName) {
@@ -381,7 +384,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.token = token;
   }
 
-  @Deprecated
   public void setToken(String tokenFile) {
     this.tokenSource = TokenSource.FILE;
     this.tokenFile = tokenFile;

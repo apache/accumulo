@@ -130,6 +130,14 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     InputConfigurator.setConnectionInfo(CLASS, job, inputInfo);
   }
 
+  /**
+   * Retrieves {@link ConnectionInfo} from the configuration
+   *
+   * @param job
+   *          Hadoop job instance configuration
+   * @return {@link ConnectionInfo} object
+   * @since 2.0.0
+   */
   protected static ConnectionInfo getConnectionInfo(JobConf job) {
     return InputConfigurator.getConnectionInfo(CLASS, job);
   }
@@ -339,6 +347,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          The job
    * @return The client configuration for the job
    * @since 1.7.0
+   * @deprecated since 2.0.0, replaced by {{@link #getConnectionInfo(JobConf)}}
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(

@@ -133,11 +133,12 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Gets the ConnectionInfo from the configuration
+   * Gets the {@link ConnectionInfo} from the configuration
    *
    * @param context
    *          Hadoop job context
    * @return ConnectionInfo
+   * @since 2.0.0
    */
   protected static ConnectionInfo getConnectionInfo(JobContext context) {
     return InputConfigurator.getConnectionInfo(CLASS, context.getConfiguration());
