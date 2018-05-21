@@ -43,15 +43,11 @@ public class ConnectionInfoFactory {
 
   public static Connector getConnector(ConnectionInfo info)
       throws AccumuloSecurityException, AccumuloException {
-    return new ConnectorImpl(getClientContext(info));
-  }
-
-  public static ClientContext getClientContext(ConnectionInfo info) {
-    return new ClientContext(info);
+    return new ConnectorImpl(new ClientContext(info));
   }
 
   public static Instance getInstance(ConnectionInfo info) {
-    return new ZooKeeperInstance(getClientConfiguration(info));
+    return new ZooKeeperInstance(ClientConfConverter.toClientConf(info.getProperties()));
   }
 
   public static Credentials getCredentials(ConnectionInfo info) {
@@ -77,11 +73,5 @@ public class ConnectionInfoFactory {
       batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
     }
     return batchWriterConfig;
-  }
-
-  @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      ConnectionInfo info) {
-    return ClientConfConverter.toClientConf(info.getProperties());
   }
 }

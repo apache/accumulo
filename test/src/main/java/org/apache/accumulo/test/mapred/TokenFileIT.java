@@ -91,6 +91,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public int run(String[] args) throws Exception {
 
