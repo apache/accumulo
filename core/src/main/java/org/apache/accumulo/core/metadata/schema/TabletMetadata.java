@@ -292,7 +292,7 @@ public class TabletMetadata {
     };
 
     if (checkConsistency) {
-      return () -> new MetadataConsistencyCheckIterator(iterFactory, range);
+      return () -> new LinkingIterator(iterFactory, range);
     } else {
       return () -> iterFactory.apply(range);
     }

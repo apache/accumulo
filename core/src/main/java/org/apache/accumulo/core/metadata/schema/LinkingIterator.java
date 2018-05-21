@@ -45,17 +45,16 @@ import com.google.common.collect.Iterators;
  * If a tablet that was returned by this iterator is subsequently deleted from the metadata table,
  * then this iterator will throw a TabletDeletedException. This could occur when a table is merged.
  */
-public class MetadataConsistencyCheckIterator implements Iterator<TabletMetadata> {
+public class LinkingIterator implements Iterator<TabletMetadata> {
 
-  private static final Logger log = LoggerFactory.getLogger(MetadataConsistencyCheckIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(LinkingIterator.class);
 
   private Range range;
   private Function<Range,Iterator<TabletMetadata>> iteratorFactory;
   private Iterator<TabletMetadata> source;
   private TabletMetadata prevTablet = null;
 
-  MetadataConsistencyCheckIterator(Function<Range,Iterator<TabletMetadata>> iteratorFactory,
-      Range range) {
+  LinkingIterator(Function<Range,Iterator<TabletMetadata>> iteratorFactory, Range range) {
     this.range = range;
     this.iteratorFactory = iteratorFactory;
     source = iteratorFactory.apply(range);

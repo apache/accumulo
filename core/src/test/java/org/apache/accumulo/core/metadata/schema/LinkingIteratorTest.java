@@ -34,7 +34,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-public class MetadataConsistencyCheckIteratorTest {
+public class LinkingIteratorTest {
 
   private static class IterFactory implements Function<Range,Iterator<TabletMetadata>> {
     private int count;
@@ -57,7 +57,7 @@ public class MetadataConsistencyCheckIteratorTest {
 
   private static void check(List<TabletMetadata> expected, IterFactory iterFactory) {
     List<KeyExtent> actual = new ArrayList<>();
-    new MetadataConsistencyCheckIterator(iterFactory, new Range())
+    new LinkingIterator(iterFactory, new Range())
         .forEachRemaining(tm -> actual.add(tm.getExtent()));
     Assert.assertEquals(Lists.transform(expected, TabletMetadata::getExtent), actual);
   }
@@ -81,11 +81,10 @@ public class MetadataConsistencyCheckIteratorTest {
     List<TabletMetadata> tablets2 = Arrays.asList(create("4", null, "f"), create("4", "f", "r"),
         create("4", "r", "x"), create("4", "x", null));
 
-    MetadataConsistencyCheckIterator mdcci = new MetadataConsistencyCheckIterator(
-        new IterFactory(tablets1, tablets2), new Range());
+    LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets2), new Range());
 
-    while (mdcci.hasNext()) {
-      mdcci.next();
+    while (li.hasNext()) {
+      li.next();
     }
   }
 
