@@ -668,10 +668,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         throw new IOException(e);
       }
 
-      Authorizations auths = getScanAuthorizations(context);
-      String principal = getPrincipal(context);
-      AuthenticationToken token = getAuthenticationToken(context);
-
       boolean batchScan = InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
       boolean supportBatchScan = !(tableConfig.isOfflineScan()
           || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
@@ -754,7 +750,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               clippedRanges.add(ke.clip(r));
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
                 new String[] {location});
-            SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+            SplitUtils.updateSplit(split, tableConfig, logLevel);
 
             splits.add(split);
           } else {
@@ -764,12 +760,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
                 // divide ranges into smaller ranges, based on the tablets
                 RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
                     ke.clip(r), new String[] {location});
-                SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths,
-                    logLevel);
+                SplitUtils.updateSplit(split, tableConfig, logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
-
                 splits.add(split);
               } else {
                 // don't divide ranges
@@ -788,7 +782,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
           RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
               entry.getKey(), entry.getValue().toArray(new String[0]));
-          SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+          SplitUtils.updateSplit(split, tableConfig, logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
           split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());

@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -421,11 +420,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     RangeInputSplit risplit = (RangeInputSplit) split;
 
-    Assert.assertEquals(getAdminPrincipal(), risplit.getPrincipal());
     Assert.assertEquals(table, risplit.getTableName());
-    Assert.assertEquals(getAdminToken(), risplit.getToken());
-    Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
     Assert.assertEquals(isolated, risplit.isIsolatedScan());
     Assert.assertEquals(localIters, risplit.usesLocalIterators());
     Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());
@@ -449,49 +444,6 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
         MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(table + "_map").size());
     assertEquals(1, assertionErrors.get(table + "_cleanup").size());
-  }
-
-  @Test
-  public void testPartialFailedInputSplitDelegationToConfiguration() throws Exception {
-    String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
-    c.tableOperations().create(table);
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
-
-    Assert.assertEquals(1,
-        MRTester.main(new String[] {table, BadPasswordSplitsAccumuloInputFormat.class.getName()}));
-    assertEquals(1, assertionErrors.get(table + "_map").size());
-    // We should fail when the RecordReader fails to get the next key/value pair, because the record
-    // reader is set up with a clientcontext, rather than a
-    // connector, so it doesn't do fast-fail on bad credentials
-    assertEquals(2, assertionErrors.get(table + "_cleanup").size());
-  }
-
-  /**
-   * AccumuloInputFormat which returns an "empty" RangeInputSplit
-   */
-  public static class BadPasswordSplitsAccumuloInputFormat extends AccumuloInputFormat {
-
-    @Override
-    public List<InputSplit> getSplits(JobContext context) throws IOException {
-      List<InputSplit> splits = super.getSplits(context);
-
-      for (InputSplit split : splits) {
-        // @formatter:off
-        org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit =
-          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
-        // @formatter:on
-        rangeSplit.setToken(new PasswordToken("anythingelse"));
-      }
-
-      return splits;
-    }
   }
 
   /**
