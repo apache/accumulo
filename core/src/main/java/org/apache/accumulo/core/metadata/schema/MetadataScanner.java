@@ -224,6 +224,10 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
       Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
       scanner.setRange(range);
 
+      if (checkConsistency && !fetchedCols.contains(FetchedColumns.PREV_ROW)) {
+        fetchPrev();
+      }
+
       for (Text fam : families) {
         scanner.fetchColumnFamily(fam);
       }
@@ -234,10 +238,6 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
 
       if (families.size() == 0 && qualifiers.size() == 0) {
         fetchedCols = EnumSet.allOf(FetchedColumns.class);
-      }
-
-      if (checkConsistency && !fetchedCols.contains(FetchedColumns.PREV_ROW)) {
-        fetchPrev();
       }
 
       Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols, checkConsistency,

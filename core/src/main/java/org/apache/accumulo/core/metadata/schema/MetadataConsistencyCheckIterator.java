@@ -84,7 +84,6 @@ public class MetadataConsistencyCheckIterator implements Iterator<TabletMetadata
             curr.getExtent());
         return false;
       }
-
     } else {
       if (prev.getEndRow() == null) {
         throw new IllegalStateException("Null end row for tablet in middle of table: "
@@ -132,9 +131,12 @@ public class MetadataConsistencyCheckIterator implements Iterator<TabletMetadata
     TabletMetadata currTablet = null;
     while (currTablet == null) {
       TabletMetadata tmp = source.next();
+
       if (prevTablet == null) {
         if (tmp.sawPrevEndRow()) {
           currTablet = tmp;
+        } else {
+          log.warn("Tablet has no prev end row " + tmp.getTableId() + " " + tmp.getEndRow());
         }
       } else if (goodTransition(prevTablet, tmp)) {
         currTablet = tmp;
