@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -78,7 +79,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
-  private ConfigurationCopy tableConf;
+  private AccumuloConfiguration tableConf;
 
   static class Opts {
     InputArgs in;
@@ -180,11 +181,13 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     this.opts = opts;
-    ConfigurationCopy tableConf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     if (null != opts.tableConfig) {
-      opts.tableConfig.forEach(tableConf::set);
+      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
+      opts.tableConfig.forEach(tableCC::set);
+      this.tableConf = tableCC;
+    } else {
+      this.tableConf = DefaultConfiguration.getInstance();
     }
-    this.tableConf = tableConf;
 
     if (opts.indexCacheSize > 0 || opts.dataCacheSize > 0) {
       ConfigurationCopy cc = new ConfigurationCopy(this.tableConf);
