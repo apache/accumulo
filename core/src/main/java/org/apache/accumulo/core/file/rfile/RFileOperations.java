@@ -46,8 +46,9 @@ public class RFileOperations extends FileOperations {
 
   private static RFile.Reader getReader(FileReaderOperation<?> options) throws IOException {
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
-        new Path(options.getFilename()), options.getConfiguration(), options.getDataCache(),
-        options.getIndexCache(), options.getRateLimiter(), options.getTableConfiguration());
+        new Path(options.getFilename()), options.getConfiguration(), options.getFileLenCache(),
+        options.getDataCache(), options.getIndexCache(), options.getRateLimiter(),
+        options.getTableConfiguration());
     return new RFile.Reader(_cbr);
   }
 

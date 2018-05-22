@@ -34,6 +34,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 
+import com.google.common.cache.Cache;
+
 public abstract class FileOperations {
 
   private static final HashSet<String> validExtensions = new HashSet<>(
@@ -392,6 +394,7 @@ public abstract class FileOperations {
       extends FileIOOperation<SubclassType> {
     private BlockCache dataCache;
     private BlockCache indexCache;
+    private Cache<String,Long> fileLenCache;
 
     /**
      * (Optional) Set the block cache pair to be used to optimize reads within the constructed
@@ -420,12 +423,22 @@ public abstract class FileOperations {
       return (SubclassType) this;
     }
 
+    @SuppressWarnings("unchecked")
+    public SubclassType withFileLenCache(Cache<String,Long> fileLenCache) {
+      this.fileLenCache = fileLenCache;
+      return (SubclassType) this;
+    }
+
     public BlockCache getDataCache() {
       return dataCache;
     }
 
     public BlockCache getIndexCache() {
       return indexCache;
+    }
+
+    public Cache<String,Long> getFileLenCache() {
+      return fileLenCache;
     }
   }
 
@@ -445,6 +458,11 @@ public abstract class FileOperations {
      * (Optional) set the index cache to be used to optimize reads within the constructed reader.
      */
     SubbuilderType withIndexCache(BlockCache indexCache);
+
+    /**
+     * (Optional) set the file len cache to be used to optimize reads within the constructed reader.
+     */
+    SubbuilderType withFileLenCache(Cache<String,Long> fileLenCache);
   }
 
   /**
