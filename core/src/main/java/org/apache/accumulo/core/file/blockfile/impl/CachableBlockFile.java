@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
@@ -35,9 +34,7 @@ import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
-import org.apache.accumulo.core.file.streams.PositionedOutput;
 import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
-import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -57,57 +54,6 @@ public class CachableBlockFile {
   private CachableBlockFile() {}
 
   private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
-
-  public static class Writer implements Closeable {
-    private BCFile.Writer _bc;
-    private BCFile.Writer.BlockAppender _bw;
-    private final PositionedOutput fsout;
-    private long length = 0;
-
-    public Writer(FileSystem fs, Path fName, String compressAlgor, RateLimiter writeLimiter,
-        Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
-      this(new RateLimitedOutputStream(fs.create(fName), writeLimiter), compressAlgor, conf,
-          accumuloConfiguration);
-    }
-
-    public <OutputStreamType extends OutputStream & PositionedOutput> Writer(OutputStreamType fsout,
-        String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
-      this.fsout = fsout;
-      init(fsout, compressAlgor, conf, accumuloConfiguration);
-    }
-
-    private <OutputStreamT extends OutputStream & PositionedOutput> void init(OutputStreamT fsout,
-        String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
-      _bc = new BCFile.Writer(fsout, compressAlgor, conf, false, accumuloConfiguration);
-    }
-
-    public BCFile.Writer.BlockAppender prepareMetaBlock(String name) throws IOException {
-      _bw = _bc.prepareMetaBlock(name);
-      return _bw;
-    }
-
-    public BCFile.Writer.BlockAppender prepareDataBlock() throws IOException {
-      _bw = _bc.prepareDataBlock();
-      return _bw;
-    }
-
-    @Override
-    public void close() throws IOException {
-
-      _bw.close();
-      _bc.close();
-
-      length = this.fsout.position();
-      ((OutputStream) this.fsout).close();
-    }
-
-    public long getLength() throws IOException {
-      return length;
-    }
-
-  }
 
   private static interface IoeSupplier<T> {
     T get() throws IOException;
@@ -480,15 +426,6 @@ public class CachableBlockFile {
       this.seekableInput = seekableInput;
       this.cb = cb;
       indexable = true;
-    }
-
-    /**
-     * It is intended that the caller of this method will close the stream we also only intend that
-     * this be called once per BlockRead. This method is provide for methods up stream that expect
-     * to receive a DataInputStream object.
-     */
-    public DataInputStream getStream() {
-      return this;
     }
 
     public void seek(int position) {

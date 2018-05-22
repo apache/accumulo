@@ -28,7 +28,7 @@ public class ConnectionInfoImpl implements ConnectionInfo {
   private Properties properties;
   private AuthenticationToken token;
 
-  ConnectionInfoImpl(Properties properties, AuthenticationToken token) {
+  public ConnectionInfoImpl(Properties properties, AuthenticationToken token) {
     this.properties = properties;
     this.token = token;
   }

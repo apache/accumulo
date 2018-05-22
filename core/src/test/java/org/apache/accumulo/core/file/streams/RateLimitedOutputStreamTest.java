@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.file.streams;
 
-import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.util.Random;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -45,14 +45,9 @@ public class RateLimitedOutputStreamTest {
     Assert.assertEquals(bytesWritten, rateLimiter.getPermitsAcquired());
   }
 
-  public static class NullOutputStream extends FilterOutputStream implements PositionedOutput {
-    public NullOutputStream() {
-      super(new CountingOutputStream(ByteStreams.nullOutputStream()));
-    }
-
-    @Override
-    public long position() throws IOException {
-      return ((CountingOutputStream) out).getCount();
+  public static class NullOutputStream extends FSDataOutputStream {
+    public NullOutputStream() throws IOException {
+      super(new CountingOutputStream(ByteStreams.nullOutputStream()), null);
     }
   }
 

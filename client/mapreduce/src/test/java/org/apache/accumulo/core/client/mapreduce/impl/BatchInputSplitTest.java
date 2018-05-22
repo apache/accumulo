@@ -30,12 +30,10 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -88,12 +86,7 @@ public class BatchInputSplitTest {
     iterators.add(setting);
 
     split.setTableName("table");
-    split.setAuths(new Authorizations("foo"));
     split.setFetchedColumns(fetchedColumns);
-    split.setToken(new PasswordToken("password"));
-    split.setPrincipal("root");
-    split.setInstanceName("instance");
-    split.setZooKeepers("localhost");
     split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
 
@@ -111,14 +104,8 @@ public class BatchInputSplitTest {
     Assert.assertArrayEquals(split.getLocations(), newSplit.getLocations());
 
     Assert.assertEquals(split.getTableName(), newSplit.getTableName());
-    Assert.assertEquals(split.getAuths(), newSplit.getAuths());
     Assert.assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
-    Assert.assertEquals(split.getToken(), newSplit.getToken());
-    Assert.assertEquals(split.getPrincipal(), newSplit.getPrincipal());
-    Assert.assertEquals(split.getInstanceName(), newSplit.getInstanceName());
-    Assert.assertEquals(split.getZooKeepers(), newSplit.getZooKeepers());
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());
   }
-
 }

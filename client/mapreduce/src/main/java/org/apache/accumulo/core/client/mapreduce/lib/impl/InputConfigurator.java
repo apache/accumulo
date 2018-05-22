@@ -39,8 +39,8 @@ import java.util.StringTokenizer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
@@ -718,18 +717,12 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param tableId
    *          The table id for which to initialize the {@link TabletLocator}
    * @return an Accumulo tablet locator
-   * @throws TableNotFoundException
-   *           if the table name set on the configuration doesn't exist
    * @since 1.6.0
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
-      Table.ID tableId) throws TableNotFoundException {
-    Instance instance = getInstance(implementingClass, conf);
-    ClientConfiguration clientConf = getClientConfiguration(implementingClass, conf);
-    ClientContext context = new ClientContext(instance,
-        new Credentials(getPrincipal(implementingClass, conf),
-            getAuthenticationToken(implementingClass, conf)),
-        clientConf);
+      Table.ID tableId) {
+    ConnectionInfo info = getConnectionInfo(implementingClass, conf);
+    ClientContext context = new ClientContext(info);
     return TabletLocator.getLocator(context, tableId);
   }
 

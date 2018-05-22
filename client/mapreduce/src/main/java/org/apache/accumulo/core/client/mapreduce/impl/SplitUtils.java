@@ -20,13 +20,10 @@ package org.apache.accumulo.core.client.mapreduce.impl;
 import java.io.IOException;
 import java.math.BigInteger;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 
@@ -36,20 +33,11 @@ public class SplitUtils {
    * Central place to set common split configuration not handled by split constructors. The
    * intention is to make it harder to miss optional setters in future refactor.
    */
-  public static void updateSplit(RangeInputSplit split, Instance instance,
-      InputTableConfig tableConfig, String principal, AuthenticationToken token,
-      Authorizations auths, Level logLevel) {
-    split.setInstanceName(instance.getInstanceName());
-    split.setZooKeepers(instance.getZooKeepers());
-
-    split.setPrincipal(principal);
-    split.setToken(token);
-    split.setAuths(auths);
-
+  public static void updateSplit(RangeInputSplit split, InputTableConfig tableConfig,
+      Level logLevel) {
     split.setFetchedColumns(tableConfig.getFetchedColumns());
     split.setIterators(tableConfig.getIterators());
     split.setLogLevel(logLevel);
-
     split.setSamplerConfiguration(tableConfig.getSamplerConfiguration());
   }
 
