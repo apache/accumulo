@@ -190,7 +190,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     if (opts.indexCacheSize > 0 || opts.dataCacheSize > 0) {
-      ConfigurationCopy cc = new ConfigurationCopy(this.tableConf);
+      ConfigurationCopy cc = tableConf instanceof ConfigurationCopy ? (ConfigurationCopy) tableConf
+          : new ConfigurationCopy(tableConf);
       try {
         blockCacheManager = BlockCacheManagerFactory.getClientInstance(cc);
         if (opts.indexCacheSize > 0) {
