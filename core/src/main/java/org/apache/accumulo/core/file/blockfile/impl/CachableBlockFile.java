@@ -288,10 +288,9 @@ public class CachableBlockFile {
       this._bc = new BCFile.Reader(this, fsin, len, conf, accumuloConfiguration);
     }
 
-    private static long getFileLen(Cache<String,Long> fileLenCache, final FileSystem fs,
-        final Path path) throws IOException {
+    private long getFileLen(final Path path) throws IOException {
       try {
-        return fileLenCache.get(path.getName(), new Callable<Long>() {
+        return fileLenCache.get(fileName, new Callable<Long>() {
           @Override
           public Long call() throws Exception {
             return fs.getFileStatus(path).getLen();
@@ -316,14 +315,14 @@ public class CachableBlockFile {
 
         if (fileLenCache != null) {
           try {
-            init(fsIn, getFileLen(fileLenCache, fs, path), conf, accumuloConfiguration);
+            init(fsIn, getFileLen(path), conf, accumuloConfiguration);
           } catch (Exception e) {
             log.debug("Failed to open {}, clearing file length cache and retrying", fileName, e);
-            fileLenCache.invalidate(path.getName());
+            fileLenCache.invalidate(fileName);
           }
 
           if (_bc == null) {
-            init(fsIn, getFileLen(fileLenCache, fs, path), conf, accumuloConfiguration);
+            init(fsIn, getFileLen(path), conf, accumuloConfiguration);
           }
         } else {
           init(fsIn, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
