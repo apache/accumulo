@@ -34,10 +34,10 @@ public class ZKAuthenticatorTest extends TestCase {
 
   public void testPermissionIdConversions() {
     for (SystemPermission s : SystemPermission.values())
-      assertTrue(s.equals(SystemPermission.getPermissionById(s.getId())));
+      assertEquals(s, SystemPermission.getPermissionById(s.getId()));
 
     for (TablePermission s : TablePermission.values())
-      assertTrue(s.equals(TablePermission.getPermissionById(s.getId())));
+      assertEquals(s, TablePermission.getPermissionById(s.getId()));
   }
 
   public void testAuthorizationConversion() {
@@ -48,7 +48,7 @@ public class ZKAuthenticatorTest extends TestCase {
     Authorizations converted = new Authorizations(auths);
     byte[] test = ZKSecurityTool.convertAuthorizations(converted);
     Authorizations test2 = ZKSecurityTool.convertAuthorizations(test);
-    assertTrue(auths.size() == test2.size());
+    assertEquals(auths.size(), test2.size());
     for (byte[] s : auths) {
       assertTrue(test2.contains(s));
     }
@@ -61,7 +61,7 @@ public class ZKAuthenticatorTest extends TestCase {
 
     Set<SystemPermission> converted = ZKSecurityTool
         .convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
-    assertTrue(perms.size() == converted.size());
+    assertEquals(perms.size(), converted.size());
     for (SystemPermission s : perms)
       assertTrue(converted.contains(s));
   }
@@ -73,7 +73,7 @@ public class ZKAuthenticatorTest extends TestCase {
 
     Set<TablePermission> converted = ZKSecurityTool
         .convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));
-    assertTrue(perms.size() == converted.size());
+    assertEquals(perms.size(), converted.size());
     for (TablePermission s : perms)
       assertTrue(converted.contains(s));
   }
@@ -86,7 +86,7 @@ public class ZKAuthenticatorTest extends TestCase {
       assertTrue(ZKSecurityTool.checkPass(rawPass, storedBytes));
     } catch (AccumuloException e) {
       log.error("{}", e.getMessage(), e);
-      assertTrue(false);
+      fail();
     }
   }
 }

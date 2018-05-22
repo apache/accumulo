@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -267,42 +268,42 @@ public class NativeMapIT {
 
     try {
       nm.put(newKey(1), newValue(1));
-      assertTrue(false);
+      fail();
     } catch (IllegalStateException e) {
 
     }
 
     try {
       nm.get(newKey(1));
-      assertTrue(false);
+      fail();
     } catch (IllegalStateException e) {
 
     }
 
     try {
       nm.iterator();
-      assertTrue(false);
+      fail();
     } catch (IllegalStateException e) {
 
     }
 
     try {
       nm.iterator(newKey(1));
-      assertTrue(false);
+      fail();
     } catch (IllegalStateException e) {
 
     }
 
     try {
       nm.size();
-      assertTrue(false);
+      fail();
     } catch (IllegalStateException e) {
 
     }
 
     try {
       iter.next();
-      assertTrue(false);
+      fail();
     } catch (IllegalStateException e) {
 
     }
@@ -319,7 +320,7 @@ public class NativeMapIT {
 
     try {
       nm.delete();
-      assertTrue(false);
+      fail();
     } catch (IllegalStateException e) {
 
     }
@@ -365,7 +366,7 @@ public class NativeMapIT {
 
     try {
       iter.next();
-      assertTrue(false);
+      fail();
     } catch (NoSuchElementException e) {
 
     }
@@ -377,7 +378,7 @@ public class NativeMapIT {
 
     try {
       iter.next();
-      assertTrue(false);
+      fail();
     } catch (NoSuchElementException e) {
 
     }
@@ -587,8 +588,8 @@ public class NativeMapIT {
   public void testEmpty() {
     NativeMap nm = new NativeMap();
 
-    assertTrue(nm.size() == 0);
-    assertTrue(nm.getMemoryUsed() == 0);
+    assertEquals(0, nm.size());
+    assertEquals(0, nm.getMemoryUsed());
 
     nm.delete();
   }

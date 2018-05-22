@@ -132,8 +132,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Assert.assertEquals("Hello World!", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertFalse(clazz1.equals(clazz2));
-    Assert.assertFalse(o1.equals(o2));
+    Assert.assertNotEquals(clazz1, clazz2);
+    Assert.assertNotEquals(o1, o2);
 
     arvcl.close();
   }
@@ -236,8 +236,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Assert.assertEquals("Hello World!", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertFalse(clazz1.equals(clazz2));
-    Assert.assertFalse(o1.equals(o2));
+    Assert.assertNotEquals(clazz1, clazz2);
+    Assert.assertNotEquals(o1, o2);
 
     arvcl.close();
   }
@@ -289,8 +289,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Assert.assertEquals("Hallo Welt", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertFalse(clazz1.equals(clazz2));
-    Assert.assertFalse(o1.equals(o2));
+    Assert.assertNotEquals(clazz1, clazz2);
+    Assert.assertNotEquals(o1, o2);
 
     Class<?> clazz3 = loader1.loadClass("test.HelloWorld");
     Object o3 = clazz3.newInstance();

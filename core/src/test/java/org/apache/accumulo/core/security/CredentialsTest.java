@@ -20,6 +20,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -74,8 +76,8 @@ public class CredentialsTest {
     } catch (Exception e) {
       assertTrue(e instanceof RuntimeException);
       assertTrue(e.getCause() instanceof AccumuloSecurityException);
-      assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode()
-          .equals(SecurityErrorCode.TOKEN_EXPIRED));
+      assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
+          SecurityErrorCode.TOKEN_EXPIRED);
     }
   }
 
@@ -102,7 +104,7 @@ public class CredentialsTest {
       inst.getConnector("testUser", testToken);
       fail();
     } catch (AccumuloSecurityException e) {
-      assertTrue(e.getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
+      assertEquals(e.getSecurityErrorCode(), SecurityErrorCode.TOKEN_EXPIRED);
     }
   }
 
@@ -117,7 +119,7 @@ public class CredentialsTest {
     assertEquals(0, nullNullCreds.hashCode());
     assertEquals("abc".hashCode(), abcNullCreds.hashCode());
     assertEquals(abcNullCreds.hashCode(), abcBlahCreds.hashCode());
-    assertFalse(abcNullCreds.hashCode() == cbaNullCreds.hashCode());
+    assertNotEquals(abcNullCreds.hashCode(), cbaNullCreds.hashCode());
 
     // identity
     assertEquals(abcNullCreds, abcNullCreds);
@@ -126,9 +128,9 @@ public class CredentialsTest {
     assertEquals(new Credentials("abc", new PasswordToken("abc".getBytes(UTF_8))),
         new Credentials("abc", new PasswordToken("abc")));
     // test not equals
-    assertFalse(nullNullCreds.equals(abcBlahCreds));
-    assertFalse(nullNullCreds.equals(abcNullCreds));
-    assertFalse(abcNullCreds.equals(abcBlahCreds));
+    assertNotEquals(nullNullCreds, abcBlahCreds);
+    assertNotEquals(nullNullCreds, abcNullCreds);
+    assertNotEquals(abcNullCreds, abcBlahCreds);
   }
 
   @Test
@@ -143,8 +145,8 @@ public class CredentialsTest {
     Credentials nullNullCreds = new Credentials(null, null);
     serialized = nullNullCreds.serialize();
     result = Credentials.deserialize(serialized);
-    assertEquals(null, result.getPrincipal());
-    assertEquals(null, result.getToken());
+    assertNull(result.getPrincipal());
+    assertNull(result.getToken());
   }
 
   @Test

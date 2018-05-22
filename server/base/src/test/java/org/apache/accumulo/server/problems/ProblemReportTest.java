@@ -24,9 +24,9 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -83,24 +83,24 @@ public class ProblemReportTest {
   @Test
   public void testEquals() {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
-    assertTrue(r.equals(r));
+    assertEquals(r, r);
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
-    assertTrue(r.equals(r2));
-    assertTrue(r2.equals(r));
+    assertEquals(r, r2);
+    assertEquals(r2, r);
     ProblemReport rx1 = new ProblemReport(Table.ID.METADATA, ProblemType.FILE_READ, RESOURCE,
         SERVER, null);
-    assertFalse(r.equals(rx1));
+    assertNotEquals(r, rx1);
     ProblemReport rx2 = new ProblemReport(TABLE_ID, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
-    assertFalse(r.equals(rx2));
+    assertNotEquals(r, rx2);
     ProblemReport rx3 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE + "x", SERVER,
         null);
-    assertFalse(r.equals(rx3));
+    assertNotEquals(r, rx3);
     ProblemReport re1 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x",
         null);
-    assertTrue(r.equals(re1));
+    assertEquals(r, re1);
     ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER,
         new IllegalArgumentException("yikes"));
-    assertTrue(r.equals(re2));
+    assertEquals(r, re2);
   }
 
   @Test

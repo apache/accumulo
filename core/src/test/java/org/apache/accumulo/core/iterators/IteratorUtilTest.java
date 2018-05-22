@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -152,14 +153,14 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
-    assertTrue(iter.getTopValue().toString().equals("4"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(1, 0));
+    assertEquals("4", iter.getTopValue().toString());
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
-    assertTrue(iter.getTopValue().toString().equals("9"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(2, 0));
+    assertEquals("9", iter.getTopValue().toString());
 
     iter.next();
 
@@ -184,14 +185,14 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
-    assertTrue(iter.getTopValue().toString().equals("1"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(1, 0));
+    assertEquals("1", iter.getTopValue().toString());
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
-    assertTrue(iter.getTopValue().toString().equals("2"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(2, 0));
+    assertEquals("2", iter.getTopValue().toString());
 
     iter.next();
 
@@ -222,14 +223,14 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
-    assertTrue(iter.getTopValue().toString().equals("2"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(1, 0));
+    assertEquals("2", iter.getTopValue().toString());
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
-    assertTrue(iter.getTopValue().toString().equals("5"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(2, 0));
+    assertEquals("5", iter.getTopValue().toString());
 
     iter.next();
 
@@ -261,14 +262,14 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
-    assertTrue(iter.getTopValue().toString().equals("64"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(1, 0));
+    assertEquals("64", iter.getTopValue().toString());
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
-    assertTrue(iter.getTopValue().toString().equals("81"));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(2, 0));
+    assertEquals("81", iter.getTopValue().toString());
 
     iter.next();
 
@@ -299,7 +300,7 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 950)));
+    assertEquals(iter.getTopKey(), MultiIteratorTest.newKey(2, 950));
     iter.next();
 
     assertFalse(iter.hasTop());

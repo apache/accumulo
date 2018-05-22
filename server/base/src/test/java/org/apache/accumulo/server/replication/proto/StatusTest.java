@@ -27,7 +27,7 @@ public class StatusTest {
     Status replicated = Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     Status unreplicated = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
 
-    Assert.assertFalse(replicated.equals(unreplicated));
+    Assert.assertNotEquals(replicated, unreplicated);
   }
 
 }

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1302,8 +1303,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
         map = client.tableIdMap(creds);
         assertEquals(map.get("slow"), scan.getExtent().tableId);
-        assertTrue(scan.getExtent().endRow == null);
-        assertTrue(scan.getExtent().prevEndRow == null);
+        assertNull(scan.getExtent().endRow);
+        assertNull(scan.getExtent().prevEndRow);
         found = true;
       }
     }

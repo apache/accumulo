@@ -58,7 +58,7 @@ public class ConfigurableCompactionStrategyTest {
     Assert.assertEquals(0, plan.writeParameters.getHdfsBlockSize());
     Assert.assertEquals(0, plan.writeParameters.getIndexBlockSize());
     Assert.assertEquals(0, plan.writeParameters.getReplication());
-    Assert.assertEquals(null, plan.writeParameters.getCompressType());
+    Assert.assertNull(plan.writeParameters.getCompressType());
 
     // test setting all output options
     ccs = new ConfigurableCompactionStrategy();

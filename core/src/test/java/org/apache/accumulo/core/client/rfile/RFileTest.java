@@ -284,7 +284,7 @@ public class RFileTest {
     Reader reader = getReader(localFs, testFile);
     Map<String,ArrayList<ByteSequence>> lGroups = reader.getLocalityGroupCF();
     Assert.assertTrue(lGroups.containsKey("z"));
-    Assert.assertTrue(lGroups.get("z").size() == 2);
+    Assert.assertEquals(2, lGroups.get("z").size());
     Assert.assertTrue(lGroups.get("z").contains(new ArrayByteSequence(colStr(0))));
     Assert.assertTrue(lGroups.get("z").contains(new ArrayByteSequence(colStr(1))));
     Assert.assertTrue(lGroups.containsKey("h"));

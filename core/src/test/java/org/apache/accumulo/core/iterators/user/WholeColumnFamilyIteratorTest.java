@@ -129,7 +129,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
       resultMap.putAll(WholeColumnFamilyIterator.decodeColumnFamily(rowKey, rowValue));
       iter2.next();
     }
-    assertTrue(numRows == trueCount);
+    assertEquals(numRows, trueCount);
     assertEquals(resultMap, map2);
   }
 

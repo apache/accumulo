@@ -92,12 +92,12 @@ public class FileRefTest {
 
   @Test
   public void testCompareTo() {
-    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
-        .compareTo(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")) == 0);
-    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
-        .compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")) == 0);
-    Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
-        .compareTo(new FileRef("hdfs://nn1/accumulo/tables//2a/t-0003//C0004.rf")) == 0);
+    Assert.assertEquals(0, new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
+        .compareTo(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")));
+    Assert.assertEquals(0, new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
+        .compareTo(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")));
+    Assert.assertEquals(0, new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
+        .compareTo(new FileRef("hdfs://nn1/accumulo/tables//2a/t-0003//C0004.rf")));
 
     Assert.assertTrue(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")
         .compareTo(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf")) < 0);

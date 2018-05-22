@@ -112,14 +112,14 @@ public class MetadataConstraintsTest {
 
     violations = mc.check(null, m);
 
-    assertEquals(null, violations);
+    assertNull(violations);
 
     m = new Mutation(new Text("!0<"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));
 
     violations = mc.check(null, m);
 
-    assertEquals(null, violations);
+    assertNull(violations);
 
     m = new Mutation(new Text("!1<"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));

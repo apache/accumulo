@@ -17,7 +17,7 @@
 package org.apache.accumulo.master;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 
 import org.apache.accumulo.server.util.DefaultMap;
 import org.junit.Test;
@@ -31,7 +31,7 @@ public class DefaultMapTest {
     String empty = map.get("otherKey");
     assertEquals(map.get("key"), "value");
     assertEquals(empty, "");
-    assertTrue(empty == map.get("otherKey"));
+    assertSame(empty, map.get("otherKey"));
   }
 
 }

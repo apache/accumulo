@@ -18,6 +18,7 @@ package org.apache.accumulo.core.iterators.system;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -106,7 +107,7 @@ public class TimeSettingIteratorTest {
 
     assertTrue(tsi.hasTop());
     final Key topKey = tsi.getTopKey();
-    assertTrue("Expected the topKey to be the same object", k == topKey);
+    assertSame("Expected the topKey to be the same object", k, topKey);
     assertEquals(new Key("r0", "cf1", "cq1", 50L), topKey);
     assertEquals("v0", tsi.getTopValue().toString());
     tsi.next();
@@ -139,12 +140,12 @@ public class TimeSettingIteratorTest {
       it.seek(testRange, new HashSet<>(), false);
 
       assertTrue(it.hasTop());
-      assertTrue(it.getTopValue().equals(new Value("00".getBytes())));
-      assertTrue(it.getTopKey().getTimestamp() == 111L);
+      assertEquals(it.getTopValue(), new Value("00".getBytes()));
+      assertEquals(111L, it.getTopKey().getTimestamp());
       it.next();
       assertTrue(it.hasTop());
-      assertTrue(it.getTopValue().equals(new Value("11".getBytes())));
-      assertTrue(it.getTopKey().getTimestamp() == 111L);
+      assertEquals(it.getTopValue(), new Value("11".getBytes()));
+      assertEquals(111L, it.getTopKey().getTimestamp());
       it.next();
       assertFalse(it.hasTop());
     }

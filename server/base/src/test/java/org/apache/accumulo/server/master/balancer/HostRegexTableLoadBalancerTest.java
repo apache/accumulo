@@ -74,7 +74,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     Assert.assertEquals(BAR.getTableName(), tids.get(BAR.getId()));
     Assert.assertTrue(tids.containsKey(BAZ.getId()));
     Assert.assertEquals(BAZ.getTableName(), tids.get(BAZ.getId()));
-    Assert.assertEquals(false, this.isIpBasedRegex());
+    Assert.assertFalse(this.isIpBasedRegex());
   }
 
   @Test

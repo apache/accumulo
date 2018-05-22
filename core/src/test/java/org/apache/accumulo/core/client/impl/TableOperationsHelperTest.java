@@ -355,11 +355,11 @@ public class TableOperationsHelperTest {
     Map<String,EnumSet<IteratorScope>> two = t.listIterators("table");
     Assert.assertEquals(2, two.size());
     Assert.assertTrue(two.containsKey("otherName"));
-    Assert.assertTrue(two.get("otherName").size() == 2);
+    Assert.assertEquals(2, two.get("otherName").size());
     Assert.assertTrue(two.get("otherName").contains(IteratorScope.majc));
     Assert.assertTrue(two.get("otherName").contains(IteratorScope.scan));
     Assert.assertTrue(two.containsKey("someName"));
-    Assert.assertTrue(two.get("someName").size() == 1);
+    Assert.assertEquals(1, two.get("someName").size());
     Assert.assertTrue(two.get("someName").contains(IteratorScope.majc));
     t.removeIterator("table", "someName", EnumSet.allOf(IteratorScope.class));
     check(t, "table",

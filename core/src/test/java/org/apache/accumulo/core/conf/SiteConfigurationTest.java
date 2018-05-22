@@ -74,7 +74,7 @@ public class SiteConfigurationTest {
     siteCfg.getProperties(props, all);
 
     Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
-    Assert.assertEquals(null, props.get("ignored.property"));
+    Assert.assertNull(props.get("ignored.property"));
     Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
         props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
   }

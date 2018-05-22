@@ -64,7 +64,7 @@ public class StatusCombinerTest {
     // When combining only one message, we should get back the same instance
     Status ret = combiner.typedReduce(key, Collections.singleton(status).iterator());
     Assert.assertEquals(status, ret);
-    Assert.assertTrue(status == ret);
+    Assert.assertSame(status, ret);
   }
 
   @Test
@@ -75,7 +75,7 @@ public class StatusCombinerTest {
     Assert.assertEquals(10L, ret.getBegin());
     Assert.assertEquals(20L, ret.getEnd());
     Assert.assertEquals(100L, ret.getCreatedTime());
-    Assert.assertEquals(false, ret.getClosed());
+    Assert.assertFalse(ret.getClosed());
   }
 
   @Test
@@ -86,7 +86,7 @@ public class StatusCombinerTest {
     Assert.assertEquals(10L, ret.getBegin());
     Assert.assertEquals(20L, ret.getEnd());
     Assert.assertEquals(100L, ret.getCreatedTime());
-    Assert.assertEquals(false, ret.getClosed());
+    Assert.assertFalse(ret.getClosed());
   }
 
   @Test

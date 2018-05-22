@@ -61,9 +61,9 @@ public class LogFileTest {
     in.reset(out.getData(), out.size());
     keyResult.readFields(in);
     valueResult.readFields(in);
-    assertTrue(key.compareTo(keyResult) == 0);
+    assertEquals(0, key.compareTo(keyResult));
     assertEquals(value.mutations, valueResult.mutations);
-    assertTrue(in.read() == -1);
+    assertEquals(in.read(), -1);
   }
 
   @Test

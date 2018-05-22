@@ -36,7 +36,7 @@ public class ConditionalComparatorTest {
 
     ConditionComparator comparator = new ConditionComparator();
 
-    Assert.assertTrue(comparator.compare(c1, c1) == 0);
+    Assert.assertEquals(0, comparator.compare(c1, c1));
     Assert.assertTrue(comparator.compare(c1, c2) < 0);
     Assert.assertTrue(comparator.compare(c2, c1) > 0);
     Assert.assertTrue(comparator.compare(c1, c3) < 0);

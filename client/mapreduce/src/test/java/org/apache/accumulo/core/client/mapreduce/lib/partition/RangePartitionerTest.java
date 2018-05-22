@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.partition;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -62,7 +63,7 @@ public class RangePartitionerTest {
 
   private void checkExpectedRangeBins(int numSubBins, String[] strings, int[] rangeEnds)
       throws IOException {
-    assertTrue(strings.length == rangeEnds.length);
+    assertEquals(strings.length, rangeEnds.length);
     for (int i = 0; i < strings.length; ++i) {
       int endRange = rangeEnds[i];
       int startRange = endRange + 1 - numSubBins;
@@ -74,11 +75,11 @@ public class RangePartitionerTest {
   }
 
   private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) throws IOException {
-    assertTrue(strings.length == bins.length);
+    assertEquals(strings.length, bins.length);
     for (int i = 0; i < strings.length; ++i) {
       int bin = bins[i], part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]),
           cutArray, numSubBins);
-      assertTrue(bin == part);
+      assertEquals(bin, part);
     }
   }
 }

@@ -60,7 +60,7 @@ public class DeletingIteratorTest extends TestCase {
         tm.put(k, dvNew);
       }
     }
-    assertTrue("Initial size was " + tm.size(), tm.size() == 21);
+    assertEquals("Initial size was " + tm.size(), 21, tm.size());
 
     Text checkRow = new Text("000");
     try {
@@ -72,17 +72,17 @@ public class DeletingIteratorTest extends TestCase {
         tmOut.put(it.getTopKey(), it.getTopValue());
         it.next();
       }
-      assertTrue("size after no propagation was " + tmOut.size(), tmOut.size() == 15);
+      assertEquals("size after no propagation was " + tmOut.size(), 15, tmOut.size());
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         if (e.getKey().getRow().equals(checkRow)) {
           byte[] b = e.getValue().get();
-          assertTrue(b[0] == 'n');
-          assertTrue(b[1] == 'e');
-          assertTrue(b[2] == 'w');
+          assertEquals('n', b[0]);
+          assertEquals('e', b[1]);
+          assertEquals('w', b[2]);
         }
       }
     } catch (IOException e) {
-      assertFalse(true);
+      fail();
     }
 
     try {
@@ -93,23 +93,23 @@ public class DeletingIteratorTest extends TestCase {
         tmOut.put(it.getTopKey(), it.getTopValue());
         it.next();
       }
-      assertTrue("size after propagation was " + tmOut.size(), tmOut.size() == 16);
+      assertEquals("size after propagation was " + tmOut.size(), 16, tmOut.size());
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         if (e.getKey().getRow().equals(checkRow)) {
           byte[] b = e.getValue().get();
           if (e.getKey().isDeleted()) {
-            assertTrue(b[0] == 'o');
-            assertTrue(b[1] == 'l');
-            assertTrue(b[2] == 'd');
+            assertEquals('o', b[0]);
+            assertEquals('l', b[1]);
+            assertEquals('d', b[2]);
           } else {
-            assertTrue(b[0] == 'n');
-            assertTrue(b[1] == 'e');
-            assertTrue(b[2] == 'w');
+            assertEquals('n', b[0]);
+            assertEquals('e', b[1]);
+            assertEquals('w', b[2]);
           }
         }
       }
     } catch (IOException e) {
-      assertFalse(true);
+      fail();
     }
   }
 

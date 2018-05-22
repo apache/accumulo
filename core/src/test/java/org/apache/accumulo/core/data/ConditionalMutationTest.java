@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -42,7 +43,7 @@ public class ConditionalMutationTest {
   public void setUp() throws Exception {
     c1 = new Condition(FAMILY, QUALIFIER);
     c2 = new Condition(FAMILY, QUALIFIER2);
-    assertFalse(c1.equals(c2));
+    assertNotEquals(c1, c2);
     cm = new ConditionalMutation(ROW, c1, c2);
   }
 
@@ -119,7 +120,7 @@ public class ConditionalMutationTest {
     assertTrue(cm.equals(cm));
 
     // non-nullity
-    assertFalse(cm.equals((Object) null));
+    assertNotEquals(cm, (Object) null);
 
     // symmetry
     ConditionalMutation cm2 = new ConditionalMutation(ROW, c1, c2);
@@ -129,7 +130,7 @@ public class ConditionalMutationTest {
     ConditionalMutation cm3 = new ConditionalMutation("row2".getBytes(UTF_8), c1, c2);
     assertFalse(cm.equals(cm3));
     cm3 = new ConditionalMutation(ROW, c2, c1);
-    assertFalse(cm.getConditions().equals(cm3.getConditions()));
+    assertNotEquals(cm.getConditions(), cm3.getConditions());
     assertFalse(cm.equals(cm3));
   }
 

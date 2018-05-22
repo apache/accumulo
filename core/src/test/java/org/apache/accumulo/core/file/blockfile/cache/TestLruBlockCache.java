@@ -67,7 +67,7 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheConfiguration bcc = new BlockCacheConfiguration(cc);
     LruBlockCacheConfiguration lbcc = new LruBlockCacheConfiguration(bcc, CacheType.INDEX);
 
-    assertEquals(false, lbcc.isUseEvictionThread());
+    assertFalse(lbcc.isUseEvictionThread());
     assertEquals(0.93f, lbcc.getMinFactor());
     assertEquals(0.97f, lbcc.getAcceptableFactor());
     assertEquals(0.20f, lbcc.getSingleFactor());
@@ -132,7 +132,7 @@ public class TestLruBlockCache extends TestCase {
 
     // Confirm empty
     for (Block block : blocks) {
-      assertTrue(cache.getBlock(block.blockName) == null);
+      assertNull(cache.getBlock(block.blockName));
     }
 
     // Add blocks
@@ -147,7 +147,7 @@ public class TestLruBlockCache extends TestCase {
     // Check if all blocks are properly cached and retrieved
     for (Block block : blocks) {
       CacheEntry ce = cache.getBlock(block.blockName);
-      assertTrue(ce != null);
+      assertNotNull(ce);
       assertEquals(ce.getBuffer().length, block.buf.length);
     }
 
@@ -157,7 +157,7 @@ public class TestLruBlockCache extends TestCase {
     // Check if all blocks are properly cached and retrieved
     for (Block block : blocks) {
       CacheEntry ce = cache.getBlock(block.blockName);
-      assertTrue(ce != null);
+      assertNotNull(ce);
       assertEquals(ce.getBuffer().length, block.buf.length);
     }
 
@@ -210,8 +210,8 @@ public class TestLruBlockCache extends TestCase {
     assertTrue(cache.heapSize() < (maxSize * LruBlockCacheConfiguration.DEFAULT_ACCEPTABLE_FACTOR));
 
     // All blocks except block 0 and 1 should be in the cache
-    assertTrue(cache.getBlock(blocks[0].blockName) == null);
-    assertTrue(cache.getBlock(blocks[1].blockName) == null);
+    assertNull(cache.getBlock(blocks[0].blockName));
+    assertNull(cache.getBlock(blocks[1].blockName));
     for (int i = 2; i < blocks.length; i++) {
       assertTrue(Arrays.equals(cache.getBlock(blocks[i].blockName).getBuffer(), blocks[i].buf));
     }
@@ -274,8 +274,8 @@ public class TestLruBlockCache extends TestCase {
     // This test makes multi go barely over its limit, in-memory
     // empty, and the rest in single. Two single evictions and
     // one multi eviction expected.
-    assertTrue(cache.getBlock(singleBlocks[0].blockName) == null);
-    assertTrue(cache.getBlock(multiBlocks[0].blockName) == null);
+    assertNull(cache.getBlock(singleBlocks[0].blockName));
+    assertNull(cache.getBlock(multiBlocks[0].blockName));
 
     // And all others to be cached
     for (int i = 1; i < 4; i++) {
@@ -342,7 +342,7 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(1, cache.getEvictedCount());
 
     // Verify oldest single block is the one evicted
-    assertEquals(null, cache.getBlock(singleBlocks[0].blockName));
+    assertNull(cache.getBlock(singleBlocks[0].blockName));
 
     // Change the oldest remaining single block to a multi
     cache.getBlock(singleBlocks[1].blockName);
@@ -355,7 +355,7 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(2, cache.getEvictedCount());
 
     // Oldest multi block should be evicted now
-    assertEquals(null, cache.getBlock(multiBlocks[0].blockName));
+    assertNull(cache.getBlock(multiBlocks[0].blockName));
 
     // Insert another memory block
     cache.cacheBlock(memoryBlocks[3].blockName, memoryBlocks[3].buf, true);
@@ -365,7 +365,7 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(3, cache.getEvictedCount());
 
     // Oldest memory block should be evicted now
-    assertEquals(null, cache.getBlock(memoryBlocks[0].blockName));
+    assertNull(cache.getBlock(memoryBlocks[0].blockName));
 
     // Add a block that is twice as big (should force two evictions)
     Block[] bigBlocks = generateFixedBlocks(3, blockSize * 3, "big");
@@ -376,9 +376,9 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(6, cache.getEvictedCount());
 
     // Expect three remaining singles to be evicted
-    assertEquals(null, cache.getBlock(singleBlocks[2].blockName));
-    assertEquals(null, cache.getBlock(singleBlocks[3].blockName));
-    assertEquals(null, cache.getBlock(singleBlocks[4].blockName));
+    assertNull(cache.getBlock(singleBlocks[2].blockName));
+    assertNull(cache.getBlock(singleBlocks[3].blockName));
+    assertNull(cache.getBlock(singleBlocks[4].blockName));
 
     // Make the big block a multi block
     cache.getBlock(bigBlocks[0].blockName);
@@ -391,9 +391,9 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(9, cache.getEvictedCount());
 
     // Expect three remaining multis to be evicted
-    assertEquals(null, cache.getBlock(singleBlocks[1].blockName));
-    assertEquals(null, cache.getBlock(multiBlocks[1].blockName));
-    assertEquals(null, cache.getBlock(multiBlocks[2].blockName));
+    assertNull(cache.getBlock(singleBlocks[1].blockName));
+    assertNull(cache.getBlock(multiBlocks[1].blockName));
+    assertNull(cache.getBlock(multiBlocks[2].blockName));
 
     // Cache a big memory block
     cache.cacheBlock(bigBlocks[2].blockName, bigBlocks[2].buf, true);
@@ -403,9 +403,9 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(12, cache.getEvictedCount());
 
     // Expect three remaining in-memory to be evicted
-    assertEquals(null, cache.getBlock(memoryBlocks[1].blockName));
-    assertEquals(null, cache.getBlock(memoryBlocks[2].blockName));
-    assertEquals(null, cache.getBlock(memoryBlocks[3].blockName));
+    assertNull(cache.getBlock(memoryBlocks[1].blockName));
+    assertNull(cache.getBlock(memoryBlocks[2].blockName));
+    assertNull(cache.getBlock(memoryBlocks[3].blockName));
 
     manager.stop();
   }
@@ -449,10 +449,10 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(4, cache.getEvictedCount());
 
     // Should have been taken off equally from single and multi
-    assertEquals(null, cache.getBlock(singleBlocks[0].blockName));
-    assertEquals(null, cache.getBlock(singleBlocks[1].blockName));
-    assertEquals(null, cache.getBlock(multiBlocks[0].blockName));
-    assertEquals(null, cache.getBlock(multiBlocks[1].blockName));
+    assertNull(cache.getBlock(singleBlocks[0].blockName));
+    assertNull(cache.getBlock(singleBlocks[1].blockName));
+    assertNull(cache.getBlock(multiBlocks[0].blockName));
+    assertNull(cache.getBlock(multiBlocks[1].blockName));
 
     // Let's keep "scanning" by adding single blocks. From here on we only
     // expect evictions from the single bucket.

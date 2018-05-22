@@ -449,7 +449,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table);
     make10();
     String lines = ts.exec("egrep row[123]", true);
-    assertTrue(lines.split("\n").length - 1 == 3);
+    assertEquals(3, lines.split("\n").length - 1);
     ts.exec("deletetable -f " + table);
   }
 
@@ -856,15 +856,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Connector connector = getConnector();
     for (Entry<String,String> entry : connector.tableOperations().getProperties(table)) {
       if (entry.getKey().equals("table.custom.description"))
-        Assert.assertTrue("Initial property was not set correctly",
-            entry.getValue().equals("description"));
+        Assert.assertEquals("Initial property was not set correctly", "description",
+            entry.getValue());
 
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertTrue("Initial property was not set correctly",
-            entry.getValue().equals("testProp"));
+        Assert.assertEquals("Initial property was not set correctly", "testProp", entry.getValue());
 
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
+        Assert.assertEquals("Initial property was not set correctly", "10K", entry.getValue());
 
     }
     ts.exec("deletetable -f " + table);
@@ -2142,7 +2141,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Map<String,Set<Text>> lMap = connector.tableOperations().getLocalityGroups(table);
     Set<Text> expectedColFams = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
     for (Entry<String,Set<Text>> entry : lMap.entrySet()) {
-      Assert.assertTrue(entry.getKey().equals("locg1"));
+      Assert.assertEquals("locg1", entry.getKey());
       Assert.assertTrue(entry.getValue().containsAll(expectedColFams));
     }
     ts.exec("deletetable -f " + table);

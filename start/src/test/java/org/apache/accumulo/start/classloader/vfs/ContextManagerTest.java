@@ -122,7 +122,7 @@ public class ContextManagerTest {
     Object o2 = myContextClass.newInstance();
     Assert.assertEquals("Hello World!", o2.toString());
 
-    Assert.assertFalse(defaultContextClass.equals(myContextClass));
+    Assert.assertNotEquals(defaultContextClass, myContextClass);
 
     cm.removeUnusedContexts(new HashSet<>());
   }
@@ -152,8 +152,8 @@ public class ContextManagerTest {
       }
     });
 
-    Assert.assertTrue(cm.getClassLoader("CX1").loadClass("test.HelloWorld") == pclass);
-    Assert.assertFalse(cm.getClassLoader("CX2").loadClass("test.HelloWorld") == pclass);
+    Assert.assertSame(cm.getClassLoader("CX1").loadClass("test.HelloWorld"), pclass);
+    Assert.assertNotSame(cm.getClassLoader("CX2").loadClass("test.HelloWorld"), pclass);
   }
 
   @After

@@ -119,7 +119,7 @@ public class TestProxyTableOperations {
 
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
-    assertTrue(tableSplits.size() == splits.size());
+    assertEquals(tableSplits.size(), splits.size());
 
   }
 
@@ -135,7 +135,7 @@ public class TestProxyTableOperations {
 
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
-    assertTrue(tableSplits.size() == splits.size());
+    assertEquals(tableSplits.size(), splits.size());
   }
 
   @Test

@@ -182,11 +182,11 @@ public class BulkImporterTest {
 
     // 1;2<
     extent = new KeyExtent(Table.ID.of("1"), new Text("2"), null);
-    Assert.assertEquals(null, BulkImporter.getStartRowForExtent(extent));
+    Assert.assertNull(BulkImporter.getStartRowForExtent(extent));
 
     // 1<<
     extent = new KeyExtent(Table.ID.of("1"), null, null);
-    Assert.assertEquals(null, BulkImporter.getStartRowForExtent(extent));
+    Assert.assertNull(BulkImporter.getStartRowForExtent(extent));
 
     // 1;8;7777777
     extent = new KeyExtent(Table.ID.of("1"), new Text("8"), new Text("7777777"));

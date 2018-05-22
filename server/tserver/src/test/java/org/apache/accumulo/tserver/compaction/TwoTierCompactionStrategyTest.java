@@ -77,7 +77,7 @@ public class TwoTierCompactionStrategyTest {
     List<FileRef> filesToCompact = ttcs.getCompactionPlan(mcr).inputFiles;
     Assert.assertEquals(fileMap.keySet(), new HashSet<>(filesToCompact));
     Assert.assertEquals(8, filesToCompact.size());
-    Assert.assertEquals(null, ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
+    Assert.assertNull(ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
   }
 
   @Test
@@ -105,9 +105,9 @@ public class TwoTierCompactionStrategyTest {
     try {
       opts.clear();
       ttcs.init(opts);
-      Assert.assertTrue("IllegalArgumentException should have been thrown.", false);
+      Assert.fail("IllegalArgumentException should have been thrown.");
     } catch (IllegalArgumentException iae) {} catch (Throwable t) {
-      Assert.assertTrue("IllegalArgumentException should have been thrown.", false);
+      Assert.fail("IllegalArgumentException should have been thrown.");
     }
   }
 
@@ -129,7 +129,7 @@ public class TwoTierCompactionStrategyTest {
     List<FileRef> filesToCompact = ttcs.getCompactionPlan(mcr).inputFiles;
     Assert.assertEquals(filesToCompactMap.keySet(), new HashSet<>(filesToCompact));
     Assert.assertEquals(6, filesToCompact.size());
-    Assert.assertEquals(null, ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
+    Assert.assertNull(ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
   }
 
 }

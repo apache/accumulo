@@ -18,7 +18,10 @@ package org.apache.accumulo.core.file.rfile;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -341,7 +344,7 @@ public class RFileTest {
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(null, trf.reader.getLastKey());
+    assertNull(trf.reader.getLastKey());
 
     trf.closeReader();
   }
@@ -361,8 +364,8 @@ public class RFileTest {
     // seek before everything
     trf.seek(null);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("r1", "cf1", "cq1", "L1", 55)));
-    assertTrue(trf.iter.getTopValue().equals(newValue("foo")));
+    assertEquals(trf.iter.getTopKey(), newKey("r1", "cf1", "cq1", "L1", 55));
+    assertEquals(trf.iter.getTopValue(), newValue("foo"));
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -373,8 +376,8 @@ public class RFileTest {
     // seek exactly to the key
     trf.seek(newKey("r1", "cf1", "cq1", "L1", 55));
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("r1", "cf1", "cq1", "L1", 55)));
-    assertTrue(trf.iter.getTopValue().equals(newValue("foo")));
+    assertEquals(trf.iter.getTopKey(), newKey("r1", "cf1", "cq1", "L1", 55));
+    assertEquals(trf.iter.getTopValue(), newValue("foo"));
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -567,35 +570,35 @@ public class RFileTest {
     trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 55), newValue("foo1"));
     try {
       trf.writer.append(newKey("r0", "cf1", "cq1", "L1", 55), newValue("foo1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(newKey("r1", "cf0", "cq1", "L1", 55), newValue("foo1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(newKey("r1", "cf1", "cq0", "L1", 55), newValue("foo1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(newKey("r1", "cf1", "cq1", "L0", 55), newValue("foo1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 56), newValue("foo1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
@@ -682,7 +685,7 @@ public class RFileTest {
     trf.iter.seek(new Range(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55), true,
         newKey(formatString("r_", 4), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55)));
+    assertEquals(trf.iter.getTopKey(), newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55));
     assertEquals(newValue("foo" + 3), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -714,7 +717,7 @@ public class RFileTest {
     trf.iter.seek(new Range(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55), true,
         newKey(formatString("r_", 6), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55)));
+    assertEquals(trf.iter.getTopKey(), newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55));
     assertEquals(newValue("foo" + 5), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -891,11 +894,11 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -907,11 +910,11 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -923,19 +926,19 @@ public class RFileTest {
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -954,7 +957,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -966,7 +969,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -978,7 +981,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -990,7 +993,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1002,11 +1005,11 @@ public class RFileTest {
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1047,11 +1050,11 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1072,11 +1075,11 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1097,11 +1100,11 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0007", "good citizen", "q,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0007", "good citizen", "q,john", "", 4));
     assertEquals(newValue("70 Apple st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0008", "model citizen", "q,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0008", "model citizen", "q,jane", "", 5));
     assertEquals(newValue("81 Plum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1124,19 +1127,19 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0007", "good citizen", "q,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0007", "good citizen", "q,john", "", 4));
     assertEquals(newValue("70 Apple st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0008", "model citizen", "q,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0008", "model citizen", "q,jane", "", 5));
     assertEquals(newValue("81 Plum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1273,7 +1276,7 @@ public class RFileTest {
 
     try {
       trf.writer.append(newKey("0009", "c", "cq1", "", 4), newValue("1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
@@ -1308,14 +1311,14 @@ public class RFileTest {
 
     try {
       trf.writer.append(newKey("0008", "a", "cq1", "", 4), newValue("1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(newKey("0009", "b", "cq1", "", 4), newValue("1"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
@@ -1343,14 +1346,14 @@ public class RFileTest {
     trf.writer.startDefaultLocalityGroup();
     try {
       trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
-      assertFalse(true);
+      fail();
     } catch (IllegalStateException ioe) {
 
     }
 
     try {
       trf.writer.startDefaultLocalityGroup();
-      assertFalse(true);
+      fail();
     } catch (IllegalStateException ioe) {
 
     }
@@ -1369,7 +1372,7 @@ public class RFileTest {
     trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
     try {
       trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("b", "c"));
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException ioe) {
 
     }
@@ -1602,7 +1605,7 @@ public class RFileTest {
     trf.iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
 
@@ -1617,7 +1620,7 @@ public class RFileTest {
     in.close();
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -2354,7 +2357,7 @@ public class RFileTest {
     testRfile.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertTrue(testRfile.iter.hasTop());
 
-    assertTrue(testRfile.reader.getLastKey() != null);
+    assertNotNull(testRfile.reader.getLastKey());
 
     testRfile.closeReader();
 

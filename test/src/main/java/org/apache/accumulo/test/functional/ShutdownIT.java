@@ -18,7 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
 import java.util.List;
@@ -118,7 +118,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     assertEquals(0, cluster.exec(Admin.class, "stop", doomed).waitFor());
     tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(1, tabletServers.size());
-    assertFalse(tabletServers.get(0).equals(doomed));
+    assertNotEquals(tabletServers.get(0), doomed);
   }
 
 }
