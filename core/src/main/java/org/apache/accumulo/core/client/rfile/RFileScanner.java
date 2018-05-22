@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -78,6 +79,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
+  private AccumuloConfiguration tableConf;
 
   static class Opts {
     InputArgs in;
@@ -179,13 +181,17 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     this.opts = opts;
+    if (null != opts.tableConfig && opts.tableConfig.size() > 0) {
+      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
+      opts.tableConfig.forEach(tableCC::set);
+      this.tableConf = tableCC;
+    } else {
+      this.tableConf = DefaultConfiguration.getInstance();
+    }
 
     if (opts.indexCacheSize > 0 || opts.dataCacheSize > 0) {
-      ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
-      if (null != opts.tableConfig) {
-        opts.tableConfig.forEach(cc::set);
-      }
-
+      ConfigurationCopy cc = tableConf instanceof ConfigurationCopy ? (ConfigurationCopy) tableConf
+          : new ConfigurationCopy(tableConf);
       try {
         blockCacheManager = BlockCacheManagerFactory.getClientInstance(cc);
         if (opts.indexCacheSize > 0) {
@@ -347,9 +353,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        readers.add(new RFile.Reader(
-            new CachableBlockFile.Reader("source-" + i, inputStream, sources[i].getLength(),
-                opts.in.getConf(), dataCache, indexCache, DefaultConfiguration.getInstance())));
+        readers.add(new RFile.Reader(new CachableBlockFile.Reader("source-" + i, inputStream,
+            sources[i].getLength(), opts.in.getConf(), dataCache, indexCache, tableConf)));
       }
 
       if (getSamplerConfiguration() != null) {
@@ -377,8 +382,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       try {
         if (opts.tableConfig != null && opts.tableConfig.size() > 0) {
-          ConfigurationCopy conf = new ConfigurationCopy(opts.tableConfig);
-          iterator = IteratorUtil.loadIterators(IteratorScope.scan, iterator, null, conf,
+          iterator = IteratorUtil.loadIterators(IteratorScope.scan, iterator, null, tableConf,
               serverSideIteratorList, serverSideIteratorOptions, new IterEnv());
         } else {
           iterator = IteratorUtil.loadIterators(iterator, serverSideIteratorList,
