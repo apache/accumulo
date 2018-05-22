@@ -181,7 +181,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     this.opts = opts;
-    if (null != opts.tableConfig) {
+    if (null != opts.tableConfig && opts.tableConfig.size() > 0) {
       ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
       opts.tableConfig.forEach(tableCC::set);
       this.tableConf = tableCC;
