@@ -753,8 +753,23 @@ public class MetadataTableUtil {
     return m;
   }
 
-  private static Iterable<TabletMetadata> createCloneScanner(String tableName, Table.ID tableId,
-      Connector conn, Range range) throws TableNotFoundException {
+  private static Iterable<TabletMetadata> createCloneScanner(String testTableName, Table.ID tableId,
+      Connector conn) throws TableNotFoundException {
+
+    String tableName;
+    Range range;
+
+    if (testTableName != null) {
+      tableName = testTableName;
+      range = TabletsSection.getRange(tableId);
+    } else if (tableId.equals(MetadataTable.ID)) {
+      tableName = RootTable.NAME;
+      range = TabletsSection.getRange();
+    } else {
+      tableName = MetadataTable.NAME;
+      range = TabletsSection.getRange(tableId);
+    }
+
     try {
       return MetadataScanner.builder().from(conn).scanTable(tableName).overRange(range)
           .checkConsistency().saveKeyValues().fetchFiles().fetchLocation().fetchLast().fetchCloned()
@@ -764,22 +779,11 @@ public class MetadataTableUtil {
     }
   }
 
-  private static Iterable<TabletMetadata> createCloneScanner(String tableName, Table.ID tableId,
-      Connector conn) throws TableNotFoundException {
-    return createCloneScanner(tableName, tableId, conn, TabletsSection.getRange(tableId));
-  }
-
   @VisibleForTesting
-  public static void initializeClone(String tableName, Table.ID srcTableId, Table.ID tableId,
+  public static void initializeClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
       Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
 
-    Range range;
-    if (srcTableId.equals(MetadataTable.ID))
-      range = TabletsSection.getRange();
-    else
-      range = TabletsSection.getRange(srcTableId);
-
-    Iterator<TabletMetadata> ti = createCloneScanner(tableName, srcTableId, conn, range).iterator();
+    Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, conn).iterator();
 
     if (!ti.hasNext())
       throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
@@ -796,11 +800,13 @@ public class MetadataTableUtil {
   }
 
   @VisibleForTesting
-  public static int checkClone(String tableName, Table.ID srcTableId, Table.ID tableId,
+  public static int checkClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
       Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
 
-    Iterator<TabletMetadata> srcIter = createCloneScanner(tableName, srcTableId, conn).iterator();
-    Iterator<TabletMetadata> cloneIter = createCloneScanner(tableName, tableId, conn).iterator();
+    Iterator<TabletMetadata> srcIter = createCloneScanner(testTableName, srcTableId, conn)
+        .iterator();
+    Iterator<TabletMetadata> cloneIter = createCloneScanner(testTableName, tableId, conn)
+        .iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext())
       throw new RuntimeException(
@@ -884,13 +890,13 @@ public class MetadataTableUtil {
       while (true) {
 
         try {
-          initializeClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
+          initializeClone(null, srcTableId, tableId, conn, bw);
 
           // the following loop looks changes in the file that occurred during the copy.. if files
           // were dereferenced then they could have been GCed
 
           while (true) {
-            int rewrites = checkClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
+            int rewrites = checkClone(null, srcTableId, tableId, conn, bw);
 
             if (rewrites == 0)
               break;
