@@ -134,25 +134,14 @@ public class ClientConfConverter {
     return props;
   }
 
-  public static Properties toProperties(AccumuloConfiguration config) {
-    return toProperties(toClientConf(config));
-  }
-
-  public static AccumuloConfiguration toAccumuloConf(Properties properties) {
-    return toAccumuloConf(toClientConf(properties));
-  }
-
   /**
-   * A utility method for converting client configuration to a standard configuration object for use
-   * internally.
+   * Converts client properties to a standard configuration object for use internally.
    *
-   * @param config
-   *          the original {@link org.apache.accumulo.core.client.ClientConfiguration}
-   * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
+   * @param properties
+   *          Accumulo client properties
+   * @return the client configuration in the form of an {@link AccumuloConfiguration}
    */
-  @SuppressWarnings("deprecation")
-  public static AccumuloConfiguration toAccumuloConf(
-      final org.apache.accumulo.core.client.ClientConfiguration config) {
+  public static AccumuloConfiguration toAccumuloConf(final Properties properties) {
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
@@ -183,18 +172,14 @@ public class ClientConfConverter {
           }
         }
 
-        if (config.containsKey(key))
-          return config.getString(key);
-        else {
+        if (properties.containsKey(key)) {
+          return properties.getProperty(key);
+        } else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
-            if (config.containsKey(
-                org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                    .getKey())) {
+            if (properties.containsKey(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config.getString(
-                  org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                      .getKey())
+              return properties.getProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())
                   + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
             }
           }
@@ -206,22 +191,18 @@ public class ClientConfConverter {
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 
-        Iterator<String> keyIter = config.getKeys();
-        while (keyIter.hasNext()) {
-          String key = keyIter.next();
+        for (Object keyObj : properties.keySet()) {
+          String key = (String) keyObj;
           if (filter.test(key))
-            props.put(key, config.getString(key));
+            props.put(key, properties.getProperty(key));
         }
 
         // Two client props that don't exist on the server config. Client doesn't need to know about
         // the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(
-            org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                .getKey())) {
-          final String serverPrimary = props.remove(
-              org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                  .getKey());
+        if (props.containsKey(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props
+              .remove(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
@@ -254,8 +235,8 @@ public class ClientConfConverter {
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = config
-            .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths = properties
+            .getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (null != credProviderPaths && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
           hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
@@ -269,11 +250,8 @@ public class ClientConfConverter {
     };
   }
 
-  @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration toClientConf(
-      AccumuloConfiguration conf) {
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
-        .create();
+  public static Properties toProperties(AccumuloConfiguration conf) {
+    Properties properties = new Properties();
 
     // Servers will only have the full principal in their configuration -- parse the
     // primary and realm from it.
@@ -282,14 +260,12 @@ public class ClientConfConverter {
     final KerberosName krbName;
     if (serverPrincipal != null && !serverPrincipal.isEmpty()) {
       krbName = new KerberosName(serverPrincipal);
-      clientConf.setProperty(
-          org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY,
+      properties.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
           krbName.getServiceName());
     }
 
     HashSet<String> clientKeys = new HashSet<>();
-    for (org.apache.accumulo.core.client.ClientConfiguration.ClientProperty prop : org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
-        .values()) {
+    for (ClientProperty prop : ClientProperty.values()) {
       clientKeys.add(prop.getKey());
     }
 
@@ -297,10 +273,9 @@ public class ClientConfConverter {
     for (Map.Entry<String,String> entry : conf) {
       key = entry.getKey();
       if (clientKeys.contains(key)) {
-        clientConf.setProperty(key, entry.getValue());
+        properties.setProperty(key, entry.getValue());
       }
     }
-    return clientConf;
+    return properties;
   }
-
 }
