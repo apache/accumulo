@@ -239,11 +239,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     RangeInputSplit risplit = (RangeInputSplit) split;
 
-    Assert.assertEquals(getAdminPrincipal(), risplit.getPrincipal());
     Assert.assertEquals(table, risplit.getTableName());
-    Assert.assertEquals(getAdminToken(), risplit.getToken());
-    Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
     Assert.assertEquals(isolated, risplit.isIsolatedScan());
     Assert.assertEquals(localIters, risplit.usesLocalIterators());
     Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());

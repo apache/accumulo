@@ -27,13 +27,13 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ConnectionInfoFactory;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
@@ -126,10 +125,21 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo info)
-      throws AccumuloSecurityException {
-    setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
-    setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
+  public static void setConnectionInfo(JobConf job, ConnectionInfo info) {
+    ConnectionInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
+    InputConfigurator.setConnectionInfo(CLASS, job, inputInfo);
+  }
+
+  /**
+   * Retrieves {@link ConnectionInfo} from the configuration
+   *
+   * @param job
+   *          Hadoop job instance configuration
+   * @return {@link ConnectionInfo} object
+   * @since 2.0.0
+   */
+  protected static ConnectionInfo getConnectionInfo(JobConf job) {
+    return InputConfigurator.getConnectionInfo(CLASS, job);
   }
 
   /**
@@ -259,7 +269,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @deprecated since 2.0.0; Use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead.
    */
   @Deprecated
-  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(JobConf job,
+      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     InputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
   }
 
@@ -336,8 +347,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          The job
    * @return The client configuration for the job
    * @since 1.7.0
+   * @deprecated since 2.0.0, replaced by {{@link #getConnectionInfo(JobConf)}}
    */
-  protected static ClientConfiguration getClientConfiguration(JobConf job) {
+  @Deprecated
+  protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
+      JobConf job) {
     return InputConfigurator.getClientConfiguration(CLASS, job);
   }
 
@@ -353,17 +367,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobConf job) throws IOException {
-    final Instance inst = InputConfigurator.validateInstance(CLASS, job);
-    String principal = InputConfigurator.getPrincipal(CLASS, job);
-    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, job);
-    // In secure mode, we need to convert the DelegationTokenStub into a real DelegationToken
-    token = ConfiguratorBase.unwrapAuthenticationToken(job, token);
-    Connector conn;
-    try {
-      conn = inst.getConnector(principal, token);
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
+    Connector conn = InputConfigurator.getConnector(CLASS, job);
     InputConfigurator.validatePermissions(CLASS, job, conn);
   }
 
@@ -463,25 +467,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + baseSplit);
 
-      Instance instance = baseSplit.getInstance(getClientConfiguration(job));
-      if (null == instance) {
-        instance = getInstance(job);
-      }
+      Instance instance = getInstance(job);
 
-      String principal = baseSplit.getPrincipal();
-      if (null == principal) {
-        principal = getPrincipal(job);
-      }
-
-      AuthenticationToken token = baseSplit.getToken();
-      if (null == token) {
-        token = getAuthenticationToken(job);
-      }
-
-      Authorizations authorizations = baseSplit.getAuths();
-      if (null == authorizations) {
-        authorizations = getScanAuthorizations(job);
-      }
+      String principal = getPrincipal(job);
+      AuthenticationToken token = getAuthenticationToken(job);
+      Authorizations authorizations = getScanAuthorizations(job);
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
 
@@ -538,9 +528,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             scanner = new OfflineScanner(instance, new Credentials(principal, token),
                 Table.ID.of(baseSplit.getTableId()), authorizations);
           } else {
-            ClientConfiguration clientConf = getClientConfiguration(job);
+            Properties props = getConnectionInfo(job).getProperties();
             ClientContext context = new ClientContext(instance, new Credentials(principal, token),
-                clientConf);
+                props);
             scanner = new ScannerImpl(context, Table.ID.of(baseSplit.getTableId()), authorizations);
           }
           if (isIsolated) {
@@ -655,10 +645,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         throw new IOException(e);
       }
 
-      Authorizations auths = getScanAuthorizations(job);
-      String principal = getPrincipal(job);
-      AuthenticationToken token = getAuthenticationToken(job);
-
       boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
       boolean supportBatchScan = !(tableConfig.isOfflineScan()
           || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
@@ -696,9 +682,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           // tablets... so clear it
           tl.invalidateCache();
 
-          ClientContext context = new ClientContext(getInstance(job),
-              new Credentials(getPrincipal(job), getAuthenticationToken(job)),
-              getClientConfiguration(job));
+          ClientContext context = new ClientContext(getConnectionInfo(job));
           while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
             String tableIdStr = tableId.canonicalID();
             if (!Tables.exists(instance, tableId))
@@ -740,7 +724,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
                 new String[] {location});
-            SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+            SplitUtils.updateSplit(split, tableConfig, logLevel);
 
             splits.add(split);
           } else {
@@ -750,8 +734,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
                 // divide ranges into smaller ranges, based on the tablets
                 RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
                     ke.clip(r), new String[] {location});
-                SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths,
-                    logLevel);
+                SplitUtils.updateSplit(split, tableConfig, logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -774,7 +757,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
           RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
               entry.getKey(), entry.getValue().toArray(new String[0]));
-          SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+          SplitUtils.updateSplit(split, tableConfig, logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
           split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -785,5 +768,4 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
     return splits.toArray(new InputSplit[splits.size()]);
   }
-
 }

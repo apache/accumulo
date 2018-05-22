@@ -22,21 +22,31 @@ import static java.util.Objects.requireNonNull;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Base64;
+import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
+import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -55,21 +65,27 @@ import org.apache.log4j.Logger;
  */
 public class ConfiguratorBase {
 
+  protected static final Logger log = Logger.getLogger(ConfiguratorBase.class);
+
   /**
    * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
    *
    * @since 1.6.0
    */
-  public static enum ConnectorInfo {
+  public enum ConnectorInfo {
     IS_CONFIGURED, PRINCIPAL, TOKEN,
   }
 
-  public static enum TokenSource {
+  public enum ConnectionInfoOpts {
+    CLIENT_PROPS
+  }
+
+  public enum TokenSource {
     FILE, INLINE, JOB;
 
     private String prefix;
 
-    private TokenSource() {
+    TokenSource() {
       prefix = name().toLowerCase() + ":";
     }
 
@@ -83,7 +99,7 @@ public class ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum InstanceOpts {
+  public enum InstanceOpts {
     TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG;
   }
 
@@ -92,7 +108,7 @@ public class ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum GeneralOpts {
+  public enum GeneralOpts {
     LOG_LEVEL, VISIBILITY_CACHE_SIZE
   }
 
@@ -123,6 +139,79 @@ public class ConfiguratorBase {
         + StringUtils.camelize(e.name().toLowerCase());
   }
 
+  public static ConnectionInfo updateToken(org.apache.hadoop.security.Credentials credentials,
+      ConnectionInfo info) {
+    ConnectionInfo result = info;
+    if (info.getAuthenticationToken() instanceof KerberosToken) {
+      log.info("Received KerberosToken, attempting to fetch DelegationToken");
+      try {
+        Connector conn = Connector.builder().usingConnectionInfo(info).build();
+        AuthenticationToken token = conn.securityOperations()
+            .getDelegationToken(new DelegationTokenConfig());
+        result = new ConnectionInfoImpl(info.getProperties(), token);
+      } catch (Exception e) {
+        log.warn("Failed to automatically obtain DelegationToken, "
+            + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
+      }
+    }
+    // DelegationTokens can be passed securely from user to task without serializing insecurely in
+    // the configuration
+    if (info.getAuthenticationToken() instanceof DelegationTokenImpl) {
+      DelegationTokenImpl delegationToken = (DelegationTokenImpl) info.getAuthenticationToken();
+
+      // Convert it into a Hadoop Token
+      AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
+      Token<AuthenticationTokenIdentifier> hadoopToken = new Token<>(identifier.getBytes(),
+          delegationToken.getPassword(), identifier.getKind(), delegationToken.getServiceName());
+
+      // Add the Hadoop Token to the Job so it gets serialized and passed along.
+      credentials.addToken(hadoopToken.getService(), hadoopToken);
+    }
+    return result;
+  }
+
+  public static void setConnectionInfo(Class<?> implementingClass, Configuration conf,
+      ConnectionInfo info) {
+    conf.set(enumToConfKey(implementingClass, InstanceOpts.TYPE), "ConnectionInfo");
+    Properties props = info.getProperties();
+    StringWriter writer = new StringWriter();
+    try {
+      props.store(writer, "client properties");
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    conf.set(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS), writer.toString());
+    setConnectorInfo(implementingClass, conf, info.getPrincipal(), info.getAuthenticationToken());
+  }
+
+  @SuppressWarnings("deprecation")
+  public static ConnectionInfo getConnectionInfo(Class<?> implementingClass, Configuration conf) {
+    AuthenticationToken token = getAuthenticationToken(implementingClass, conf);
+    String propString = conf.get(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS),
+        "");
+    String confString = conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG), "");
+    if (!propString.isEmpty() && !confString.isEmpty()) {
+      throw new IllegalStateException("Client connection information was set using both "
+          + "setConnectionInfo & setZookeeperInstance");
+    }
+    Properties props = new Properties();
+    if (!propString.isEmpty()) {
+      try {
+        props.load(new StringReader(propString));
+      } catch (IOException e) {
+        throw new IllegalStateException(e);
+      }
+    } else {
+      props = ClientConfConverter.toProperties(
+          org.apache.accumulo.core.client.ClientConfiguration.deserialize(confString));
+      String principal = conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), "");
+      if (!principal.isEmpty()) {
+        props.setProperty(ClientProperty.AUTH_USERNAME.getKey(), principal);
+      }
+    }
+    return new ConnectionInfoImpl(props, token);
+  }
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
@@ -142,7 +231,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
-      String principal, AuthenticationToken token) throws AccumuloSecurityException {
+      String principal, AuthenticationToken token) {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
@@ -327,8 +416,9 @@ public class ConfiguratorBase {
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
    */
+  @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
-      ClientConfiguration clientConfig) {
+      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
     if (!conf.get(key, "").isEmpty())
       throw new IllegalStateException(
@@ -352,46 +442,44 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
-    String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
-    if ("ZooKeeperInstance".equals(instanceType)) {
-      return new ZooKeeperInstance(getClientConfiguration(implementingClass, conf));
-    } else if (instanceType.isEmpty()) {
-      throw new IllegalStateException(
-          "Instance has not been configured for " + implementingClass.getSimpleName());
-    } else {
-      throw new IllegalStateException("Unrecognized instance type " + instanceType);
+    return getConnector(implementingClass, conf).getInstance();
+  }
+
+  /**
+   * Creates an Accumulo {@link Connector} based on the configuration
+   *
+   * @param implementingClass
+   *          class whose name will be used as a prefix for the property configu
+   * @param conf
+   *          Hadoop configuration object
+   * @return Accumulo connector
+   * @since 2.0.0
+   */
+  public static Connector getConnector(Class<?> implementingClass, Configuration conf) {
+    try {
+      return Connector.builder().usingConnectionInfo(getConnectionInfo(implementingClass, conf))
+          .build();
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IllegalStateException(e);
     }
   }
 
   /**
-   * Obtain a {@link ClientConfiguration} based on the configuration.
+   * Obtain a ClientConfiguration based on the configuration.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
    *
-   * @return A {@link ClientConfiguration}
+   * @return A ClientConfiguration
    * @since 1.7.0
    */
-  public static ClientConfiguration getClientConfiguration(Class<?> implementingClass,
-      Configuration conf) {
-    String clientConfigString = conf
-        .get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
-    if (null != clientConfigString) {
-      return ClientConfiguration.deserialize(clientConfigString);
-    }
-
-    String instanceName = conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME));
-    String zookeepers = conf.get(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS));
-    ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-    if (null != instanceName) {
-      clientConf.withInstance(instanceName);
-    }
-    if (null != zookeepers) {
-      clientConf.withZkHosts(zookeepers);
-    }
-    return clientConf;
+  @SuppressWarnings("deprecation")
+  public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
+      Class<?> implementingClass, Configuration conf) {
+    return ClientConfConverter
+        .toClientConf(getConnectionInfo(implementingClass, conf).getProperties());
   }
 
   /**

@@ -16,35 +16,25 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.TokenSource;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -57,12 +47,8 @@ import org.apache.log4j.Level;
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
-  private String tableId, tableName, instanceName, zooKeepers, principal;
-  private TokenSource tokenSource;
-  private String tokenFile;
-  private AuthenticationToken token;
+  private String tableId, tableName;
   private Boolean offline, isolatedScan, localIterators;
-  private Authorizations auths;
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
   private SamplerConfiguration samplerConfig;
@@ -175,44 +161,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (in.readBoolean()) {
-      String strAuths = in.readUTF();
-      auths = new Authorizations(strAuths.getBytes(UTF_8));
-    }
-
-    if (in.readBoolean()) {
-      principal = in.readUTF();
-    }
-
-    if (in.readBoolean()) {
-      int ordinal = in.readInt();
-      this.tokenSource = TokenSource.values()[ordinal];
-
-      switch (this.tokenSource) {
-        case INLINE:
-          String tokenClass = in.readUTF();
-          byte[] tokenBytes = Base64.getDecoder().decode(in.readUTF());
-
-          this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);
-          break;
-
-        case FILE:
-          this.tokenFile = in.readUTF();
-
-          break;
-        default:
-          throw new IOException("Cannot parse unknown TokenSource ordinal");
-      }
-    }
-
-    if (in.readBoolean()) {
-      instanceName = in.readUTF();
-    }
-
-    if (in.readBoolean()) {
-      zooKeepers = in.readUTF();
-    }
-
-    if (in.readBoolean()) {
       int numIterators = in.readInt();
       iterators = new ArrayList<>(numIterators);
       for (int i = 0; i < numIterators; i++) {
@@ -265,42 +213,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
       }
     }
 
-    out.writeBoolean(null != auths);
-    if (null != auths) {
-      out.writeUTF(auths.serialize());
-    }
-
-    out.writeBoolean(null != principal);
-    if (null != principal) {
-      out.writeUTF(principal);
-    }
-
-    out.writeBoolean(null != tokenSource);
-    if (null != tokenSource) {
-      out.writeInt(tokenSource.ordinal());
-
-      if (null != token && null != tokenFile) {
-        throw new IOException(
-            "Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
-      } else if (null != token) {
-        out.writeUTF(token.getClass().getName());
-        out.writeUTF(
-            Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
-      } else {
-        out.writeUTF(tokenFile);
-      }
-    }
-
-    out.writeBoolean(null != instanceName);
-    if (null != instanceName) {
-      out.writeUTF(instanceName);
-    }
-
-    out.writeBoolean(null != zooKeepers);
-    if (null != zooKeepers) {
-      out.writeUTF(zooKeepers);
-    }
-
     out.writeBoolean(null != iterators);
     if (null != iterators) {
       out.writeInt(iterators.size());
@@ -336,56 +248,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return tableId;
   }
 
-  public Instance getInstance(ClientConfiguration base) {
-    if (null == instanceName) {
-      return null;
-    }
-
-    if (null == zooKeepers) {
-      return null;
-    }
-
-    return new ZooKeeperInstance(base.withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
-  }
-
-  public String getInstanceName() {
-    return instanceName;
-  }
-
-  public void setInstanceName(String instanceName) {
-    this.instanceName = instanceName;
-  }
-
-  public String getZooKeepers() {
-    return zooKeepers;
-  }
-
-  public void setZooKeepers(String zooKeepers) {
-    this.zooKeepers = zooKeepers;
-  }
-
-  public String getPrincipal() {
-    return principal;
-  }
-
-  public void setPrincipal(String principal) {
-    this.principal = principal;
-  }
-
-  public AuthenticationToken getToken() {
-    return token;
-  }
-
-  public void setToken(AuthenticationToken token) {
-    this.tokenSource = TokenSource.INLINE;
-    this.token = token;
-  }
-
-  public void setToken(String tokenFile) {
-    this.tokenSource = TokenSource.FILE;
-    this.tokenFile = tokenFile;
-  }
-
   public Boolean isOffline() {
     return offline;
   }
@@ -404,14 +266,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setIsolatedScan(Boolean isolatedScan) {
     this.isolatedScan = isolatedScan;
-  }
-
-  public Authorizations getAuths() {
-    return auths;
-  }
-
-  public void setAuths(Authorizations auths) {
-    this.auths = auths;
   }
 
   public void setRange(Range range) {
@@ -464,13 +318,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" Locations: ").append(Arrays.asList(locations));
     sb.append(" Table: ").append(tableName);
     sb.append(" TableID: ").append(tableId);
-    sb.append(" InstanceName: ").append(instanceName);
-    sb.append(" zooKeepers: ").append(zooKeepers);
-    sb.append(" principal: ").append(principal);
-    sb.append(" tokenSource: ").append(tokenSource);
-    sb.append(" authenticationToken: ").append(token);
-    sb.append(" authenticationTokenFile: ").append(tokenFile);
-    sb.append(" Authorizations: ").append(auths);
     sb.append(" offlineScan: ").append(offline);
     sb.append(" isolatedScan: ").append(isolatedScan);
     sb.append(" localIterators: ").append(localIterators);

@@ -27,13 +27,13 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ConnectionInfoFactory;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
@@ -73,7 +72,6 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -129,10 +127,21 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setConnectionInfo(Job job, ConnectionInfo info)
-      throws AccumuloSecurityException {
-    setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
-    setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
+  public static void setConnectionInfo(Job job, ConnectionInfo info) {
+    ConnectionInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
+    InputConfigurator.setConnectionInfo(CLASS, job.getConfiguration(), inputInfo);
+  }
+
+  /**
+   * Gets the {@link ConnectionInfo} from the configuration
+   *
+   * @param context
+   *          Hadoop job context
+   * @return ConnectionInfo
+   * @since 2.0.0
+   */
+  protected static ConnectionInfo getConnectionInfo(JobContext context) {
+    return InputConfigurator.getConnectionInfo(CLASS, context.getConfiguration());
   }
 
   /**
@@ -262,7 +271,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @deprecated since 2.0.0; Use {@link #setConnectionInfo(Job, ConnectionInfo)} instead.
    */
   @Deprecated
-  public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(Job job,
+      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }
 
@@ -372,30 +382,21 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobContext context) throws IOException {
-    final Configuration conf = context.getConfiguration();
-    final Instance inst = InputConfigurator.validateInstance(CLASS, conf);
-    String principal = InputConfigurator.getPrincipal(CLASS, conf);
-    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, conf);
-    // In secure mode, we need to convert the DelegationTokenStub into a real DelegationToken
-    token = ConfiguratorBase.unwrapAuthenticationToken(context, token);
-    Connector conn;
-    try {
-      conn = inst.getConnector(principal, token);
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
-    InputConfigurator.validatePermissions(CLASS, conf, conn);
+    Connector conn = InputConfigurator.getConnector(CLASS, context.getConfiguration());
+    InputConfigurator.validatePermissions(CLASS, context.getConfiguration(), conn);
   }
 
   /**
-   * Construct the {@link ClientConfiguration} given the provided context.
+   * Construct the ClientConfiguration given the provided context.
    *
    * @param context
    *          The Job
    * @return The ClientConfiguration
    * @since 1.7.0
    */
-  protected static ClientConfiguration getClientConfiguration(JobContext context) {
+  @Deprecated
+  protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
+      JobContext context) {
     return InputConfigurator.getClientConfiguration(CLASS, context.getConfiguration());
   }
 
@@ -470,25 +471,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split);
 
-      Instance instance = split.getInstance(getClientConfiguration(attempt));
-      if (null == instance) {
-        instance = getInstance(attempt);
-      }
-
-      String principal = split.getPrincipal();
-      if (null == principal) {
-        principal = getPrincipal(attempt);
-      }
-
-      AuthenticationToken token = split.getToken();
-      if (null == token) {
-        token = getAuthenticationToken(attempt);
-      }
-
-      Authorizations authorizations = split.getAuths();
-      if (null == authorizations) {
-        authorizations = getScanAuthorizations(attempt);
-      }
+      Instance instance = getInstance(attempt);
+      String principal = getPrincipal(attempt);
+      AuthenticationToken token = getAuthenticationToken(attempt);
+      Authorizations authorizations = getScanAuthorizations(attempt);
       String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();
 
@@ -545,9 +531,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             scanner = new OfflineScanner(instance, new Credentials(principal, token),
                 Table.ID.of(split.getTableId()), authorizations);
           } else {
-            ClientConfiguration clientConf = getClientConfiguration(attempt);
+            Properties props = getConnectionInfo(attempt).getProperties();
             ClientContext context = new ClientContext(instance, new Credentials(principal, token),
-                clientConf);
+                props);
+            // Not using public API to create scanner so that we can use table ID
+            // Table ID is used in case of renames during M/R job
             scanner = new ScannerImpl(context, Table.ID.of(split.getTableId()), authorizations);
           }
           if (isIsolated) {
@@ -680,10 +668,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         throw new IOException(e);
       }
 
-      Authorizations auths = getScanAuthorizations(context);
-      String principal = getPrincipal(context);
-      AuthenticationToken token = getAuthenticationToken(context);
-
       boolean batchScan = InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
       boolean supportBatchScan = !(tableConfig.isOfflineScan()
           || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
@@ -722,9 +706,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           // tablets... so clear it
           tl.invalidateCache();
 
-          ClientContext clientContext = new ClientContext(getInstance(context),
-              new Credentials(getPrincipal(context), getAuthenticationToken(context)),
-              getClientConfiguration(context));
+          ClientContext clientContext = new ClientContext(getConnectionInfo(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
             String tableIdStr = tableId.canonicalID();
             if (!Tables.exists(instance, tableId))
@@ -768,7 +750,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               clippedRanges.add(ke.clip(r));
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
                 new String[] {location});
-            SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+            SplitUtils.updateSplit(split, tableConfig, logLevel);
 
             splits.add(split);
           } else {
@@ -778,12 +760,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
                 // divide ranges into smaller ranges, based on the tablets
                 RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
                     ke.clip(r), new String[] {location});
-                SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths,
-                    logLevel);
+                SplitUtils.updateSplit(split, tableConfig, logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
-
                 splits.add(split);
               } else {
                 // don't divide ranges
@@ -802,7 +782,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
           RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
               entry.getKey(), entry.getValue().toArray(new String[0]));
-          SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+          SplitUtils.updateSplit(split, tableConfig, logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
           split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
