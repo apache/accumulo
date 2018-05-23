@@ -149,7 +149,8 @@ public class ClientConfConverter {
 
       @Override
       public String get(Property property) {
-        final String key = property.getKey();
+        final String confKey = property.getKey();
+        final String propKey = confProps.get(confKey);
 
         // Attempt to load sensitive properties from a CredentialProvider, if configured
         if (property.isSensitive()) {
@@ -157,23 +158,25 @@ public class ClientConfConverter {
           if (null != hadoopConf) {
             try {
               char[] value = CredentialProviderFactoryShim
-                  .getValueFromCredentialProvider(hadoopConf, key);
+                  .getValueFromCredentialProvider(hadoopConf, confKey);
               if (null != value) {
-                log.trace("Loaded sensitive value for {} from CredentialProvider", key);
+                log.trace("Loaded sensitive value for {} from CredentialProvider", confKey);
                 return new String(value);
               } else {
                 log.trace("Tried to load sensitive value for {} from CredentialProvider, "
-                    + "but none was found", key);
+                    + "but none was found", confKey);
               }
             } catch (IOException e) {
               log.warn("Failed to extract sensitive property ({}) from Hadoop CredentialProvider,"
-                  + " falling back to base AccumuloConfiguration", key, e);
+                  + " falling back to base AccumuloConfiguration", confKey, e);
             }
           }
         }
 
-        if (properties.containsKey(key)) {
-          return properties.getProperty(key);
+        if (propKey != null && properties.containsKey(propKey)) {
+          return properties.getProperty(propKey);
+        } else if (properties.containsKey(confKey)) {
+          return properties.getProperty(confKey);
         } else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
@@ -192,9 +195,10 @@ public class ClientConfConverter {
         defaults.getProperties(props, filter);
 
         for (Object keyObj : properties.keySet()) {
-          String key = (String) keyObj;
-          if (filter.test(key))
-            props.put(key, properties.getProperty(key));
+          String propKey = (String) keyObj;
+          String confKey = propsConf.get(propKey);
+          if (filter.test(confKey))
+            props.put(confKey, properties.getProperty(propKey));
         }
 
         // Two client props that don't exist on the server config. Client doesn't need to know about
@@ -269,11 +273,15 @@ public class ClientConfConverter {
       clientKeys.add(prop.getKey());
     }
 
-    String key;
     for (Map.Entry<String,String> entry : conf) {
-      key = entry.getKey();
-      if (clientKeys.contains(key)) {
-        properties.setProperty(key, entry.getValue());
+      String confKey = entry.getKey();
+      String propKey = confProps.get(confKey);
+      if (clientKeys.contains(confKey)) {
+        if (propKey != null) {
+          properties.setProperty(propKey, entry.getValue());
+        } else {
+          properties.setProperty(confKey, entry.getValue());
+        }
       }
     }
     return properties;
