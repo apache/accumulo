@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,9 +42,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class CryptoTest {
 
@@ -51,9 +50,6 @@ public class CryptoTest {
   private static final String MARKER_STRING = "1 2 3 a b c";
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @Test
   public void testAESEncryptionStrategy() throws Exception {
@@ -127,7 +123,7 @@ public class CryptoTest {
     ArrayList<Key> keysRead = new ArrayList<>();
     try {
       iter.forEach(e -> keysRead.add(e.getKey()));
-      assertTrue("Scanner should have thrown exception " + exceptionMsg, false);
+      fail("Scanner should have thrown exception " + exceptionMsg);
     } catch (RuntimeException re) {
       if (!re.getMessage().startsWith(exceptionMsg))
         throw re;

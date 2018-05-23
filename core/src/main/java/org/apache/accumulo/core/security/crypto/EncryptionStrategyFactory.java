@@ -28,12 +28,14 @@ public class EncryptionStrategyFactory {
    * Load and initialize EncryptionStrategy read from file. Check strategy read from file matches
    * the same strategy that is configured, otherwise throw RuntimeException.
    *
-   * @param fileEncryptedClass encryption strategy class read from the file
+   * @param fileEncryptedClass
+   *          encryption strategy class read from the file
    * @return EncryptionStrategy
-   * @throws IOException if an error occurred during EncryptionStrategy initialization
+   * @throws IOException
+   *           if an error occurred during EncryptionStrategy initialization
    */
   public static EncryptionStrategy setupReadEncryption(AccumuloConfiguration conf,
-                                                        String fileEncryptedClass, EncryptionStrategy.Scope scope) throws IOException {
+      String fileEncryptedClass, EncryptionStrategy.Scope scope) throws IOException {
     String confCryptoStrategyClass = conf.get(Property.CRYPTO_STRATEGY);
     if (!fileEncryptedClass.equals(confCryptoStrategyClass)) {
       throw new RuntimeException("File encrypted with different encryption (" + fileEncryptedClass
@@ -46,16 +48,17 @@ public class EncryptionStrategyFactory {
    * Load and initialize configured EncryptionStrategy.
    *
    * @return EncryptionStrategy
-   * @throws IOException if an error occurred during EncryptionStrategy initialization
+   * @throws IOException
+   *           if an error occurred during EncryptionStrategy initialization
    */
-  public static EncryptionStrategy setupConfiguredEncryption(AccumuloConfiguration conf, EncryptionStrategy.Scope scope)
-      throws IOException {
+  public static EncryptionStrategy setupConfiguredEncryption(AccumuloConfiguration conf,
+      EncryptionStrategy.Scope scope) throws IOException {
     String name = conf.get(Property.CRYPTO_STRATEGY);
     return initEncryption(conf, loadStrategy(name), scope);
   }
 
   private static EncryptionStrategy initEncryption(AccumuloConfiguration conf,
-                                                   EncryptionStrategy strategy, EncryptionStrategy.Scope scope) throws IOException {
+      EncryptionStrategy strategy, EncryptionStrategy.Scope scope) throws IOException {
     try {
       if (!strategy.init(scope, conf)) {
         strategy = new NoEncryptionStrategy();

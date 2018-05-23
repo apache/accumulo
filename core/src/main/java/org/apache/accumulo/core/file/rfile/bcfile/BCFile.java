@@ -326,8 +326,8 @@ public final class BCFile {
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
 
-      this.encryptionStrategy = EncryptionStrategyFactory.setupConfiguredEncryption(accumuloConfiguration,
-          EncryptionStrategy.Scope.RFILE);
+      this.encryptionStrategy = EncryptionStrategyFactory
+          .setupConfiguredEncryption(accumuloConfiguration, EncryptionStrategy.Scope.RFILE);
     }
 
     /**
@@ -669,8 +669,8 @@ public final class BCFile {
       metaIndex = new MetaIndex(dis);
       dataIndex = new DataIndex(dis);
       String encryptionStrategy = dis.readUTF();
-      this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
-          accumuloConfiguration, encryptionStrategy, EncryptionStrategy.Scope.RFILE);
+      this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(accumuloConfiguration,
+          encryptionStrategy, EncryptionStrategy.Scope.RFILE);
     }
 
     /**
