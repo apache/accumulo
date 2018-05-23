@@ -166,9 +166,9 @@ public class PrepBulkImport extends MasterRepo {
       Iterators.transform(lmi, entry -> entry.getKey());
 
       TabletIterFactory tabletIterFactory = startRow -> {
-        Iterable<TabletMetadata> tableMetadata = MetadataScanner.builder().from(master)
-            .overUserTableId(bulkInfo.tableId, startRow, null).build();
-        return Iterators.transform(tableMetadata.iterator(), tm -> tm.getExtent());
+        return MetadataScanner.builder().from(master).overRange(bulkInfo.tableId, startRow, null)
+            .checkConsistency().fetchPrev().build().stream().map(TabletMetadata::getExtent)
+            .iterator();
       };
 
       checkForMerge(bulkInfo.tableId.canonicalID(),

@@ -75,7 +75,8 @@ public class MetadataSchema {
        * {@link #PREV_ROW_COLUMN} sits in this and that needs to sort last because the
        * SimpleGarbageCollector relies on this.
        */
-      public static final Text NAME = new Text("~tab");
+      public static final String STR_NAME = "~tab";
+      public static final Text NAME = new Text(STR_NAME);
       /**
        * README : very important that prevRow sort last to avoid race conditions between garbage
        * collector and split this needs to sort after everything else for that tablet
@@ -95,7 +96,8 @@ public class MetadataSchema {
      * Column family for recording information used by the TServer
      */
     public static class ServerColumnFamily {
-      public static final Text NAME = new Text("srv");
+      public static final String STR_NAME = "srv";
+      public static final Text NAME = new Text(STR_NAME);
       /**
        * Holds the location of the tablet in the DFS file system
        */
@@ -124,27 +126,31 @@ public class MetadataSchema {
      * that it was assigned
      */
     public static class CurrentLocationColumnFamily {
-      public static final Text NAME = new Text("loc");
+      public static final String STR_NAME = "loc";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
      * Column family for storing the assigned location
      */
     public static class FutureLocationColumnFamily {
-      public static final Text NAME = new Text("future");
+      public static final String STR_NAME = "future";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
      * Column family for storing last location, as a hint for assignment
      */
     public static class LastLocationColumnFamily {
-      public static final Text NAME = new Text("last");
+      public static final String STR_NAME = "last";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
      * Column family for storing suspension location, as a demand for assignment.
      */
     public static class SuspendLocationColumn {
+      public static final String STR_NAME = "suspend";
       public static final ColumnFQ SUSPEND_COLUMN = new ColumnFQ(new Text("suspend"),
           new Text("loc"));
     }
@@ -153,21 +159,24 @@ public class MetadataSchema {
      * Temporary markers that indicate a tablet loaded a bulk file
      */
     public static class BulkFileColumnFamily {
-      public static final Text NAME = new Text("loaded");
+      public static final String STR_NAME = "loaded";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
      * Temporary marker that indicates a tablet was successfully cloned
      */
     public static class ClonedColumnFamily {
-      public static final Text NAME = new Text("!cloned");
+      public static final String STR_NAME = "!cloned";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
      * Column family for storing files used by a tablet
      */
     public static class DataFileColumnFamily {
-      public static final Text NAME = new Text("file");
+      public static final String STR_NAME = "file";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
@@ -175,14 +184,16 @@ public class MetadataSchema {
      * from being deleted
      */
     public static class ScanFileColumnFamily {
-      public static final Text NAME = new Text("scan");
+      public static final String STR_NAME = "scan";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
      * Column family for storing write-ahead log entries
      */
     public static class LogColumnFamily {
-      public static final Text NAME = new Text("log");
+      public static final String STR_NAME = "log";
+      public static final Text NAME = new Text(STR_NAME);
     }
 
     /**
