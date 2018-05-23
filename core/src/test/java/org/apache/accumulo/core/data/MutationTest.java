@@ -19,6 +19,7 @@ package org.apache.accumulo.core.data;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -632,7 +633,7 @@ public class MutationTest {
     assertEquals(m1, m2);
     assertEquals(m2, m1);
     assertEquals(m2.hashCode(), m1.hashCode());
-    assertFalse(0 == m1.hashCode());
+    assertNotEquals(0, m1.hashCode());
     assertFalse(m1.equals(m3));
     assertFalse(m3.equals(m1));
     assertFalse(m1.equals(m4));

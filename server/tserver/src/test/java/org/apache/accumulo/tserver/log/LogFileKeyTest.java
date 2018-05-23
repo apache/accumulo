@@ -43,11 +43,11 @@ public class LogFileKeyTest {
     LogFileKey mut = nk(LogEvents.MUTATION, 1, 3);
     LogFileKey mmut = nk(LogEvents.MANY_MUTATIONS, 1, 3);
 
-    Assert.assertTrue(start.compareTo(finish) == 0);
-    Assert.assertTrue(finish.compareTo(start) == 0);
+    Assert.assertEquals(0, start.compareTo(finish));
+    Assert.assertEquals(0, finish.compareTo(start));
 
-    Assert.assertTrue(mut.compareTo(mmut) == 0);
-    Assert.assertTrue(mmut.compareTo(mut) == 0);
+    Assert.assertEquals(0, mut.compareTo(mmut));
+    Assert.assertEquals(0, mmut.compareTo(mut));
   }
 
   @Test

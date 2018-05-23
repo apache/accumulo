@@ -22,7 +22,6 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
@@ -135,6 +134,6 @@ public class ThriftTransportKeyTest {
     ThriftTransportKey ttk = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999),
         120 * 1000, clientCtx);
 
-    assertTrue("Normal ThriftTransportKey doesn't equal itself", ttk.equals(ttk));
+    assertEquals("Normal ThriftTransportKey doesn't equal itself", ttk, ttk);
   }
 }

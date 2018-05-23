@@ -810,10 +810,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
     for (Entry<String,String> entry : connector.tableOperations().getProperties(tableName)) {
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        Assert.assertTrue("TABLE_SPLIT_THRESHOLD has been changed", entry.getValue().equals("10K"));
+        Assert.assertEquals("TABLE_SPLIT_THRESHOLD has been changed", "10K", entry.getValue());
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertTrue("table.custom.testProp has been changed",
-            entry.getValue().equals("Test property"));
+        Assert.assertEquals("table.custom.testProp has been changed", "Test property",
+            entry.getValue());
     }
 
     Assert.assertEquals("Extra properties using the new create method", countOrig + 1, countNew);

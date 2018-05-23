@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -1383,7 +1383,7 @@ public class TabletLocatorImplTest {
 
     try {
       metaCache.locateTablet(context, new Text("a"), false, false);
-      assertTrue(false);
+      fail();
     } catch (Exception e) {
 
     }

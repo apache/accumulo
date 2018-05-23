@@ -339,7 +339,7 @@ public class IndexedDocIteratorTest extends TestCase {
       assertTrue(new String(v.get()).endsWith(" docID=" + d));
       iter.next();
     }
-    assertTrue(hitCount == docs.size());
+    assertEquals(hitCount, docs.size());
     cleanup();
   }
 }

@@ -17,8 +17,10 @@
 package org.apache.accumulo.core.util.format;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.text.DateFormat;
@@ -30,8 +32,8 @@ public class FormatterConfigTest {
   @Test
   public void testConstructor() {
     FormatterConfig config = new FormatterConfig();
-    assertEquals(false, config.willLimitShowLength());
-    assertEquals(false, config.willPrintTimestamps());
+    assertFalse(config.willLimitShowLength());
+    assertFalse(config.willPrintTimestamps());
   }
 
   @Test
@@ -44,23 +46,23 @@ public class FormatterConfigTest {
 
     config.setShownLength(0);
     assertEquals(0, config.getShownLength());
-    assertEquals(true, config.willLimitShowLength());
+    assertTrue(config.willLimitShowLength());
 
     config.setShownLength(1);
     assertEquals(1, config.getShownLength());
-    assertEquals(true, config.willLimitShowLength());
+    assertTrue(config.willLimitShowLength());
   }
 
   @Test
   public void testDoNotLimitShowLength() {
     FormatterConfig config = new FormatterConfig();
-    assertEquals(false, config.willLimitShowLength());
+    assertFalse(config.willLimitShowLength());
 
     config.setShownLength(1);
-    assertEquals(true, config.willLimitShowLength());
+    assertTrue(config.willLimitShowLength());
 
     config.doNotLimitShowLength();
-    assertEquals(false, config.willLimitShowLength());
+    assertFalse(config.willLimitShowLength());
   }
 
   @Test

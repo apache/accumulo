@@ -53,7 +53,7 @@ public class RangeTest extends TestCase {
     HashSet<Range> s1 = new HashSet<>(rl);
     HashSet<Range> s2 = new HashSet<>(expected);
 
-    assertTrue("got : " + rl + " expected : " + expected, s1.equals(s2));
+    assertEquals("got : " + rl + " expected : " + expected, s1, s2);
   }
 
   public void testMergeOverlapping1() {
@@ -579,7 +579,7 @@ public class RangeTest extends TestCase {
   private void runClipTest(Range fence, Range range) {
     try {
       fence.clip(range);
-      assertFalse(true);
+      fail();
     } catch (IllegalArgumentException e) {
 
     }

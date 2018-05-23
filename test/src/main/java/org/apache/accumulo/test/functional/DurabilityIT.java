@@ -172,7 +172,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
     writeSome(tableName, N);
     restartTServer();
-    assertTrue(N == readSome(tableName));
+    assertEquals(N, readSome(tableName));
   }
 
   private static Map<String,String> map(Iterable<Entry<String,String>> entries) {

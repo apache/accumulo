@@ -33,11 +33,11 @@ public class TextUtilTest extends TestCase {
     String smallerMessage = "a";
     Text smallerMessageText = new Text(smallerMessage);
     Text someText = new Text(longMessage);
-    assertTrue(someText.equals(longMessageText));
+    assertEquals(someText, longMessageText);
     someText.set(smallerMessageText);
     assertTrue(someText.getLength() != someText.getBytes().length);
-    assertTrue(TextUtil.getBytes(someText).length == smallerMessage.length());
-    assertTrue((new Text(TextUtil.getBytes(someText))).equals(smallerMessageText));
+    assertEquals(TextUtil.getBytes(someText).length, smallerMessage.length());
+    assertEquals((new Text(TextUtil.getBytes(someText))), smallerMessageText);
   }
 
 }

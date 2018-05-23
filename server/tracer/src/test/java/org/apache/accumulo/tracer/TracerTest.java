@@ -108,11 +108,11 @@ public class TracerTest {
 
     assertFalse(Trace.isTracing());
     Trace.start("nop").stop();
-    assertTrue(tracer.traces.size() == 0);
+    assertEquals(0, tracer.traces.size());
     assertFalse(Trace.isTracing());
 
     Trace.on("nop").stop();
-    assertTrue(tracer.traces.size() == 1);
+    assertEquals(1, tracer.traces.size());
     assertFalse(Trace.isTracing());
 
     Span start = Trace.on("testing");
@@ -123,13 +123,13 @@ public class TracerTest {
     span.stop();
     long traceId = Trace.currentTraceId();
     assertNotNull(tracer.traces.get(traceId));
-    assertTrue(tracer.traces.get(traceId).size() == 1);
+    assertEquals(1, tracer.traces.get(traceId).size());
     assertEquals("shortest trace ever", tracer.traces.get(traceId).get(0).description);
 
     Span pause = Trace.start("pause");
     Thread.sleep(100);
     pause.stop();
-    assertTrue(tracer.traces.get(traceId).size() == 2);
+    assertEquals(2, tracer.traces.get(traceId).size());
     assertTrue(tracer.traces.get(traceId).get(1).millis() >= 100);
 
     Thread t = new Thread(Trace.wrap(new Runnable() {
@@ -141,7 +141,7 @@ public class TracerTest {
     t.start();
     t.join();
 
-    assertTrue(tracer.traces.get(traceId).size() == 3);
+    assertEquals(3, tracer.traces.get(traceId).size());
     assertEquals("My Task", tracer.traces.get(traceId).get(2).description);
     Trace.off();
     assertFalse(Trace.isTracing());
@@ -189,7 +189,7 @@ public class TracerTest {
 
     assertNotNull(tracer.traces.get(start.traceId()));
     String traces[] = {"my test", "checkTrace", "client:checkTrace", "start"};
-    assertTrue(tracer.traces.get(start.traceId()).size() == traces.length);
+    assertEquals(tracer.traces.get(start.traceId()).size(), traces.length);
     for (int i = 0; i < traces.length; i++)
       assertEquals(traces[i], tracer.traces.get(start.traceId()).get(i).description);
 

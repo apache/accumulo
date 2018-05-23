@@ -23,7 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -182,7 +182,7 @@ public class ValueTest {
     assertTrue(v1.compareTo(v2) < 0);
     assertTrue(v2.compareTo(v1) > 0);
     Value v1a = new Value(DATA);
-    assertTrue(v1.compareTo(v1a) == 0);
+    assertEquals(0, v1.compareTo(v1a));
     Value v3 = new Value(toBytes("datc"));
     assertTrue(v2.compareTo(v3) < 0);
     assertTrue(v1.compareTo(v3) < 0);
@@ -191,12 +191,12 @@ public class ValueTest {
   @Test
   public void testEquals() {
     Value v1 = new Value(DATA);
-    assertTrue(v1.equals(v1));
+    assertEquals(v1, v1);
     Value v2 = new Value(DATA);
-    assertTrue(v1.equals(v2));
-    assertTrue(v2.equals(v1));
+    assertEquals(v1, v2);
+    assertEquals(v2, v1);
     Value v3 = new Value(toBytes("datb"));
-    assertFalse(v1.equals(v3));
+    assertNotEquals(v1, v3);
   }
 
   @Test

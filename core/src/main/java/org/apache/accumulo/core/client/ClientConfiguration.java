@@ -441,7 +441,7 @@ public class ClientConfiguration {
   }
 
   /**
-   * Same as {@link #withTruststore(String)} with password null and type null
+   * Same as {@link #withTruststore(String, String, String)} with password null and type null
    *
    */
   public ClientConfiguration withTruststore(String path) {

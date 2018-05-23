@@ -19,6 +19,7 @@ package org.apache.accumulo.test.mapreduce;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -122,7 +123,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
           try {
             context.write(key, value);
             if (index == 2)
-              assertTrue(false);
+              fail();
           } catch (Exception e) {
             assertEquals(2, index);
           }

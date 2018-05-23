@@ -106,7 +106,7 @@ public class WholeRowIteratorTest {
       resultMap.putAll(WholeRowIterator.decodeRow(rowKey, rowValue));
       iter.next();
     }
-    assertTrue(numRows == 5);
+    assertEquals(5, numRows);
     assertEquals(resultMap, map);
 
     WholeRowIterator iter2 = new WholeRowIterator(source) {
@@ -125,7 +125,7 @@ public class WholeRowIteratorTest {
       resultMap.putAll(WholeRowIterator.decodeRow(rowKey, rowValue));
       iter2.next();
     }
-    assertTrue(numRows == trueCount);
+    assertEquals(numRows, trueCount);
     assertEquals(resultMap, map2);
   }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -82,13 +83,13 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, true);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -102,16 +103,16 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -125,10 +126,10 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -142,13 +143,13 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -162,16 +163,16 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_1);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -185,19 +186,19 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_5);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -211,22 +212,22 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_1);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_5);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -270,7 +271,7 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }

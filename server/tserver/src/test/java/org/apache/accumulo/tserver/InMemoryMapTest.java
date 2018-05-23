@@ -581,7 +581,7 @@ public class InMemoryMapTest {
     SortedKeyValueIterator<Key,Value> dc1 = iter1.deepCopy(new SampleIE());
     seekLocalityGroups(dc1);
 
-    assertTrue(imm.getNumEntries() == 10);
+    assertEquals(10, imm.getNumEntries());
     assertTrue(imm.estimatedSizeInBytes() > 0);
 
     imm.delete(0);

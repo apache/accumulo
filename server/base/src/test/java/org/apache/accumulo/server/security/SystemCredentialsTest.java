@@ -89,6 +89,6 @@ public class SystemCredentialsTest {
   public void testSystemCredentials() {
     Credentials a = SystemCredentials.get(inst);
     Credentials b = SystemCredentials.get(inst);
-    assertTrue(a.equals(b));
+    assertEquals(a, b);
   }
 }

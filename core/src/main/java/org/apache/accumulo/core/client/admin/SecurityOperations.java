@@ -78,8 +78,8 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to delete a user
-   * @deprecated since 1.5.0; use {@link #dropUser(String)} or the user management functions of your
-   *             configured authenticator instead.
+   * @deprecated since 1.5.0; use {@link #dropLocalUser(String)} or the user management functions of
+   *             your configured authenticator instead.
    */
   @Deprecated
   void dropUser(String user) throws AccumuloException, AccumuloSecurityException;

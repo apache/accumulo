@@ -17,6 +17,7 @@
 package org.apache.accumulo.tserver.tablet;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.SortedMap;
@@ -80,7 +81,7 @@ public class DatafileManagerTest {
 
     EasyMock.verify(tablet, tableConf);
 
-    assertEquals(null, mergeFile);
+    assertNull(mergeFile);
   }
 
   /*
@@ -98,7 +99,7 @@ public class DatafileManagerTest {
 
     EasyMock.verify(tablet, tableConf);
 
-    assertEquals(null, mergeFile);
+    assertNull(mergeFile);
   }
 
   /*

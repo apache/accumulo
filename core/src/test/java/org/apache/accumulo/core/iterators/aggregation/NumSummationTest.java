@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.iterators.aggregation;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -48,12 +48,12 @@ public class NumSummationTest {
       byte[] b = NumArraySummation.longArrayToBytes(la);
       long[] la2 = NumArraySummation.bytesToLongArray(b);
 
-      assertTrue(la.length == la2.length);
+      assertEquals(la.length, la2.length);
       for (int i = 0; i < la.length; i++) {
-        assertTrue(i + ": " + la[i] + " does not equal " + la2[i], la[i] == la2[i]);
+        assertEquals(i + ": " + la[i] + " does not equal " + la2[i], la[i], la2[i]);
       }
     } catch (Exception e) {
-      assertTrue(false);
+      fail();
     }
   }
 
@@ -66,17 +66,17 @@ public class NumSummationTest {
       long[] la2 = {3L, 2L, 1L, 0L};
       nas.collect(new Value(NumArraySummation.longArrayToBytes(la2)));
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
-      assertTrue(la.length == 4);
+      assertEquals(4, la.length);
       for (int i = 0; i < la.length - 1; i++) {
-        assertTrue(la[i] == 4);
+        assertEquals(4, la[i]);
       }
-      assertTrue(la[la.length - 1] == 0);
+      assertEquals(0, la[la.length - 1]);
       nas.reset();
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
-      assertTrue(la.length == 0);
+      assertEquals(0, la.length);
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
-      assertTrue(false);
+      fail();
     }
   }
 
@@ -89,14 +89,14 @@ public class NumSummationTest {
       long[] la2 = {1L, -3L, 2L, 10L};
       nas.collect(new Value(NumArraySummation.longArrayToBytes(la2)));
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
-      assertTrue(la.length == 6);
+      assertEquals(6, la.length);
       for (int i = 2; i < la.length; i++) {
-        assertTrue(la[i] == 5);
+        assertEquals(5, la[i]);
       }
-      assertTrue("max long plus one was " + la[0], la[0] == Long.MAX_VALUE);
-      assertTrue("min long minus 3 was " + la[1], la[1] == Long.MIN_VALUE);
+      assertEquals("max long plus one was " + la[0], la[0], Long.MAX_VALUE);
+      assertEquals("min long minus 3 was " + la[1], la[1], Long.MIN_VALUE);
     } catch (Exception e) {
-      assertTrue(false);
+      fail();
     }
   }
 
@@ -107,9 +107,9 @@ public class NumSummationTest {
       byte[] b = NumSummation.longToBytes(l);
       long l2 = NumSummation.bytesToLong(b);
 
-      assertTrue(l == l2);
+      assertEquals(l, l2);
     } catch (Exception e) {
-      assertTrue(false);
+      fail();
     }
   }
 
@@ -121,27 +121,27 @@ public class NumSummationTest {
         ns.collect(new Value(NumSummation.longToBytes(l)));
       }
       long l = NumSummation.bytesToLong(ns.aggregate().get());
-      assertTrue("l was " + l, l == 13);
+      assertEquals("l was " + l, 13, l);
 
       ns.collect(new Value(NumSummation.longToBytes(Long.MAX_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
-      assertTrue("l was " + l, l == Long.MAX_VALUE);
+      assertEquals("l was " + l, l, Long.MAX_VALUE);
 
       ns.collect(new Value(NumSummation.longToBytes(Long.MIN_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
-      assertTrue("l was " + l, l == -1);
+      assertEquals("l was " + l, l, -1);
 
       ns.collect(new Value(NumSummation.longToBytes(Long.MIN_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
-      assertTrue("l was " + l, l == Long.MIN_VALUE);
+      assertEquals("l was " + l, l, Long.MIN_VALUE);
 
       ns.collect(new Value(NumSummation.longToBytes(Long.MIN_VALUE)));
       l = NumSummation.bytesToLong(ns.aggregate().get());
-      assertTrue("l was " + l, l == Long.MIN_VALUE);
+      assertEquals("l was " + l, l, Long.MIN_VALUE);
 
       ns.reset();
       l = NumSummation.bytesToLong(ns.aggregate().get());
-      assertTrue("l was " + l, l == 0);
+      assertEquals("l was " + l, 0, l);
     } catch (IOException | RuntimeException e) {
       fail();
     }

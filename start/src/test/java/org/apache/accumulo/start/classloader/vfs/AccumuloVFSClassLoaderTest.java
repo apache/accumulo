@@ -170,7 +170,7 @@ public class AccumuloVFSClassLoaderTest {
       javaIoTmpDir = javaIoTmpDir.substring(0, javaIoTmpDir.length() - File.separator.length());
     }
 
-    Assert.assertTrue(javaIoTmpDir.equals(tempDirParent));
+    Assert.assertEquals(javaIoTmpDir, tempDirParent);
     Assert.assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
     Assert.assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
 
@@ -208,7 +208,7 @@ public class AccumuloVFSClassLoaderTest {
     File tempDir = Whitebox.getInternalState(replicator, "tempDir");
     String tempDirParent = tempDir.getParent();
     String tempDirName = tempDir.getName();
-    Assert.assertTrue(cacheDir.equals(tempDirParent));
+    Assert.assertEquals(cacheDir, tempDirParent);
     Assert.assertTrue(tempDirName.startsWith("accumulo-vfs-cache-"));
     Assert.assertTrue(tempDirName.endsWith(System.getProperty("user.name", "nouser")));
 

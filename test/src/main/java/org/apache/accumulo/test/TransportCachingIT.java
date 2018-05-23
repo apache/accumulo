@@ -17,9 +17,9 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 
 import java.util.ArrayList;
 
@@ -100,7 +100,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     }
 
     // We should get the same transport
-    assertTrue("Expected the first and second to be the same instance", first == second);
+    assertSame("Expected the first and second to be the same instance", first, second);
     // Return the 2nd
     pool.returnTransport(second);
 
@@ -114,7 +114,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       }
     }
 
-    assertFalse("Expected second and third transport to be different instances", second == third);
+    assertNotSame("Expected second and third transport to be different instances", second, third);
     pool.returnTransport(third);
   }
 }

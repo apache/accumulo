@@ -303,7 +303,7 @@ public class TServerUtilsTest {
       assertNotNull(address);
       server = address.getServer();
       assertNotNull(server);
-      assertTrue(port[1] == address.getAddress().getPort());
+      assertEquals(port[1], address.getAddress().getPort());
     } finally {
       if (null != server) {
         TServerUtils.stopTServer(server);

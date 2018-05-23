@@ -135,7 +135,7 @@ public class MiniAccumuloClusterTest {
       } else if (entry.getKey().getColumnQualifierData().toString().equals("CRC")) {
         Assert.assertEquals("123", entry.getValue().toString());
       } else {
-        Assert.assertTrue(false);
+        Assert.fail();
       }
       count++;
     }

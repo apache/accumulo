@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -75,7 +74,7 @@ public class AccumuloInputFormatTest {
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
 
     // Check the list size
-    assertTrue(list.size() == 3);
+    assertEquals(3, list.size());
 
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
@@ -150,7 +149,7 @@ public class AccumuloInputFormatTest {
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
 
     // Check the list size
-    assertTrue(list.size() == 3);
+    assertEquals(3, list.size());
 
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
@@ -179,7 +178,7 @@ public class AccumuloInputFormatTest {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     AccumuloInputFormat.addIterator(job, is);
 
-    assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getName()));
+    assertEquals(regex, AccumuloInputFormat.getIterators(job).get(0).getName());
   }
 
 }

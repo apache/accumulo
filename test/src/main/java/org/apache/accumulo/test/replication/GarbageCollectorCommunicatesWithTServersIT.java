@@ -226,7 +226,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Status status = fileToStatus.get(walName);
 
-    Assert.assertEquals("Expected Status for file to not be closed", false, status.getClosed());
+    Assert.assertFalse("Expected Status for file to not be closed", status.getClosed());
 
     Set<String> filesForTable = getFilesForTable(table);
     Assert.assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());
@@ -318,7 +318,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Status status = fileToStatus.get(walName);
 
-    Assert.assertEquals("Expected Status for file to not be closed", false, status.getClosed());
+    Assert.assertFalse("Expected Status for file to not be closed", status.getClosed());
 
     Set<String> filesForTable = getFilesForTable(table);
     Assert.assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());

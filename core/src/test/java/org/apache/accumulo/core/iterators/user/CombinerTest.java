@@ -895,8 +895,8 @@ public class CombinerTest {
 
     String logMsgs = writer.toString();
     if (expectedLog == null) {
-      Assert.assertTrue("Expected 0 length log message, but got : " + logMsgs,
-          logMsgs.length() == 0);
+      Assert.assertEquals("Expected 0 length log message, but got : " + logMsgs, 0,
+          logMsgs.length());
     } else {
       logMsgs = logMsgs.replace('\n', ' ');
       Assert.assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]",

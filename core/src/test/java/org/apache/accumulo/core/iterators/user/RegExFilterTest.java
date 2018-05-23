@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -68,7 +69,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -83,7 +84,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -96,7 +97,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -109,7 +110,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k1));
+    assertEquals(rei.getTopKey(), k1);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -122,7 +123,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -143,7 +144,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -164,10 +165,10 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k1));
+    assertEquals(rei.getTopKey(), k1);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -178,13 +179,13 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k1));
+    assertEquals(rei.getTopKey(), k1);
     rei.next();
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -196,7 +197,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -208,7 +209,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -236,7 +237,7 @@ public class RegExFilterTest {
     assertTrue(rei.hasTop());
     Value outValue = rei.getTopValue();
     String outVal = new String(outValue.get(), UTF_8);
-    assertTrue(outVal.equals(multiByteText));
+    assertEquals(outVal, multiByteText);
 
   }
 

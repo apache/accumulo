@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -152,7 +153,7 @@ public class IntersectingIteratorTest {
       assertTrue(docs.contains(k.getColumnQualifier()));
       iter.next();
     }
-    assertTrue(hitCount == docs.size());
+    assertEquals(hitCount, docs.size());
     cleanup();
   }
 
@@ -183,7 +184,7 @@ public class IntersectingIteratorTest {
       assertTrue(docs.contains(k.getColumnQualifier()));
       iter.next();
     }
-    assertTrue(hitCount == docs.size());
+    assertEquals(hitCount, docs.size());
     cleanup();
   }
 
@@ -223,7 +224,7 @@ public class IntersectingIteratorTest {
       assertTrue(docs.contains(k.getColumnQualifier()));
       iter.next();
     }
-    assertTrue(hitCount == docs.size());
+    assertEquals(hitCount, docs.size());
     cleanup();
   }
 
@@ -261,7 +262,7 @@ public class IntersectingIteratorTest {
       assertTrue(docs.contains(k.getColumnQualifier()));
       iter.next();
     }
-    assertTrue(hitCount == docs.size());
+    assertEquals(hitCount, docs.size());
     cleanup();
   }
 
@@ -290,7 +291,7 @@ public class IntersectingIteratorTest {
       assertTrue(docs.contains(k.getColumnQualifier()));
       iter.next();
     }
-    assertTrue(hitCount == docs.size());
+    assertEquals(hitCount, docs.size());
     cleanup();
   }
 }

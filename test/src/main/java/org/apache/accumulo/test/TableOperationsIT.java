@@ -329,7 +329,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       switch (actual.size()) {
         case 3:
           // Compaction cancel didn't happen in time
-          assertTrue(HardListIterator.allEntriesToInject.equals(actual));
+          assertEquals(HardListIterator.allEntriesToInject, actual);
           break;
         case 2:
           // Compacted the first tablet (-inf, f)

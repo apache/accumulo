@@ -17,6 +17,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
@@ -95,7 +96,7 @@ public class BalanceFasterIT extends ConfigurableMacBase {
       }
 
       // should be on all three servers
-      assertTrue(counts.size() == 3);
+      assertEquals(3, counts.size());
       // and distributed evenly
       i = counts.values().iterator();
     }

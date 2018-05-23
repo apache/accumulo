@@ -133,11 +133,10 @@ public class ZooCache {
 
   /**
    * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are
-   * checked. This will be performed at each retry of the run method. Calls to
-   * {@link #getZooKeeper()} should be made, ideally, after cache checks since other threads may
-   * have succeeded when updating the cache. Doing this will ensure that we don't pay the cost of
-   * retrieving a ZooKeeper session on each retry until we've ensured the caches aren't populated
-   * for a given node.
+   * checked. This will be performed at each retry of the run method. Calls to this method should be
+   * made, ideally, after cache checks since other threads may have succeeded when updating the
+   * cache. Doing this will ensure that we don't pay the cost of retrieving a ZooKeeper session on
+   * each retry until we've ensured the caches aren't populated for a given node.
    *
    * @return ZooKeeper session.
    */

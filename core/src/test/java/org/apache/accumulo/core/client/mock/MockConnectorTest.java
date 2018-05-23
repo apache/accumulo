@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -196,7 +197,7 @@ public class MockConnectorTest {
 
     try {
       c.tableOperations().create("test_this_$tableName");
-      assertTrue(false);
+      fail();
 
     } catch (IllegalArgumentException iae) {
 
@@ -307,7 +308,7 @@ public class MockConnectorTest {
 
     try {
       c.tableOperations().create("test_this_$tableName");
-      assertTrue(false);
+      fail();
 
     } catch (IllegalArgumentException iae) {
 

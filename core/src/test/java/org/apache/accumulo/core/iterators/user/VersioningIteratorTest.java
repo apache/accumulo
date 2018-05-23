@@ -16,8 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,7 +55,7 @@ public class VersioningIteratorTest {
       }
     }
 
-    assertTrue("Initial size was " + tm.size(), tm.size() == 40);
+    assertEquals("Initial size was " + tm.size(), 40, tm.size());
   }
 
   TreeMap<Key,Value> iteratorOverTestData(VersioningIterator it) throws IOException {
@@ -85,15 +87,15 @@ public class VersioningIteratorTest {
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
 
       for (Entry<Key,Value> e : tmOut.entrySet()) {
-        assertTrue(e.getValue().get().length == 8);
+        assertEquals(8, e.getValue().get().length);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
-      assertTrue("size after keeping 3 versions was " + tmOut.size(), tmOut.size() == 6);
+      assertEquals("size after keeping 3 versions was " + tmOut.size(), 6, tmOut.size());
     } catch (IOException e) {
-      assertFalse(true);
+      fail();
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
-      assertFalse(true);
+      fail();
     }
   }
 
@@ -121,15 +123,15 @@ public class VersioningIteratorTest {
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
 
       for (Entry<Key,Value> e : tmOut.entrySet()) {
-        assertTrue(e.getValue().get().length == 8);
+        assertEquals(8, e.getValue().get().length);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
-      assertTrue("size after keeping 2 versions was " + tmOut.size(), tmOut.size() == 2);
+      assertEquals("size after keeping 2 versions was " + tmOut.size(), 2, tmOut.size());
     } catch (IOException e) {
-      assertFalse(true);
+      fail();
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
-      assertFalse(true);
+      fail();
     }
   }
 
@@ -155,11 +157,11 @@ public class VersioningIteratorTest {
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
 
       for (Entry<Key,Value> e : tmOut.entrySet()) {
-        assertTrue(e.getValue().get().length == 8);
+        assertEquals(8, e.getValue().get().length);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
 
-      assertTrue("size after seeking past versions was " + tmOut.size(), tmOut.size() == 0);
+      assertEquals("size after seeking past versions was " + tmOut.size(), 0, tmOut.size());
 
       // after doing this seek, should get zero keys for row 0 and 3 keys for row 1
       seekKey = new Key(new Text(String.format("%03d", 0)), colf, colq, 15);
@@ -168,17 +170,17 @@ public class VersioningIteratorTest {
       tmOut = iteratorOverTestData(it);
 
       for (Entry<Key,Value> e : tmOut.entrySet()) {
-        assertTrue(e.getValue().get().length == 8);
+        assertEquals(8, e.getValue().get().length);
         assertTrue(16 < encoder.decode(e.getValue().get()));
       }
 
-      assertTrue("size after seeking past versions was " + tmOut.size(), tmOut.size() == 3);
+      assertEquals("size after seeking past versions was " + tmOut.size(), 3, tmOut.size());
 
     } catch (IOException e) {
-      assertFalse(true);
+      fail();
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
-      assertFalse(true);
+      fail();
     }
   }
 
@@ -201,13 +203,13 @@ public class VersioningIteratorTest {
 
         TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
 
-        assertTrue("size after keeping " + i + " versions was " + tmOut.size(),
-            tmOut.size() == Math.min(40, 2 * i));
+        assertEquals("size after keeping " + i + " versions was " + tmOut.size(), tmOut.size(),
+            Math.min(40, 2 * i));
       } catch (IOException e) {
-        assertFalse(true);
+        fail();
       } catch (Exception e) {
         log.error("{}", e.getMessage(), e);
-        assertFalse(true);
+        fail();
       }
     }
   }
@@ -230,7 +232,7 @@ public class VersioningIteratorTest {
     it.seek(new Range(seekKey, false, null, true), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertTrue(it.getTopKey().getTimestamp() == 18);
+    assertEquals(18, it.getTopKey().getTimestamp());
 
   }
 
@@ -254,10 +256,10 @@ public class VersioningIteratorTest {
     it2.seek(new Range(seekKey, false, null, true), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertTrue(it.getTopKey().getTimestamp() == 18);
+    assertEquals(18, it.getTopKey().getTimestamp());
 
     assertTrue(it2.hasTop());
-    assertTrue(it2.getTopKey().getTimestamp() == 18);
+    assertEquals(18, it2.getTopKey().getTimestamp());
   }
 
   @Test

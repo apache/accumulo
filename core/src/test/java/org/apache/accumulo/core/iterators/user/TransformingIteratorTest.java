@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -368,7 +369,7 @@ public class TransformingIteratorTest {
     setUpTransformIterator(IllegalVisCompactionKeyTransformingIterator.class);
     try {
       checkExpected(new TreeMap<>());
-      assertTrue(false);
+      fail();
     } catch (Exception e) {
 
     }
@@ -412,14 +413,14 @@ public class TransformingIteratorTest {
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "A,B");
     try {
       ti.validateOptions(opts);
-      Assert.assertFalse(true);
+      Assert.fail();
     } catch (IllegalArgumentException e) {}
 
     opts.clear();
     opts.put(TransformingIterator.AUTH_OPT, Authorizations.HEADER + "~~~~");
     try {
       ti.validateOptions(opts);
-      Assert.assertFalse(true);
+      Assert.fail();
     } catch (IllegalArgumentException e) {}
 
   }

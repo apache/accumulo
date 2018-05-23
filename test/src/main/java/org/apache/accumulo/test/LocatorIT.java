@@ -68,7 +68,7 @@ public class LocatorIT extends AccumuloClusterHarness {
       String location = locations.getTabletLocation(tid);
       Assert.assertNotNull("Location for " + tid + " was null", location);
       Assert.assertTrue("Unknown location " + location, tservers.contains(location));
-      Assert.assertTrue("Expected <host>:<port> " + location, location.split(":").length == 2);
+      Assert.assertEquals("Expected <host>:<port> " + location, 2, location.split(":").length);
 
     }
 

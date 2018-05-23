@@ -17,10 +17,9 @@
 package org.apache.accumulo.core.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
@@ -61,13 +60,13 @@ public class PairTest {
     assertNotEquals(pair1, pair3);
 
     // verify direct calls
-    assertTrue(pair1.equals(pair2));
-    assertTrue(pair2.equals(pair1));
-    assertFalse(pair1.equals(pair3));
+    assertEquals(pair1, pair2);
+    assertEquals(pair2, pair1);
+    assertNotEquals(pair1, pair3);
 
     // check null
     assertEquals(null1, null1);
-    assertEquals(null1, null);
+    assertNull(null1);
     assertNotEquals(pair1, null1);
   }
 
