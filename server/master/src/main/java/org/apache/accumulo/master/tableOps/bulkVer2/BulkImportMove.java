@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.impl.BulkSerialize;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -75,7 +76,9 @@ class BulkImportMove extends MasterRepo {
 
     VolumeManager fs = master.getFileSystem();
 
-    ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
+    if (bulkInfo.tableState == TableState.ONLINE) {
+      ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
+    }
 
     try {
       Map<String,String> oldToNewNameMap = BulkSerialize.readRenameMap(bulkDir.toString(),

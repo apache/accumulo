@@ -19,6 +19,7 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 import java.io.Serializable;
 
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.master.state.tables.TableState;
 
 /**
  * Package private class to hold all the information used for bulk import2
@@ -30,4 +31,5 @@ class BulkInfo implements Serializable {
   String sourceDir;
   String bulkDir;
   boolean setTime;
+  TableState tableState;
 }

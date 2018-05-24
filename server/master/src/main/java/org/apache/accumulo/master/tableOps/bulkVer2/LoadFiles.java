@@ -16,32 +16,39 @@
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.impl.Bulk;
 import org.apache.accumulo.core.client.impl.Bulk.Files;
 import org.apache.accumulo.core.client.impl.BulkSerialize;
 import org.apache.accumulo.core.client.impl.BulkSerialize.LoadMappingIterator;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.MapFileInfo;
+import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -51,6 +58,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
@@ -84,74 +93,58 @@ class LoadFiles extends MasterRepo {
 
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
-    return new CompleteBulkImport(bulkInfo.tableId, bulkInfo.sourceDir, bulkInfo.bulkDir);
+    if (bulkInfo.tableState == TableState.ONLINE) {
+      return new CompleteBulkImport(bulkInfo);
+    } else {
+      return new CleanUpBulkImport(bulkInfo);
+    }
   }
 
-  static boolean equals(Text t1, Text t2) {
-    if (t1 == null || t2 == null)
-      return t1 == t2;
+  private static abstract class Loader {
+    protected Path bulkDir;
+    protected Master master;
+    protected long tid;
+    protected boolean setTime;
 
-    return t1.equals(t2);
+    void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
+      this.bulkDir = bulkDir;
+      this.master = master;
+      this.tid = tid;
+      this.setTime = setTime;
+    }
+
+    abstract void load(List<TabletMetadata> tablets, Files files) throws Exception;
+
+    abstract long finish() throws Exception;
   }
 
-  /**
-   * Make asynchronous load calls to each overlapping Tablet in the bulk mapping. Return a sleep
-   * time to isReady based on a factor of the TabletServer with the most Tablets. This method will
-   * scan the metadata table getting Tablet range and location information. It will return 0 when
-   * all files have been loaded.
-   */
-  private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator lmi, Master master,
-      long tid) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+  private static class OnlineLoader extends Loader {
 
-    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.next();
-
-    Text startRow = loadMapEntry.getKey().getPrevEndRow();
-
-    long timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master).scanMetadataTable()
-        .overRange(tableId, startRow, null).checkConsistency().fetchPrev().fetchLocation()
-        .fetchLoaded().build().iterator();
-
-    List<TabletMetadata> tablets = new ArrayList<>();
-    TabletMetadata currentTablet = tabletIter.next();
-    HostAndPort server = null;
-
-    // track how many tablets were sent load messages per tablet server
-    MapCounter<HostAndPort> tabletsPerServer = new MapCounter<>();
-
-    String fmtTid = String.format("%016x", tid);
-
+    long timeInMillis;
+    String fmtTid;
     int locationLess = 0;
 
-    long t1 = System.currentTimeMillis();
-    while (true) {
-      if (loadMapEntry == null) {
-        if (!lmi.hasNext()) {
-          break;
-        }
-        loadMapEntry = lmi.next();
-      }
-      KeyExtent fke = loadMapEntry.getKey();
-      Files files = loadMapEntry.getValue();
-      loadMapEntry = null;
+    // track how many tablets were sent load messages per tablet server
+    MapCounter<HostAndPort> loadMsgs;
 
-      tablets.clear();
+    @Override
+    void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
+      super.start(bulkDir, master, tid, setTime);
 
-      while (!equals(currentTablet.getPrevEndRow(), fke.getPrevEndRow())) {
-        currentTablet = tabletIter.next();
-      }
-      tablets.add(currentTablet);
+      timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+      fmtTid = String.format("%016x", tid);
 
-      while (!equals(currentTablet.getEndRow(), fke.getEndRow())) {
-        currentTablet = tabletIter.next();
-        tablets.add(currentTablet);
-      }
+      loadMsgs = new MapCounter<>();
+    }
 
+    @Override
+    void load(List<TabletMetadata> tablets, Files files) {
       for (TabletMetadata tablet : tablets) {
         // send files to tablet sever
         // ideally there should only be one tablet location to send all the files
 
         TabletMetadata.Location location = tablet.getLocation();
+        HostAndPort server = null;
         if (location == null) {
           locationLess++;
           continue;
@@ -174,14 +167,14 @@ class LoadFiles extends MasterRepo {
         if (thriftImports.size() > 0) {
           // must always increment this even if there is a comms failure, because it indicates there
           // is work to do
-          tabletsPerServer.increment(server, 1);
+          loadMsgs.increment(server, 1);
           log.trace("tid {} asking {} to bulk import {} files", fmtTid, server,
               thriftImports.size());
           TabletClientService.Client client = null;
           try {
             client = ThriftUtil.getTServerClient(server, master, timeInMillis);
-            client.loadFiles(Tracer.traceInfo(), master.rpcCreds(), tid, fke.toThrift(),
-                bulkDir.toString(), thriftImports, bulkInfo.setTime);
+            client.loadFiles(Tracer.traceInfo(), master.rpcCreds(), tid,
+                tablet.getExtent().toThrift(), bulkDir.toString(), thriftImports, setTime);
           } catch (TException ex) {
             log.debug("rpc failed server: " + server + ", tid:" + fmtTid + " " + ex.getMessage(),
                 ex);
@@ -190,20 +183,142 @@ class LoadFiles extends MasterRepo {
           }
         }
       }
+
+    }
+
+    @Override
+    long finish() {
+      long sleepTime = 0;
+      if (loadMsgs.size() > 0) {
+        // find which tablet server had the most load messages sent to it and sleep 13ms for each
+        // load message
+        sleepTime = Collections.max(loadMsgs.values()) * 13;
+      }
+
+      if (locationLess > 0) {
+        sleepTime = Math.max(Math.max(100L, locationLess), sleepTime);
+      }
+
+      return sleepTime;
+    }
+
+  }
+
+  private static class OfflineLoader extends Loader {
+
+    BatchWriter bw;
+
+    // track how many tablets were sent load messages per tablet server
+    MapCounter<HostAndPort> unloadingTablets;
+
+    @Override
+    void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
+      Preconditions.checkArgument(!setTime);
+      super.start(bulkDir, master, tid, setTime);
+      bw = master.getConnector().createBatchWriter(MetadataTable.NAME);
+      unloadingTablets = new MapCounter<>();
+    }
+
+    @Override
+    void load(List<TabletMetadata> tablets, Files files) throws Exception {
+      byte[] fam = TextUtil.getBytes(DataFileColumnFamily.NAME);
+
+      for (TabletMetadata tablet : tablets) {
+        if (tablet.getLocation() != null) {
+          unloadingTablets.increment(tablet.getLocation().getHostAndPort(), 1L);
+          continue;
+        }
+
+        Mutation mutation = new Mutation(tablet.getExtent().getMetadataEntry());
+
+        for (final Bulk.FileInfo fileInfo : files) {
+          String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
+          byte[] val = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries())
+              .encode();
+          mutation.put(fam, fullPath.getBytes(UTF_8), val);
+        }
+
+        bw.addMutation(mutation);
+      }
+    }
+
+    @Override
+    long finish() throws Exception {
+
+      bw.close();
+
+      long sleepTime = 0;
+      if (unloadingTablets.size() > 0) {
+        // find which tablet server had the most tablets to unload and sleep 13ms for each tablet
+        sleepTime = Collections.max(unloadingTablets.values()) * 13;
+      }
+
+      return sleepTime;
+    }
+  }
+
+  /**
+   * Make asynchronous load calls to each overlapping Tablet in the bulk mapping. Return a sleep
+   * time to isReady based on a factor of the TabletServer with the most Tablets. This method will
+   * scan the metadata table getting Tablet range and location information. It will return 0 when
+   * all files have been loaded.
+   */
+  private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator lmi, Master master,
+      long tid) throws Exception {
+
+    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.next();
+
+    Text startRow = loadMapEntry.getKey().getPrevEndRow();
+
+    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master).scanMetadataTable()
+        .overRange(tableId, startRow, null).checkConsistency().fetchPrev().fetchLocation()
+        .fetchLoaded().build().iterator();
+
+    List<TabletMetadata> tablets = new ArrayList<>();
+    TabletMetadata currentTablet = tabletIter.next();
+
+    Loader loader;
+    if (bulkInfo.tableState == TableState.ONLINE) {
+      loader = new OnlineLoader();
+    } else {
+      loader = new OfflineLoader();
+    }
+
+    loader.start(bulkDir, master, tid, bulkInfo.setTime);
+
+    long t1 = System.currentTimeMillis();
+    while (true) {
+      if (loadMapEntry == null) {
+        if (!lmi.hasNext()) {
+          break;
+        }
+        loadMapEntry = lmi.next();
+      }
+      KeyExtent fke = loadMapEntry.getKey();
+      Files files = loadMapEntry.getValue();
+      loadMapEntry = null;
+
+      tablets.clear();
+
+      while (!Objects.equals(currentTablet.getPrevEndRow(), fke.getPrevEndRow())) {
+        currentTablet = tabletIter.next();
+      }
+      tablets.add(currentTablet);
+
+      while (!Objects.equals(currentTablet.getEndRow(), fke.getEndRow())) {
+        currentTablet = tabletIter.next();
+        tablets.add(currentTablet);
+      }
+
+      loader.load(tablets, files);
     }
     long t2 = System.currentTimeMillis();
 
-    long sleepTime = 0;
-    if (tabletsPerServer.size() > 0) {
-      // find which tablet server had the most load messages sent to it and sleep 13ms for each load
-      // message
-      sleepTime = Collections.max(tabletsPerServer.values()) * 13;
+    long sleepTime = loader.finish();
+    if (sleepTime > 0) {
+      long scanTime = Math.min(t2 - t1, 30000);
+      sleepTime = Math.max(sleepTime, scanTime * 2);
     }
-
-    if (locationLess > 0) {
-      sleepTime = Math.max(100, Math.max(2 * (t2 - t1), sleepTime));
-    }
-
     return sleepTime;
   }
 }

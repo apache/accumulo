@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
@@ -34,7 +36,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.fate.Repo;
@@ -87,16 +88,8 @@ public class PrepBulkImport extends MasterRepo {
     if (master.onlineTabletServers().size() == 0)
       return 500;
     Tables.clearCache(master.getInstance());
-    if (Tables.getTableState(master.getInstance(), bulkInfo.tableId) == TableState.ONLINE) {
-      return Utils.reserveHdfsDirectory(bulkInfo.sourceDir, tid);
-    } else {
-      throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
-          TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
-    }
-  }
 
-  static boolean equals(Text t1, Text t2) {
-    return LoadFiles.equals(t1, t2);
+    return Utils.reserveHdfsDirectory(bulkInfo.sourceDir, tid);
   }
 
   @VisibleForTesting
@@ -104,49 +97,52 @@ public class PrepBulkImport extends MasterRepo {
     Iterator<KeyExtent> newTabletIter(Text startRow) throws Exception;
   }
 
+  private static boolean equals(Function<KeyExtent,Text> extractor, KeyExtent ke1, KeyExtent ke2) {
+    return Objects.equals(extractor.apply(ke1), extractor.apply(ke2));
+  }
+
   @VisibleForTesting
   static void checkForMerge(String tableId, Iterator<KeyExtent> lmi,
       TabletIterFactory tabletIterFactory) throws Exception {
-    KeyExtent currentRange = lmi.next();
+    KeyExtent currRange = lmi.next();
 
-    Text startRow = currentRange.getPrevEndRow();
+    Text startRow = currRange.getPrevEndRow();
 
     Iterator<KeyExtent> tabletIter = tabletIterFactory.newTabletIter(startRow);
 
-    KeyExtent currentTablet = tabletIter.next();
+    KeyExtent currTablet = tabletIter.next();
 
-    if (!tabletIter.hasNext() && equals(currentTablet.getPrevEndRow(), currentRange.getPrevEndRow())
-        && equals(currentTablet.getEndRow(), currentRange.getEndRow()))
-      currentRange = null;
+    if (!tabletIter.hasNext() && equals(KeyExtent::getPrevEndRow, currTablet, currRange)
+        && equals(KeyExtent::getEndRow, currTablet, currRange))
+      currRange = null;
 
     while (tabletIter.hasNext()) {
 
-      if (currentRange == null) {
+      if (currRange == null) {
         if (!lmi.hasNext()) {
           break;
         }
-        currentRange = lmi.next();
+        currRange = lmi.next();
       }
 
-      while (!equals(currentTablet.getPrevEndRow(), currentRange.getPrevEndRow())
-          && tabletIter.hasNext()) {
-        currentTablet = tabletIter.next();
+      while (!equals(KeyExtent::getPrevEndRow, currTablet, currRange) && tabletIter.hasNext()) {
+        currTablet = tabletIter.next();
       }
 
-      boolean matchedPrevRow = equals(currentTablet.getPrevEndRow(), currentRange.getPrevEndRow());
+      boolean matchedPrevRow = equals(KeyExtent::getPrevEndRow, currTablet, currRange);
 
-      while (!equals(currentTablet.getEndRow(), currentRange.getEndRow()) && tabletIter.hasNext()) {
-        currentTablet = tabletIter.next();
+      while (!equals(KeyExtent::getEndRow, currTablet, currRange) && tabletIter.hasNext()) {
+        currTablet = tabletIter.next();
       }
 
-      if (!matchedPrevRow || !equals(currentTablet.getEndRow(), currentRange.getEndRow())) {
+      if (!matchedPrevRow || !equals(KeyExtent::getEndRow, currTablet, currRange)) {
         break;
       }
 
-      currentRange = null;
+      currRange = null;
     }
 
-    if (currentRange != null || lmi.hasNext()) {
+    if (currRange != null || lmi.hasNext()) {
       // a merge happened between the time the mapping was generated and the table lock was
       // acquired
       throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
@@ -180,6 +176,8 @@ public class PrepBulkImport extends MasterRepo {
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(master);
+
+    bulkInfo.tableState = Tables.getTableState(master.getInstance(), bulkInfo.tableId);
 
     VolumeManager fs = master.getFileSystem();
     final UniqueNameAllocator namer = UniqueNameAllocator.getInstance();

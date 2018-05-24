@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,6 +36,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -50,7 +52,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportExecutorOptions;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceOptions;
-import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -62,6 +64,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
+import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
@@ -72,7 +75,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 
 public class BulkImport implements ImportSourceArguments, ImportExecutorOptions {
 
@@ -245,10 +247,95 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     return results;
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context,
-      TabletLocator locator, Text startRow, Text endRow, FileSKVIterator reader)
+  public interface KeyExtentCache {
+    KeyExtent lookup(Text row)
+        throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  }
+
+  private static class ConcurrentKeyExtentCache implements KeyExtentCache {
+
+    private static final Text MAX = new Text();
+
+    private Set<Text> rowsToLookup = Collections.synchronizedSet(new HashSet<>());
+
+    List<Text> lookupRows = new ArrayList<>();
+
+    private ConcurrentSkipListMap<Text,KeyExtent> extents = new ConcurrentSkipListMap<>(
+        (t1, t2) -> {
+          return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
+        });
+    private ID tableId;
+    private ClientContext ctx;
+
+    ConcurrentKeyExtentCache(Table.ID tableId, ClientContext ctx) {
+      this.tableId = tableId;
+      this.ctx = ctx;
+    }
+
+    private KeyExtent getFromCache(Text row) {
+      Entry<Text,KeyExtent> entry = extents.ceilingEntry(row);
+      if (entry != null && entry.getValue().contains(row)) {
+        return entry.getValue();
+      }
+
+      return null;
+    }
+
+    private void updateCache(KeyExtent e) {
+      Text prevRow = e.getPrevEndRow() == null ? new Text() : e.getPrevEndRow();
+      Text endRow = e.getEndRow() == null ? MAX : e.getEndRow();
+      extents.subMap(prevRow, e.getPrevEndRow() == null, endRow, true).clear();
+      extents.put(endRow, e);
+    }
+
+    @Override
+    public KeyExtent lookup(Text row)
+        throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      while (true) {
+        KeyExtent ke = getFromCache(row);
+        if (ke != null)
+          return ke;
+
+        // If a metadata lookup is currently in progress, then multiple threads can queue up their
+        // rows. The next lookup will process all queued. Processing multiple at once can be more
+        // efficient.
+        rowsToLookup.add(row);
+
+        synchronized (this) {
+          // This check is done to avoid processing rowsToLookup when the current thread's row is in
+          // the cache.
+          ke = getFromCache(row);
+          if (ke != null) {
+            rowsToLookup.remove(row);
+            return ke;
+          }
+
+          lookupRows.clear();
+          synchronized (rowsToLookup) {
+            // Gather all rows that were queued for lookup before this point in time.
+            rowsToLookup.forEach(lookupRows::add);
+            rowsToLookup.clear();
+          }
+          // Lookup rows in the metadata table in sorted order. This could possibly lead to less
+          // metadata lookups.
+          lookupRows.sort(Text::compareTo);
+
+          for (Text lookupRow : lookupRows) {
+            if (getFromCache(lookupRow) == null) {
+              MetadataScanner.builder().from(ctx).scanMetadataTable()
+                  .overRange(tableId, lookupRow, null).checkConsistency().fetchPrev().build()
+                  .stream().limit(100).forEach(tm -> updateCache(tm.getExtent()));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public static List<KeyExtent> findOverlappingTablets(ClientContext context,
+      KeyExtentCache extentCache, Text startRow, Text endRow, FileSKVIterator reader)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    List<TabletLocation> result = new ArrayList<>();
+    List<KeyExtent> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     Text row = startRow;
     if (row == null)
@@ -261,10 +348,10 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
         break;
       }
       row = reader.getTopKey().getRow();
-      TabletLocation tabletLocation = locator.locateTablet(context, row, false, true);
+      KeyExtent extent = extentCache.lookup(row);
       // log.debug(filename + " found row " + row + " at location " + tabletLocation);
-      result.add(tabletLocation);
-      row = tabletLocation.tablet_extent.getEndRow();
+      result.add(extent);
+      row = extent.getEndRow();
       if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
         row = new Text(row);
         row.append(byte0, 0, byte0.length);
@@ -275,19 +362,20 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     return result;
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context,
-      TabletLocator locator, Path file, FileSystem fs)
+  public static List<KeyExtent> findOverlappingTablets(ClientContext context,
+      KeyExtentCache extentCache, Path file, FileSystem fs)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
         .forFile(file.toString(), fs, fs.getConf())
         .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
-      return findOverlappingTablets(context, locator, null, null, reader);
+      return findOverlappingTablets(context, extentCache, null, null, reader);
     }
   }
 
   public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
       Table.ID tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
-    TabletLocator locator = TabletLocator.getLocator(context, tableId);
+
+    KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
 
     FileStatus[] files = fs.listStatus(dirPath,
         p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING));
@@ -298,14 +386,12 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
           long t1 = System.currentTimeMillis();
-          List<TabletLocation> locations = findOverlappingTablets(context, locator,
+          List<KeyExtent> extents = findOverlappingTablets(context, extentCache,
               fileStatus.getPath(), fs);
-          Collection<KeyExtent> extents = Collections2.transform(locations, l -> l.tablet_extent);
           Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(),
               fileStatus.getPath(), fileStatus.getLen(), extents, fs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
-          for (TabletLocation location : locations) {
-            KeyExtent ke = location.tablet_extent;
+          for (KeyExtent ke : extents) {
             pathLocations.put(ke,
                 new Bulk.FileInfo(fileStatus.getPath(), estSizes.getOrDefault(ke, 0L)));
           }
