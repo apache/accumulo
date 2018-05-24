@@ -24,9 +24,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Base64;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
@@ -40,17 +39,12 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -78,20 +72,6 @@ public class ConfiguratorBase {
 
   public enum ConnectionInfoOpts {
     CLIENT_PROPS
-  }
-
-  public enum TokenSource {
-    FILE, INLINE, JOB;
-
-    private String prefix;
-
-    TokenSource() {
-      prefix = name().toLowerCase() + ":";
-    }
-
-    public String prefix() {
-      return prefix;
-    }
   }
 
   /**
@@ -148,7 +128,8 @@ public class ConfiguratorBase {
         Connector conn = Connector.builder().usingConnectionInfo(info).build();
         AuthenticationToken token = conn.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
-        result = new ConnectionInfoImpl(info.getProperties(), token);
+        result = Connector.builder().usingConnectionInfo(info)
+            .usingToken(info.getPrincipal(), token).info();
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
@@ -172,8 +153,16 @@ public class ConfiguratorBase {
 
   public static void setConnectionInfo(Class<?> implementingClass, Configuration conf,
       ConnectionInfo info) {
-    conf.set(enumToConfKey(implementingClass, InstanceOpts.TYPE), "ConnectionInfo");
-    Properties props = info.getProperties();
+    setClientProperties(implementingClass, conf, info.getProperties());
+  }
+
+  public static ConnectionInfo getConnectionInfo(Class<?> implementingClass, Configuration conf) {
+    Properties props = getClientProperties(implementingClass, conf);
+    return new ConnectionInfoImpl(props);
+  }
+
+  public static void setClientProperties(Class<?> implementingClass, Configuration conf,
+      Properties props) {
     StringWriter writer = new StringWriter();
     try {
       props.store(writer, "client properties");
@@ -181,19 +170,11 @@ public class ConfiguratorBase {
       throw new IllegalStateException(e);
     }
     conf.set(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS), writer.toString());
-    setConnectorInfo(implementingClass, conf, info.getPrincipal(), info.getAuthenticationToken());
   }
 
-  @SuppressWarnings("deprecation")
-  public static ConnectionInfo getConnectionInfo(Class<?> implementingClass, Configuration conf) {
-    AuthenticationToken token = getAuthenticationToken(implementingClass, conf);
+  public static Properties getClientProperties(Class<?> implementingClass, Configuration conf) {
     String propString = conf.get(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS),
         "");
-    String confString = conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG), "");
-    if (!propString.isEmpty() && !confString.isEmpty()) {
-      throw new IllegalStateException("Client connection information was set using both "
-          + "setConnectionInfo & setZookeeperInstance");
-    }
     Properties props = new Properties();
     if (!propString.isEmpty()) {
       try {
@@ -201,15 +182,8 @@ public class ConfiguratorBase {
       } catch (IOException e) {
         throw new IllegalStateException(e);
       }
-    } else {
-      props = ClientConfConverter.toProperties(
-          org.apache.accumulo.core.client.ClientConfiguration.deserialize(confString));
-      String principal = conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), "");
-      if (!principal.isEmpty()) {
-        props.setProperty(ClientProperty.AUTH_USERNAME.getKey(), principal);
-      }
     }
-    return new ConnectionInfoImpl(props, token);
+    return props;
   }
 
   /**
@@ -232,25 +206,13 @@ public class ConfiguratorBase {
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
       String principal, AuthenticationToken token) {
-    if (isConnectorInfoSet(implementingClass, conf))
-      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
-          + " can only be set once per job");
-
     checkArgument(principal != null, "principal is null");
     checkArgument(token != null, "token is null");
+    Properties props = getClientProperties(implementingClass, conf);
+    props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
+    ClientProperty.setAuthenticationToken(props, token);
+    setClientProperties(implementingClass, conf, props);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    if (token instanceof DelegationTokenImpl) {
-      // Avoid serializing the DelegationToken secret in the configuration -- the Job will do that
-      // work for us securely
-      DelegationTokenImpl delToken = (DelegationTokenImpl) token;
-      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
-          TokenSource.JOB.prefix() + token.getClass().getName() + ":" + delToken.getServiceName());
-    } else {
-      conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
-          TokenSource.INLINE.prefix() + token.getClass().getName() + ":"
-              + Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
-    }
   }
 
   /**
@@ -276,21 +238,19 @@ public class ConfiguratorBase {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
-
     checkArgument(principal != null, "principal is null");
     checkArgument(tokenFile != null, "tokenFile is null");
-
+    Properties props = getClientProperties(implementingClass, conf);
+    props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
+    String token;
     try {
-      DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException(
-          "Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
+      token = new String(Files.readAllBytes(Paths.get(tokenFile)));
+    } catch (IOException e) {
+      throw new IllegalArgumentException(e);
     }
-
+    props.setProperty(ClientProperty.AUTH_TOKEN.getKey(), token);
+    setClientProperties(implementingClass, conf, props);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
-        TokenSource.FILE.prefix() + tokenFile);
   }
 
   /**
@@ -320,7 +280,8 @@ public class ConfiguratorBase {
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
+    Properties props = getClientProperties(implementingClass, conf);
+    return props.getProperty(ClientProperty.AUTH_PRINCIPAL.getKey());
   }
 
   /**
@@ -338,28 +299,8 @@ public class ConfiguratorBase {
    */
   public static AuthenticationToken getAuthenticationToken(Class<?> implementingClass,
       Configuration conf) {
-    String token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
-    if (token == null || token.isEmpty())
-      return null;
-    if (token.startsWith(TokenSource.INLINE.prefix())) {
-      String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
-      if (args.length == 2)
-        return AuthenticationTokenSerializer.deserialize(args[0],
-            Base64.getDecoder().decode(args[1]));
-    } else if (token.startsWith(TokenSource.FILE.prefix())) {
-      String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
-      return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);
-    } else if (token.startsWith(TokenSource.JOB.prefix())) {
-      String[] args = token.substring(TokenSource.JOB.prefix().length()).split(":", 2);
-      if (args.length == 2) {
-        String className = args[0], serviceName = args[1];
-        if (DelegationTokenImpl.class.getName().equals(className)) {
-          return new DelegationTokenStub(serviceName);
-        }
-      }
-    }
-
-    throw new IllegalStateException("Token was not properly serialized into the configuration");
+    Properties props = getClientProperties(implementingClass, conf);
+    return ClientProperty.getAuthenticationToken(props);
   }
 
   /**
@@ -374,35 +315,7 @@ public class ConfiguratorBase {
    */
   public static AuthenticationToken getTokenFromFile(Configuration conf, String principal,
       String tokenFile) {
-    FSDataInputStream in = null;
-    try {
-      URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
-      Path path = null;
-      for (URI u : uris) {
-        if (u.toString().equals(tokenFile)) {
-          path = new Path(u);
-        }
-      }
-      if (path == null) {
-        throw new IllegalArgumentException(
-            "Couldn't find password file called \"" + tokenFile + "\" in cache.");
-      }
-      FileSystem fs = FileSystem.get(conf);
-      in = fs.open(path);
-    } catch (IOException e) {
-      throw new IllegalArgumentException(
-          "Couldn't open password file called \"" + tokenFile + "\".");
-    }
-    try (java.util.Scanner fileScanner = new java.util.Scanner(in)) {
-      while (fileScanner.hasNextLine()) {
-        Credentials creds = Credentials.deserialize(fileScanner.nextLine());
-        if (principal.equals(creds.getPrincipal())) {
-          return creds.getToken();
-        }
-      }
-      throw new IllegalArgumentException(
-          "Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
-    }
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -419,16 +332,14 @@ public class ConfiguratorBase {
   @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
       org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
-    String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
-    if (!conf.get(key, "").isEmpty())
-      throw new IllegalStateException(
-          "Instance info can only be set once per job; it has already been configured with "
-              + conf.get(key));
-    conf.set(key, "ZooKeeperInstance");
-    if (clientConfig != null) {
-      conf.set(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG),
-          clientConfig.serialize());
+    Properties props = getClientProperties(implementingClass, conf);
+    Properties newProps = ClientConfConverter.toProperties(clientConfig);
+    for (Object keyObj : newProps.keySet()) {
+      String propKey = (String) keyObj;
+      String val = newProps.getProperty(propKey);
+      props.setProperty(propKey, val);
     }
+    setClientProperties(implementingClass, conf, props);
   }
 
   /**

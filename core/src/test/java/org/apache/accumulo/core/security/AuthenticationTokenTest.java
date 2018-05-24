@@ -52,4 +52,11 @@ public class AuthenticationTokenTest {
     assertEquals(new NullToken(), nullToken);
   }
 
+  @Test
+  public void testStringSerialization() {
+    String data = AuthenticationToken.AuthenticationTokenStringSerializer
+        .serialize(new PasswordToken("changeme"));
+    System.out.println(data);
+  }
+
 }

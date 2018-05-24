@@ -29,8 +29,7 @@ public class ClientConfConverterTest {
     Properties before = new Properties();
     before.setProperty(ClientProperty.INSTANCE_NAME.getKey(), "instance");
     before.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "zookeepers");
-    before.setProperty(ClientProperty.AUTH_METHOD.getKey(), "password");
-    before.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), "mypass");
+    ClientProperty.setPassword(before, "mypass");
     before.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
     before.setProperty(ClientProperty.SSL_KEYSTORE_PATH.getKey(), "key_path");
     before.setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), "key_pass");

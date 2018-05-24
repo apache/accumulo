@@ -430,19 +430,6 @@ public abstract class Connector {
     ConnectionOptions usingKerberos(String principal, String keyTabFile);
 
     /**
-     * Build using credentials from a CredentialProvider
-     *
-     * @param username
-     *          Accumulo user name
-     * @param name
-     *          Alias to extract Accumulo user password from CredentialProvider
-     * @param providerUrls
-     *          Comma seperated list of URLs defining CredentialProvider(s)
-     * @return this builder
-     */
-    ConnectionOptions usingProvider(String username, String name, String providerUrls);
-
-    /**
      * Build using specified credentials
      *
      * @param principal

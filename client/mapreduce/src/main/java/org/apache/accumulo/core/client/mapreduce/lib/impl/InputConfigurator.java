@@ -763,9 +763,14 @@ public class InputConfigurator extends ConfiguratorBase {
       if (getInputTableConfigs(implementingClass, conf).size() == 0)
         throw new IOException("No table set.");
 
+      String principal = getPrincipal(implementingClass, conf);
+      if (principal == null) {
+        principal = getConnectionInfo(implementingClass, conf).getPrincipal();
+      }
+
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
-        if (!conn.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf),
-            tableConfig.getKey(), TablePermission.READ))
+        if (!conn.securityOperations().hasTablePermission(principal, tableConfig.getKey(),
+            TablePermission.READ))
           throw new IOException("Unable to access table");
       }
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : inputTableConfigs.entrySet()) {

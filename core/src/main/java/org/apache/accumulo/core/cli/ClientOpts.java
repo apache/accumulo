@@ -229,7 +229,7 @@ public class ClientOpts extends Help {
         cachedProps.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
       }
       if (principal != null) {
-        cachedProps.setProperty(ClientProperty.AUTH_USERNAME.getKey(), principal);
+        cachedProps.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
       }
       if (zookeepers != null) {
         cachedProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
@@ -238,12 +238,11 @@ public class ClientOpts extends Help {
         cachedProps.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instance);
       }
       if (securePassword != null) {
-        cachedProps.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), securePassword.toString());
+        ClientProperty.setPassword(cachedProps, securePassword.toString());
       } else if (password != null) {
-        cachedProps.setProperty(ClientProperty.AUTH_PASSWORD.getKey(), password.toString());
+        ClientProperty.setPassword(cachedProps, password.toString());
       } else if (keytabPath != null) {
-        cachedProps.setProperty(ClientProperty.AUTH_METHOD.getKey(), "kerberos");
-        cachedProps.setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getKey(), keytabPath);
+        ClientProperty.setKerberosKeytab(cachedProps, keytabPath);
       }
     }
     return cachedProps;

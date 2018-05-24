@@ -16,12 +16,20 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
+import org.apache.accumulo.core.client.security.tokens.DelegationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 
 public enum ClientProperty {
 
@@ -34,17 +42,12 @@ public enum ClientProperty {
 
   // Authentication
   AUTH_METHOD("auth.method", "password",
-      "Authentication method (i.e password,"
-          + " kerberos, provider). Set more properties for chosen method below.",
-      "", true),
-  AUTH_USERNAME("auth.username", "", "Accumulo username/principal for chosen authentication method",
-      "", true),
-  AUTH_PASSWORD("auth.password", "", "Accumulo user password", "", true),
-  AUTH_KERBEROS_KEYTAB_PATH("auth.kerberos.keytab.path", "", "Path to Kerberos keytab"),
-  AUTH_PROVIDER_NAME("auth.provider.name", "",
-      "Alias used to extract Accumulo user password from CredentialProvider"),
-  AUTH_PROVIDER_URLS("auth.provider.urls", "",
-      "Comma separated list of URLs defining CredentialProvider(s)"),
+      "Authentication method (i.e password, kerberos, PasswordToken, KerberosToken, etc)", "",
+      true),
+  AUTH_PRINCIPAL("auth.principal", "",
+      "Accumulo principal/username for chosen authentication method", "", true),
+  AUTH_TOKEN("auth.token", "", "Authentication token (ex. 'password', '/path/to/keytab')", "",
+      true),
 
   // BatchWriter
   BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800",
@@ -192,5 +195,91 @@ public enum ClientProperty {
       propMap.put((String) obj, properties.getProperty((String) obj));
     }
     return propMap;
+  }
+
+  public static String encodeToken(AuthenticationToken token) {
+    return Base64.getEncoder()
+        .encodeToString(AuthenticationToken.AuthenticationTokenSerializer.serialize(token));
+  }
+
+  public static AuthenticationToken decodeToken(String className, String tokenString) {
+    return AuthenticationToken.AuthenticationTokenSerializer.deserialize(className,
+        Base64.getDecoder().decode(tokenString));
+  }
+
+  public static void setPassword(Properties properties, String password) {
+    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(), "password");
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), password);
+  }
+
+  public static void setPasswordToken(Properties properties, PasswordToken token) {
+    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+        PasswordToken.class.getSimpleName());
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
+  }
+
+  public static void setKerberosKeytab(Properties properties, String keytabPath) {
+    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(), "kerberos");
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), keytabPath);
+  }
+
+  public static void setKerberosToken(Properties properties, KerberosToken token) {
+    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+        KerberosToken.class.getSimpleName());
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
+  }
+
+  public static void setDelegationToken(Properties properties, DelegationToken token) {
+    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+        DelegationToken.class.getSimpleName());
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
+  }
+
+  public static void setCredentialProviderToken(Properties properties,
+      CredentialProviderToken token) {
+    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+        CredentialProviderToken.class.getSimpleName());
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
+  }
+
+  public static AuthenticationToken getAuthenticationToken(Properties properties) {
+    String principal = ClientProperty.AUTH_PRINCIPAL.getValue(properties);
+    String authMethod = ClientProperty.AUTH_METHOD.getValue(properties);
+    String token = ClientProperty.AUTH_TOKEN.getValue(properties);
+    switch (authMethod) {
+      case "password":
+        return new PasswordToken(token);
+      case "PasswordToken":
+        return decodeToken(PasswordToken.class.getName(), token);
+      case "kerberos":
+        try {
+          return new KerberosToken(principal, new File(token));
+        } catch (IOException e) {
+          throw new IllegalArgumentException(e);
+        }
+      case "KerberosToken":
+        return decodeToken(KerberosToken.class.getName(), token);
+      case "CredentialProviderToken":
+        return decodeToken(CredentialProviderToken.class.getName(), token);
+      case "DelegationToken":
+        return decodeToken(DelegationToken.class.getName(), token);
+      default:
+        throw new IllegalArgumentException(
+            "An authentication method (password, kerberos, etc) must be set");
+    }
+  }
+
+  public static void setAuthenticationToken(Properties properties, AuthenticationToken token) {
+    if (token instanceof CredentialProviderToken) {
+      ClientProperty.setCredentialProviderToken(properties, (CredentialProviderToken) token);
+    } else if (token instanceof PasswordToken) {
+      ClientProperty.setPasswordToken(properties, (PasswordToken) token);
+    } else if (token instanceof KerberosToken) {
+      ClientProperty.setKerberosToken(properties, (KerberosToken) token);
+    } else if (token instanceof DelegationToken) {
+      ClientProperty.setDelegationToken(properties, (DelegationToken) token);
+    } else {
+      throw new IllegalArgumentException("Unknown AuthenticationToken type was provided");
+    }
   }
 }

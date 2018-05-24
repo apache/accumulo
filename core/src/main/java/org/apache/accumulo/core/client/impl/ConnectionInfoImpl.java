@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.io.File;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ConnectionInfo;
@@ -26,11 +25,9 @@ import org.apache.accumulo.core.conf.ClientProperty;
 public class ConnectionInfoImpl implements ConnectionInfo {
 
   private Properties properties;
-  private AuthenticationToken token;
 
-  public ConnectionInfoImpl(Properties properties, AuthenticationToken token) {
+  public ConnectionInfoImpl(Properties properties) {
     this.properties = properties;
-    this.token = token;
   }
 
   @Override
@@ -45,26 +42,21 @@ public class ConnectionInfoImpl implements ConnectionInfo {
 
   @Override
   public String getPrincipal() {
-    return getString(ClientProperty.AUTH_USERNAME);
+    return getString(ClientProperty.AUTH_PRINCIPAL);
   }
 
   @Override
   public Properties getProperties() {
-    return properties;
+    Properties result = new Properties();
+    properties.forEach((key, value) -> {
+      result.setProperty((String) key, (String) value);
+    });
+    return result;
   }
 
   @Override
   public AuthenticationToken getAuthenticationToken() {
-    return token;
-  }
-
-  @Override
-  public File getKeytab() {
-    String keyTab = getString(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH);
-    if (keyTab == null) {
-      return null;
-    }
-    return new File(keyTab);
+    return ClientProperty.getAuthenticationToken(properties);
   }
 
   @Override

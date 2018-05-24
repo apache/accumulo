@@ -127,7 +127,7 @@ public class ClientContext {
   }
 
   public ConnectionInfo getConnectionInfo() {
-    return new ConnectionInfoImpl(clientProps, creds.getToken());
+    return new ConnectionInfoImpl(clientProps);
   }
 
   /**

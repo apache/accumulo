@@ -453,8 +453,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     clientProps.put(ClientProperty.INSTANCE_NAME.getKey(), config.getInstanceName());
     if (!clientProps.containsKey(ClientProperty.AUTH_METHOD.getKey())) {
       clientProps.put(ClientProperty.AUTH_METHOD.getKey(), "password");
-      clientProps.put(ClientProperty.AUTH_USERNAME.getKey(), config.getRootUserName());
-      clientProps.put(ClientProperty.AUTH_PASSWORD.getKey(), config.getRootPassword());
+      clientProps.put(ClientProperty.AUTH_PRINCIPAL.getKey(), config.getRootUserName());
+      clientProps.put(ClientProperty.AUTH_TOKEN.getKey(), config.getRootPassword());
     }
 
     File clientPropsFile = config.getClientPropsFile();
