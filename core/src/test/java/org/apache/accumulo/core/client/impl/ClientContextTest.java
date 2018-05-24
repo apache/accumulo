@@ -20,8 +20,8 @@ import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.Property;
@@ -67,10 +67,9 @@ public class ClientContextTest {
     }
 
     String absPath = getKeyStoreUrl(keystore);
-    ClientConfiguration clientConf = ClientConfiguration.create()
-        .with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
-
-    AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(clientConf);
+    Properties props = new Properties();
+    props.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(props);
     Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
   }
 
@@ -79,10 +78,8 @@ public class ClientContextTest {
     if (!isCredentialProviderAvailable) {
       return;
     }
-
-    ClientConfiguration clientConf = ClientConfiguration.create();
-
-    AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(clientConf);
+    Properties props = new Properties();
+    AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(props);
     Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
         accClientConf.get(Property.INSTANCE_SECRET));
   }
@@ -94,10 +91,10 @@ public class ClientContextTest {
     }
 
     String absPath = getKeyStoreUrl(keystore);
-    ClientConfiguration clientConf = ClientConfiguration.create()
-        .with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    Properties clientProps = new Properties();
+    clientProps.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
-    AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(clientConf);
+    AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(clientProps);
     Map<String,String> props = new HashMap<>();
     accClientConf.getProperties(props, x -> true);
 

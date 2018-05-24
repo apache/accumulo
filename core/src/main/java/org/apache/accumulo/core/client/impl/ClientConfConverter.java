@@ -134,25 +134,14 @@ public class ClientConfConverter {
     return props;
   }
 
-  public static Properties toProperties(AccumuloConfiguration config) {
-    return toProperties(toClientConf(config));
-  }
-
-  public static AccumuloConfiguration toAccumuloConf(Properties properties) {
-    return toAccumuloConf(toClientConf(properties));
-  }
-
   /**
-   * A utility method for converting client configuration to a standard configuration object for use
-   * internally.
+   * Converts client properties to a standard configuration object for use internally.
    *
-   * @param config
-   *          the original {@link org.apache.accumulo.core.client.ClientConfiguration}
-   * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
+   * @param properties
+   *          Accumulo client properties
+   * @return the client configuration in the form of an {@link AccumuloConfiguration}
    */
-  @SuppressWarnings("deprecation")
-  public static AccumuloConfiguration toAccumuloConf(
-      final org.apache.accumulo.core.client.ClientConfiguration config) {
+  public static AccumuloConfiguration toAccumuloConf(final Properties properties) {
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
@@ -160,7 +149,8 @@ public class ClientConfConverter {
 
       @Override
       public String get(Property property) {
-        final String key = property.getKey();
+        final String confKey = property.getKey();
+        final String propKey = confProps.get(confKey);
 
         // Attempt to load sensitive properties from a CredentialProvider, if configured
         if (property.isSensitive()) {
@@ -168,33 +158,31 @@ public class ClientConfConverter {
           if (null != hadoopConf) {
             try {
               char[] value = CredentialProviderFactoryShim
-                  .getValueFromCredentialProvider(hadoopConf, key);
+                  .getValueFromCredentialProvider(hadoopConf, confKey);
               if (null != value) {
-                log.trace("Loaded sensitive value for {} from CredentialProvider", key);
+                log.trace("Loaded sensitive value for {} from CredentialProvider", confKey);
                 return new String(value);
               } else {
                 log.trace("Tried to load sensitive value for {} from CredentialProvider, "
-                    + "but none was found", key);
+                    + "but none was found", confKey);
               }
             } catch (IOException e) {
               log.warn("Failed to extract sensitive property ({}) from Hadoop CredentialProvider,"
-                  + " falling back to base AccumuloConfiguration", key, e);
+                  + " falling back to base AccumuloConfiguration", confKey, e);
             }
           }
         }
 
-        if (config.containsKey(key))
-          return config.getString(key);
-        else {
+        if (propKey != null && properties.containsKey(propKey)) {
+          return properties.getProperty(propKey);
+        } else if (properties.containsKey(confKey)) {
+          return properties.getProperty(confKey);
+        } else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
-            if (config.containsKey(
-                org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                    .getKey())) {
+            if (properties.containsKey(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config.getString(
-                  org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                      .getKey())
+              return properties.getProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())
                   + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
             }
           }
@@ -206,22 +194,19 @@ public class ClientConfConverter {
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 
-        Iterator<String> keyIter = config.getKeys();
-        while (keyIter.hasNext()) {
-          String key = keyIter.next();
-          if (filter.test(key))
-            props.put(key, config.getString(key));
+        for (Object keyObj : properties.keySet()) {
+          String propKey = (String) keyObj;
+          String confKey = propsConf.get(propKey);
+          if (filter.test(confKey))
+            props.put(confKey, properties.getProperty(propKey));
         }
 
         // Two client props that don't exist on the server config. Client doesn't need to know about
         // the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(
-            org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                .getKey())) {
-          final String serverPrimary = props.remove(
-              org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                  .getKey());
+        if (props.containsKey(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props
+              .remove(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
@@ -254,8 +239,8 @@ public class ClientConfConverter {
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = config
-            .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths = properties
+            .getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (null != credProviderPaths && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
           hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
@@ -269,11 +254,8 @@ public class ClientConfConverter {
     };
   }
 
-  @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration toClientConf(
-      AccumuloConfiguration conf) {
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
-        .create();
+  public static Properties toProperties(AccumuloConfiguration conf) {
+    Properties properties = new Properties();
 
     // Servers will only have the full principal in their configuration -- parse the
     // primary and realm from it.
@@ -282,25 +264,26 @@ public class ClientConfConverter {
     final KerberosName krbName;
     if (serverPrincipal != null && !serverPrincipal.isEmpty()) {
       krbName = new KerberosName(serverPrincipal);
-      clientConf.setProperty(
-          org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY,
+      properties.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
           krbName.getServiceName());
     }
 
     HashSet<String> clientKeys = new HashSet<>();
-    for (org.apache.accumulo.core.client.ClientConfiguration.ClientProperty prop : org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
-        .values()) {
+    for (ClientProperty prop : ClientProperty.values()) {
       clientKeys.add(prop.getKey());
     }
 
-    String key;
     for (Map.Entry<String,String> entry : conf) {
-      key = entry.getKey();
-      if (clientKeys.contains(key)) {
-        clientConf.setProperty(key, entry.getValue());
+      String confKey = entry.getKey();
+      String propKey = confProps.get(confKey);
+      if (clientKeys.contains(confKey)) {
+        if (propKey != null) {
+          properties.setProperty(propKey, entry.getValue());
+        } else {
+          properties.setProperty(confKey, entry.getValue());
+        }
       }
     }
-    return clientConf;
+    return properties;
   }
-
 }
