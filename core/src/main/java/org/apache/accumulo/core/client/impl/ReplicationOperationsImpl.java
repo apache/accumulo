@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.replication.PeerNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
@@ -117,12 +116,8 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
       final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return MasterClient.execute(context, new ClientExecReturn<Boolean,Client>() {
-      @Override
-      public Boolean execute(Client client) throws Exception {
-        return client.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
-      }
-    });
+    return MasterClient.execute(context,
+        client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 
   protected Table.ID getTableId(Connector conn, String tableName)

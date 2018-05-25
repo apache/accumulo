@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
@@ -50,7 +49,6 @@ import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.OpTimer;
 import org.slf4j.Logger;
@@ -175,13 +173,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
 
-    MasterClient.executeNamespace(context, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.setNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property,
-            value);
-      }
-    });
+    MasterClient.executeNamespace(context, client -> client.setNamespaceProperty(Tracer.traceInfo(),
+        context.rpcCreds(), namespace, property, value));
   }
 
   @Override
@@ -190,12 +183,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(property != null, "property is null");
 
-    MasterClient.executeNamespace(context, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.removeNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property);
-      }
-    });
+    MasterClient.executeNamespace(context, client -> client
+        .removeNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property));
   }
 
   @Override
@@ -203,14 +192,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     try {
-      return ServerClient
-          .executeRaw(context, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
-            @Override
-            public Map<String,String> execute(ClientService.Client client) throws Exception {
-              return client.getNamespaceConfiguration(Tracer.traceInfo(), context.rpcCreds(),
-                  namespace);
-            }
-          }).entrySet();
+      return ServerClient.executeRaw(context, client -> client
+          .getNamespaceConfiguration(Tracer.traceInfo(), context.rpcCreds(), namespace)).entrySet();
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:
@@ -244,13 +227,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ServerClient.executeRaw(context, new ClientExecReturn<Boolean,ClientService.Client>() {
-        @Override
-        public Boolean execute(ClientService.Client client) throws Exception {
-          return client.checkNamespaceClass(Tracer.traceInfo(), context.rpcCreds(), namespace,
-              className, asTypeName);
-        }
-      });
+      return ServerClient.executeRaw(context,
+          client -> client.checkNamespaceClass(Tracer.traceInfo(), context.rpcCreds(), namespace,
+              className, asTypeName));
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:

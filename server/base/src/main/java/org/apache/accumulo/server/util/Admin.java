@@ -42,13 +42,11 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -365,12 +363,8 @@ public class Admin implements KeywordExecutable {
 
   private static void stopServer(final ClientContext context, final boolean tabletServersToo)
       throws AccumuloException, AccumuloSecurityException {
-    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.shutdown(Tracer.traceInfo(), context.rpcCreds(), tabletServersToo);
-      }
-    });
+    MasterClient.executeVoid(context,
+        client -> client.shutdown(Tracer.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
@@ -389,12 +383,8 @@ public class Admin implements KeywordExecutable {
         final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc,
             address.toString());
         log.info("Stopping server {}", finalServer);
-        MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
-          @Override
-          public void execute(MasterClientService.Client client) throws Exception {
-            client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force);
-          }
-        });
+        MasterClient.executeVoid(context, client -> client.shutdownTabletServer(Tracer.traceInfo(),
+            context.rpcCreds(), finalServer, force));
       }
     }
   }

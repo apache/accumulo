@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
@@ -37,7 +36,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -384,12 +382,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     // Get the tservers which the master deems as active
     final ClientContext context = new ClientContext(getConnectionInfo());
     List<String> tservers = MasterClient.execute(context,
-        new ClientExecReturn<List<String>,MasterClientService.Client>() {
-          @Override
-          public List<String> execute(MasterClientService.Client client) throws Exception {
-            return client.getActiveTservers(Tracer.traceInfo(), context.rpcCreds());
-          }
-        });
+        client -> client.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
 
     Assert.assertEquals("Expected only one active tservers", 1, tservers.size());
 

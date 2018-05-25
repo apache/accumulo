@@ -54,7 +54,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
-import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
@@ -260,14 +259,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         try {
           // Ask the master on the remote what TServer we should talk with to replicate the data
           peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
-              new ClientExecReturn<String,ReplicationCoordinator.Client>() {
-
-                @Override
-                public String execute(ReplicationCoordinator.Client client) throws Exception {
-                  return client.getServicerAddress(remoteTableId, peerContext.rpcCreds());
-                }
-
-              });
+              client -> client.getServicerAddress(remoteTableId, peerContext.rpcCreds()));
         } catch (AccumuloException | AccumuloSecurityException e) {
           // No progress is made
           log.error(

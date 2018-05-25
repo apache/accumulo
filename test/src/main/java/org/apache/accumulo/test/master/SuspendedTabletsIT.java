@@ -40,12 +40,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -123,12 +121,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
         for (int i = 0; i < count; ++i) {
           final String tserverName = tserversList.get(i).toString();
-          MasterClient.executeVoid(ctx, new ClientExec<MasterClientService.Client>() {
-            @Override
-            public void execute(MasterClientService.Client client) throws Exception {
-              log.info("Sending shutdown command to {} via MasterClientService", tserverName);
-              client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
-            }
+          MasterClient.executeVoid(ctx, client -> {
+            log.info("Sending shutdown command to {} via MasterClientService", tserverName);
+            client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
           });
         }
 
