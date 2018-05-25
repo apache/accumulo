@@ -16,10 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.util.Map;
 import java.util.Properties;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.junit.Assert;
 import org.junit.Test;
