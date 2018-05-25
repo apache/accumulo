@@ -35,7 +35,7 @@ import org.apache.hadoop.io.WritableComparator;
 public class Column implements WritableComparable<Column> {
 
   private static final Comparator<byte[]> BYTE_COMPARATOR = Comparator
-      .nullsLast((a, b) -> WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length));
+      .nullsFirst((a, b) -> WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length));
 
   private static final Comparator<Column> COMPARATOR = Comparator
       .comparing(Column::getColumnFamily, BYTE_COMPARATOR)
