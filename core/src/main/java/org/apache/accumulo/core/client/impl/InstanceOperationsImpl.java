@@ -33,10 +33,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -66,50 +64,30 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
-    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.setSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property, value);
-      }
-    });
+    MasterClient.executeVoid(context, client -> client.setSystemProperty(Tracer.traceInfo(),
+        context.rpcCreds(), property, value));
   }
 
   @Override
   public void removeProperty(final String property)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
-    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.removeSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property);
-      }
-    });
+    MasterClient.executeVoid(context,
+        client -> client.removeSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property));
   }
 
   @Override
   public Map<String,String> getSystemConfiguration()
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context,
-        new ClientExecReturn<Map<String,String>,ClientService.Client>() {
-          @Override
-          public Map<String,String> execute(ClientService.Client client) throws Exception {
-            return client.getConfiguration(Tracer.traceInfo(), context.rpcCreds(),
-                ConfigurationType.CURRENT);
-          }
-        });
+    return ServerClient.execute(context, client -> client.getConfiguration(Tracer.traceInfo(),
+        context.rpcCreds(), ConfigurationType.CURRENT));
   }
 
   @Override
   public Map<String,String> getSiteConfiguration()
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context,
-        new ClientExecReturn<Map<String,String>,ClientService.Client>() {
-          @Override
-          public Map<String,String> execute(ClientService.Client client) throws Exception {
-            return client.getConfiguration(Tracer.traceInfo(), context.rpcCreds(),
-                ConfigurationType.SITE);
-          }
-        });
+    return ServerClient.execute(context, client -> client.getConfiguration(Tracer.traceInfo(),
+        context.rpcCreds(), ConfigurationType.SITE));
   }
 
   @Override
@@ -166,12 +144,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public boolean testClassLoad(final String className, final String asTypeName)
       throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(context, new ClientExecReturn<Boolean,ClientService.Client>() {
-      @Override
-      public Boolean execute(ClientService.Client client) throws Exception {
-        return client.checkClass(Tracer.traceInfo(), context.rpcCreds(), className, asTypeName);
-      }
-    });
+    return ServerClient.execute(context,
+        client -> client.checkClass(Tracer.traceInfo(), context.rpcCreds(), className, asTypeName));
   }
 
   @Override
@@ -220,12 +194,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void waitForBalance() throws AccumuloException {
     try {
-      MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.waitForBalance(Tracer.traceInfo());
-        }
-      });
+      MasterClient.executeVoid(context, client -> client.waitForBalance(Tracer.traceInfo()));
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);

@@ -542,81 +542,66 @@ public class KerberosProxyIT extends AccumuloITBase {
         .createProxyUser(userWithoutCredentials3, realUgi);
 
     // Create a table and user, grant permission to our user to read that table.
-    rootUgi.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        Connector conn = mac.getConnector(rootUgi.getUserName(), new KerberosToken());
-        conn.tableOperations().create(tableName);
-        conn.securityOperations().createLocalUser(userWithoutCredentials1,
-            new PasswordToken("ignored"));
-        conn.securityOperations().grantTablePermission(userWithoutCredentials1, tableName,
-            TablePermission.READ);
-        conn.securityOperations().createLocalUser(userWithoutCredentials3,
-            new PasswordToken("ignored"));
-        conn.securityOperations().grantTablePermission(userWithoutCredentials3, tableName,
-            TablePermission.READ);
-        return null;
-      }
+    rootUgi.doAs((PrivilegedExceptionAction<Void>) () -> {
+      Connector conn = mac.getConnector(rootUgi.getUserName(), new KerberosToken());
+      conn.tableOperations().create(tableName);
+      conn.securityOperations().createLocalUser(userWithoutCredentials1,
+          new PasswordToken("ignored"));
+      conn.securityOperations().grantTablePermission(userWithoutCredentials1, tableName,
+          TablePermission.READ);
+      conn.securityOperations().createLocalUser(userWithoutCredentials3,
+          new PasswordToken("ignored"));
+      conn.securityOperations().grantTablePermission(userWithoutCredentials3, tableName,
+          TablePermission.READ);
+      return null;
     });
-    realUgi.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        Connector conn = mac.getConnector(proxyPrincipal, new KerberosToken());
-        try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
-          s.iterator().hasNext();
-          Assert.fail("Expected to see an exception");
-        } catch (RuntimeException e) {
-          int numSecurityExceptionsSeen = Iterables
-              .size(Iterables.filter(Throwables.getCausalChain(e),
-                  org.apache.accumulo.core.client.AccumuloSecurityException.class));
-          assertTrue("Expected to see at least one AccumuloSecurityException, but saw: "
-              + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
-        }
-        return null;
+    realUgi.doAs((PrivilegedExceptionAction<Void>) () -> {
+      Connector conn = mac.getConnector(proxyPrincipal, new KerberosToken());
+      try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+        s.iterator().hasNext();
+        Assert.fail("Expected to see an exception");
+      } catch (RuntimeException e) {
+        int numSecurityExceptionsSeen = Iterables
+            .size(Iterables.filter(Throwables.getCausalChain(e),
+                org.apache.accumulo.core.client.AccumuloSecurityException.class));
+        assertTrue("Expected to see at least one AccumuloSecurityException, but saw: "
+            + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
       }
+      return null;
     });
     // Allowed to be proxied and has read permission
-    proxyUser1.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        Connector conn = mac.getConnector(userWithoutCredentials1,
-            new KerberosToken(userWithoutCredentials1));
-        Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-        assertFalse(s.iterator().hasNext());
-        return null;
-      }
+    proxyUser1.doAs((PrivilegedExceptionAction<Void>) () -> {
+      Connector conn = mac.getConnector(userWithoutCredentials1,
+          new KerberosToken(userWithoutCredentials1));
+      Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+      assertFalse(s.iterator().hasNext());
+      return null;
     });
     // Allowed to be proxied but does not have read permission
-    proxyUser2.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        Connector conn = mac.getConnector(userWithoutCredentials2,
-            new KerberosToken(userWithoutCredentials3));
-        try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
-          s.iterator().hasNext();
-          Assert.fail("Expected to see an exception");
-        } catch (RuntimeException e) {
-          int numSecurityExceptionsSeen = Iterables
-              .size(Iterables.filter(Throwables.getCausalChain(e),
-                  org.apache.accumulo.core.client.AccumuloSecurityException.class));
-          assertTrue("Expected to see at least one AccumuloSecurityException, but saw: "
-              + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
-        }
-        return null;
+    proxyUser2.doAs((PrivilegedExceptionAction<Void>) () -> {
+      Connector conn = mac.getConnector(userWithoutCredentials2,
+          new KerberosToken(userWithoutCredentials3));
+      try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+        s.iterator().hasNext();
+        Assert.fail("Expected to see an exception");
+      } catch (RuntimeException e) {
+        int numSecurityExceptionsSeen = Iterables
+            .size(Iterables.filter(Throwables.getCausalChain(e),
+                org.apache.accumulo.core.client.AccumuloSecurityException.class));
+        assertTrue("Expected to see at least one AccumuloSecurityException, but saw: "
+            + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
       }
+      return null;
     });
     // Has read permission but is not allowed to be proxied
-    proxyUser3.doAs(new PrivilegedExceptionAction<Void>() {
-      @Override
-      public Void run() throws Exception {
-        try {
-          mac.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
-          Assert.fail("Should not be able to create a Connector as this user cannot be proxied");
-        } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
-          // Expected, this user cannot be proxied
-        }
-        return null;
+    proxyUser3.doAs((PrivilegedExceptionAction<Void>) () -> {
+      try {
+        mac.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
+        Assert.fail("Should not be able to create a Connector as this user cannot be proxied");
+      } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
+        // Expected, this user cannot be proxied
       }
+      return null;
     });
   }
 

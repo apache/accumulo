@@ -80,7 +80,6 @@ import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
@@ -966,13 +965,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     try {
-      MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.setTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property,
-              value);
-        }
-      });
+      MasterClient.executeTable(context, client -> client.setTableProperty(Tracer.traceInfo(),
+          context.rpcCreds(), tableName, property, value));
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
@@ -984,12 +978,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(property != null, "property is null");
     try {
-      MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.removeTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property);
-        }
-      });
+      MasterClient.executeTable(context, client -> client.removeTableProperty(Tracer.traceInfo(),
+          context.rpcCreds(), tableName, property));
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
@@ -1000,14 +990,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     try {
-      return ServerClient
-          .executeRaw(context, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
-            @Override
-            public Map<String,String> execute(ClientService.Client client) throws Exception {
-              return client.getTableConfiguration(Tracer.traceInfo(), context.rpcCreds(),
-                  tableName);
-            }
-          }).entrySet();
+      return ServerClient.executeRaw(context,
+          client -> client.getTableConfiguration(Tracer.traceInfo(), context.rpcCreds(), tableName))
+          .entrySet();
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NOTFOUND:
@@ -1582,13 +1567,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ServerClient.executeRaw(context, new ClientExecReturn<Boolean,ClientService.Client>() {
-        @Override
-        public Boolean execute(ClientService.Client client) throws Exception {
-          return client.checkTableClass(Tracer.traceInfo(), context.rpcCreds(), tableName,
-              className, asTypeName);
-        }
-      });
+      return ServerClient.executeRaw(context, client -> client.checkTableClass(Tracer.traceInfo(),
+          context.rpcCreds(), tableName, className, asTypeName));
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NOTFOUND:

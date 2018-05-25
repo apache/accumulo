@@ -3321,12 +3321,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
       if (UserGroupInformation.isSecurityEnabled()) {
         UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
-        loginUser.doAs(new PrivilegedExceptionAction<Void>() {
-          @Override
-          public Void run() {
-            server.run();
-            return null;
-          }
+        loginUser.doAs((PrivilegedExceptionAction<Void>) () -> {
+          server.run();
+          return null;
         });
       } else {
         server.run();
