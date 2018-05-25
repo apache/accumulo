@@ -17,7 +17,8 @@
 
 package org.apache.accumulo.core.client.impl;
 
-import org.apache.accumulo.core.client.impl.ConditionalWriterImpl.ConditionComparator;
+import java.util.Comparator;
+
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Assert;
@@ -34,7 +35,7 @@ public class ConditionalComparatorTest {
     Condition c6 = new Condition("a", "b").setVisibility(new ColumnVisibility("A&B"));
     Condition c7 = new Condition("a", "b").setVisibility(new ColumnVisibility("A&C"));
 
-    ConditionComparator comparator = new ConditionComparator();
+    Comparator<Condition> comparator = ConditionalWriterImpl.CONDITION_COMPARATOR;
 
     Assert.assertEquals(0, comparator.compare(c1, c1));
     Assert.assertTrue(comparator.compare(c1, c2) < 0);

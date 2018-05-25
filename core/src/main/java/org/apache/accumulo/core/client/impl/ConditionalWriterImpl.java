@@ -778,38 +778,13 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  static class ConditionComparator implements Comparator<Condition> {
+  private static final Comparator<Long> TIMESTAMP_COMPARATOR = Comparator
+      .nullsFirst((l1, l2) -> Long.compare(l2, l1));
 
-    private static final Long MAX = Long.MAX_VALUE;
-
-    @Override
-    public int compare(Condition c1, Condition c2) {
-      int comp = c1.getFamily().compareTo(c2.getFamily());
-      if (comp == 0) {
-        comp = c1.getQualifier().compareTo(c2.getQualifier());
-        if (comp == 0) {
-          comp = c1.getVisibility().compareTo(c2.getVisibility());
-          if (comp == 0) {
-            Long l1 = c1.getTimestamp();
-            Long l2 = c2.getTimestamp();
-            if (l1 == null) {
-              l1 = MAX;
-            }
-
-            if (l2 == null) {
-              l2 = MAX;
-            }
-
-            comp = l2.compareTo(l1);
-          }
-        }
-      }
-
-      return comp;
-    }
-  }
-
-  private static final ConditionComparator CONDITION_COMPARATOR = new ConditionComparator();
+  static final Comparator<Condition> CONDITION_COMPARATOR = Comparator
+      .comparing(Condition::getFamily).thenComparing(Condition::getQualifier)
+      .thenComparing(Condition::getVisibility)
+      .thenComparing(Condition::getTimestamp, TIMESTAMP_COMPARATOR);
 
   private List<TCondition> convertConditions(ConditionalMutation cm,
       CompressedIterators compressedIters) {

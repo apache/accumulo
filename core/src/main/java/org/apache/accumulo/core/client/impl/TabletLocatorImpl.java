@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,31 +61,15 @@ public class TabletLocatorImpl extends TabletLocator {
   // putting null, put MAX_TEXT
   static final Text MAX_TEXT = new Text();
 
-  private static class EndRowComparator implements Comparator<Text>, Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @Override
-    public int compare(Text o1, Text o2) {
-
-      int ret;
-
-      if (o1 == MAX_TEXT)
-        if (o2 == MAX_TEXT)
-          ret = 0;
-        else
-          ret = 1;
-      else if (o2 == MAX_TEXT)
-        ret = -1;
-      else
-        ret = o1.compareTo(o2);
-
-      return ret;
-    }
-
-  }
-
-  static final EndRowComparator endRowComparator = new EndRowComparator();
+  static final Comparator<Text> endRowComparator = (o1, o2) -> {
+    if (o1 == o2)
+      return 0;
+    if (o1 == MAX_TEXT)
+      return 1;
+    if (o2 == MAX_TEXT)
+      return -1;
+    return o1.compareTo(o2);
+  };
 
   protected Table.ID tableId;
   protected TabletLocator parent;

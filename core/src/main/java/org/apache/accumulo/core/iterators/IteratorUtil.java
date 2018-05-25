@@ -19,7 +19,6 @@ package org.apache.accumulo.core.iterators;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,15 +71,8 @@ public class IteratorUtil {
     majc, minc, scan;
   }
 
-  public static class IterInfoComparator implements Comparator<IterInfo>, Serializable {
-    private static final long serialVersionUID = 1L;
-
-    @Override
-    public int compare(IterInfo o1, IterInfo o2) {
-      return (o1.priority < o2.priority ? -1 : (o1.priority == o2.priority ? 0 : 1));
-    }
-
-  }
+  private static Comparator<IterInfo> II_COMPARATOR = Comparator
+      .comparingInt(IterInfo::getPriority);
 
   /**
    * Fetch the correct configuration key prefix for the given scope. Throws an
@@ -130,7 +122,7 @@ public class IteratorUtil {
       Map<String,Map<String,String>> ssio) {
     destList.addAll(tableIters);
     destList.addAll(ssi);
-    Collections.sort(destList, new IterInfoComparator());
+    Collections.sort(destList, II_COMPARATOR);
 
     Set<Entry<String,Map<String,String>>> es = tableOpts.entrySet();
     for (Entry<String,Map<String,String>> entry : es) {
@@ -176,7 +168,7 @@ public class IteratorUtil {
       }
     }
 
-    Collections.sort(iters, new IterInfoComparator());
+    Collections.sort(iters, II_COMPARATOR);
   }
 
   // @formatter:off
