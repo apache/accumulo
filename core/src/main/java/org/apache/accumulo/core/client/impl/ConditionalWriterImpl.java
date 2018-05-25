@@ -779,7 +779,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private static final Comparator<Long> TIMESTAMP_COMPARATOR = Comparator
-      .nullsFirst((l1, l2) -> Long.compare(l2, l1));
+      .nullsFirst(Comparator.reverseOrder());
 
   static final Comparator<Condition> CONDITION_COMPARATOR = Comparator
       .comparing(Condition::getFamily).thenComparing(Condition::getQualifier)
