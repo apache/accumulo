@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.easymock.EasyMock;
@@ -40,18 +39,29 @@ public class ZooKeeperInstanceTest {
   private ZooCache zc;
   private ZooKeeperInstance zki;
 
-  private void mockIdConstruction(@SuppressWarnings("deprecation") ClientConfiguration config) {
-    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(IID_STRING);
-    expect(config.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
-    expect(config.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("zk1");
-    expect(config.get(ClientProperty.INSTANCE_ZK_TIMEOUT)).andReturn("30");
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+
+  @SuppressWarnings("deprecation")
+  private void mockIdConstruction(ClientConfiguration config) {
+    expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
+    expect(config.get(INSTANCE_NAME)).andReturn(null);
+    expect(config.get(INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
   }
 
-  private void mockNameConstruction(@SuppressWarnings("deprecation") ClientConfiguration config) {
-    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(null);
-    expect(config.get(ClientProperty.INSTANCE_NAME)).andReturn("instance");
-    expect(config.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("zk1");
-    expect(config.get(ClientProperty.INSTANCE_ZK_TIMEOUT)).andReturn("30");
+  @SuppressWarnings("deprecation")
+  private void mockNameConstruction(ClientConfiguration config) {
+    expect(config.get(INSTANCE_ID)).andReturn(null);
+    expect(config.get(INSTANCE_NAME)).andReturn("instance");
+    expect(config.get(INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
   }
 
   @Before
@@ -72,23 +82,23 @@ public class ZooKeeperInstanceTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
+  @SuppressWarnings("deprecation")
   public void testInvalidConstruction() {
-    @SuppressWarnings("deprecation")
     ClientConfiguration config = createMock(ClientConfiguration.class);
-    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(IID_STRING);
+    expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
     mockNameConstruction(config);
     replay(config);
     new ZooKeeperInstance(config);
   }
 
   @Test(expected = IllegalArgumentException.class)
+  @SuppressWarnings("deprecation")
   public void testInvalidConstruction2() {
-    @SuppressWarnings("deprecation")
     ClientConfiguration config = createMock(ClientConfiguration.class);
-    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(null);
-    expect(config.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
-    expect(config.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("zk1");
-    expect(config.get(ClientProperty.INSTANCE_ZK_TIMEOUT)).andReturn("30");
+    expect(config.get(INSTANCE_ID)).andReturn(null);
+    expect(config.get(INSTANCE_NAME)).andReturn(null);
+    expect(config.get(INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
     replay(config);
     new ZooKeeperInstance(config);
   }

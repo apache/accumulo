@@ -26,12 +26,12 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -52,7 +52,7 @@ public class ClientContext {
 
   protected final Instance inst;
   private Credentials creds;
-  private ClientConfiguration clientConf;
+  private Properties clientProps;
   private BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
   private final AccumuloConfiguration rpcConf;
   protected Connector conn;
@@ -71,24 +71,19 @@ public class ClientContext {
 
   public ClientContext(ConnectionInfo connectionInfo) {
     this(ConnectionInfoFactory.getInstance(connectionInfo),
-        ConnectionInfoFactory.getCredentials(connectionInfo),
-        ConnectionInfoFactory.getClientConfiguration(connectionInfo),
+        ConnectionInfoFactory.getCredentials(connectionInfo), connectionInfo.getProperties(),
         ConnectionInfoFactory.getBatchWriterConfig(connectionInfo));
   }
 
   public ClientContext(Instance instance, Credentials credentials, Properties clientProps) {
-    this(instance, credentials, ClientConfConverter.toClientConf(clientProps));
+    this(instance, credentials, clientProps, new BatchWriterConfig());
   }
 
-  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf) {
-    this(instance, credentials, clientConf, new BatchWriterConfig());
-  }
-
-  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf,
+  public ClientContext(Instance instance, Credentials credentials, Properties clientProps,
       BatchWriterConfig batchWriterConfig) {
     this(instance, credentials,
-        ClientConfConverter.toAccumuloConf(requireNonNull(clientConf, "clientConf is null")));
-    this.clientConf = clientConf;
+        ClientConfConverter.toAccumuloConf(requireNonNull(clientProps, "clientProps is null")));
+    this.clientProps = clientProps;
     this.batchWriterConfig = batchWriterConfig;
   }
 
@@ -101,16 +96,15 @@ public class ClientContext {
     inst = requireNonNull(instance, "instance is null");
     creds = requireNonNull(credentials, "credentials is null");
     rpcConf = requireNonNull(serverConf, "serverConf is null");
-    clientConf = null;
+    clientProps = null;
 
     saslSupplier = () -> {
-      // Use the clientConf if we have it
-      if (null != clientConf) {
-        if (!clientConf.hasSasl()) {
+      // Use the clientProps if we have it
+      if (null != clientProps) {
+        if (!ClientProperty.SASL_ENABLED.getBoolean(clientProps)) {
           return null;
         }
-        return new SaslConnectionParams(ClientConfConverter.toProperties(clientConf),
-            getCredentials().getToken());
+        return new SaslConnectionParams(clientProps, getCredentials().getToken());
       }
       AccumuloConfiguration conf = getConfiguration();
       if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -123,7 +117,6 @@ public class ClientContext {
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(saslSupplier);
-
   }
 
   /**
@@ -134,7 +127,7 @@ public class ClientContext {
   }
 
   public ConnectionInfo getConnectionInfo() {
-    return new ConnectionInfoImpl(ClientConfConverter.toProperties(clientConf), creds.getToken());
+    return new ConnectionInfoImpl(clientProps, creds.getToken());
   }
 
   /**
@@ -217,5 +210,4 @@ public class ClientContext {
 
     return rpcCreds;
   }
-
 }
