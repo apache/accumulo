@@ -335,18 +335,13 @@ public class TracesResource {
     Scanner scanner;
     if (null != traceUgi) {
       try {
-        scanner = traceUgi.doAs(new PrivilegedExceptionAction<Scanner>() {
-
-          @Override
-          public Scanner run() throws Exception {
-            // Make the KerberosToken inside the doAs
-            AuthenticationToken token = at;
-            if (null == token) {
-              token = new KerberosToken();
-            }
-            return getScanner(table, principal, token);
+        scanner = traceUgi.doAs((PrivilegedExceptionAction<Scanner>) () -> {
+          // Make the KerberosToken inside the doAs
+          AuthenticationToken token = at;
+          if (null == token) {
+            token = new KerberosToken();
           }
-
+          return getScanner(table, principal, token);
         });
       } catch (IOException | InterruptedException e) {
         throw new RuntimeException("Failed to obtain scanner", e);

@@ -48,16 +48,13 @@ public class UGIAssumingTransport extends FilterTransport {
   public void open() throws TTransportException {
     final AtomicReference<TTransportException> holder = new AtomicReference<>(null);
     try {
-      ugi.doAs(new PrivilegedExceptionAction<Void>() {
-        @Override
-        public Void run() {
-          try {
-            getWrapped().open();
-          } catch (TTransportException tte) {
-            holder.set(tte);
-          }
-          return null;
+      ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+        try {
+          getWrapped().open();
+        } catch (TTransportException tte) {
+          holder.set(tte);
         }
+        return null;
       });
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
