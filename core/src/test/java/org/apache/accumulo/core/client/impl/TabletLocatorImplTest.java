@@ -124,7 +124,7 @@ public class TabletLocatorImplTest {
   static TreeMap<Text,TabletLocation> createMetaCache(Object... data) {
     TreeMap<KeyExtent,TabletLocation> mcke = createMetaCacheKE(data);
 
-    TreeMap<Text,TabletLocation> mc = new TreeMap<>(TabletLocatorImpl.endRowComparator);
+    TreeMap<Text,TabletLocation> mc = new TreeMap<>(TabletLocatorImpl.END_ROW_COMPARATOR);
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
       if (entry.getKey().getEndRow() == null)

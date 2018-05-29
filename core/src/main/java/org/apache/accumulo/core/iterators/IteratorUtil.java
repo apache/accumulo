@@ -71,7 +71,7 @@ public class IteratorUtil {
     majc, minc, scan;
   }
 
-  private static Comparator<IterInfo> II_COMPARATOR = Comparator
+  private static Comparator<IterInfo> ITER_INFO_COMPARATOR = Comparator
       .comparingInt(IterInfo::getPriority);
 
   /**
@@ -122,7 +122,7 @@ public class IteratorUtil {
       Map<String,Map<String,String>> ssio) {
     destList.addAll(tableIters);
     destList.addAll(ssi);
-    Collections.sort(destList, II_COMPARATOR);
+    Collections.sort(destList, ITER_INFO_COMPARATOR);
 
     Set<Entry<String,Map<String,String>>> es = tableOpts.entrySet();
     for (Entry<String,Map<String,String>> entry : es) {
@@ -168,7 +168,7 @@ public class IteratorUtil {
       }
     }
 
-    Collections.sort(iters, II_COMPARATOR);
+    Collections.sort(iters, ITER_INFO_COMPARATOR);
   }
 
   // @formatter:off

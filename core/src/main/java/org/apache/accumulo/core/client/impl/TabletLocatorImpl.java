@@ -56,12 +56,12 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
 
-  // there seems to be a bug in TreeMap.tailMap related to
-  // putting null in the treemap.. therefore instead of
-  // putting null, put MAX_TEXT
+  // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
+  // this purpose, but there seems to be a bug in TreeMap.tailMap with null. Therefore instead of
+  // using null, created MAX_TEXT.
   static final Text MAX_TEXT = new Text();
 
-  static final Comparator<Text> endRowComparator = (o1, o2) -> {
+  static final Comparator<Text> END_ROW_COMPARATOR = (o1, o2) -> {
     if (o1 == o2)
       return 0;
     if (o1 == MAX_TEXT)
@@ -73,7 +73,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   protected Table.ID tableId;
   protected TabletLocator parent;
-  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(endRowComparator);
+  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   protected TabletLocationObtainer locationObtainer;
   private TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
