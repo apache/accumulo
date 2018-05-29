@@ -108,7 +108,7 @@ class LoadFiles extends MasterRepo {
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
     long timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
-    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master)
+    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master).scanMetadataTable()
         .overRange(tableId, startRow, null).checkConsistency().fetchPrev().fetchLocation()
         .fetchLoaded().build().iterator();
 

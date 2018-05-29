@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -62,10 +63,11 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
     TableOptions from(Connector conn);
   }
 
-  public interface TableOptions extends RangeOptions {
-    /**
-     * Optionally set a table name, defaults to {@value MetadataTable#NAME}
-     */
+  public interface TableOptions {
+    RangeOptions scanRootTable();
+
+    RangeOptions scanMetadataTable();
+
     RangeOptions scanTable(String tableName);
   }
 
@@ -308,6 +310,18 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public RangeOptions scanTable(String tableName) {
       this.table = tableName;
+      return this;
+    }
+
+    @Override
+    public RangeOptions scanMetadataTable() {
+      this.table = MetadataTable.NAME;
+      return this;
+    }
+
+    @Override
+    public RangeOptions scanRootTable() {
+      this.table = RootTable.NAME;
       return this;
     }
   }
