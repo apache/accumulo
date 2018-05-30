@@ -300,8 +300,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
       Stream<TabletMetadata> tabletStream = MetadataScanner.builder().from(getConnector())
-          .overTabletRange().checkConsistency().fetchDir().fetchFiles().fetchScans().build()
-          .stream();
+          .scanTable(tableName).overTabletRange().checkConsistency().fetchDir().fetchFiles()
+          .fetchScans().build().stream();
 
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
