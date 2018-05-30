@@ -315,14 +315,12 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public RangeOptions scanMetadataTable() {
-      this.table = MetadataTable.NAME;
-      return this;
+      return scanTable(MetadataTable.NAME);
     }
 
     @Override
     public RangeOptions scanRootTable() {
-      this.table = RootTable.NAME;
-      return this;
+      return scanTable(RootTable.NAME);
     }
   }
 
