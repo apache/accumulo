@@ -384,6 +384,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return m;
   }
 
+  // The last tablet in a table has no end row, so null sorts last for end row; similarly, the first
+  // tablet has no previous end row, so null sorts first for previous end row
   private static final Comparator<KeyExtent> COMPARATOR = Comparator
       .comparing(KeyExtent::getTableId)
       .thenComparing(KeyExtent::getEndRow, Comparator.nullsLast(Text::compareTo))
