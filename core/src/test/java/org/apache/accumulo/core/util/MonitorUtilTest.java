@@ -37,7 +37,8 @@ public class MonitorUtilTest {
     ZooReader zr = mock(ZooReader.class);
     Instance mockInstance = mock(Instance.class);
     expect(mockInstance.getInstanceID()).andReturn(instanceId);
-    expect(zr.getData(ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_HTTP_ADDR, null)).andThrow(new NoNodeException());
+    expect(zr.getData(ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_HTTP_ADDR, null))
+        .andThrow(new NoNodeException());
 
     replay(zr, mockInstance);
     assertNull(MonitorUtil.getLocation(zr, mockInstance));

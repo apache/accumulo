@@ -33,7 +33,8 @@ public class MonitorUtil {
   }
 
   @VisibleForTesting
-  static String getLocation(ZooReader zr, Instance instance) throws KeeperException, InterruptedException {
+  static String getLocation(ZooReader zr, Instance instance)
+      throws KeeperException, InterruptedException {
     try {
       byte[] loc = zr.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, null);
       return loc == null ? null : new String(loc, UTF_8);
