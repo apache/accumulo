@@ -16,30 +16,30 @@
  */
 package org.apache.accumulo.core.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertNull;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.junit.Test;
 
-import com.google.common.annotations.VisibleForTesting;
+public class MonitorUtilTest {
 
-public class MonitorUtil {
-  public static String getLocation(Instance instance) throws KeeperException, InterruptedException {
-    return getLocation(new ZooReader(instance.getZooKeepers(), 30000), instance);
-  }
+  @Test
+  public void testNoNodeFound() throws Exception {
+    final String instanceId = "12345";
 
-  @VisibleForTesting
-  static String getLocation(ZooReader zr, Instance instance) throws KeeperException, InterruptedException {
-    try {
-      byte[] loc = zr.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, null);
-      return loc == null ? null : new String(loc, UTF_8);
-    } catch (NoNodeException e) {
-      // If there's no node advertising the monitor, there's no monitor.
-      return null;
-    }
+    ZooReader zr = mock(ZooReader.class);
+    Instance mockInstance = mock(Instance.class);
+    expect(mockInstance.getInstanceID()).andReturn(instanceId);
+    expect(zr.getData(ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_HTTP_ADDR, null)).andThrow(new NoNodeException());
+
+    replay(zr, mockInstance);
+    assertNull(MonitorUtil.getLocation(zr, mockInstance));
   }
 }
