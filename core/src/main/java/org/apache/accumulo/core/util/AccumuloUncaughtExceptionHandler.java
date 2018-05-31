@@ -16,31 +16,19 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.lang.Thread.UncaughtExceptionHandler;
 
-import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NamingThreadFactory implements ThreadFactory {
-  private static final Logger log = LoggerFactory.getLogger(NamingThreadFactory.class);
+public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
-  private static final AccumuloUncaughtExceptionHandler uncaughtHandler = new AccumuloUncaughtExceptionHandler();
-
-  private AtomicInteger threadNum = new AtomicInteger(1);
-  private String name;
-
-  public NamingThreadFactory(String name) {
-    this.name = name;
-  }
+  private static final Logger log = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
 
   @Override
-  public Thread newThread(Runnable r) {
-    Thread thread = new Daemon(new LoggingRunnable(log, r),
-        name + " " + threadNum.getAndIncrement());
-    thread.setUncaughtExceptionHandler(uncaughtHandler);
-    return thread;
+  public void uncaughtException(Thread t, Throwable e) {
+
+    log.error(String.format("Caught an exception in %s.  Shutting down.", t), e);
   }
 
 }
