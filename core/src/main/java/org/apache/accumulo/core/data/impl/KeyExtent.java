@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
@@ -383,32 +384,16 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return m;
   }
 
+  // The last tablet in a table has no end row, so null sorts last for end row; similarly, the first
+  // tablet has no previous end row, so null sorts first for previous end row
+  private static final Comparator<KeyExtent> COMPARATOR = Comparator
+      .comparing(KeyExtent::getTableId)
+      .thenComparing(KeyExtent::getEndRow, Comparator.nullsLast(Text::compareTo))
+      .thenComparing(KeyExtent::getPrevEndRow, Comparator.nullsFirst(Text::compareTo));
+
   @Override
   public int compareTo(KeyExtent other) {
-
-    int result = getTableId().compareTo(other.getTableId());
-    if (result != 0)
-      return result;
-
-    if (this.getEndRow() == null) {
-      if (other.getEndRow() != null)
-        return 1;
-    } else {
-      if (other.getEndRow() == null)
-        return -1;
-
-      result = getEndRow().compareTo(other.getEndRow());
-      if (result != 0)
-        return result;
-    }
-    if (this.getPrevEndRow() == null) {
-      if (other.getPrevEndRow() == null)
-        return 0;
-      return -1;
-    }
-    if (other.getPrevEndRow() == null)
-      return 1;
-    return this.getPrevEndRow().compareTo(other.getPrevEndRow());
+    return COMPARATOR.compare(this, other);
   }
 
   private int hashCode = 0;

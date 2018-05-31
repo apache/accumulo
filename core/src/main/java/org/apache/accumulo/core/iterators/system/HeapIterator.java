@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.iterators.system;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.PriorityQueue;
 
 import org.apache.accumulo.core.data.Key;
@@ -33,14 +32,6 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
   private SortedKeyValueIterator<Key,Value> topIdx = null;
   private Key nextKey;
 
-  private static class SKVIComparator implements Comparator<SortedKeyValueIterator<Key,Value>> {
-
-    @Override
-    public int compare(SortedKeyValueIterator<Key,Value> o1, SortedKeyValueIterator<Key,Value> o2) {
-      return o1.getTopKey().compareTo(o2.getTopKey());
-    }
-  }
-
   protected HeapIterator() {
     heap = null;
   }
@@ -53,7 +44,8 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
     if (heap != null)
       throw new IllegalStateException("heap already exist");
 
-    heap = new PriorityQueue<>(maxSize == 0 ? 1 : maxSize, new SKVIComparator());
+    heap = new PriorityQueue<>(maxSize == 0 ? 1 : maxSize,
+        (si1, si2) -> si1.getTopKey().compareTo(si2.getTopKey()));
   }
 
   @Override

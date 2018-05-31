@@ -36,20 +36,16 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   private List<TraceRunnable> task = new LinkedList<>();
 
-  private static final Comparator<TraceRunnable> comparator = new Comparator<TraceRunnable>() {
-    @SuppressWarnings("unchecked")
-    @Override
-    public int compare(TraceRunnable o1, TraceRunnable o2) {
-      return ((Comparable<Runnable>) o1.getRunnable()).compareTo(o2.getRunnable());
-    }
-  };
+  @SuppressWarnings("unchecked")
+  private static final Comparator<TraceRunnable> ELEMENT_COMPARATOR = (o1,
+      o2) -> ((Comparable<Runnable>) o1.getRunnable()).compareTo(o2.getRunnable());
 
   @Override
   public synchronized TraceRunnable poll() {
     if (task.size() == 0)
       return null;
 
-    TraceRunnable min = Collections.min(task, comparator);
+    TraceRunnable min = Collections.min(task, ELEMENT_COMPARATOR);
     Iterator<TraceRunnable> iterator = task.iterator();
     while (iterator.hasNext()) {
       if (iterator.next() == min) {
@@ -65,7 +61,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
     if (task.size() == 0)
       return null;
 
-    return Collections.min(task, comparator);
+    return Collections.min(task, ELEMENT_COMPARATOR);
   }
 
   @Override
@@ -122,7 +118,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized int drainTo(Collection<? super TraceRunnable> c, int maxElements) {
-    Collections.sort(task, comparator);
+    Collections.sort(task, ELEMENT_COMPARATOR);
 
     int num = Math.min(task.size(), maxElements);
 
@@ -137,7 +133,7 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
 
   @Override
   public synchronized Iterator<TraceRunnable> iterator() {
-    Collections.sort(task, comparator);
+    Collections.sort(task, ELEMENT_COMPARATOR);
 
     return task.iterator();
   }

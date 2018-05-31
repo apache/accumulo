@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,40 +56,24 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
 
-  // there seems to be a bug in TreeMap.tailMap related to
-  // putting null in the treemap.. therefore instead of
-  // putting null, put MAX_TEXT
+  // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
+  // this purpose, but there seems to be a bug in TreeMap.tailMap with null. Therefore instead of
+  // using null, created MAX_TEXT.
   static final Text MAX_TEXT = new Text();
 
-  private static class EndRowComparator implements Comparator<Text>, Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @Override
-    public int compare(Text o1, Text o2) {
-
-      int ret;
-
-      if (o1 == MAX_TEXT)
-        if (o2 == MAX_TEXT)
-          ret = 0;
-        else
-          ret = 1;
-      else if (o2 == MAX_TEXT)
-        ret = -1;
-      else
-        ret = o1.compareTo(o2);
-
-      return ret;
-    }
-
-  }
-
-  static final EndRowComparator endRowComparator = new EndRowComparator();
+  static final Comparator<Text> END_ROW_COMPARATOR = (o1, o2) -> {
+    if (o1 == o2)
+      return 0;
+    if (o1 == MAX_TEXT)
+      return 1;
+    if (o2 == MAX_TEXT)
+      return -1;
+    return o1.compareTo(o2);
+  };
 
   protected Table.ID tableId;
   protected TabletLocator parent;
-  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(endRowComparator);
+  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   protected TabletLocationObtainer locationObtainer;
   private TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
