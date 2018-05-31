@@ -37,6 +37,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -97,6 +101,8 @@ public class TabletServerResourceManager {
   private final ExecutorService summaryRemotePool;
   private final Map<String,ExecutorService> threadPools = new TreeMap<>();
 
+  private final Map<String,ExecutorService> tableThreadPools = new TreeMap<>();
+
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
 
   private final FileManager fileManager;
@@ -144,12 +150,34 @@ public class TabletServerResourceManager {
     return result;
   }
 
-  private ExecutorService createEs(int max, String name) {
-    return addEs(name, Executors.newFixedThreadPool(max, new NamingThreadFactory(name)));
-  }
+  private ExecutorService addEs(final int maxThreads, final Property prefix,
+      final String propertyName, String name, final ThreadPoolExecutor tp) {
+    ExecutorService result = addEs(name, tp);
+    SimpleTimer.getInstance(tserver.getConfiguration()).schedule(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          int max = maxThreads;
+          for (Entry<String,String> entry : conf.getSystemConfiguration()
+              .getAllPropertiesWithPrefix(prefix).entrySet()) {
+            if (entry.getKey().equals(propertyName)) {
+              if (null != entry.getValue() && entry.getValue().length() != 0)
+                max = Integer.parseInt(entry.getValue());
+              break;
+            }
+          }
+          if (tp.getMaximumPoolSize() != max) {
+            log.info("Changing {} to {}", maxThreads, max);
+            tp.setCorePoolSize(max);
+            tp.setMaximumPoolSize(max);
+          }
+        } catch (Throwable t) {
+          log.error("Failed to change thread pool size", t);
+        }
+      }
 
-  private ExecutorService createEs(Property max, String name) {
-    return createEs(max, name, new LinkedBlockingQueue<>());
+    }, 1000, 10 * 1000);
+    return result;
   }
 
   private ExecutorService createIdlingEs(Property max, String name, long timeout,
@@ -160,6 +188,54 @@ public class TabletServerResourceManager {
         new NamingThreadFactory(name));
     tp.allowCoreThreadTimeOut(true);
     return addEs(max, name, tp);
+  }
+
+  private ExecutorService createEs(int max, String name) {
+    return addEs(name, Executors.newFixedThreadPool(max, new NamingThreadFactory(name)));
+  }
+
+  private ExecutorService createEs(Property max, String name) {
+    return createEs(max, name, new LinkedBlockingQueue<>());
+  }
+
+  private ExecutorService createEs(int maxThreads, Property prefix, String propertyName,
+      String name, BlockingQueue<Runnable> queue) {
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L,
+        TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
+    return addEs(maxThreads, prefix, propertyName, name, tp);
+  }
+
+  /**
+   * If we cannot instantiate the comparator we will default to the linked blocking queue comparator
+   * 
+   * @param max
+   *          max number of threads
+   * @param comparator
+   *          comparator property
+   * @param name
+   *          name passed to the thread factory
+   * @return priority executor
+   */
+  private ExecutorService createPriorityExecutor(Property prefix, String propertyName,
+      final int maxThreads, Property comparator, String name) {
+
+    String comparatorClazz = conf.getSystemConfiguration().get(comparator);
+
+    if (null == comparatorClazz || comparatorClazz.length() == 0) {
+      log.debug("Using no comparator");
+      return createEs(maxThreads, prefix, propertyName, name, new LinkedBlockingQueue<>());
+    } else {
+      SessionComparator comparatorObj = Property.createInstanceFromPropertyName(
+          conf.getSystemConfiguration(), comparator, SessionComparator.class, null);
+      if (null != comparatorObj) {
+        log.debug("Using priority based scheduler {}", comparatorClazz);
+        return createEs(maxThreads, prefix, propertyName, name,
+            new PriorityBlockingQueue<>(maxThreads, comparatorObj));
+      } else {
+        log.debug("Using no comparator");
+        return createEs(maxThreads, prefix, propertyName, name, new LinkedBlockingQueue<>());
+      }
+    }
   }
 
   /**
@@ -204,6 +280,35 @@ public class TabletServerResourceManager {
   private ExecutorService createEs(int min, int max, int timeout, String name) {
     return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS,
         new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
+  }
+
+  /**
+   * Creates table specific thread pool for executing scan threads
+   * 
+   * @param instance
+   *          ZK instance.
+   * @param acuConf
+   *          accumulo configuration.
+   * @throws NamespaceNotFoundException
+   *           Error thrown by tables.getTableId when a name space is not found.
+   * @throws TableNotFoundException
+   *           Error thrown by tables.getTableId when a table is not found.
+   */
+  protected void createTablePools(Instance instance, AccumuloConfiguration acuConf)
+      throws NamespaceNotFoundException, TableNotFoundException {
+    for (Entry<String,String> entry : acuConf
+        .getAllPropertiesWithPrefix(Property.TSERV_READ_AHEAD_PREFIX).entrySet()) {
+      final String tableName = entry.getKey()
+          .substring(Property.TSERV_READ_AHEAD_PREFIX.getKey().length());
+      if (null == entry.getValue() || entry.getValue().length() == 0) {
+        throw new RuntimeException("Read ahead prefix is inproperly configured");
+      }
+      final int maxThreads = Integer.parseInt(entry.getValue());
+      final String tableId = Tables.getTableId(instance, tableName).canonicalID();
+      tableThreadPools.put(tableId,
+          createPriorityExecutor(Property.TSERV_READ_AHEAD_PREFIX, entry.getKey(), maxThreads,
+              Property.TSERV_SESSION_COMPARATOR_CLASS, tableName + " specific read ahead"));
+    }
   }
 
   public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
@@ -297,6 +402,13 @@ public class TabletServerResourceManager {
     summaryParitionPool = createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS,
         "summary partition", 60, TimeUnit.SECONDS);
 
+    try {
+      createTablePools(tserver.getInstance(), acuConf);
+    } catch (NamespaceNotFoundException e) {
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
     Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
@@ -827,7 +939,10 @@ public class TabletServerResourceManager {
   }
 
   public void executeReadAhead(KeyExtent tablet, Runnable task) {
-    if (tablet.isRootTablet()) {
+    ExecutorService service = tableThreadPools.get(tablet.getTableId().canonicalID());
+    if (null != service) {
+      service.execute(task);
+    } else if (tablet.isRootTablet()) {
       task.run();
     } else if (tablet.isMeta()) {
       defaultReadAheadThreadPool.execute(task);
