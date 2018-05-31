@@ -71,4 +71,14 @@ public class MultiScanSession extends Session {
     // the cancellation should provide us the safety to return true here
     return true;
   }
+
+  /**
+   * Ensure that the runnable actually runs
+   */
+  @Override
+  public void run() {
+    super.run();
+    lookupTask.run();
+  }
+
 }

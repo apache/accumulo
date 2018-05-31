@@ -1537,7 +1537,13 @@ public class Tablet implements TabletCommitter {
 
     majorCompactionQueued.add(reason);
 
-    getTabletResources().executeMajorCompaction(getExtent(), new CompactionRunner(this, reason));
+    try {
+      getTabletResources().executeMajorCompaction(getExtent(), new CompactionRunner(this, reason));
+    } catch (RuntimeException t) {
+      log.debug("removing {} because we encountered an exception enqueing the CompactionRunner", reason, t);
+      majorCompactionQueued.remove(reason);
+      throw t;
+    }
   }
 
   /**
