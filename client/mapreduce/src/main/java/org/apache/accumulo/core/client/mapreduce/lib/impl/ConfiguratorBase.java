@@ -154,6 +154,7 @@ public class ConfiguratorBase {
   public static void setConnectionInfo(Class<?> implementingClass, Configuration conf,
       ConnectionInfo info) {
     setClientProperties(implementingClass, conf, info.getProperties());
+    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
 
   public static ConnectionInfo getConnectionInfo(Class<?> implementingClass, Configuration conf) {

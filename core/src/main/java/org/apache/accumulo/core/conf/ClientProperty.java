@@ -46,7 +46,7 @@ public enum ClientProperty {
       true),
   AUTH_PRINCIPAL("auth.principal", "",
       "Accumulo principal/username for chosen authentication method", "", true),
-  AUTH_TOKEN("auth.token", "", "Authentication token (ex. 'password', '/path/to/keytab')", "",
+  AUTH_TOKEN("auth.token", "", "Authentication token (ex. mypassword, /path/to/keytab)", "",
       true),
 
   // BatchWriter
