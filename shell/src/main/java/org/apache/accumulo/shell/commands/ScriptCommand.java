@@ -211,7 +211,9 @@ public class ScriptCommand extends Command {
                 }
               }
             });
-      } catch (IllegalStateException e) {}
+      } catch (IllegalStateException e) {
+        shellState.printException(e);
+      }
 
       classLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
     } else {
