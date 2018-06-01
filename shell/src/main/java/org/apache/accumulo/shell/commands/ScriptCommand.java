@@ -63,122 +63,131 @@ public class ScriptCommand extends Command {
     boolean invoke = false;
     ScriptEngineManager mgr = new ScriptEngineManager();
 
-    if (cl.hasOption(list.getOpt())) {
-      listJSREngineInfo(mgr, shellState);
-    } else if (cl.hasOption(file.getOpt()) || cl.hasOption(script.getOpt())) {
-      if (cl.hasOption(context.getOpt())) {
-        setContextClassLoaderOnThread(cl, shellState);
-      }
-      String engineName = DEFAULT_ENGINE;
-      if (cl.hasOption(engine.getOpt())) {
-        engineName = cl.getOptionValue(engine.getOpt());
-      }
-      ScriptEngine engine = mgr.getEngineByName(engineName);
-      if (null == engine) {
-        shellState.printException(new Exception(engineName + " not found"));
-        return 1;
-      }
+    ClassLoader originalClassLoader = null;
 
-      if (cl.hasOption(object.getOpt()) || cl.hasOption(function.getOpt())) {
-        if (!(engine instanceof Invocable)) {
-          shellState.printException(
-              new Exception(engineName + " does not support invoking functions or methods"));
+    try {
+      if (cl.hasOption(list.getOpt())) {
+        listJSREngineInfo(mgr, shellState);
+      } else if (cl.hasOption(file.getOpt()) || cl.hasOption(script.getOpt())) {
+        if (cl.hasOption(context.getOpt())) {
+          originalClassLoader = Thread.currentThread().getContextClassLoader();
+          setContextClassLoaderOnThread(cl, shellState);
+        }
+        String engineName = DEFAULT_ENGINE;
+        if (cl.hasOption(engine.getOpt())) {
+          engineName = cl.getOptionValue(engine.getOpt());
+        }
+        ScriptEngine engine = mgr.getEngineByName(engineName);
+        if (null == engine) {
+          shellState.printException(new Exception(engineName + " not found"));
           return 1;
         }
-        invoke = true;
-      }
 
-      ScriptContext ctx = new SimpleScriptContext();
+        if (cl.hasOption(object.getOpt()) || cl.hasOption(function.getOpt())) {
+          if (!(engine instanceof Invocable)) {
+            shellState.printException(
+                new Exception(engineName + " does not support invoking functions or methods"));
+            return 1;
+          }
+          invoke = true;
+        }
 
-      // Put the following objects into the context so that they
-      // are available to the scripts
-      // TODO: What else should go in here?
-      Bindings b = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-      b.put("connection", shellState.getConnector());
+        ScriptContext ctx = new SimpleScriptContext();
 
-      List<Object> argValues = new ArrayList<>();
-      if (cl.hasOption(args.getOpt())) {
-        String[] argList = cl.getOptionValue(args.getOpt()).split(",");
-        for (String arg : argList) {
-          String[] parts = arg.split("=");
-          if (parts.length == 0) {
-            continue;
-          } else if (parts.length == 1) {
-            b.put(parts[0], null);
-            argValues.add(null);
-          } else if (parts.length == 2) {
-            b.put(parts[0], parts[1]);
-            argValues.add(parts[1]);
+        // Put the following objects into the context so that they
+        // are available to the scripts
+        // TODO: What else should go in here?
+        Bindings b = engine.getBindings(ScriptContext.ENGINE_SCOPE);
+        b.put("connection", shellState.getConnector());
+
+        List<Object> argValues = new ArrayList<>();
+        if (cl.hasOption(args.getOpt())) {
+          String[] argList = cl.getOptionValue(args.getOpt()).split(",");
+          for (String arg : argList) {
+            String[] parts = arg.split("=");
+            if (parts.length == 0) {
+              continue;
+            } else if (parts.length == 1) {
+              b.put(parts[0], null);
+              argValues.add(null);
+            } else if (parts.length == 2) {
+              b.put(parts[0], parts[1]);
+              argValues.add(parts[1]);
+            }
           }
         }
-      }
-      ctx.setBindings(b, ScriptContext.ENGINE_SCOPE);
-      Object[] argArray = argValues.toArray(new Object[argValues.size()]);
+        ctx.setBindings(b, ScriptContext.ENGINE_SCOPE);
+        Object[] argArray = argValues.toArray(new Object[argValues.size()]);
 
-      Writer writer = null;
-      if (cl.hasOption(out.getOpt())) {
-        File f = new File(cl.getOptionValue(out.getOpt()));
-        writer = new FileWriter(f);
-        ctx.setWriter(writer);
-      }
+        Writer writer = null;
+        if (cl.hasOption(out.getOpt())) {
+          File f = new File(cl.getOptionValue(out.getOpt()));
+          writer = new FileWriter(f);
+          ctx.setWriter(writer);
+        }
 
-      if (cl.hasOption(file.getOpt())) {
-        File f = new File(cl.getOptionValue(file.getOpt()));
-        if (!f.exists()) {
-          if (null != writer) {
-            writer.close();
+        if (cl.hasOption(file.getOpt())) {
+          File f = new File(cl.getOptionValue(file.getOpt()));
+          if (!f.exists()) {
+            if (null != writer) {
+              writer.close();
+            }
+            shellState.printException(new Exception(f.getAbsolutePath() + " not found"));
+            return 1;
           }
-          shellState.printException(new Exception(f.getAbsolutePath() + " not found"));
-          return 1;
-        }
-        Reader reader = new FileReader(f);
-        try {
-          engine.eval(reader, ctx);
-          if (invoke) {
-            this.invokeFunctionOrMethod(shellState, engine, cl, argArray);
-          }
-        } catch (ScriptException ex) {
-          shellState.printException(ex);
-          return 1;
-        } finally {
-          reader.close();
-          if (null != writer) {
-            writer.close();
-          }
-        }
-      } else if (cl.hasOption(script.getOpt())) {
-        String inlineScript = cl.getOptionValue(script.getOpt());
-        try {
-          if (engine instanceof Compilable) {
-            Compilable compiledEng = (Compilable) engine;
-            CompiledScript script = compiledEng.compile(inlineScript);
-            script.eval(ctx);
+          Reader reader = new FileReader(f);
+          try {
+            engine.eval(reader, ctx);
             if (invoke) {
               this.invokeFunctionOrMethod(shellState, engine, cl, argArray);
             }
-          } else {
-            engine.eval(inlineScript, ctx);
-            if (invoke) {
-              this.invokeFunctionOrMethod(shellState, engine, cl, argArray);
+          } catch (ScriptException ex) {
+            shellState.printException(ex);
+            return 1;
+          } finally {
+            reader.close();
+            if (null != writer) {
+              writer.close();
             }
           }
-        } catch (ScriptException ex) {
-          shellState.printException(ex);
-          return 1;
-        } finally {
-          if (null != writer) {
-            writer.close();
+        } else if (cl.hasOption(script.getOpt())) {
+          String inlineScript = cl.getOptionValue(script.getOpt());
+          try {
+            if (engine instanceof Compilable) {
+              Compilable compiledEng = (Compilable) engine;
+              CompiledScript script = compiledEng.compile(inlineScript);
+              script.eval(ctx);
+              if (invoke) {
+                this.invokeFunctionOrMethod(shellState, engine, cl, argArray);
+              }
+            } else {
+              engine.eval(inlineScript, ctx);
+              if (invoke) {
+                this.invokeFunctionOrMethod(shellState, engine, cl, argArray);
+              }
+            }
+          } catch (ScriptException ex) {
+            shellState.printException(ex);
+            return 1;
+          } finally {
+            if (null != writer) {
+              writer.close();
+            }
           }
         }
-      }
-      if (null != writer) {
-        writer.close();
-      }
+        if (null != writer) {
+          writer.close();
+        }
 
-    } else {
-      printHelp(shellState);
+      } else {
+        printHelp(shellState);
+      }
+      return 0;
+    } finally {
+      if (null != originalClassLoader) {
+        Thread.currentThread().setContextClassLoader(originalClassLoader);
+      }
     }
-    return 0;
   }
 
   private void setContextClassLoaderOnThread(CommandLine cl, final Shell shellState)
