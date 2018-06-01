@@ -26,7 +26,10 @@ import org.slf4j.LoggerFactory;
 public class NamingThreadFactory implements ThreadFactory {
   private static final Logger log = LoggerFactory.getLogger(NamingThreadFactory.class);
 
-  private static final AccumuloUncaughtExceptionHandler uncaughtHandler = new AccumuloUncaughtExceptionHandler();
+  // @formatter:off
+  private static final AccumuloUncaughtExceptionHandler uncaughtHandler =
+    new AccumuloUncaughtExceptionHandler();
+  // @formatter:on
 
   private AtomicInteger threadNum = new AtomicInteger(1);
   private String name;

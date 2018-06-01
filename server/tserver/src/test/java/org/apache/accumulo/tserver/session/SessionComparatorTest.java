@@ -151,7 +151,6 @@ public class SessionComparatorTest {
     sessionB.setLastExecutionTime(time);
     sessionA.setLastExecutionTime(time - 2000);
 
-    
     assertTrue(comparator.compareSession(sessionA, sessionB) < 0);
 
     // b is before a in queue, b has never run, but because a is single

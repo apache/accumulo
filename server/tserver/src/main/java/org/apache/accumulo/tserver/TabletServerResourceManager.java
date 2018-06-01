@@ -164,7 +164,7 @@ public class TabletServerResourceManager {
 
   /**
    * If we cannot instantiate the comparator we will default to the linked blocking queue comparator
-   * 
+   *
    * @param max
    *          max number of threads
    * @param comparator
