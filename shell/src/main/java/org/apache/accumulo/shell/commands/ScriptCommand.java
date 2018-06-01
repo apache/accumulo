@@ -24,6 +24,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -38,8 +39,12 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleScriptContext;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -50,18 +55,20 @@ public class ScriptCommand extends Command {
   // Command to allow user to run scripts, see JSR-223
   // http://www.oracle.com/technetwork/articles/javase/scripting-140262.html
 
-  protected Option list, engine, script, file, args, out, function, object;
+  protected Option list, engine, script, file, args, out, function, object, context;
   private static final String DEFAULT_ENGINE = "rhino";
 
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-
     boolean invoke = false;
     ScriptEngineManager mgr = new ScriptEngineManager();
 
     if (cl.hasOption(list.getOpt())) {
       listJSREngineInfo(mgr, shellState);
     } else if (cl.hasOption(file.getOpt()) || cl.hasOption(script.getOpt())) {
+      if (cl.hasOption(context.getOpt())) {
+        setContextClassLoaderOnThread(cl, shellState);
+      }
       String engineName = DEFAULT_ENGINE;
       if (cl.hasOption(engine.getOpt())) {
         engineName = cl.getOptionValue(engine.getOpt());
@@ -174,6 +181,37 @@ public class ScriptCommand extends Command {
     return 0;
   }
 
+  private void setContextClassLoaderOnThread(CommandLine cl, final Shell shellState)
+      throws IOException {
+    final String contextName = cl.getOptionValue(context.getOpt());
+
+    ClassLoader classLoader;
+
+    if (contextName != null && !contextName.equals("")) {
+      try {
+        AccumuloVFSClassLoader.getContextManager()
+            .setContextConfig(new ContextManager.DefaultContextsConfig() {
+              @Override
+              public Map<String,String> getVfsContextClasspathProperties() {
+                try {
+                  return shellState.getConnector().instanceOperations().getSystemConfiguration();
+                } catch (AccumuloException e) {
+                  throw new RuntimeException(e);
+                } catch (AccumuloSecurityException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+      } catch (IllegalStateException e) {}
+
+      classLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
+    } else {
+      classLoader = AccumuloVFSClassLoader.getClassLoader();
+    }
+
+    Thread.currentThread().setContextClassLoader(classLoader);
+  }
+
   @Override
   public String description() {
     return "execute JSR-223 scripts";
@@ -244,6 +282,12 @@ public class ScriptCommand extends Command {
     out.setArgs(1);
     out.setRequired(false);
     o.addOption(out);
+
+    context = new Option("c", "context", true, "classpath context");
+    context.setArgName("contextName");
+    context.setArgs(1);
+    context.setRequired(false);
+    o.addOption(context);
 
     return o;
   }
