@@ -42,6 +42,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private final ScanFileManager trm;
   private final IteratorScope scope;
   private final boolean fullMajorCompaction;
+  private boolean userCompaction;
   private final AccumuloConfiguration config;
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
   private Map<FileRef,DataFileValue> files;
@@ -50,7 +51,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
 
-  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
+  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
+      boolean userCompaction) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
@@ -58,6 +60,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.trm = null;
     this.config = config;
     this.fullMajorCompaction = false;
+    this.userCompaction = userCompaction;
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
@@ -92,7 +95,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
 
   public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC,
-      AccumuloConfiguration config) {
+      AccumuloConfiguration config, boolean userCompaction) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
@@ -101,6 +104,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.trm = null;
     this.config = config;
     this.fullMajorCompaction = fullMajC;
+    this.userCompaction = userCompaction;
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
@@ -120,6 +124,11 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     if (scope != IteratorScope.majc)
       throw new IllegalStateException("Asked about major compaction type when scope is " + scope);
     return fullMajorCompaction;
+  }
+
+  @Override
+  public boolean isUserCompaction() {
+    return userCompaction;
   }
 
   @Override

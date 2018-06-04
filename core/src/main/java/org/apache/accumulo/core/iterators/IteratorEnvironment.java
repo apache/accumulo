@@ -36,6 +36,8 @@ public interface IteratorEnvironment {
 
   boolean isFullMajorCompaction();
 
+  boolean isUserCompaction();
+
   void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
 
   Authorizations getAuthorizations();

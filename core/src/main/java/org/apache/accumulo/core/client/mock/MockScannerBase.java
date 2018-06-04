@@ -97,6 +97,11 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
       return false;
     }
 
+    @Override
+    public boolean isUserCompaction() {
+      return false;
+    }
+
     private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
 
     @Override
