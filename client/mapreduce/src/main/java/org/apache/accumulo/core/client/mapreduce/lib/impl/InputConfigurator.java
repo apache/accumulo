@@ -739,9 +739,6 @@ public class InputConfigurator extends ConfiguratorBase {
       throws IOException {
     if (!isConnectorInfoSet(implementingClass, conf))
       throw new IOException("Input info has not been set.");
-    String instanceKey = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
-    if (!"ZooKeeperInstance".equals(instanceKey))
-      throw new IOException("Instance info has not been set.");
     return getInstance(implementingClass, conf);
   }
 

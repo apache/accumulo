@@ -75,15 +75,6 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configuration keys for available {@link Instance} types.
-   *
-   * @since 1.6.0
-   */
-  public enum InstanceOpts {
-    TYPE
-  }
-
-  /**
    * Configuration keys for general configuration options.
    *
    * @since 1.6.0
@@ -303,21 +294,6 @@ public class ConfiguratorBase {
       Configuration conf) {
     Properties props = getClientProperties(implementingClass, conf);
     return ClientProperty.getAuthenticationToken(props);
-  }
-
-  /**
-   * Reads from the token file in distributed cache. Currently, the token file stores data separated
-   * by colons e.g. principal:token_class:token
-   *
-   * @param conf
-   *          the Hadoop context for the configured job
-   * @return path to the token file as a String
-   * @since 1.6.0
-   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
-   */
-  public static AuthenticationToken getTokenFromFile(Configuration conf, String principal,
-      String tokenFile) {
-    throw new UnsupportedOperationException();
   }
 
   /**
