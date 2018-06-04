@@ -210,7 +210,7 @@ public class ShellOptionsJC {
           username = ugi.getUserName();
         } else {
           throw new IllegalArgumentException("Username is not set. Run with '-u"
-              + " myuser' or set 'auth.username' in accumulo-client.properties");
+              + " myuser' or set 'auth.principal' in accumulo-client.properties");
         }
       }
     }

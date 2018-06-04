@@ -71,7 +71,7 @@ The `accumulo-env.sh` file sets up environment variables needed by Accumulo:
 
 2. Accumulo tablet servers are configured by default to use 1GB of memory (768MB is allocated to
    JVM and 256MB is allocated for native maps). Native maps are allocated memory equal to 33% of
-   the tserver JVM heap. The table below can be used if you would like to change tsever memory
+   the tserver JVM heap. The table below can be used if you would like to change tserver memory
    usage in the `JAVA_OPTS` section of `accumulo-env.sh`:
 
     | Native? | 512MB             | 1GB               | 2GB                 | 3GB           |
@@ -88,10 +88,10 @@ clients to simplify connecting to Accumulo. Below are steps to configure it.
 1. Set `instance.name` and `instance.zookeepers` to the Accumulo instance and zookeeper connection
    string of your instance.
 
-2. Pick an authentication method and set `auth.method` accordingly.  The most common `auth.method`
-   is `password` which typically requires `auth.username` and `auth.password` to be set. For the
-   Accumulo shell, `auth.password` can be commented out and the shell will prompt you for the
-   password of `auth.username` at login.
+2. Pick an authentication type and set `auth.type` accordingly.  The most common `auth.type`
+   is `password` which requires `auth.principal` to be set and `auth.token` to be set the password
+   of `auth.principal`. For the Accumulo shell, `auth.token` can be commented out and the shell will
+   prompt you for the password of `auth.principal` at login.
 
 ## Initialization
 

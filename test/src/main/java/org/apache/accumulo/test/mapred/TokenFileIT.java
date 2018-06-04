@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -34,6 +35,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -162,8 +165,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
     File tf = folder.newFile("root_test.pw");
     PrintStream out = new PrintStream(tf);
-    String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
-    out.println(outString);
+    out.println("auth.type = PasswordToken");
+    out.println("auth.principal = " + getAdminPrincipal());
+    out.println("auth.token = " + ClientProperty.encodeToken(getAdminToken()));
     out.close();
 
     MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});

@@ -317,7 +317,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     Properties props = options.getClientProperties();
     String password = options.getPassword();
-    if (password == null && ClientProperty.AUTH_TOKEN.getValue(props) != null) {
+    if (password == null && props.containsKey(ClientProperty.AUTH_TOKEN.getKey())) {
       token = ClientProperty.getAuthenticationToken(props);
     }
     if (token == null) {

@@ -41,7 +41,7 @@ public enum ClientProperty {
       "Zookeeper session timeout (in seconds)"),
 
   // Authentication
-  AUTH_METHOD("auth.method", "password",
+  AUTH_TYPE("auth.type", "password",
       "Authentication method (i.e password, kerberos, PasswordToken, KerberosToken, etc)", "",
       true),
   AUTH_PRINCIPAL("auth.principal", "",
@@ -208,43 +208,43 @@ public enum ClientProperty {
   }
 
   public static void setPassword(Properties properties, String password) {
-    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(), "password");
+    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(), "password");
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), password);
   }
 
   public static void setPasswordToken(Properties properties, PasswordToken token) {
-    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
         PasswordToken.class.getSimpleName());
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
 
   public static void setKerberosKeytab(Properties properties, String keytabPath) {
-    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(), "kerberos");
+    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(), "kerberos");
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), keytabPath);
   }
 
   public static void setKerberosToken(Properties properties, KerberosToken token) {
-    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
         KerberosToken.class.getSimpleName());
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
 
   public static void setDelegationToken(Properties properties, DelegationToken token) {
-    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
         DelegationToken.class.getSimpleName());
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
 
   public static void setCredentialProviderToken(Properties properties,
       CredentialProviderToken token) {
-    properties.setProperty(ClientProperty.AUTH_METHOD.getKey(),
+    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
         CredentialProviderToken.class.getSimpleName());
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
 
   public static AuthenticationToken getAuthenticationToken(Properties properties) {
     String principal = ClientProperty.AUTH_PRINCIPAL.getValue(properties);
-    String authMethod = ClientProperty.AUTH_METHOD.getValue(properties);
+    String authMethod = ClientProperty.AUTH_TYPE.getValue(properties);
     String token = ClientProperty.AUTH_TOKEN.getValue(properties);
     switch (authMethod) {
       case "password":
@@ -264,8 +264,7 @@ public enum ClientProperty {
       case "DelegationToken":
         return decodeToken(DelegationToken.class.getName(), token);
       default:
-        throw new IllegalArgumentException(
-            "An authentication method (password, kerberos, etc) must be set");
+        return decodeToken(authMethod, token);
     }
   }
 

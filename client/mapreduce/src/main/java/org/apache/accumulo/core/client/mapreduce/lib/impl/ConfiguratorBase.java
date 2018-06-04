@@ -21,11 +21,14 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
@@ -39,11 +42,13 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
+import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -67,7 +72,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public enum ConnectorInfo {
-    IS_CONFIGURED, PRINCIPAL, TOKEN,
+    IS_CONFIGURED
   }
 
   public enum ConnectionInfoOpts {
@@ -80,7 +85,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public enum InstanceOpts {
-    TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG;
+    TYPE
   }
 
   /**
@@ -243,13 +248,14 @@ public class ConfiguratorBase {
     checkArgument(tokenFile != null, "tokenFile is null");
     Properties props = getClientProperties(implementingClass, conf);
     props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
-    String token;
-    try {
-      token = new String(Files.readAllBytes(Paths.get(tokenFile)));
+    Properties tokenProps = new Properties();
+    try (InputStream is = new FileInputStream(tokenFile)) {
+      tokenProps.load(is);
     } catch (IOException e) {
       throw new IllegalArgumentException(e);
     }
-    props.setProperty(ClientProperty.AUTH_TOKEN.getKey(), token);
+    AuthenticationToken token = ClientProperty.getAuthenticationToken(tokenProps);
+    ClientProperty.setAuthenticationToken(props, token);
     setClientProperties(implementingClass, conf, props);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
