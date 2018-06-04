@@ -17,6 +17,7 @@
 package org.apache.accumulo.tserver.log;
 
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -423,7 +424,7 @@ public class TabletServerLogger {
           // double-check: did the log set change?
           success = (currentLogId == logId.get());
         }
-      } catch (DfsLogger.LogClosedException ex) {
+      } catch (DfsLogger.LogClosedException | ClosedChannelException ex) {
         writeRetry.logRetry(log, "Logs closed while writing", ex);
       } catch (Exception t) {
         writeRetry.logRetry(log, "Failed to write to WAL", t);
