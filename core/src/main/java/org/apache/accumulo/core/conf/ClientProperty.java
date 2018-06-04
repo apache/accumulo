@@ -46,8 +46,7 @@ public enum ClientProperty {
       true),
   AUTH_PRINCIPAL("auth.principal", "",
       "Accumulo principal/username for chosen authentication method", "", true),
-  AUTH_TOKEN("auth.token", "", "Authentication token (ex. mypassword, /path/to/keytab)", "",
-      true),
+  AUTH_TOKEN("auth.token", "", "Authentication token (ex. mypassword, /path/to/keytab)", "", true),
 
   // BatchWriter
   BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800",
@@ -212,34 +211,9 @@ public enum ClientProperty {
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), password);
   }
 
-  public static void setPasswordToken(Properties properties, PasswordToken token) {
-    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
-        PasswordToken.class.getSimpleName());
-    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
-  }
-
   public static void setKerberosKeytab(Properties properties, String keytabPath) {
     properties.setProperty(ClientProperty.AUTH_TYPE.getKey(), "kerberos");
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), keytabPath);
-  }
-
-  public static void setKerberosToken(Properties properties, KerberosToken token) {
-    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
-        KerberosToken.class.getSimpleName());
-    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
-  }
-
-  public static void setDelegationToken(Properties properties, DelegationToken token) {
-    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
-        DelegationToken.class.getSimpleName());
-    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
-  }
-
-  public static void setCredentialProviderToken(Properties properties,
-      CredentialProviderToken token) {
-    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(),
-        CredentialProviderToken.class.getSimpleName());
-    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
 
   public static AuthenticationToken getAuthenticationToken(Properties properties) {
@@ -269,16 +243,7 @@ public enum ClientProperty {
   }
 
   public static void setAuthenticationToken(Properties properties, AuthenticationToken token) {
-    if (token instanceof CredentialProviderToken) {
-      ClientProperty.setCredentialProviderToken(properties, (CredentialProviderToken) token);
-    } else if (token instanceof PasswordToken) {
-      ClientProperty.setPasswordToken(properties, (PasswordToken) token);
-    } else if (token instanceof KerberosToken) {
-      ClientProperty.setKerberosToken(properties, (KerberosToken) token);
-    } else if (token instanceof DelegationToken) {
-      ClientProperty.setDelegationToken(properties, (DelegationToken) token);
-    } else {
-      throw new IllegalArgumentException("Unknown AuthenticationToken type was provided");
-    }
+    properties.setProperty(ClientProperty.AUTH_TYPE.getKey(), token.getClass().getName());
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
 }

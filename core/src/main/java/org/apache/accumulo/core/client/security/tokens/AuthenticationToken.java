@@ -135,65 +135,6 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
   }
 
-  final class AuthenticationTokenStringSerializer {
-
-    public static <T extends AuthenticationToken> T deserialize(Class<T> tokenType,
-        byte[] tokenBytes) {
-      T type = null;
-      try {
-        type = tokenType.newInstance();
-      } catch (Exception e) {
-        throw new IllegalArgumentException("Cannot instantiate " + tokenType.getName(), e);
-      }
-      ByteArrayInputStream bais = new ByteArrayInputStream(tokenBytes);
-      DataInputStream in = new DataInputStream(bais);
-      try {
-        type.readFields(in);
-      } catch (IOException e) {
-        throw new IllegalArgumentException(
-            "Cannot deserialize provided byte array as class " + tokenType.getName(), e);
-      }
-      try {
-        in.close();
-      } catch (IOException e) {
-        throw new IllegalStateException("Shouldn't happen", e);
-      }
-      return type;
-    }
-
-    public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) {
-      Class<? extends AuthenticationToken> tokenType = null;
-      try {
-        // @formatter:off
-        @SuppressWarnings("unchecked")
-        Class<? extends AuthenticationToken> tmpTokenType =
-          (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
-        // @formatter:on
-        tokenType = tmpTokenType;
-      } catch (ClassNotFoundException e) {
-        throw new IllegalArgumentException("Class not available " + tokenClassName, e);
-      }
-      return deserialize(tokenType, tokenBytes);
-    }
-
-    public static String serialize(AuthenticationToken token) {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      DataOutputStream out = new DataOutputStream(baos);
-      try {
-        token.write(out);
-      } catch (IOException e) {
-        throw new RuntimeException("Bug found in serialization code", e);
-      }
-      String str = baos.toString();
-      try {
-        out.close();
-      } catch (IOException e) {
-        throw new IllegalStateException("Shouldn't happen with ByteArrayOutputStream", e);
-      }
-      return str;
-    }
-  }
-
   class Properties implements Destroyable, Map<String,char[]> {
 
     private boolean destroyed = false;

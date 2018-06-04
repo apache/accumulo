@@ -69,10 +69,12 @@ public class ConfiguratorBaseTest {
       throws AccumuloSecurityException {
     Configuration conf = new Configuration();
     assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser", new PasswordToken("testPass"));
+    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",
+        new PasswordToken("testPass"));
     assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
-    assertEquals( "testPass", new String(((PasswordToken)ConfiguratorBase.getConnectionInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
+    assertEquals("testPass", new String(((PasswordToken) ConfiguratorBase
+        .getConnectionInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
   }
 
   @Test

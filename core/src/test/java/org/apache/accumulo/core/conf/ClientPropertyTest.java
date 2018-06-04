@@ -35,7 +35,7 @@ public class ClientPropertyTest {
     Assert.assertTrue(token instanceof PasswordToken);
     Assert.assertEquals("testpass1", new String(((PasswordToken) token).getPassword()));
 
-    ClientProperty.setPasswordToken(props, new PasswordToken("testpass2"));
+    ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass2"));
     Assert.assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYCANxwRH4JAAAA",
         ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
