@@ -116,7 +116,7 @@ public class ImportTable extends MasterRepo {
     if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Incompatible data version " + exportVersion);
+          "Incompatible data version " + dataVersion);
   }
 
   @Override
