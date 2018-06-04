@@ -16,19 +16,12 @@
  */
 package org.apache.accumulo.core.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Base64;
 
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
