@@ -21,12 +21,11 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Properties;
+import java.util.Scanner;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -45,6 +44,9 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -71,7 +73,7 @@ public class ConfiguratorBase {
   }
 
   public enum ConnectionInfoOpts {
-    CLIENT_PROPS
+    CLIENT_PROPS, CLIENT_PROPS_PATH
   }
 
   /**
@@ -153,6 +155,18 @@ public class ConfiguratorBase {
     return new ConnectionInfoImpl(props);
   }
 
+  public static void setClientPropertiesPath(Class<?> implementingClass, Configuration conf,
+                                             Path clientPropertiesPath) {
+    try {
+      FileSystem fs = FileSystem.get(conf);
+      fs.getFileStatus(clientPropertiesPath);
+      conf.set(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS_PATH), clientPropertiesPath.toString());
+      conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Failed to find client properties file: " + clientPropertiesPath);
+    }
+  }
+
   public static void setClientProperties(Class<?> implementingClass, Configuration conf,
       Properties props) {
     StringWriter writer = new StringWriter();
@@ -165,8 +179,26 @@ public class ConfiguratorBase {
   }
 
   public static Properties getClientProperties(Class<?> implementingClass, Configuration conf) {
-    String propString = conf.get(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS),
-        "");
+    String propString;
+    String propsPath = conf.get(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS_PATH), "");
+    if (!propsPath.isEmpty()) {
+      try {
+        FileSystem fs = FileSystem.get(conf);
+        FSDataInputStream inputStream = fs.open(new Path(propsPath));
+        StringBuilder sb = new StringBuilder();
+        try (Scanner scanner = new Scanner(inputStream)) {
+          while (scanner.hasNextLine()) {
+            sb.append(scanner.nextLine() + "\n");
+          }
+        }
+        propString = sb.toString();
+      } catch (IOException e) {
+        throw new IllegalStateException("Failed to read");
+      }
+    } else {
+      propString = conf.get(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS),
+          "");
+    }
     Properties props = new Properties();
     if (!propString.isEmpty()) {
       try {
@@ -230,20 +262,8 @@ public class ConfiguratorBase {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
-    checkArgument(principal != null, "principal is null");
     checkArgument(tokenFile != null, "tokenFile is null");
-    Properties props = getClientProperties(implementingClass, conf);
-    props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
-    Properties tokenProps = new Properties();
-    try (InputStream is = new FileInputStream(tokenFile)) {
-      tokenProps.load(is);
-    } catch (IOException e) {
-      throw new IllegalArgumentException(e);
-    }
-    AuthenticationToken token = ClientProperty.getAuthenticationToken(tokenProps);
-    ClientProperty.setAuthenticationToken(props, token);
-    setClientProperties(implementingClass, conf, props);
-    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
+    setClientPropertiesPath(implementingClass, conf, new Path(tokenFile));
   }
 
   /**

@@ -218,9 +218,9 @@ public enum ClientProperty {
 
   public static AuthenticationToken getAuthenticationToken(Properties properties) {
     String principal = ClientProperty.AUTH_PRINCIPAL.getValue(properties);
-    String authMethod = ClientProperty.AUTH_TYPE.getValue(properties);
+    String authType = ClientProperty.AUTH_TYPE.getValue(properties);
     String token = ClientProperty.AUTH_TOKEN.getValue(properties);
-    switch (authMethod) {
+    switch (authType) {
       case "password":
         return new PasswordToken(token);
       case "PasswordToken":
@@ -238,7 +238,7 @@ public enum ClientProperty {
       case "DelegationToken":
         return decodeToken(DelegationToken.class.getName(), token);
       default:
-        return decodeToken(authMethod, token);
+        return decodeToken(authType, token);
     }
   }
 
