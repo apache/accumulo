@@ -344,7 +344,7 @@ public class Tablet implements TabletCommitter {
     VolumeManager fs = tabletServer.getFileSystem();
     boolean replicationEnabled = ReplicationConfigurationUtil.isEnabled(extent,
         this.tableConfiguration);
-    TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntris(),
+    TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntries(),
         data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer, tabletServer.getLock(), fs, extent,
         tabletPaths, replicationEnabled);
