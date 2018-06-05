@@ -70,7 +70,7 @@ public class TabletData {
 
   private String time = null;
   private SortedMap<FileRef,DataFileValue> dataFiles = new TreeMap<>();
-  private List<LogEntry> logEntris = new ArrayList<>();
+  private List<LogEntry> logEntries = new ArrayList<>();
   private HashSet<FileRef> scanFiles = new HashSet<>();
   private long flushID = -1;
   private long compactID = -1;
@@ -102,7 +102,7 @@ public class TabletData {
       } else if (DIRECTORY_COLUMN.hasColumns(key)) {
         directory = value.toString();
       } else if (family.equals(LogColumnFamily.NAME)) {
-        logEntris.add(LogEntry.fromKeyValue(key, entry.getValue()));
+        logEntries.add(LogEntry.fromKeyValue(key, entry.getValue()));
       } else if (family.equals(ScanFileColumnFamily.NAME)) {
         scanFiles.add(new FileRef(fs, key));
       } else if (FLUSH_COLUMN.hasColumns(key)) {
@@ -166,7 +166,7 @@ public class TabletData {
     }
 
     try {
-      logEntris = MetadataTableUtil.getLogEntries(null, RootTable.EXTENT);
+      logEntries = MetadataTableUtil.getLogEntries(null, RootTable.EXTENT);
     } catch (Exception ex) {
       throw new RuntimeException("Unable to read tablet log entries", ex);
     }
@@ -198,8 +198,8 @@ public class TabletData {
     return dataFiles;
   }
 
-  public List<LogEntry> getLogEntris() {
-    return logEntris;
+  public List<LogEntry> getLogEntries() {
+    return logEntries;
   }
 
   public HashSet<FileRef> getScanFiles() {
