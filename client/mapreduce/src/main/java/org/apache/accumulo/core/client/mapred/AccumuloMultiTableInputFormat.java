@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.mapred.InputFormatBase.RecordReaderBase;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
@@ -39,7 +39,7 @@ import org.apache.hadoop.mapred.Reporter;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloInputFormat#setConnectionInfo(JobConf, ConnectionInfo)}
+ * <li>{@link AccumuloInputFormat#setClientInfo(JobConf, ClientInfo)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, org.apache.accumulo.core.security.Authorizations)}
  * <li>{@link AccumuloMultiTableInputFormat#setInputTableConfigs(org.apache.hadoop.mapred.JobConf, java.util.Map)}
  * </ul>

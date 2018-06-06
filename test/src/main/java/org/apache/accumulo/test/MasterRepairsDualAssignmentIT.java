@@ -70,7 +70,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
   public void test() throws Exception {
     // make some tablets, spread 'em around
     Connector c = getConnector();
-    ClientContext context = new ClientContext(getConnectionInfo());
+    ClientContext context = new ClientContext(getClientInfo());
     String table = this.getUniqueNames(1)[0];
     c.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);

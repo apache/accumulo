@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -69,10 +69,9 @@ public class ClientContext {
     return () -> Suppliers.memoizeWithExpiration(() -> s.get(), 100, TimeUnit.MILLISECONDS).get();
   }
 
-  public ClientContext(ConnectionInfo connectionInfo) {
-    this(ConnectionInfoFactory.getInstance(connectionInfo),
-        ConnectionInfoFactory.getCredentials(connectionInfo), connectionInfo.getProperties(),
-        ConnectionInfoFactory.getBatchWriterConfig(connectionInfo));
+  public ClientContext(ClientInfo clientInfo) {
+    this(ClientInfoFactory.getInstance(clientInfo), ClientInfoFactory.getCredentials(clientInfo),
+        clientInfo.getProperties(), ClientInfoFactory.getBatchWriterConfig(clientInfo));
   }
 
   public ClientContext(Instance instance, Credentials credentials, Properties clientProps) {
@@ -126,8 +125,8 @@ public class ClientContext {
     return inst;
   }
 
-  public ConnectionInfo getConnectionInfo() {
-    return new ConnectionInfoImpl(clientProps);
+  public ClientInfo getClientInfo() {
+    return new ClientInfoImpl(clientProps);
   }
 
   /**

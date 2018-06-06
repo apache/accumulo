@@ -119,7 +119,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
 
     AuthenticationToken adminToken = getAdminToken();
-    opts.setConnectionInfo(getConnectionInfo());
+    opts.setClientInfo(getClientInfo());
     VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
 
     // ensure each tablet does not have all map files, should be ~2.5 files per tablet

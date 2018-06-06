@@ -41,14 +41,14 @@ public class RenameIT extends AccumuloClusterHarness {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.createTable = true;
     opts.setTableName(name1);
-    opts.setConnectionInfo(cluster.getConnectionInfo());
+    opts.setClientInfo(cluster.getClientInfo());
 
     Connector c = getConnector();
     TestIngest.ingest(c, opts, bwOpts);
     c.tableOperations().rename(name1, name2);
     TestIngest.ingest(c, opts, bwOpts);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.setConnectionInfo(cluster.getConnectionInfo());
+    vopts.setClientInfo(cluster.getClientInfo());
     vopts.setTableName(name2);
     VerifyIngest.verifyIngest(c, vopts, scanOpts);
     c.tableOperations().delete(name1);

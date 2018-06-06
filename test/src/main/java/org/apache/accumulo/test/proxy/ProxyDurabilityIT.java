@@ -85,7 +85,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
     File emptyFile = Files.createTempFile(null, null).toFile();
     emptyFile.deleteOnExit();
     proxyProps.put("tokenClass", PasswordToken.class.getName());
-    proxyProps.putAll(getConnectionInfo().getProperties());
+    proxyProps.putAll(getClientInfo().getProperties());
 
     TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
 

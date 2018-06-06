@@ -21,11 +21,11 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 /**
- * Accumulo client connection information. Can be built using {@link Connector#builder()}
+ * Accumulo client information. Can be built using {@link Connector#builder()}
  *
  * @since 2.0.0
  */
-public interface ConnectionInfo {
+public interface ClientInfo {
 
   /**
    * @return Accumulo instance name

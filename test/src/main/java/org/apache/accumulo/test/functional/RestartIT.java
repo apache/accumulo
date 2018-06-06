@@ -126,7 +126,7 @@ public class RestartIT extends AccumuloClusterHarness {
     } else {
       throw new RuntimeException("Unknown token");
     }
-    OPTS.setConnectionInfo(getConnectionInfo());
+    OPTS.setClientInfo(getClientInfo());
 
     Future<Integer> ret = svc.submit(() -> {
       try {
@@ -150,8 +150,8 @@ public class RestartIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
-    OPTS.setConnectionInfo(getConnectionInfo());
-    VOPTS.setConnectionInfo(getConnectionInfo());
+    OPTS.setClientInfo(getClientInfo());
+    VOPTS.setClientInfo(getClientInfo());
     TestIngest.ingest(c, OPTS, BWOPTS);
     ClusterControl control = getCluster().getClusterControl();
 
@@ -217,8 +217,8 @@ public class RestartIT extends AccumuloClusterHarness {
     } else {
       throw new RuntimeException("Unknown token");
     }
-    OPTS.setConnectionInfo(getConnectionInfo());
-    VOPTS.setConnectionInfo(getConnectionInfo());
+    OPTS.setClientInfo(getClientInfo());
+    VOPTS.setClientInfo(getClientInfo());
 
     Future<Integer> ret = svc.submit(() -> {
       try {
@@ -256,8 +256,8 @@ public class RestartIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
-    OPTS.setConnectionInfo(getConnectionInfo());
-    VOPTS.setConnectionInfo(getConnectionInfo());
+    OPTS.setClientInfo(getClientInfo());
+    VOPTS.setClientInfo(getClientInfo());
     TestIngest.ingest(c, OPTS, BWOPTS);
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -286,7 +286,7 @@ public class RestartIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
-    OPTS.setConnectionInfo(getConnectionInfo());
+    OPTS.setClientInfo(getClientInfo());
     TestIngest.ingest(c, OPTS, BWOPTS);
     try {
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -301,8 +301,8 @@ public class RestartIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     VOPTS.setTableName(tableName);
-    OPTS.setConnectionInfo(getConnectionInfo());
-    VOPTS.setConnectionInfo(getConnectionInfo());
+    OPTS.setClientInfo(getClientInfo());
+    VOPTS.setClientInfo(getClientInfo());
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     String splitThreshold = null;
@@ -318,7 +318,7 @@ public class RestartIT extends AccumuloClusterHarness {
           "20K");
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(tableName);
-      opts.setConnectionInfo(getConnectionInfo());
+      opts.setClientInfo(getClientInfo());
       TestIngest.ingest(c, opts, BWOPTS);
       c.tableOperations().flush(tableName, null, null, false);
       VerifyIngest.verifyIngest(c, VOPTS, SOPTS);

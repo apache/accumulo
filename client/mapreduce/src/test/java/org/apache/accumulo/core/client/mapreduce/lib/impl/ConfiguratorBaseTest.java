@@ -25,7 +25,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -74,16 +74,16 @@ public class ConfiguratorBaseTest {
     assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
     assertEquals("testPass", new String(((PasswordToken) ConfiguratorBase
-        .getConnectionInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
+        .getClientInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
   }
 
   @Test
-  public void testSetConnectionInfo() {
+  public void testSetClientInfo() {
     Configuration conf = new Configuration();
-    ConnectionInfo info = Connector.builder().forInstance("myinstance", "myzookeepers")
+    ClientInfo info = Connector.builder().forInstance("myinstance", "myzookeepers")
         .usingPassword("user", "pass").info();
-    ConfiguratorBase.setConnectionInfo(this.getClass(), conf, info);
-    ConnectionInfo info2 = ConfiguratorBase.getConnectionInfo(this.getClass(), conf);
+    ConfiguratorBase.setClientInfo(this.getClass(), conf, info);
+    ClientInfo info2 = ConfiguratorBase.getClientInfo(this.getClass(), conf);
     Assert.assertEquals("myinstance", info2.getInstanceName());
     Assert.assertEquals("myzookeepers", info2.getZooKeepers());
     Assert.assertEquals("user", info2.getPrincipal());
@@ -104,7 +104,7 @@ public class ConfiguratorBaseTest {
     assertEquals("testInstanceName", clientConf
         .get(org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME));
 
-    Properties props = ConfiguratorBase.getConnectionInfo(this.getClass(), conf).getProperties();
+    Properties props = ConfiguratorBase.getClientInfo(this.getClass(), conf).getProperties();
     assertEquals("testInstanceName", props.getProperty(ClientProperty.INSTANCE_NAME.getKey()));
     assertEquals("testZooKeepers", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
     assertEquals("true", props.getProperty(ClientProperty.SSL_ENABLED.getKey()));
@@ -131,7 +131,7 @@ public class ConfiguratorBaseTest {
   }
 
   @Test
-  public void testSetVisibiltyCacheSize() {
+  public void testSetVisibilityCacheSize() {
     Configuration conf = new Configuration();
     assertEquals(Constants.DEFAULT_VISIBILITY_CACHE_SIZE,
         ConfiguratorBase.getVisibilityCacheSize(conf));

@@ -93,7 +93,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
+      AccumuloInputFormat.setClientInfo(job, getClientInfo());
       AccumuloInputFormat.setInputTableName(job, table1);
 
       job.setMapperClass(TestMapper.class);
@@ -103,7 +103,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectionInfo(job, getConnectionInfo());
+      AccumuloOutputFormat.setClientInfo(job, getClientInfo());
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
 

@@ -56,7 +56,7 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -783,7 +783,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public ConnectionInfo getConnectionInfo() {
+  public ClientInfo getClientInfo() {
     return Connector.builder().forInstance(getInstanceName(), getZooKeepers())
         .usingPassword(config.getRootUserName(), config.getRootPassword()).info();
   }
@@ -834,7 +834,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         Instance instance = new ZooKeeperInstance(getClientConfig());
         ClientContext context = new ClientContext(instance,
             new Credentials("root", new PasswordToken("unchecked")),
-            getConnectionInfo().getProperties());
+            getClientInfo().getProperties());
         client = MasterClient.getConnectionWithRetry(context);
         return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (ThriftSecurityException exception) {

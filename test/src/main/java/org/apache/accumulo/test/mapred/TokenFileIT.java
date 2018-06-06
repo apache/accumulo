@@ -111,7 +111,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setInputFormat(AccumuloInputFormat.class);
 
       AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
+      AccumuloInputFormat.setClientInfo(job, getClientInfo());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -162,7 +162,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
     File tf = folder.newFile("client.properties");
     PrintStream out = new PrintStream(tf);
-    Properties props = getConnectionInfo().getProperties();
+    Properties props = getClientInfo().getProperties();
     for (Object keyObj : props.keySet()) {
       String key = (String) keyObj;
       out.println(key + " = " + props.getProperty(key));

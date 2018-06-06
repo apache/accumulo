@@ -127,8 +127,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    opts.setConnectionInfo(getConnectionInfo());
-    vopts.setConnectionInfo(getConnectionInfo());
+    opts.setClientInfo(getClientInfo());
+    vopts.setClientInfo(getClientInfo());
     vopts.rows = opts.rows = 200000;
     opts.setTableName(TEST_TABLE);
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
@@ -153,7 +153,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       Instance instance = getConnector().getInstance();
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(new ClientContext(getConnectionInfo()));
+          client = MasterClient.getConnectionWithRetry(new ClientContext(getClientInfo()));
           stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(instance));
           break;
         } catch (ThriftSecurityException exception) {

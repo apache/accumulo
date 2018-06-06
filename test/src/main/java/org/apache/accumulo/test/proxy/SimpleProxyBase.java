@@ -227,7 +227,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     }
 
     props.put("tokenClass", tokenClass);
-    props.putAll(SharedMiniClusterBase.getCluster().getConnectionInfo().getProperties());
+    props.putAll(SharedMiniClusterBase.getCluster().getClientInfo().getProperties());
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(HostAndPort.fromParts(hostname, proxyPort), factory,
         props).server;

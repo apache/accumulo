@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
@@ -42,7 +42,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloMultiTableInputFormat#setConnectionInfo(Job, ConnectionInfo)}
+ * <li>{@link AccumuloMultiTableInputFormat#setClientInfo(Job, ClientInfo)}
  * <li>{@link AccumuloMultiTableInputFormat#setScanAuthorizations(Job, Authorizations)}
  * <li>{@link AccumuloMultiTableInputFormat#setInputTableConfigs(Job, Map)}
  * </ul>

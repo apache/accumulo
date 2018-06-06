@@ -83,7 +83,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
   }
 
   private MasterMonitorInfo getStats(Connector c) throws Exception {
-    ClientContext context = new ClientContext(getConnectionInfo());
+    ClientContext context = new ClientContext(getClientInfo());
     Client client = null;
     while (true) {
       try {

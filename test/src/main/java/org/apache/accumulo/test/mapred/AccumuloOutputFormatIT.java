@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -82,7 +82,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     // set the max memory so that we ensure we don't flush on the write.
     batchConfig.setMaxMemory(Long.MAX_VALUE);
     AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
-    AccumuloOutputFormat.setConnectionInfo(job, getConnectionInfo());
+    AccumuloOutputFormat.setClientInfo(job, getClientInfo());
     AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
     RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
@@ -167,10 +167,10 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ConnectionInfo info = Connector.builder().forInstance(instanceName, zooKeepers)
+      ClientInfo info = Connector.builder().forInstance(instanceName, zooKeepers)
           .usingPassword(user, pass).info();
 
-      AccumuloInputFormat.setConnectionInfo(job, info);
+      AccumuloInputFormat.setClientInfo(job, info);
       AccumuloInputFormat.setInputTableName(job, table1);
 
       job.setMapperClass(TestMapper.class);
@@ -180,7 +180,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectionInfo(job, info);
+      AccumuloOutputFormat.setClientInfo(job, info);
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
 

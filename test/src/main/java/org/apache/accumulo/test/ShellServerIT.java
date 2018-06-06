@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -161,8 +161,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
         throws IOException {
-      ConnectionInfo info = Connector.builder().usingProperties(configFile.getAbsolutePath())
-          .info();
+      ClientInfo info = Connector.builder().usingProperties(configFile.getAbsolutePath()).info();
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
@@ -352,7 +351,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("exporttable -t " + table + " " + exportUri, true);
     DistCp cp = newDistCp(new Configuration(false));
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
-    if (getCluster().getConnectionInfo().saslEnabled()) {
+    if (getCluster().getClientInfo().saslEnabled()) {
       // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
       // ourselves by hand.
       FileSystem fs = getCluster().getFileSystem();

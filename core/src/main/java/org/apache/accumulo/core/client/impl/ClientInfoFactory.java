@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Instance;
@@ -29,32 +29,32 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.ClientProperty;
 
 /**
- * Creates internal objects using {@link ConnectionInfo}
+ * Creates internal objects using {@link ClientInfo}
  */
-public class ConnectionInfoFactory {
+public class ClientInfoFactory {
 
-  public static String getString(ConnectionInfo info, ClientProperty property) {
+  public static String getString(ClientInfo info, ClientProperty property) {
     return property.getValue(info.getProperties());
   }
 
-  public static Long getLong(ConnectionInfo info, ClientProperty property) {
+  public static Long getLong(ClientInfo info, ClientProperty property) {
     return property.getLong(info.getProperties());
   }
 
-  public static Connector getConnector(ConnectionInfo info)
+  public static Connector getConnector(ClientInfo info)
       throws AccumuloSecurityException, AccumuloException {
     return new ConnectorImpl(new ClientContext(info));
   }
 
-  public static Instance getInstance(ConnectionInfo info) {
+  public static Instance getInstance(ClientInfo info) {
     return new ZooKeeperInstance(ClientConfConverter.toClientConf(info.getProperties()));
   }
 
-  public static Credentials getCredentials(ConnectionInfo info) {
+  public static Credentials getCredentials(ClientInfo info) {
     return new Credentials(info.getPrincipal(), info.getAuthenticationToken());
   }
 
-  public static BatchWriterConfig getBatchWriterConfig(ConnectionInfo info) {
+  public static BatchWriterConfig getBatchWriterConfig(ClientInfo info) {
     BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
     Long maxMemory = getLong(info, ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES);
     if (maxMemory != null) {

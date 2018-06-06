@@ -18,7 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -44,7 +44,7 @@ public class ConnectorIT extends AccumuloClusterHarness {
     Assert.assertEquals(zookeepers, conn.getInstance().getZooKeepers());
     Assert.assertEquals(user, conn.whoami());
 
-    ConnectionInfo info = Connector.builder().forInstance(instanceName, zookeepers)
+    ClientInfo info = Connector.builder().forInstance(instanceName, zookeepers)
         .usingPassword(user, password).info();
     Assert.assertEquals(instanceName, info.getInstanceName());
     Assert.assertEquals(zookeepers, info.getZooKeepers());
@@ -66,7 +66,7 @@ public class ConnectorIT extends AccumuloClusterHarness {
     final String password2 = "testpassword2";
     c.securityOperations().createLocalUser(user2, new PasswordToken(password2));
 
-    Connector conn2 = Connector.builder().usingConnectionInfo(conn.info())
+    Connector conn2 = Connector.builder().usingClientInfo(conn.info())
         .usingToken(user2, new PasswordToken(password2)).build();
     Assert.assertEquals(instanceName, conn2.getInstance().getInstanceName());
     Assert.assertEquals(zookeepers, conn2.getInstance().getZooKeepers());

@@ -102,7 +102,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     Job job = Job.getInstance();
     AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
+    AccumuloInputFormat.setClientInfo(job, getClientInfo());
 
     // split table
     TreeSet<Text> splitsToAdd = new TreeSet<>();
@@ -282,7 +282,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(inputFormatClass);
 
-      AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
+      AccumuloInputFormat.setClientInfo(job, getClientInfo());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setBatchScan(job, batchScan);
       if (sample) {
@@ -400,7 +400,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     Connector connector = getConnector();
     connector.tableOperations().create(table);
 
-    AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
+    AccumuloInputFormat.setClientInfo(job, getClientInfo());
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setScanAuthorizations(job, auths);
     AccumuloInputFormat.setScanIsolation(job, isolated);

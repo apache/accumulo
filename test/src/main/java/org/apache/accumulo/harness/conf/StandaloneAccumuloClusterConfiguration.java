@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -89,7 +89,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   private Map<String,String> conf;
   private String serverUser;
-  private ConnectionInfo connectionInfo;
+  private ClientInfo clientInfo;
   private List<ClusterUser> clusterUsers;
   private File clientPropsFile;
 
@@ -101,7 +101,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
     this.conf = getConfiguration(type);
     this.clientPropsFile = clientPropsFile;
-    connectionInfo = Connector.builder().forInstance(getInstanceName(), getZooKeepers())
+    clientInfo = Connector.builder().forInstance(getInstanceName(), getZooKeepers())
         .usingToken(getAdminPrincipal(), getAdminToken()).info();
 
     // The user Accumulo is running as
@@ -143,8 +143,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     return principal;
   }
 
-  public ConnectionInfo getConnectionInfo() {
-    return connectionInfo;
+  public ClientInfo getClientInfo() {
+    return clientInfo;
   }
 
   public String getPassword() {

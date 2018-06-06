@@ -22,7 +22,7 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -65,20 +65,20 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    runTest(getConnector(), getConnectionInfo(), getCluster().getFileSystem(),
+    runTest(getConnector(), getClientInfo(), getCluster().getFileSystem(),
         getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
         testName.getMethodName(), false);
   }
 
   @Test
   public void testOld() throws Exception {
-    runTest(getConnector(), getConnectionInfo(), getCluster().getFileSystem(),
+    runTest(getConnector(), getClientInfo(), getCluster().getFileSystem(),
         getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
         testName.getMethodName(), true);
   }
 
-  static void runTest(Connector c, ConnectionInfo info, FileSystem fs, Path basePath,
-      String tableName, String filePrefix, String dirSuffix, boolean useOld) throws Exception {
+  static void runTest(Connector c, ClientInfo info, FileSystem fs, Path basePath, String tableName,
+      String filePrefix, String dirSuffix, boolean useOld) throws Exception {
     c.tableOperations().create(tableName);
 
     Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
@@ -95,7 +95,7 @@ public class BulkIT extends AccumuloClusterHarness {
     opts.rows = N;
     opts.cols = 1;
     opts.setTableName(tableName);
-    opts.setConnectionInfo(info);
+    opts.setClientInfo(info);
     opts.conf = new Configuration(false);
     opts.fs = fs;
     String fileFormat = filePrefix + "rf%02d";
@@ -114,7 +114,7 @@ public class BulkIT extends AccumuloClusterHarness {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);
     vopts.random = 56;
-    vopts.setConnectionInfo(info);
+    vopts.setClientInfo(info);
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;
       vopts.rows = N;
