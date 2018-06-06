@@ -35,6 +35,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
+import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements IteratorEnvironment {
@@ -52,7 +53,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private boolean enableSampleForDeepCopy;
 
   public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
-      boolean userCompaction) {
+      MajorCompactionReason reason) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
@@ -60,7 +61,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.trm = null;
     this.config = config;
     this.fullMajorCompaction = false;
-    this.userCompaction = userCompaction;
+    this.userCompaction = reason.equals(MajorCompactionReason.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
@@ -95,7 +96,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
 
   public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC,
-      AccumuloConfiguration config, boolean userCompaction) {
+      AccumuloConfiguration config, MajorCompactionReason reason) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
@@ -104,7 +105,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.trm = null;
     this.config = config;
     this.fullMajorCompaction = fullMajC;
-    this.userCompaction = userCompaction;
+    this.userCompaction = reason.equals(MajorCompactionReason.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
