@@ -31,8 +31,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
@@ -41,7 +39,6 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
 
 public class ShellOptionsJC {
-  private static final Logger log = LoggerFactory.getLogger(ShellOptionsJC.class);
 
   @Parameter(names = {"-u", "--user"}, description = "username")
   private String username = null;
