@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
  * @since 1.6.0
  * @deprecated since 2.0.0, replaced {@link Connector#builder()}
  */
+@Deprecated
 public class ClientConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
 

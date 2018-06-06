@@ -23,11 +23,19 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.junit.Test;
 
-@Deprecated
+@SuppressWarnings("deprecation")
 public class ClientConfigurationTest {
+
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+  @SuppressWarnings("deprecation")
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty RPC_SSL_TRUSTSTORE_TYPE = ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE;
 
   @Test
   public void testOverrides() {
@@ -47,17 +55,16 @@ public class ClientConfigurationTest {
   }
 
   private void assertExpectedConfig(ClientConfiguration clientConfig) {
-    assertEquals("firstZkHosts", clientConfig.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals("secondInstanceName", clientConfig.get(ClientProperty.INSTANCE_NAME));
-    assertEquals("123s", clientConfig.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
-    assertEquals(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue(),
-        clientConfig.get(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE));
+    assertEquals("firstZkHosts", clientConfig.get(INSTANCE_ZK_HOST));
+    assertEquals("secondInstanceName", clientConfig.get(INSTANCE_NAME));
+    assertEquals("123s", clientConfig.get(INSTANCE_ZK_TIMEOUT));
+    assertEquals(RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue(),
+        clientConfig.get(RPC_SSL_TRUSTSTORE_TYPE));
   }
 
   private ClientConfiguration createConfig() {
-    return ClientConfiguration.create().with(ClientProperty.INSTANCE_ZK_HOST, "firstZkHosts")
-        .with(ClientProperty.INSTANCE_NAME, "secondInstanceName")
-        .with(ClientProperty.INSTANCE_ZK_TIMEOUT, "123s");
+    return ClientConfiguration.create().with(INSTANCE_ZK_HOST, "firstZkHosts")
+        .with(INSTANCE_NAME, "secondInstanceName").with(INSTANCE_ZK_TIMEOUT, "123s");
   }
 
   @Test
