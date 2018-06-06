@@ -24,6 +24,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -72,8 +74,8 @@ public class ConfiguratorBase {
     IS_CONFIGURED
   }
 
-  public enum ConnectionInfoOpts {
-    CLIENT_PROPS, CLIENT_PROPS_PATH
+  public enum ClientOpts {
+    CLIENT_PROPS, CLIENT_PROPS_FILE
   }
 
   /**
@@ -155,16 +157,16 @@ public class ConfiguratorBase {
     return new ConnectionInfoImpl(props);
   }
 
-  public static void setClientPropertiesPath(Class<?> implementingClass, Configuration conf,
-                                             Path clientPropertiesPath) {
+  public static void setClientPropertiesFile(Class<?> implementingClass, Configuration conf,
+      String clientPropertiesFile) {
     try {
-      FileSystem fs = FileSystem.get(conf);
-      fs.getFileStatus(clientPropertiesPath);
-      conf.set(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS_PATH), clientPropertiesPath.toString());
-      conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    } catch (IOException e) {
-      throw new IllegalArgumentException("Failed to find client properties file: " + clientPropertiesPath);
+      DistributedCacheHelper.addCacheFile(new URI(clientPropertiesFile), conf);
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException("Unable to add client properties file \""
+          + clientPropertiesFile + "\" to distributed cache.");
     }
+    conf.set(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), clientPropertiesFile);
+    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
 
   public static void setClientProperties(Class<?> implementingClass, Configuration conf,
@@ -175,16 +177,24 @@ public class ConfiguratorBase {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    conf.set(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS), writer.toString());
+    conf.set(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), writer.toString());
   }
 
   public static Properties getClientProperties(Class<?> implementingClass, Configuration conf) {
     String propString;
-    String propsPath = conf.get(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS_PATH), "");
-    if (!propsPath.isEmpty()) {
+    String clientPropsFile = conf
+        .get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), "");
+    if (!clientPropsFile.isEmpty()) {
       try {
+        URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
+        Path path = null;
+        for (URI u : uris) {
+          if (u.toString().equals(clientPropsFile)) {
+            path = new Path(u);
+          }
+        }
         FileSystem fs = FileSystem.get(conf);
-        FSDataInputStream inputStream = fs.open(new Path(propsPath));
+        FSDataInputStream inputStream = fs.open(path);
         StringBuilder sb = new StringBuilder();
         try (Scanner scanner = new Scanner(inputStream)) {
           while (scanner.hasNextLine()) {
@@ -193,11 +203,11 @@ public class ConfiguratorBase {
         }
         propString = sb.toString();
       } catch (IOException e) {
-        throw new IllegalStateException("Failed to read");
+        throw new IllegalStateException(
+            "Failed to read client properties from distributed cache: " + clientPropsFile);
       }
     } else {
-      propString = conf.get(enumToConfKey(implementingClass, ConnectionInfoOpts.CLIENT_PROPS),
-          "");
+      propString = conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), "");
     }
     Properties props = new Properties();
     if (!propString.isEmpty()) {
@@ -263,7 +273,7 @@ public class ConfiguratorBase {
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
     checkArgument(tokenFile != null, "tokenFile is null");
-    setClientPropertiesPath(implementingClass, conf, new Path(tokenFile));
+    setClientPropertiesFile(implementingClass, conf, tokenFile);
   }
 
   /**

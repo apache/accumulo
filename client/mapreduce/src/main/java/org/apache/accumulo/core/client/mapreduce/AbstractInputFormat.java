@@ -133,6 +133,32 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
+   * Set Accumulo client properties used to connect to Accumulo
+   *
+   * @param job
+   *          Hadoop job to be configured
+   * @param clientProps
+   *          Accumulo client properties
+   * @since 2.0.0
+   */
+  public static void setClientProperties(Job job, Properties clientProps) {
+    InputConfigurator.setClientProperties(CLASS, job.getConfiguration(), clientProps);
+  }
+
+  /**
+   * Set Accumulo client properties file used to connect to Accumulo
+   *
+   * @param job
+   *          Hadoop job to be configured
+   * @param clientPropsFile
+   *          URL (hdfs:// or http://) to Accumulo client properties file
+   * @since 2.0.0
+   */
+  public static void setClientPropertiesFile(Job job, String clientPropsFile) {
+    InputConfigurator.setClientPropertiesFile(CLASS, job.getConfiguration(), clientPropsFile);
+  }
+
+  /**
    * Gets the {@link ConnectionInfo} from the configuration
    *
    * @param context
