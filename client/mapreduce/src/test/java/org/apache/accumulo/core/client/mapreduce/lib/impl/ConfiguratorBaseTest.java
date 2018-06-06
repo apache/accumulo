@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Base64;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
@@ -29,7 +28,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
@@ -64,12 +62,6 @@ public class ConfiguratorBaseTest {
     assertNotNull(token);
     assertEquals(PasswordToken.class, token.getClass());
     assertEquals(new PasswordToken("testPassword"), token);
-    assertEquals(
-        "inline:" + PasswordToken.class.getName() + ":"
-            + Base64.getEncoder().encodeToString(
-                AuthenticationTokenSerializer.serialize(new PasswordToken("testPassword"))),
-        conf.get(
-            ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
   }
 
   @Test
@@ -77,11 +69,12 @@ public class ConfiguratorBaseTest {
       throws AccumuloSecurityException {
     Configuration conf = new Configuration();
     assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser", "testFile");
+    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",
+        new PasswordToken("testPass"));
     assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
-    assertEquals("file:testFile", conf.get(
-        ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
+    assertEquals("testPass", new String(((PasswordToken) ConfiguratorBase
+        .getConnectionInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
   }
 
   @Test

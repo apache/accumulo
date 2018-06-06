@@ -283,10 +283,8 @@ public class KerberosProxyIT extends AccumuloITBase {
     Properties clientProps = new Properties();
     clientProps.setProperty(ClientProperty.INSTANCE_NAME.getKey(), cfg.getInstanceName());
     clientProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), cfg.getZooKeepers());
-    clientProps.setProperty(ClientProperty.AUTH_METHOD.getKey(), "kerberos");
-    clientProps.setProperty(ClientProperty.AUTH_USERNAME.getKey(), proxyPrincipal);
-    clientProps.setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getKey(),
-        proxyKeytab.getCanonicalPath());
+    clientProps.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), proxyPrincipal);
+    ClientProperty.setKerberosKeytab(clientProps, proxyKeytab.getCanonicalPath());
     clientProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
 
     // Write out the proxy.properties file

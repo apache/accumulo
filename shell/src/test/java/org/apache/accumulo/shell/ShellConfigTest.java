@@ -28,7 +28,6 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.shell.ShellTest.TestOutputStream;
 import org.apache.log4j.Level;
@@ -37,8 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.beust.jcommander.ParameterException;
 
 import jline.console.ConsoleReader;
 
@@ -98,25 +95,6 @@ public class ShellConfigTest {
     // JCommander versions after 1.60 will cause the Shell to detect the arg as Unrecognized option
     assertTrue("Did not print Error", output.get().startsWith("ERROR"));
     assertTrue("Did not print usage", output.get().contains("Usage"));
-  }
-
-  @Test
-  public void testTokenWithoutOptions() throws IOException {
-    assertFalse(shell.config(args("--fake", "-u", "foo", "-tc", PasswordToken.class.getName())));
-    assertFalse(output.get().contains(ParameterException.class.getName()));
-  }
-
-  @Test
-  public void testTokenAndOption() throws IOException {
-    assertTrue(shell.config(
-        args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo")));
-  }
-
-  @Test
-  public void testTokenAndOptionAndPassword() throws IOException {
-    assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l",
-        "password=foo", "-p", "bar")));
-    assertTrue(output.get().contains(ParameterException.class.getName()));
   }
 
   @Test

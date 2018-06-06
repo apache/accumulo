@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -90,6 +91,32 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   public static void setConnectionInfo(Job job, ConnectionInfo info) {
     OutputConfigurator.setConnectionInfo(CLASS, job.getConfiguration(), info);
+  }
+
+  /**
+   * Set Accumulo client properties used to connect to Accumulo
+   *
+   * @param job
+   *          Hadoop job to be configured
+   * @param clientProps
+   *          Accumulo client properties
+   * @since 2.0.0
+   */
+  public static void setClientProperties(Job job, Properties clientProps) {
+    OutputConfigurator.setClientProperties(CLASS, job.getConfiguration(), clientProps);
+  }
+
+  /**
+   * Set Accumulo client properties file used to connect to Accumulo
+   *
+   * @param job
+   *          Hadoop job to be configured
+   * @param clientPropsFile
+   *          URL to Accumulo client properties file
+   * @since 2.0.0
+   */
+  public static void setClientPropertiesFile(Job job, String clientPropsFile) {
+    OutputConfigurator.setClientPropertiesFile(CLASS, job.getConfiguration(), clientPropsFile);
   }
 
   /**

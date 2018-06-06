@@ -26,12 +26,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -160,10 +160,13 @@ public class TokenFileIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    File tf = folder.newFile("root_test.pw");
+    File tf = folder.newFile("client.properties");
     PrintStream out = new PrintStream(tf);
-    String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
-    out.println(outString);
+    Properties props = getConnectionInfo().getProperties();
+    for (Object keyObj : props.keySet()) {
+      String key = (String) keyObj;
+      out.println(key + " = " + props.getProperty(key));
+    }
     out.close();
 
     MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});

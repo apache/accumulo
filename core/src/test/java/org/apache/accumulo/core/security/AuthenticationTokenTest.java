@@ -51,5 +51,4 @@ public class AuthenticationTokenTest {
         serialized);
     assertEquals(new NullToken(), nullToken);
   }
-
 }

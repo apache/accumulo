@@ -25,6 +25,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -243,8 +244,13 @@ public class Proxy implements KeywordExecutable {
         }
 
         // Login via principal and keytab
-        final String kerberosPrincipal = ClientProperty.AUTH_USERNAME.getValue(props);
-        final String kerberosKeytab = ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getValue(props);
+        final String kerberosPrincipal = ClientProperty.AUTH_PRINCIPAL.getValue(props);
+        final AuthenticationToken authToken = ClientProperty.getAuthenticationToken(props);
+        if (!(authToken instanceof KerberosToken)) {
+          throw new IllegalStateException("Kerberos authentication must be used with SASL");
+        }
+        final KerberosToken kerberosToken = (KerberosToken) authToken;
+        final String kerberosKeytab = kerberosToken.getKeytab().getAbsolutePath();
         if (StringUtils.isBlank(kerberosPrincipal) || StringUtils.isBlank(kerberosKeytab)) {
           throw new IllegalStateException(
               String.format("Kerberos principal '%s' and keytab '%s'" + " must be provided",

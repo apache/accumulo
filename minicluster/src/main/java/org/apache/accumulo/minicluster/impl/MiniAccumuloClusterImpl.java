@@ -451,10 +451,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Map<String,String> clientProps = config.getClientProps();
     clientProps.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), config.getZooKeepers());
     clientProps.put(ClientProperty.INSTANCE_NAME.getKey(), config.getInstanceName());
-    if (!clientProps.containsKey(ClientProperty.AUTH_METHOD.getKey())) {
-      clientProps.put(ClientProperty.AUTH_METHOD.getKey(), "password");
-      clientProps.put(ClientProperty.AUTH_USERNAME.getKey(), config.getRootUserName());
-      clientProps.put(ClientProperty.AUTH_PASSWORD.getKey(), config.getRootPassword());
+    if (!clientProps.containsKey(ClientProperty.AUTH_TYPE.getKey())) {
+      clientProps.put(ClientProperty.AUTH_TYPE.getKey(), "password");
+      clientProps.put(ClientProperty.AUTH_PRINCIPAL.getKey(), config.getRootUserName());
+      clientProps.put(ClientProperty.AUTH_TOKEN.getKey(), config.getRootPassword());
     }
 
     File clientPropsFile = config.getClientPropsFile();

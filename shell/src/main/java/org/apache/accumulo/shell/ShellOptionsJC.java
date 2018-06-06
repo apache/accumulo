@@ -29,8 +29,6 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
@@ -126,28 +124,9 @@ public class ShellOptionsJC {
       converter = PasswordConverter.class)
   private String password;
 
-  public static class TokenConverter implements IStringConverter<AuthenticationToken> {
-    @Override
-    public AuthenticationToken convert(String value) {
-      try {
-        return Class.forName(value).asSubclass(AuthenticationToken.class).newInstance();
-      } catch (Exception e) {
-        // Catching ClassNotFoundException, ClassCastException, InstantiationException and
-        // IllegalAccessException
-        log.error("Could not instantiate AuthenticationToken {}", value, e);
-        throw new ParameterException(e);
-      }
-    }
-  }
-
-  @Parameter(names = {"-tc", "--tokenClass"},
-      description = "token type to create, use the -l to pass options",
-      converter = TokenConverter.class)
-  private AuthenticationToken authenticationToken;
-
-  @DynamicParameter(names = {"-l", "--tokenProperty"},
-      description = "login properties in the format key=value. Reuse -l for each property")
-  private Map<String,String> tokenProperties = new TreeMap<>();
+  @DynamicParameter(names = {"-l"},
+      description = "command line properties in the format key=value. Reuse -l for each property")
+  private Map<String,String> commandLineProperties = new TreeMap<>();
 
   @Parameter(names = "--disable-tab-completion",
       description = "disables tab completion (for less overhead when scripting)")
@@ -219,7 +198,7 @@ public class ShellOptionsJC {
 
   public String getUsername() throws Exception {
     if (null == username) {
-      username = getClientProperties().getProperty(ClientProperty.AUTH_USERNAME.getKey());
+      username = getClientProperties().getProperty(ClientProperty.AUTH_PRINCIPAL.getKey());
       if (username == null || username.isEmpty()) {
         if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
           if (!UserGroupInformation.isSecurityEnabled()) {
@@ -231,7 +210,7 @@ public class ShellOptionsJC {
           username = ugi.getUserName();
         } else {
           throw new IllegalArgumentException("Username is not set. Run with '-u"
-              + " myuser' or set 'auth.username' in accumulo-client.properties");
+              + " myuser' or set 'auth.principal' in accumulo-client.properties");
         }
       }
     }
@@ -239,24 +218,7 @@ public class ShellOptionsJC {
   }
 
   public String getPassword() {
-    if (password == null) {
-      password = getClientProperties().getProperty(ClientProperty.AUTH_PASSWORD.getKey());
-    }
     return password;
-  }
-
-  public AuthenticationToken getAuthenticationToken() throws Exception {
-    if (null == authenticationToken) {
-      // Automatically use a KerberosToken if shell is configured for SASL
-      if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
-        authenticationToken = new KerberosToken();
-      }
-    }
-    return authenticationToken;
-  }
-
-  public Map<String,String> getTokenProperties() {
-    return tokenProperties;
   }
 
   public boolean isTabCompletionDisabled() {
@@ -330,6 +292,7 @@ public class ShellOptionsJC {
         File file = new File(path);
         if (file.isFile() && file.canRead()) {
           clientConfigFile = file.getAbsolutePath();
+          System.out.println("Loading configuration from " + clientConfigFile);
           break;
         }
       }
@@ -346,6 +309,9 @@ public class ShellOptionsJC {
         throw new IllegalArgumentException(
             "Failed to load properties from " + getClientConfigFile());
       }
+    }
+    for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
+      props.setProperty(entry.getKey(), entry.getValue());
     }
     if (useSsl()) {
       props.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");

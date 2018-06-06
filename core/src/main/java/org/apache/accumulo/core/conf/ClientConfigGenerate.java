@@ -45,7 +45,7 @@ class ClientConfigGenerate {
       pageHeader();
 
       generateSection("Instance", "instance.");
-      generateSection("Authentication", "auth.", "auth.method", "auth.username");
+      generateSection("Authentication", "auth.", "auth.type", "auth.principal");
       generateSection("Batch Writer", "batch.writer.");
       generateSection("SSL", "ssl.");
       generateSection("SASL", "sasl.");

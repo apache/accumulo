@@ -304,7 +304,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       exitCode = 1;
       return false;
     }
-    String password = options.getPassword();
 
     tabCompletion = !options.isTabCompletionDisabled();
 
@@ -316,59 +315,31 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return false;
     }
 
-    try {
-      token = options.getAuthenticationToken();
-    } catch (Exception e) {
-      printException(e);
-      return true;
+    Properties props = options.getClientProperties();
+    String password = options.getPassword();
+    if (password == null && props.containsKey(ClientProperty.AUTH_TOKEN.getKey()) &&
+        user.equals(ClientProperty.AUTH_PRINCIPAL.getValue(props))) {
+      token = ClientProperty.getAuthenticationToken(props);
+    }
+    if (token == null) {
+      Runtime.getRuntime()
+          .addShutdownHook(new Thread(() -> reader.getTerminal().setEchoEnabled(true)));
+      // Read password if the user explicitly asked for it, or didn't specify anything at all
+      if ("stdin".equals(password) || password == null) {
+        password = reader.readLine("Password: ", '*');
+      }
+      if (password == null) {
+        // User cancel, e.g. Ctrl-D pressed
+        throw new ParameterException("No password or token option supplied");
+      } else {
+        token = new PasswordToken(password);
+      }
     }
 
-    Map<String,String> loginOptions = options.getTokenProperties();
-
-    // process default parameters if unspecified
     try {
-      final boolean hasToken = (token != null);
-
-      if (hasToken && password != null) {
-        throw new ParameterException("Can not supply '--pass' option with '--tokenClass' option");
-      }
-
-      Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void run() {
-          reader.getTerminal().setEchoEnabled(true);
-        }
-      });
-
-      if (hasToken) { // implied hasTokenOptions
-        // Fully qualified name so we don't shadow java.util.Properties
-        // @formatter:off
-        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props =
-          new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
-        // @formatter:on
-
-        if (!loginOptions.isEmpty()) {
-          props.putAllStrings(loginOptions);
-        }
-        token.init(props);
-      } else {
-        // Read password if the user explicitly asked for it, or didn't specify anything at all
-        if ("stdin".equals(password) || password == null) {
-          password = reader.readLine("Password: ", '*');
-        }
-
-        if (password == null) {
-          // User cancel, e.g. Ctrl-D pressed
-          throw new ParameterException("No password or token option supplied");
-        } else {
-          this.token = new PasswordToken(password);
-        }
-      }
-
       if (!options.isFake()) {
         DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
       }
-
       this.setTableName("");
       connector = instance.getConnector(user, token);
 

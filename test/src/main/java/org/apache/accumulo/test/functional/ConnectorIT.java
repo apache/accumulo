@@ -54,8 +54,8 @@ public class ConnectorIT extends AccumuloClusterHarness {
     Properties props = new Properties();
     props.put(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
-    props.put(ClientProperty.AUTH_USERNAME.getKey(), user);
-    props.put(ClientProperty.AUTH_PASSWORD.getKey(), password);
+    props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user);
+    ClientProperty.setPassword(props, password);
     conn = Connector.builder().usingProperties(props).build();
 
     Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());
