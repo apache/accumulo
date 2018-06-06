@@ -28,13 +28,9 @@ import org.junit.Test;
 @SuppressWarnings("deprecation")
 public class ClientConfigurationTest {
 
-  @SuppressWarnings("deprecation")
   private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
-  @SuppressWarnings("deprecation")
   private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
-  @SuppressWarnings("deprecation")
   private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
-  @SuppressWarnings("deprecation")
   private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty RPC_SSL_TRUSTSTORE_TYPE = ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE;
 
   @Test
