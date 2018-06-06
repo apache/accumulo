@@ -34,8 +34,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -125,9 +125,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo info) {
-    ConnectionInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
-    InputConfigurator.setConnectionInfo(CLASS, job, inputInfo);
+  public static void setClientInfo(JobConf job, ClientInfo info) {
+    ClientInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
+    InputConfigurator.setClientInfo(CLASS, job, inputInfo);
   }
 
   /**
@@ -157,15 +157,15 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Retrieves {@link ConnectionInfo} from the configuration
+   * Retrieves {@link ClientInfo} from the configuration
    *
    * @param job
    *          Hadoop job instance configuration
-   * @return {@link ConnectionInfo} object
+   * @return {@link ClientInfo} object
    * @since 2.0.0
    */
-  protected static ConnectionInfo getConnectionInfo(JobConf job) {
-    return InputConfigurator.getConnectionInfo(CLASS, job);
+  protected static ClientInfo getClientInfo(JobConf job) {
+    return InputConfigurator.getClientInfo(CLASS, job);
   }
 
   /**
@@ -187,7 +187,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param token
    *          the user's password
    * @since 1.5.0
-   * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead
+   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
@@ -234,7 +234,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param tokenFile
    *          the path to the token file
    * @since 1.6.0
-   * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead
+   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
@@ -292,7 +292,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param clientConfig
    *          client configuration containing connection options
    * @since 1.6.0
-   * @deprecated since 2.0.0; Use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead.
+   * @deprecated since 2.0.0; Use {@link #setClientInfo(JobConf, ClientInfo)} instead.
    */
   @Deprecated
   public static void setZooKeeperInstance(JobConf job,
@@ -373,7 +373,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          The job
    * @return The client configuration for the job
    * @since 1.7.0
-   * @deprecated since 2.0.0, replaced by {{@link #getConnectionInfo(JobConf)}}
+   * @deprecated since 2.0.0, replaced by {{@link #getClientInfo(JobConf)}}
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
@@ -554,7 +554,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             scanner = new OfflineScanner(instance, new Credentials(principal, token),
                 Table.ID.of(baseSplit.getTableId()), authorizations);
           } else {
-            Properties props = getConnectionInfo(job).getProperties();
+            Properties props = getClientInfo(job).getProperties();
             ClientContext context = new ClientContext(instance, new Credentials(principal, token),
                 props);
             scanner = new ScannerImpl(context, Table.ID.of(baseSplit.getTableId()), authorizations);
@@ -708,7 +708,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           // tablets... so clear it
           tl.invalidateCache();
 
-          ClientContext context = new ClientContext(getConnectionInfo(job));
+          ClientContext context = new ClientContext(getClientInfo(job));
           while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
             String tableIdStr = tableId.canonicalID();
             if (!Tables.exists(instance, tableId))

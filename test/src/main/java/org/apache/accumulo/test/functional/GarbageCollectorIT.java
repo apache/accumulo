@@ -120,8 +120,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = opts.rows = 10000;
     vopts.cols = opts.cols = 1;
-    opts.setConnectionInfo(getConnectionInfo());
-    vopts.setConnectionInfo(getConnectionInfo());
+    opts.setClientInfo(getClientInfo());
+    vopts.setClientInfo(getClientInfo());
     TestIngest.ingest(c, cluster.getFileSystem(), opts, new BatchWriterOpts());
     c.tableOperations().compact("test_ingest", null, null, true, true);
     int before = countFiles();

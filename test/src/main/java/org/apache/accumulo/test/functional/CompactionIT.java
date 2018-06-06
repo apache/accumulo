@@ -135,7 +135,7 @@ public class CompactionIT extends AccumuloClusterHarness {
               opts.dataSize = 50;
               opts.cols = 1;
               opts.setTableName(tableName);
-              opts.setConnectionInfo(getConnectionInfo());
+              opts.setClientInfo(getClientInfo());
               VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
             } catch (Exception ex) {
               log.warn("Got exception verifying data", ex);

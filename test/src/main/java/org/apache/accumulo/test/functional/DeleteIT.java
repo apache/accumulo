@@ -68,8 +68,8 @@ public class DeleteIT extends AccumuloClusterHarness {
     vopts.random = opts.random = 56;
 
     assertTrue("Expected one of password or keytab", null != password || null != keytab);
-    opts.setConnectionInfo(getConnectionInfo());
-    vopts.setConnectionInfo(getConnectionInfo());
+    opts.setClientInfo(getClientInfo());
+    vopts.setClientInfo(getClientInfo());
 
     BatchWriterOpts BWOPTS = new BatchWriterOpts();
     TestIngest.ingest(c, opts, BWOPTS);

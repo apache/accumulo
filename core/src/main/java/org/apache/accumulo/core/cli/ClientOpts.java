@@ -27,7 +27,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -103,7 +103,7 @@ public class ClientOpts extends Help {
   private Password securePassword = null;
 
   public AuthenticationToken getToken() {
-    return getConnectionInfo().getAuthenticationToken();
+    return getClientInfo().getAuthenticationToken();
   }
 
   @Parameter(names = {"-z", "--keepers"},
@@ -158,7 +158,7 @@ public class ClientOpts extends Help {
     startTracing(programName);
   }
 
-  private ConnectionInfo cachedInfo = null;
+  private ClientInfo cachedInfo = null;
   private Connector cachedConnector = null;
   protected Instance cachedInstance = null;
   private Properties cachedProps = null;
@@ -175,18 +175,18 @@ public class ClientOpts extends Help {
   }
 
   public String getPrincipal() {
-    return getConnectionInfo().getPrincipal();
+    return getClientInfo().getPrincipal();
   }
 
   public void setPrincipal(String principal) {
     this.principal = principal;
   }
 
-  public void setConnectionInfo(ConnectionInfo info) {
+  public void setClientInfo(ClientInfo info) {
     this.cachedInfo = info;
   }
 
-  public ConnectionInfo getConnectionInfo() {
+  public ClientInfo getClientInfo() {
     if (cachedInfo == null) {
       cachedInfo = Connector.builder().usingProperties(getClientProperties()).info();
     }
@@ -195,7 +195,7 @@ public class ClientOpts extends Help {
 
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (cachedConnector == null) {
-      cachedConnector = Connector.builder().usingConnectionInfo(getConnectionInfo()).build();
+      cachedConnector = Connector.builder().usingClientInfo(getClientInfo()).build();
     }
     return cachedConnector;
   }

@@ -27,7 +27,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -134,7 +134,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           (StandaloneAccumuloClusterConfiguration) clusterConf;
         // @formatter:on
         StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
-            cluster.getConnectionInfo(), conf.getTmpDirectory(), conf.getUsers());
+            cluster.getClientInfo(), conf.getTmpDirectory(), conf.getUsers());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
@@ -265,14 +265,14 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf.getAdminPrincipal();
   }
 
-  public static ConnectionInfo getConnectionInfo() {
+  public static ClientInfo getClientInfo() {
     checkState(initialized);
-    return getCluster().getConnectionInfo();
+    return getCluster().getClientInfo();
   }
 
   public static boolean saslEnabled() {
     if (initialized) {
-      return getConnectionInfo().saslEnabled();
+      return getClientInfo().saslEnabled();
     }
     return false;
   }

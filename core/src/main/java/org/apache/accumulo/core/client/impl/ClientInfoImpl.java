@@ -18,15 +18,15 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 
-public class ConnectionInfoImpl implements ConnectionInfo {
+public class ClientInfoImpl implements ClientInfo {
 
   private Properties properties;
 
-  public ConnectionInfoImpl(Properties properties) {
+  public ClientInfoImpl(Properties properties) {
     this.properties = properties;
   }
 

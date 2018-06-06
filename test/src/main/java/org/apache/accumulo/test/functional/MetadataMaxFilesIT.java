@@ -89,7 +89,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       MasterMonitorInfo stats = null;
       Client client = null;
       try {
-        ClientContext context = new ClientContext(getConnectionInfo());
+        ClientContext context = new ClientContext(getClientInfo());
         client = MasterClient.getConnectionWithRetry(context);
         log.info("Fetching stats");
         stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());

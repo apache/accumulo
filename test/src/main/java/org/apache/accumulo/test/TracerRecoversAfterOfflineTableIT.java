@@ -73,7 +73,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
 
     log.info("Start a distributed trace span");
 
-    DistributedTrace.enable("localhost", "testTrace", getConnectionInfo().getProperties());
+    DistributedTrace.enable("localhost", "testTrace", getClientInfo().getProperties());
     Span root = Trace.on("traceTest");
     BatchWriter bw = conn.createBatchWriter(tableName, null);
     Mutation m = new Mutation("m");

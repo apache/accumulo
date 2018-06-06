@@ -99,7 +99,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       }
     };
 
-    ClientContext context = new ClientContext(getConnectionInfo());
+    ClientContext context = new ClientContext(getClientInfo());
     return new ReplicationOperationsImpl(context) {
       @Override
       protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,

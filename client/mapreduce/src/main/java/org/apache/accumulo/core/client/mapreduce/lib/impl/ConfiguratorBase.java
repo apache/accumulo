@@ -32,14 +32,14 @@ import java.util.Scanner;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
-import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.impl.DelegationTokenStub;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -114,17 +114,17 @@ public class ConfiguratorBase {
         + StringUtils.camelize(e.name().toLowerCase());
   }
 
-  public static ConnectionInfo updateToken(org.apache.hadoop.security.Credentials credentials,
-      ConnectionInfo info) {
-    ConnectionInfo result = info;
+  public static ClientInfo updateToken(org.apache.hadoop.security.Credentials credentials,
+      ClientInfo info) {
+    ClientInfo result = info;
     if (info.getAuthenticationToken() instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Connector conn = Connector.builder().usingConnectionInfo(info).build();
+        Connector conn = Connector.builder().usingClientInfo(info).build();
         AuthenticationToken token = conn.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
-        result = Connector.builder().usingConnectionInfo(info)
-            .usingToken(info.getPrincipal(), token).info();
+        result = Connector.builder().usingClientInfo(info).usingToken(info.getPrincipal(), token)
+            .info();
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
@@ -146,15 +146,15 @@ public class ConfiguratorBase {
     return result;
   }
 
-  public static void setConnectionInfo(Class<?> implementingClass, Configuration conf,
-      ConnectionInfo info) {
+  public static void setClientInfo(Class<?> implementingClass, Configuration conf,
+      ClientInfo info) {
     setClientProperties(implementingClass, conf, info.getProperties());
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
 
-  public static ConnectionInfo getConnectionInfo(Class<?> implementingClass, Configuration conf) {
+  public static ClientInfo getClientInfo(Class<?> implementingClass, Configuration conf) {
     Properties props = getClientProperties(implementingClass, conf);
-    return new ConnectionInfoImpl(props);
+    return new ClientInfoImpl(props);
   }
 
   public static void setClientPropertiesFile(Class<?> implementingClass, Configuration conf,
@@ -376,8 +376,7 @@ public class ConfiguratorBase {
    */
   public static Connector getConnector(Class<?> implementingClass, Configuration conf) {
     try {
-      return Connector.builder().usingConnectionInfo(getConnectionInfo(implementingClass, conf))
-          .build();
+      return Connector.builder().usingClientInfo(getClientInfo(implementingClass, conf)).build();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IllegalStateException(e);
     }
@@ -397,8 +396,7 @@ public class ConfiguratorBase {
   @SuppressWarnings("deprecation")
   public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
       Class<?> implementingClass, Configuration conf) {
-    return ClientConfConverter
-        .toClientConf(getConnectionInfo(implementingClass, conf).getProperties());
+    return ClientConfConverter.toClientConf(getClientInfo(implementingClass, conf).getProperties());
   }
 
   /**

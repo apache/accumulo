@@ -73,12 +73,12 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
     List<String> tservers = c.instanceOperations().getTabletServers();
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = 50000;
-    opts.setConnectionInfo(getConnectionInfo());
+    opts.setClientInfo(getClientInfo());
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush("test_ingest", null, null, false);
     sleepUninterruptibly(45, TimeUnit.SECONDS);
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    ClientContext context = new ClientContext(getConnectionInfo());
+    ClientContext context = new ClientContext(getClientInfo());
 
     MasterMonitorInfo stats = null;
     int unassignedTablets = 1;

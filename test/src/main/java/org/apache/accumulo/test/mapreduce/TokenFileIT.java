@@ -101,7 +101,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setInputFormatClass(AccumuloInputFormat.class);
 
       AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
+      AccumuloInputFormat.setClientInfo(job, getClientInfo());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -110,7 +110,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectionInfo(job, getConnectionInfo());
+      AccumuloOutputFormat.setClientInfo(job, getClientInfo());
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
 

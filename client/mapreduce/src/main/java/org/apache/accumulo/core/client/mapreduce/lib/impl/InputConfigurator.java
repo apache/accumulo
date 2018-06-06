@@ -39,8 +39,8 @@ import java.util.StringTokenizer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -721,7 +721,7 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
       Table.ID tableId) {
-    ConnectionInfo info = getConnectionInfo(implementingClass, conf);
+    ClientInfo info = getClientInfo(implementingClass, conf);
     ClientContext context = new ClientContext(info);
     return TabletLocator.getLocator(context, tableId);
   }
@@ -762,7 +762,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
       String principal = getPrincipal(implementingClass, conf);
       if (principal == null) {
-        principal = getConnectionInfo(implementingClass, conf).getPrincipal();
+        principal = getClientInfo(implementingClass, conf).getPrincipal();
       }
 
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {

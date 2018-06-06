@@ -380,7 +380,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     conn.tableOperations().flush(otherTable, null, null, true);
 
     // Get the tservers which the master deems as active
-    final ClientContext context = new ClientContext(getConnectionInfo());
+    final ClientContext context = new ClientContext(getClientInfo());
     List<String> tservers = MasterClient.execute(context,
         client -> client.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
 

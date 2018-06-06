@@ -27,7 +27,7 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -56,14 +56,14 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
       .unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
           ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
-  private ConnectionInfo info;
+  private ClientInfo info;
   private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
   private Path tmp;
   private List<ClusterUser> users;
   private String clientCmdPrefix;
   private String serverCmdPrefix;
 
-  public StandaloneAccumuloCluster(ConnectionInfo info, Path tmp, List<ClusterUser> users) {
+  public StandaloneAccumuloCluster(ClientInfo info, Path tmp, List<ClusterUser> users) {
     this.info = info;
     this.tmp = tmp;
     this.users = users;
@@ -139,7 +139,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public ConnectionInfo getConnectionInfo() {
+  public ClientInfo getClientInfo() {
     return info;
   }
 

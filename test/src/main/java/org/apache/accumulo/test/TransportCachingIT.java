@@ -53,7 +53,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
   public void testCachedTransport() {
     Connector conn = getConnector();
     Instance instance = conn.getInstance();
-    ClientContext context = new ClientContext(getConnectionInfo());
+    ClientContext context = new ClientContext(getClientInfo());
     long rpcTimeout = ConfigurationTypeHelper
         .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 

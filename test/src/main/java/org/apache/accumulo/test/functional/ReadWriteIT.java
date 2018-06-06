@@ -63,7 +63,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -136,8 +136,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
-    ingest(connector, getConnectionInfo(), ROWS, COLS, 50, 0, tableName);
-    verify(connector, getConnectionInfo(), ROWS, COLS, 50, 0, tableName);
+    ingest(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+    verify(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
     String monitorLocation = null;
     while (null == monitorLocation) {
       monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
@@ -200,12 +200,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.start();
   }
 
-  public static void ingest(Connector connector, ConnectionInfo info, int rows, int cols, int width,
+  public static void ingest(Connector connector, ClientInfo info, int rows, int cols, int width,
       int offset, String tableName) throws Exception {
     ingest(connector, info, rows, cols, width, offset, COLF, tableName);
   }
 
-  public static void ingest(Connector connector, ConnectionInfo info, int rows, int cols, int width,
+  public static void ingest(Connector connector, ClientInfo info, int rows, int cols, int width,
       int offset, String colf, String tableName) throws Exception {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = rows;
@@ -215,18 +215,18 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
-    opts.setConnectionInfo(info);
+    opts.setClientInfo(info);
 
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
   }
 
-  public static void verify(Connector connector, ConnectionInfo info, int rows, int cols, int width,
+  public static void verify(Connector connector, ClientInfo info, int rows, int cols, int width,
       int offset, String tableName) throws Exception {
     verify(connector, info, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(Connector connector, ConnectionInfo info, int rows, int cols,
-      int width, int offset, String colf, String tableName) throws Exception {
+  private static void verify(Connector connector, ClientInfo info, int rows, int cols, int width,
+      int offset, String colf, String tableName) throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
@@ -235,7 +235,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
-    opts.setConnectionInfo(info);
+    opts.setClientInfo(info);
 
     VerifyIngest.verifyIngest(connector, opts, scannerOpts);
   }
@@ -320,8 +320,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     // write a few large values
     Connector connector = getConnector();
     String table = getUniqueNames(1)[0];
-    ingest(connector, getConnectionInfo(), 2, 1, 500000, 0, table);
-    verify(connector, getConnectionInfo(), 2, 1, 500000, 0, table);
+    ingest(connector, getClientInfo(), 2, 1, 500000, 0, table);
+    verify(connector, getClientInfo(), 2, 1, 500000, 0, table);
   }
 
   @Test
@@ -335,7 +335,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   static void interleaveTest(final Connector connector, final String tableName) throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
-    ingest(connector, getConnectionInfo(), CHUNKSIZE, 1, 50, 0, tableName);
+    ingest(connector, getClientInfo(), CHUNKSIZE, 1, 50, 0, tableName);
     int i;
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
@@ -343,18 +343,18 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         @Override
         public void run() {
           try {
-            verify(connector, getConnectionInfo(), CHUNKSIZE, 1, 50, start, tableName);
+            verify(connector, getClientInfo(), CHUNKSIZE, 1, 50, start, tableName);
           } catch (Exception ex) {
             fail.set(true);
           }
         }
       };
       verify.start();
-      ingest(connector, getConnectionInfo(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
+      ingest(connector, getClientInfo(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
       verify.join();
       assertFalse(fail.get());
     }
-    verify(connector, getConnectionInfo(), CHUNKSIZE, 1, 50, i, tableName);
+    verify(connector, getClientInfo(), CHUNKSIZE, 1, 50, i, tableName);
   }
 
   public static Text t(String s) {
@@ -375,7 +375,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     connector.tableOperations().create(tableName);
     connector.tableOperations().setProperty(tableName, "table.group.g1", "colf");
     connector.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
-    ingest(connector, getConnectionInfo(), 2000, 1, 50, 0, tableName);
+    ingest(connector, getClientInfo(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().compact(tableName, null, null, true, true);
     BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
@@ -430,8 +430,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   private void verifyLocalityGroupsInRFile(final Connector connector, final String tableName)
       throws Exception, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ingest(connector, getConnectionInfo(), 2000, 1, 50, 0, tableName);
-    verify(connector, getConnectionInfo(), 2000, 1, 50, 0, tableName);
+    ingest(connector, getClientInfo(), 2000, 1, 50, 0, tableName);
+    verify(connector, getClientInfo(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().flush(tableName, null, null, true);
     try (BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME,
         Authorizations.EMPTY, 1)) {
@@ -480,9 +480,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     int i = 0;
     for (String cfg : config) {
       to.setLocalityGroups(table, getGroups(cfg));
-      ingest(connector, getConnectionInfo(), ROWS * (i + 1), 1, 50, ROWS * i, table);
+      ingest(connector, getClientInfo(), ROWS * (i + 1), 1, 50, ROWS * i, table);
       to.flush(table, null, null, true);
-      verify(connector, getConnectionInfo(), 0, 1, 50, ROWS * (i + 1), table);
+      verify(connector, getClientInfo(), 0, 1, 50, ROWS * (i + 1), table);
       i++;
     }
     to.delete(table);
@@ -490,12 +490,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
     i = 1;
     for (String cfg : config) {
-      ingest(connector, getConnectionInfo(), ROWS * i, 1, 50, 0, table);
-      ingest(connector, getConnectionInfo(), ROWS * i, 1, 50, 0, "xyz", table);
+      ingest(connector, getClientInfo(), ROWS * i, 1, 50, 0, table);
+      ingest(connector, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
       to.setLocalityGroups(table, getGroups(cfg));
       to.flush(table, null, null, true);
-      verify(connector, getConnectionInfo(), ROWS * i, 1, 50, 0, table);
-      verify(connector, getConnectionInfo(), ROWS * i, 1, 50, 0, "xyz", table);
+      verify(connector, getClientInfo(), ROWS * i, 1, 50, 0, table);
+      verify(connector, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
       i++;
     }
   }

@@ -87,7 +87,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
     opts.rows = 500 * 1000;
     opts.createTable = true;
     opts.setTableName(firstTable);
-    opts.setConnectionInfo(getConnectionInfo());
+    opts.setClientInfo(getClientInfo());
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush(firstTable, null, null, true);
     for (int i = 1; i < tables.length; i++)
@@ -102,7 +102,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
       MasterMonitorInfo stats = null;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(new ClientContext(getConnectionInfo()));
+          client = MasterClient.getConnectionWithRetry(new ClientContext(getClientInfo()));
           stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
           break;
         } catch (ThriftNotActiveServiceException e) {

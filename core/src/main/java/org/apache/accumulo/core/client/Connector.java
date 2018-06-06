@@ -314,24 +314,24 @@ public abstract class Connector {
   public abstract ReplicationOperations replicationOperations();
 
   /**
-   * @return {@link ConnectionInfo} which contains information about Connection to Accumulo
+   * @return {@link ClientInfo} which contains information about client connection to Accumulo
    * @since 2.0.0
    */
-  public abstract ConnectionInfo info();
+  public abstract ClientInfo info();
 
   /**
-   * Builds ConnectionInfo after all options have been specified
+   * Builds ClientInfo after all options have been specified
    *
    * @since 2.0.0
    */
-  public interface ConnInfoFactory {
+  public interface ClientInfoFactory {
 
     /**
-     * Builds ConnectionInfo after all options have been specified
+     * Builds ClientInfo after all options have been specified
      *
-     * @return ConnectionInfo
+     * @return ClientInfo
      */
-    ConnectionInfo info();
+    ClientInfo info();
   }
 
   /**
@@ -339,7 +339,7 @@ public abstract class Connector {
    *
    * @since 2.0.0
    */
-  public interface ConnectorFactory extends ConnInfoFactory {
+  public interface ConnectorFactory extends ClientInfoFactory {
 
     /**
      * Builds Connector after all options have been specified
@@ -388,16 +388,16 @@ public abstract class Connector {
     ConnectorFactory usingProperties(Properties properties);
   }
 
-  public interface ConnectionInfoOptions extends PropertyOptions {
+  public interface ClientInfoOptions extends PropertyOptions {
 
     /**
-     * Build using connection information
+     * Build using Accumulo client information
      *
-     * @param connectionInfo
-     *          ConnectionInfo object
+     * @param clientInfo
+     *          ClientInfo object
      * @return this builder
      */
-    FromOptions usingConnectionInfo(ConnectionInfo connectionInfo);
+    FromOptions usingClientInfo(ClientInfo clientInfo);
   }
 
   /**
@@ -577,7 +577,7 @@ public abstract class Connector {
    * @return this builder
    * @since 2.0.0
    */
-  public static ConnectionInfoOptions builder() {
+  public static ClientInfoOptions builder() {
     return new ConnectorImpl.ConnectorBuilderImpl();
   }
 }

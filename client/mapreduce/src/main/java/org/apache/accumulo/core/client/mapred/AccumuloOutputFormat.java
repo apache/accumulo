@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -69,7 +69,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectionInfo(JobConf, ConnectionInfo)}
+ * <li>{@link AccumuloOutputFormat#setClientInfo(JobConf, ClientInfo)}
  * </ul>
  *
  * Other static methods are optional.
@@ -88,9 +88,9 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          Accumulo connection information
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo info) {
-    ConnectionInfo outInfo = OutputConfigurator.updateToken(job.getCredentials(), info);
-    OutputConfigurator.setConnectionInfo(CLASS, job, outInfo);
+  public static void setClientInfo(JobConf job, ClientInfo info) {
+    ClientInfo outInfo = OutputConfigurator.updateToken(job.getCredentials(), info);
+    OutputConfigurator.setClientInfo(CLASS, job, outInfo);
   }
 
   /**
@@ -139,7 +139,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param token
    *          the user's password
    * @since 1.5.0
-   * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead.
+   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead.
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
@@ -187,7 +187,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param tokenFile
    *          the path to the password file
    * @since 1.6.0
-   * @deprecated since 2.0.0, use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead
+   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
@@ -246,7 +246,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
-   * @deprecated since 2.0.0; Use {@link #setConnectionInfo(JobConf, ConnectionInfo)} instead.
+   * @deprecated since 2.0.0; Use {@link #setClientInfo(JobConf, ClientInfo)} instead.
    */
   @Deprecated
   public static void setZooKeeperInstance(JobConf job,

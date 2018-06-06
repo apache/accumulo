@@ -105,7 +105,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       opts.cols = 1;
       opts.random = i;
       opts.setTableName(tableName);
-      opts.setConnectionInfo(getConnectionInfo());
+      opts.setClientInfo(getClientInfo());
       TestIngest.ingest(c, opts, new BatchWriterOpts());
 
       c.tableOperations().flush(tableName, null, null, true);

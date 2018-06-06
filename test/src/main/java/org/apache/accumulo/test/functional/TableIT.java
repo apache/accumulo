@@ -70,8 +70,8 @@ public class TableIT extends AccumuloClusterHarness {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    opts.setConnectionInfo(getConnectionInfo());
-    vopts.setConnectionInfo(getConnectionInfo());
+    opts.setClientInfo(getClientInfo());
+    vopts.setClientInfo(getClientInfo());
     opts.setTableName(tableName);
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     to.flush(tableName, null, null, true);
