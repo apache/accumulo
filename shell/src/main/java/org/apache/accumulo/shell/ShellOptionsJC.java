@@ -292,6 +292,7 @@ public class ShellOptionsJC {
         File file = new File(path);
         if (file.isFile() && file.canRead()) {
           clientConfigFile = file.getAbsolutePath();
+          System.out.println("Loading configuration from " + clientConfigFile);
           break;
         }
       }
