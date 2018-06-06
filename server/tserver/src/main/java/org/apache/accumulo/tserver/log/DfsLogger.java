@@ -618,6 +618,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     key.tablet = tablet;
     try {
       write(key, EMPTY);
+    } catch (ClosedChannelException ex) {
+      throw new LogClosedException();
     } catch (IllegalArgumentException e) {
       log.error("Signature of sync method changed. Accumulo is likely"
           + " incompatible with this version of Hadoop.");
@@ -626,9 +628,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
-    key.write(encryptingLogFile);
-    value.write(encryptingLogFile);
-    encryptingLogFile.flush();
+    try {
+      key.write(encryptingLogFile);
+      value.write(encryptingLogFile);
+      encryptingLogFile.flush();
+    } catch (ClosedChannelException e) {
+      throw new LogClosedException();
+    }
   }
 
   public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability)
