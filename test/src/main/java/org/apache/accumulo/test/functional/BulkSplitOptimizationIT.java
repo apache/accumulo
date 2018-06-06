@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -118,7 +117,6 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     opts.cols = 1;
     opts.setTableName(tableName);
 
-    AuthenticationToken adminToken = getAdminToken();
     opts.setClientInfo(getClientInfo());
     VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
 

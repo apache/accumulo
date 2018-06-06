@@ -306,8 +306,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Prepare to export the table
     File exportDir = new File(getCluster().getConfig().getDir() + "/export");
+    File exportDirBulk = new File(getCluster().getConfig().getDir() + "/export_bulk");
+    assertTrue(exportDirBulk.mkdir() || exportDirBulk.isDirectory());
 
-    auditConnector.tableOperations().offline(OLD_TEST_TABLE_NAME);
+    auditConnector.tableOperations().offline(OLD_TEST_TABLE_NAME, true);
     auditConnector.tableOperations().exportTable(OLD_TEST_TABLE_NAME, exportDir.toString());
 
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path
@@ -327,14 +329,13 @@ public class AuditMessageIT extends ConfigurableMacBase {
       }
     }
     FileUtils.copyFileToDirectory(importFile, exportDir);
+    FileUtils.copyFileToDirectory(importFile, exportDirBulk);
     auditConnector.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());
 
     // Now do a Directory (bulk) import of the same data.
     auditConnector.tableOperations().create(THIRD_TEST_TABLE_NAME);
-    File failDir = new File(exportDir + "/tmp");
-    assertTrue(failDir.mkdirs() || failDir.isDirectory());
-    auditConnector.tableOperations().importDirectory(THIRD_TEST_TABLE_NAME, exportDir.toString(),
-        failDir.toString(), false);
+    auditConnector.tableOperations().addFilesTo(THIRD_TEST_TABLE_NAME)
+        .from(exportDirBulk.toString()).load();
     auditConnector.tableOperations().online(OLD_TEST_TABLE_NAME);
 
     // Stop testing activities here
@@ -360,7 +361,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_BULK_IMPORT_AUDIT_TEMPLATE,
-                THIRD_TEST_TABLE_NAME, filePrefix + exportDir, filePrefix + failDir)));
+                THIRD_TEST_TABLE_NAME, filePrefix + exportDirBulk, null)));
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,

@@ -116,18 +116,8 @@ public class FunctionalTestUtils {
 
   static public void bulkImport(Connector c, FileSystem fs, String table, String dir)
       throws Exception {
-    String failDir = dir + "_failures";
-    Path failPath = new Path(failDir);
-    fs.delete(failPath, true);
-    fs.mkdirs(failPath);
-
     // Ensure server can read/modify files
-    c.tableOperations().importDirectory(table, dir, failDir, false);
-
-    if (fs.listStatus(failPath).length > 0) {
-      throw new Exception("Some files failed to bulk import");
-    }
-
+    c.tableOperations().addFilesTo(table).from(dir).load();
   }
 
   static public void checkSplits(Connector c, String table, int min, int max) throws Exception {

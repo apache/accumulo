@@ -89,8 +89,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
             + " <token file> <inputtable> <outputtable>");
       }
 
-      String user = getAdminPrincipal();
-      String tokenFile = args[0];
+      // String user = getAdminPrincipal();
+      // String tokenFile = args[0];
       String table1 = args[1];
       String table2 = args[2];
 

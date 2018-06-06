@@ -525,10 +525,16 @@ class FateServiceHandler implements FateService.Iface {
 
         final boolean canBulkImport;
         try {
-          canBulkImport = master.security.canBulkImport(c, tableId, namespaceId);
+          String tableName = Tables.getTableName(master.getInstance(), tableId);
+          canBulkImport = master.security.canBulkImport(c, tableId, tableName, dir, null,
+              namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, "", TableOperation.BULK_IMPORT);
           throw e;
+        } catch (TableNotFoundException e) {
+          throw new ThriftTableOperationException(tableId.canonicalID(), null,
+              TableOperation.BULK_IMPORT, TableOperationExceptionType.NOTFOUND,
+              "Table no longer exists");
         }
 
         if (!canBulkImport)
