@@ -91,7 +91,6 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public int run(String[] args) throws Exception {
 
@@ -100,8 +99,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
             + " <token file> <inputtable> <outputtable>");
       }
 
-      String user = getAdminPrincipal();
-      String tokenFile = args[0];
+      // String tokenFile = args[0];
       String table1 = args[1];
       String table2 = args[2];
 
@@ -120,10 +118,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectorInfo(job, user, tokenFile);
+      AccumuloOutputFormat.setClientInfo(job, getCluster().getClientInfo());
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
-      AccumuloOutputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
 
       job.setNumReduceTasks(0);
 

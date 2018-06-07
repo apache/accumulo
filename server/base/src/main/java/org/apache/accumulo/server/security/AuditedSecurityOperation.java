@@ -419,7 +419,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public boolean canBulkImport(TCredentials c, Table.ID tableId, String tableName, String dir,
       String failDir, Namespace.ID namespaceId) throws ThriftSecurityException {
     try {
-      boolean result = super.canBulkImport(c, tableId, namespaceId);
+      boolean result = super.canBulkImport(c, tableId, tableName, dir, failDir, namespaceId);
       audit(c, result, CAN_BULK_IMPORT_AUDIT_TEMPLATE, tableName, dir, failDir);
       return result;
     } catch (ThriftSecurityException ex) {

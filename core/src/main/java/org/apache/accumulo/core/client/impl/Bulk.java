@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -97,7 +96,7 @@ public class Bulk {
   /**
    * WARNING : do not change this class, its used for serialization to Json
    */
-  public static class FileInfo implements Serializable {
+  public static class FileInfo {
     final String name;
     final long estSize;
     final long estEntries;
@@ -151,7 +150,7 @@ public class Bulk {
     }
   }
 
-  public static class Files implements Iterable<FileInfo>, Serializable {
+  public static class Files implements Iterable<FileInfo> {
     Map<String,FileInfo> files = new HashMap<>();
 
     public Files(Collection<FileInfo> files) {

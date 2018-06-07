@@ -578,11 +578,6 @@ public class SecurityOperation {
 
   public boolean canBulkImport(TCredentials c, Table.ID tableId, String tableName, String dir,
       String failDir, Namespace.ID namespaceId) throws ThriftSecurityException {
-    return canBulkImport(c, tableId, namespaceId);
-  }
-
-  public boolean canBulkImport(TCredentials c, Table.ID tableId, Namespace.ID namespaceId)
-      throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
   }

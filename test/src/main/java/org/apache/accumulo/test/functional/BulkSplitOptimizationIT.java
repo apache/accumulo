@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -93,7 +92,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     FileStatus[] stats = fs.listStatus(testDir);
 
     System.out.println("Number of generated files: " + stats.length);
-    FunctionalTestUtils.bulkImport(c, fs, tableName, testDir.toString());
+    c.tableOperations().addFilesTo(tableName).from(testDir.toString()).load();
     FunctionalTestUtils.checkSplits(c, tableName, 0, 0);
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
 
@@ -118,7 +117,6 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     opts.cols = 1;
     opts.setTableName(tableName);
 
-    AuthenticationToken adminToken = getAdminToken();
     opts.setClientInfo(getClientInfo());
     VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
 
