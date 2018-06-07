@@ -114,12 +114,6 @@ public class FunctionalTestUtils {
     }
   }
 
-  static public void bulkImport(Connector c, FileSystem fs, String table, String dir)
-      throws Exception {
-    // Ensure server can read/modify files
-    c.tableOperations().addFilesTo(table).from(dir).load();
-  }
-
   static public void checkSplits(Connector c, String table, int min, int max) throws Exception {
     Collection<Text> splits = c.tableOperations().listSplits(table);
     if (splits.size() < min || splits.size() > max) {

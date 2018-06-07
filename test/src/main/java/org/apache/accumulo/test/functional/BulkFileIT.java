@@ -93,7 +93,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
     writeData(writer3, 1000, 1999);
     writer3.close();
 
-    FunctionalTestUtils.bulkImport(c, fs, tableName, dir);
+    c.tableOperations().addFilesTo(tableName).from(dir).load();
 
     FunctionalTestUtils.checkRFiles(c, tableName, 6, 6, 1, 1);
 

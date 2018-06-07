@@ -92,7 +92,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     FileStatus[] stats = fs.listStatus(testDir);
 
     System.out.println("Number of generated files: " + stats.length);
-    FunctionalTestUtils.bulkImport(c, fs, tableName, testDir.toString());
+    c.tableOperations().addFilesTo(tableName).from(testDir.toString()).load();
     FunctionalTestUtils.checkSplits(c, tableName, 0, 0);
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
 
