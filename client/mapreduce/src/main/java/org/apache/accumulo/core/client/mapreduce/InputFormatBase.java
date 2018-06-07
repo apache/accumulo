@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -87,6 +88,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param ranges
    *          the ranges that will be mapped over
+   * @see TableOperations#splitRangeByTablets(String, Range, int)
    * @since 1.5.0
    */
   public static void setRanges(Job job, Collection<Range> ranges) {
