@@ -163,13 +163,13 @@ public class RestartIT extends AccumuloClusterHarness {
     control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
     control.stopAllServers(ServerType.MONITOR);
 
-    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(),
-        c.getInstance().getZooKeepersSessionTimeOut());
+    ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
+        c.info().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
     byte[] masterLockData;
     do {
       masterLockData = ZooLock.getLockData(zcache,
-          ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+          ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);
@@ -183,7 +183,7 @@ public class RestartIT extends AccumuloClusterHarness {
     masterLockData = new byte[0];
     do {
       masterLockData = ZooLock.getLockData(zcache,
-          ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+          ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);
@@ -231,13 +231,13 @@ public class RestartIT extends AccumuloClusterHarness {
 
     control.stopAllServers(ServerType.MASTER);
 
-    ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(),
-        c.getInstance().getZooKeepersSessionTimeOut());
+    ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
+        c.info().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
     byte[] masterLockData;
     do {
       masterLockData = ZooLock.getLockData(zcache,
-          ZooUtil.getRoot(c.getInstance()) + Constants.ZMASTER_LOCK, null);
+          ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);

@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -110,6 +111,7 @@ public class VolumeIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "15s");
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -278,7 +280,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
 
     // grab this before shutting down cluster
-    String uuid = getConnector().getInstance().getInstanceID();
+    String uuid = getConnector().getInstanceID();
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
@@ -323,7 +325,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
 
     // grab this before shutting down cluster
-    String uuid = getConnector().getInstance().getInstanceID();
+    String uuid = getConnector().getInstanceID();
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
@@ -449,8 +451,8 @@ public class VolumeIT extends ConfigurableMacBase {
       // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
       retry: while (true) {
         Instance i = conn.getInstance();
-        ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-            "");
+        ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
+            conn.info().getZooKeepersSessionTimeOut(), "");
         WalStateManager wals = new WalStateManager(i, zk);
         try {
           outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {

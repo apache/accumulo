@@ -115,7 +115,7 @@ public class ZombieTServer {
         10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
-    String zPath = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/"
+    String zPath = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS + "/"
         + addressString;
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);

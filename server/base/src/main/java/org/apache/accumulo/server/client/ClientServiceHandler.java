@@ -120,17 +120,17 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public String getInstanceId() {
-    return instance.getInstanceID();
+    return context.getInstanceID();
   }
 
   @Override
   public String getRootTabletLocation() {
-    return instance.getRootTabletLocation();
+    return context.getRootTabletLocation();
   }
 
   @Override
   public String getZooKeepers() {
-    return instance.getZooKeepers();
+    return context.getZooKeepers();
   }
 
   @Override

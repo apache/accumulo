@@ -49,7 +49,6 @@ public class ReplicationClient {
   public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(
       ClientContext context) throws AccumuloException {
     requireNonNull(context);
-    Instance instance = context.getInstance();
 
     for (int attempts = 1; attempts <= 10; attempts++) {
 
@@ -57,7 +56,7 @@ public class ReplicationClient {
       if (result != null)
         return result;
       log.debug("Could not get ReplicationCoordinator connection to {}, will retry",
-          instance.getInstanceName());
+          context.getInstanceName());
       try {
         Thread.sleep(attempts * 250);
       } catch (InterruptedException e) {
@@ -66,22 +65,22 @@ public class ReplicationClient {
     }
 
     throw new AccumuloException(
-        "Timed out trying to communicate with master from " + instance.getInstanceName());
+        "Timed out trying to communicate with master from " + context.getInstanceName());
   }
 
   public static ReplicationCoordinator.Client getCoordinatorConnection(ClientContext context) {
     Instance instance = context.getInstance();
-    List<String> locations = instance.getMasterLocations();
+    List<String> locations = context.getMasterLocations();
 
     if (locations.size() == 0) {
-      log.debug("No masters for replication to instance {}", instance.getInstanceName());
+      log.debug("No masters for replication to instance {}", context.getInstanceName());
       return null;
     }
 
     // This is the master thrift service, we just want the hostname, not the port
     String masterThriftService = locations.get(0);
     if (masterThriftService.endsWith(":0")) {
-      log.warn("Master found for {} did not have real location {}", instance.getInstanceName(),
+      log.warn("Master found for {} did not have real location {}", context.getInstanceName(),
           masterThriftService);
       return null;
     }
@@ -94,8 +93,8 @@ public class ReplicationClient {
 
     // Get the coordinator port for the master we're trying to connect to
     try {
-      ZooReader reader = new ZooReader(instance.getZooKeepers(),
-          instance.getZooKeepersSessionTimeOut());
+      ZooReader reader = new ZooReader(context.getZooKeepers(),
+          context.getZooKeepersSessionTimeOut());
       replCoordinatorAddr = new String(reader.getData(zkPath, null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch remote coordinator port", e);
@@ -189,8 +188,8 @@ public class ReplicationClient {
       }
     }
 
-    throw new AccumuloException("Could not connect to ReplicationCoordinator at "
-        + context.getInstance().getInstanceName());
+    throw new AccumuloException(
+        "Could not connect to ReplicationCoordinator at " + context.getInstanceName());
   }
 
   public static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver,

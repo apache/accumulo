@@ -100,10 +100,9 @@ public class BatchWriterIterator extends WrappingIterator {
       Connector connector, AuthenticationToken token, boolean clearCacheAfterFirstWrite,
       boolean splitAfterFirstWrite) {
     return iteratorSetting(priority, sleepAfterFirstWrite, batchWriterTimeout, batchWriterMaxMemory,
-        numEntriesToWrite, tableName, connector.getInstance().getZooKeepers(),
-        connector.getInstance().getInstanceName(),
-        connector.getInstance().getZooKeepersSessionTimeOut(), connector.whoami(), token,
-        clearCacheAfterFirstWrite, splitAfterFirstWrite);
+        numEntriesToWrite, tableName, connector.info().getZooKeepers(),
+        connector.info().getInstanceName(), connector.getInstance().getZooKeepersSessionTimeOut(),
+        connector.whoami(), token, clearCacheAfterFirstWrite, splitAfterFirstWrite);
   }
 
   public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite,

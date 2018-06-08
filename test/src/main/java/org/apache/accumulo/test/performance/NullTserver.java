@@ -325,7 +325,7 @@ public class NullTserver {
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
-    Table.ID tableId = Tables.getTableId(zki, opts.tableName);
+    Table.ID tableId = Tables.getTableId(context, opts.tableName);
 
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();

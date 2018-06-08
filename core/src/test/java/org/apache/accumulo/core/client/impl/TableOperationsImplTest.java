@@ -38,7 +38,8 @@ public class TableOperationsImplTest {
     Instance instance = EasyMock.createMock(Instance.class);
     Credentials credentials = EasyMock.createMock(Credentials.class);
 
-    ClientContext context = new ClientContext(instance, credentials, new Properties());
+    ClientContext context = new ClientContext(new ClientInfoImpl(new Properties(), null), instance,
+        credentials, null);
     TableOperationsImpl topsImpl = new TableOperationsImpl(context);
 
     Connector connector = EasyMock.createMock(Connector.class);

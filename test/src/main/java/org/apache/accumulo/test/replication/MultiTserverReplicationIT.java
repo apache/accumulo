@@ -23,8 +23,8 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -52,23 +52,25 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   public void tserverReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
     Connector conn = getConnector();
-    Instance inst = conn.getInstance();
+    ClientContext context = new ClientContext(getClientInfo());
 
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");
     try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
       Assert.assertEquals(0, Iterables.size(s));
 
-      ZooReader zreader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+      ZooReader zreader = new ZooReader(context.getZooKeepers(),
+          context.getZooKeepersSessionTimeOut());
       Set<String> tserverHost = new HashSet<>();
-      tserverHost.addAll(zreader.getChildren(ZooUtil.getRoot(inst) + Constants.ZTSERVERS));
+      tserverHost
+          .addAll(zreader.getChildren(ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZTSERVERS));
 
       Set<HostAndPort> replicationServices = new HashSet<>();
 
       for (String tserver : tserverHost) {
         try {
-          byte[] portData = zreader.getData(
-              ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
+          byte[] portData = zreader.getData(ZooUtil.getRoot(conn.getInstanceID())
+              + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
           HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
           replicationServices.add(replAddress);
         } catch (Exception e) {
@@ -87,24 +89,26 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   public void masterReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
     Connector conn = getConnector();
-    Instance inst = conn.getInstance();
+    ClientContext context = new ClientContext(getClientInfo());
 
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");
     try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
       Assert.assertEquals(0, Iterables.size(s));
 
-      ZooReader zreader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+      ZooReader zreader = new ZooReader(context.getZooKeepers(),
+          context.getZooKeepersSessionTimeOut());
 
       // Should have one master instance
-      Assert.assertEquals(1, inst.getMasterLocations().size());
+      Assert.assertEquals(1, context.getMasterLocations().size());
 
       // Get the master thrift service addr
-      String masterAddr = Iterables.getOnlyElement(inst.getMasterLocations());
+      String masterAddr = Iterables.getOnlyElement(context.getMasterLocations());
 
       // Get the master replication coordinator addr
       String replCoordAddr = new String(zreader.getData(
-          ZooUtil.getRoot(inst) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null), UTF_8);
+          ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
+          null), UTF_8);
 
       // They shouldn't be the same
       Assert.assertNotEquals(masterAddr, replCoordAddr);

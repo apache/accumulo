@@ -113,7 +113,7 @@ public abstract class TabletLocator {
 
   public static synchronized TabletLocator getLocator(ClientContext context, Table.ID tableId) {
     Instance instance = context.getInstance();
-    LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
+    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer();

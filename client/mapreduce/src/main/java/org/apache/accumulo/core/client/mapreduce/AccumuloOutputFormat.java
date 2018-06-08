@@ -187,7 +187,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @param tokenFile
    *          the path to the token file
    * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {@link #setClientInfo(Job, ClientInfo)}
+   * @deprecated since 2.0.0, replaced by {@link #setClientPropertiesFile(Job, String)}
    */
   @Deprecated
   public static void setConnectorInfo(Job job, String principal, String tokenFile)

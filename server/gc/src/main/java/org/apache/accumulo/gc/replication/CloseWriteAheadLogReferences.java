@@ -234,7 +234,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   private HostAndPort getMasterAddress() {
     try {
-      List<String> locations = context.getInstance().getMasterLocations();
+      List<String> locations = context.getMasterLocations();
       if (locations.size() == 0)
         return null;
       return HostAndPort.fromString(locations.get(0));

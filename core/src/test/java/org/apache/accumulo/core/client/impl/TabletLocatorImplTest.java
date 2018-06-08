@@ -175,7 +175,8 @@ public class TabletLocatorImplTest {
   @Before
   public void setUp() {
     testInstance = new TestInstance("instance1", "tserver1");
-    context = new ClientContext(testInstance, new Credentials("test", null), new Properties());
+    context = new ClientContext(new ClientInfoImpl(new Properties(), null), testInstance,
+        new Credentials("test", null), null);
   }
 
   private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache,
@@ -591,8 +592,7 @@ public class TabletLocatorImplTest {
 
     @Override
     protected TabletLocation getRootTabletLocation(ClientContext context) {
-      return new TabletLocation(RootTable.EXTENT, context.getInstance().getRootTabletLocation(),
-          "1");
+      return new TabletLocation(RootTable.EXTENT, context.getRootTabletLocation(), "1");
     }
 
     @Override

@@ -56,6 +56,12 @@ public class Tables {
    * Lookup table ID in ZK. Throw TableNotFoundException if not found. Also wraps
    * NamespaceNotFoundException in TableNotFoundException if namespace is not found.
    */
+
+  public static Table.ID getTableId(ClientContext context, String tableName)
+      throws TableNotFoundException {
+    return getTableId(context.getInstance(), tableName);
+  }
+
   public static Table.ID getTableId(Instance instance, String tableName)
       throws TableNotFoundException {
     try {
@@ -111,12 +117,32 @@ public class Tables {
     return tableId;
   }
 
+  public static String getTableName(ClientContext context, Table.ID tableId)
+      throws TableNotFoundException {
+    return getTableName(context.getInstance(), tableId);
+  }
+
   public static String getTableName(Instance instance, Table.ID tableId)
       throws TableNotFoundException {
     String tableName = getIdToNameMap(instance).get(tableId);
     if (tableName == null)
       throw new TableNotFoundException(tableId.canonicalID(), null, null);
     return tableName;
+  }
+
+  public static String getTableOfflineMsg(ClientContext context, Table.ID tableId) {
+    return getTableOfflineMsg(context.getInstance(), tableId);
+  }
+
+  public static String getTableOfflineMsg(Instance instance, Table.ID tableId) {
+    if (tableId == null)
+      return "Table <unknown table> is offline";
+    try {
+      String tableName = Tables.getTableName(instance, tableId);
+      return "Table " + tableName + " (" + tableId.canonicalID() + ") is offline";
+    } catch (TableNotFoundException e) {
+      return "Table <unknown table> (" + tableId.canonicalID() + ") is offline";
+    }
   }
 
   public static Map<String,Table.ID> getNameToIdMap(Instance instance) {
@@ -141,6 +167,10 @@ public class Tables {
       throw new RuntimeException(e);
     }
     return map;
+  }
+
+  public static boolean exists(ClientContext context, Table.ID tableId) {
+    return exists(context.getInstance(), tableId);
   }
 
   public static boolean exists(Instance instance, Table.ID tableId) {
@@ -189,6 +219,10 @@ public class Tables {
     }
     return tableId == null ? String.format("%s(?)", tableName)
         : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
+  }
+
+  public static TableState getTableState(ClientContext context, Table.ID tableId) {
+    return getTableState(context.getInstance(), tableId);
   }
 
   public static TableState getTableState(Instance instance, Table.ID tableId) {

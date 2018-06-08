@@ -58,15 +58,11 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -175,6 +171,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private File zooCfgFile;
   private String dfsUri;
+  private ClientInfo clientInfo;
 
   public List<LogWriter> getLogWriters() {
     return logWriters;
@@ -771,8 +768,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public Connector getConnector(String user, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    Instance instance = new ZooKeeperInstance(getClientConfig());
-    return instance.getConnector(user, token);
+    return Connector.builder().usingClientInfo(getClientInfo()).usingToken(user, token).build();
   }
 
   @SuppressWarnings("deprecation")
@@ -784,8 +780,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public ClientInfo getClientInfo() {
-    return Connector.builder().forInstance(getInstanceName(), getZooKeepers())
-        .usingPassword(config.getRootUserName(), config.getRootPassword()).info();
+    if (clientInfo == null) {
+      clientInfo = Connector.builder()
+          .usingProperties(config.getClientPropsFile().getAbsolutePath()).info();
+    }
+    return clientInfo;
   }
 
   @Override
@@ -831,10 +830,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MasterClientService.Iface client = null;
     while (true) {
       try {
-        Instance instance = new ZooKeeperInstance(getClientConfig());
-        ClientContext context = new ClientContext(instance,
-            new Credentials("root", new PasswordToken("unchecked")),
-            getClientInfo().getProperties());
+        ClientContext context = new ClientContext(getClientInfo());
         client = MasterClient.getConnectionWithRetry(context);
         return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (ThriftSecurityException exception) {

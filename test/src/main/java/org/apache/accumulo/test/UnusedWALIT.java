@@ -79,7 +79,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     c.tableOperations().create(lilTable);
 
     Instance i = c.getInstance();
-    zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+    zk = new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
 
     // put some data in a log that should be replayed for both tables
     writeSomeData(c, bigTable, 0, 10, 0, 10);

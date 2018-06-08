@@ -77,8 +77,8 @@ public class MapReduceIT extends ConfigurableMacBase {
     }
     bw.close();
     Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i",
-        c.getInstance().getInstanceName(), "-z", c.getInstance().getZooKeepers(), "-u", "root",
-        "-p", ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
+        c.info().getInstanceName(), "-z", c.info().getZooKeepers(), "-u", "root", "-p",
+        ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
     assertEquals(0, hash.waitFor());
 
     try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {

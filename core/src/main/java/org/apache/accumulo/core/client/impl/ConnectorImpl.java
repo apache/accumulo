@@ -88,9 +88,9 @@ public class ConnectorImpl extends Connector {
   }
 
   private Table.ID getTableId(String tableName) throws TableNotFoundException {
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
     if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
+      throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
     return tableId;
   }
 
@@ -200,6 +200,11 @@ public class ConnectorImpl extends Connector {
   }
 
   @Override
+  public String getInstanceID() {
+    return getInstance().getInstanceID();
+  }
+
+  @Override
   public synchronized TableOperations tableOperations() {
     return tableops;
   }
@@ -244,16 +249,23 @@ public class ConnectorImpl extends Connector {
       ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory, FromOptions {
 
     private Properties properties = new Properties();
+    private AuthenticationToken token = null;
+
+    private ClientInfo getClientInfo() {
+      if (token != null) {
+        return new ClientInfoImpl(properties, token);
+      }
+      return new ClientInfoImpl(properties);
+    }
 
     @Override
     public Connector build() throws AccumuloException, AccumuloSecurityException {
-      return org.apache.accumulo.core.client.impl.ClientInfoFactory
-          .getConnector(new ClientInfoImpl(properties));
+      return org.apache.accumulo.core.client.impl.ClientInfoFactory.getConnector(getClientInfo());
     }
 
     @Override
     public ClientInfo info() {
-      return new ClientInfoImpl(properties);
+      return getClientInfo();
     }
 
     @Override
@@ -299,7 +311,7 @@ public class ConnectorImpl extends Connector {
 
     @Override
     public ConnectionOptions withZkTimeout(int timeout) {
-      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC, Integer.toString(timeout));
+      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, Integer.toString(timeout) + "ms");
       return this;
     }
 
@@ -375,7 +387,7 @@ public class ConnectorImpl extends Connector {
     @Override
     public ConnectionOptions usingToken(String principal, AuthenticationToken token) {
       setProperty(ClientProperty.AUTH_PRINCIPAL, principal);
-      ClientProperty.setAuthenticationToken(this.properties, token);
+      this.token = token;
       return this;
     }
 

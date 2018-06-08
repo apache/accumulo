@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -647,6 +648,14 @@ public class MiniAccumuloConfigImpl {
    */
   public void setProperty(Property p, String value) {
     this.siteConfig.put(p.getKey(), value);
+  }
+
+  public void setClientProperty(ClientProperty property, String value) {
+    setClientProperty(property.getKey(), value);
+  }
+
+  public void setClientProperty(String key, String value) {
+    this.clientProps.put(key, value);
   }
 
   /**

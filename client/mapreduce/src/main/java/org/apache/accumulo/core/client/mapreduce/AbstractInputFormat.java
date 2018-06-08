@@ -236,7 +236,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param tokenFile
    *          the path to the token file
    * @since 1.6.0
+   * @deprecated since 2.0.0, use {{@link #setClientPropertiesFile(Job, String)}}
    */
+  @Deprecated
   public static void setConnectorInfo(Job job, String principal, String tokenFile)
       throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
@@ -557,9 +559,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             scanner = new OfflineScanner(instance, new Credentials(principal, token),
                 Table.ID.of(split.getTableId()), authorizations);
           } else {
-            Properties props = getClientInfo(attempt).getProperties();
-            ClientContext context = new ClientContext(instance, new Credentials(principal, token),
-                props);
+            ClientContext context = new ClientContext(getClientInfo(attempt));
             // Not using public API to create scanner so that we can use table ID
             // Table ID is used in case of renames during M/R job
             scanner = new ScannerImpl(context, Table.ID.of(split.getTableId()), authorizations);
@@ -685,11 +685,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-      Instance instance = getInstance(context);
+      ClientContext clientContext = new ClientContext(getClientInfo(context));
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       try {
-        tableId = Tables.getTableId(instance, tableName);
+        tableId = Tables.getTableId(clientContext, tableName);
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
@@ -732,13 +732,12 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           // tablets... so clear it
           tl.invalidateCache();
 
-          ClientContext clientContext = new ClientContext(getClientInfo(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
             String tableIdStr = tableId.canonicalID();
-            if (!Tables.exists(instance, tableId))
+            if (!Tables.exists(clientContext, tableId))
               throw new TableDeletedException(tableIdStr);
-            if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-              throw new TableOfflineException(instance, tableIdStr);
+            if (Tables.getTableState(clientContext, tableId) == TableState.OFFLINE)
+              throw new TableOfflineException(Tables.getTableOfflineMsg(clientContext, tableId));
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
             // sleep randomly between 100 and 200 ms

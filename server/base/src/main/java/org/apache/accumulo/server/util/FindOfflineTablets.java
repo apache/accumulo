@@ -106,7 +106,7 @@ public class FindOfflineTablets {
 
     Range range = MetadataSchema.TabletsSection.getRange();
     if (tableName != null) {
-      Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+      Table.ID tableId = Tables.getTableId(context, tableName);
       range = new KeyExtent(tableId, null, null).toMetadataRange();
     }
 

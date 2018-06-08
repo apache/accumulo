@@ -23,18 +23,15 @@ public class TableOfflineException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  private static String getTableName(Instance instance, String tableId) {
-    if (tableId == null)
-      return " <unknown table> ";
-    try {
-      String tableName = Tables.getTableName(instance, Table.ID.of(tableId));
-      return tableName + " (" + tableId + ")";
-    } catch (TableNotFoundException e) {
-      return " <unknown table> (" + tableId + ")";
-    }
+  /**
+   * @deprecated since 2.0.0, replaced by {@link #TableOfflineException(String)}
+   */
+  @Deprecated
+  public TableOfflineException(Instance instance, String tableId) {
+    super(Tables.getTableOfflineMsg(instance, Table.ID.of(tableId)));
   }
 
-  public TableOfflineException(Instance instance, String tableId) {
-    super("Table " + getTableName(instance, tableId) + " is offline");
+  public TableOfflineException(String msg) {
+    super(msg);
   }
 }

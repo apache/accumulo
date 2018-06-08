@@ -26,7 +26,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -104,9 +103,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
-    Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
+        conn.info().getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
 
     Set<String> result = new HashSet<>();

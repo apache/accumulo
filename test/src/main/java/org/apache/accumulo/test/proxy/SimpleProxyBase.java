@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -178,14 +177,13 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     assertNotNull("Implementations must initialize the TProtocolFactory", factory);
 
     Connector c = SharedMiniClusterBase.getConnector();
-    Instance inst = c.getInstance();
     waitForAccumulo(c);
 
     hostname = InetAddress.getLocalHost().getCanonicalHostName();
 
     Properties props = new Properties();
-    props.put("instance", inst.getInstanceName());
-    props.put("zookeepers", inst.getZooKeepers());
+    props.put("instance", c.info().getInstanceName());
+    props.put("zookeepers", c.info().getZooKeepers());
 
     final String tokenClass;
     if (isKerberosEnabled()) {

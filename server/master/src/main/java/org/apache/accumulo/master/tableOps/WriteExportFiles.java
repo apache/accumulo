@@ -158,9 +158,9 @@ class WriteExportFiles extends MasterRepo {
 
       zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_INFO_FILE));
       osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.VERSION + "\n");
-      osw.append("srcInstanceName:" + context.getInstance().getInstanceName() + "\n");
-      osw.append("srcInstanceID:" + context.getInstance().getInstanceID() + "\n");
-      osw.append("srcZookeepers:" + context.getInstance().getZooKeepers() + "\n");
+      osw.append("srcInstanceName:" + context.getInstanceName() + "\n");
+      osw.append("srcInstanceID:" + context.getInstanceID() + "\n");
+      osw.append("srcZookeepers:" + context.getZooKeepers() + "\n");
       osw.append("srcTableName:" + tableName + "\n");
       osw.append("srcTableID:" + tableID.canonicalID() + "\n");
       osw.append(ExportTable.DATA_VERSION_PROP + ":" + ServerConstants.DATA_VERSION + "\n");

@@ -80,7 +80,7 @@ public class LiveTServerSet implements Watcher {
 
     private String lockString(ZooLock mlock) {
       return mlock.getLockID()
-          .serialize(ZooUtil.getRoot(context.getInstance()) + Constants.ZMASTER_LOCK);
+          .serialize(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZMASTER_LOCK);
     }
 
     private void loadTablet(TabletClientService.Client client, ZooLock lock, KeyExtent extent)
@@ -269,7 +269,7 @@ public class LiveTServerSet implements Watcher {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
 
-      final String path = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS;
+      final String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
 
       HashSet<String> all = new HashSet<>(current.keySet());
       all.addAll(getZooCache().getChildren(path));
@@ -364,7 +364,7 @@ public class LiveTServerSet implements Watcher {
           final Set<TServerInstance> updates = new HashSet<>();
           final Set<TServerInstance> doomed = new HashSet<>();
 
-          final String path = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS;
+          final String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
 
           try {
             checkServer(updates, doomed, path, server);
@@ -437,7 +437,7 @@ public class LiveTServerSet implements Watcher {
     currentInstances.remove(server);
 
     log.info("Removing zookeeper lock for {}", server);
-    String fullpath = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/" + zPath;
+    String fullpath = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS + "/" + zPath;
     try {
       ZooReaderWriter.getInstance().recursiveDelete(fullpath, SKIP);
     } catch (Exception e) {

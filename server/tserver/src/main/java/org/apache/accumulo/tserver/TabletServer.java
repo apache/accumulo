@@ -363,7 +363,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     this.fs = fs;
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
-    log.info("Instance " + instance.getInstanceID());
+    log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(aconf);
     this.logSorter = new LogSorter(instance, fs, aconf);
     this.replWorker = new ReplicationWorker(this, fs);
@@ -438,7 +438,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
       authKeyWatcher = new ZooAuthenticationKeyWatcher(getSecretManager(),
           ZooReaderWriter.getInstance(),
-          ZooUtil.getRoot(instance) + Constants.ZDELEGATION_TOKEN_KEYS);
+          ZooUtil.getRoot(getInstanceID()) + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }
@@ -1671,7 +1671,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       if (lock != null) {
         ZooUtil.LockID lid = new ZooUtil.LockID(
-            ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_LOCK, lock);
+            ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_LOCK, lock);
 
         try {
           if (!ZooLock.isLockHeld(masterLockCache, lid)) {
@@ -2597,7 +2597,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private HostAndPort getMasterAddress() {
     try {
-      List<String> locations = getInstance().getMasterLocations();
+      List<String> locations = getMasterLocations();
       if (locations.size() == 0)
         return null;
       return HostAndPort.fromString(locations.get(0));
@@ -2668,9 +2668,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // The replication service is unique to the thrift service for a tserver, not just a host.
       // Advertise the host and port for replication service given the host and port for the
       // tserver.
-      ZooReaderWriter.getInstance().putPersistentData(
-          ZooUtil.getRoot(getInstance()) + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress,
-          sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+      ZooReaderWriter.getInstance()
+          .putPersistentData(
+              ZooUtil.getRoot(getInstanceID()) + ReplicationConstants.ZOO_TSERVERS + "/"
+                  + clientAddress,
+              sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       log.error("Could not advertise replication service port", e);
       throw new RuntimeException(e);
@@ -2686,7 +2688,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private void announceExistence() {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      String zPath = ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/"
+      String zPath = ZooUtil.getRoot(getInstanceID()) + Constants.ZTSERVERS + "/"
           + getClientAddressString();
 
       try {
@@ -2735,7 +2737,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         if (tabletServerLock.tryLock(lw, lockContent)) {
           log.debug("Obtained tablet server lock {}", tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID()
-              .serialize(ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/");
+              .serialize(ZooUtil.getRoot(getInstanceID()) + Constants.ZTSERVERS + "/");
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -2759,7 +2761,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     // We can just make the zookeeper paths before we try to use.
     try {
       ZooKeeperInitialization.ensureZooKeeperInitialized(ZooReaderWriter.getInstance(),
-          ZooUtil.getRoot(getInstance()));
+          ZooUtil.getRoot(getInstanceID()));
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not ensure that ZooKeeper is properly initialized", e);
       throw new RuntimeException(e);
@@ -2808,7 +2810,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         getConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
 
     bulkFailedCopyQ = new DistributedWorkQueue(
-        ZooUtil.getRoot(getInstance()) + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
+        ZooUtil.getRoot(getInstanceID()) + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
     try {
       bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(), distWorkQThreadPool);
     } catch (Exception e1) {

@@ -61,7 +61,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
-    ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+    ZooCache zc = new ZooCacheFactory().getZooCache(conn.info().getZooKeepers(),
         instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;

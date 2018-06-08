@@ -56,7 +56,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
         public void run() {
           try {
             CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(),
-                getConnector().getInstance().getZooKeepers()});
+                getConnector().info().getZooKeepers()});
           } catch (Exception ex) {
             ref.set(ex);
           }

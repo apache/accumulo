@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -36,9 +37,11 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -156,6 +159,11 @@ public class MockConnector extends Connector {
   }
 
   @Override
+  public String getInstanceID() {
+    return instance.getInstanceID();
+  }
+
+  @Override
   public TableOperations tableOperations() {
     return new MockTableOperations(acu, username);
   }
@@ -190,6 +198,10 @@ public class MockConnector extends Connector {
 
   @Override
   public ClientInfo info() {
-    throw new UnsupportedOperationException();
+    Properties props = new Properties();
+    props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), instance.getZooKeepers());
+    props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instance.getInstanceName());
+    props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), username);
+    return new ClientInfoImpl(props);
   }
 }

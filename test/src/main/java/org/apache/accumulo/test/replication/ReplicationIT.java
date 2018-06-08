@@ -155,8 +155,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       // Map of logs to tableId
       Multimap<String,Table.ID> logs = HashMultimap.create();
       Instance i = conn.getInstance();
-      ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-          "");
+      ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
+          conn.info().getZooKeepersSessionTimeOut(), "");
       WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
       for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
         for (UUID id : entry.getValue()) {
@@ -197,8 +197,9 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Check if the GC process has the lock before wasting our retry attempts
     ZooKeeperInstance zki = (ZooKeeperInstance) conn.getInstance();
     ZooCacheFactory zcf = new ZooCacheFactory();
-    ZooCache zcache = zcf.getZooCache(zki.getZooKeepers(), zki.getZooKeepersSessionTimeOut());
-    String zkPath = ZooUtil.getRoot(conn.getInstance()) + Constants.ZGC_LOCK;
+    ZooCache zcache = zcf.getZooCache(conn.info().getZooKeepers(),
+        conn.info().getZooKeepersSessionTimeOut());
+    String zkPath = ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZGC_LOCK;
     log.info("Looking for GC lock at {}", zkPath);
     byte[] data = ZooLock.getLockData(zcache, zkPath, null);
     while (null == data) {
@@ -341,8 +342,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     Set<String> wals = new HashSet<>();
     attempts = 5;
     Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
+        conn.info().getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
       WalStateManager markers = new WalStateManager(i, zk);
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {

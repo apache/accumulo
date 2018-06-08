@@ -20,13 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -44,10 +40,8 @@ public class ReplicationProcessorTest {
 
   @Test
   public void peerTypeExtractionFromConfiguration() {
-    Instance inst = EasyMock.createMock(Instance.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    Credentials creds = new Credentials("foo", new PasswordToken("bar"));
-    ClientContext context = new ClientContext(inst, creds, new Properties());
+    ClientContext context = EasyMock.createMock(ClientContext.class);
 
     Map<String,String> data = new HashMap<>();
 
@@ -63,10 +57,8 @@ public class ReplicationProcessorTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void noPeerConfigurationThrowsAnException() {
-    Instance inst = EasyMock.createMock(Instance.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    Credentials creds = new Credentials("foo", new PasswordToken("bar"));
-    ClientContext context = new ClientContext(inst, creds, new Properties());
+    ClientContext context = EasyMock.createMock(ClientContext.class);
 
     Map<String,String> data = new HashMap<>();
     ConfigurationCopy conf = new ConfigurationCopy(data);

@@ -28,7 +28,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
@@ -92,10 +91,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<String> getTabletServers() {
-    Instance instance = context.getInstance();
-    ZooCache cache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
-    String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
+    ZooCache cache = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
+        context.getZooKeepersSessionTimeOut());
+    String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
     List<String> results = new ArrayList<>();
     for (String candidate : cache.getChildren(path)) {
       List<String> children = cache.getChildren(path + "/" + candidate);
@@ -123,7 +121,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client
           .getActiveScans(Tracer.traceInfo(), context.rpcCreds())) {
         try {
-          as.add(new ActiveScanImpl(context.getInstance(), activeScan));
+          as.add(new ActiveScanImpl(context, activeScan));
         } catch (TableNotFoundException e) {
           throw new AccumuloException(e);
         }
@@ -159,7 +157,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       List<ActiveCompaction> as = new ArrayList<>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client
           .getActiveCompactions(Tracer.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context.getInstance(), activeCompaction));
+        as.add(new ActiveCompactionImpl(context, activeCompaction));
       }
       return as;
     } catch (TTransportException e) {

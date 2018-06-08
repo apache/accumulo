@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -121,8 +122,8 @@ public class KerberosRenewalIT extends AccumuloITBase {
             // Reduce the period just to make sure we trigger renewal fast
             site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
             cfg.setSiteConfig(site);
+            cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
           }
-
         });
 
     mac.getConfig().setNumTservers(1);

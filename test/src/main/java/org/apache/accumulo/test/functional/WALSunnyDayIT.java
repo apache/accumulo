@@ -41,7 +41,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -262,9 +261,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private Map<String,Boolean> _getWals(Connector c) throws Exception {
     Map<String,Boolean> result = new HashMap<>();
-    Instance i = c.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk = new ZooReaderWriter(c.info().getZooKeepers(),
+        c.info().getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(c.getInstance(), zk);
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       // WALs are in use if they are not unreferenced

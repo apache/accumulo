@@ -691,8 +691,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void printInfo() throws IOException {
     reader.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
-        + "- instance name: " + connector.getInstance().getInstanceName() + "\n" + "- instance id: "
-        + connector.getInstance().getInstanceID() + "\n" + "- \n"
+        + "- instance name: " + connector.info().getInstanceName() + "\n" + "- instance id: "
+        + connector.getInstanceID() + "\n" + "- \n"
         + "- type 'help' for a list of available commands\n" + "- \n");
     reader.flush();
   }
@@ -729,7 +729,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public String getDefaultPrompt() {
-    return connector.whoami() + "@" + connector.getInstance().getInstanceName()
+    return connector.whoami() + "@" + connector.info().getInstanceName()
         + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
 

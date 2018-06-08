@@ -123,7 +123,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
    */
   private Table.ID getId(String tableName) throws TableNotFoundException {
     try {
-      return Tables.getTableId(context.inst, tableName);
+      return Tables.getTableId(context, tableName);
     } catch (UncheckedExecutionException e) {
       Throwable cause = e.getCause();
 

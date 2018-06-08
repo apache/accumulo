@@ -17,9 +17,8 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
 
-import java.util.Properties;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -50,11 +49,11 @@ import com.google.common.base.Suppliers;
  */
 public class ClientContext {
 
-  protected final Instance inst;
+  private ClientInfo info;
+  protected Instance inst;
   private Credentials creds;
-  private Properties clientProps;
-  private BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
-  private final AccumuloConfiguration rpcConf;
+  private BatchWriterConfig batchWriterConfig;
+  private AccumuloConfiguration serverConf;
   protected Connector conn;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
@@ -69,21 +68,9 @@ public class ClientContext {
     return () -> Suppliers.memoizeWithExpiration(() -> s.get(), 100, TimeUnit.MILLISECONDS).get();
   }
 
-  public ClientContext(ClientInfo clientInfo) {
-    this(ClientInfoFactory.getInstance(clientInfo), ClientInfoFactory.getCredentials(clientInfo),
-        clientInfo.getProperties(), ClientInfoFactory.getBatchWriterConfig(clientInfo));
-  }
-
-  public ClientContext(Instance instance, Credentials credentials, Properties clientProps) {
-    this(instance, credentials, clientProps, new BatchWriterConfig());
-  }
-
-  public ClientContext(Instance instance, Credentials credentials, Properties clientProps,
-      BatchWriterConfig batchWriterConfig) {
-    this(instance, credentials,
-        ClientConfConverter.toAccumuloConf(requireNonNull(clientProps, "clientProps is null")));
-    this.clientProps = clientProps;
-    this.batchWriterConfig = batchWriterConfig;
+  public ClientContext(ClientInfo info) {
+    this(info, ClientInfoFactory.getInstance(info), ClientInfoFactory.getCredentials(info),
+        ClientConfConverter.toAccumuloConf(info.getProperties()));
   }
 
   /**
@@ -92,18 +79,22 @@ public class ClientContext {
    */
   public ClientContext(Instance instance, Credentials credentials,
       AccumuloConfiguration serverConf) {
-    inst = requireNonNull(instance, "instance is null");
-    creds = requireNonNull(credentials, "credentials is null");
-    rpcConf = requireNonNull(serverConf, "serverConf is null");
-    clientProps = null;
+    this(null, instance, credentials, serverConf);
+  }
 
+  public ClientContext(ClientInfo info, Instance instance, Credentials credentials,
+      AccumuloConfiguration serverConf) {
+    this.info = info;
+    inst = instance;
+    creds = credentials;
+    this.serverConf = serverConf;
     saslSupplier = () -> {
       // Use the clientProps if we have it
-      if (null != clientProps) {
-        if (!ClientProperty.SASL_ENABLED.getBoolean(clientProps)) {
+      if (info != null) {
+        if (!ClientProperty.SASL_ENABLED.getBoolean(info.getProperties())) {
           return null;
         }
-        return new SaslConnectionParams(clientProps, getCredentials().getToken());
+        return new SaslConnectionParams(info.getProperties(), getCredentials().getToken());
       }
       AccumuloConfiguration conf = getConfiguration();
       if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -126,7 +117,10 @@ public class ClientContext {
   }
 
   public ClientInfo getClientInfo() {
-    return new ClientInfoImpl(clientProps);
+    if (info == null) {
+      info = new ClientInfoImpl(ClientConfConverter.toProperties(serverConf, inst, creds));
+    }
+    return info;
   }
 
   /**
@@ -150,7 +144,7 @@ public class ClientContext {
    * Retrieve the configuration used to construct this context
    */
   public AccumuloConfiguration getConfiguration() {
-    return rpcConf;
+    return serverConf;
   }
 
   /**
@@ -192,6 +186,9 @@ public class ClientContext {
   }
 
   public BatchWriterConfig getBatchWriterConfig() {
+    if (batchWriterConfig == null) {
+      batchWriterConfig = ClientInfoFactory.getBatchWriterConfig(getClientInfo());
+    }
     return batchWriterConfig;
   }
 
@@ -208,5 +205,59 @@ public class ClientContext {
     }
 
     return rpcCreds;
+  }
+
+  /**
+   * Returns the location of the tablet server that is serving the root tablet.
+   *
+   * @return location in "hostname:port" form
+   */
+  public String getRootTabletLocation() {
+    return inst.getRootTabletLocation();
+  }
+
+  /**
+   * Returns the location(s) of the accumulo master and any redundant servers.
+   *
+   * @return a list of locations in "hostname:port" form
+   */
+  public List<String> getMasterLocations() {
+    return inst.getMasterLocations();
+  }
+
+  /**
+   * Returns a unique string that identifies this instance of accumulo.
+   *
+   * @return a UUID
+   */
+  public String getInstanceID() {
+    return inst.getInstanceID();
+  }
+
+  /**
+   * Returns the instance name given at system initialization time.
+   *
+   * @return current instance name
+   */
+  public String getInstanceName() {
+    return inst.getInstanceName();
+  }
+
+  /**
+   * Returns a comma-separated list of zookeeper servers the instance is using.
+   *
+   * @return the zookeeper servers this instance is using in "hostname:port" form
+   */
+  public String getZooKeepers() {
+    return inst.getZooKeepers();
+  }
+
+  /**
+   * Returns the zookeeper connection timeout.
+   *
+   * @return the configured timeout to connect to zookeeper
+   */
+  public int getZooKeepersSessionTimeOut() {
+    return inst.getZooKeepersSessionTimeOut();
   }
 }

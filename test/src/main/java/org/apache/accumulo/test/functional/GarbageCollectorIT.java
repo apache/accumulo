@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -99,7 +98,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    String path = ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(getConnector().getInstanceID()) + Constants.ZGC_LOCK;
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
     try {
       ZooLock.deleteLock(zk, path);
@@ -251,10 +250,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   public void testProperPortAdvertisement() throws Exception {
 
     Connector conn = getConnector();
-    Instance instance = conn.getInstance();
 
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
-    String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZGC_LOCK;
     for (int i = 0; i < 5; i++) {
       List<String> locks;
       try {

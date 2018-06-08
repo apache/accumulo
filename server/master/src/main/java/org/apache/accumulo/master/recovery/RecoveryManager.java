@@ -69,7 +69,7 @@ public class RecoveryManager {
     try {
       AccumuloConfiguration aconf = master.getConfiguration();
       List<String> workIDs = new DistributedWorkQueue(
-          ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
+          ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY, aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -120,14 +120,15 @@ public class RecoveryManager {
   private void initiateSort(String sortId, String source, final String destination,
       AccumuloConfiguration aconf) throws KeeperException, InterruptedException, IOException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf)
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY, aconf)
         .addWork(sortId, work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
     }
 
-    final String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + sortId;
+    final String path = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY + "/"
+        + sortId;
     log.info("Created zookeeper entry {} with data {}", path, work);
   }
 
@@ -161,7 +162,7 @@ public class RecoveryManager {
         }
 
         if (sortQueued && zooCache.get(
-            ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + sortId) == null) {
+            ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY + "/" + sortId) == null) {
           synchronized (this) {
             sortsQueued.remove(sortId);
           }

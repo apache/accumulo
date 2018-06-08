@@ -38,6 +38,11 @@ public interface ClientInfo {
   String getZooKeepers();
 
   /**
+   * @return ZooKeeper connection timeout
+   */
+  int getZooKeepersSessionTimeOut();
+
+  /**
    * @return Accumulo principal/username
    */
   String getPrincipal();

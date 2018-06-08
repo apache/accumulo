@@ -407,7 +407,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         span = Trace.start("Replicate WAL batch");
         span.data("Batch size (bytes)", Long.toString(sizeLimit));
         span.data("File", p.toString());
-        span.data("Peer instance name", peerContext.getInstance().getInstanceName());
+        span.data("Peer instance name", peerContext.getInstanceName());
         span.data("Peer tserver", peerTserver.toString());
         span.data("Remote table ID", remoteTableId);
 
@@ -419,8 +419,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                   tcreds, tids),
               timeout);
         } catch (Exception e) {
-          log.error("Caught exception replicating data to {} at {}",
-              peerContext.getInstance().getInstanceName(), peerTserver, e);
+          log.error("Caught exception replicating data to {} at {}", peerContext.getInstanceName(),
+              peerTserver, e);
           throw e;
         } finally {
           span.stop();

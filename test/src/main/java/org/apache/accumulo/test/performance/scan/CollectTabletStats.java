@@ -114,7 +114,7 @@ public class CollectTabletStats {
     Credentials creds = new Credentials(opts.getPrincipal(), opts.getToken());
     ClientContext context = new ClientContext(instance, creds, sconf.getSystemConfiguration());
 
-    Table.ID tableId = Tables.getTableId(instance, opts.getTableName());
+    Table.ID tableId = Tables.getTableId(context, opts.getTableName());
     if (tableId == null) {
       log.error("Unable to find table named {}", opts.getTableName());
       System.exit(-1);
@@ -359,7 +359,7 @@ public class CollectTabletStats {
   private static List<KeyExtent> findTablets(ClientContext context, boolean selectLocalTablets,
       String tableName, SortedMap<KeyExtent,String> tabletLocations) throws Exception {
 
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     InetAddress localaddress = InetAddress.getLocalHost();

@@ -585,8 +585,8 @@ public class SummaryIT extends AccumuloClusterHarness {
     PasswordToken passTok = new PasswordToken("letmesee");
     c.securityOperations().createLocalUser("user1", passTok);
 
-    String instanceName = c.getInstance().getInstanceName();
-    String zookeepers = c.getInstance().getZooKeepers();
+    String instanceName = c.info().getInstanceName();
+    String zookeepers = c.info().getZooKeepers();
     Connector c2 = new ZooKeeperInstance(instanceName, zookeepers).getConnector("user1", passTok);
     try {
       c2.tableOperations().summaries(table).retrieve();

@@ -453,7 +453,7 @@ public class Monitor implements HighlyAvailableService {
     config = new ServerConfigurationFactory(instance);
     context = new AccumuloServerContext(instance, config);
     log.info("Version " + Constants.VERSION);
-    log.info("Instance " + instance.getInstanceID());
+    log.info("Instance " + context.getInstanceID());
     MetricsSystemHelper.configure(Monitor.class.getSimpleName());
     Accumulo.init(fs, instance, config, app);
     Monitor monitor = new Monitor();
@@ -520,7 +520,7 @@ public class Monitor implements HighlyAvailableService {
     }
 
     if (null != advertiseHost) {
-      LogService.startLogListener(Monitor.getContext().getConfiguration(), instance.getInstanceID(),
+      LogService.startLogListener(Monitor.getContext().getConfiguration(), context.getInstanceID(),
           advertiseHost);
     } else {
       log.warn("Not starting log4j listener as we could not determine address to use");

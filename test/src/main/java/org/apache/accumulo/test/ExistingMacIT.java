@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -64,6 +65,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
     // NativeMap.java was changed to fail if native lib missing in ACCUMULO-4596
     // testExistingInstance will fail because the native path is not set in
     // MiniAccumuloConfigImpl.useExistingInstance
@@ -116,7 +118,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
         getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
     IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
         getCluster().getZooKeepers(), (int) zkTimeout, defaultConfig.get(Property.INSTANCE_SECRET));
-    final String zInstanceRoot = Constants.ZROOT + "/" + conn.getInstance().getInstanceID();
+    final String zInstanceRoot = Constants.ZROOT + "/" + conn.getInstanceID();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
