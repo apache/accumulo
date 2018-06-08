@@ -606,9 +606,8 @@ public class CollectTabletStats {
   }
 
   private static void printStat(String desc, Stat s) {
-    System.out.printf(
-        "\t\tDescription: [%30s]  average: %,6.2f  std dev: %,6.2f  min: %,d  max: %,d %n", desc,
-        s.getAverage(), s.getStdDev(), s.getMin(), s.getMax());
+    System.out.printf("\t\tDescription: [%30s]  average: %,6.2f min: %,d  max: %,d %n", desc,
+        s.mean(), s.min(), s.max());
 
   }
 

@@ -16,12 +16,17 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -33,6 +38,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -346,6 +352,118 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     return maxFilesPerTablet;
+  }
+
+  public static class ScanExecutorConfig {
+    public final String name;
+    public final int maxThreads;
+    public final OptionalInt priority;
+    public final Optional<String> prioritizerClass;
+    public final Map<String,String> prioritizerOpts;
+
+    public ScanExecutorConfig(String name, int maxThreads, OptionalInt priority,
+        Optional<String> comparatorFactory, Map<String,String> comparatorFactoryOpts) {
+      this.name = name;
+      this.maxThreads = maxThreads;
+      this.priority = priority;
+      this.prioritizerClass = comparatorFactory;
+      this.prioritizerOpts = comparatorFactoryOpts;
+    }
+  }
+
+  // TODO make this an abstract method implemented by subclasses
+  public boolean isPropertySet(Property prop) {
+    String val = get(prop);
+    if (val == null) {
+      return false;
+    }
+
+    return prop.getDefaultValue().equals(val);
+  }
+
+  @SuppressWarnings("deprecation")
+  Integer getDeprecatedScanThreads(String name) {
+
+    Property prop;
+    Property deprecatedProp;
+
+    if (name.equals("default")) {
+      prop = Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
+      deprecatedProp = Property.TSERV_READ_AHEAD_MAXCONCURRENT;
+    } else if (name.equals("meta")) {
+      prop = Property.TSERV_SCAN_EXECUTORS_META_THREADS;
+      deprecatedProp = Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT;
+    } else {
+      return null;
+    }
+
+    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
+      log.warn("Property {} is deprecatd, use {} instead.", prop.getKey(), deprecatedProp.getKey());
+      return Integer.valueOf(get(deprecatedProp));
+    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp)) {
+      log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
+          prop.getKey());
+    }
+
+    return null;
+  }
+
+  public Collection<ScanExecutorConfig> getScanExecutors() {
+
+    Map<String,Map<String,String>> propsByName = new HashMap<>();
+
+    List<ScanExecutorConfig> scanResources = new ArrayList<>();
+
+    for (Entry<String,String> entry : getAllPropertiesWithPrefix(
+        Property.TSERV_SCAN_EXECUTORS_PREFIX).entrySet()) {
+
+      String suffix = entry.getKey()
+          .substring(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey().length());
+      String[] tokens = suffix.split("\\.", 2);
+      String name = tokens[0];
+
+      propsByName.computeIfAbsent(name, k -> new HashMap<>()).put(tokens[1], entry.getValue());
+    }
+
+    for (Entry<String,Map<String,String>> entry : propsByName.entrySet()) {
+      String name = entry.getKey();
+      Integer threads = null;
+      Integer prio = null;
+      String prioritizerClass = null;
+      Map<String,String> prioritizerOpts = new HashMap<>();
+
+      for (Entry<String,String> subEntry : entry.getValue().entrySet()) {
+        String opt = subEntry.getKey();
+        String val = subEntry.getValue();
+
+        if (opt.equals("threads")) {
+          Integer depThreads = getDeprecatedScanThreads(name);
+          if (depThreads == null) {
+            threads = Integer.parseInt(val);
+          } else {
+            threads = depThreads;
+          }
+        } else if (opt.equals("prio")) { // TODO better name
+          prio = Integer.parseInt(val);
+        } else if (opt.equals("prioritizer")) {
+          prioritizerClass = val;
+        } else if (opt.startsWith("prioritizer.opts.")) {
+          // TODO sanity check for empty opt
+          prioritizerOpts.put(opt.substring("prioritizer.opts.".length()), val);
+        } else {
+          throw new IllegalStateException("Unkown scan executor option : " + opt);
+        }
+      }
+
+      Preconditions.checkArgument(threads != null && threads > 0,
+          "Scan resource %s incorrectly specified threads", name);
+
+      scanResources.add(new ScanExecutorConfig(name, threads,
+          prio == null ? OptionalInt.empty() : OptionalInt.of(prio),
+          Optional.ofNullable(prioritizerClass), prioritizerOpts));
+    }
+
+    return scanResources;
   }
 
   /**

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
@@ -46,6 +47,8 @@ public class ScanSession extends Session {
   public final long readaheadThreshold;
   public final long batchTimeOut;
   public final String context;
+  public final String resources = "default"; // TODO get from config
+  public final ScanInfoImpl scanInfo;
 
   public ScanSession(TCredentials credentials, KeyExtent extent, Set<Column> columnSet,
       List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, Authorizations authorizations,
@@ -59,6 +62,8 @@ public class ScanSession extends Session {
     this.readaheadThreshold = readaheadThreshold;
     this.batchTimeOut = batchTimeOut;
     this.context = context;
+    this.scanInfo = new ScanInfoImpl(ScanInfo.Type.SINGLE, () -> startTime, 1, () -> 1,
+        extent.getTableId().canonicalID());
   }
 
   @Override

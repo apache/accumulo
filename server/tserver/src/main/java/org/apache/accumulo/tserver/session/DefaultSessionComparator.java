@@ -16,20 +16,32 @@
  */
 package org.apache.accumulo.tserver.session;
 
-public class DefaultSessionComparator extends SessionComparator {
+import java.util.Comparator;
+
+import org.apache.accumulo.core.spi.scan.ScanInfo;
+import org.apache.accumulo.core.spi.scan.ScanInfo.Stats;
+
+//TODO bad name
+//TODO no docs!!!
+//TODO location
+public class DefaultSessionComparator implements Comparator<ScanInfo> {
 
   @Override
-  public int compareSession(Session sessionA, Session sessionB) {
+  public int compare(ScanInfo si1, ScanInfo si2) {
+    // TODO not sure if I converted this correctly!!!
 
-    final long startTimeFirst = sessionA.startTime;
-    final long startTimeSecond = sessionB.startTime;
+    final long startTimeFirst = si1.getCreationTime();
+    final long startTimeSecond = si2.getCreationTime();
 
     // use the lowest max idle time
-    final long maxIdle = sessionA.maxIdleAccessTime < sessionB.maxIdleAccessTime
-        ? sessionA.maxIdleAccessTime
-        : sessionB.maxIdleAccessTime;
 
-    final long currentTime = System.currentTimeMillis();
+    final long currentTime = ScanInfo.getCurrentTime();
+
+    // TODO should this call getIdleTimeStats(currtime) ??
+    long maxIdle1 = si1.getIdleTimeStats().map(Stats::max).orElse(0L);
+    long maxIdle2 = si2.getIdleTimeStats().map(Stats::max).orElse(0L);
+
+    final long maxIdle = maxIdle1 < maxIdle2 ? maxIdle1 : maxIdle2;
 
     /*
      * Multiply by -1 so that we have a sensical comparison. This means that if comparison < 0,
@@ -37,25 +49,25 @@ public class DefaultSessionComparator extends SessionComparator {
      */
     int comparison = -1 * Long.compare(startTimeFirst, startTimeSecond);
 
-    if (!(sessionA.lastExecTime == -1 && sessionB.lastExecTime == -1)) {
+    if (si1.getLastRunTime().isPresent() && si2.getLastRunTime().isPresent()) {
       if (comparison >= 0) {
-        long idleTimeA = currentTime - sessionA.lastExecTime;
+        long idleTimeA = currentTime - si1.getLastRunTime().getAsLong();
 
         /*
          * If session B is newer, let's make sure that we haven't reached the max idle time, where
          * we have to begin aging A
          */
-        if (idleTimeA > sessionA.maxIdleAccessTime) {
+        if (idleTimeA > maxIdle1) {
           comparison = -1 * Long.valueOf(idleTimeA - maxIdle).intValue();
         }
       } else {
-        long idleTimeB = currentTime - sessionB.lastExecTime;
+        long idleTimeB = currentTime - si2.getLastRunTime().getAsLong();
 
         /*
          * If session A is newer, let's make sure that B hasn't reached the max idle time, where we
          * have to begin aging A
          */
-        if (idleTimeB > sessionA.maxIdleAccessTime) {
+        if (idleTimeB > maxIdle1) {
           comparison = 1 * Long.valueOf(idleTimeB - maxIdle).intValue();
         }
       }

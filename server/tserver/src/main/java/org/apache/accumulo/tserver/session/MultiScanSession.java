@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
 import org.apache.accumulo.tserver.scan.ScanTask;
 
 public class MultiScanSession extends Session {
@@ -48,6 +49,7 @@ public class MultiScanSession extends Session {
   public long totalLookupTime;
 
   public volatile ScanTask<MultiScanResult> lookupTask;
+  public ScanInfoImpl scanInfo;
 
   public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent,
       Map<KeyExtent,List<Range>> queries, List<IterInfo> ssiList,
@@ -62,6 +64,9 @@ public class MultiScanSession extends Session {
     this.samplerConfig = samplerConfig;
     this.batchTimeOut = batchTimeOut;
     this.context = context;
+    this.scanInfo = new ScanInfoImpl(Type.MULTI, () -> startTime, queries.size(),
+        () -> queries.values().stream().mapToInt(c -> c.size()).sum(),
+        threadPoolExtent.getTableId().canonicalID());
   }
 
   @Override
@@ -71,14 +76,4 @@ public class MultiScanSession extends Session {
     // the cancellation should provide us the safety to return true here
     return true;
   }
-
-  /**
-   * Ensure that the runnable actually runs
-   */
-  @Override
-  public void run() {
-    super.run();
-    lookupTask.run();
-  }
-
 }

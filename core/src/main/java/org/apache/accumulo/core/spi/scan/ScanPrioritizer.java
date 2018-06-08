@@ -14,29 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.scan;
 
-import org.apache.accumulo.core.spi.scan.ScanInfo;
-import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
+import java.util.Comparator;
+import java.util.Map;
 
-//TODO no docs
-//TODO location
-public class SingleRangePriorityComparator extends DefaultSessionComparator {
-
-  @Override
-  public int compare(ScanInfo si1, ScanInfo si2) {
-    int priority = super.compare(si1, si2);
-
-    if (si1.getScanType() == Type.MULTI && si2.getScanType() == Type.SINGLE) {
-      if (priority < 0) {
-        priority *= -1;
-      }
-    } else if (si2.getScanType() == Type.MULTI && si1.getScanType() == Type.SINGLE) {
-      if (priority > 0) {
-        priority *= -1;
-      }
-    }
-
-    return priority;
-  }
+public interface ScanPrioritizer {
+  Comparator<ScanInfo> createComparator(Map<String,String> options);
 }

@@ -14,19 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.scan;
 
-import java.util.Comparator;
+import java.util.Map;
 
-public abstract class SessionComparator implements Comparator<Runnable> {
+public class DefaultScanDispatcher implements ScanDispatcher {
+
+  public static final DefaultScanDispatcher INSTANCE = new DefaultScanDispatcher();
 
   @Override
-  public int compare(Runnable sessionA, Runnable sessionB) {
-    if (sessionA instanceof Session && sessionB instanceof Session)
-      return compareSession((Session) sessionA, (Session) sessionB);
-    else
-      return 0;
+  public String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors) {
+    return "default";
   }
-
-  public abstract int compareSession(final Session sessionA, final Session sessionB);
 }
