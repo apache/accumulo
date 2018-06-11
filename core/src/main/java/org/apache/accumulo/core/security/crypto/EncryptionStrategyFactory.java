@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.security.crypto;
 
 import java.io.IOException;
+import java.util.Map;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
@@ -34,7 +34,7 @@ public class EncryptionStrategyFactory {
    * @throws IOException
    *           if an error occurred during EncryptionStrategy initialization
    */
-  public static EncryptionStrategy setupReadEncryption(AccumuloConfiguration conf,
+  public static EncryptionStrategy setupReadEncryption(Map<String,String> conf,
       String fileEncryptedClass, EncryptionStrategy.Scope scope) throws IOException {
     String confCryptoStrategyClass = conf.get(Property.CRYPTO_STRATEGY);
     if (!fileEncryptedClass.equals(confCryptoStrategyClass)) {
@@ -51,13 +51,13 @@ public class EncryptionStrategyFactory {
    * @throws IOException
    *           if an error occurred during EncryptionStrategy initialization
    */
-  public static EncryptionStrategy setupConfiguredEncryption(AccumuloConfiguration conf,
+  public static EncryptionStrategy setupConfiguredEncryption(Map<String,String> conf,
       EncryptionStrategy.Scope scope) throws IOException {
     String name = conf.get(Property.CRYPTO_STRATEGY);
     return initEncryption(conf, loadStrategy(name), scope);
   }
 
-  private static EncryptionStrategy initEncryption(AccumuloConfiguration conf,
+  private static EncryptionStrategy initEncryption(Map<String,String> conf,
       EncryptionStrategy strategy, EncryptionStrategy.Scope scope) throws IOException {
     try {
       if (!strategy.init(scope, conf)) {

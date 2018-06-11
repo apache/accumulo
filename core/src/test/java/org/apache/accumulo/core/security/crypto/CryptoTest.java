@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -141,12 +142,13 @@ public class CryptoTest {
 
   private byte[] encrypt(Class strategyClass, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(conf,
-        EncryptionStrategy.Scope.RFILE);
+    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(
+        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX), EncryptionStrategy.Scope.RFILE);
 
     assertEquals(strategyClass, strategy.getClass());
     // test init on other scope to be sure, even though this test has no scope
-    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL, conf));
+    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL,
+        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX)));
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     OutputStream encrypted = strategy.encryptStream(new NoFlushOutputStream(out));
@@ -161,11 +163,12 @@ public class CryptoTest {
 
   private void decrypt(byte[] resultingBytes, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(conf,
-        EncryptionStrategy.Scope.RFILE);
+    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(
+        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX), EncryptionStrategy.Scope.RFILE);
 
     // test init on other scope to be sure, even though this test has no scope
-    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL, conf));
+    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL,
+        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX)));
 
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
     DataInputStream decrypted = new DataInputStream(strategy.decryptStream(in));

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
@@ -326,8 +327,9 @@ public final class BCFile {
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
 
-      this.encryptionStrategy = EncryptionStrategyFactory
-          .setupConfiguredEncryption(accumuloConfiguration, EncryptionStrategy.Scope.RFILE);
+      this.encryptionStrategy = EncryptionStrategyFactory.setupConfiguredEncryption(
+          accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX),
+          EncryptionStrategy.Scope.RFILE);
     }
 
     /**
@@ -646,7 +648,8 @@ public final class BCFile {
         this.in.seek(offsetCryptoParameters);
         String encryptionStrategy = this.in.readUTF();
         this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
-            accumuloConfiguration, encryptionStrategy, EncryptionStrategy.Scope.RFILE);
+            accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX),
+            encryptionStrategy, EncryptionStrategy.Scope.RFILE);
       }
 
       // read data:BCFile.index, the data block index
@@ -669,7 +672,8 @@ public final class BCFile {
       metaIndex = new MetaIndex(dis);
       dataIndex = new DataIndex(dis);
       String encryptionStrategy = dis.readUTF();
-      this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(accumuloConfiguration,
+      this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
+          accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX),
           encryptionStrategy, EncryptionStrategy.Scope.RFILE);
     }
 

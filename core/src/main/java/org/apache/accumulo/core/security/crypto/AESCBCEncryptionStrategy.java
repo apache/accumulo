@@ -18,6 +18,7 @@ package org.apache.accumulo.core.security.crypto;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -25,7 +26,6 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 
 /**
@@ -47,7 +47,7 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
   private boolean initialized = false;
 
   @Override
-  public boolean init(Scope encryptionScope, AccumuloConfiguration conf) throws Exception {
+  public boolean init(Scope encryptionScope, Map<String,String> conf) throws Exception {
     String key = conf.get(CRYPTO_SECRET_KEY_PROPERTY);
 
     // do some basic validation
