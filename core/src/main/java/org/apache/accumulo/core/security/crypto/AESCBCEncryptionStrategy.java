@@ -16,12 +16,17 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -47,16 +52,17 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
   private boolean initialized = false;
 
   @Override
-  public boolean init(Scope encryptionScope, AccumuloConfiguration conf) throws Exception {
+  public boolean init(Scope encryptionScope, AccumuloConfiguration conf)
+      throws EncryptionStrategyException {
     String key = conf.get(CRYPTO_SECRET_KEY_PROPERTY);
 
     // do some basic validation
     if (key == null) {
-      throw new Exception("Failed AESEncryptionStrategy init - missing required "
+      throw new EncryptionStrategyException("Failed AESEncryptionStrategy init - missing required "
           + "configuration property: " + CRYPTO_SECRET_KEY_PROPERTY);
     }
     if (key.getBytes().length != KEY_LENGTH_IN_BYTES) {
-      throw new Exception("Failed AESEncryptionStrategy init - key length not "
+      throw new EncryptionStrategyException("Failed AESEncryptionStrategy init - key length not "
           + KEY_LENGTH_IN_BYTES + " provided: " + key.getBytes().length);
     }
 
@@ -65,16 +71,31 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
   }
 
   @Override
-  public OutputStream encryptStream(OutputStream outputStream) throws Exception {
+  public OutputStream encryptStream(OutputStream outputStream) throws EncryptionStrategyException {
     if (!initialized)
-      throw new Exception("AESEncryptionStrategy not initialized.");
+      throw new EncryptionStrategyException("AESEncryptionStrategy not initialized.");
 
     CryptoUtils.getSha1SecureRandom().nextBytes(initVector);
-    Cipher cipher = Cipher.getInstance(this.transformation);
-    cipher.init(Cipher.ENCRYPT_MODE, skeySpec, new IvParameterSpec(initVector));
+    Cipher cipher;
+    try {
+      cipher = Cipher.getInstance(this.transformation);
+      cipher.init(Cipher.ENCRYPT_MODE, skeySpec, new IvParameterSpec(initVector));
+    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+        | InvalidAlgorithmParameterException e) {
+      throw new EncryptionStrategyException(e);
+    }
 
     CipherOutputStream cos = new CipherOutputStream(outputStream, cipher);
-    cos.write(initVector);
+    try {
+      cos.write(initVector);
+    } catch (IOException e) {
+      try {
+        cos.close();
+      } catch (IOException ioe) {
+        throw new EncryptionStrategyException(ioe);
+      }
+      throw new EncryptionStrategyException(e);
+    }
 
     // Prevent underlying stream from being closed with DiscardCloseOutputStream
     // Without this, when the crypto stream is closed (in order to flush its last bytes)
@@ -84,18 +105,35 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
   }
 
   @Override
-  public InputStream decryptStream(InputStream inputStream) throws Exception {
+  public InputStream decryptStream(InputStream inputStream) throws EncryptionStrategyException {
     if (!initialized)
-      throw new Exception("AESEncryptionStrategy not initialized.");
-    int bytesRead = inputStream.read(initVector);
+      throw new EncryptionStrategyException("AESEncryptionStrategy not initialized.");
+    int bytesRead;
+    try {
+      bytesRead = inputStream.read(initVector);
+    } catch (IOException e) {
+      throw new EncryptionStrategyException(e);
+    }
     if (bytesRead != IV_LENGTH_IN_BYTES)
-      throw new Exception("Read " + bytesRead + " bytes, not IV length of " + IV_LENGTH_IN_BYTES
-          + " in decryptStream.");
+      throw new EncryptionStrategyException("Read " + bytesRead + " bytes, not IV length of "
+          + IV_LENGTH_IN_BYTES + " in decryptStream.");
 
-    Cipher cipher = Cipher.getInstance(this.transformation);
-    cipher.init(Cipher.DECRYPT_MODE, skeySpec, new IvParameterSpec(initVector));
+    Cipher cipher;
+    try {
+      cipher = Cipher.getInstance(this.transformation);
+      cipher.init(Cipher.DECRYPT_MODE, skeySpec, new IvParameterSpec(initVector));
+    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+        | InvalidAlgorithmParameterException e) {
+      throw new EncryptionStrategyException(e);
+    }
 
     CipherInputStream cis = new CipherInputStream(inputStream, cipher);
     return new BlockedInputStream(cis, cipher.getBlockSize(), 1024);
+  }
+
+  @Override
+  public void printCryptoInfoToStream(OutputStream outputStream) {
+    // TODO implement
+
   }
 }
