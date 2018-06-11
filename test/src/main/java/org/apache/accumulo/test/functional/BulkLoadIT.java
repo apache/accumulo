@@ -19,11 +19,13 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,8 +67,6 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
 
 /**
  * Tests new bulk import technique. If the old technique ever gets removed this will replace
@@ -317,8 +317,10 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   private String hash(String filename) {
     try {
-      return Files.hash(new File(new URI(filename).getPath()), Hashing.sha1()).toString();
-    } catch (IOException | URISyntaxException e) {
+      byte data[] = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));
+      byte hash[] = MessageDigest.getInstance("SHA1").digest(data);
+      return new BigInteger(1, hash).toString(16);
+    } catch (IOException | NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
   }

@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -65,6 +67,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
@@ -74,6 +77,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class BulkImport implements ImportSourceArguments, ImportExecutorOptions {
@@ -252,7 +256,8 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
         throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException;
   }
 
-  private static class ConcurrentKeyExtentCache implements KeyExtentCache {
+  @VisibleForTesting
+  static class ConcurrentKeyExtentCache implements KeyExtentCache {
 
     private static final Text MAX = new Text();
 
@@ -267,6 +272,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     private ID tableId;
     private ClientContext ctx;
 
+    @VisibleForTesting
     ConcurrentKeyExtentCache(Table.ID tableId, ClientContext ctx) {
       this.tableId = tableId;
       this.ctx = ctx;
@@ -281,11 +287,24 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       return null;
     }
 
-    private void updateCache(KeyExtent e) {
+    private boolean inCache(KeyExtent e) {
+      return Objects.equals(e, extents.get(e.getEndRow() == null ? MAX : e.getEndRow()));
+    }
+
+    @VisibleForTesting
+    protected void updateCache(KeyExtent e) {
       Text prevRow = e.getPrevEndRow() == null ? new Text() : e.getPrevEndRow();
       Text endRow = e.getEndRow() == null ? MAX : e.getEndRow();
       extents.subMap(prevRow, e.getPrevEndRow() == null, endRow, true).clear();
       extents.put(endRow, e);
+    }
+
+    @VisibleForTesting
+    protected Stream<KeyExtent> lookupExtents(Text row)
+        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      return MetadataScanner.builder().from(ctx).scanMetadataTable().overRange(tableId, row, null)
+          .checkConsistency().fetchPrev().build().stream().limit(100)
+          .map(TabletMetadata::getExtent);
     }
 
     @Override
@@ -322,9 +341,13 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
 
           for (Text lookupRow : lookupRows) {
             if (getFromCache(lookupRow) == null) {
-              MetadataScanner.builder().from(ctx).scanMetadataTable()
-                  .overRange(tableId, lookupRow, null).checkConsistency().fetchPrev().build()
-                  .stream().limit(100).forEach(tm -> updateCache(tm.getExtent()));
+              Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
+              while (iter.hasNext()) {
+                KeyExtent ke2 = iter.next();
+                if (inCache(ke2))
+                  break;
+                updateCache(ke2);
+              }
             }
           }
         }
