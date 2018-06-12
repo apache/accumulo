@@ -41,4 +41,9 @@ public class NoEncryptionStrategy implements EncryptionStrategy {
     // do nothing
     return inputStream;
   }
+
+  @Override
+  public void printCryptoInfoToStream(OutputStream outputStream) {
+    // do nothing
+  }
 }

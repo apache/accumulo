@@ -39,20 +39,49 @@ public interface EncryptionStrategy {
    * @return true if initialization was successful
    * @since 2.0
    */
-  boolean init(Scope encryptionScope, Map<String,String> configuration) throws Exception;
+  boolean init(Scope encryptionScope, Map<String,String> configuration)
+      throws EncryptionStrategyException;
 
   /**
    * Encrypts the OutputStream.
    *
    * @since 2.0
    */
-  OutputStream encryptStream(OutputStream outputStream) throws Exception;
+  OutputStream encryptStream(OutputStream outputStream) throws EncryptionStrategyException;
 
   /**
    * Decrypts the InputStream.
    *
    * @since 2.0
    */
-  InputStream decryptStream(InputStream inputStream) throws Exception;
+  InputStream decryptStream(InputStream inputStream) throws EncryptionStrategyException;
 
+  /**
+   * This method is responsible for printing all information required for decrypting to a stream
+   *
+   * @param outputStream
+   *          The stream being written in requiring crypto information
+   * @throws EncryptionStrategyException
+   *           if the print fails
+   */
+  void printCryptoInfoToStream(OutputStream outputStream);
+
+  public class EncryptionStrategyException extends RuntimeException {
+    EncryptionStrategyException() {
+      super();
+    }
+
+    EncryptionStrategyException(String message) {
+      super(message);
+    }
+
+    EncryptionStrategyException(String message, Throwable cause) {
+      super(message, cause);
+    }
+
+    EncryptionStrategyException(Throwable cause) {
+      super(cause);
+    }
+
+  }
 }
