@@ -230,7 +230,8 @@ public class MiniClusterHarness {
     cfg.setClientProperty(ClientProperty.SSL_ENABLED, "true");
     cfg.setClientProperty(ClientProperty.SSL_KEYSTORE_PATH, localKeystoreFile.getAbsolutePath());
     cfg.setClientProperty(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), cfg.getRootPassword());
-    cfg.setClientProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), publicTruststoreFile.getAbsolutePath());
+    cfg.setClientProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(),
+        publicTruststoreFile.getAbsolutePath());
     cfg.setClientProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
   }
 
