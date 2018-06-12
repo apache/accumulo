@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -48,6 +49,7 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     cfg.setSiteConfig(siteConfig);
+    cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
   }
 
   @Override

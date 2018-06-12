@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -225,7 +224,6 @@ public class ThriftScanner {
       throws ScanTimedOutException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     TabletLocation loc = null;
-    Instance instance = context.getInstance();
     long startTime = System.currentTimeMillis();
     String lastError = null;
     String error = null;
@@ -257,9 +255,9 @@ public class ThriftScanner {
                 scanState.startRow, scanState.skipStartRow, false);
 
             if (loc == null) {
-              if (!Tables.exists(instance, scanState.tableId))
+              if (!Tables.exists(context, scanState.tableId))
                 throw new TableDeletedException(scanState.tableId.canonicalID());
-              else if (Tables.getTableState(instance, scanState.tableId) == TableState.OFFLINE)
+              else if (Tables.getTableState(context, scanState.tableId) == TableState.OFFLINE)
                 throw new TableOfflineException(
                     Tables.getTableOfflineMsg(context, scanState.tableId));
 
@@ -311,16 +309,15 @@ public class ThriftScanner {
         try {
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {
-          Tables.clearCache(instance);
-          if (!Tables.exists(instance, scanState.tableId))
+          Tables.clearCache(context);
+          if (!Tables.exists(context, scanState.tableId))
             throw new TableDeletedException(scanState.tableId.canonicalID());
-          e.setTableInfo(Tables.getPrintableTableInfoFromId(instance, scanState.tableId));
+          e.setTableInfo(Tables.getPrintableTableInfoFromId(context, scanState.tableId));
           throw e;
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(loc.tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
-          String message = "Table "
-              + Tables.getPrintableTableInfoFromId(instance, scanState.tableId)
+          String message = "Table " + Tables.getPrintableTableInfoFromId(context, scanState.tableId)
               + " does not have sampling configured or built";
           throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {

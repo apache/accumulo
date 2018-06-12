@@ -51,8 +51,8 @@ public class TableOperationsImplTest {
     PasswordToken token = new PasswordToken("password");
 
     // Credentials expectations
-    EasyMock.expect(credentials.getPrincipal()).andReturn(user).atLeastOnce();
-    EasyMock.expect(credentials.getToken()).andReturn(token).atLeastOnce();
+    EasyMock.expect(credentials.getPrincipal()).andReturn(user);
+    EasyMock.expect(credentials.getToken()).andReturn(token);
 
     // Create the connector and scanner
     EasyMock.expect(instance.getConnector(user, token)).andReturn(connector);

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 /**
@@ -61,4 +62,18 @@ public interface ClientInfo {
    * @return All Accumulo client properties set for this connection
    */
   Properties getProperties();
+
+  /**
+   * @return ClientInfo given properties
+   */
+  static ClientInfo from(Properties properties) {
+    return new ClientInfoImpl(properties);
+  }
+
+  /**
+   * @return ClientInfo given properties and token
+   */
+  static ClientInfo from(Properties properties, AuthenticationToken token) {
+    return new ClientInfoImpl(properties, token);
+  }
 }

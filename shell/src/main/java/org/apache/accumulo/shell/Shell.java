@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -45,12 +46,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -172,6 +174,7 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 
 import jline.console.ConsoleReader;
 import jline.console.UserInterruptException;
@@ -195,10 +198,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   protected int exitCode = 0;
   private String tableName;
-  protected Instance instance;
   private Connector connector;
+  private ClientContext context;
   protected ConsoleReader reader;
-  private AuthenticationToken token;
   private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<>();
   public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<>();
@@ -245,6 +247,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public Shell(ConsoleReader reader) {
     super();
     this.reader = reader;
+  }
+
+  @VisibleForTesting
+  public void setConnector(Connector connector) {
+    this.connector = connector;
   }
 
   /**
@@ -294,56 +301,58 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       disableAuthTimeout = true;
     }
 
-    // get the options that were parsed
-    final String user;
-    try {
-      user = options.getUsername();
-    } catch (Exception e) {
-      logError(e.getMessage());
-      exitCode = 1;
-      return false;
-    }
-
     tabCompletion = !options.isTabCompletionDisabled();
+    this.setTableName("");
 
-    try {
-      setInstance(options);
-    } catch (Exception e) {
-      logError(e.getMessage());
-      exitCode = 1;
-      return false;
-    }
-
-    Properties props = options.getClientProperties();
-    String password = options.getPassword();
-    if (password == null && props.containsKey(ClientProperty.AUTH_TOKEN.getKey())
-        && user.equals(ClientProperty.AUTH_PRINCIPAL.getValue(props))) {
-      token = ClientProperty.getAuthenticationToken(props);
-    }
-    if (token == null) {
-      Runtime.getRuntime()
-          .addShutdownHook(new Thread(() -> reader.getTerminal().setEchoEnabled(true)));
-      // Read password if the user explicitly asked for it, or didn't specify anything at all
-      if ("stdin".equals(password) || password == null) {
-        password = reader.readLine("Password: ", '*');
+    if (connector == null) {
+      Properties props = options.getClientProperties();
+      if (ClientProperty.INSTANCE_ZOOKEEPERS.isEmpty(props)) {
+        throw new IllegalArgumentException("ZooKeepers must be set using -z or -zh on command line"
+            + " or in accumulo-client.properties");
       }
-      if (password == null) {
-        // User cancel, e.g. Ctrl-D pressed
-        throw new ParameterException("No password or token option supplied");
-      } else {
-        token = new PasswordToken(password);
+      if (ClientProperty.INSTANCE_NAME.isEmpty(props)) {
+        throw new IllegalArgumentException("Instance name must be set using -z or -zi on command "
+            + "line or in accumulo-client.properties");
       }
-    }
-
-    try {
-      DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
-      this.setTableName("");
-      connector = instance.getConnector(user, token);
-
-    } catch (Exception e) {
-      printException(e);
-      exitCode = 1;
-      return false;
+      final String principal;
+      try {
+        principal = options.getUsername();
+      } catch (Exception e) {
+        logError(e.getMessage());
+        exitCode = 1;
+        return false;
+      }
+      String password = options.getPassword();
+      AuthenticationToken token = null;
+      if (password == null && props.containsKey(ClientProperty.AUTH_TOKEN.getKey())
+          && principal.equals(ClientProperty.AUTH_PRINCIPAL.getValue(props))) {
+        token = ClientProperty.getAuthenticationToken(props);
+      }
+      if (token == null) {
+        Runtime.getRuntime()
+            .addShutdownHook(new Thread(() -> reader.getTerminal().setEchoEnabled(true)));
+        // Read password if the user explicitly asked for it, or didn't specify anything at all
+        if ("stdin".equals(password) || password == null) {
+          password = reader.readLine("Password: ", '*');
+        }
+        if (password == null) {
+          // User cancel, e.g. Ctrl-D pressed
+          throw new ParameterException("No password or token option supplied");
+        } else {
+          token = new PasswordToken(password);
+        }
+      }
+      ClientInfo info = ClientInfo.from(props);
+      try {
+        DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
+        this.setTableName("");
+        connector = Connector.builder().usingClientInfo(info).usingToken(principal, token).build();
+        context = new ClientContext(connector.info());
+      } catch (Exception e) {
+        printException(e);
+        exitCode = 1;
+        return false;
+      }
     }
 
     // decide whether to execute commands from a file and quit
@@ -416,82 +425,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return true;
   }
 
-  /**
-   * Sets the instance used by the shell based on the given options.
-   *
-   * @param options
-   *          shell options
-   */
-  protected void setInstance(ShellOptionsJC options) {
-    // should only be one set of instance options set
-    instance = null;
-    String instanceName, hosts;
-    if (options.getZooKeeperInstance().size() > 0) {
-      List<String> zkOpts = options.getZooKeeperInstance();
-      instanceName = zkOpts.get(0);
-      hosts = zkOpts.get(1);
-    } else {
-      instanceName = options.getZooKeeperInstanceName();
-      hosts = options.getZooKeeperHosts();
-    }
-    final Properties properties = options.getClientProperties();
-    instance = getZooInstance(instanceName, hosts, properties);
-  }
-
-  /**
-   * Get the ZooKeepers. Use the value passed in (if there was one), then fall back to value in
-   * accumulo-client.properties
-   *
-   * @param keepers
-   *          ZooKeepers passed to the shell
-   * @param properties
-   *          Client properties
-   * @return The ZooKeepers to connect to
-   */
-  static String getZooKeepers(String keepers, Properties properties) {
-    if (null != keepers) {
-      return keepers;
-    }
-    return properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey());
-  }
-
-  /**
-   * Determines Instance using command line options and properties
-   *
-   * @param instanceName
-   *          Instance name set on CL
-   * @param keepersOption
-   *          ZooKeeper CL options
-   * @param properties
-   *          Config properties
-   * @return Instance
-   * @throws IllegalArgumentException
-   *           if no instance name or zookeeper can be determined
-   */
-  private static Instance getZooInstance(String instanceName, String keepersOption,
-      Properties properties) {
-    if (instanceName == null) {
-      instanceName = properties.getProperty(ClientProperty.INSTANCE_NAME.getKey());
-    }
-    String keepers = getZooKeepers(keepersOption, properties);
-
-    if (keepers == null) {
-      throw new IllegalArgumentException("ZooKeepers must be set using -z or"
-          + " -zh on command line or in accumulo-client.properties");
-    }
-    if (instanceName == null) {
-      throw new IllegalArgumentException("Instance name must be set using -z or"
-          + " -zi on command line or in accumulo-client.properties");
-    }
-    return new ZooKeeperInstance(instanceName, keepers);
-  }
-
   public Connector getConnector() {
     return connector;
   }
 
   public Instance getInstance() {
-    return instance;
+    return connector.getInstance();
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
@@ -722,6 +661,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public String getDefaultPrompt() {
+    Objects.nonNull(connector);
+    Objects.nonNull(connector.info());
     return connector.whoami() + "@" + connector.info().getInstanceName()
         + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
@@ -1226,16 +1167,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void updateUser(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    connector = instance.getConnector(principal, token);
-    this.token = token;
+    connector = connector.changeUser(principal, token);
+    context = new ClientContext(connector.info());
   }
 
-  public String getPrincipal() {
-    return connector.whoami();
-  }
-
-  public AuthenticationToken getToken() {
-    return token;
+  public ClientContext getContext() {
+    return context;
   }
 
   /**

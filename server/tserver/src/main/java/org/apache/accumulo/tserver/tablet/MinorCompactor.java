@@ -87,8 +87,7 @@ public class MinorCompactor extends Compactor {
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getInstance(),
-          extent.getTableId()) == TableState.DELETING;
+      return Tables.getTableState(tabletServer, extent.getTableId()) == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.

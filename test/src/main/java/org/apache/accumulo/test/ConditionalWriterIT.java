@@ -253,8 +253,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     conn.securityOperations().changeUserAuthorizations(user, auths);
     conn.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
 
-    conn = conn.getInstance().getConnector(user, user1.getToken());
-
+    conn = conn.changeUser(user, user1.getToken());
     conn.tableOperations().create(tableName);
 
     try (
@@ -1301,7 +1300,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.WRITE);
 
     // Login as the user
-    Connector conn2 = conn.getInstance().getConnector(user, user1.getToken());
+    Connector conn2 = conn.changeUser(user, user1.getToken());
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");

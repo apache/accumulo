@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -242,9 +243,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<Table.ID> onlineTables() {
-      Set<Table.ID> onlineTables = Tables.getIdToNameMap(getConnector().getInstance()).keySet();
-      return Sets.filter(onlineTables, tableId -> Tables.getTableState(getConnector().getInstance(),
-          tableId) == TableState.ONLINE);
+      ClientContext context = new ClientContext(getClientInfo());
+      Set<Table.ID> onlineTables = Tables.getIdToNameMap(context.getInstance()).keySet();
+      return Sets.filter(onlineTables,
+          tableId -> Tables.getTableState(context, tableId) == TableState.ONLINE);
     }
 
     @Override

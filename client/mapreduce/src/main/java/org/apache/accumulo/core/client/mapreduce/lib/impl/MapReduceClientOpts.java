@@ -60,7 +60,8 @@ public class MapReduceClientOpts extends ClientOpts {
         log.info("Obtaining delegation token for {}", newPrincipal);
 
         setPrincipal(newPrincipal);
-        Connector conn = getInstance().getConnector(newPrincipal, krbToken);
+        Connector conn = Connector.builder().usingClientInfo(getClientInfo())
+            .usingToken(newPrincipal, krbToken).build();
 
         // Do the explicit check to see if the user has the permission to get a delegation token
         if (!conn.securityOperations().hasSystemPermission(conn.whoami(),

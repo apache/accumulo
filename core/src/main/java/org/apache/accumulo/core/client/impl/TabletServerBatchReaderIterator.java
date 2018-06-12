@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -79,7 +78,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReaderIterator.class);
 
   private final ClientContext context;
-  private final Instance instance;
   private final Table.ID tableId;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
@@ -111,7 +109,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
 
     this.context = context;
-    this.instance = context.getInstance();
     this.tableId = tableId;
     this.authorizations = authorizations;
     this.numThreads = numThreads;
@@ -251,7 +248,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         if (failures.size() >= lastFailureSize)
           if (!Tables.exists(context, tableId))
             throw new TableDeletedException(tableId.canonicalID());
-          else if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+          else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
             throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
         lastFailureSize = failures.size();
@@ -323,7 +320,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private String getTableInfo() {
-    return Tables.getPrintableTableInfoFromId(instance, tableId);
+    return Tables.getPrintableTableInfoFromId(context, tableId);
   }
 
   private class QueryTask implements Runnable {
@@ -386,7 +383,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         e.setTableInfo(getTableInfo());
         log.debug("AccumuloSecurityException thrown", e);
 
-        Tables.clearCache(instance);
+        Tables.clearCache(context);
         if (!Tables.exists(context, tableId))
           fatalException = new TableDeletedException(tableId.canonicalID());
         else
@@ -768,7 +765,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       String tableInfo = "?";
       if (e.getExtent() != null) {
         Table.ID tableId = new KeyExtent(e.getExtent()).getTableId();
-        tableInfo = Tables.getPrintableTableInfoFromId(context.getInstance(), tableId);
+        tableInfo = Tables.getPrintableTableInfoFromId(context, tableId);
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";
       throw new SampleNotPresentException(message, e);

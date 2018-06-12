@@ -90,8 +90,8 @@ public class BulkImport extends MasterRepo {
     if (!Utils.getReadLock(tableId, tid).tryLock())
       return 100;
 
-    Tables.clearCache(master.getInstance());
-    if (Tables.getTableState(master.getInstance(), tableId) == TableState.ONLINE) {
+    Tables.clearCache(master);
+    if (Tables.getTableState(master, tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
       reserve1 = reserve2 = Utils.reserveHdfsDirectory(sourceDir, tid);
       if (reserve1 == 0)

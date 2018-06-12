@@ -130,7 +130,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     Assert.assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
-    Connector testConn = c.getInstance().getConnector(testUser, user.getToken());
+    Connector testConn = c.changeUser(testUser, user.getToken());
     // Set the property to the desired value
     testConn.tableOperations().setProperty(tableName, propertyName, description1);
 
@@ -194,7 +194,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     Assert.assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
-    Connector testConn = c.getInstance().getConnector(testUser, user.getToken());
+    Connector testConn = c.changeUser(testUser, user.getToken());
 
     // Try to set the property to the desired value.
     // If able to set it, the test fails, since permission was never granted

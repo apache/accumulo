@@ -510,7 +510,7 @@ public class TabletServerBatchWriter {
       for (KeyExtent ke : authorizationFailures.keySet())
         tableIds.add(ke.getTableId());
 
-      Tables.clearCache(context.getInstance());
+      Tables.clearCache(context);
       for (Table.ID tableId : tableIds)
         if (!Tables.exists(context, tableId))
           throw new TableDeletedException(tableId.canonicalID());
@@ -698,7 +698,7 @@ public class TabletServerBatchWriter {
               if (tableFailures.size() == tableMutations.size())
                 if (!Tables.exists(context, entry.getKey()))
                   throw new TableDeletedException(entry.getKey().canonicalID());
-                else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+                else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
                   throw new TableOfflineException(
                       Tables.getTableOfflineMsg(context, entry.getKey()));
             }

@@ -93,6 +93,19 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
 
   /**
+   * Get connection information from this job
+   *
+   * @param context
+   *          Hadoop job context
+   * @return {@link ClientInfo}
+   *
+   * @since 2.0.0
+   */
+  public static ClientInfo getClientInfo(JobContext context) {
+    return OutputConfigurator.getClientInfo(CLASS, context.getConfiguration());
+  }
+
+  /**
    * Set Accumulo client properties file used to connect to Accumulo
    *
    * @param job
@@ -133,8 +146,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Instance instance = getInstance(job);
-        Connector conn = instance.getConnector(principal, token);
+        Connector conn = Connector.builder().usingClientInfo(getClientInfo(job))
+            .usingToken(principal, token).build();
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
@@ -427,8 +440,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.conn = getInstance(context).getConnector(getPrincipal(context),
-            getAuthenticationToken(context));
+        this.conn = Connector.builder().usingClientInfo(getClientInfo(context)).build();
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
@@ -567,7 +579,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       // if the instance isn't configured, it will complain here
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
-      Connector c = getInstance(job).getConnector(principal, token);
+      Connector c = Connector.builder().usingClientInfo(getClientInfo(job)).build();
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

@@ -677,7 +677,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.securityOperations().createLocalUser(u1, pass);
 
     loginAs(user1);
-    Connector user1Con = c.getInstance().getConnector(u1, user1.getToken());
+    Connector user1Con = c.changeUser(u1, user1.getToken());
 
     try {
       user1Con.tableOperations().create(t2);

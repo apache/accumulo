@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -107,6 +108,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
       @Override
       public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
         cfg.setNumTservers(1);
+        cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
         cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
         cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
         cfg.setProperty(Property.GC_CYCLE_START, "1s");

@@ -22,6 +22,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -38,6 +39,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     cfg.setSiteConfig(siteConfig);
+    cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
   }
 
   @Override

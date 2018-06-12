@@ -270,7 +270,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     Table.ID tableId = Tables.getTableId(context, tableName);
 
-    TableState tstate = Tables.getTableState(connector.getInstance(), tableId);
+    TableState tstate = Tables.getTableState(context, tableId);
 
     log.trace("tableName: '{}': tableId {}, current state: {}", tableName, tableId, tstate);
 

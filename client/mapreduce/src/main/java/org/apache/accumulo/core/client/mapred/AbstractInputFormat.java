@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
@@ -181,8 +180,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Instance instance = getInstance(job);
-        Connector conn = instance.getConnector(principal, token);
+        Connector conn = Connector.builder().usingClientInfo(getClientInfo(job))
+            .usingToken(principal, token).build();
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely"
@@ -479,10 +478,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + baseSplit);
 
-      Instance instance = getInstance(job);
-
-      String principal = getPrincipal(job);
-      AuthenticationToken token = getAuthenticationToken(job);
+      ClientContext context = new ClientContext(getClientInfo(job));
+      Connector conn;
+      try {
+        conn = context.getConnector();
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new IllegalStateException(e);
+      }
       Authorizations authorizations = getScanAuthorizations(job);
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
@@ -491,7 +493,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       // configuration, but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
-      log.debug("Creating connector with user: " + principal);
+      log.debug("Created connector with user: " + conn.whoami());
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
@@ -503,8 +505,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = instance.getConnector(principal, token)
-              .createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
+          scanner = conn.createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
           if (null != classLoaderContext) {
             scanner.setClassLoaderContext(classLoaderContext);
@@ -537,10 +538,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(instance, new Credentials(principal, token),
-                Table.ID.of(baseSplit.getTableId()), authorizations);
+            scanner = new OfflineScanner(context, Table.ID.of(baseSplit.getTableId()),
+                authorizations);
           } else {
-            ClientContext context = new ClientContext(getClientInfo(job));
             scanner = new ScannerImpl(context, Table.ID.of(baseSplit.getTableId()), authorizations);
           }
           if (isIsolated) {
@@ -617,11 +617,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId,
       List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-
-    Instance instance = getInstance(job);
-    Connector conn = instance.getConnector(getPrincipal(job), getAuthenticationToken(job));
-
-    return InputConfigurator.binOffline(tableId, ranges, instance, conn);
+    ClientContext context = new ClientContext(getClientInfo(job));
+    return InputConfigurator.binOffline(tableId, ranges, context);
   }
 
   /**

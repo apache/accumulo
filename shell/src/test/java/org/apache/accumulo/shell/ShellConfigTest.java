@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.shell;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -27,9 +26,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
-import java.util.Properties;
 
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Before;
@@ -115,17 +112,4 @@ public class ShellConfigTest {
     assertTrue("Did not print usage", output.get().contains("Usage"));
   }
 
-  @Test
-  public void testZooKeeperHostFromClientProps() {
-    Properties props = new Properties();
-    props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "cc_hostname");
-    assertEquals("cc_hostname", Shell.getZooKeepers(null, props));
-  }
-
-  @Test
-  public void testZooKeeperHostFromOption() {
-    Properties props = new Properties();
-    props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "cc_hostname");
-    assertEquals("opt_hostname", Shell.getZooKeepers("opt_hostname", props));
-  }
 }

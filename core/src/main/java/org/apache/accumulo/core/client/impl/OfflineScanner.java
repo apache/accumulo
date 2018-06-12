@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -36,24 +35,18 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private int timeOut;
   private Range range;
 
-  private Instance instance;
-  private Credentials credentials;
+  private ClientContext context;
   private Authorizations authorizations;
   private Text tableId;
 
-  public OfflineScanner(Instance instance, Credentials credentials, Table.ID tableId,
-      Authorizations authorizations) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
+  public OfflineScanner(ClientContext context, Table.ID tableId, Authorizations authorizations) {
+    checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
-    this.instance = instance;
-    this.credentials = credentials;
+    this.context = context;
     this.tableId = new Text(tableId.getUtf8());
     this.range = new Range((Key) null, (Key) null);
-
     this.authorizations = authorizations;
-
     this.batchSize = Constants.SCAN_BATCH_SIZE;
     this.timeOut = Integer.MAX_VALUE;
   }
@@ -102,7 +95,7 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
 
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    return new OfflineIterator(this, instance, credentials, authorizations, tableId, range);
+    return new OfflineIterator(this, context, authorizations, tableId, range);
   }
 
   @Override

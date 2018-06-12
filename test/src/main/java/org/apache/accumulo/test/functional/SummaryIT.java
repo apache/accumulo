@@ -57,7 +57,6 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -585,9 +584,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     PasswordToken passTok = new PasswordToken("letmesee");
     c.securityOperations().createLocalUser("user1", passTok);
 
-    String instanceName = c.info().getInstanceName();
-    String zookeepers = c.info().getZooKeepers();
-    Connector c2 = new ZooKeeperInstance(instanceName, zookeepers).getConnector("user1", passTok);
+    Connector c2 = c.changeUser("user1", passTok);
     try {
       c2.tableOperations().summaries(table).retrieve();
       Assert

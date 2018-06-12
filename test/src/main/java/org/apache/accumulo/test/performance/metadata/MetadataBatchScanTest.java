@@ -30,9 +30,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -64,8 +62,7 @@ public class MetadataBatchScanTest {
 
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MetadataBatchScanTest.class.getName(), args);
-    Instance inst = new ZooKeeperInstance("acu14", "localhost");
-    final Connector connector = inst.getConnector(opts.getPrincipal(), opts.getToken());
+    final Connector connector = opts.getConnector();
 
     TreeSet<Long> splits = new TreeSet<>();
     Random r = new Random(42);
