@@ -18,8 +18,7 @@ package org.apache.accumulo.core.security.crypto;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import java.util.Map;
 
 public interface EncryptionStrategy {
 
@@ -35,10 +34,12 @@ public interface EncryptionStrategy {
    *
    * @param encryptionScope
    *          where the encryption takes places
+   * @param configuration
+   *          relevant encryption properties
    * @return true if initialization was successful
    * @since 2.0
    */
-  boolean init(Scope encryptionScope, AccumuloConfiguration configuration)
+  boolean init(Scope encryptionScope, Map<String,String> configuration)
       throws EncryptionStrategyException;
 
   /**

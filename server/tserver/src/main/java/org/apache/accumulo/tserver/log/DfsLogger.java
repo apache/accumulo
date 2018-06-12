@@ -360,8 +360,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
         String cryptoStrategyClass = input.readUTF();
-        EncryptionStrategy encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(conf,
-            cryptoStrategyClass, EncryptionStrategy.Scope.WAL);
+        EncryptionStrategy encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
+            conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX), cryptoStrategyClass,
+            EncryptionStrategy.Scope.WAL);
         log.debug("Using {} for decrypting WAL", encryptionStrategy.getClass().getSimpleName());
         decryptingInput = encryptionStrategy instanceof NoEncryptionStrategy ? input
             : new DataInputStream(encryptionStrategy.decryptStream(input));
@@ -419,8 +420,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
       logFile.writeUTF(conf.getConfiguration().get(Property.CRYPTO_STRATEGY));
 
-      this.encryptionStrategy = EncryptionStrategyFactory
-          .setupConfiguredEncryption(conf.getConfiguration(), EncryptionStrategy.Scope.WAL);
+      this.encryptionStrategy = EncryptionStrategyFactory.setupConfiguredEncryption(
+          conf.getConfiguration().getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX),
+          EncryptionStrategy.Scope.WAL);
 
       log.debug("Using {} for encrypting WAL {}",
           this.encryptionStrategy.getClass().getSimpleName(), filename);

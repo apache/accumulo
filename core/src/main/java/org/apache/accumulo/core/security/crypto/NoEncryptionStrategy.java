@@ -18,8 +18,7 @@ package org.apache.accumulo.core.security.crypto;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import java.util.Map;
 
 /**
  * The default encryption strategy which does nothing.
@@ -27,7 +26,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 public class NoEncryptionStrategy implements EncryptionStrategy {
 
   @Override
-  public boolean init(Scope encryptionScope, AccumuloConfiguration conf) {
+  public boolean init(Scope encryptionScope, Map<String,String> conf) {
     return true;
   }
 

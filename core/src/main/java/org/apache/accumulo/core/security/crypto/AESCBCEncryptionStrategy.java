@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -30,7 +31,6 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 
 /**
@@ -52,8 +52,9 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
   private boolean initialized = false;
 
   @Override
-  public boolean init(Scope encryptionScope, AccumuloConfiguration conf)
+  public boolean init(Scope encryptionScope, Map<String,String> conf)
       throws EncryptionStrategyException {
+
     String key = conf.get(CRYPTO_SECRET_KEY_PROPERTY);
 
     // do some basic validation
