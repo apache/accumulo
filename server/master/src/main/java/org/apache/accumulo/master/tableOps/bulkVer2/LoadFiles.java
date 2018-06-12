@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.impl.Bulk;
 import org.apache.accumulo.core.client.impl.Bulk.Files;
 import org.apache.accumulo.core.client.impl.BulkSerialize;
@@ -220,7 +221,7 @@ class LoadFiles extends MasterRepo {
     }
 
     @Override
-    void load(List<TabletMetadata> tablets, Files files) throws Exception {
+    void load(List<TabletMetadata> tablets, Files files) throws MutationsRejectedException {
       byte[] fam = TextUtil.getBytes(DataFileColumnFamily.NAME);
 
       for (TabletMetadata tablet : tablets) {

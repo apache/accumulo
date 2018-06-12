@@ -26,8 +26,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,12 +35,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -54,7 +50,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportExecutorOptions;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceOptions;
-import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -66,8 +61,6 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
@@ -77,7 +70,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class BulkImport implements ImportSourceArguments, ImportExecutorOptions {
@@ -254,105 +246,6 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   public interface KeyExtentCache {
     KeyExtent lookup(Text row)
         throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  }
-
-  @VisibleForTesting
-  static class ConcurrentKeyExtentCache implements KeyExtentCache {
-
-    private static final Text MAX = new Text();
-
-    private Set<Text> rowsToLookup = Collections.synchronizedSet(new HashSet<>());
-
-    List<Text> lookupRows = new ArrayList<>();
-
-    private ConcurrentSkipListMap<Text,KeyExtent> extents = new ConcurrentSkipListMap<>(
-        (t1, t2) -> {
-          return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
-        });
-    private ID tableId;
-    private ClientContext ctx;
-
-    @VisibleForTesting
-    ConcurrentKeyExtentCache(Table.ID tableId, ClientContext ctx) {
-      this.tableId = tableId;
-      this.ctx = ctx;
-    }
-
-    private KeyExtent getFromCache(Text row) {
-      Entry<Text,KeyExtent> entry = extents.ceilingEntry(row);
-      if (entry != null && entry.getValue().contains(row)) {
-        return entry.getValue();
-      }
-
-      return null;
-    }
-
-    private boolean inCache(KeyExtent e) {
-      return Objects.equals(e, extents.get(e.getEndRow() == null ? MAX : e.getEndRow()));
-    }
-
-    @VisibleForTesting
-    protected void updateCache(KeyExtent e) {
-      Text prevRow = e.getPrevEndRow() == null ? new Text() : e.getPrevEndRow();
-      Text endRow = e.getEndRow() == null ? MAX : e.getEndRow();
-      extents.subMap(prevRow, e.getPrevEndRow() == null, endRow, true).clear();
-      extents.put(endRow, e);
-    }
-
-    @VisibleForTesting
-    protected Stream<KeyExtent> lookupExtents(Text row)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      return MetadataScanner.builder().from(ctx).scanMetadataTable().overRange(tableId, row, null)
-          .checkConsistency().fetchPrev().build().stream().limit(100)
-          .map(TabletMetadata::getExtent);
-    }
-
-    @Override
-    public KeyExtent lookup(Text row)
-        throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      while (true) {
-        KeyExtent ke = getFromCache(row);
-        if (ke != null)
-          return ke;
-
-        // If a metadata lookup is currently in progress, then multiple threads can queue up their
-        // rows. The next lookup will process all queued. Processing multiple at once can be more
-        // efficient.
-        rowsToLookup.add(row);
-
-        synchronized (this) {
-          // This check is done to avoid processing rowsToLookup when the current thread's row is in
-          // the cache.
-          ke = getFromCache(row);
-          if (ke != null) {
-            rowsToLookup.remove(row);
-            return ke;
-          }
-
-          lookupRows.clear();
-          synchronized (rowsToLookup) {
-            // Gather all rows that were queued for lookup before this point in time.
-            rowsToLookup.forEach(lookupRows::add);
-            rowsToLookup.clear();
-          }
-          // Lookup rows in the metadata table in sorted order. This could possibly lead to less
-          // metadata lookups.
-          lookupRows.sort(Text::compareTo);
-
-          for (Text lookupRow : lookupRows) {
-            if (getFromCache(lookupRow) == null) {
-              Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
-              while (iter.hasNext()) {
-                KeyExtent ke2 = iter.next();
-                if (inCache(ke2))
-                  break;
-                updateCache(ke2);
-              }
-            }
-          }
-        }
-      }
-    }
   }
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
