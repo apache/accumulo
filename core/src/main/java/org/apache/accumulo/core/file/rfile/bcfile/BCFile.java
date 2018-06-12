@@ -154,9 +154,9 @@ public final class BCFile {
         try {
           this.cipherOut = encryptionStrategy.encryptStream(fsBufferedOutput);
           this.out = compressionAlgo.createCompressionStream(cipherOut, compressor, 0);
-        } catch (Exception e) {
+        } catch (IOException e) {
           compressAlgo.returnCompressor(compressor);
-          throw new IOException(e);
+          throw e;
         }
       }
 
@@ -492,9 +492,9 @@ public final class BCFile {
           inputStreamToBeCompressed = encryptionStrategy.decryptStream(inputStreamToBeCompressed);
           this.in = compressAlgo.createDecompressionStream(inputStreamToBeCompressed, decompressor,
               getFSInputBufferSize(conf));
-        } catch (Exception e) {
+        } catch (IOException e) {
           compressAlgo.returnDecompressor(decompressor);
-          throw new IOException(e);
+          throw e;
         }
         closed = false;
       }
@@ -619,7 +619,8 @@ public final class BCFile {
       // Do a version check - API_VERSION_2 used experimental crypto parameters, no longer supported
       if (!version.compatibleWith(BCFile.API_VERSION_3)
           && !version.compatibleWith(BCFile.API_VERSION_1)) {
-        throw new RuntimeException("Incompatible BCFile fileBCFileVersion.");
+        throw new IOException("Unsupported BCFile Version found: " + version.toString() + ". " +
+            "Only support " + API_VERSION_1 + " or " + API_VERSION_3);
       }
 
       // Read the right number offsets based on version

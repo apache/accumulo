@@ -36,10 +36,9 @@ public interface EncryptionStrategy {
    *          where the encryption takes places
    * @param configuration
    *          relevant encryption properties
-   * @return true if initialization was successful
    * @since 2.0
    */
-  boolean init(Scope encryptionScope, Map<String,String> configuration)
+  void init(Scope encryptionScope, Map<String,String> configuration)
       throws EncryptionStrategyException;
 
   /**

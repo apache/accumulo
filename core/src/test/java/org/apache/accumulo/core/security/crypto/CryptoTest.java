@@ -21,7 +21,6 @@ import static org.apache.accumulo.core.file.rfile.RFileTest.setAndGetAccumuloCon
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -147,8 +146,8 @@ public class CryptoTest {
 
     assertEquals(strategyClass, strategy.getClass());
     // test init on other scope to be sure, even though this test has no scope
-    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL,
-        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX)));
+    strategy.init(EncryptionStrategy.Scope.WAL,
+        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     OutputStream encrypted = strategy.encryptStream(new NoFlushOutputStream(out));
@@ -167,8 +166,8 @@ public class CryptoTest {
         conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX), EncryptionStrategy.Scope.RFILE);
 
     // test init on other scope to be sure, even though this test has no scope
-    assertTrue(strategy.init(EncryptionStrategy.Scope.WAL,
-        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX)));
+    strategy.init(EncryptionStrategy.Scope.WAL,
+        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
 
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
     DataInputStream decrypted = new DataInputStream(strategy.decryptStream(in));

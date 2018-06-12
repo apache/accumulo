@@ -26,8 +26,8 @@ import java.util.Map;
 public class NoEncryptionStrategy implements EncryptionStrategy {
 
   @Override
-  public boolean init(Scope encryptionScope, Map<String,String> conf) {
-    return true;
+  public void init(Scope encryptionScope, Map<String,String> conf) {
+    // do nothing
   }
 
   @Override

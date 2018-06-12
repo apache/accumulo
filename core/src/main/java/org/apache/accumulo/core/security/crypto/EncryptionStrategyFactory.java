@@ -41,7 +41,9 @@ public class EncryptionStrategyFactory {
       throw new RuntimeException("File encrypted with different encryption (" + fileEncryptedClass
           + ") than what is configured: " + confCryptoStrategyClass);
     }
-    return initEncryption(conf, loadStrategy(confCryptoStrategyClass), scope);
+    EncryptionStrategy strategy = loadStrategy(confCryptoStrategyClass);
+    strategy.init(scope, conf);
+    return strategy;
   }
 
   /**
@@ -52,20 +54,9 @@ public class EncryptionStrategyFactory {
    *           if an error occurred during EncryptionStrategy initialization
    */
   public static EncryptionStrategy setupConfiguredEncryption(Map<String,String> conf,
-      EncryptionStrategy.Scope scope) throws IOException {
-    String name = conf.get(Property.CRYPTO_STRATEGY);
-    return initEncryption(conf, loadStrategy(name), scope);
-  }
-
-  private static EncryptionStrategy initEncryption(Map<String,String> conf,
-      EncryptionStrategy strategy, EncryptionStrategy.Scope scope) throws IOException {
-    try {
-      if (!strategy.init(scope, conf)) {
-        strategy = new NoEncryptionStrategy();
-      }
-    } catch (Exception e) {
-      throw new IOException("Error initializing Encryption", e);
-    }
+      EncryptionStrategy.Scope scope) {
+    EncryptionStrategy strategy = loadStrategy(conf.get(Property.CRYPTO_STRATEGY));
+    strategy.init(scope, conf);
     return strategy;
   }
 

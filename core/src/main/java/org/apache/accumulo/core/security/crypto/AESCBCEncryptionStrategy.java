@@ -52,7 +52,7 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
   private boolean initialized = false;
 
   @Override
-  public boolean init(Scope encryptionScope, Map<String,String> conf)
+  public void init(Scope encryptionScope, Map<String,String> conf)
       throws EncryptionStrategyException {
 
     String key = conf.get(CRYPTO_SECRET_KEY_PROPERTY);
@@ -68,7 +68,7 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
     }
 
     this.skeySpec = new SecretKeySpec(key.getBytes(), "AES");
-    return initialized = true;
+    initialized = true;
   }
 
   @Override
