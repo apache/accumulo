@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
@@ -47,20 +46,17 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   private static final Logger log = LoggerFactory.getLogger(MasterReplicationCoordinator.class);
 
   private final Master master;
-  private final Instance inst;
   private final Random rand;
   private final ZooReader reader;
   private final SecurityOperation security;
 
   public MasterReplicationCoordinator(Master master) {
-    this(master, new ZooReader(master.getInstance().getZooKeepers(),
-        master.getInstance().getZooKeepersSessionTimeOut()));
+    this(master, new ZooReader(master.getZooKeepers(), master.getZooKeepersSessionTimeOut()));
   }
 
   protected MasterReplicationCoordinator(Master master, ZooReader reader) {
     this.master = master;
     this.rand = new Random(358923462L);
-    this.inst = master.getInstance();
     this.reader = reader;
     this.security = SecurityOperation.getInstance(master, false);
   }
@@ -87,9 +83,8 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
     String replServiceAddr;
     try {
-      replServiceAddr = new String(reader.getData(
-          ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(),
-          null), UTF_8);
+      replServiceAddr = new String(reader.getData(ZooUtil.getRoot(master.getInstanceID())
+          + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(), null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
       throw new ReplicationCoordinatorException(

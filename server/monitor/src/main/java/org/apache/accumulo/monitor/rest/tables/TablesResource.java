@@ -33,7 +33,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Range;
@@ -116,7 +115,7 @@ public class TablesResource {
   @GET
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
-    Instance instance = Monitor.getContext().getInstance();
+    String rootTabletLocation = Monitor.getContext().getRootTabletLocation();
     Table.ID tableId = Table.ID.of(tableIdStr);
 
     TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
@@ -127,7 +126,7 @@ public class TablesResource {
 
     TreeSet<String> locs = new TreeSet<>();
     if (RootTable.ID.equals(tableId)) {
-      locs.add(instance.getRootTabletLocation());
+      locs.add(rootTabletLocation);
     } else {
       String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME
           : MetadataTable.NAME;

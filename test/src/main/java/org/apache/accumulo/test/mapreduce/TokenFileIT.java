@@ -26,12 +26,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -89,7 +89,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
             + " <token file> <inputtable> <outputtable>");
       }
 
-      // String tokenFile = args[0];
+      String user = getAdminPrincipal();
+      String tokenFile = args[0];
       String table1 = args[1];
       String table2 = args[2];
 
@@ -99,8 +100,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
+      AccumuloInputFormat.setConnectorInfo(job, user, tokenFile);
       AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setClientInfo(job, getClientInfo());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -109,7 +110,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setClientInfo(job, getClientInfo());
+      AccumuloOutputFormat.setConnectorInfo(job, user, tokenFile);
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
 
@@ -150,10 +151,13 @@ public class TokenFileIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    File tf = folder.newFile("root_test.pw");
+    File tf = folder.newFile("client.properties");
     PrintStream out = new PrintStream(tf);
-    String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
-    out.println(outString);
+    Properties props = getClientInfo().getProperties();
+    for (Object keyObj : props.keySet()) {
+      String key = (String) keyObj;
+      out.println(key + " = " + props.getProperty(key));
+    }
     out.close();
 
     MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});

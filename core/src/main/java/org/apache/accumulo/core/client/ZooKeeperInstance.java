@@ -22,17 +22,19 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -284,8 +286,10 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public Connector getConnector(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token),
-        ClientConfConverter.toProperties(clientConf)));
+    Properties properties = ClientConfConverter.toProperties(clientConf);
+    properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
+    properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
+    return new ConnectorImpl(new ClientContext(new ClientInfoImpl(properties, token)));
   }
 
   @Override

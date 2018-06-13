@@ -226,7 +226,7 @@ public class Admin implements KeywordExecutable {
       int rc = 0;
 
       if (cl.getParsedCommand().equals("listInstances")) {
-        ListInstances.listInstances(instance.getZooKeepers(), listIntancesOpts.printAll,
+        ListInstances.listInstances(context.getZooKeepers(), listIntancesOpts.printAll,
             listIntancesOpts.printErrors);
       } else if (cl.getParsedCommand().equals("ping")) {
         if (ping(context, pingCommand.args) != 0)
@@ -369,14 +369,14 @@ public class Admin implements KeywordExecutable {
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
-    if (context.getInstance().getMasterLocations().size() == 0) {
+    if (context.getMasterLocations().size() == 0) {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
     final Instance instance = context.getInstance();
     final String zTServerRoot = getTServersZkPath(instance);
-    final ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
+    final ZooCache zc = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
+        context.getZooKeepersSessionTimeOut());
     for (String server : servers) {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);

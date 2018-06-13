@@ -376,7 +376,7 @@ public class MockConnectorTest {
     assertEquals(mockInstance,
         mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance());
     assertEquals(name,
-        mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance().getInstanceName());
+        mockInstance.getConnector("foo", new PasswordToken("bar")).info().getInstanceName());
   }
 
 }

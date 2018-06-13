@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -131,19 +130,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Set Accumulo client properties used to connect to Accumulo
-   *
-   * @param job
-   *          Hadoop job to be configured
-   * @param clientProps
-   *          Accumulo client properties
-   * @since 2.0.0
-   */
-  public static void setClientProperties(JobConf job, Properties clientProps) {
-    InputConfigurator.setClientProperties(CLASS, job, clientProps);
-  }
-
-  /**
    * Set Accumulo client properties file used to connect to Accumulo
    *
    * @param job
@@ -234,7 +220,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param tokenFile
    *          the path to the token file
    * @since 1.6.0
-   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead
+   * @deprecated since 2.0.0, use {@link #setClientPropertiesFile(JobConf, String)} instead
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
@@ -554,9 +540,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             scanner = new OfflineScanner(instance, new Credentials(principal, token),
                 Table.ID.of(baseSplit.getTableId()), authorizations);
           } else {
-            Properties props = getClientInfo(job).getProperties();
-            ClientContext context = new ClientContext(instance, new Credentials(principal, token),
-                props);
+            ClientContext context = new ClientContext(getClientInfo(job));
             scanner = new ScannerImpl(context, Table.ID.of(baseSplit.getTableId()), authorizations);
           }
           if (isIsolated) {
@@ -662,11 +646,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-      Instance instance = getInstance(job);
+      ClientContext context = new ClientContext(getClientInfo(job));
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       try {
-        tableId = Tables.getTableId(instance, tableName);
+        tableId = Tables.getTableId(context, tableName);
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
@@ -708,13 +692,12 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           // tablets... so clear it
           tl.invalidateCache();
 
-          ClientContext context = new ClientContext(getClientInfo(job));
           while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
             String tableIdStr = tableId.canonicalID();
-            if (!Tables.exists(instance, tableId))
+            if (!Tables.exists(context, tableId))
               throw new TableDeletedException(tableIdStr);
-            if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-              throw new TableOfflineException(instance, tableIdStr);
+            if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
+              throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
             // sleep randomly between 100 and 200 ms

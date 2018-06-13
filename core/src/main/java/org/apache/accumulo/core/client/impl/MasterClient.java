@@ -54,7 +54,7 @@ public class MasterClient {
   public static MasterClientService.Client getConnection(ClientContext context) {
     checkArgument(context != null, "context is null");
 
-    List<String> locations = context.getInstance().getMasterLocations();
+    List<String> locations = context.getMasterLocations();
 
     if (locations.size() == 0) {
       log.debug("No masters...");

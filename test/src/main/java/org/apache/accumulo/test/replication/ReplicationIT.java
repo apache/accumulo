@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -126,6 +127,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run the master replication loop run frequently
+    cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
@@ -155,8 +157,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       // Map of logs to tableId
       Multimap<String,Table.ID> logs = HashMultimap.create();
       Instance i = conn.getInstance();
-      ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-          "");
+      ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
+          conn.info().getZooKeepersSessionTimeOut(), "");
       WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
       for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
         for (UUID id : entry.getValue()) {
@@ -197,8 +199,9 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Check if the GC process has the lock before wasting our retry attempts
     ZooKeeperInstance zki = (ZooKeeperInstance) conn.getInstance();
     ZooCacheFactory zcf = new ZooCacheFactory();
-    ZooCache zcache = zcf.getZooCache(zki.getZooKeepers(), zki.getZooKeepersSessionTimeOut());
-    String zkPath = ZooUtil.getRoot(conn.getInstance()) + Constants.ZGC_LOCK;
+    ZooCache zcache = zcf.getZooCache(conn.info().getZooKeepers(),
+        conn.info().getZooKeepersSessionTimeOut());
+    String zkPath = ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZGC_LOCK;
     log.info("Looking for GC lock at {}", zkPath);
     byte[] data = ZooLock.getLockData(zcache, zkPath, null);
     while (null == data) {
@@ -341,8 +344,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     Set<String> wals = new HashSet<>();
     attempts = 5;
     Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
+        conn.info().getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
       WalStateManager markers = new WalStateManager(i, zk);
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {

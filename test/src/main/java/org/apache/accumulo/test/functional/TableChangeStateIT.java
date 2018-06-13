@@ -35,11 +35,11 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
@@ -74,10 +74,12 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   private static final long SLOW_SCAN_SLEEP_MS = 100L;
 
   private Connector connector;
+  private ClientContext context;
 
   @Before
   public void setup() {
     connector = getConnector();
+    context = new ClientContext(connector.info());
   }
 
   @Override
@@ -223,21 +225,22 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
    */
   private boolean findFate(final String tableName) {
 
-    Instance instance = connector.getInstance();
     AdminUtil<String> admin = new AdminUtil<>(false);
 
     try {
 
-      Table.ID tableId = Tables.getTableId(instance, tableName);
+      Table.ID tableId = Tables.getTableId(context, tableName);
 
       log.trace("tid: {}", tableId);
 
       String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+          connector.info().getZooKeepers(), connector.info().getZooKeepersSessionTimeOut(), secret);
+      ZooStore<String> zs = new ZooStore<>(
+          ZooUtil.getRoot(connector.getInstanceID()) + Constants.ZFATE, zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+          ZooUtil.getRoot(connector.getInstanceID()) + Constants.ZTABLE_LOCKS + "/" + tableId, null,
+          null);
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
@@ -265,7 +268,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
    */
   private TableState getTableState(String tableName) throws TableNotFoundException {
 
-    Table.ID tableId = Tables.getTableId(connector.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
 
     TableState tstate = Tables.getTableState(connector.getInstance(), tableId);
 

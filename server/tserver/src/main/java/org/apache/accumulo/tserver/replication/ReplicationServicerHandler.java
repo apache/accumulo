@@ -59,7 +59,7 @@ public class ReplicationServicerHandler implements Iface {
     String tableName;
 
     try {
-      tableName = Tables.getTableName(tabletServer.getInstance(), tableId);
+      tableName = Tables.getTableName(tabletServer, tableId);
     } catch (TableNotFoundException e) {
       log.error("Could not find table with id {}", tableId);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,

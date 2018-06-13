@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -91,19 +90,6 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public static void setClientInfo(JobConf job, ClientInfo info) {
     ClientInfo outInfo = OutputConfigurator.updateToken(job.getCredentials(), info);
     OutputConfigurator.setClientInfo(CLASS, job, outInfo);
-  }
-
-  /**
-   * Set Accumulo client properties used to connect to Accumulo
-   *
-   * @param job
-   *          Hadoop job to be configured
-   * @param clientProps
-   *          Accumulo client properties
-   * @since 2.0.0
-   */
-  public static void setClientProperties(JobConf job, Properties clientProps) {
-    OutputConfigurator.setClientProperties(CLASS, job, clientProps);
   }
 
   /**
@@ -187,7 +173,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param tokenFile
    *          the path to the password file
    * @since 1.6.0
-   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead
+   * @deprecated since 2.0.0, use {@link #setClientPropertiesFile(JobConf, String)} instead
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile)

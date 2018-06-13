@@ -97,7 +97,7 @@ public class DistributedTrace {
     String spanReceivers = ClientProperty.TRACE_SPAN_RECEIVERS.getValue(properties);
     String zookeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(properties);
     long timeout = ConfigurationTypeHelper
-        .getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getValue(properties));
+        .getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getValue(properties));
     String zkPath = ClientProperty.TRACE_ZOOKEEPER_PATH.getValue(properties);
     Map<String,String> props = ClientProperty
         .toMap(ClientProperty.getPrefix(properties, ClientProperty.TRACE_SPAN_RECEIVER_PREFIX));

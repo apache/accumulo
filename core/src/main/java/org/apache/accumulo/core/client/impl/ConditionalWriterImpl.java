@@ -301,10 +301,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
       locator.binMutations(context, mutations, binnedMutations, failures);
 
       if (failures.size() == mutations.size())
-        if (!Tables.exists(context.getInstance(), tableId))
+        if (!Tables.exists(context, tableId))
           throw new TableDeletedException(tableId.canonicalID());
         else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-          throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
+          throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
     } catch (Exception e) {
       for (QCMutation qcm : mutations)
@@ -692,12 +692,13 @@ class ConditionalWriterImpl implements ConditionalWriter {
     long startTime = System.currentTimeMillis();
 
     Instance instance = context.getInstance();
-    LockID lid = new LockID(ZooUtil.getRoot(instance) + Constants.ZTSERVERS, sessionId.lockId);
+    LockID lid = new LockID(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS,
+        sessionId.lockId);
 
     ZooCacheFactory zcf = new ZooCacheFactory();
     while (true) {
       if (!ZooLock.isLockHeld(
-          zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), lid)) {
+          zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut()), lid)) {
         // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
         // invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock

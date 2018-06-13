@@ -106,10 +106,10 @@ public class RootTabletLocator extends TabletLocator {
   public void invalidateCache() {}
 
   protected TabletLocation getRootTabletLocation(ClientContext context) {
-    Instance instance = context.getInstance();
-    String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
-    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
+    String zRootLocPath = ZooUtil.getRoot(context.getInstanceID())
+        + RootTable.ZROOT_TABLET_LOCATION;
+    ZooCache zooCache = zcf.getZooCache(context.getZooKeepers(),
+        context.getZooKeepersSessionTimeOut());
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 

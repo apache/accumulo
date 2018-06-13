@@ -97,7 +97,7 @@ public class ConfiguratorBaseTest {
     ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf,
         org.apache.accumulo.core.client.ClientConfiguration.create()
             .withInstance("testInstanceName").withZkHosts("testZooKeepers").withSsl(true)
-            .withZkTimeout(1234));
+            .withZkTimeout(15000));
 
     org.apache.accumulo.core.client.ClientConfiguration clientConf = ConfiguratorBase
         .getClientConfiguration(this.getClass(), conf);
@@ -108,8 +108,7 @@ public class ConfiguratorBaseTest {
     assertEquals("testInstanceName", props.getProperty(ClientProperty.INSTANCE_NAME.getKey()));
     assertEquals("testZooKeepers", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
     assertEquals("true", props.getProperty(ClientProperty.SSL_ENABLED.getKey()));
-    assertEquals("1234",
-        props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey()));
+    assertEquals("15000", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey()));
   }
 
   @Test

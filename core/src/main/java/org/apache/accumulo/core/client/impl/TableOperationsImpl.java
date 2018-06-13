@@ -378,8 +378,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case NAMESPACE_NOTFOUND:
           throw new NamespaceNotFoundException(e);
         case OFFLINE:
-          throw new TableOfflineException(context.getInstance(),
-              Tables.getTableId(context.getInstance(), tableOrNamespaceName).canonicalID());
+          throw new TableOfflineException(
+              Tables.getTableOfflineMsg(context, Tables.getTableId(context, tableOrNamespaceName)));
         default:
           throw new AccumuloException(e.description, e);
       }
@@ -458,7 +458,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void addSplits(String tableName, SortedSet<Text> partitionKeys)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
 
     List<Text> splits = new ArrayList<>(partitionKeys);
     // should be sorted because we copied from a sorted set, but that makes assumptions about
@@ -488,7 +488,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           } else if (excep instanceof TableOfflineException) {
             log.debug("TableOfflineException occurred in background thread. Throwing new exception",
                 excep);
-            throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
+            throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
           } else if (excep instanceof AccumuloSecurityException) {
             // base == background accumulo security exception
             AccumuloSecurityException base = (AccumuloSecurityException) excep;
@@ -530,10 +530,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         TabletLocation tl = tabLocator.locateTablet(context, split, false, false);
 
         if (tl == null) {
-          if (!Tables.exists(context.getInstance(), tableId))
+          if (!Tables.exists(context, tableId))
             throw new TableNotFoundException(tableId.canonicalID(), tableName, null);
           else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-            throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
+            throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
           continue;
         }
 
@@ -574,7 +574,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         } catch (ThriftSecurityException e) {
           Tables.clearCache(context.getInstance());
-          if (!Tables.exists(context.getInstance(), tableId))
+          if (!Tables.exists(context, tableId))
             throw new TableNotFoundException(tableId.canonicalID(), tableName, null);
           throw new AccumuloSecurityException(e.user, e.code, e);
         } catch (NotServingTabletException e) {
@@ -641,7 +641,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     checkArgument(tableName != null, "tableName is null");
 
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
 
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
 
@@ -654,7 +654,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } catch (AccumuloSecurityException ase) {
         throw ase;
       } catch (Exception e) {
-        if (!Tables.exists(context.getInstance(), tableId)) {
+        if (!Tables.exists(context, tableId)) {
           throw new TableNotFoundException(tableId.canonicalID(), tableName, null);
         }
 
@@ -749,7 +749,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(srcTableName != null, "srcTableName is null");
     checkArgument(newTableName != null, "newTableName is null");
 
-    Table.ID srcTableId = Tables.getTableId(context.getInstance(), srcTableName);
+    Table.ID srcTableId = Tables.getTableId(context, srcTableName);
 
     if (flush)
       _flush(srcTableId, null, null, true);
@@ -803,7 +803,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
 
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
     _flush(tableId, start, end, wait);
   }
 
@@ -847,7 +847,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
 
     Text start = config.getStartRow();
     Text end = config.getEndRow();
@@ -875,7 +875,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void cancelCompaction(String tableName)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()));
 
@@ -1081,16 +1081,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Random random = new Random();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
     TabletLocator tl = TabletLocator.getLocator(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
     while (!tl.binRanges(context, Collections.singletonList(range), binnedRanges).isEmpty()) {
-      if (!Tables.exists(context.getInstance(), tableId))
+      if (!Tables.exists(context, tableId))
         throw new TableDeletedException(tableId.canonicalID());
       if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-        throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
+        throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
@@ -1175,7 +1175,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(dir != null, "dir is null");
     checkArgument(failureDir != null, "failureDir is null");
     // check for table existance
-    Tables.getTableId(context.getInstance(), tableName);
+    Tables.getTableId(context, tableName);
 
     Path dirPath = checkPath(dir, "Bulk", "");
     Path failPath = checkPath(failureDir, "Bulk", "failure");
@@ -1207,7 +1207,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         Tables.clearCache(context.getInstance());
         TableState currentState = Tables.getTableState(context.getInstance(), tableId);
         if (currentState != expectedState) {
-          if (!Tables.exists(context.getInstance(), tableId))
+          if (!Tables.exists(context, tableId))
             throw new TableDeletedException(tableId.canonicalID());
           if (currentState == TableState.DELETING)
             throw new TableNotFoundException(tableId.canonicalID(), "", "Table is being deleted.");
@@ -1339,7 +1339,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
     checkArgument(tableName != null, "tableName is null");
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()));
     Map<String,String> opts = new HashMap<>();
 
@@ -1366,7 +1366,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
 
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
 
     /**
      * ACCUMULO-4574 if table is already online return without executing fate operation.
@@ -1398,7 +1398,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     TabletLocator tabLocator = TabletLocator.getLocator(context,
-        Tables.getTableId(context.getInstance(), tableName));
+        Tables.getTableId(context, tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1741,7 +1741,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     requireNonNull(tableName, "tableName must be non null");
     requireNonNull(ranges, "ranges must be non null");
 
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
     TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
     List<Range> rangeList = null;
@@ -1761,10 +1761,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
 
-      if (!Tables.exists(context.getInstance(), tableId))
+      if (!Tables.exists(context, tableId))
         throw new TableNotFoundException(tableId.canonicalID(), tableName, null);
       if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-        throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
+        throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
       binnedRanges.clear();
 
@@ -1810,9 +1810,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       @Override
       public List<Summary> retrieve()
           throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-        Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+        Table.ID tableId = Tables.getTableId(context, tableName);
         if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-          throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
+          throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
         TRowRange range = new TRowRange(TextUtil.getByteBuffer(startRow),
             TextUtil.getByteBuffer(endRow));

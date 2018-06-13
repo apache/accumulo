@@ -178,8 +178,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
       primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + PEER_NAME,
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-              AccumuloReplicaSystem.buildConfiguration(peerConn.getInstance().getInstanceName(),
-                  peerConn.getInstance().getZooKeepers())));
+              AccumuloReplicaSystem.buildConfiguration(peerConn.info().getInstanceName(),
+                  peerConn.info().getZooKeepers())));
 
       String primaryTable1 = "primary", peerTable1 = "peer";
 

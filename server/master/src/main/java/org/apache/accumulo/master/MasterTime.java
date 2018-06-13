@@ -50,7 +50,7 @@ public class MasterTime extends TimerTask {
   private long skewAmount;
 
   public MasterTime(Master master) throws IOException {
-    this.zPath = ZooUtil.getRoot(master.getInstance()) + Constants.ZMASTER_TICK;
+    this.zPath = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZMASTER_TICK;
     this.zk = ZooReaderWriter.getInstance();
     this.master = master;
 

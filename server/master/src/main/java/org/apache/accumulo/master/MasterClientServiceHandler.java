@@ -122,8 +122,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
-    String zTablePath = Constants.ZROOT + "/" + master.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
+    String zTablePath = Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_FLUSH_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     byte fid[];
@@ -254,7 +254,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
         // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
 
-        if (tabletCount == 0 && !Tables.exists(master.getInstance(), tableId))
+        if (tabletCount == 0 && !Tables.exists(master, tableId))
           throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
               TableOperationExceptionType.NOTFOUND, null);
 

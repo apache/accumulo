@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.ScanState;
@@ -54,7 +53,7 @@ public class ActiveScanImpl extends ActiveScan {
   private String user;
   private Authorizations authorizations;
 
-  ActiveScanImpl(Instance instance,
+  ActiveScanImpl(ClientContext context,
       org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan)
       throws TableNotFoundException {
     this.scanId = activeScan.scanId;
@@ -62,7 +61,7 @@ public class ActiveScanImpl extends ActiveScan {
     this.user = activeScan.user;
     this.age = activeScan.age;
     this.idle = activeScan.idleTime;
-    this.tableName = Tables.getTableName(instance, Table.ID.of(activeScan.tableId));
+    this.tableName = Tables.getTableName(context, Table.ID.of(activeScan.tableId));
     this.type = ScanType.valueOf(activeScan.getType().name());
     this.state = ScanState.valueOf(activeScan.state.name());
     this.extent = new KeyExtent(activeScan.extent);

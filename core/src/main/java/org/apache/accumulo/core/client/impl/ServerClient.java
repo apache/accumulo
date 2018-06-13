@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -161,11 +160,11 @@ public class ServerClient {
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
-    Instance instance = context.getInstance();
-    ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
-    for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
-      String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
+    ZooCache zc = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
+        context.getZooKeepersSessionTimeOut());
+    for (String tserver : zc
+        .getChildren(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS)) {
+      String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);

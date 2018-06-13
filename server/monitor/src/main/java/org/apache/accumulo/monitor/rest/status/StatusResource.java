@@ -71,7 +71,7 @@ public class StatusResource {
       for (DeadServer down : Monitor.getMmi().deadTabletServers) {
         tservers.add(down.server);
       }
-      List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
+      List<String> masters = Monitor.getContext().getMasterLocations();
 
       masterStatus = masters.size() == 0 ? Status.ERROR : Status.OK;
 

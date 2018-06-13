@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -199,7 +198,7 @@ public class RemoveEntriesForMissingFiles {
     } else if (tableName.equals(MetadataTable.NAME)) {
       return checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
     } else {
-      Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+      Table.ID tableId = Tables.getTableId(context, tableName);
       Range range = new KeyExtent(tableId, null, null).toMetadataRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }
@@ -211,8 +210,7 @@ public class RemoveEntriesForMissingFiles {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
 
-    checkAllTables(new ClientContext(opts.getInstance(),
-        new Credentials(opts.getPrincipal(), opts.getToken()), opts.getClientProperties()),
-        opts.fix);
+    Connector conn = opts.getConnector();
+    checkAllTables(new ClientContext(conn.info()), opts.fix);
   }
 }

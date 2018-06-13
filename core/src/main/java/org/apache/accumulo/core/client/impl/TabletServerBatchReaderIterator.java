@@ -249,7 +249,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         // cleared... so
         // need to always do the check when failures occur
         if (failures.size() >= lastFailureSize)
-          if (!Tables.exists(instance, tableId))
+          if (!Tables.exists(context, tableId))
             throw new TableDeletedException(tableId.canonicalID());
           else if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
             throw new TableOfflineException(instance, tableId.canonicalID());
@@ -387,7 +387,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         log.debug("AccumuloSecurityException thrown", e);
 
         Tables.clearCache(instance);
-        if (!Tables.exists(instance, tableId))
+        if (!Tables.exists(context, tableId))
           fatalException = new TableDeletedException(tableId.canonicalID());
         else
           fatalException = e;

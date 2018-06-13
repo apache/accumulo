@@ -38,6 +38,7 @@ public class MasterReplicationCoordinatorTest {
 
     EasyMock.expect(master.getInstance()).andReturn(inst);
     EasyMock.expect(inst.getInstanceID()).andReturn("1234");
+    EasyMock.expect(master.getInstanceID()).andReturn("1234");
 
     EasyMock.replay(master, reader, inst);
 
@@ -55,6 +56,7 @@ public class MasterReplicationCoordinatorTest {
 
     EasyMock.expect(master.getInstance()).andReturn(inst);
     EasyMock.expect(inst.getInstanceID()).andReturn("1234");
+    EasyMock.expect(master.getInstanceID()).andReturn("1234");
 
     EasyMock.replay(master, reader, inst);
 
@@ -72,6 +74,7 @@ public class MasterReplicationCoordinatorTest {
 
     EasyMock.expect(master.getInstance()).andReturn(inst).anyTimes();
     EasyMock.expect(inst.getInstanceID()).andReturn("1234").anyTimes();
+    EasyMock.expect(master.getInstanceID()).andReturn("1234").anyTimes();
 
     EasyMock.replay(master, reader, inst);
 

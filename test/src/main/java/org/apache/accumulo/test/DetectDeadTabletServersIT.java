@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -45,6 +46,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
   }
 
   @Test

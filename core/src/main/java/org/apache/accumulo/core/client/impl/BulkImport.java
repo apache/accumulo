@@ -101,7 +101,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   public void load()
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
 
-    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(context, tableName);
 
     Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);

@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
@@ -35,17 +34,17 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 public class ActiveCompactionImpl extends ActiveCompaction {
 
   private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
-  private Instance instance;
+  private ClientContext context;
 
-  ActiveCompactionImpl(Instance instance,
+  ActiveCompactionImpl(ClientContext context,
       org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac) {
     this.tac = tac;
-    this.instance = instance;
+    this.context = context;
   }
 
   @Override
   public String getTable() throws TableNotFoundException {
-    return Tables.getTableName(instance, new KeyExtent(tac.getExtent()).getTableId());
+    return Tables.getTableName(context, new KeyExtent(tac.getExtent()).getTableId());
   }
 
   @Override

@@ -1095,8 +1095,8 @@ public class Tablet implements TabletCommitter {
 
   public long getFlushID() throws NoNodeException {
     try {
-      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstance().getInstanceID()
-          + Constants.ZTABLES + "/" + extent.getTableId() + Constants.ZTABLE_FLUSH_ID;
+      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
+          + "/" + extent.getTableId() + Constants.ZTABLE_FLUSH_ID;
       return Long
           .parseLong(new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8));
     } catch (InterruptedException | NumberFormatException e) {
@@ -1111,8 +1111,8 @@ public class Tablet implements TabletCommitter {
   }
 
   long getCompactionCancelID() {
-    String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
+        + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     try {
       return Long
@@ -1124,8 +1124,8 @@ public class Tablet implements TabletCommitter {
 
   public Pair<Long,UserCompactionConfig> getCompactionID() throws NoNodeException {
     try {
-      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstance().getInstanceID()
-          + Constants.ZTABLES + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_ID;
+      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
+          + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_ID;
 
       String[] tokens = new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8)
           .split(",");

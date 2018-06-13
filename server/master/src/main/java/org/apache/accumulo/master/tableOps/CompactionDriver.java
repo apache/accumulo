@@ -147,7 +147,7 @@ class CompactionDriver extends MasterRepo {
 
     Instance instance = master.getInstance();
     Tables.clearCache(instance);
-    if (tabletCount == 0 && !Tables.exists(instance, tableId))
+    if (tabletCount == 0 && !Tables.exists(master, tableId))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 

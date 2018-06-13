@@ -125,7 +125,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
       // This should fail: only one volume
       assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i",
-          c.getInstance().getInstanceName(), "-t", tableName).waitFor());
+          c.info().getInstanceName(), "-t", tableName).waitFor());
 
       cluster.stop();
 

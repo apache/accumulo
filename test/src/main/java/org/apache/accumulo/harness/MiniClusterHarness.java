@@ -33,6 +33,7 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -225,6 +226,13 @@ public class MiniClusterHarness {
         publicTruststoreFile.getAbsolutePath());
     siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
     cfg.setSiteConfig(siteConfig);
+
+    cfg.setClientProperty(ClientProperty.SSL_ENABLED, "true");
+    cfg.setClientProperty(ClientProperty.SSL_KEYSTORE_PATH, localKeystoreFile.getAbsolutePath());
+    cfg.setClientProperty(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), cfg.getRootPassword());
+    cfg.setClientProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(),
+        publicTruststoreFile.getAbsolutePath());
+    cfg.setClientProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
   }
 
   protected void configureForKerberos(MiniAccumuloConfigImpl cfg, File folder,
@@ -271,5 +279,7 @@ public class MiniClusterHarness {
     coreSite.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
 
     cfg.setRootUserName(kdc.getRootUser().getPrincipal());
+
+    cfg.setClientProperty(ClientProperty.SASL_ENABLED, "true");
   }
 }

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
@@ -45,7 +46,7 @@ public class ClientConfConverter {
     propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(),
         org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST
             .getKey());
-    propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey(),
+    propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),
         org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT
             .getKey());
     propsConf.put(ClientProperty.SSL_ENABLED.getKey(),
@@ -132,6 +133,16 @@ public class ClientConfConverter {
       }
     }
     return props;
+  }
+
+  public static Properties toProperties(AccumuloConfiguration config, Instance instance,
+      Credentials credentials) {
+    Properties properties = toProperties(toClientConf(config));
+    properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instance.getInstanceName());
+    properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), instance.getZooKeepers());
+    properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), credentials.getPrincipal());
+    ClientProperty.setAuthenticationToken(properties, credentials.getToken());
+    return properties;
   }
 
   public static Properties toProperties(AccumuloConfiguration config) {

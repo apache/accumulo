@@ -99,7 +99,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
             + " <token file> <inputtable> <outputtable>");
       }
 
-      // String tokenFile = args[0];
+      String user = getAdminPrincipal();
+      String tokenFile = args[0];
       String table1 = args[1];
       String table2 = args[2];
 
@@ -108,8 +109,8 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
+      AccumuloInputFormat.setConnectorInfo(job, user, tokenFile);
       AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setClientInfo(job, getClientInfo());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

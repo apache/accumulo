@@ -97,7 +97,7 @@ public class MasterResource {
       for (DeadServer down : mmi.deadTabletServers) {
         tservers.add(down.server);
       }
-      List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
+      List<String> masters = Monitor.getContext().getMasterLocations();
 
       String master = masters.size() == 0 ? "Down"
           : AddressUtil.parseAddress(masters.get(0), false).getHost();

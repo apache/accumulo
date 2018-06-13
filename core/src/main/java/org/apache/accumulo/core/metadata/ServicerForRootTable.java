@@ -20,7 +20,6 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
@@ -32,10 +31,10 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
  */
 class ServicerForRootTable extends MetadataServicer {
 
-  private final Instance instance;
+  private final ClientContext context;
 
   public ServicerForRootTable(ClientContext context) {
-    this.instance = context.getInstance();
+    this.context = context;
   }
 
   @Override
@@ -46,6 +45,6 @@ class ServicerForRootTable extends MetadataServicer {
   @Override
   public void getTabletLocations(SortedMap<KeyExtent,String> tablets)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    tablets.put(RootTable.EXTENT, instance.getRootTabletLocation());
+    tablets.put(RootTable.EXTENT, context.getRootTabletLocation());
   }
 }

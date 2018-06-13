@@ -21,13 +21,20 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 
 public class ClientInfoImpl implements ClientInfo {
 
   private Properties properties;
+  private AuthenticationToken token;
 
   public ClientInfoImpl(Properties properties) {
+    this(properties, null);
+  }
+
+  public ClientInfoImpl(Properties properties, AuthenticationToken token) {
     this.properties = properties;
+    this.token = token;
   }
 
   @Override
@@ -38,6 +45,12 @@ public class ClientInfoImpl implements ClientInfo {
   @Override
   public String getZooKeepers() {
     return getString(ClientProperty.INSTANCE_ZOOKEEPERS);
+  }
+
+  @Override
+  public int getZooKeepersSessionTimeOut() {
+    return (int) ConfigurationTypeHelper
+        .getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getValue(properties));
   }
 
   @Override
@@ -56,7 +69,10 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public AuthenticationToken getAuthenticationToken() {
-    return ClientProperty.getAuthenticationToken(properties);
+    if (token == null) {
+      token = ClientProperty.getAuthenticationToken(properties);
+    }
+    return token;
   }
 
   @Override

@@ -31,18 +31,19 @@ public class ConnectorIT extends AccumuloClusterHarness {
   @Test
   public void testConnectorBuilder() throws Exception {
     Connector c = getConnector();
-    String instanceName = c.getInstance().getInstanceName();
-    String zookeepers = c.getInstance().getZooKeepers();
+    String instanceName = c.info().getInstanceName();
+    String zookeepers = c.info().getZooKeepers();
     final String user = "testuser";
     final String password = "testpassword";
     c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
     Connector conn = Connector.builder().forInstance(instanceName, zookeepers)
-        .usingPassword(user, password).build();
+        .usingPassword(user, password).withZkTimeout(1234).build();
 
-    Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());
-    Assert.assertEquals(zookeepers, conn.getInstance().getZooKeepers());
+    Assert.assertEquals(instanceName, conn.info().getInstanceName());
+    Assert.assertEquals(zookeepers, conn.info().getZooKeepers());
     Assert.assertEquals(user, conn.whoami());
+    Assert.assertEquals(1234, conn.info().getZooKeepersSessionTimeOut());
 
     ClientInfo info = Connector.builder().forInstance(instanceName, zookeepers)
         .usingPassword(user, password).info();
@@ -55,12 +56,14 @@ public class ConnectorIT extends AccumuloClusterHarness {
     props.put(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
     props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user);
+    props.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "22s");
     ClientProperty.setPassword(props, password);
     conn = Connector.builder().usingProperties(props).build();
 
-    Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());
-    Assert.assertEquals(zookeepers, conn.getInstance().getZooKeepers());
+    Assert.assertEquals(instanceName, conn.info().getInstanceName());
+    Assert.assertEquals(zookeepers, conn.info().getZooKeepers());
     Assert.assertEquals(user, conn.whoami());
+    Assert.assertEquals(22000, conn.info().getZooKeepersSessionTimeOut());
 
     final String user2 = "testuser2";
     final String password2 = "testpassword2";
@@ -68,8 +71,8 @@ public class ConnectorIT extends AccumuloClusterHarness {
 
     Connector conn2 = Connector.builder().usingClientInfo(conn.info())
         .usingToken(user2, new PasswordToken(password2)).build();
-    Assert.assertEquals(instanceName, conn2.getInstance().getInstanceName());
-    Assert.assertEquals(zookeepers, conn2.getInstance().getZooKeepers());
+    Assert.assertEquals(instanceName, conn2.info().getInstanceName());
+    Assert.assertEquals(zookeepers, conn2.info().getZooKeepers());
     Assert.assertEquals(user2, conn2.whoami());
     info = conn2.info();
     Assert.assertEquals(instanceName, info.getInstanceName());

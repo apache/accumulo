@@ -83,7 +83,7 @@ public class SecurityOperation {
   public static synchronized SecurityOperation getInstance(AccumuloServerContext context,
       boolean initialize) {
     if (instance == null) {
-      String instanceId = context.getInstance().getInstanceID();
+      String instanceId = context.getInstanceID();
       instance = new SecurityOperation(context, getAuthorizor(instanceId, initialize),
           getAuthenticator(instanceId, initialize), getPermHandler(instanceId, initialize));
     }
@@ -118,7 +118,7 @@ public class SecurityOperation {
 
   protected SecurityOperation(AccumuloServerContext context) {
     this.context = context;
-    ZKUserPath = Constants.ZROOT + "/" + context.getInstance().getInstanceID() + "/users";
+    ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache();
   }
 
@@ -169,7 +169,7 @@ public class SecurityOperation {
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
-    if (!credentials.getInstanceId().equals(context.getInstance().getInstanceID()))
+    if (!credentials.getInstanceId().equals(context.getInstanceID()))
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.INVALID_INSTANCEID);
 

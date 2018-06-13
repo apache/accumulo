@@ -260,7 +260,8 @@ public class ThriftScanner {
               if (!Tables.exists(instance, scanState.tableId))
                 throw new TableDeletedException(scanState.tableId.canonicalID());
               else if (Tables.getTableState(instance, scanState.tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, scanState.tableId.canonicalID());
+                throw new TableOfflineException(
+                    Tables.getTableOfflineMsg(context, scanState.tableId));
 
               error = "Failed to locate tablet for table : " + scanState.tableId + " row : "
                   + scanState.startRow;

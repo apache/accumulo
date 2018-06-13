@@ -512,7 +512,7 @@ public class TabletServerBatchWriter {
 
       Tables.clearCache(context.getInstance());
       for (Table.ID tableId : tableIds)
-        if (!Tables.exists(context.getInstance(), tableId))
+        if (!Tables.exists(context, tableId))
           throw new TableDeletedException(tableId.canonicalID());
 
       synchronized (this) {
@@ -696,11 +696,11 @@ public class TabletServerBatchWriter {
               failedMutations.add(tableId, tableFailures);
 
               if (tableFailures.size() == tableMutations.size())
-                if (!Tables.exists(context.getInstance(), entry.getKey()))
+                if (!Tables.exists(context, entry.getKey()))
                   throw new TableDeletedException(entry.getKey().canonicalID());
                 else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-                  throw new TableOfflineException(context.getInstance(),
-                      entry.getKey().canonicalID());
+                  throw new TableOfflineException(
+                      Tables.getTableOfflineMsg(context, entry.getKey()));
             }
           }
 

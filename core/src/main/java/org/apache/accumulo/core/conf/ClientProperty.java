@@ -37,8 +37,7 @@ public enum ClientProperty {
   INSTANCE_NAME("instance.name", "", "Name of Accumulo instance to connect to", "", true),
   INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181",
       "Zookeeper connection information for Accumulo instance", "", true),
-  INSTANCE_ZOOKEEPERS_TIMEOUT_SEC("instance.zookeepers.timeout.sec", "30",
-      "Zookeeper session timeout (in seconds)"),
+  INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", "Zookeeper session timeout"),
 
   // Authentication
   AUTH_TYPE("auth.type", "password",
@@ -217,7 +216,6 @@ public enum ClientProperty {
   }
 
   public static AuthenticationToken getAuthenticationToken(Properties properties) {
-    String principal = ClientProperty.AUTH_PRINCIPAL.getValue(properties);
     String authType = ClientProperty.AUTH_TYPE.getValue(properties);
     String token = ClientProperty.AUTH_TOKEN.getValue(properties);
     switch (authType) {
@@ -227,6 +225,7 @@ public enum ClientProperty {
         return decodeToken(PasswordToken.class.getName(), token);
       case "kerberos":
         try {
+          String principal = ClientProperty.AUTH_PRINCIPAL.getValue(properties);
           return new KerberosToken(principal, new File(token));
         } catch (IOException e) {
           throw new IllegalArgumentException(e);
