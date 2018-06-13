@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -57,7 +58,7 @@ public class ConcurrentKeyExtentCacheTest {
 
   private static class TestCache extends ConcurrentKeyExtentCache {
 
-    volatile int updates = 0;
+    AtomicInteger updates = new AtomicInteger(0);
 
     TestCache() {
       super(null, null);
@@ -66,7 +67,7 @@ public class ConcurrentKeyExtentCacheTest {
     @Override
     protected void updateCache(KeyExtent e) {
       super.updateCache(e);
-      updates++;
+      updates.incrementAndGet();
     }
 
     @Override
@@ -102,13 +103,13 @@ public class ConcurrentKeyExtentCacheTest {
     TestCache tc = new TestCache();
     rand.ints(10000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
-    Assert.assertEquals(256, tc.updates);
+    Assert.assertEquals(256, tc.updates.get());
 
     // try parallel
     TestCache tc2 = new TestCache();
     rand.ints(10000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
-    Assert.assertEquals(256, tc2.updates);
+    Assert.assertEquals(256, tc2.updates.get());
   }
 
   @Test
@@ -118,12 +119,12 @@ public class ConcurrentKeyExtentCacheTest {
     Random rand = new Random(42);
     rand.ints(10000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
-    Assert.assertEquals(256, tc.updates);
+    Assert.assertEquals(256, tc.updates.get());
 
     // try parallel
     TestCache tc2 = new TestCache();
     rand.ints(10000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
-    Assert.assertEquals(256, tc2.updates);
+    Assert.assertEquals(256, tc2.updates.get());
   }
 }
