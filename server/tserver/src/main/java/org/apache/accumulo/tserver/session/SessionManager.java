@@ -318,8 +318,8 @@ public class SessionManager {
       ScanTask nbt = null;
       Table.ID tableID = null;
 
-      if (session instanceof ScanSession) {
-        ScanSession ss = (ScanSession) session;
+      if (session instanceof SingleScanSession) {
+        SingleScanSession ss = (SingleScanSession) session;
         nbt = ss.nextBatchTask;
         tableID = ss.extent.getTableId();
       } else if (session instanceof MultiScanSession) {
@@ -365,8 +365,8 @@ public class SessionManager {
 
     for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
       Session session = entry.getValue();
-      if (session instanceof ScanSession) {
-        ScanSession ss = (ScanSession) session;
+      if (session instanceof SingleScanSession) {
+        SingleScanSession ss = (SingleScanSession) session;
 
         ScanState state = ScanState.RUNNING;
 

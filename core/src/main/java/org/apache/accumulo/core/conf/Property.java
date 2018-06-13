@@ -444,11 +444,15 @@ public enum Property {
       PropertyType.COUNT,
       "This property is deprecated, use tserver.scan.executors.meta.threads instead."),
   TSERV_SCAN_EXECUTORS_PREFIX("tserver.scan.executors.", null, PropertyType.PREFIX,
-      "Prefix for defining executors to service scans.  For each executor the number of threads and"
-          + " an optional prioritizer can be configured.  The prioritizer determines which scan an"
-          + " executor should run first and must implement " + ScanPrioritizer.class.getName()
-          + ". Tables can select which executor to use by setting table.scan.dispatcher"
-          + " TODO document how to configure"),
+      "Prefix for defining executors to service scans.  For each executor the number of threads, "
+          + "thread priority, and an optional prioritizer can be configured.  The prioritizer "
+          + "determines which scan an executor should run first and must implement "
+          + ScanPrioritizer.class.getName() + ". Tables can select which executor to use by setting"
+          + " table.scan.dispatcher. To configure a new executor, set "
+          + "tserver.scan.executors.<name>.threads=<number>.  Optionally, can also set "
+          + "tserver.scan.executors.<name>.priority=<number 1 to 10>, "
+          + "tserver.scan.executors.<name>.prioritizer=<class name>, and "
+          + "tserver.scan.executors.<name>.prioritizer.opts.<key>=<value>"),
   TSERV_SCAN_EXECUTORS_DEFAULT_THREADS("tserver.scan.executors.default.threads", "16",
       PropertyType.COUNT,
       "The number of threads for the scan executor that tables use by default."),
@@ -687,10 +691,12 @@ public enum Property {
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", DefaultScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  By default "
-          + "scans are dispatched to the scan executor named `default`.  Configured classes must "
-          + "implement " + ScanDispatcher.class.getName()
-          + ".  This property is ignored for the root and "
-          + "metadata table.  The metadata table always dispatches to a scan executor named `meta`"),
+          + "scans are dispatched to the scan executor named `default`.  "
+          + DefaultScanDispatcher.class.getSimpleName() + " supports an option for setting another"
+          + " executor, to do this set table.scan.dispatcher.opts.executor=<name>. Configured "
+          + "classes must implement " + ScanDispatcher.class.getName() + ".  This property is "
+          + "ignored for the root and metadata table.  The metadata table always dispatches to a "
+          + "scan executor named `meta`."),
   TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", "", PropertyType.PREFIX,
       "Options for the table scan dispatcher"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,

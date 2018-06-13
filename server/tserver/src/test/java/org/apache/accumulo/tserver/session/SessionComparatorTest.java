@@ -27,7 +27,7 @@ public class SessionComparatorTest {
   @Test
   public void testSingleScanMultiScanNoRun() {
     long time = System.currentTimeMillis();
-    ScanSession sessionA = emptyScanSession();
+    SingleScanSession sessionA = emptyScanSession();
     sessionA.lastAccessTime = 0;
     sessionA.maxIdleAccessTime = 0;
     sessionA.startTime = time - 1000;
@@ -37,7 +37,7 @@ public class SessionComparatorTest {
     sessionB.maxIdleAccessTime = 1000;
     sessionB.startTime = time - 800;
 
-    ScanSession sessionC = emptyScanSession();
+    SingleScanSession sessionC = emptyScanSession();
     sessionC.lastAccessTime = 0;
     sessionC.maxIdleAccessTime = 1000;
     sessionC.startTime = time - 800;
@@ -61,13 +61,13 @@ public class SessionComparatorTest {
   @Test
   public void testSingleScanRun() {
     long time = System.currentTimeMillis();
-    ScanSession sessionA = emptyScanSession();
+    SingleScanSession sessionA = emptyScanSession();
     sessionA.lastAccessTime = 0;
     sessionA.setLastExecutionTime(time);
     sessionA.maxIdleAccessTime = 1000;
     sessionA.startTime = time - 1000;
 
-    ScanSession sessionB = emptyScanSession();
+    SingleScanSession sessionB = emptyScanSession();
     sessionB.lastAccessTime = 0;
     sessionB.setLastExecutionTime(time - 2000);
     sessionB.maxIdleAccessTime = 1000;
@@ -95,7 +95,7 @@ public class SessionComparatorTest {
   @Test
   public void testSingleScanMultiScanRun() {
     long time = System.currentTimeMillis();
-    ScanSession sessionA = emptyScanSession();
+    SingleScanSession sessionA = emptyScanSession();
     sessionA.lastAccessTime = 0;
     sessionA.setLastExecutionTime(time);
     sessionA.maxIdleAccessTime = 1000;
@@ -129,13 +129,13 @@ public class SessionComparatorTest {
   @Test
   public void testMultiScanRun() {
     long time = System.currentTimeMillis();
-    ScanSession sessionA = emptyScanSession();
+    SingleScanSession sessionA = emptyScanSession();
     sessionA.lastAccessTime = 0;
     sessionA.setLastExecutionTime(time);
     sessionA.maxIdleAccessTime = 1000;
     sessionA.startTime = time - 1000;
 
-    ScanSession sessionB = emptyScanSession();
+    SingleScanSession sessionB = emptyScanSession();
     sessionB.lastAccessTime = 0;
     sessionB.setLastExecutionTime(time - 2000);
     sessionB.maxIdleAccessTime = 1000;
@@ -160,8 +160,8 @@ public class SessionComparatorTest {
     assertTrue("comparison is " + comp, comp >= 1);
   }
 
-  private static ScanSession emptyScanSession() {
-    return new ScanSession(null, null, null, null, null, null, 0, 0, null);
+  private static SingleScanSession emptyScanSession() {
+    return new SingleScanSession(null, null, null, null, null, null, 0, 0, null);
   }
 
   private static MultiScanSession emptyMultiScanSession() {

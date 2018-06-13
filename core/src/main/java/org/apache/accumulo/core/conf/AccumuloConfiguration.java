@@ -443,7 +443,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           } else {
             threads = depThreads;
           }
-        } else if (opt.equals("prio")) { // TODO better name
+        } else if (opt.equals("priority")) { // TODO better name
           prio = Integer.parseInt(val);
         } else if (opt.equals("prioritizer")) {
           prioritizerClass = val;

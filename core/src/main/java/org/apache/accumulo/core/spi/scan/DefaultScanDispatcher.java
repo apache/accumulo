@@ -17,13 +17,26 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.util.Map;
+import java.util.Set;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 public class DefaultScanDispatcher implements ScanDispatcher {
 
-  public static final DefaultScanDispatcher INSTANCE = new DefaultScanDispatcher();
+  private final Set<String> VALID_OPTS = ImmutableSet.of("executor");
+  private String scanExecutor;
+
+  @Override
+  public void init(Map<String,String> options) {
+    Set<String> invalidOpts = Sets.difference(options.keySet(), VALID_OPTS);
+    Preconditions.checkArgument(invalidOpts.size() == 0, "Invalid options : %s", invalidOpts);
+    this.scanExecutor = options.getOrDefault("executor", "default");
+  }
 
   @Override
   public String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors) {
-    return "default";
+    return scanExecutor;
   }
 }

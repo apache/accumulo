@@ -250,9 +250,9 @@ import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.MultiScanSession;
-import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
+import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.session.SummarySession;
 import org.apache.accumulo.tserver.session.UpdateSession;
 import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
@@ -596,13 +596,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (tablet == null)
         throw new NotServingTabletException(textent);
 
-      Set<Column> columnSet = new HashSet<>();
+      HashSet<Column> columnSet = new HashSet<>();
       for (TColumn tcolumn : columns) {
         columnSet.add(new Column(tcolumn));
       }
 
-      final ScanSession scanSession = new ScanSession(credentials, extent, columnSet, ssiList, ssio,
-          new Authorizations(authorizations), readaheadThreshold, batchTimeOut, context);
+      final SingleScanSession scanSession = new SingleScanSession(credentials, extent, columnSet,
+          ssiList, ssio, new Authorizations(authorizations), readaheadThreshold, batchTimeOut,
+          context);
       scanSession.scanner = tablet.createScanner(new Range(range), batchSize, scanSession.columnSet,
           scanSession.auths, ssiList, ssio, isolated, scanSession.interruptFlag,
           SamplerConfigurationImpl.fromThrift(tSamplerConfig), scanSession.batchTimeOut,
@@ -628,7 +629,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throws NoSuchScanIDException, NotServingTabletException,
         org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
         TSampleNotPresentException {
-      ScanSession scanSession = (ScanSession) sessionManager.reserveSession(scanID);
+      SingleScanSession scanSession = (SingleScanSession) sessionManager.reserveSession(scanID);
       if (scanSession == null) {
         throw new NoSuchScanIDException();
       }
@@ -640,7 +641,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     }
 
-    private ScanResult continueScan(TInfo tinfo, long scanID, ScanSession scanSession)
+    private ScanResult continueScan(TInfo tinfo, long scanID, SingleScanSession scanSession)
         throws NoSuchScanIDException, NotServingTabletException,
         org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
         TSampleNotPresentException {
@@ -649,7 +650,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         scanSession.nextBatchTask = new NextBatchTask(TabletServer.this, scanID,
             scanSession.interruptFlag);
         resourceManager.executeReadAhead(scanSession.extent, getScanDispatcher(scanSession.extent),
-            scanSession.scanInfo, scanSession.nextBatchTask);
+            scanSession, scanSession.nextBatchTask);
       }
 
       ScanBatch bresult;
@@ -705,7 +706,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         scanSession.nextBatchTask = new NextBatchTask(TabletServer.this, scanID,
             scanSession.interruptFlag);
         resourceManager.executeReadAhead(scanSession.extent, getScanDispatcher(scanSession.extent),
-            scanSession.scanInfo, scanSession.nextBatchTask);
+            scanSession, scanSession.nextBatchTask);
       }
 
       if (!scanResult.more)
@@ -716,14 +717,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void closeScan(TInfo tinfo, long scanID) {
-      final ScanSession ss = (ScanSession) sessionManager.removeSession(scanID);
+      final SingleScanSession ss = (SingleScanSession) sessionManager.removeSession(scanID);
       if (ss != null) {
         long t2 = System.currentTimeMillis();
 
         if (log.isTraceEnabled()) {
           log.trace(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
               TServerUtils.clientAddress.get(), ss.extent.getTableId(), ss.entriesReturned,
-              (t2 - ss.startTime) / 1000.0, ss.nbTimes.toString()));
+              (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
         }
 
         if (scanMetrics.isEnabled()) {
@@ -831,7 +832,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         session.lookupTask = new LookupTask(TabletServer.this, scanID);
         // TODO get resource name from config
         resourceManager.executeReadAhead(session.threadPoolExtent,
-            getScanDispatcher(session.threadPoolExtent), session.scanInfo, session.lookupTask);
+            getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
       }
 
       try {

@@ -16,15 +16,18 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.core.data.Column;
 
 /**
+ * Provides information about an active Accumulo scan against a tablet. Accumulo scans operate by
+ * repeatedly gathering batches of data and returning those to the client.
+ *
  * @since 2.0.0
  */
 public interface ScanInfo {
@@ -47,30 +50,55 @@ public interface ScanInfo {
 
   Type getScanType();
 
-  // String getTableName(); //TODO
-
   String getTableId();
 
-  int getNumTablets();
-
-  int getNumRanges();
-
+  /**
+   * Returns the first time a tablet knew about a scan over its portion of data.
+   *
+   * @see ScanInfo#getCurrentTime()
+   */
   long getCreationTime();
 
-  // TODO maybe avoid using optional in API because of object creation???
+  /**
+   * If the scan has run, returns the last run time.
+   *
+   * @see ScanInfo#getCurrentTime()
+   */
   OptionalLong getLastRunTime();
 
+  /**
+   * Returns timing statistics about running and gathering a batches of data.
+   */
   Optional<Stats> getRunTimeStats();
 
+  /**
+   * Returns statistics about the time between running. These stats are only about the idle times
+   * before the last run time. The idle time after the last run time are not included. If the scan
+   * has never run, then there are not stats.
+   */
   Optional<Stats> getIdleTimeStats();
 
+  /**
+   * This method is similar to {@link #getIdleTimeStats()}, but it also includes the time period
+   * between the last run time and now in the stats. If the scan has never run, then the stats are
+   * computed using only {@code currentTime - creationTime}.
+   *
+   * @see ScanInfo#getCurrentTime()
+   */
   Stats getIdleTimeStats(long currentTime);
 
-  Collection<Text> getFetchedFamilies();
+  Set<Column> getFetchedColumns();
 
   List<IteratorSetting> getScanIterators();
 
+  /**
+   * There are multiple ways to get time in Java. Use this method to get current time in same way
+   * that Accumulo obtains time.
+   *
+   * @return
+   */
   public static long getCurrentTime() {
     return System.currentTimeMillis();
   }
+
 }

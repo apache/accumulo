@@ -37,7 +37,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.spi.scan.DefaultScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -236,8 +235,8 @@ public class TableConfiguration extends ObservableConfiguration {
     long count = getUpdateCount();
     TablesScanDispatcher currRef = scanDispatcherRef.get();
     if (currRef == null || currRef.count != count) {
-      ScanDispatcher newDispatcher = Property.createInstanceFromPropertyName(this,
-          Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, DefaultScanDispatcher.INSTANCE);
+      ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(this,
+          Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
 
       Map<String,String> opts = new HashMap<>();
       getAllPropertiesWithPrefix(Property.TABLE_SCAN_DISPATCHER_OPTS).forEach((k, v) -> {

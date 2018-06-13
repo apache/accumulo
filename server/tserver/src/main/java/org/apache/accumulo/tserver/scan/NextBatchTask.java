@@ -23,7 +23,7 @@ import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TooManyFilesException;
-import org.apache.accumulo.tserver.session.ScanSession;
+import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
@@ -48,7 +48,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
   @Override
   public void run() {
 
-    final ScanSession scanSession = (ScanSession) server.getSession(scanID);
+    final SingleScanSession scanSession = (SingleScanSession) server.getSession(scanID);
     String oldThreadName = Thread.currentThread().getName();
 
     try {
@@ -69,10 +69,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
         return;
       }
 
-      long t1 = System.currentTimeMillis();
       ScanBatch batch = scanSession.scanner.read();
-      long t2 = System.currentTimeMillis();
-      scanSession.nbTimes.addStat(t2 - t1);
 
       // there should only be one thing on the queue at a time, so
       // it should be ok to call add()

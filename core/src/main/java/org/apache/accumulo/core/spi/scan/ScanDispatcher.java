@@ -21,14 +21,32 @@ import java.util.Map;
 import com.google.common.base.Preconditions;
 
 /**
- * A per table scan dispatcher.
+ * A per table scan dispatcher that decided which executor should be used to processes a scan. For
+ * information about configuring, find the documentation for the {@code table.scan.dispatcher} and
+ * {@code table.scan.dispatcher.opts.} properties.
  *
  * @since 2.0.0
  */
 public interface ScanDispatcher {
+  /**
+   * This method is called once after a ScanDispatcher is instantiated.
+   *
+   * @param options
+   *          The configured options. For example if the table properties
+   *          {@code table.scan.dispatcher.opts.p1=abc} and
+   *          {@code table.scan.dispatcher.opts.p9=123} were set, then this map would contain
+   *          {@code p1=abc} and {@code p9=123}.
+   */
   public default void init(Map<String,String> options) {
     Preconditions.checkArgument(options.isEmpty(), "No options expected");
   }
 
+  /**
+   * @param scanInfo
+   *          Information about the scan.
+   * @param scanExecutors
+   *          Information about the currently configured executors.
+   * @return Should return one of the executors named in scanExecutors.keySet()
+   */
   String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors);
 }

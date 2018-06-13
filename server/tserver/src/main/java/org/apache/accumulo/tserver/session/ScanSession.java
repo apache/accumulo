@@ -16,69 +16,122 @@
  */
 package org.apache.accumulo.tserver.session;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.util.Stat;
-import org.apache.accumulo.tserver.scan.ScanTask;
-import org.apache.accumulo.tserver.tablet.ScanBatch;
-import org.apache.accumulo.tserver.tablet.Scanner;
 
-public class ScanSession extends Session {
-  public final Stat nbTimes = new Stat();
-  public final KeyExtent extent;
-  public final Set<Column> columnSet;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
+public abstract class ScanSession extends Session implements ScanInfo {
+
+  public static class ScanMeasurer implements Runnable {
+
+    private ScanSession session;
+    private Runnable task;
+
+    ScanMeasurer(ScanSession session, Runnable task) {
+      this.session = session;
+      this.task = task;
+    }
+
+    @Override
+    public void run() {
+      long t1 = System.currentTimeMillis();
+      task.run();
+      long t2 = System.currentTimeMillis();
+      session.finishedRun(t1, t2);
+    }
+
+    public ScanInfo getScanInfo() {
+      return session;
+    }
+
+  }
+
+  public static ScanMeasurer wrap(ScanSession scanInfo, Runnable r) {
+    return new ScanMeasurer(scanInfo, r);
+  }
+
+  private long lastRunTime;
+  private Stat idleStats = new Stat();
+  public Stat runStats = new Stat();
+
+  public final HashSet<Column> columnSet;
   public final List<IterInfo> ssiList;
   public final Map<String,Map<String,String>> ssio;
   public final Authorizations auths;
-  public final AtomicBoolean interruptFlag = new AtomicBoolean();
-  public long entriesReturned = 0;
-  public long batchCount = 0;
-  public volatile ScanTask<ScanBatch> nextBatchTask;
-  public Scanner scanner;
-  public final long readaheadThreshold;
-  public final long batchTimeOut;
-  public final String context;
-  public final String resources = "default"; // TODO get from config
-  public final ScanInfoImpl scanInfo;
 
-  public ScanSession(TCredentials credentials, KeyExtent extent, Set<Column> columnSet,
-      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, Authorizations authorizations,
-      long readaheadThreshold, long batchTimeOut, String context) {
+  ScanSession(TCredentials credentials, HashSet<Column> cols, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, Authorizations auths) {
     super(credentials);
-    this.extent = extent;
-    this.columnSet = columnSet;
+    this.columnSet = cols;
     this.ssiList = ssiList;
     this.ssio = ssio;
-    this.auths = authorizations;
-    this.readaheadThreshold = readaheadThreshold;
-    this.batchTimeOut = batchTimeOut;
-    this.context = context;
-    this.scanInfo = new ScanInfoImpl(ScanInfo.Type.SINGLE, () -> startTime, 1, () -> 1,
-        extent.getTableId().canonicalID());
+    this.auths = auths;
   }
 
   @Override
-  public boolean cleanup() {
-    final boolean ret;
-    try {
-      if (nextBatchTask != null)
-        nextBatchTask.cancel(true);
-    } finally {
-      if (scanner != null)
-        ret = scanner.close();
-      else
-        ret = true;
-    }
-    return ret;
+  public long getCreationTime() {
+    return startTime;
   }
 
+  @Override
+  public OptionalLong getLastRunTime() {
+    if (idleStats.num() == 0) {
+      return OptionalLong.empty();
+    } else {
+      return OptionalLong.of(lastRunTime);
+    }
+  }
+
+  @Override
+  public Optional<Stats> getRunTimeStats() {
+    return runStats.num() == 0 ? Optional.empty() : Optional.of(runStats);
+  }
+
+  @Override
+  public Optional<Stats> getIdleTimeStats() {
+    return idleStats.num() == 0 ? Optional.empty() : Optional.of(idleStats);
+  }
+
+  @Override
+  public Stats getIdleTimeStats(long currentTime) {
+    long idleTime = currentTime - getLastRunTime().orElse(getCreationTime());
+    Preconditions.checkArgument(idleTime >= 0);
+    Stat copy = idleStats.copy();
+    copy.addStat(idleTime);
+    return copy;
+  }
+
+  @Override
+  public Set<Column> getFetchedColumns() {
+    return Collections.unmodifiableSet(columnSet);
+  }
+
+  @Override
+  public List<IteratorSetting> getScanIterators() {
+    return Lists.transform(ssiList, ii -> new IteratorSetting(ii.priority, ii.iterName,
+        ii.className, ssio.getOrDefault(ii.iterName, Collections.emptyMap())));
+  }
+
+  public void finishedRun(long start, long finish) {
+    long idleTime = start - getLastRunTime().orElse(getCreationTime());
+    long runTime = finish - start;
+    lastRunTime = finish;
+    idleStats.addStat(idleTime);
+    runStats.addStat(runTime);
+  }
 }

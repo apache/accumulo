@@ -21,7 +21,6 @@ import java.util.Comparator;
 import java.util.Map;
 
 import org.apache.accumulo.core.spi.scan.ScanInfo.Stats;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -48,15 +47,7 @@ public class IdleRatioScanPrioritizer implements ScanPrioritizer {
       return Double.compare(idleRatio(currTime, si1), idleRatio(currTime, si2));
     };
 
-    Comparator<ScanInfo> c2 = c1.thenComparingLong(si -> si.getLastRunTime().orElse(0))
+    return c1.thenComparingLong(si -> si.getLastRunTime().orElse(0))
         .thenComparing(si -> si.getCreationTime());
-
-    // TODO remove, just added this to log for testing
-    return (si1, si2) -> {
-      int cmp = c2.compare(si1, si2);
-      LoggerFactory.getLogger(IdleRatioScanPrioritizer.class)
-          .debug("IRC " + si1.getCreationTime() + " " + si2.getCreationTime() + " " + cmp);
-      return cmp;
-    };
   }
 }

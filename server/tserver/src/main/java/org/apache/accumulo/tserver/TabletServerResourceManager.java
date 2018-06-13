@@ -74,8 +74,7 @@ import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
-import org.apache.accumulo.tserver.session.ScanInfoImpl;
-import org.apache.accumulo.tserver.session.ScanInfoImpl.ScanMeasurer;
+import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.apache.htrace.wrappers.TraceRunnable;
@@ -201,7 +200,7 @@ public class TabletServerResourceManager {
         Comparator<ScanInfo> comparator = factory.createComparator(src.prioritizerOpts);
 
         // function to extract scan scan session from runnable
-        Function<Runnable,ScanInfo> extractor = r -> ((ScanMeasurer) ((TraceRunnable) r)
+        Function<Runnable,ScanInfo> extractor = r -> ((ScanSession.ScanMeasurer) ((TraceRunnable) r)
             .getRunnable()).getScanInfo();
 
         queue = new PriorityBlockingQueue<>(src.maxThreads,
@@ -871,19 +870,21 @@ public class TabletServerResourceManager {
     }
   }
 
-  public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanInfoImpl scanInfo,
+  public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
       Runnable task) {
+
+    task = ScanSession.wrap(scanInfo, task);
 
     if (tablet.isRootTablet()) {
       task.run();
     } else if (tablet.isMeta()) {
-      scanExecutors.get("meta").execute(ScanInfoImpl.wrap(scanInfo, task));
+      scanExecutors.get("meta").execute(task);
     } else {
       String scanExecutorName = dispatcher.dispatch(scanInfo, null);
       log.debug("Dispatching scan to " + scanExecutorName + " " + scanInfo.getScanType()); // TODO
                                                                                            // remove
       Preconditions.checkState(!"meta".equals(scanExecutorName));
-      scanExecutors.get(scanExecutorName).execute(ScanInfoImpl.wrap(scanInfo, task));
+      scanExecutors.get(scanExecutorName).execute(task);
     }
   }
 
