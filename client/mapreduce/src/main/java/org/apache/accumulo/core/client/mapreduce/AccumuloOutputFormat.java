@@ -94,19 +94,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
 
   /**
-   * Set Accumulo client properties used to connect to Accumulo
-   *
-   * @param job
-   *          Hadoop job to be configured
-   * @param clientProps
-   *          Accumulo client properties
-   * @since 2.0.0
-   */
-  public static void setClientProperties(Job job, Properties clientProps) {
-    OutputConfigurator.setClientProperties(CLASS, job.getConfiguration(), clientProps);
-  }
-
-  /**
    * Set Accumulo client properties file used to connect to Accumulo
    *
    * @param job
