@@ -34,7 +34,7 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.CRYPTO_STRATEGY,
+    cfg.setProperty(Property.TABLE_CRYPTO_STRATEGY,
         "org.apache.accumulo.core.security.crypto.AESCBCEncryptionStrategy");
     cfg.setProperty(AESCBCEncryptionStrategy.CRYPTO_SECRET_KEY_PROPERTY, "sixteenbytekey4u");
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");

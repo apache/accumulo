@@ -19,11 +19,11 @@
 
 <configuration>
     <property>
-        <name>crypto.strategy</name>
+        <name>table.crypto.strategy</name>
         <value>org.apache.accumulo.core.security.crypto.AESCBCEncryptionStrategy</value>
     </property>
     <property>
-        <name>crypto.sensitive.key</name>
+        <name>table.crypto.opts.sensitive.key</name>
         <value>sixteenbytekey4u</value>
     </property>
 

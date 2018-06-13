@@ -142,12 +142,12 @@ public class CryptoTest {
   private byte[] encrypt(Class strategyClass, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(
-        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX), EncryptionStrategy.Scope.RFILE);
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), EncryptionStrategy.Scope.RFILE);
 
     assertEquals(strategyClass, strategy.getClass());
     // test init on other scope to be sure, even though this test has no scope
     strategy.init(EncryptionStrategy.Scope.WAL,
-        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     OutputStream encrypted = strategy.encryptStream(new NoFlushOutputStream(out));
@@ -163,11 +163,11 @@ public class CryptoTest {
   private void decrypt(byte[] resultingBytes, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(
-        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX), EncryptionStrategy.Scope.RFILE);
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), EncryptionStrategy.Scope.RFILE);
 
     // test init on other scope to be sure, even though this test has no scope
     strategy.init(EncryptionStrategy.Scope.WAL,
-        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
     DataInputStream decrypted = new DataInputStream(strategy.decryptStream(in));

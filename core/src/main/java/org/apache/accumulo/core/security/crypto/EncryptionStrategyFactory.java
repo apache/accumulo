@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
@@ -30,13 +29,11 @@ public class EncryptionStrategyFactory {
    *
    * @param fileEncryptedClass
    *          encryption strategy class read from the file
-   * @return EncryptionStrategy
-   * @throws IOException
-   *           if an error occurred during EncryptionStrategy initialization
+   * @return EncryptionStrategy if an error occurred during EncryptionStrategy initialization
    */
   public static EncryptionStrategy setupReadEncryption(Map<String,String> conf,
-      String fileEncryptedClass, EncryptionStrategy.Scope scope) throws IOException {
-    String confCryptoStrategyClass = conf.get(Property.CRYPTO_STRATEGY.getKey());
+      String fileEncryptedClass, EncryptionStrategy.Scope scope) {
+    String confCryptoStrategyClass = conf.get(Property.TABLE_CRYPTO_STRATEGY.getKey());
     if (!fileEncryptedClass.equals(confCryptoStrategyClass)) {
       throw new RuntimeException("File encrypted with different encryption (" + fileEncryptedClass
           + ") than what is configured: " + confCryptoStrategyClass);
@@ -49,13 +46,11 @@ public class EncryptionStrategyFactory {
   /**
    * Load and initialize configured EncryptionStrategy.
    *
-   * @return EncryptionStrategy
-   * @throws IOException
-   *           if an error occurred during EncryptionStrategy initialization
+   * @return EncryptionStrategy if an error occurred during EncryptionStrategy initialization
    */
   public static EncryptionStrategy setupConfiguredEncryption(Map<String,String> conf,
       EncryptionStrategy.Scope scope) {
-    EncryptionStrategy strategy = loadStrategy(conf.get(Property.CRYPTO_STRATEGY.getKey()));
+    EncryptionStrategy strategy = loadStrategy(conf.get(Property.TABLE_CRYPTO_STRATEGY.getKey()));
     strategy.init(scope, conf);
     return strategy;
   }

@@ -44,7 +44,8 @@ public class AESCBCEncryptionStrategy implements EncryptionStrategy {
   /**
    * The actual secret key to use
    */
-  public static final String CRYPTO_SECRET_KEY_PROPERTY = Property.CRYPTO_SENSITIVE_PREFIX + "key";
+  public static final String CRYPTO_SECRET_KEY_PROPERTY = Property.TABLE_CRYPTO_SENSITIVE_PREFIX
+      + "key";
 
   private final String transformation = "AES/CBC/NoPadding";
   private SecretKeySpec skeySpec;

@@ -73,13 +73,14 @@ public class ConfigSanityCheckTest {
 
   @Test(expected = SanityCheckException.class)
   public void testFail_badEncryptionStrategy() {
-    m.put(Property.CRYPTO_STRATEGY.getKey(), "DoesNotExistEncryptionStrategy");
+    m.put(Property.TABLE_CRYPTO_STRATEGY.getKey(), "DoesNotExistEncryptionStrategy");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test
   public void testPass_defaultEncryptionStrategy() {
-    m.put(Property.CRYPTO_STRATEGY.getKey(), Property.CRYPTO_STRATEGY.getDefaultValue());
+    m.put(Property.TABLE_CRYPTO_STRATEGY.getKey(),
+        Property.TABLE_CRYPTO_STRATEGY.getDefaultValue());
     ConfigSanityCheck.validate(m.entrySet());
   }
 }

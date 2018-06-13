@@ -44,14 +44,14 @@ import com.google.common.base.Preconditions;
 public enum Property {
   // Crypto-related properties
   @Experimental
-  CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX,
+  TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
       "Properties related to on-disk file encryption."),
   @Experimental
   @Sensitive
-  CRYPTO_SENSITIVE_PREFIX("crypto.sensitive.", null, PropertyType.PREFIX,
+  TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
       "Sensitive properties related to on-disk file encryption."),
   @Experimental
-  CRYPTO_STRATEGY("crypto.strategy",
+  TABLE_CRYPTO_STRATEGY("table.crypto.strategy",
       "org.apache.accumulo.core.security.crypto.NoEncryptionStrategy", PropertyType.CLASSNAME,
       "The strategy which executes on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
@@ -1096,6 +1096,7 @@ public enum Property {
             || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey())
             || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())
             || key.startsWith(TABLE_SAMPLER_OPTS.getKey())
+            || key.startsWith(TABLE_CRYPTO_PREFIX.getKey())
             || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())));
   }
 

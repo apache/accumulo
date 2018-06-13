@@ -328,7 +328,7 @@ public final class BCFile {
       Magic.write(this.out);
 
       this.encryptionStrategy = EncryptionStrategyFactory.setupConfiguredEncryption(
-          accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX),
+          accumuloConfiguration.getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
           EncryptionStrategy.Scope.RFILE);
     }
 
@@ -649,7 +649,7 @@ public final class BCFile {
         this.in.seek(offsetCryptoParameters);
         String encryptionStrategy = this.in.readUTF();
         this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
-            accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX),
+            accumuloConfiguration.getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
             encryptionStrategy, EncryptionStrategy.Scope.RFILE);
       }
 
@@ -674,7 +674,7 @@ public final class BCFile {
       dataIndex = new DataIndex(dis);
       String encryptionStrategy = dis.readUTF();
       this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
-          accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX),
+          accumuloConfiguration.getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
           encryptionStrategy, EncryptionStrategy.Scope.RFILE);
     }
 
