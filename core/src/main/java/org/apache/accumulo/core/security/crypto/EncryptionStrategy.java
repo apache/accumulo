@@ -34,11 +34,13 @@ public interface EncryptionStrategy {
    *
    * @param encryptionScope
    *          where the encryption takes places
+   * @param versionRead
+   *          the version read from a file or the value of {@link #getVersion()} when writing
    * @param configuration
    *          relevant encryption properties
    * @since 2.0
    */
-  void init(Scope encryptionScope, Map<String,String> configuration)
+  void init(Scope encryptionScope, String versionRead, Map<String,String> configuration)
       throws EncryptionStrategyException;
 
   /**
@@ -56,12 +58,23 @@ public interface EncryptionStrategy {
   InputStream decryptStream(InputStream inputStream) throws EncryptionStrategyException;
 
   /**
+   * Returns the unique version identifier for this Encryption Strategy implementation. This string
+   * is what will get written to the file being encrypted. When a version is read from a file, it is
+   * passed to the {@link #init} method of the configured Encryption Strategy.
+   *
+   * @since 2.0
+   */
+  String getVersion();
+
+  /**
    * This method is responsible for printing all information required for decrypting to a stream
    *
    * @param outputStream
    *          The stream being written in requiring crypto information
    * @throws EncryptionStrategyException
    *           if the print fails
+   *
+   * @since 2.0
    */
   void printCryptoInfoToStream(OutputStream outputStream);
 
