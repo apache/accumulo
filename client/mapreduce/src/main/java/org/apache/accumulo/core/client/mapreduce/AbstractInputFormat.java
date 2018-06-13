@@ -227,7 +227,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   @Deprecated
   public static void setConnectorInfo(Job job, String principal, String tokenFile)
       throws AccumuloSecurityException {
-    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
+    setClientPropertiesFile(job, tokenFile);
   }
 
   /**

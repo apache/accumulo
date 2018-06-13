@@ -18,7 +18,6 @@ package org.apache.accumulo.tserver.replication;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -38,14 +37,12 @@ public class ReplicationWorker implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationWorker.class);
 
   private ClientContext context;
-  private Instance inst;
   private AccumuloConfiguration conf;
   private VolumeManager fs;
   private ThreadPoolExecutor executor;
 
   public ReplicationWorker(ClientContext clientCtx, VolumeManager fs) {
     this.context = clientCtx;
-    this.inst = clientCtx.getInstance();
     this.fs = fs;
     this.conf = clientCtx.getConfiguration();
   }

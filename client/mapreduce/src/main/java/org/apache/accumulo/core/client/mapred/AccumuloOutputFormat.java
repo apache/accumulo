@@ -178,7 +178,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
       throws AccumuloSecurityException {
-    OutputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
+    setClientPropertiesFile(job, tokenFile);
   }
 
   /**

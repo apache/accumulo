@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -156,7 +155,6 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
       // Map of logs to tableId
       Multimap<String,Table.ID> logs = HashMultimap.create();
-      Instance i = conn.getInstance();
       ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
           conn.info().getZooKeepersSessionTimeOut(), "");
       WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
@@ -197,7 +195,6 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   private void waitForGCLock(Connector conn) throws InterruptedException {
     // Check if the GC process has the lock before wasting our retry attempts
-    ZooKeeperInstance zki = (ZooKeeperInstance) conn.getInstance();
     ZooCacheFactory zcf = new ZooCacheFactory();
     ZooCache zcache = zcf.getZooCache(conn.info().getZooKeepers(),
         conn.info().getZooKeepersSessionTimeOut());

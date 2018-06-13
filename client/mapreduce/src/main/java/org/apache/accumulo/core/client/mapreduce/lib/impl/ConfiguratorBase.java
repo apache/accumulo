@@ -250,33 +250,6 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Sets the connector information needed to communicate with Accumulo in this job.
-   *
-   * <p>
-   * Pulls a token file into the Distributed Cache that contains the authentication token in an
-   * attempt to be more secure than storing the password in the Configuration. Token file created
-   * with "bin/accumulo create-token".
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param principal
-   *          a valid Accumulo user name
-   * @param tokenFile
-   *          the path to the token file in DFS
-   * @since 1.6.0
-   */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
-      String principal, String tokenFile) throws AccumuloSecurityException {
-    if (isConnectorInfoSet(implementingClass, conf))
-      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
-          + " can only be set once per job");
-    checkArgument(tokenFile != null, "tokenFile is null");
-    setClientPropertiesFile(implementingClass, conf, tokenFile);
-  }
-
-  /**
    * Determines if the connector info has already been set for this instance.
    *
    * @param implementingClass
@@ -393,7 +366,7 @@ public class ConfiguratorBase {
    * @return A ClientConfiguration
    * @since 1.7.0
    */
-  @SuppressWarnings("deprecation")
+  @Deprecated
   public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
       Class<?> implementingClass, Configuration conf) {
     return ClientConfConverter.toClientConf(getClientInfo(implementingClass, conf).getProperties());

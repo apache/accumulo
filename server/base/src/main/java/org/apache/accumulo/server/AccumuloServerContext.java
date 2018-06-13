@@ -172,7 +172,7 @@ public class AccumuloServerContext extends ClientContext {
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     // avoid making more connectors than necessary
     if (conn == null) {
-      if (inst instanceof ZooKeeperInstance || inst instanceof HdfsZooInstance) {
+      if (getInstance() instanceof ZooKeeperInstance || getInstance() instanceof HdfsZooInstance) {
         // reuse existing context
         conn = new ConnectorImpl(this);
       } else {

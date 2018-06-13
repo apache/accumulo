@@ -50,7 +50,7 @@ import com.google.common.base.Suppliers;
 public class ClientContext {
 
   private ClientInfo info;
-  protected Instance inst;
+  private Instance inst;
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private AccumuloConfiguration serverConf;

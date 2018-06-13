@@ -252,7 +252,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (!Tables.exists(context, tableId))
             throw new TableDeletedException(tableId.canonicalID());
           else if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-            throw new TableOfflineException(instance, tableId.canonicalID());
+            throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
         lastFailureSize = failures.size();
 

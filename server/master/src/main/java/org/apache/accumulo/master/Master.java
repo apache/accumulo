@@ -1765,7 +1765,7 @@ public class Master extends AccumuloServerContext
 
   public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers)
       throws WalMarkerException {
-    WalStateManager mgr = new WalStateManager(this.inst, ZooReaderWriter.getInstance());
+    WalStateManager mgr = new WalStateManager(getInstance(), ZooReaderWriter.getInstance());
     for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
       for (Path path : server.getValue()) {
         mgr.closeWal(server.getKey(), path);
