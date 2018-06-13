@@ -36,7 +36,7 @@ public class EncryptionStrategyFactory {
    */
   public static EncryptionStrategy setupReadEncryption(Map<String,String> conf,
       String fileEncryptedClass, EncryptionStrategy.Scope scope) throws IOException {
-    String confCryptoStrategyClass = conf.get(Property.CRYPTO_STRATEGY);
+    String confCryptoStrategyClass = conf.get(Property.CRYPTO_STRATEGY.getKey());
     if (!fileEncryptedClass.equals(confCryptoStrategyClass)) {
       throw new RuntimeException("File encrypted with different encryption (" + fileEncryptedClass
           + ") than what is configured: " + confCryptoStrategyClass);
@@ -55,7 +55,7 @@ public class EncryptionStrategyFactory {
    */
   public static EncryptionStrategy setupConfiguredEncryption(Map<String,String> conf,
       EncryptionStrategy.Scope scope) {
-    EncryptionStrategy strategy = loadStrategy(conf.get(Property.CRYPTO_STRATEGY));
+    EncryptionStrategy strategy = loadStrategy(conf.get(Property.CRYPTO_STRATEGY.getKey()));
     strategy.init(scope, conf);
     return strategy;
   }

@@ -619,8 +619,8 @@ public final class BCFile {
       // Do a version check - API_VERSION_2 used experimental crypto parameters, no longer supported
       if (!version.compatibleWith(BCFile.API_VERSION_3)
           && !version.compatibleWith(BCFile.API_VERSION_1)) {
-        throw new IOException("Unsupported BCFile Version found: " + version.toString() + ". " +
-            "Only support " + API_VERSION_1 + " or " + API_VERSION_3);
+        throw new IOException("Unsupported BCFile Version found: " + version.toString() + ". "
+            + "Only support " + API_VERSION_1 + " or " + API_VERSION_3);
       }
 
       // Read the right number offsets based on version
