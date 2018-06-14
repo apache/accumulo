@@ -291,7 +291,6 @@ public class ConfiguratorBase {
    * @return the principal's authentication token
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
-   * @see #setConnectorInfo(Class, Configuration, String, String)
    */
   public static AuthenticationToken getAuthenticationToken(Class<?> implementingClass,
       Configuration conf) {
