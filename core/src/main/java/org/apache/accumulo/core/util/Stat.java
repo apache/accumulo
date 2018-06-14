@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.spi.scan.ScanInfo.Stats;
+import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
 public class Stat implements Stats {
@@ -26,10 +26,8 @@ public class Stat implements Stats {
   Mean mean;
 
   public Stat() {
-    min = Long.MAX_VALUE;
-    max = Long.MIN_VALUE;
-    sum = 0;
     mean = new Mean();
+    clear();
   }
 
   public void addStat(long stat) {
@@ -41,12 +39,12 @@ public class Stat implements Stats {
 
   @Override
   public long min() {
-    return num() == 0 ? 0 : min;
+    return num() == 0 ? 0L : min;
   }
 
   @Override
   public long max() {
-    return num() == 0 ? 0 : max;
+    return num() == 0 ? 0L : max;
   }
 
   @Override
@@ -82,7 +80,6 @@ public class Stat implements Stats {
     stat.max = this.max;
     stat.sum = this.sum;
     stat.mean = this.mean.copy();
-
     return stat;
   }
 }

@@ -18,14 +18,13 @@ package org.apache.accumulo.tserver.session;
 
 import java.util.Comparator;
 
+import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
-import org.apache.accumulo.core.spi.scan.ScanInfo.Stats;
 
 //TODO bad name
 //TODO no docs!!!
 //TODO location
 public class DefaultSessionComparator implements Comparator<ScanInfo> {
-
   @Override
   public int compare(ScanInfo si1, ScanInfo si2) {
     // TODO not sure if I converted this correctly!!!
@@ -38,8 +37,8 @@ public class DefaultSessionComparator implements Comparator<ScanInfo> {
     final long currentTime = ScanInfo.getCurrentTime();
 
     // TODO should this call getIdleTimeStats(currtime) ??
-    long maxIdle1 = si1.getIdleTimeStats().map(Stats::max).orElse(0L);
-    long maxIdle2 = si2.getIdleTimeStats().map(Stats::max).orElse(0L);
+    long maxIdle1 = si1.getIdleTimeStats().max();
+    long maxIdle2 = si2.getIdleTimeStats().max();
 
     final long maxIdle = maxIdle1 < maxIdle2 ? maxIdle1 : maxIdle2;
 
@@ -75,5 +74,4 @@ public class DefaultSessionComparator implements Comparator<ScanInfo> {
 
     return comparison;
   }
-
 }

@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.OptionalInt;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
@@ -176,54 +177,49 @@ public class TabletServerResourceManager {
     return createEs(max, name, new LinkedBlockingQueue<>());
   }
 
-  private ExecutorService createPriorityExecutor(ScanExecutorConfig src) {
+  private ExecutorService createPriorityExecutor(ScanExecutorConfig sec) {
 
     BlockingQueue<Runnable> queue;
 
-    if (src.prioritizerClass.orElse("").isEmpty()) {
+    if (sec.prioritizerClass.orElse("").isEmpty()) {
       queue = new LinkedBlockingQueue<>();
     } else {
       ScanPrioritizer factory = null;
       try {
-        factory = ConfigurationTypeHelper.getClassInstance(null, src.prioritizerClass.get(),
+        factory = ConfigurationTypeHelper.getClassInstance(null, sec.prioritizerClass.get(),
             ScanPrioritizer.class);
       } catch (Exception e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        throw new RuntimeException(e);
       }
 
       if (factory == null) {
         queue = new LinkedBlockingQueue<>();
       } else {
-        // TODO remove
-        log.debug("Creating comparator " + src.prioritizerClass);
-        Comparator<ScanInfo> comparator = factory.createComparator(src.prioritizerOpts);
+        Comparator<ScanInfo> comparator = factory.createComparator(sec.prioritizerOpts);
 
         // function to extract scan scan session from runnable
         Function<Runnable,ScanInfo> extractor = r -> ((ScanSession.ScanMeasurer) ((TraceRunnable) r)
             .getRunnable()).getScanInfo();
 
-        queue = new PriorityBlockingQueue<>(src.maxThreads,
+        queue = new PriorityBlockingQueue<>(sec.maxThreads,
             Comparator.comparing(extractor, comparator));
       }
     }
 
-    // TODO pass a max threads supplier that re reads config
-    return createEs(() -> src.maxThreads, "scan-" + src.name, queue);
+    return createEs(() -> sec.getCurrentMaxThreads(), "scan-" + sec.name, queue, sec.priority);
   }
 
   private ExecutorService createEs(IntSupplier maxThreadsSupplier, String name,
-      BlockingQueue<Runnable> queue) {
+      BlockingQueue<Runnable> queue, OptionalInt priority) {
     int maxThreads = maxThreadsSupplier.getAsInt();
     ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L,
-        TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
+        TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name, priority));
     return addEs(maxThreadsSupplier, name, tp);
   }
 
   private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
-    // TODO what conf to use?? other code uses tsrver.getConf()
     IntSupplier maxThreadsSupplier = () -> conf.getSystemConfiguration().getCount(max);
-    return createEs(maxThreadsSupplier, name, queue);
+    return createEs(maxThreadsSupplier, name, queue, OptionalInt.empty());
   }
 
   private ExecutorService createEs(int min, int max, int timeout, String name) {
@@ -247,8 +243,8 @@ public class TabletServerResourceManager {
       AccumuloConfiguration acuConf) {
     Builder<String,ExecutorService> builder = ImmutableMap.builder();
 
-    for (ScanExecutorConfig src : acuConf.getScanExecutors()) {
-      builder.put(src.name, createPriorityExecutor(src));
+    for (ScanExecutorConfig sec : acuConf.getScanExecutors()) {
+      builder.put(sec.name, createPriorityExecutor(sec));
     }
 
     return builder.build();
@@ -880,10 +876,9 @@ public class TabletServerResourceManager {
     } else if (tablet.isMeta()) {
       scanExecutors.get("meta").execute(task);
     } else {
-      String scanExecutorName = dispatcher.dispatch(scanInfo, null);
-      log.debug("Dispatching scan to " + scanExecutorName + " " + scanInfo.getScanType()); // TODO
-                                                                                           // remove
-      Preconditions.checkState(!"meta".equals(scanExecutorName));
+      String scanExecutorName = dispatcher.dispatch(scanInfo, null); // remove
+      Preconditions.checkState(!"meta".equals(scanExecutorName),
+          "Attempted to dispatch user scan to metadata table scan executor");
       scanExecutors.get(scanExecutorName).execute(task);
     }
   }

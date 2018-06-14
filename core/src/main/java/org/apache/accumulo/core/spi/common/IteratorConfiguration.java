@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.spi.common;
 
-import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+/**
+ * Provides information about a configured Accumulo Iterator
+ *
+ * @since 2.0.0
+ */
+public interface IteratorConfiguration {
+  public String getIteratorClass();
 
-public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
+  public String getName();
 
-  private static final Logger log = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
+  public int getPriority();
 
-  @Override
-  public void uncaughtException(Thread t, Throwable e) {
-    log.error(String.format("Caught an exception in %s.  Shutting down.", t), e);
-  }
-
+  Map<String,String> getOptions();
 }

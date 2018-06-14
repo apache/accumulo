@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.Collection;
 import java.util.OptionalLong;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.spi.common.IteratorConfiguration;
+import org.apache.accumulo.core.spi.common.Stats;
 
 /**
  * Provides information about an active Accumulo scan against a tablet. Accumulo scans operate by
@@ -34,18 +34,6 @@ public interface ScanInfo {
 
   enum Type {
     SINGLE, MULTI
-  }
-
-  public interface Stats {
-    long min();
-
-    long max();
-
-    double mean();
-
-    long sum();
-
-    long num();
   }
 
   Type getScanType();
@@ -69,14 +57,14 @@ public interface ScanInfo {
   /**
    * Returns timing statistics about running and gathering a batches of data.
    */
-  Optional<Stats> getRunTimeStats();
+  Stats getRunTimeStats();
 
   /**
    * Returns statistics about the time between running. These stats are only about the idle times
    * before the last run time. The idle time after the last run time are not included. If the scan
-   * has never run, then there are not stats.
+   * has never run, then there are no stats.
    */
-  Optional<Stats> getIdleTimeStats();
+  Stats getIdleTimeStats();
 
   /**
    * This method is similar to {@link #getIdleTimeStats()}, but it also includes the time period
@@ -89,16 +77,16 @@ public interface ScanInfo {
 
   Set<Column> getFetchedColumns();
 
-  List<IteratorSetting> getScanIterators();
+  /**
+   * @return iterators that where configured on the client side scanner
+   */
+  Collection<IteratorConfiguration> getClientScanIterators();
 
   /**
    * There are multiple ways to get time in Java. Use this method to get current time in same way
    * that Accumulo obtains time.
-   *
-   * @return
    */
   public static long getCurrentTime() {
     return System.currentTimeMillis();
   }
-
 }

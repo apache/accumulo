@@ -354,7 +354,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return maxFilesPerTablet;
   }
 
-  public static class ScanExecutorConfig {
+  public class ScanExecutorConfig {
     public final String name;
     public final int maxThreads;
     public final OptionalInt priority;
@@ -369,16 +369,19 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       this.prioritizerClass = comparatorFactory;
       this.prioritizerOpts = comparatorFactoryOpts;
     }
+
+    /**
+     * Re-reads the max threads from the configuration that created this class
+     */
+    public int getCurrentMaxThreads() {
+      String prop = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+      String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
+      return Integer.parseInt(val);
+    }
   }
 
-  // TODO make this an abstract method implemented by subclasses
   public boolean isPropertySet(Property prop) {
-    String val = get(prop);
-    if (val == null) {
-      return false;
-    }
-
-    return prop.getDefaultValue().equals(val);
+    throw new UnsupportedOperationException();
   }
 
   @SuppressWarnings("deprecation")
@@ -408,6 +411,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return null;
   }
 
+  private static final String SCAN_EXEC_THREADS = "threads";
+  private static final String SCAN_EXEC_PRIORITY = "priority";
+  private static final String SCAN_EXEC_PRIORITIZER = "prioritizer";
+  private static final String SCAN_EXEC_PRIORITIZER_OPTS = "prioritizer.opts.";
+
   public Collection<ScanExecutorConfig> getScanExecutors() {
 
     Map<String,Map<String,String>> propsByName = new HashMap<>();
@@ -436,20 +444,23 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         String opt = subEntry.getKey();
         String val = subEntry.getValue();
 
-        if (opt.equals("threads")) {
+        if (opt.equals(SCAN_EXEC_THREADS)) {
           Integer depThreads = getDeprecatedScanThreads(name);
           if (depThreads == null) {
             threads = Integer.parseInt(val);
           } else {
             threads = depThreads;
           }
-        } else if (opt.equals("priority")) { // TODO better name
+        } else if (opt.equals(SCAN_EXEC_PRIORITY)) {
           prio = Integer.parseInt(val);
-        } else if (opt.equals("prioritizer")) {
+        } else if (opt.equals(SCAN_EXEC_PRIORITIZER)) {
           prioritizerClass = val;
-        } else if (opt.startsWith("prioritizer.opts.")) {
-          // TODO sanity check for empty opt
-          prioritizerOpts.put(opt.substring("prioritizer.opts.".length()), val);
+        } else if (opt.startsWith(SCAN_EXEC_PRIORITIZER_OPTS)) {
+          String key = opt.substring(SCAN_EXEC_PRIORITIZER_OPTS.length());
+          if (key.isEmpty()) {
+            throw new IllegalStateException("Invalid scan executor option : " + opt);
+          }
+          prioritizerOpts.put(key, val);
         } else {
           throw new IllegalStateException("Unkown scan executor option : " + opt);
         }

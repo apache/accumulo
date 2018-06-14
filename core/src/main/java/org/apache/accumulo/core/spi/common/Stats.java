@@ -14,20 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.spi.common;
 
-import java.lang.Thread.UncaughtExceptionHandler;
+/**
+ * @since 2.0.0
+ */
+public interface Stats {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+  /**
+   * @return the minimum data point seen, or 0 if no data was seen
+   */
+  long min();
 
-public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
+  /**
+   * @return the maximum data point seen, or 0 if no data was seen
+   */
+  long max();
 
-  private static final Logger log = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
+  /**
+   * @return the mean of the data points seen, or {@link Double#NaN} if no data was seen
+   */
+  double mean();
 
-  @Override
-  public void uncaughtException(Thread t, Throwable e) {
-    log.error(String.format("Caught an exception in %s.  Shutting down.", t), e);
-  }
+  /**
+   * @return the sum of the data points seen, or 0 if no data was seen
+   */
+  long sum();
 
+  /**
+   * @return the number of data points seen
+   */
+  long num();
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.session;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +30,8 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.spi.common.IteratorConfiguration;
+import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.util.Stat;
 
@@ -58,14 +61,13 @@ public abstract class ScanSession extends Session implements ScanInfo {
     public ScanInfo getScanInfo() {
       return session;
     }
-
   }
 
   public static ScanMeasurer wrap(ScanSession scanInfo, Runnable r) {
     return new ScanMeasurer(scanInfo, r);
   }
 
-  private long lastRunTime;
+  private OptionalLong lastRunTime = OptionalLong.empty();
   private Stat idleStats = new Stat();
   public Stat runStats = new Stat();
 
@@ -90,21 +92,17 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
   @Override
   public OptionalLong getLastRunTime() {
-    if (idleStats.num() == 0) {
-      return OptionalLong.empty();
-    } else {
-      return OptionalLong.of(lastRunTime);
-    }
+    return lastRunTime;
   }
 
   @Override
-  public Optional<Stats> getRunTimeStats() {
-    return runStats.num() == 0 ? Optional.empty() : Optional.of(runStats);
+  public Stats getRunTimeStats() {
+    return runStats;
   }
 
   @Override
-  public Optional<Stats> getIdleTimeStats() {
-    return idleStats.num() == 0 ? Optional.empty() : Optional.of(idleStats);
+  public Stats getIdleTimeStats() {
+    return idleStats;
   }
 
   @Override
@@ -121,16 +119,46 @@ public abstract class ScanSession extends Session implements ScanInfo {
     return Collections.unmodifiableSet(columnSet);
   }
 
+  private class IterConfImpl implements IteratorConfiguration {
+
+    private IterInfo ii;
+
+    IterConfImpl(IterInfo ii) {
+      this.ii = ii;
+    }
+
+    @Override
+    public String getIteratorClass() {
+      return ii.className;
+    }
+
+    @Override
+    public String getName() {
+      return ii.iterName;
+    }
+
+    @Override
+    public int getPriority() {
+      return ii.priority;
+    }
+
+    @Override
+    public Map<String,String> getOptions() {
+      Map<String,String> opts = ssio.get(ii.iterName);
+      return opts == null || opts.isEmpty() ? Collections.emptyMap()
+          : Collections.unmodifiableMap(opts);
+    }
+  }
+
   @Override
-  public List<IteratorSetting> getScanIterators() {
-    return Lists.transform(ssiList, ii -> new IteratorSetting(ii.priority, ii.iterName,
-        ii.className, ssio.getOrDefault(ii.iterName, Collections.emptyMap())));
+  public Collection<IteratorConfiguration> getClientScanIterators() {
+    return Lists.transform(ssiList, IterConfImpl::new);
   }
 
   public void finishedRun(long start, long finish) {
     long idleTime = start - getLastRunTime().orElse(getCreationTime());
     long runTime = finish - start;
-    lastRunTime = finish;
+    lastRunTime = OptionalLong.of(finish);
     idleStats.addStat(idleTime);
     runStats.addStat(runTime);
   }

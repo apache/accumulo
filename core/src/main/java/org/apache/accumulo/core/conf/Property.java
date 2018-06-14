@@ -457,7 +457,10 @@ public enum Property {
       PropertyType.COUNT,
       "The number of threads for the scan executor that tables use by default."),
   TSERV_SCAN_EXECUTORS_DEFAULT_PRIORITIZER("tserver.scan.executors.default.prioritizer", "",
-      PropertyType.STRING, "TODO"),
+      PropertyType.STRING,
+      "Prioritizer for the default scan exector.  Defaults to none which "
+          + "results in FIFO priority.  Set to a class that implements "
+          + ScanPrioritizer.class.getName() + " to configure one."),
   TSERV_SCAN_EXECUTORS_META_THREADS("tserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
       "The number of threads for the metadata table scan executor."),
   TSERV_MIGRATE_MAXCONCURRENT("tserver.migrations.concurrent.max", "1", PropertyType.COUNT,

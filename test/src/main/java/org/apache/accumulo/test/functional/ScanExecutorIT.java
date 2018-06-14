@@ -23,11 +23,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -45,6 +47,7 @@ import org.apache.accumulo.core.spi.scan.IdleRatioScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
+import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -57,12 +60,15 @@ public class ScanExecutorIT extends ConfigurableMacBase {
 
     Map<String,String> siteCfg = new HashMap<>();
 
-    siteCfg.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "se1.threads", "3");
-    siteCfg.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "se1.prioritizer",
-        IdleRatioScanPrioritizer.class.getName());
+    siteCfg.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "200");
+    siteCfg.put(Property.TSERV_MINTHREADS.getKey(), "200");
+    siteCfg.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "se1.threads", "2");
+   siteCfg.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "se1.prioritizer",
+       IdleRatioScanPrioritizer.class.getName());
 
-    siteCfg.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "se2.threads", "1");
-
+    siteCfg.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "se2.threads", "2");
+//    siteCfg.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "se2.prioritizer",
+//        IdleRatioScanPrioritizer.class.getName());
     cfg.setSiteConfig(siteCfg);
   }
 
@@ -71,9 +77,9 @@ public class ScanExecutorIT extends ConfigurableMacBase {
     public String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors) {
       switch (scanInfo.getScanType()) {
         case MULTI:
-          return "se1";
-        case SINGLE:
           return "se2";
+        case SINGLE:
+          return "se1";
         default:
           return "default";
       }
@@ -93,14 +99,38 @@ public class ScanExecutorIT extends ConfigurableMacBase {
     }
   }
 
-  private static void scan(String tableName, Connector c) {
+  private static long scan(String tableName, Connector c, String row, String fam) {
+    long t1 = System.currentTimeMillis();
+    int count = 0;
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(Range.exact(row));
+      scanner.fetchColumnFamily(new Text(fam));
       for (Entry<Key,Value> entry : scanner) {
-        System.out.println(entry.getKey() + " " + entry.getValue());
+        count++;
       }
     } catch (TableNotFoundException e) {
       e.printStackTrace();
     }
+
+    return System.currentTimeMillis() - t1;
+  }
+
+  private long scan(String tableName, Connector c, AtomicBoolean stop) {
+    long count = 0;
+    while (!stop.get()) {
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : scanner) {
+          count++;
+          if (stop.get()) {
+            return count;
+          }
+        }
+      } catch (TableNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
+
+    return count;
   }
 
   @Test
@@ -113,55 +143,59 @@ public class ScanExecutorIT extends ConfigurableMacBase {
     props.put(Property.TABLE_SCAN_DISPATCHER.getKey(), TestScanDispatcher.class.getName());
 
     c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
-    SortedSet<Text> splits = new TreeSet<>();
-    splits.add(new Text("r003"));
-    splits.add(new Text("r007"));
-    c.tableOperations().addSplits(tableName, splits);
 
     try (BatchWriter writer = c.createBatchWriter(tableName)) {
-      Mutation m = new Mutation("r001");
-      m.put("f003", "q009", "v001");
-      writer.addMutation(m);
 
-      m = new Mutation("r006");
-      m.put("f003", "q005", "v002");
-      writer.addMutation(m);
+      int v = 0;
+      for (int r = 0; r < 10000; r++) {
+        String row = String.format("%06d", r);
+        Mutation m = new Mutation(row);
+        for (int f = 0; f < 10; f++) {
+          String fam = String.format("%03d", f);
+          for (int q = 0; q < 10; q++) {
+            String qual = String.format("%03d", q);
+            String val = String.format("%09d", v++);
+            m.put(fam, qual, val);
+          }
+        }
 
-      m = new Mutation("r008");
-      m.put("f003", "q007", "v003");
-      writer.addMutation(m);
+        writer.addMutation(m);
+      }
     }
 
-    ExecutorService es = Executors.newFixedThreadPool(20);
-    List<Future<?>> futures = new ArrayList<>();
+    c.tableOperations().compact(tableName, null, null, true, true);
 
-    System.out.println("Batch Scanner");
+    AtomicBoolean stop = new AtomicBoolean(false);
 
-    for (int i = 0; i < 100; i++) {
-      futures.add(es.submit(() -> {
-        batchScan(tableName, c);
-      }));
+    int numLongScans = 50;
+    ExecutorService longScans = Executors.newFixedThreadPool(numLongScans);
+
+    for (int i = 0; i < numLongScans; i++) {
+      longScans.execute(() -> scan(tableName, c, stop));
     }
 
-    for (Future<?> future : futures) {
-      future.get();
+    int numLookups = 3000;
+    ExecutorService shortScans = Executors.newFixedThreadPool(5);
+
+    List<Future<Long>> futures = new ArrayList<>();
+
+    Random rand = new Random();
+
+    for (int i = 0; i < numLookups; i++) {
+      String row = String.format("%06d", rand.nextInt(10000));
+      String fam = String.format("%03d", rand.nextInt(10));
+      futures.add(shortScans.submit(() -> scan(tableName, c, row,fam)));
     }
 
-    futures.clear();
-
-    System.out.println();
-    System.out.println("Scanner");
-
-    for (int i = 0; i < 100; i++) {
-      futures.add(es.submit(() -> {
-        scan(tableName, c);
-      }));
+    Stat stat = new Stat();
+    for (Future<Long> future : futures) {
+      stat.addStat(future.get());
     }
 
-    for (Future<?> future : futures) {
-      future.get();
-    }
+    System.out.println(stat);
 
-    es.shutdown();
+    stop.set(true);
+    longScans.shutdown();
+    shortScans.shutdown();
   }
 }

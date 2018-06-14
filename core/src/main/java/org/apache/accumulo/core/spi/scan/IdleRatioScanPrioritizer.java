@@ -20,7 +20,7 @@ package org.apache.accumulo.core.spi.scan;
 import java.util.Comparator;
 import java.util.Map;
 
-import org.apache.accumulo.core.spi.scan.ScanInfo.Stats;
+import org.apache.accumulo.core.spi.common.Stats;
 
 import com.google.common.base.Preconditions;
 
@@ -33,7 +33,7 @@ import com.google.common.base.Preconditions;
  */
 public class IdleRatioScanPrioritizer implements ScanPrioritizer {
   private static double idleRatio(long currTime, ScanInfo si) {
-    double totalRunTime = si.getRunTimeStats().map(Stats::sum).orElse(0L);
+    double totalRunTime = si.getRunTimeStats().sum();
     double totalIdleTime = Math.max(1, si.getIdleTimeStats(currTime).sum());
     return totalRunTime / totalIdleTime;
   }

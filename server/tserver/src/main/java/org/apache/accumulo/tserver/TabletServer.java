@@ -544,7 +544,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     private ScanDispatcher getScanDispatcher(KeyExtent extent) {
       if (extent.isRootTablet() || extent.isMeta()) {
         // dispatcher is only for user tables
-        // TODO could be use for meta
         return null;
       }
 
@@ -830,7 +829,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       if (session.lookupTask == null) {
         session.lookupTask = new LookupTask(TabletServer.this, scanID);
-        // TODO get resource name from config
         resourceManager.executeReadAhead(session.threadPoolExtent,
             getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
       }
