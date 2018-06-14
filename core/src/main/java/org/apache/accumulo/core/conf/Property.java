@@ -52,10 +52,10 @@ public enum Property {
       "Sensitive properties related to on-disk file encryption."),
   @Experimental
   TABLE_CRYPTO_STRATEGY("table.crypto.strategy",
-      "org.apache.accumulo.core.security.crypto.NoEncryptionStrategy", PropertyType.CLASSNAME,
+      "org.apache.accumulo.core.security.crypto.NoCryptoService", PropertyType.CLASSNAME,
       "The strategy which executes on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
-          + "org.apache.accumulo.core.security.crypto.EncryptionStrategy interface."),
+          + "org.apache.accumulo.core.security.crypto.CryptoService interface."),
 
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)

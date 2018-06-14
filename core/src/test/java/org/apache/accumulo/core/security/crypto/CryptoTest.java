@@ -52,8 +52,8 @@ public class CryptoTest {
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
 
   @Test
-  public void testAESEncryptionStrategy() throws Exception {
-    byte[] resultingBytes = encrypt(AESCBCEncryptionStrategy.class, CRYPTO_ON_CONF);
+  public void testAESCryptoService() throws Exception {
+    byte[] resultingBytes = encrypt(AESCBCCryptoService.class, CRYPTO_ON_CONF);
 
     String stringifiedBytes = Arrays.toString(resultingBytes);
     String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
@@ -65,7 +65,7 @@ public class CryptoTest {
 
   @Test
   public void testNoEncryption() throws Exception {
-    byte[] resultingBytes = encrypt(NoEncryptionStrategy.class, CRYPTO_OFF_CONF);
+    byte[] resultingBytes = encrypt(NoCryptoService.class, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(resultingBytes);
     String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
@@ -141,12 +141,12 @@ public class CryptoTest {
 
   private byte[] encrypt(Class strategyClass, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), EncryptionStrategy.Scope.RFILE);
+    CryptoService strategy = CryptoServiceFactory.setupConfiguredEncryption(
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), CryptoService.Scope.RFILE);
 
     assertEquals(strategyClass, strategy.getClass());
     // test init on other scope to be sure, even though this test has no scope
-    strategy.init(EncryptionStrategy.Scope.WAL,
+    strategy.init(CryptoService.Scope.WAL,
         conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -162,11 +162,11 @@ public class CryptoTest {
 
   private void decrypt(byte[] resultingBytes, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    EncryptionStrategy strategy = EncryptionStrategyFactory.setupConfiguredEncryption(
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), EncryptionStrategy.Scope.RFILE);
+    CryptoService strategy = CryptoServiceFactory.setupConfiguredEncryption(
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), CryptoService.Scope.RFILE);
 
     // test init on other scope to be sure, even though this test has no scope
-    strategy.init(EncryptionStrategy.Scope.WAL,
+    strategy.init(CryptoService.Scope.WAL,
         conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);

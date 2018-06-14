@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
-import org.apache.accumulo.core.security.crypto.EncryptionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +84,7 @@ public class ConfigSanityCheck {
 
       if (key.equals(Property.TABLE_CRYPTO_STRATEGY.getKey())) {
         String cryptoStrategy = Objects.requireNonNull(value);
-        verifyValidClassName(key, cryptoStrategy, EncryptionStrategy.class);
+        verifyValidClassName(key, cryptoStrategy, CryptoService.class);
       }
     }
 

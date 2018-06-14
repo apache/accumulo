@@ -21,44 +21,44 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
-public class EncryptionStrategyFactory {
+public class CryptoServiceFactory {
 
   /**
-   * Load and initialize EncryptionStrategy read from file. Check strategy read from file matches
+   * Load and initialize CryptoService read from file. Check strategy read from file matches
    * the same strategy that is configured, otherwise throw RuntimeException.
    *
    * @param fileEncryptedClass
    *          encryption strategy class read from the file
-   * @return EncryptionStrategy if an error occurred during EncryptionStrategy initialization
+   * @return CryptoService if an error occurred during CryptoService initialization
    */
-  public static EncryptionStrategy setupReadEncryption(Map<String,String> conf,
-      String fileEncryptedClass, EncryptionStrategy.Scope scope) {
+  public static CryptoService setupReadEncryption(Map<String,String> conf,
+      String fileEncryptedClass, CryptoService.Scope scope) {
     String confCryptoStrategyClass = conf.get(Property.TABLE_CRYPTO_STRATEGY.getKey());
     if (!fileEncryptedClass.equals(confCryptoStrategyClass)) {
       throw new RuntimeException("File encrypted with different encryption (" + fileEncryptedClass
           + ") than what is configured: " + confCryptoStrategyClass);
     }
-    EncryptionStrategy strategy = loadStrategy(confCryptoStrategyClass);
+    CryptoService strategy = loadStrategy(confCryptoStrategyClass);
     strategy.init(scope, conf);
     return strategy;
   }
 
   /**
-   * Load and initialize configured EncryptionStrategy.
+   * Load and initialize configured CryptoService.
    *
-   * @return EncryptionStrategy if an error occurred during EncryptionStrategy initialization
+   * @return CryptoService if an error occurred during CryptoService initialization
    */
-  public static EncryptionStrategy setupConfiguredEncryption(Map<String,String> conf,
-      EncryptionStrategy.Scope scope) {
-    EncryptionStrategy strategy = loadStrategy(conf.get(Property.TABLE_CRYPTO_STRATEGY.getKey()));
+  public static CryptoService setupConfiguredEncryption(Map<String,String> conf,
+      CryptoService.Scope scope) {
+    CryptoService strategy = loadStrategy(conf.get(Property.TABLE_CRYPTO_STRATEGY.getKey()));
     strategy.init(scope, conf);
     return strategy;
   }
 
-  private static EncryptionStrategy loadStrategy(String className) {
+  private static CryptoService loadStrategy(String className) {
     try {
-      Class<? extends EncryptionStrategy> clazz = AccumuloVFSClassLoader.loadClass(className,
-          EncryptionStrategy.class);
+      Class<? extends CryptoService> clazz = AccumuloVFSClassLoader.loadClass(className,
+          CryptoService.class);
       return clazz.newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);

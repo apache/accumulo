@@ -43,9 +43,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.security.crypto.EncryptionStrategy;
-import org.apache.accumulo.core.security.crypto.EncryptionStrategyFactory;
-import org.apache.accumulo.core.security.crypto.NoEncryptionStrategy;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
@@ -83,7 +81,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   private static final Logger log = LoggerFactory.getLogger(DfsLogger.class);
   private static final DatanodeInfo[] EMPTY_PIPELINE = new DatanodeInfo[0];
-  private EncryptionStrategy encryptionStrategy;
+  private CryptoService CryptoService;
 
   public static class LogClosedException extends IOException {
     private static final long serialVersionUID = 1L;
@@ -360,12 +358,12 @@ public class DfsLogger implements Comparable<DfsLogger> {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
         String cryptoStrategyClass = input.readUTF();
-        EncryptionStrategy encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
+        CryptoService CryptoService = CryptoServiceFactory.setupReadEncryption(
             conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), cryptoStrategyClass,
-            EncryptionStrategy.Scope.WAL);
-        log.debug("Using {} for decrypting WAL", encryptionStrategy.getClass().getSimpleName());
-        decryptingInput = encryptionStrategy instanceof NoEncryptionStrategy ? input
-            : new DataInputStream(encryptionStrategy.decryptStream(input));
+            CryptoService.Scope.WAL);
+        log.debug("Using {} for decrypting WAL", CryptoService.getClass().getSimpleName());
+        decryptingInput = CryptoService instanceof NoCryptoService ? input
+            : new DataInputStream(CryptoService.decryptStream(input));
       } else {
         log.error("Unsupported WAL version.");
         input.seek(0);
@@ -420,14 +418,14 @@ public class DfsLogger implements Comparable<DfsLogger> {
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
       logFile.writeUTF(conf.getConfiguration().get(Property.TABLE_CRYPTO_STRATEGY));
 
-      this.encryptionStrategy = EncryptionStrategyFactory.setupConfiguredEncryption(
+      this.CryptoService = CryptoServiceFactory.setupConfiguredEncryption(
           conf.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
-          EncryptionStrategy.Scope.WAL);
+          CryptoService.Scope.WAL);
 
       log.debug("Using {} for encrypting WAL {}",
-          this.encryptionStrategy.getClass().getSimpleName(), filename);
+          this.CryptoService.getClass().getSimpleName(), filename);
       encryptingLogFile = new DataOutputStream(
-          this.encryptionStrategy.encryptStream(new NoFlushOutputStream(logFile)));
+          this.CryptoService.encryptStream(new NoFlushOutputStream(logFile)));
 
       LogFileKey key = new LogFileKey();
       key.event = OPEN;
