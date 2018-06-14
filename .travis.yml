@@ -33,4 +33,4 @@ env:
   - HADOOP_PROFILE=
   - HADOOP_PROFILE=-Dhadoop.profile=3
 script:
-  - mvn clean verify javadoc:jar -DskipITs $HADOOP_PROFILE
+  - mvn clean verify javadoc:jar -DskipITs -DforkCount=1C $HADOOP_PROFILE
