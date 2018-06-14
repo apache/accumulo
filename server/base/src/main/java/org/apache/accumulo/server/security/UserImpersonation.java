@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -178,6 +179,12 @@ public class UserImpersonation {
     proxyUsers = new HashMap<>();
 
     final String userConfigString = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION);
+    if (Objects.equals(userConfigString,
+        Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getDefaultValue())) {
+      // impersonation is not configured
+      return;
+    }
+
     final String hostConfigString = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION);
     // Pull out the config values, defaulting to at least one value
     final String[] userConfigs = userConfigString.trim().isEmpty() ? new String[] {""}
