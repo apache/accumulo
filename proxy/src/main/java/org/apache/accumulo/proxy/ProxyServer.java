@@ -195,7 +195,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = DeprecationUtil.makeMockInstance(this.getClass().getName());
     else {
-      instance = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
+      @SuppressWarnings("deprecation")
+      Instance i = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
+      instance = i;
     }
 
     try {

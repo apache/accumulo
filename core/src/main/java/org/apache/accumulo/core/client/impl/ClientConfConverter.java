@@ -158,7 +158,7 @@ public class ClientConfConverter {
    * internally.
    *
    * @param config
-   *          the original {@link org.apache.accumulo.core.client.ClientConfiguration}
+   *          the original config
    * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
    */
   @SuppressWarnings("deprecation")

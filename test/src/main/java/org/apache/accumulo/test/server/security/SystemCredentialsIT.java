@@ -18,7 +18,6 @@ package org.apache.accumulo.test.server.security;
 
 import static org.junit.Assert.assertEquals;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -104,27 +103,6 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
           throw new UnsupportedOperationException();
         }
 
-        @Deprecated
-        @Override
-        public Connector getConnector(String user, CharSequence pass)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public Connector getConnector(String user, ByteBuffer pass)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public Connector getConnector(String user, byte[] pass)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
       };
       creds = SystemCredentials.get(inst);
     } else if (args[0].equals("good")) {
@@ -164,27 +142,6 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
         @Override
         public Connector getConnector(String principal, AuthenticationToken token)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public Connector getConnector(String user, CharSequence pass)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public Connector getConnector(String user, ByteBuffer pass)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public Connector getConnector(String user, byte[] pass)
             throws AccumuloException, AccumuloSecurityException {
           throw new UnsupportedOperationException();
         }

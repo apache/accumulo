@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -447,27 +446,6 @@ public class TabletLocatorImplTest {
 
     public void setRootTabletLocation(String rtl) {
       this.rtl = rtl;
-    }
-
-    @Override
-    @Deprecated
-    public Connector getConnector(String user, byte[] pass)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    @Deprecated
-    public Connector getConnector(String user, ByteBuffer pass)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    @Deprecated
-    public Connector getConnector(String user, CharSequence pass)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
     }
 
     @Override

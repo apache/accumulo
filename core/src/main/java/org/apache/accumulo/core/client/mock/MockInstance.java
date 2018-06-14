@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.mock;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,12 +30,9 @@ import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.io.Text;
 
 /**
  * Mock Accumulo provides an in memory implementation of the Accumulo client API. It is possible
@@ -118,27 +114,6 @@ public class MockInstance implements Instance {
   @Override
   public int getZooKeepersSessionTimeOut() {
     return 30 * 1000;
-  }
-
-  @Override
-  @Deprecated
-  public Connector getConnector(String user, byte[] pass)
-      throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, new PasswordToken(pass));
-  }
-
-  @Override
-  @Deprecated
-  public Connector getConnector(String user, ByteBuffer pass)
-      throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, ByteBufferUtil.toBytes(pass));
-  }
-
-  @Override
-  @Deprecated
-  public Connector getConnector(String user, CharSequence pass)
-      throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
 
   @Override

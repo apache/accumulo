@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -87,27 +86,6 @@ public class TServerUtilsTest {
     @Override
     public int getZooKeepersSessionTimeOut() {
       return 30;
-    }
-
-    @Deprecated
-    @Override
-    public Connector getConnector(String user, byte[] pass)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    @Override
-    public Connector getConnector(String user, ByteBuffer pass)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    @Override
-    public Connector getConnector(String user, CharSequence pass)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
     }
 
     @Override

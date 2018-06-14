@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -68,63 +67,6 @@ public interface Instance {
    * @return the configured timeout to connect to zookeeper
    */
   int getZooKeepersSessionTimeOut();
-
-  /**
-   * Returns a connection to accumulo.
-   *
-   * @param user
-   *          a valid accumulo user
-   * @param pass
-   *          A UTF-8 encoded password. The password may be cleared after making this call.
-   * @return the accumulo Connector
-   * @throws AccumuloException
-   *           when a generic exception occurs
-   * @throws AccumuloSecurityException
-   *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
-   *             {@link PasswordToken}
-   */
-  @Deprecated
-  Connector getConnector(String user, byte[] pass)
-      throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Returns a connection to accumulo.
-   *
-   * @param user
-   *          a valid accumulo user
-   * @param pass
-   *          A UTF-8 encoded password. The password may be cleared after making this call.
-   * @return the accumulo Connector
-   * @throws AccumuloException
-   *           when a generic exception occurs
-   * @throws AccumuloSecurityException
-   *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
-   *             {@link PasswordToken}
-   */
-  @Deprecated
-  Connector getConnector(String user, ByteBuffer pass)
-      throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Returns a connection to this instance of accumulo.
-   *
-   * @param user
-   *          a valid accumulo user
-   * @param pass
-   *          If a mutable CharSequence is passed in, it may be cleared after this call.
-   * @return the accumulo Connector
-   * @throws AccumuloException
-   *           when a generic exception occurs
-   * @throws AccumuloSecurityException
-   *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
-   *             {@link PasswordToken}
-   */
-  @Deprecated
-  Connector getConnector(String user, CharSequence pass)
-      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Returns a connection to this instance of accumulo.

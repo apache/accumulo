@@ -47,7 +47,9 @@ public class ClientInfoFactory {
   }
 
   public static Instance getInstance(ClientInfo info) {
-    return new ZooKeeperInstance(ClientConfConverter.toClientConf(info.getProperties()));
+    @SuppressWarnings("deprecation")
+    Instance i = new ZooKeeperInstance(ClientConfConverter.toClientConf(info.getProperties()));
+    return i;
   }
 
   public static Credentials getCredentials(ClientInfo info) {
