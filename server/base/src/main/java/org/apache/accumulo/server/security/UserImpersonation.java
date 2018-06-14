@@ -22,14 +22,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * When SASL is enabled, this parses properties from the site configuration to build up a set of all
@@ -49,9 +46,8 @@ import org.slf4j.LoggerFactory;
  */
 public class UserImpersonation {
 
-  private static final Logger log = LoggerFactory.getLogger(UserImpersonation.class);
   private static final Set<String> ALWAYS_TRUE = new AlwaysTrueSet<>();
-  private static final String ALL = "*", USERS = "users", HOSTS = "hosts";
+  private static final String ALL = "*";
 
   public static class AlwaysTrueSet<T> implements Set<T> {
 
@@ -178,46 +174,16 @@ public class UserImpersonation {
 
   private final Map<String,UsersWithHosts> proxyUsers;
 
-  @SuppressWarnings("deprecation")
   public UserImpersonation(AccumuloConfiguration conf) {
     proxyUsers = new HashMap<>();
 
-    // Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION is treated as the "new config style"
-    // switch
-    final String userConfig = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION);
-    if (!Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getDefaultValue()
-        .equals(userConfig)) {
-      String hostConfig = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION);
-      parseOnelineConfiguration(userConfig, hostConfig);
-    } else {
-      // Otherwise, assume the old-style
-      parseMultiPropertyConfiguration(
-          conf.getAllPropertiesWithPrefix(Property.INSTANCE_RPC_SASL_PROXYUSERS));
-    }
-  }
-
-  /**
-   * Parses the impersonation configuration for all users from a single property.
-   *
-   * @param userConfigString
-   *          Semi-colon separated list of {@code remoteUser:alloweduser,alloweduser,...}.
-   * @param hostConfigString
-   *          Semi-colon separated list of hosts.
-   */
-  private void parseOnelineConfiguration(String userConfigString, String hostConfigString) {
+    final String userConfigString = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION);
+    final String hostConfigString = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION);
     // Pull out the config values, defaulting to at least one value
-    final String[] userConfigs;
-    if (userConfigString.trim().isEmpty()) {
-      userConfigs = new String[] {""};
-    } else {
-      userConfigs = StringUtils.split(userConfigString, ';');
-    }
-    final String[] hostConfigs;
-    if (hostConfigString.trim().isEmpty()) {
-      hostConfigs = new String[] {""};
-    } else {
-      hostConfigs = StringUtils.split(hostConfigString, ';');
-    }
+    final String[] userConfigs = userConfigString.trim().isEmpty() ? new String[] {""}
+        : StringUtils.split(userConfigString, ';');
+    final String[] hostConfigs = hostConfigString.trim().isEmpty() ? new String[] {""}
+        : StringUtils.split(hostConfigString, ';');
 
     if (userConfigs.length != hostConfigs.length) {
       String msg = String.format("Should have equal number of user and host"
@@ -258,64 +224,6 @@ public class UserImpersonation {
         Set<String> hostsSet = new HashSet<>();
         hostsSet.addAll(Arrays.asList(allowedHosts));
         usersWithHosts.setHosts(hostsSet);
-      }
-    }
-  }
-
-  /**
-   * Parses all properties that start with {@link Property#INSTANCE_RPC_SASL_PROXYUSERS}. This
-   * approach was the original configuration method, but does not work with Ambari.
-   *
-   * @param configProperties
-   *          The relevant configuration properties for impersonation.
-   */
-  private void parseMultiPropertyConfiguration(Map<String,String> configProperties) {
-    @SuppressWarnings("deprecation")
-    final String configKey = Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey();
-    for (Entry<String,String> entry : configProperties.entrySet()) {
-      String aclKey = entry.getKey().substring(configKey.length());
-      int index = aclKey.lastIndexOf('.');
-
-      if (-1 == index) {
-        throw new RuntimeException("Expected 2 elements in key suffix: " + aclKey);
-      }
-
-      final String remoteUser = aclKey.substring(0, index).trim(),
-          usersOrHosts = aclKey.substring(index + 1).trim();
-      UsersWithHosts usersWithHosts = proxyUsers.get(remoteUser);
-      if (null == usersWithHosts) {
-        usersWithHosts = new UsersWithHosts();
-        proxyUsers.put(remoteUser, usersWithHosts);
-      }
-
-      if (USERS.equals(usersOrHosts)) {
-        String userString = entry.getValue().trim();
-        if (ALL.equals(userString)) {
-          usersWithHosts.setAcceptAllUsers(true);
-        } else if (!usersWithHosts.acceptsAllUsers()) {
-          Set<String> users = usersWithHosts.getUsers();
-          if (null == users) {
-            users = new HashSet<>();
-            usersWithHosts.setUsers(users);
-          }
-          String[] userValues = StringUtils.split(userString, ',');
-          users.addAll(Arrays.asList(userValues));
-        }
-      } else if (HOSTS.equals(usersOrHosts)) {
-        String hostsString = entry.getValue().trim();
-        if (ALL.equals(hostsString)) {
-          usersWithHosts.setAcceptAllHosts(true);
-        } else if (!usersWithHosts.acceptsAllHosts()) {
-          Set<String> hosts = usersWithHosts.getHosts();
-          if (null == hosts) {
-            hosts = new HashSet<>();
-            usersWithHosts.setHosts(hosts);
-          }
-          String[] hostValues = StringUtils.split(hostsString, ',');
-          hosts.addAll(Arrays.asList(hostValues));
-        }
-      } else {
-        log.debug("Ignoring key {}", aclKey);
       }
     }
   }
