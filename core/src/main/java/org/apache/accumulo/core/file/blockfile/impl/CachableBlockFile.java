@@ -36,6 +36,7 @@ import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
+import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -74,7 +75,7 @@ public class CachableBlockFile {
     private volatile InputStream fin = null;
     private boolean closed = false;
     private final Configuration conf;
-    private final AccumuloConfiguration accumuloConfiguration;
+    private final CryptoService cryptoService;
 
     private final IoeSupplier<InputStream> inputSupplier;
     private final IoeSupplier<Long> lengthSupplier;
@@ -105,11 +106,11 @@ public class CachableBlockFile {
         BCFile.Reader tmpReader = null;
         if (serializedMetadata == null) {
           if (fileLenCache == null) {
-            tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, accumuloConfiguration);
+            tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
           } else {
             long len = getCachedFileLen();
             try {
-              tmpReader = new BCFile.Reader(fsIn, len, conf, accumuloConfiguration);
+              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
             } catch (Exception e) {
               log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
               fileLenCache.invalidate(cacheId);
@@ -117,11 +118,11 @@ public class CachableBlockFile {
 
             if (tmpReader == null) {
               len = getCachedFileLen();
-              tmpReader = new BCFile.Reader(fsIn, len, conf, accumuloConfiguration);
+              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
             }
           }
         } else {
-          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, accumuloConfiguration);
+          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
         }
 
         if (!bcfr.compareAndSet(null, tmpReader)) {
@@ -297,7 +298,7 @@ public class CachableBlockFile {
     private Reader(String cacheId, IoeSupplier<InputStream> inputSupplier,
         IoeSupplier<Long> lenghtSupplier, Cache<String,Long> fileLenCache, BlockCache data,
         BlockCache index, RateLimiter readLimiter, Configuration conf,
-        AccumuloConfiguration accumuloConfiguration) {
+        CryptoService cryptoService) {
       Preconditions.checkArgument(cacheId != null || (data == null && index == null));
       this.cacheId = cacheId;
       this.inputSupplier = inputSupplier;
@@ -307,30 +308,30 @@ public class CachableBlockFile {
       this._iCache = index;
       this.readLimiter = readLimiter;
       this.conf = conf;
-      this.accumuloConfiguration = accumuloConfiguration;
+      this.cryptoService = cryptoService;
     }
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
-        BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
-      this(fs, dataFile, conf, null, data, index, null, accumuloConfiguration);
+        BlockCache index, CryptoService cryptoService) throws IOException {
+      this(fs, dataFile, conf, null, data, index, null, cryptoService);
     }
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, Cache<String,Long> fileLenCache,
-        BlockCache data, BlockCache index, RateLimiter readLimiter,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
+        BlockCache data, BlockCache index, RateLimiter readLimiter, CryptoService cryptoService)
+        throws IOException {
       this(dataFile.toString(), () -> fs.open(dataFile), () -> fs.getFileStatus(dataFile).getLen(),
-          fileLenCache, data, index, readLimiter, conf, accumuloConfiguration);
+          fileLenCache, data, index, readLimiter, conf, cryptoService);
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(String cacheId,
         InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
-      this(cacheId, () -> fsin, () -> len, null, data, index, null, conf, accumuloConfiguration);
+        CryptoService cryptoService) throws IOException {
+      this(cacheId, () -> fsin, () -> len, null, data, index, null, conf, cryptoService);
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len,
-        Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
-      this(null, () -> fsin, () -> len, null, null, null, null, conf, accumuloConfiguration);
+        Configuration conf, CryptoService cryptoService) throws IOException {
+      this(null, () -> fsin, () -> len, null, null, null, null, conf, cryptoService);
     }
 
     /**

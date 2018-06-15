@@ -14,22 +14,22 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.security.crypto.impl;
 
 import java.io.OutputStream;
 
-public interface FileEncrypter {
-  OutputStream encryptStream(OutputStream outputStream) throws CryptoService.CryptoException;
+import org.apache.accumulo.core.security.crypto.CryptoService;
+import org.apache.accumulo.core.security.crypto.FileEncrypter;
 
-  /**
-   * This method is responsible for printing all information required for decrypting to a stream
-   *
-   * @param outputStream
-   *          The stream being written to requiring crypto information
-   * @throws CryptoService.CryptoException
-   *           if the action fails
-   *
-   * @since 2.0
-   */
-  void addParamsToStream(OutputStream outputStream) throws CryptoService.CryptoException;
+public class NoFileEncrypter implements FileEncrypter {
+  @Override
+  public OutputStream encryptStream(OutputStream outputStream)
+      throws CryptoService.CryptoException {
+    return outputStream;
+  }
+
+  @Override
+  public void addParamsToStream(OutputStream outputStream) throws CryptoService.CryptoException {
+    // do nothing
+  }
 }

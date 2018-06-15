@@ -42,21 +42,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public enum Property {
-  // Crypto-related properties
-  @Experimental
-  TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
-      "Properties related to on-disk file encryption."),
-  @Experimental
-  @Sensitive
-  TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
-      "Sensitive properties related to on-disk file encryption."),
-  @Experimental
-  TABLE_CRYPTO_STRATEGY("table.crypto.strategy",
-      "org.apache.accumulo.core.security.crypto.NoCryptoService", PropertyType.CLASSNAME,
-      "The strategy which executes on-disk file encryption. The default does nothing. To enable "
-          + "encryption, replace this classname with an implementation of the"
-          + "org.apache.accumulo.core.security.crypto.CryptoService interface."),
-
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
@@ -778,6 +763,20 @@ public enum Property {
           + " To add a summarizer set table.summarizer.<unique id>=<summarizer class"
           + " name>. If the summarizer has options, then for each option set"
           + " table.summarizer.<unique id>.opt.<key>=<value>."),
+  // Crypto-related properties
+  @Experimental
+  TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption."),
+  @Experimental
+  @Sensitive
+  TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption."),
+  @Experimental
+  TABLE_CRYPTO_SERVICE("table.crypto.service",
+      "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
+      "The strategy which executes on-disk file encryption. The default does nothing. To enable "
+          + "encryption, replace this classname with an implementation of the"
+          + "org.apache.accumulo.core.security.crypto.CryptoService interface."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(

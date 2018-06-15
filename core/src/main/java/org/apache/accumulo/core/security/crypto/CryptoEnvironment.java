@@ -16,34 +16,27 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Map;
-
-/**
- * The default encryption strategy which does nothing.
- */
-public class NoEncryptionStrategy implements EncryptionStrategy {
-
-  @Override
-  public void init(Scope encryptionScope, Map<String,String> conf) {
-    // do nothing
+public class CryptoEnvironment {
+  /**
+   * Where in Accumulo the on-disk file encryption takes place.
+   */
+  public static enum Scope {
+    WAL, RFILE;
   }
 
-  @Override
-  public OutputStream encryptStream(OutputStream outputStream) {
-    // do nothing
-    return outputStream;
+  private Scope scope;
+  private String version;
+
+  public CryptoEnvironment(Scope scope, String version) {
+    this.scope = scope;
+    this.version = version;
   }
 
-  @Override
-  public InputStream decryptStream(InputStream inputStream) {
-    // do nothing
-    return inputStream;
-  }
+  public Scope getScope() {
+    return this.scope;
+  };
 
-  @Override
-  public void printCryptoInfoToStream(OutputStream outputStream) {
-    // do nothing
-  }
+  public String getVersion() {
+    return this.version;
+  };
 }

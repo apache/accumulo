@@ -14,22 +14,30 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.security.crypto.impl;
 
-import java.io.OutputStream;
+import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.security.crypto.CryptoService;
+import org.apache.accumulo.core.security.crypto.FileDecrypter;
+import org.apache.accumulo.core.security.crypto.FileEncrypter;
 
-public interface FileEncrypter {
-  OutputStream encryptStream(OutputStream outputStream) throws CryptoService.CryptoException;
+/**
+ * The default encryption strategy which does nothing.
+ */
+public class NoCryptoService implements CryptoService {
 
-  /**
-   * This method is responsible for printing all information required for decrypting to a stream
-   *
-   * @param outputStream
-   *          The stream being written to requiring crypto information
-   * @throws CryptoService.CryptoException
-   *           if the action fails
-   *
-   * @since 2.0
-   */
-  void addParamsToStream(OutputStream outputStream) throws CryptoService.CryptoException;
+  @Override
+  public FileEncrypter encryptFile(CryptoEnvironment environment) {
+    return new NoFileEncrypter();
+  }
+
+  @Override
+  public FileDecrypter decryptFile(CryptoEnvironment environment) {
+    return new NoFileDecrypter();
+  }
+
+  @Override
+  public String getVersion() {
+    return "NoCryptoService-2018v1";
+  }
 }

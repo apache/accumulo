@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -33,16 +35,15 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
-import org.apache.accumulo.core.security.crypto.EncryptionStrategy;
-import org.apache.accumulo.core.security.crypto.EncryptionStrategyFactory;
-import org.apache.accumulo.core.security.crypto.NoEncryptionStrategy;
+import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.security.crypto.CryptoService;
+import org.apache.accumulo.core.security.crypto.FileDecrypter;
+import org.apache.accumulo.core.security.crypto.FileEncrypter;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -102,7 +103,8 @@ public final class BCFile {
   static public class Writer implements Closeable {
     private final RateLimitedOutputStream out;
     private final Configuration conf;
-    private EncryptionStrategy encryptionStrategy;
+    private FileEncrypter encrypter;
+    private CryptoEnvironment cryptoEnvironment;
     // the single meta block containing index of compressed data blocks
     final DataIndex dataIndex;
     // index for meta blocks
@@ -139,7 +141,7 @@ public final class BCFile {
        *          the encryptionStrategy to use for encryption
        */
       public WBlockState(Algorithm compressionAlgo, RateLimitedOutputStream fsOut,
-          BytesWritable fsOutputBuffer, Configuration conf, EncryptionStrategy encryptionStrategy)
+          BytesWritable fsOutputBuffer, Configuration conf, FileEncrypter encrypter)
           throws IOException {
         this.compressAlgo = compressionAlgo;
         this.fsOut = fsOut;
@@ -152,7 +154,7 @@ public final class BCFile {
         this.compressor = compressAlgo.getCompressor();
 
         try {
-          this.cipherOut = encryptionStrategy.encryptStream(fsBufferedOutput);
+          this.cipherOut = encrypter.encryptStream(fsBufferedOutput);
           this.out = compressionAlgo.createCompressionStream(cipherOut, compressor, 0);
         } catch (IOException e) {
           compressAlgo.returnCompressor(compressor);
@@ -315,7 +317,7 @@ public final class BCFile {
      * @see Compression#getSupportedAlgorithms
      */
     public Writer(FSDataOutputStream fout, RateLimiter writeLimiter, String compressionName,
-        Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+        Configuration conf, CryptoService cryptoService) throws IOException {
       if (fout.getPos() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
@@ -326,10 +328,8 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-
-      this.encryptionStrategy = EncryptionStrategyFactory.setupConfiguredEncryption(
-          accumuloConfiguration.getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
-          EncryptionStrategy.Scope.RFILE);
+      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, cryptoService.getVersion());
+      this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
     }
 
     /**
@@ -358,8 +358,8 @@ public final class BCFile {
           metaIndex.write(out);
 
           long offsetCryptoParameter = out.position();
-          String es = this.encryptionStrategy.getClass().getName();
-          out.writeUTF(es);
+          String cryptoVersion = this.cryptoEnvironment.getVersion();
+          out.writeUTF(cryptoVersion);
 
           out.writeLong(offsetIndexMeta);
           out.writeLong(offsetCryptoParameter);
@@ -389,8 +389,7 @@ public final class BCFile {
       }
 
       MetaBlockRegister mbr = new MetaBlockRegister(name, compressAlgo);
-      WBlockState wbs = new WBlockState(compressAlgo, out, fsOutputBuffer, conf,
-          encryptionStrategy);
+      WBlockState wbs = new WBlockState(compressAlgo, out, fsOutputBuffer, conf, encrypter);
       BlockAppender ba = new BlockAppender(mbr, wbs);
       blkInProgress = true;
       metaBlkSeen = true;
@@ -430,7 +429,7 @@ public final class BCFile {
       }
 
       WBlockState wbs = new WBlockState(getDefaultCompressionAlgorithm(), out, fsOutputBuffer, conf,
-          encryptionStrategy);
+          encrypter);
       BlockAppender ba = new BlockAppender(wbs);
       blkInProgress = true;
       return ba;
@@ -465,7 +464,8 @@ public final class BCFile {
     // Index for meta blocks
     final MetaIndex metaIndex;
     final Version version;
-    private EncryptionStrategy encryptionStrategy;
+    private CryptoEnvironment cryptoEnvironment;
+    private FileDecrypter decrypter;
 
     /**
      * Intermediate class that maintain the state of a Readable Compression Block.
@@ -478,8 +478,8 @@ public final class BCFile {
       private volatile boolean closed;
 
       public <InputStreamType extends InputStream & Seekable> RBlockState(Algorithm compressionAlgo,
-          InputStreamType fsin, BlockRegion region, Configuration conf,
-          EncryptionStrategy encryptionStrategy) throws IOException {
+          InputStreamType fsin, BlockRegion region, Configuration conf, FileDecrypter decrypter)
+          throws IOException {
         this.compressAlgo = compressionAlgo;
         this.region = region;
         this.decompressor = compressionAlgo.getDecompressor();
@@ -489,7 +489,7 @@ public final class BCFile {
         InputStream inputStreamToBeCompressed = boundedRangeFileInputStream;
 
         try {
-          inputStreamToBeCompressed = encryptionStrategy.decryptStream(inputStreamToBeCompressed);
+          inputStreamToBeCompressed = decrypter.decryptStream(inputStreamToBeCompressed);
           this.in = compressAlgo.createDecompressionStream(inputStreamToBeCompressed, decompressor,
               getFSInputBufferSize(conf));
         } catch (IOException e) {
@@ -584,7 +584,7 @@ public final class BCFile {
         if (out.size() > maxSize) {
           return null;
         }
-        out.writeUTF(this.encryptionStrategy.getClass().getName());
+        out.writeUTF(this.cryptoEnvironment.getVersion());
 
         if (out.size() > maxSize) {
           return null;
@@ -606,8 +606,7 @@ public final class BCFile {
      *          Length of the corresponding file
      */
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fin,
-        long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+        long fileLength, Configuration conf, CryptoService cryptoService) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -643,14 +642,12 @@ public final class BCFile {
       // backwards compatibility
       if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
-        this.encryptionStrategy = new NoEncryptionStrategy();
+        this.decrypter = null;
       } else {
-        // read encryption strategy
+        // read crypto version string and get decrypter
         this.in.seek(offsetCryptoParameters);
-        String encryptionStrategy = this.in.readUTF();
-        this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
-            accumuloConfiguration.getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
-            encryptionStrategy, EncryptionStrategy.Scope.RFILE);
+        this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, this.in.readUTF());
+        this.decrypter = cryptoService.decryptFile(this.cryptoEnvironment);
       }
 
       // read data:BCFile.index, the data block index
@@ -660,8 +657,7 @@ public final class BCFile {
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata,
-        InputStreamType fin, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+        InputStreamType fin, Configuration conf, CryptoService cryptoService) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -672,10 +668,9 @@ public final class BCFile {
 
       metaIndex = new MetaIndex(dis);
       dataIndex = new DataIndex(dis);
-      String encryptionStrategy = dis.readUTF();
-      this.encryptionStrategy = EncryptionStrategyFactory.setupReadEncryption(
-          accumuloConfiguration.getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
-          encryptionStrategy, EncryptionStrategy.Scope.RFILE);
+
+      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, dis.readUTF());
+      this.decrypter = cryptoService.decryptFile(this.cryptoEnvironment);
     }
 
     /**
@@ -757,7 +752,7 @@ public final class BCFile {
 
     private BlockReader createReader(Algorithm compressAlgo, BlockRegion region)
         throws IOException {
-      RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, encryptionStrategy);
+      RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, decrypter);
       return new BlockReader(rbs);
     }
   }

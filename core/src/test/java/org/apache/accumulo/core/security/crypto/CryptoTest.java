@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -146,8 +147,7 @@ public class CryptoTest {
 
     assertEquals(strategyClass, strategy.getClass());
     // test init on other scope to be sure, even though this test has no scope
-    strategy.init(CryptoService.Scope.WAL,
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+    strategy.init(CryptoService.Scope.WAL, conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     OutputStream encrypted = strategy.encryptStream(new NoFlushOutputStream(out));
@@ -166,8 +166,7 @@ public class CryptoTest {
         conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), CryptoService.Scope.RFILE);
 
     // test init on other scope to be sure, even though this test has no scope
-    strategy.init(CryptoService.Scope.WAL,
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+    strategy.init(CryptoService.Scope.WAL, conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
     DataInputStream decrypted = new DataInputStream(strategy.decryptStream(in));

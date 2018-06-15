@@ -22,6 +22,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
+import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -43,8 +44,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.security.crypto.FileDecrypter;
 import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.util.LoggingRunnable;
@@ -81,7 +86,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   private static final Logger log = LoggerFactory.getLogger(DfsLogger.class);
   private static final DatanodeInfo[] EMPTY_PIPELINE = new DatanodeInfo[0];
-  private CryptoService CryptoService;
 
   public static class LogClosedException extends IOException {
     private static final long serialVersionUID = 1L;
@@ -357,13 +361,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
-        String cryptoStrategyClass = input.readUTF();
-        CryptoService CryptoService = CryptoServiceFactory.setupReadEncryption(
-            conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), cryptoStrategyClass,
-            CryptoService.Scope.WAL);
-        log.debug("Using {} for decrypting WAL", CryptoService.getClass().getSimpleName());
-        decryptingInput = CryptoService instanceof NoCryptoService ? input
-            : new DataInputStream(CryptoService.decryptStream(input));
+        CryptoService cryptoService = CryptoServiceFactory.getConfiguredEncryption(conf);
+        FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL, input.readUTF()));
+        log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
+        decryptingInput = cryptoService instanceof NoCryptoService ? input
+            : new DataInputStream(decrypter.decryptStream(input));
       } else {
         log.error("Unsupported WAL version.");
         input.seek(0);
@@ -415,17 +417,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
       flush = logFile.getClass().getMethod("hflush");
 
       // Initialize the log file with a header and its encryption
+      CryptoService cryptoService = CryptoServiceFactory.getConfiguredEncryption(conf.getConfiguration());
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
-      logFile.writeUTF(conf.getConfiguration().get(Property.TABLE_CRYPTO_STRATEGY));
-
-      this.CryptoService = CryptoServiceFactory.setupConfiguredEncryption(
-          conf.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_PREFIX),
-          CryptoService.Scope.WAL);
+      logFile.writeUTF(cryptoService.getVersion());
 
       log.debug("Using {} for encrypting WAL {}",
-          this.CryptoService.getClass().getSimpleName(), filename);
+          cryptoService.getClass().getSimpleName(), filename);
+      CryptoEnvironment env = new CryptoEnvironment(Scope.WAL, cryptoService.getVersion());
+
       encryptingLogFile = new DataOutputStream(
-          this.CryptoService.encryptStream(new NoFlushOutputStream(logFile)));
+          cryptoService.encryptFile(env).encryptStream(new NoFlushOutputStream(logFile)));
 
       LogFileKey key = new LogFileKey();
       key.event = OPEN;
