@@ -676,6 +676,9 @@ public interface TableOperations {
    * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
    * examines files on the server side while holding a table read lock.
    *
+   * <p>
+   * This API supports adding files to online and offline tables.
+   *
    * @since 2.0.0
    */
   default ImportSourceArguments addFilesTo(String tableName) {
