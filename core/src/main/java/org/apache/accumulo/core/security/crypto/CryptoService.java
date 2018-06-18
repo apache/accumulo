@@ -45,20 +45,20 @@ public interface CryptoService {
   /**
    * Runtime Crypto exception
    */
-  class CryptoException extends RuntimeException {
-    CryptoException() {
+  public class CryptoException extends RuntimeException {
+    public CryptoException() {
       super();
     }
 
-    CryptoException(String message) {
+    public CryptoException(String message) {
       super(message);
     }
 
-    CryptoException(String message, Throwable cause) {
+    public CryptoException(String message, Throwable cause) {
       super(message, cause);
     }
 
-    CryptoException(Throwable cause) {
+    public CryptoException(Throwable cause) {
       super(cause);
     }
   }

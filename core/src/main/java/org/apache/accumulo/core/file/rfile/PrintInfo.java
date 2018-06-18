@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -163,8 +165,9 @@ public class PrintInfo implements KeywordExecutable {
       System.out
           .println("Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
 
+      AccumuloConfiguration aconf = SiteConfiguration.getInstance();
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          SiteConfiguration.getInstance());
+          aconf, CryptoServiceFactory.getConfigured(aconf));
       Reader iter = new RFile.Reader(_rdr);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

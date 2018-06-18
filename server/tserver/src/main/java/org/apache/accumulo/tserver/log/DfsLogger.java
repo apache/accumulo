@@ -17,12 +17,12 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
-import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -361,8 +361,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
-        CryptoService cryptoService = CryptoServiceFactory.getConfiguredEncryption(conf);
-        FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL, input.readUTF()));
+        CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
+        FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL,
+            input.readUTF(), conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
             : new DataInputStream(decrypter.decryptStream(input));
@@ -417,13 +418,14 @@ public class DfsLogger implements Comparable<DfsLogger> {
       flush = logFile.getClass().getMethod("hflush");
 
       // Initialize the log file with a header and its encryption
-      CryptoService cryptoService = CryptoServiceFactory.getConfiguredEncryption(conf.getConfiguration());
+      CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf.getConfiguration());
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
       logFile.writeUTF(cryptoService.getVersion());
 
-      log.debug("Using {} for encrypting WAL {}",
-          cryptoService.getClass().getSimpleName(), filename);
-      CryptoEnvironment env = new CryptoEnvironment(Scope.WAL, cryptoService.getVersion());
+      log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
+          filename);
+      CryptoEnvironment env = new CryptoEnvironment(Scope.WAL, cryptoService.getVersion(),
+          conf.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
       encryptingLogFile = new DataOutputStream(
           cryptoService.encryptFile(env).encryptStream(new NoFlushOutputStream(logFile)));

@@ -59,6 +59,7 @@ import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
@@ -666,7 +667,9 @@ public class Gatherer {
       List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache) {
     Path path = new Path(file);
     Configuration conf = CachedConfiguration.getInstance();
-    return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path,
-        summarySelector, summaryCache, indexCache).getSummaries(ranges);
+    return SummaryReader
+        .load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path, summarySelector,
+            summaryCache, indexCache, CryptoServiceFactory.getConfigured(ctx.getConfiguration()))
+        .getSummaries(ranges);
   }
 }

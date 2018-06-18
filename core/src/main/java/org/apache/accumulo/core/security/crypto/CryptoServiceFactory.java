@@ -24,11 +24,11 @@ public class CryptoServiceFactory {
   private static CryptoService singleton = null;
 
   /**
-   * Load and initialize configured CryptoService.
+   * Load the singleton class configured in {@link Property.TABLE_CRYPTO_SERVICE}
    *
-   * @return CryptoService if an error occurred during CryptoService initialization
+   * @return CryptoService
    */
-  public static CryptoService getConfiguredEncryption(AccumuloConfiguration conf) {
+  public static CryptoService getConfigured(AccumuloConfiguration conf) {
     if (singleton == null) {
       singleton = loadCryptoService(conf.get(Property.TABLE_CRYPTO_SERVICE.getKey()));
     }

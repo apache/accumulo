@@ -104,11 +104,11 @@ public class ShellConfigIT extends AccumuloClusterHarness {
     }
 
     assertTrue(Property.TABLE_CRYPTO_PREFIX.isExperimental());
-    assertTrue(Property.TABLE_CRYPTO_STRATEGY.isExperimental());
+    assertTrue(Property.TABLE_CRYPTO_SERVICE.isExperimental());
 
     String configOutput = ts.exec("config");
 
     assertTrue(configOutput.contains(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER));
-    assertFalse(configOutput.contains(Property.TABLE_CRYPTO_STRATEGY.getKey()));
+    assertFalse(configOutput.contains(Property.TABLE_CRYPTO_SERVICE.getKey()));
   }
 }

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
+import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +83,7 @@ public class ConfigSanityCheck {
             + " must be greater than 0 and less than " + Integer.MAX_VALUE + " but was: " + bsize);
       }
 
-      if (key.equals(Property.TABLE_CRYPTO_STRATEGY.getKey())) {
+      if (key.equals(Property.TABLE_CRYPTO_SERVICE.getKey())) {
         String cryptoStrategy = Objects.requireNonNull(value);
         verifyValidClassName(key, cryptoStrategy, CryptoService.class);
       }

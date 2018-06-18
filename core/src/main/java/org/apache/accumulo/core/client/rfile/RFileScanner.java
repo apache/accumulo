@@ -218,7 +218,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (null == this.dataCache) {
       this.dataCache = new NoopCache();
     }
-    this.cryptoService = CryptoServiceFactory.getConfiguredEncryption(tableConf);
+    this.cryptoService = CryptoServiceFactory.getConfigured(tableConf);
   }
 
   @Override
@@ -357,8 +357,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        readers.add(new RFile.Reader(new CachableBlockFile.Reader("source-" + i, inputStream,
-            sources[i].getLength(), opts.in.getConf(), dataCache, indexCache, cryptoService)));
+        readers.add(new RFile.Reader(
+            new CachableBlockFile.Reader("source-" + i, inputStream, sources[i].getLength(),
+                opts.in.getConf(), dataCache, indexCache, tableConf, cryptoService)));
       }
 
       if (getSamplerConfiguration() != null) {

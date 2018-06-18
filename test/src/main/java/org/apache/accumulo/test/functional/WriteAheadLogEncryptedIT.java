@@ -20,6 +20,7 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.security.crypto.impl.AESCBCCryptoService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -33,7 +34,7 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TABLE_CRYPTO_STRATEGY,
+    cfg.setProperty(Property.TABLE_CRYPTO_SERVICE,
         "org.apache.accumulo.core.security.crypto.AESCBCCryptoService");
     cfg.setProperty(AESCBCCryptoService.CRYPTO_SECRET_KEY_PROPERTY, "sixteenbytekey4u");
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");

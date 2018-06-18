@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import java.util.Map;
+
 public class CryptoEnvironment {
   /**
    * Where in Accumulo the on-disk file encryption takes place.
@@ -26,10 +28,12 @@ public class CryptoEnvironment {
 
   private Scope scope;
   private String version;
+  private Map<String,String> conf;
 
-  public CryptoEnvironment(Scope scope, String version) {
+  public CryptoEnvironment(Scope scope, String version, Map<String,String> conf) {
     this.scope = scope;
     this.version = version;
+    this.conf = conf;
   }
 
   public Scope getScope() {
@@ -39,4 +43,8 @@ public class CryptoEnvironment {
   public String getVersion() {
     return this.version;
   };
+
+  public Map<String,String> getConf() {
+    return this.conf;
+  }
 }

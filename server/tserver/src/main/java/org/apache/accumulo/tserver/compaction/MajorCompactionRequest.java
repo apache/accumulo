@@ -39,6 +39,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
@@ -150,8 +151,9 @@ public class MajorCompactionRequest implements Cloneable {
     for (FileRef file : files) {
       FileSystem fs = volumeManager.getVolumeByPath(file.path()).getFileSystem();
       Configuration conf = CachedConfiguration.getInstance();
-      SummaryCollection fsc = SummaryReader.load(fs, conf, tableConfig, factory, file.path(),
-          summarySelector, summaryCache, indexCache)
+      SummaryCollection fsc = SummaryReader
+          .load(fs, conf, tableConfig, factory, file.path(), summarySelector, summaryCache,
+              indexCache, CryptoServiceFactory.getConfigured(tableConfig))
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }
