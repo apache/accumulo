@@ -774,7 +774,7 @@ public enum Property {
   @Experimental
   TABLE_CRYPTO_SERVICE("table.crypto.service",
       "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
-      "The strategy which executes on-disk file encryption. The default does nothing. To enable "
+      "The class which executes on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
           + "org.apache.accumulo.core.security.crypto.CryptoService interface."),
 

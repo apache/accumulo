@@ -18,10 +18,11 @@
 package org.apache.accumulo.core.security.crypto;
 
 import static org.apache.accumulo.core.file.rfile.RFileTest.setAndGetAccumuloConfig;
+import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -39,6 +40,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.crypto.impl.AESCBCCryptoService;
 import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -54,26 +56,28 @@ public class CryptoTest {
 
   @Test
   public void testAESCryptoService() throws Exception {
-    byte[] resultingBytes = encrypt(AESCBCCryptoService.class, CRYPTO_ON_CONF);
+    AESCBCCryptoService cs = new AESCBCCryptoService();
+    byte[] resultingBytes = encrypt(cs, cs.getVersion(), CRYPTO_ON_CONF);
 
     String stringifiedBytes = Arrays.toString(resultingBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
+    String stringifiedMarkerBytes = getStringifiedBytes(cs.getVersion(), MARKER_STRING, MARKER_INT);
 
     assertNotEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(resultingBytes, CRYPTO_ON_CONF);
+    decrypt(resultingBytes, cs.getVersion(), CRYPTO_ON_CONF);
   }
 
   @Test
   public void testNoEncryption() throws Exception {
-    byte[] resultingBytes = encrypt(NoCryptoService.class, CRYPTO_OFF_CONF);
+    NoCryptoService cs = new NoCryptoService();
+    byte[] encryptedBytes = encrypt(cs, cs.getVersion(), CRYPTO_OFF_CONF);
 
-    String stringifiedBytes = Arrays.toString(resultingBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
+    String stringifiedBytes = Arrays.toString(encryptedBytes);
+    String stringifiedMarkerBytes = getStringifiedBytes(cs.getVersion(), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(resultingBytes, CRYPTO_OFF_CONF);
+    decrypt(encryptedBytes, cs.getVersion(), CRYPTO_OFF_CONF);
   }
 
   @Test
@@ -100,37 +104,6 @@ public class CryptoTest {
     assertEquals(keys, keysRead);
   }
 
-  @Test
-  public void testRFileEncryptedDiffConf() throws Exception {
-    String exceptionMsg = "File encrypted with different encryption";
-    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-    AccumuloConfiguration cryptoOffConf = setAndGetAccumuloConfig(CRYPTO_OFF_CONF);
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    ArrayList<Key> keys = testData();
-
-    String file = "target/testFile.rf";
-    fs.delete(new Path(file), true);
-    try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).build()) {
-      Value empty = new Value(new byte[] {});
-      writer.startDefaultLocalityGroup();
-      for (Key key : keys) {
-        writer.append(key, empty);
-      }
-    }
-
-    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOffConf).build();
-    ArrayList<Key> keysRead = new ArrayList<>();
-    try {
-      iter.forEach(e -> keysRead.add(e.getKey()));
-      fail("Scanner should have thrown exception " + exceptionMsg);
-    } catch (RuntimeException re) {
-      if (!re.getMessage().startsWith(exceptionMsg))
-        throw re;
-    }
-  }
-
   private ArrayList<Key> testData() {
     ArrayList<Key> keys = new ArrayList<>();
     keys.add(new Key("a", "cf", "cq"));
@@ -140,47 +113,51 @@ public class CryptoTest {
     return keys;
   }
 
-  private byte[] encrypt(Class strategyClass, String configFile) throws Exception {
+  private <C extends CryptoService> byte[] encrypt(C cs, String version, String configFile)
+      throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    CryptoService strategy = CryptoServiceFactory.setupConfiguredEncryption(
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), CryptoService.Scope.RFILE);
+    CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
+    FileEncrypter encrypter = cryptoService.encryptFile(new CryptoEnvironment(Scope.WAL, version,
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
 
-    assertEquals(strategyClass, strategy.getClass());
-    // test init on other scope to be sure, even though this test has no scope
-    strategy.init(CryptoService.Scope.WAL, conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+    assertEquals(cryptoService.getClass(), cs.getClass());
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    OutputStream encrypted = strategy.encryptStream(new NoFlushOutputStream(out));
+    OutputStream encrypted = encrypter.encryptStream(new NoFlushOutputStream(out));
     assertNotNull(encrypted);
 
     DataOutputStream dataOut = new DataOutputStream(encrypted);
+    // dataOut.writeUTF(version);
     dataOut.writeUTF(MARKER_STRING);
     dataOut.writeInt(MARKER_INT);
-    dataOut.close();
     return out.toByteArray();
   }
 
-  private void decrypt(byte[] resultingBytes, String configFile) throws Exception {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    CryptoService strategy = CryptoServiceFactory.setupConfiguredEncryption(
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX), CryptoService.Scope.RFILE);
-
-    // test init on other scope to be sure, even though this test has no scope
-    strategy.init(CryptoService.Scope.WAL, conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-
+  private void decrypt(byte[] resultingBytes, String version, String configFile) throws Exception {
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
-    DataInputStream decrypted = new DataInputStream(strategy.decryptStream(in));
+    // DataInputStream data = new DataInputStream(in);
+    // String version = data.readUTF();
+
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
+    CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
+    FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL, version,
+        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
+
+    DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in));
     String markerString = decrypted.readUTF();
     int markerInt = decrypted.readInt();
 
     assertEquals(MARKER_STRING, markerString);
     assertEquals(MARKER_INT, markerInt);
+    in.close();
+    decrypted.close();
   }
 
-  private String getStringifiedBytes(String s, int i) throws IOException {
+  private String getStringifiedBytes(String version, String s, int i) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
 
+    dataOut.writeUTF(version);
     dataOut.writeUTF(s);
     dataOut.writeInt(i);
     dataOut.close();

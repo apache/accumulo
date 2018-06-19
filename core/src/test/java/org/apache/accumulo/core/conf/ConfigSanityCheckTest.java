@@ -73,14 +73,13 @@ public class ConfigSanityCheckTest {
 
   @Test(expected = SanityCheckException.class)
   public void testFail_badCryptoService() {
-    m.put(Property.TABLE_CRYPTO_STRATEGY.getKey(), "DoesNotExistCryptoService");
+    m.put(Property.TABLE_CRYPTO_SERVICE.getKey(), "DoesNotExistCryptoService");
     ConfigSanityCheck.validate(m.entrySet());
   }
 
   @Test
   public void testPass_defaultCryptoService() {
-    m.put(Property.TABLE_CRYPTO_STRATEGY.getKey(),
-        Property.TABLE_CRYPTO_STRATEGY.getDefaultValue());
+    m.put(Property.TABLE_CRYPTO_SERVICE.getKey(), Property.TABLE_CRYPTO_SERVICE.getDefaultValue());
     ConfigSanityCheck.validate(m.entrySet());
   }
 }
