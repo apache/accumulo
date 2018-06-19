@@ -332,7 +332,7 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, cryptoService.getVersion(),
+      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, null,
           aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
       this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
     }

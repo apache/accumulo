@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.core.security.crypto.impl;
 
+import java.io.IOException;
 import java.io.OutputStream;
 
 import org.apache.accumulo.core.security.crypto.CryptoService;
+import org.apache.accumulo.core.security.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.security.crypto.FileEncrypter;
 
 public class NoFileEncrypter implements FileEncrypter {
@@ -30,6 +32,10 @@ public class NoFileEncrypter implements FileEncrypter {
 
   @Override
   public void addParamsToStream(OutputStream outputStream) throws CryptoService.CryptoException {
-    // do nothing
+    try {
+      outputStream.write("U+1F47B".getBytes());
+    } catch (IOException e) {
+      throw new CryptoException("Unable to record crypto version to stream.");
+    }
   }
 }

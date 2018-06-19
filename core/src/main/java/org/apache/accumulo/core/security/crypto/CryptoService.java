@@ -35,14 +35,6 @@ public interface CryptoService {
   FileDecrypter decryptFile(CryptoEnvironment environment);
 
   /**
-   * Returns the unique version identifier for this CryptoService implementation. This string is
-   * what will get written to the file being encrypted.
-   *
-   * @since 2.0
-   */
-  String getVersion();
-
-  /**
    * Runtime Crypto exception
    */
   public class CryptoException extends RuntimeException {
