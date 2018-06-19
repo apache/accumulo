@@ -35,9 +35,4 @@ public class NoCryptoService implements CryptoService {
   public FileDecrypter decryptFile(CryptoEnvironment environment) {
     return new NoFileDecrypter();
   }
-
-  @Override
-  public String getVersion() {
-    return "NoCryptoService-2018v1";
-  }
 }
