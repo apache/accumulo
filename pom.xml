@@ -115,7 +115,7 @@
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.59</bouncycastle.version>
     <!-- Curator version -->
-    <curator.version>2.11.0</curator.version>
+    <curator.version>2.12.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- extra release args for testing -->
