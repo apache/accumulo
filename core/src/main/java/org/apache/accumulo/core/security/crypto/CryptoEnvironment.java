@@ -36,6 +36,17 @@ public class CryptoEnvironment {
     this.conf = conf;
   }
 
+  /**
+   * Constructor when encrypting - don't know what the version is yet
+   * 
+   * @param scope
+   * @param conf
+   */
+  public CryptoEnvironment(Scope scope, Map<String,String> conf) {
+    this.scope = scope;
+    this.conf = conf;
+  }
+
   public Scope getScope() {
     return this.scope;
   };

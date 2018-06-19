@@ -48,6 +48,7 @@ import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.security.crypto.FileDecrypter;
+import org.apache.accumulo.core.security.crypto.FileEncrypter;
 import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
 import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.Daemon;
@@ -420,15 +421,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
       // Initialize the log file with a header and its encryption
       CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf.getConfiguration());
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
-      logFile.writeUTF(cryptoService.getVersion());
 
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
           filename);
-      CryptoEnvironment env = new CryptoEnvironment(Scope.WAL, cryptoService.getVersion(),
+      CryptoEnvironment env = new CryptoEnvironment(Scope.WAL,
           conf.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+      FileEncrypter encrypter = cryptoService.encryptFile(env);
+      encrypter.addParamsToStream(logFile);
 
       encryptingLogFile = new DataOutputStream(
-          cryptoService.encryptFile(env).encryptStream(new NoFlushOutputStream(logFile)));
+          encrypter.encryptStream(new NoFlushOutputStream(logFile)));
 
       LogFileKey key = new LogFileKey();
       key.event = OPEN;

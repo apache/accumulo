@@ -29,8 +29,13 @@ public class CryptoServiceFactory {
    * @return CryptoService
    */
   public static CryptoService getConfigured(AccumuloConfiguration conf) {
+    String configuredClass = conf.get(Property.TABLE_CRYPTO_SERVICE.getKey());
     if (singleton == null) {
-      singleton = loadCryptoService(conf.get(Property.TABLE_CRYPTO_SERVICE.getKey()));
+      singleton = loadCryptoService(configuredClass);
+    } else {
+      if (!singleton.getClass().getName().equals(configuredClass)) {
+        singleton = loadCryptoService(configuredClass);
+      }
     }
     return singleton;
   }

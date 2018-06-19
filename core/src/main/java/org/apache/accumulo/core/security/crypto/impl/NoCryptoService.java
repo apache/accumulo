@@ -25,6 +25,7 @@ import org.apache.accumulo.core.security.crypto.FileEncrypter;
  * The default encryption strategy which does nothing.
  */
 public class NoCryptoService implements CryptoService {
+  public static final String VERSION = "U+1F47B";
 
   @Override
   public FileEncrypter encryptFile(CryptoEnvironment environment) {

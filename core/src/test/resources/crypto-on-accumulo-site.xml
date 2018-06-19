@@ -20,7 +20,7 @@
 <configuration>
     <property>
         <name>table.crypto.service</name>
-        <value>org.apache.accumulo.core.security.crypto.impl.AESCBCCryptoService</value>
+        <value>org.apache.accumulo.core.security.crypto.impl.AESCryptoService</value>
     </property>
     <property>
         <name>table.crypto.opts.sensitive.key</name>

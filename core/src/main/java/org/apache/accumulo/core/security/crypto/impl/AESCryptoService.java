@@ -148,15 +148,16 @@ public class AESCryptoService implements CryptoService {
     }
   }
 
-  public class AESCBCCryptoModule implements CryptoModule {
+  public static class AESCBCCryptoModule implements CryptoModule {
 
-    private final String VERSION = "U+1f600"; // unicode grinning face emoji
+    public static final String VERSION = "U+1f600"; // unicode grinning face emoji
     private final Integer IV_LENGTH_IN_BYTES = 16;
     private final Integer KEY_LENGTH_IN_BYTES = 16;
     /**
      * The actual secret key to use
      */
-    public final String CRYPTO_SECRET_KEY_PROPERTY = Property.TABLE_CRYPTO_SENSITIVE_PREFIX + "key";
+    public static final String CRYPTO_SECRET_KEY_PROPERTY = Property.TABLE_CRYPTO_SENSITIVE_PREFIX
+        + "key";
 
     private final String transformation = "AES/CBC/NoPadding";
     private SecretKeySpec skeySpec;

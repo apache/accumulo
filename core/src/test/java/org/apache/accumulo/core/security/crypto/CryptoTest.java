@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -40,7 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.crypto.impl.AESCBCCryptoService;
+import org.apache.accumulo.core.security.crypto.impl.AESCryptoService;
 import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -56,28 +55,28 @@ public class CryptoTest {
 
   @Test
   public void testAESCryptoService() throws Exception {
-    AESCBCCryptoService cs = new AESCBCCryptoService();
-    byte[] resultingBytes = encrypt(cs, cs.getVersion(), CRYPTO_ON_CONF);
+    AESCryptoService cs = new AESCryptoService();
+    byte[] resultingBytes = encrypt(cs, CRYPTO_ON_CONF);
 
     String stringifiedBytes = Arrays.toString(resultingBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes(cs.getVersion(), MARKER_STRING, MARKER_INT);
+    String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
 
     assertNotEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(resultingBytes, cs.getVersion(), CRYPTO_ON_CONF);
+    decrypt(resultingBytes, AESCryptoService.AESCBCCryptoModule.VERSION, CRYPTO_ON_CONF);
   }
 
   @Test
   public void testNoEncryption() throws Exception {
     NoCryptoService cs = new NoCryptoService();
-    byte[] encryptedBytes = encrypt(cs, cs.getVersion(), CRYPTO_OFF_CONF);
+    byte[] encryptedBytes = encrypt(cs, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes(cs.getVersion(), MARKER_STRING, MARKER_INT);
+    String stringifiedMarkerBytes = getStringifiedBytes(MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(encryptedBytes, cs.getVersion(), CRYPTO_OFF_CONF);
+    decrypt(encryptedBytes, NoCryptoService.VERSION, CRYPTO_OFF_CONF);
   }
 
   @Test
@@ -113,13 +112,13 @@ public class CryptoTest {
     return keys;
   }
 
-  private <C extends CryptoService> byte[] encrypt(C cs, String version, String configFile)
-      throws Exception {
+  private <C extends CryptoService> byte[] encrypt(C cs, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-    FileEncrypter encrypter = cryptoService.encryptFile(new CryptoEnvironment(Scope.WAL, version,
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
+    FileEncrypter encrypter = cryptoService.encryptFile(
+        new CryptoEnvironment(Scope.WAL, conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
 
+    assertNotNull("CryptoService returned null FileEncrypter", encrypter);
     assertEquals(cryptoService.getClass(), cs.getClass());
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -135,8 +134,6 @@ public class CryptoTest {
 
   private void decrypt(byte[] resultingBytes, String version, String configFile) throws Exception {
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
-    // DataInputStream data = new DataInputStream(in);
-    // String version = data.readUTF();
 
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
@@ -153,11 +150,10 @@ public class CryptoTest {
     decrypted.close();
   }
 
-  private String getStringifiedBytes(String version, String s, int i) throws IOException {
+  private String getStringifiedBytes(String s, int i) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
 
-    dataOut.writeUTF(version);
     dataOut.writeUTF(s);
     dataOut.writeInt(i);
     dataOut.close();
