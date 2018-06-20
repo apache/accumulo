@@ -86,7 +86,6 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
@@ -191,14 +190,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   public ProxyServer(Properties props) {
 
-    String useMock = props.getProperty("useMockInstance");
-    if (useMock != null && Boolean.parseBoolean(useMock))
-      instance = DeprecationUtil.makeMockInstance(this.getClass().getName());
-    else {
-      @SuppressWarnings("deprecation")
-      Instance i = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
-      instance = i;
-    }
+    @SuppressWarnings("deprecation")
+    Instance i = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
+    instance = i;
 
     try {
       String tokenProp = props.getProperty("tokenClass", PasswordToken.class.getName());

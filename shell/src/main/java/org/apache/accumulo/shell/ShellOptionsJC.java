@@ -132,9 +132,6 @@ public class ShellOptionsJC {
   @Parameter(names = "--debug", description = "enables client debugging")
   private boolean debugEnabled;
 
-  @Parameter(names = "--fake", description = "fake a connection to accumulo")
-  private boolean fake;
-
   @Parameter(names = {"-?", "--help"}, help = true, description = "display this help")
   private boolean helpEnabled;
 
@@ -224,10 +221,6 @@ public class ShellOptionsJC {
 
   public boolean isDebugEnabled() {
     return debugEnabled;
-  }
-
-  public boolean isFake() {
-    return fake;
   }
 
   public boolean isHelpEnabled() {

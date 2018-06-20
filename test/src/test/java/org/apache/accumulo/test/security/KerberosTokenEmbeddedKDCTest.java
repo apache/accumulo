@@ -43,7 +43,7 @@ public class KerberosTokenEmbeddedKDCTest {
   @Rule
   public TestName testName = new TestName();
 
-  private static TestingKdc kdc;
+  private volatile static TestingKdc kdc;
 
   @BeforeClass
   public static void startKdc() throws Exception {

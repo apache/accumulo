@@ -40,7 +40,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -115,18 +114,6 @@ public class ShellSetInstanceTest {
     SiteConfiguration.clearInstance();
   }
 
-  @Deprecated
-  @Test
-  public void testSetInstance_Fake() throws Exception {
-    ShellOptionsJC opts = createMock(ShellOptionsJC.class);
-    expect(opts.isFake()).andReturn(true);
-    replay(opts);
-
-    shell.setInstance(opts);
-    Assert.assertTrue(
-        shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
-  }
-
   @Test
   public void testSetInstance_ZKInstance_DashZ() throws Exception {
     testSetInstance_ZKInstance(true);
@@ -140,7 +127,6 @@ public class ShellSetInstanceTest {
   private void testSetInstance_ZKInstance(boolean dashZ) throws Exception {
     Properties props = createMock(Properties.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
-    expect(opts.isFake()).andReturn(false);
     expect(opts.getClientProperties()).andReturn(new Properties());
     expect(props.getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey()))
         .andReturn(null);

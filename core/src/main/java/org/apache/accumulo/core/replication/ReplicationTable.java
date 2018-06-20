@@ -36,7 +36,6 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,8 +89,7 @@ public class ReplicationTable {
   }
 
   public static boolean isOnline(Connector conn) {
-    return DeprecationUtil.isMockInstance(conn.getInstance())
-        || TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
+    return TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
   }
 
   public static void setOnline(Connector conn) throws AccumuloSecurityException, AccumuloException {

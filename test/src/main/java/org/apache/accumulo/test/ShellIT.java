@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.shell;
+package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -31,17 +31,41 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.log4j.Level;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jline.console.ConsoleReader;
 
-public class ShellTest {
-  private static final Logger log = LoggerFactory.getLogger(ShellTest.class);
+@Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
+public class ShellIT extends SharedMiniClusterBase {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  private static final Logger log = LoggerFactory.getLogger(ShellIT.class);
 
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
@@ -125,7 +149,7 @@ public class ShellTest {
   }
 
   @Before
-  public void setup() throws IOException {
+  public void setupShell() throws IOException {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
@@ -133,11 +157,12 @@ public class ShellTest {
     config = Files.createTempFile(null, null).toFile();
     shell = new Shell(new ConsoleReader(input, output));
     shell.setLogErrorsToConsole();
-    shell.config("--config-file", config.toString(), "--fake", "-u", "test", "-p", "secret");
+    shell.config("--config-file", config.toString(), "-u", "root", "-p", getRootPassword(), "-zi",
+        getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers());
   }
 
   @After
-  public void teardown() {
+  public void teardownShell() {
     if (config.exists()) {
       if (!config.delete()) {
         log.error("Unable to delete {}", config);
@@ -370,8 +395,9 @@ public class ShellTest {
   @Test
   public void execFileTest() throws IOException {
     Shell.log.debug("Starting exec file test --------------------------");
-    shell.config("--config-file", config.toString(), "--fake", "-u", "test", "-p", "secret", "-f",
-        "src/test/resources/shelltest.txt");
+    shell.config("--config-file", config.toString(), "-u", "root", "-p", getRootPassword(), "-zi",
+        getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers(), "-f",
+        "src/main/resources/shellit.txt");
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }
