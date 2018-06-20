@@ -146,9 +146,6 @@ public interface VolumeManager {
   // forward to the appropriate FileSystem object
   short getDefaultReplication(Path logPath);
 
-  // forward to the appropriate FileSystem object
-  boolean isFile(Path path) throws IOException;
-
   // all volume are ready to provide service (not in SafeMode, for example)
   boolean isReady() throws IOException;
 

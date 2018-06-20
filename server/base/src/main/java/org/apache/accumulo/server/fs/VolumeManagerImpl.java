@@ -334,11 +334,6 @@ public class VolumeManagerImpl implements VolumeManager {
     return v.getFileSystem().getDefaultReplication(path);
   }
 
-  @Override
-  public boolean isFile(Path path) throws IOException {
-    return getVolumeByPath(path).getFileSystem().isFile(path);
-  }
-
   public static VolumeManager get() throws IOException {
     AccumuloConfiguration conf = SiteConfiguration.getInstance();
     return get(conf);

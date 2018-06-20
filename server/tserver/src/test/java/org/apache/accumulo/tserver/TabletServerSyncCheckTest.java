@@ -173,11 +173,6 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public boolean isFile(Path path) throws IOException {
-      return false;
-    }
-
-    @Override
     public boolean isReady() throws IOException {
       return false;
     }

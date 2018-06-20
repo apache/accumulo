@@ -103,7 +103,7 @@ public class LogReader {
       LogFileKey key = new LogFileKey();
       LogFileValue value = new LogFileValue();
 
-      if (fs.isFile(path)) {
+      if (fs.getFileStatus(path).isFile()) {
         try (final FSDataInputStream fsinput = fs.open(path)) {
           // read log entries from a simple hdfs file
           DFSLoggerInputStreams streams;

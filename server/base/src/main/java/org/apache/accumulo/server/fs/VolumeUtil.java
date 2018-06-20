@@ -337,10 +337,10 @@ public class VolumeUtil {
 
     if (fs1.exists(dir) && fs2.exists(newDir)) {
 
-      if (!fs1.isDirectory(dir))
+      if (!fs1.getFileStatus(dir).isDirectory())
         throw new IllegalArgumentException("expected " + dir + " to be a directory");
 
-      if (!fs2.isDirectory(newDir))
+      if (!fs2.getFileStatus(newDir).isDirectory())
         throw new IllegalArgumentException("expected " + newDir + " to be a directory");
 
       HashSet<String> names1 = getFileNames(fs1.listStatus(dir));
