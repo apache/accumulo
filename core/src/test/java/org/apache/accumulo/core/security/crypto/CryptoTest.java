@@ -139,7 +139,7 @@ public class CryptoTest {
 
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-    FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL, version,
+    FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL,
         conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
 
     decrypter.decryptStream(dataIn);

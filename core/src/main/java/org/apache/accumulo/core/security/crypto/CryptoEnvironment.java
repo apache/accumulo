@@ -27,21 +27,8 @@ public class CryptoEnvironment {
   }
 
   private Scope scope;
-  private String version;
   private Map<String,String> conf;
 
-  public CryptoEnvironment(Scope scope, String version, Map<String,String> conf) {
-    this.scope = scope;
-    this.version = version;
-    this.conf = conf;
-  }
-
-  /**
-   * Constructor when encrypting - don't know what the version is yet
-   * 
-   * @param scope
-   * @param conf
-   */
   public CryptoEnvironment(Scope scope, Map<String,String> conf) {
     this.scope = scope;
     this.conf = conf;
@@ -49,10 +36,6 @@ public class CryptoEnvironment {
 
   public Scope getScope() {
     return this.scope;
-  };
-
-  public String getVersion() {
-    return this.version;
   };
 
   public Map<String,String> getConf() {

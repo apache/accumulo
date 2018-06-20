@@ -332,7 +332,7 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, null,
+      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
           aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
       this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
     }
@@ -363,8 +363,7 @@ public final class BCFile {
           metaIndex.write(out);
 
           long offsetCryptoParameter = out.position();
-          String cryptoVersion = this.cryptoEnvironment.getVersion();
-          out.writeUTF(cryptoVersion);
+          this.encrypter.addParamsToStream(out);
 
           out.writeLong(offsetIndexMeta);
           out.writeLong(offsetCryptoParameter);
@@ -471,6 +470,8 @@ public final class BCFile {
     final Version version;
     private CryptoEnvironment cryptoEnvironment;
     private FileDecrypter decrypter;
+    // encrypter needed for cache serialization
+    private FileEncrypter encrypter;
 
     /**
      * Intermediate class that maintain the state of a Readable Compression Block.
@@ -589,7 +590,8 @@ public final class BCFile {
         if (out.size() > maxSize) {
           return null;
         }
-        out.writeUTF(this.cryptoEnvironment.getVersion());
+
+        this.encrypter.addParamsToStream(out);
 
         if (out.size() > maxSize) {
           return null;
@@ -633,10 +635,10 @@ public final class BCFile {
       long offsetCryptoParameters = 0;
 
       if (version.equals(API_VERSION_1)) {
-        this.in.seek(fileLength - Magic.size() - Version.size() - (Long.SIZE / Byte.SIZE));
+        this.in.seek(fileLength - Magic.size() - Version.size() - Long.BYTES);
         offsetIndexMeta = this.in.readLong();
       } else {
-        this.in.seek(fileLength - Magic.size() - Version.size() - (2 * (Long.SIZE / Byte.SIZE)));
+        this.in.seek(fileLength - Magic.size() - Version.size() - (2 * Long.BYTES));
         offsetIndexMeta = this.in.readLong();
         offsetCryptoParameters = this.in.readLong();
       }
@@ -648,13 +650,13 @@ public final class BCFile {
       // backwards compatibility
       if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
-        this.decrypter = null;
       } else {
         // read crypto version string and get decrypter
         this.in.seek(offsetCryptoParameters);
-        this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, this.in.readUTF(),
+        this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
             aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
         this.decrypter = cryptoService.decryptFile(this.cryptoEnvironment);
+        this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
       }
 
       // read data:BCFile.index, the data block index
@@ -677,9 +679,10 @@ public final class BCFile {
       metaIndex = new MetaIndex(dis);
       dataIndex = new DataIndex(dis);
 
-      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE, dis.readUTF(),
+      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
           aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
       this.decrypter = cryptoService.decryptFile(this.cryptoEnvironment);
+      this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
     }
 
     /**
