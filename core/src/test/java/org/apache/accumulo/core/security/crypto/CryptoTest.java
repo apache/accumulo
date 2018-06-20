@@ -28,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -122,10 +123,10 @@ public class CryptoTest {
     assertEquals(cryptoService.getClass(), cs.getClass());
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    OutputStream encrypted = encrypter.encryptStream(new NoFlushOutputStream(out));
+    DataOutputStream dataOut = new DataOutputStream(out);
+    OutputStream encrypted = encrypter.encryptStream(new NoFlushOutputStream(dataOut));
     assertNotNull(encrypted);
 
-    DataOutputStream dataOut = new DataOutputStream(encrypted);
     // dataOut.writeUTF(version);
     dataOut.writeUTF(MARKER_STRING);
     dataOut.writeInt(MARKER_INT);
@@ -134,20 +135,21 @@ public class CryptoTest {
 
   private void decrypt(byte[] resultingBytes, String version, String configFile) throws Exception {
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
+    DataInputStream dataIn = new DataInputStream(in);
 
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
     FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL, version,
         conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
 
-    DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in));
-    String markerString = decrypted.readUTF();
-    int markerInt = decrypted.readInt();
+    decrypter.decryptStream(dataIn);
+    String markerString = dataIn.readUTF();
+    int markerInt = dataIn.readInt();
 
     assertEquals(MARKER_STRING, markerString);
     assertEquals(MARKER_INT, markerInt);
     in.close();
-    decrypted.close();
+    dataIn.close();
   }
 
   private String getStringifiedBytes(String s, int i) throws IOException {
