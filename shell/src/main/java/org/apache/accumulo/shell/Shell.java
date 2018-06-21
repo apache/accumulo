@@ -62,7 +62,6 @@ import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
@@ -337,9 +336,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
 
     try {
-      if (!options.isFake()) {
-        DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
-      }
+      DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
       this.setTableName("");
       connector = instance.getConnector(user, token);
 
@@ -428,21 +425,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected void setInstance(ShellOptionsJC options) {
     // should only be one set of instance options set
     instance = null;
-    if (options.isFake()) {
-      instance = DeprecationUtil.makeMockInstance("fake");
+    String instanceName, hosts;
+    if (options.getZooKeeperInstance().size() > 0) {
+      List<String> zkOpts = options.getZooKeeperInstance();
+      instanceName = zkOpts.get(0);
+      hosts = zkOpts.get(1);
     } else {
-      String instanceName, hosts;
-      if (options.getZooKeeperInstance().size() > 0) {
-        List<String> zkOpts = options.getZooKeeperInstance();
-        instanceName = zkOpts.get(0);
-        hosts = zkOpts.get(1);
-      } else {
-        instanceName = options.getZooKeeperInstanceName();
-        hosts = options.getZooKeeperHosts();
-      }
-      final Properties properties = options.getClientProperties();
-      instance = getZooInstance(instanceName, hosts, properties);
+      instanceName = options.getZooKeeperInstanceName();
+      hosts = options.getZooKeeperHosts();
     }
+    final Properties properties = options.getClientProperties();
+    instance = getZooInstance(instanceName, hosts, properties);
   }
 
   /**

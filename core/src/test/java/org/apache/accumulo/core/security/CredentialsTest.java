@@ -19,7 +19,6 @@ package org.apache.accumulo.core.security;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -27,9 +26,7 @@ import static org.junit.Assert.fail;
 
 import javax.security.auth.DestroyFailedException;
 
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -37,7 +34,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Authe
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Rule;
@@ -87,25 +83,6 @@ public class CredentialsTest {
     TCredentials tCreds = creds.toThrift(inst);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
     assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
-  }
-
-  @Test
-  public void testMockConnector()
-      throws AccumuloException, DestroyFailedException, AccumuloSecurityException {
-    Instance inst = DeprecationUtil.makeMockInstance(test.getMethodName());
-    Connector rootConnector = inst.getConnector("root", new PasswordToken());
-    PasswordToken testToken = new PasswordToken("testPass");
-    rootConnector.securityOperations().createLocalUser("testUser", testToken);
-
-    assertFalse(testToken.isDestroyed());
-    testToken.destroy();
-    assertTrue(testToken.isDestroyed());
-    try {
-      inst.getConnector("testUser", testToken);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      assertEquals(e.getSecurityErrorCode(), SecurityErrorCode.TOKEN_EXPIRED);
-    }
   }
 
   @Test

@@ -24,12 +24,12 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.Properties;
 
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.shell.ShellTest.TestOutputStream;
 import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Before;
@@ -40,6 +40,24 @@ import org.slf4j.LoggerFactory;
 import jline.console.ConsoleReader;
 
 public class ShellConfigTest {
+
+  public static class TestOutputStream extends OutputStream {
+    StringBuilder sb = new StringBuilder();
+
+    @Override
+    public void write(int b) throws IOException {
+      sb.append((char) (0xff & b));
+    }
+
+    public String get() {
+      return sb.toString();
+    }
+
+    public void clear() {
+      sb.setLength(0);
+    }
+  }
+
   TestOutputStream output;
   Shell shell;
   PrintStream out;

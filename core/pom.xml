@@ -192,7 +192,6 @@
                 <exclude>.*[.]impl[.].*</exclude>
                 <exclude>.*[.]thrift[.].*</exclude>
                 <exclude>org[.]apache[.]accumulo[.]core[.]security[.]crypto[.].*</exclude>
-                <exclude>org[.]apache[.]accumulo[.]core[.]client[.]mock[.].*</exclude>
               </excludes>
               <allows>
                 <!--Allow API data types to reference thrift types, but do not

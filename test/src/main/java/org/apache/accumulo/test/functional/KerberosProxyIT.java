@@ -255,7 +255,6 @@ public class KerberosProxyIT extends AccumuloITBase {
       assertTrue("Failed to delete proxy.properties file", proxyPropertiesFile.delete());
     }
     Properties proxyProperties = new Properties();
-    proxyProperties.setProperty("useMockInstance", "false");
     proxyProperties.setProperty("useMiniAccumulo", "false");
     proxyProperties.setProperty("protocolFactory", TCompactProtocol.Factory.class.getName());
     proxyProperties.setProperty("tokenClass", KerberosToken.class.getName());
