@@ -22,22 +22,24 @@ public interface CryptoService {
    * Initialize the FileEncrypter for the environment and return
    *
    * @return FileEncrypter
+   *
    * @since 2.0
    */
-  FileEncrypter encryptFile(CryptoEnvironment environment);
+  FileEncrypter getFileEncrypter(CryptoEnvironment environment);
 
   /**
    * Initialize the FileDecrypter for the environment and return
    *
    * @return FileDecrypter
+   *
    * @since 2.0
    */
-  FileDecrypter decryptFile(CryptoEnvironment environment);
+  FileDecrypter getFileDecrypter(CryptoEnvironment environment);
 
   /**
    * Runtime Crypto exception
    */
-  public class CryptoException extends RuntimeException {
+  class CryptoException extends RuntimeException {
     public CryptoException() {
       super();
     }

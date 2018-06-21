@@ -28,7 +28,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -116,7 +115,7 @@ public class CryptoTest {
   private <C extends CryptoService> byte[] encrypt(C cs, String configFile) throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-    FileEncrypter encrypter = cryptoService.encryptFile(
+    FileEncrypter encrypter = cryptoService.getFileEncrypter(
         new CryptoEnvironment(Scope.WAL, conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
 
     assertNotNull("CryptoService returned null FileEncrypter", encrypter);
@@ -139,8 +138,8 @@ public class CryptoTest {
 
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-    FileDecrypter decrypter = cryptoService.decryptFile(new CryptoEnvironment(Scope.WAL,
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
+    FileDecrypter decrypter = cryptoService.getFileDecrypter(
+        new CryptoEnvironment(Scope.WAL, conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX)));
 
     decrypter.decryptStream(dataIn);
     String markerString = dataIn.readUTF();

@@ -32,7 +32,6 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -140,8 +139,7 @@ public final class BCFile {
       /**
        * @param compressionAlgo
        *          The compression algorithm to be used to for compression.
-       * @param encryptionStrategy
-       *          the encryptionStrategy to use for encryption
+       * 
        */
       public WBlockState(Algorithm compressionAlgo, RateLimitedOutputStream fsOut,
           BytesWritable fsOutputBuffer, Configuration conf, FileEncrypter encrypter)
@@ -334,7 +332,7 @@ public final class BCFile {
       Magic.write(this.out);
       this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
           aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-      this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
+      this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
     }
 
     /**
@@ -363,7 +361,7 @@ public final class BCFile {
           metaIndex.write(out);
 
           long offsetCryptoParameter = out.position();
-          this.encrypter.addParamsToStream(out);
+          out.writeUTF(this.encrypter.getParameters());
 
           out.writeLong(offsetIndexMeta);
           out.writeLong(offsetCryptoParameter);
@@ -591,7 +589,7 @@ public final class BCFile {
           return null;
         }
 
-        this.encrypter.addParamsToStream(out);
+        out.writeUTF(new String(this.cryptoEnvironment.getParameters()));
 
         if (out.size() > maxSize) {
           return null;
@@ -655,8 +653,8 @@ public final class BCFile {
         this.in.seek(offsetCryptoParameters);
         this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
             aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-        this.decrypter = cryptoService.decryptFile(this.cryptoEnvironment);
-        this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
+        this.cryptoEnvironment.setParameters(this.in.readUTF());
+        this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
       }
 
       // read data:BCFile.index, the data block index
@@ -681,8 +679,8 @@ public final class BCFile {
 
       this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
           aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-      this.decrypter = cryptoService.decryptFile(this.cryptoEnvironment);
-      this.encrypter = cryptoService.encryptFile(this.cryptoEnvironment);
+      this.cryptoEnvironment.setParameters(dis.readUTF());
+      this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
     }
 
     /**

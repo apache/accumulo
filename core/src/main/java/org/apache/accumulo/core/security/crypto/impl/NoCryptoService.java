@@ -28,12 +28,12 @@ public class NoCryptoService implements CryptoService {
   public static final String VERSION = "U+1F47B";
 
   @Override
-  public FileEncrypter encryptFile(CryptoEnvironment environment) {
+  public FileEncrypter getFileEncrypter(CryptoEnvironment environment) {
     return new NoFileEncrypter();
   }
 
   @Override
-  public FileDecrypter decryptFile(CryptoEnvironment environment) {
+  public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
     return new NoFileDecrypter();
   }
 }

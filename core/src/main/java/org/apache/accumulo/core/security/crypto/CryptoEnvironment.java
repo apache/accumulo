@@ -22,12 +22,13 @@ public class CryptoEnvironment {
   /**
    * Where in Accumulo the on-disk file encryption takes place.
    */
-  public static enum Scope {
+  public enum Scope {
     WAL, RFILE;
   }
 
   private Scope scope;
   private Map<String,String> conf;
+  private String parameters;
 
   public CryptoEnvironment(Scope scope, Map<String,String> conf) {
     this.scope = scope;
@@ -40,5 +41,13 @@ public class CryptoEnvironment {
 
   public Map<String,String> getConf() {
     return this.conf;
+  }
+
+  public String getParameters() {
+    return parameters;
+  }
+
+  public void setParameters(String parameters) {
+    this.parameters = parameters;
   }
 }
