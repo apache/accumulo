@@ -144,12 +144,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
       localIterators = in.readBoolean();
     }
 
-    // ignore mock flag; it was removed
-    if (in.readBoolean()) {
-      throw new IllegalStateException(
-          "Mock flag was set in serialized RangeInputSplit, but mock Accumulo was removed");
-    }
-
     if (in.readBoolean()) {
       int numColumns = in.readInt();
       List<String> columns = new ArrayList<>(numColumns);
@@ -200,9 +194,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     if (null != localIterators) {
       out.writeBoolean(localIterators);
     }
-
-    // should be false to indicate that no mock flag was serialized; mock was removed
-    out.writeBoolean(false);
 
     out.writeBoolean(null != fetchedColumns);
     if (null != fetchedColumns) {

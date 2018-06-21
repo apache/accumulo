@@ -62,8 +62,6 @@ public class Proxy implements KeywordExecutable {
 
   public static final String USE_MINI_ACCUMULO_KEY = "useMiniAccumulo";
   public static final String USE_MINI_ACCUMULO_DEFAULT = "false";
-  public static final String USE_MOCK_INSTANCE_KEY = "useMockInstance";
-  public static final String USE_MOCK_INSTANCE_DEFAULT = "false";
   public static final String THRIFT_THREAD_POOL_SIZE_KEY = "numThreads";
   // Default number of threads from THsHaServer.Args
   public static final String THRIFT_THREAD_POOL_SIZE_DEFAULT = "5";
@@ -131,12 +129,10 @@ public class Proxy implements KeywordExecutable {
 
     boolean useMini = Boolean
         .parseBoolean(proxyProps.getProperty(USE_MINI_ACCUMULO_KEY, USE_MINI_ACCUMULO_DEFAULT));
-    boolean useMock = Boolean
-        .parseBoolean(proxyProps.getProperty(USE_MOCK_INSTANCE_KEY, USE_MOCK_INSTANCE_DEFAULT));
 
-    if (!useMini && !useMock && clientProps == null) {
+    if (!useMini && clientProps == null) {
       System.err.println("The '-c' option must be set with an accumulo-client.properties file or"
-          + " proxy.properties must contain either useMiniAccumulo=true or useMockInstance=true");
+          + " proxy.properties must contain either useMiniAccumulo=true");
       System.exit(1);
     }
 

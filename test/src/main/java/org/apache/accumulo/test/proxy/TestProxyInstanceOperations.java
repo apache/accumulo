@@ -47,7 +47,6 @@ public class TestProxyInstanceOperations {
   @BeforeClass
   public static void setup() throws Exception {
     Properties proxyProps = new Properties();
-    proxyProps.setProperty("useMockInstance", "true");
     proxyProps.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),

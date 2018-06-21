@@ -56,7 +56,6 @@ public class TestProxyNamespaceOperations {
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
-    prop.setProperty("useMockInstance", "true");
     prop.put("tokenClass", PasswordToken.class.getName());
 
     proxy = Proxy.createProxyServer(HostAndPort.fromParts("localhost", port),
