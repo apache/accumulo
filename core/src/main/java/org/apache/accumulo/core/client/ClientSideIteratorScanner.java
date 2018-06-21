@@ -107,6 +107,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     @Override
+    public boolean isUserCompaction() {
+      return false;
+    }
+
+    @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
       throw new UnsupportedOperationException();
     }

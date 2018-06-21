@@ -35,6 +35,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
+import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements IteratorEnvironment {
@@ -42,6 +43,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private final ScanFileManager trm;
   private final IteratorScope scope;
   private final boolean fullMajorCompaction;
+  private boolean userCompaction;
   private final AccumuloConfiguration config;
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
   private Map<FileRef,DataFileValue> files;
@@ -50,7 +52,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
 
-  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
+  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
+      MajorCompactionReason reason) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
@@ -58,6 +61,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.trm = null;
     this.config = config;
     this.fullMajorCompaction = false;
+    this.userCompaction = reason.equals(MajorCompactionReason.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
@@ -92,7 +96,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
 
   public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC,
-      AccumuloConfiguration config) {
+      AccumuloConfiguration config, MajorCompactionReason reason) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
@@ -101,6 +105,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.trm = null;
     this.config = config;
     this.fullMajorCompaction = fullMajC;
+    this.userCompaction = reason.equals(MajorCompactionReason.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
@@ -120,6 +125,11 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     if (scope != IteratorScope.majc)
       throw new IllegalStateException("Asked about major compaction type when scope is " + scope);
     return fullMajorCompaction;
+  }
+
+  @Override
+  public boolean isUserCompaction() {
+    return userCompaction;
   }
 
   @Override
