@@ -52,19 +52,23 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  *
  */
 public class LogSorter {
 
   private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
-  VolumeManager fs;
-  AccumuloConfiguration conf;
+  private VolumeManager fs;
+  private AccumuloConfiguration conf;
 
   private final Map<String,LogProcessor> currentWork = Collections
       .synchronizedMap(new HashMap<String,LogProcessor>());
 
-  class LogProcessor implements Processor {
+  public static class LogSorterTask {
+    private VolumeManager fs;
+    private AccumuloConfiguration conf;
 
     private FSDataInputStream input;
     private DataInputStream decryptingInput;
@@ -72,37 +76,12 @@ public class LogSorter {
     private long sortStart = 0;
     private long sortStop = -1;
 
-    @Override
-    public Processor newProcessor() {
-      return new LogProcessor();
-    }
-
-    @Override
-    public void process(String child, byte[] data) {
-      String work = new String(data);
-      String[] parts = work.split("\\|");
-      String src = parts[0];
-      String dest = parts[1];
-      String sortId = new Path(src).getName();
-      log.debug("Sorting " + src + " to " + dest + " using sortId " + sortId);
-
-      synchronized (currentWork) {
-        if (currentWork.containsKey(sortId))
-          return;
-        currentWork.put(sortId, this);
-      }
-
-      try {
-        log.info("Copying " + src + " to " + dest);
-        sort(sortId, new Path(src), dest);
-      } finally {
-        currentWork.remove(sortId);
-      }
-
+    public LogSorterTask(VolumeManager fs, AccumuloConfiguration conf) {
+      this.fs = fs;
+      this.conf = conf;
     }
 
     public void sort(String name, Path srcPath, String destPath) {
-
       synchronized (this) {
         sortStart = System.currentTimeMillis();
       }
@@ -182,9 +161,9 @@ public class LogSorter {
       Path path = new Path(destPath, String.format("part-r-%05d", part));
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
 
-      MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path),
-          MapFile.Writer.keyClass(LogFileKey.class), MapFile.Writer.valueClass(LogFileValue.class));
-      try {
+      try (MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path),
+          MapFile.Writer.keyClass(LogFileKey.class),
+          MapFile.Writer.valueClass(LogFileValue.class))) {
         Collections.sort(buffer, new Comparator<Pair<LogFileKey,LogFileValue>>() {
           @Override
           public int compare(Pair<LogFileKey,LogFileValue> o1, Pair<LogFileKey,LogFileValue> o2) {
@@ -194,8 +173,6 @@ public class LogSorter {
         for (Pair<LogFileKey,LogFileValue> entry : buffer) {
           output.append(entry.getFirst(), entry.getSecond());
         }
-      } finally {
-        output.close();
       }
     }
 
@@ -221,6 +198,52 @@ public class LogSorter {
 
     synchronized long getBytesCopied() throws IOException {
       return input == null ? bytesCopied : input.getPos();
+    }
+  }
+
+  class LogProcessor implements Processor {
+
+    private LogSorterTask task = new LogSorterTask(fs, conf);
+
+    @Override
+    public Processor newProcessor() {
+      return new LogProcessor();
+    }
+
+    @Override
+    public void process(String child, byte[] data) {
+      String work = new String(data);
+      String[] parts = work.split("\\|");
+      String src = parts[0];
+      String dest = parts[1];
+      String sortId = new Path(src).getName();
+      log.debug("Sorting " + src + " to " + dest + " using sortId " + sortId);
+
+      synchronized (currentWork) {
+        if (currentWork.containsKey(sortId))
+          return;
+        currentWork.put(sortId, this);
+      }
+
+      try {
+        log.info("Copying " + src + " to " + dest);
+        task.sort(sortId, new Path(src), dest);
+      } finally {
+        currentWork.remove(sortId);
+      }
+    }
+
+    @VisibleForTesting
+    public LogSorterTask getLogSorterTask() {
+      return task;
+    }
+
+    public double getBytesCopied() throws IOException {
+      return task.getBytesCopied();
+    }
+
+    public long getSortTime() {
+      return task.getSortTime();
     }
   }
 

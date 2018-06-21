@@ -17,6 +17,7 @@
 package org.apache.accumulo.tserver.log;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -191,15 +192,21 @@ public class SortedLogRecovery {
             lastStartFile = key.filename;
             break;
           case COMPACTION_FINISH:
-            checkState(key.seq > lastStart, "Compaction finish <= start %s %s %s", key.tabletId,
-                key.seq, lastStart);
-            checkState(lastEvent != COMPACTION_FINISH,
-                "Saw consecutive COMPACTION_FINISH events %s %s %s", key.tabletId, lastFinish,
-                key.seq);
+            if (key.seq <= lastStart) {
+              throw new LogRecoveryException(key.tserverSession, key.tabletId,
+                  format("Compaction finish <= start %s %s %s", key.tabletId, key.seq, lastStart));
+            }
+
+            if (lastEvent == COMPACTION_FINISH) {
+              throw new LogRecoveryException(key.tserverSession, key.tabletId,
+                  format("Saw consecutive COMPACTION_FINISH events %s %s %s", key.tabletId,
+                      lastFinish, key.seq));
+            }
             lastFinish = key.seq;
             break;
           default:
-            throw new IllegalStateException("Non compaction event seen " + key.event);
+            throw new LogRecoveryException(key.tserverSession, tabletId,
+                "Non compaction event seen " + key.event);
         }
 
         lastEvent = key.event;
