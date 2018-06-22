@@ -126,6 +126,17 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <!-- add flags to generate native headers -->
+            <compilerArgs combine.children="append">
+              <arg>-h</arg>
+              <arg>${project.build.directory}/native/javah/</arg>
+            </compilerArgs>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>

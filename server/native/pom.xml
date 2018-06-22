@@ -55,24 +55,6 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>native-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>generate-javah-includes</id>
-            <goals>
-              <goal>javah</goal>
-            </goals>
-            <phase>compile</phase>
-            <configuration>
-              <javahClassNames>
-                <javahClassName>org.apache.accumulo.tserver.NativeMap</javahClassName>
-              </javahClassNames>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
