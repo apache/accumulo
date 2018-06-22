@@ -36,6 +36,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -264,6 +265,8 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
 
@@ -3343,28 +3346,87 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
   }
 
-  // remove any meta entries after a rolled log is no longer referenced
-  Set<DfsLogger> closedLogs = new HashSet<>();
+  // This is a set of WALs that are closed but may still be referenced byt tablets. A LinkedHashSet
+  // is used because its very import to know the order in which WALs were closed when deciding if a
+  // WAL is eligible for removal.
+  LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
 
-  private void markUnusedWALs() {
-    Set<DfsLogger> candidates;
-    synchronized (closedLogs) {
-      candidates = new HashSet<>(closedLogs);
-    }
-    for (Tablet tablet : getOnlineTablets()) {
-      tablet.removeInUseLogs(candidates);
-      if (candidates.isEmpty()) {
+  @VisibleForTesting
+  interface ReferencedRemover {
+    void removeInUse(Set<DfsLogger> candidates);
+  }
+
+  /**
+   * For a closed WAL to be eligible for removal it must be unreferenced AND all closed WALs older
+   * than it must be unreferenced. This method finds WALs that meet those conditions. See Github
+   * issue #537.
+   */
+  @VisibleForTesting
+  static Set<DfsLogger> findOldestUnreferencedWals(List<DfsLogger> closedLogs,
+      ReferencedRemover referencedRemover) {
+    LinkedHashSet<DfsLogger> unreferenced = new LinkedHashSet<>(closedLogs);
+
+    referencedRemover.removeInUse(unreferenced);
+
+    Iterator<DfsLogger> closedIter = closedLogs.iterator();
+    Iterator<DfsLogger> unrefIter = unreferenced.iterator();
+
+    Set<DfsLogger> eligible = new HashSet<>();
+
+    while (closedIter.hasNext() && unrefIter.hasNext()) {
+      DfsLogger closed = closedIter.next();
+      DfsLogger unref = unrefIter.next();
+
+      if (closed.equals(unref)) {
+        eligible.add(unref);
+      } else {
         break;
       }
     }
+
+    return eligible;
+  }
+
+  @VisibleForTesting
+  static List<DfsLogger> copyClosedLogs(LinkedHashSet<DfsLogger> closedLogs) {
+    List<DfsLogger> closedCopy = new ArrayList<>(closedLogs.size());
+    for (DfsLogger dfsLogger : closedLogs) {
+      // very important this copy maintains same order ..
+      closedCopy.add(dfsLogger);
+    }
+    return closedCopy;
+  }
+
+  private void markUnusedWALs() {
+
+    List<DfsLogger> closedCopy;
+
+    synchronized (closedLogs) {
+      closedCopy = copyClosedLogs(closedLogs);
+    }
+
+    ReferencedRemover refRemover = new ReferencedRemover() {
+      @Override
+      public void removeInUse(Set<DfsLogger> candidates) {
+        for (Tablet tablet : getOnlineTablets()) {
+          tablet.removeInUseLogs(candidates);
+          if (candidates.isEmpty()) {
+            break;
+          }
+        }
+      }
+    };
+
+    Set<DfsLogger> eligible = findOldestUnreferencedWals(closedCopy, refRemover);
+
     try {
       TServerInstance session = this.getTabletSession();
-      for (DfsLogger candidate : candidates) {
+      for (DfsLogger candidate : eligible) {
         log.info("Marking " + candidate.getPath() + " as unreferenced");
         walMarker.walUnreferenced(session, candidate.getPath());
       }
       synchronized (closedLogs) {
-        closedLogs.removeAll(candidates);
+        closedLogs.removeAll(eligible);
       }
     } catch (WalMarkerException ex) {
       log.info(ex.toString(), ex);
