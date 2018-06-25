@@ -174,7 +174,6 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
-import com.google.common.annotations.VisibleForTesting;
 
 import jline.console.ConsoleReader;
 import jline.console.UserInterruptException;
@@ -247,11 +246,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public Shell(ConsoleReader reader) {
     super();
     this.reader = reader;
-  }
-
-  @VisibleForTesting
-  public void setConnector(Connector connector) {
-    this.connector = connector;
   }
 
   /**
