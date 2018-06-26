@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -99,7 +98,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          Hadoop job to be configured
    * @since 2.0.0
    */
-  public static ClientInfo getClientInfo(JobConf job) {
+  protected static ClientInfo getClientInfo(JobConf job) {
     return OutputConfigurator.getClientInfo(CLASS, job);
   }
 
@@ -141,17 +140,6 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (token instanceof KerberosToken) {
-      log.info("Received KerberosToken, attempting to fetch DelegationToken");
-      try {
-        Connector conn = Connector.builder().usingClientInfo(getClientInfo(job))
-            .usingToken(principal, token).build();
-        token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
-      } catch (Exception e) {
-        log.warn("Failed to automatically obtain DelegationToken, "
-            + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
-      }
-    }
     // DelegationTokens can be passed securely from user to task without serializing insecurely in
     // the configuration
     if (token instanceof DelegationTokenImpl) {
