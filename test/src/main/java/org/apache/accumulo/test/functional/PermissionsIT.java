@@ -109,7 +109,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     loginAs(rootUser);
     c.securityOperations().createLocalUser(principal, passwordToken);
     loginAs(testUser);
-    Connector test_user_conn = c.getInstance().getConnector(principal, token);
+    Connector test_user_conn = c.changeUser(principal, token);
     loginAs(rootUser);
     verifyHasNoSystemPermissions(c, principal, SystemPermission.values());
 
@@ -565,7 +565,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     c.securityOperations().createLocalUser(principal, passwordToken);
     loginAs(testUser);
-    Connector test_user_conn = c.getInstance().getConnector(principal, token);
+    Connector test_user_conn = c.changeUser(principal, token);
 
     // check for read-only access to metadata table
     loginAs(rootUser);

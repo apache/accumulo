@@ -626,7 +626,7 @@ public class Master extends AccumuloServerContext
 
   public void mustBeOnline(final Table.ID tableId) throws ThriftTableOperationException {
     Tables.clearCache(getInstance());
-    if (!Tables.getTableState(getInstance(), tableId).equals(TableState.ONLINE))
+    if (!Tables.getTableState(this, tableId).equals(TableState.ONLINE))
       throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
   }

@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -145,13 +144,12 @@ class CompactionDriver extends MasterRepo {
 
     long scanTime = System.currentTimeMillis() - t1;
 
-    Instance instance = master.getInstance();
-    Tables.clearCache(instance);
+    Tables.clearCache(master);
     if (tabletCount == 0 && !Tables.exists(master, tableId))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 
-    if (serversToFlush.size() == 0 && Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+    if (serversToFlush.size() == 0 && Tables.getTableState(master, tableId) == TableState.OFFLINE)
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
 

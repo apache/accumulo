@@ -834,13 +834,13 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   public static Map<String,Map<KeyExtent,List<Range>>> binOffline(Table.ID tableId,
-      List<Range> ranges, Instance instance, Connector conn)
-      throws AccumuloException, TableNotFoundException {
+      List<Range> ranges, ClientContext context)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
-    if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
-      Tables.clearCache(instance);
-      if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
+    if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
+      Tables.clearCache(context);
+      if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
         throw new AccumuloException(
             "Table is online tableId:" + tableId + " cannot scan table in offline mode ");
       }
@@ -856,7 +856,8 @@ public class InputConfigurator extends ConfiguratorBase {
 
       Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
           true, null, false);
-      Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner scanner = context.getConnector().createScanner(MetadataTable.NAME,
+          Authorizations.EMPTY);
       MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

@@ -140,8 +140,8 @@ class CopyFailed extends MasterRepo {
     }
 
     if (loadedFailures.size() > 0) {
-      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/"
-          + master.getInstance().getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
+      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(
+          Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
           master.getConfiguration());
 
       HashSet<String> workIds = new HashSet<>();

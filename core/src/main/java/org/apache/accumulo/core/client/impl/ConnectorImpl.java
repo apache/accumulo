@@ -89,7 +89,7 @@ public class ConnectorImpl extends Connector {
 
   private Table.ID getTableId(String tableName) throws TableNotFoundException {
     Table.ID tableId = Tables.getTableId(context, tableName);
-    if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+    if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
       throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
     return tableId;
   }
@@ -242,6 +242,12 @@ public class ConnectorImpl extends Connector {
   @Override
   public ClientInfo info() {
     return this.context.getClientInfo();
+  }
+
+  @Override
+  public Connector changeUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException, AccumuloException {
+    return Connector.builder().usingClientInfo(info()).usingToken(principal, token).build();
   }
 
   public static class ConnectorBuilderImpl

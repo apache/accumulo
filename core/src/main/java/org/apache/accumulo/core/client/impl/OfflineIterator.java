@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
@@ -150,15 +149,15 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private Connector conn;
   private Table.ID tableId;
   private Authorizations authorizations;
-  private Instance instance;
+  private ClientContext context;
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
   private AccumuloConfiguration config;
 
-  public OfflineIterator(ScannerOptions options, Instance instance, Credentials credentials,
+  public OfflineIterator(ScannerOptions options, ClientContext context,
       Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
-    this.instance = instance;
+    this.context = context;
     this.range = range;
 
     if (this.options.fetchedColumns.size() > 0) {
@@ -171,7 +170,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<>();
 
     try {
-      conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
+      conn = context.getConnector();
       config = new ConfigurationCopy(conn.instanceOperations().getSiteConfiguration());
       nextTablet();
 
@@ -242,9 +241,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     Pair<KeyExtent,String> eloc = getTabletFiles(nextRange, relFiles);
 
     while (eloc.getSecond() != null) {
-      if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
-        Tables.clearCache(instance);
-        if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
+      if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
+        Tables.clearCache(context);
+        if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
           throw new AccumuloException("Table is online " + tableId
               + " cannot scan tablet in offline mode " + eloc.getFirst());
         }

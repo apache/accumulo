@@ -98,7 +98,7 @@ public class RenameTable extends MasterRepo {
           return newName.getBytes(UTF_8);
         }
       });
-      Tables.clearCache(instance);
+      Tables.clearCache(master);
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveTable(tableId, tid, true);

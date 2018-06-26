@@ -239,24 +239,12 @@ public class ShellOptionsJC {
     return execFileVerbose;
   }
 
-  public List<String> getZooKeeperInstance() {
-    return zooKeeperInstance;
-  }
-
-  public String getZooKeeperInstanceName() {
-    return zooKeeperInstanceName;
-  }
-
-  public String getZooKeeperHosts() {
-    return zooKeeperHosts;
-  }
-
   public int getAuthTimeout() {
     return authTimeout;
   }
 
   public boolean isAuthTimeoutDisabled() {
-    if (useSasl()) {
+    if (useSasl) {
       return true;
     }
     return authTimeoutDisabled;
@@ -264,10 +252,6 @@ public class ShellOptionsJC {
 
   public List<String> getUnrecognizedOptions() {
     return unrecognizedOptions;
-  }
-
-  public boolean useSsl() {
-    return useSsl;
   }
 
   public String getClientConfigFile() {
@@ -303,16 +287,15 @@ public class ShellOptionsJC {
     for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
       props.setProperty(entry.getKey(), entry.getValue());
     }
-    if (useSsl()) {
+    if (useSsl) {
       props.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
     }
-    if (useSasl()) {
+    if (useSasl) {
       props.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
     }
-    if (!getZooKeeperInstance().isEmpty()) {
-      List<String> zkOpts = getZooKeeperInstance();
-      String instanceName = zkOpts.get(0);
-      String hosts = zkOpts.get(1);
+    if (!zooKeeperInstance.isEmpty()) {
+      String instanceName = zooKeeperInstance.get(0);
+      String hosts = zooKeeperInstance.get(1);
       props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), hosts);
       props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     }
@@ -326,7 +309,4 @@ public class ShellOptionsJC {
     return props;
   }
 
-  public boolean useSasl() {
-    return useSasl;
-  }
 }

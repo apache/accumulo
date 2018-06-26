@@ -87,7 +87,7 @@ public class PrepBulkImport extends MasterRepo {
 
     if (master.onlineTabletServers().size() == 0)
       return 500;
-    Tables.clearCache(master.getInstance());
+    Tables.clearCache(master);
 
     return Utils.reserveHdfsDirectory(bulkInfo.sourceDir, tid);
   }

@@ -29,7 +29,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -49,7 +48,6 @@ public class CredentialsIT extends AccumuloClusterHarness {
   private boolean saslEnabled;
   private String username;
   private String password;
-  private Instance inst;
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -59,8 +57,6 @@ public class CredentialsIT extends AccumuloClusterHarness {
   @Before
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
     Connector conn = getConnector();
-    inst = conn.getInstance();
-
     ClusterUser user = getUser(0);
     username = user.getPrincipal();
     saslEnabled = saslEnabled();
@@ -93,7 +89,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
     token.destroy();
     assertTrue(token.isDestroyed());
     try {
-      inst.getConnector("non_existent_user", token);
+      getConnector().changeUser("non_existent_user", token);
       fail();
     } catch (AccumuloSecurityException e) {
       assertEquals(e.getSecurityErrorCode(), SecurityErrorCode.TOKEN_EXPIRED);
@@ -103,7 +99,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
   @Test
   public void testDestroyTokenBeforeRPC() throws Exception {
     AuthenticationToken token = getUser(0).getToken();
-    Connector userConnector = inst.getConnector(username, token);
+    Connector userConnector = getConnector().changeUser(username, token);
     try (Scanner scanner = userConnector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       assertFalse(token.isDestroyed());
       token.destroy();

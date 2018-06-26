@@ -173,8 +173,6 @@ public class Monitor implements HighlyAvailableService {
   private static Exception problemException;
   private static GCStatus gcStatus;
 
-  private static Instance instance;
-
   private static ServerConfigurationFactory config;
   private static AccumuloServerContext context;
 
@@ -421,14 +419,14 @@ public class Monitor implements HighlyAvailableService {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = ZooReaderWriter.getInstance();
-      String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
+      String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZGC_LOCK;
       List<String> locks = zk.getChildren(path, null);
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8))
             .getAddress(Service.GC_CLIENT);
         GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(),
-            address, new AccumuloServerContext(instance, config));
+            address, context);
         try {
           result = client.getStatus(Tracer.traceInfo(), getContext().rpcCreds());
         } finally {
@@ -449,7 +447,7 @@ public class Monitor implements HighlyAvailableService {
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
     VolumeManager fs = VolumeManagerImpl.get();
-    instance = HdfsZooInstance.getInstance();
+    Instance instance = HdfsZooInstance.getInstance();
     config = new ServerConfigurationFactory(instance);
     context = new AccumuloServerContext(instance, config);
     log.info("Version " + Constants.VERSION);
@@ -512,8 +510,8 @@ public class Monitor implements HighlyAvailableService {
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
       ZooReaderWriter.getInstance().putPersistentData(
-          ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
-          NodeExistsPolicy.OVERWRITE);
+          ZooUtil.getRoot(context.getInstanceID()) + Constants.ZMONITOR_HTTP_ADDR,
+          monitorAddress.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
@@ -617,7 +615,7 @@ public class Monitor implements HighlyAvailableService {
   }
 
   public static void fetchScans() throws Exception {
-    if (instance == null)
+    if (context == null)
       return;
     Connector c = context.getConnector();
     for (String server : c.instanceOperations().getTabletServers()) {
@@ -649,7 +647,7 @@ public class Monitor implements HighlyAvailableService {
    * Get the monitor lock in ZooKeeper
    */
   private void getMonitorLock() throws KeeperException, InterruptedException {
-    final String zRoot = ZooUtil.getRoot(instance);
+    final String zRoot = ZooUtil.getRoot(context.getInstanceID());
     final String monitorPath = zRoot + Constants.ZMONITOR;
     final String monitorLockPath = zRoot + Constants.ZMONITOR_LOCK;
 

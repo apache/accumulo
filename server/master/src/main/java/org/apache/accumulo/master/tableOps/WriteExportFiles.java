@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -69,10 +70,10 @@ class WriteExportFiles extends MasterRepo {
     this.tableInfo = tableInfo;
   }
 
-  private void checkOffline(Connector conn) throws Exception {
-    if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
-      Tables.clearCache(conn.getInstance());
-      if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
+  private void checkOffline(ClientContext context) throws Exception {
+    if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
+      Tables.clearCache(context);
+      if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
             tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
             "Table is not offline");
@@ -91,7 +92,7 @@ class WriteExportFiles extends MasterRepo {
 
     Connector conn = master.getConnector();
 
-    checkOffline(conn);
+    checkOffline(master);
 
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetadataRange());

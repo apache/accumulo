@@ -327,6 +327,19 @@ public abstract class Connector {
   public abstract ClientInfo info();
 
   /**
+   * Change user
+   *
+   * @param principal
+   *          Principal/username
+   * @param token
+   *          Authentication token
+   * @return {@link Connector} for new user
+   * @since 2.0.0
+   */
+  public abstract Connector changeUser(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException, AccumuloException;
+
+  /**
    * Builds ClientInfo after all options have been specified
    *
    * @since 2.0.0

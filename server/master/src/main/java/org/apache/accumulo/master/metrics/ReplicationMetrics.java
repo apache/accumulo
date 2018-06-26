@@ -58,7 +58,7 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
   @Override
   public int getNumFilesPendingReplication() {
 
-    if (TableState.ONLINE != Tables.getTableState(master.getInstance(), ReplicationTable.ID)) {
+    if (TableState.ONLINE != Tables.getTableState(master, ReplicationTable.ID)) {
       return 0;
     }
 

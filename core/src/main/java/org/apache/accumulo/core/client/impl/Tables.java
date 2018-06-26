@@ -179,6 +179,10 @@ public class Tables {
     return tableIds.contains(tableId.canonicalID());
   }
 
+  public static void clearCache(ClientContext context) {
+    clearCache(context.getInstance());
+  }
+
   public static void clearCache(Instance instance) {
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
@@ -197,6 +201,10 @@ public class Tables {
     String thePath = zooPath.startsWith("/") ? zooPath : "/" + zooPath;
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + thePath);
     instanceToMapCache.invalidate(instance.getInstanceID());
+  }
+
+  public static String getPrintableTableInfoFromId(ClientContext context, Table.ID tableId) {
+    return getPrintableTableInfoFromId(context.getInstance(), tableId);
   }
 
   public static String getPrintableTableInfoFromId(Instance instance, Table.ID tableId) {
@@ -227,6 +235,11 @@ public class Tables {
 
   public static TableState getTableState(Instance instance, Table.ID tableId) {
     return getTableState(instance, tableId, false);
+  }
+
+  public static TableState getTableState(ClientContext context, Table.ID tableId,
+      boolean clearCachedState) {
+    return getTableState(context.getInstance(), tableId, clearCachedState);
   }
 
   /**

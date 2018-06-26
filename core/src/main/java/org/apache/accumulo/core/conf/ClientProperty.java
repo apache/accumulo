@@ -152,6 +152,12 @@ public enum ClientProperty {
     return value;
   }
 
+  public boolean isEmpty(Properties properties) {
+    Objects.requireNonNull(properties);
+    String value = properties.getProperty(getKey());
+    return (value == null || value.isEmpty());
+  }
+
   public Long getLong(Properties properties) {
     String value = getValue(properties);
     if (value.isEmpty()) {

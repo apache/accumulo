@@ -302,7 +302,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (failures.size() == mutations.size())
         if (!Tables.exists(context, tableId))
           throw new TableDeletedException(tableId.canonicalID());
-        else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+        else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
     } catch (Exception e) {
@@ -628,7 +628,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (ThriftSecurityException tse) {
       AccumuloSecurityException ase = new AccumuloSecurityException(
           context.getCredentials().getPrincipal(), tse.getCode(),
-          Tables.getPrintableTableInfoFromId(context.getInstance(), tableId), tse);
+          Tables.getPrintableTableInfoFromId(context, tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TTransportException e) {
       locator.invalidateCache(context.getInstance(), location.toString());

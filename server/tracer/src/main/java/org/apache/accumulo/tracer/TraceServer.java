@@ -53,6 +53,7 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -88,7 +89,7 @@ public class TraceServer implements Watcher {
 
   final private static Logger log = LoggerFactory.getLogger(TraceServer.class);
   final private ServerConfigurationFactory serverConfiguration;
-  final private Instance instance;
+  final private AccumuloServerContext context;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
@@ -191,12 +192,11 @@ public class TraceServer implements Watcher {
 
   }
 
-  public TraceServer(Instance instance, ServerConfigurationFactory serverConfiguration,
-      String hostname) throws Exception {
-    this.serverConfiguration = serverConfiguration;
-    this.instance = instance;
+  public TraceServer(AccumuloServerContext context, String hostname) throws Exception {
+    this.context = context;
+    this.serverConfiguration = context.getServerConfigurationFactory();
     log.info("Version {}", Constants.VERSION);
-    log.info("Instance {}", instance.getInstanceID());
+    log.info("Instance {}", context.getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
     connector = ensureTraceTableExists(conf);
@@ -278,7 +278,8 @@ public class TraceServer implements Watcher {
           at = token;
         }
 
-        connector = instance.getConnector(principal, at);
+        connector = Connector.builder().usingClientInfo(context.getClientInfo())
+            .usingToken(principal, at).build();
         if (!connector.tableOperations().exists(tableName)) {
           connector.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
@@ -412,7 +413,8 @@ public class TraceServer implements Watcher {
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     Accumulo.init(fs, instance, conf, app);
     String hostname = opts.getAddress();
-    TraceServer server = new TraceServer(instance, conf, hostname);
+    AccumuloServerContext context = new AccumuloServerContext(instance, conf);
+    TraceServer server = new TraceServer(context, hostname);
     try {
       server.run();
     } finally {

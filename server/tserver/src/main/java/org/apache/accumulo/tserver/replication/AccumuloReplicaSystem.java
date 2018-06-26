@@ -681,11 +681,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(principal);
     requireNonNull(token);
 
-    return new ClientContext(getPeerInstance(target), new Credentials(principal, token), localConf);
-  }
-
-  protected Instance getPeerInstance(ReplicationTarget target) {
-    return new ZooKeeperInstance(instanceName, zookeepers);
+    return new ClientContext(new ZooKeeperInstance(instanceName, zookeepers),
+        new Credentials(principal, token), localConf);
   }
 
   protected RFileReplication getKeyValues(ReplicationTarget target, DataInputStream input, Path p,

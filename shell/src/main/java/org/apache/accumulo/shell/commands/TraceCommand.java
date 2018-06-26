@@ -41,7 +41,7 @@ public class TraceCommand extends DebugCommand {
       throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
-        Trace.on("shell:" + shellState.getPrincipal());
+        Trace.on("shell:" + shellState.getConnector().whoami());
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (Trace.isTracing()) {
           final long trace = Trace.currentTraceId();

@@ -37,7 +37,7 @@ public class CreateUserCommand extends Command {
       TableExistsException, IOException {
     final String user = cl.getArgs()[0];
 
-    AuthenticationToken userToken = shellState.getToken();
+    AuthenticationToken userToken = shellState.getConnector().info().getAuthenticationToken();
     PasswordToken passwordToken;
     if (userToken instanceof KerberosToken) {
       passwordToken = new PasswordToken();

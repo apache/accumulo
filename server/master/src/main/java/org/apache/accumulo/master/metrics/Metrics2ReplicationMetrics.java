@@ -79,7 +79,7 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
 
   protected void snapshot() {
     // Only add these metrics if the replication table is online and there are peers
-    if (TableState.ONLINE == Tables.getTableState(master.getInstance(), ReplicationTable.ID)
+    if (TableState.ONLINE == Tables.getTableState(master, ReplicationTable.ID)
         && !replicationUtil.getPeers().isEmpty()) {
       registry.add(PENDING_FILES, getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();

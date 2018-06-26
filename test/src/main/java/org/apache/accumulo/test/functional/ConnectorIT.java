@@ -78,5 +78,18 @@ public class ConnectorIT extends AccumuloClusterHarness {
     Assert.assertEquals(instanceName, info.getInstanceName());
     Assert.assertEquals(zookeepers, info.getZooKeepers());
     Assert.assertEquals(user2, info.getPrincipal());
+
+    final String user3 = "testuser3";
+    final String password3 = "testpassword3";
+    c.securityOperations().createLocalUser(user3, new PasswordToken(password3));
+
+    Connector conn3 = conn.changeUser(user3, new PasswordToken(password3));
+    Assert.assertEquals(instanceName, conn3.info().getInstanceName());
+    Assert.assertEquals(zookeepers, conn3.info().getZooKeepers());
+    Assert.assertEquals(user3, conn3.whoami());
+    info = conn3.info();
+    Assert.assertEquals(instanceName, info.getInstanceName());
+    Assert.assertEquals(zookeepers, info.getZooKeepers());
+    Assert.assertEquals(user3, info.getPrincipal());
   }
 }

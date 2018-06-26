@@ -45,7 +45,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -212,8 +212,8 @@ public class SampleIT extends AccumuloClusterHarness {
     conn.tableOperations().clone(tableName, clone, false, em, es);
     conn.tableOperations().offline(clone, true);
     Table.ID cloneID = Table.ID.of(conn.tableOperations().tableIdMap().get(clone));
-    OfflineScanner oScanner = new OfflineScanner(conn.getInstance(),
-        new Credentials(getAdminPrincipal(), getAdminToken()), cloneID, Authorizations.EMPTY);
+    ClientContext context = new ClientContext(conn.info());
+    OfflineScanner oScanner = new OfflineScanner(context, cloneID, Authorizations.EMPTY);
     if (sc != null) {
       oScanner.setSamplerConfiguration(sc);
     }

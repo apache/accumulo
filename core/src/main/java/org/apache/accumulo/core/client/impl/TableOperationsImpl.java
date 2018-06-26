@@ -386,7 +386,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (Exception e) {
       throw new AccumuloException(e.getMessage(), e);
     } finally {
-      Tables.clearCache(context.getInstance());
+      Tables.clearCache(context);
       // always finish table op, even when exception
       if (opid != null)
         try {
@@ -532,7 +532,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (tl == null) {
           if (!Tables.exists(context, tableId))
             throw new TableNotFoundException(tableId.canonicalID(), tableName, null);
-          else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+          else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
             throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
           continue;
         }
@@ -573,7 +573,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           tabLocator.invalidateCache(context.getInstance(), tl.tablet_location);
           continue;
         } catch (ThriftSecurityException e) {
-          Tables.clearCache(context.getInstance());
+          Tables.clearCache(context);
           if (!Tables.exists(context, tableId))
             throw new TableNotFoundException(tableId.canonicalID(), tableName, null);
           throw new AccumuloSecurityException(e.user, e.code, e);
@@ -1089,7 +1089,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (!tl.binRanges(context, Collections.singletonList(range), binnedRanges).isEmpty()) {
       if (!Tables.exists(context, tableId))
         throw new TableDeletedException(tableId.canonicalID());
-      if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+      if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
         throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
       log.warn("Unable to locate bins for specified range. Retrying.");
@@ -1203,16 +1203,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     while (true) {
 
-      if (Tables.getTableState(context.getInstance(), tableId) != expectedState) {
-        Tables.clearCache(context.getInstance());
-        TableState currentState = Tables.getTableState(context.getInstance(), tableId);
+      if (Tables.getTableState(context, tableId) != expectedState) {
+        Tables.clearCache(context);
+        TableState currentState = Tables.getTableState(context, tableId);
         if (currentState != expectedState) {
           if (!Tables.exists(context, tableId))
             throw new TableDeletedException(tableId.canonicalID());
           if (currentState == TableState.DELETING)
             throw new TableNotFoundException(tableId.canonicalID(), "", "Table is being deleted.");
           throw new AccumuloException("Unexpected table state " + tableId + " "
-              + Tables.getTableState(context.getInstance(), tableId) + " != " + expectedState);
+              + Tables.getTableState(context, tableId) + " != " + expectedState);
         }
       }
 
@@ -1372,7 +1372,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
      * ACCUMULO-4574 if table is already online return without executing fate operation.
      */
 
-    TableState expectedState = Tables.getTableState(context.getInstance(), tableId, true);
+    TableState expectedState = Tables.getTableState(context, tableId, true);
     if (expectedState == TableState.ONLINE) {
       if (wait)
         waitForTableStateTransition(tableId, TableState.ONLINE);
@@ -1763,7 +1763,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       if (!Tables.exists(context, tableId))
         throw new TableNotFoundException(tableId.canonicalID(), tableName, null);
-      if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+      if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
         throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
       binnedRanges.clear();
@@ -1811,7 +1811,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       public List<Summary> retrieve()
           throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
         Table.ID tableId = Tables.getTableId(context, tableName);
-        if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+        if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
         TRowRange range = new TRowRange(TextUtil.getByteBuffer(startRow),
