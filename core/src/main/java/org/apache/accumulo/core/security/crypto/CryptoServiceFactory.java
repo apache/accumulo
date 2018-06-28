@@ -32,9 +32,11 @@ public class CryptoServiceFactory {
     String configuredClass = conf.get(Property.TABLE_CRYPTO_SERVICE.getKey());
     if (singleton == null) {
       singleton = loadCryptoService(configuredClass);
+      singleton.init(conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
     } else {
       if (!singleton.getClass().getName().equals(configuredClass)) {
         singleton = loadCryptoService(configuredClass);
+        singleton.init(conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
       }
     }
     return singleton;

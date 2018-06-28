@@ -16,7 +16,18 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import java.util.Map;
+
 public interface CryptoService {
+
+  /**
+   * Initialize CryptoService. This is called once at Tablet Server startup.
+   *
+   * @throws CryptoException
+   *
+   * @since 2.0
+   */
+  void init(Map<String,String> conf) throws CryptoException;
 
   /**
    * Initialize the FileEncrypter for the environment and return
@@ -39,10 +50,8 @@ public interface CryptoService {
   /**
    * Runtime Crypto exception
    */
-  public class CryptoException extends RuntimeException {
-    /**
-    * 
-    */
+  class CryptoException extends RuntimeException {
+
     private static final long serialVersionUID = -7588781060677839664L;
 
     public CryptoException() {

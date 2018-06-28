@@ -177,7 +177,8 @@ public class SummaryReader {
       SummarizerFactory factory, CryptoService cryptoService) throws IOException {
     // @formatter:off
     org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader =
-      new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length, conf, aConf, cryptoService);
+      new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length, conf, aConf,
+              cryptoService);
     // @formatter:on
     return load(bcReader, summarySelector, factory);
   }

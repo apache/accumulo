@@ -37,7 +37,7 @@ public class CryptoEnvironment {
 
   public Scope getScope() {
     return this.scope;
-  };
+  }
 
   public Map<String,String> getConf() {
     return this.conf;

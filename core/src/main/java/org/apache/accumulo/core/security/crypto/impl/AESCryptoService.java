@@ -28,6 +28,7 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.StringJoiner;
 
 import javax.crypto.Cipher;
@@ -51,21 +52,24 @@ import org.apache.accumulo.core.security.crypto.FileEncrypter;
  */
 public class AESCryptoService implements CryptoService {
 
-  private static Key encryptingKek = null;
-  private static String encryptingKekId = null;
-  private static String encryptingKeyManager = null;
+  private Key encryptingKek = null;
+  private String encryptingKekId = null;
+  private String encryptingKeyManager = null;
   // Lets just load keks for reading once
   private static HashMap<String,Key> decryptingKeys = new HashMap<String,Key>();
 
   // Each byte has a valid unicode representation
   private static final String unicodeCharset = "ISO_8859_1";
 
-  AESCryptoService(String kekId, String encryptingKeyManager) {
+  @Override
+  public void init(Map<String,String> conf) throws CryptoException {
+    String kekId = conf.get("table.crypto.opts.kekId");
+    String encryptingKeyManager = conf.get("table.crypto.opts.keyManager");
     switch (encryptingKeyManager) {
       case KeyManager.URI:
-        AESCryptoService.encryptingKeyManager = encryptingKeyManager;
-        AESCryptoService.encryptingKekId = kekId;
-        AESCryptoService.encryptingKek = KeyManager.loadKekFromUri(kekId);
+        this.encryptingKeyManager = encryptingKeyManager;
+        this.encryptingKekId = kekId;
+        this.encryptingKek = KeyManager.loadKekFromUri(kekId);
         break;
       default:
         throw new CryptoException("Unrecognized key manager");
@@ -78,11 +82,13 @@ public class AESCryptoService implements CryptoService {
     CryptoModule cm;
     switch (environment.getScope()) {
       case WAL:
-        cm = new AESCBCCryptoModule();
+        cm = new AESCBCCryptoModule(this.encryptingKek, this.encryptingKekId,
+            this.encryptingKeyManager);
         return cm.getEncrypter();
 
       case RFILE:
-        cm = new AESGCMCryptoModule();
+        cm = new AESGCMCryptoModule(this.encryptingKek, this.encryptingKekId,
+            this.encryptingKeyManager);
         return cm.getEncrypter();
 
       default:
@@ -97,10 +103,12 @@ public class AESCryptoService implements CryptoService {
     Key fek = loadDecryptionKek(parsed);
     switch (parsed.getCryptoServiceVersion()) {
       case AESCBCCryptoModule.VERSION:
-        cm = new AESCBCCryptoModule();
+        cm = new AESCBCCryptoModule(this.encryptingKek, this.encryptingKekId,
+            this.encryptingKeyManager);
         return (cm.getDecrypter(fek));
       case AESGCMCryptoModule.VERSION:
-        cm = new AESGCMCryptoModule();
+        cm = new AESGCMCryptoModule(this.encryptingKek, this.encryptingKekId,
+            this.encryptingKeyManager);
         return (cm.getDecrypter(fek));
 
       // TODO I suspect we want to leave "U+1F47B" and create an internal NoFileDecrypter
@@ -163,7 +171,8 @@ public class AESCryptoService implements CryptoService {
 
   }
 
-  private static String createCryptoParameters(String version, Key fek) {
+  private static String createCryptoParameters(String version, Key encryptingKek,
+      String encryptingKekId, String encryptingKeyManager, Key fek) {
 
     StringJoiner sj = new StringJoiner("!");
     sj.add("org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
@@ -255,10 +264,8 @@ public class AESCryptoService implements CryptoService {
   }
 
   /**
-   * 
    * This interface lists the methods needed by CryptoModules which are responsible for tracking
    * version and preparing encrypters/decrypters for use.
-   *
    */
   private interface CryptoModule {
     FileEncrypter getEncrypter();
@@ -276,6 +283,16 @@ public class AESCryptoService implements CryptoService {
     private final Integer GCM_TAG_LENGTH_IN_BITS = 16 * 8;
     private final String transformation = "AES/GCM/NoPadding";
     private boolean ivReused = false;
+    private Key encryptingKek;
+    private String encryptingKekId;
+    private String encryptingKeyManager;
+
+    public AESGCMCryptoModule(Key encryptingKek, String encryptingKekId,
+        String encryptingKeyManager) {
+      this.encryptingKek = encryptingKek;
+      this.encryptingKekId = encryptingKekId;
+      this.encryptingKeyManager = encryptingKeyManager;
+    }
 
     @Override
     public FileEncrypter getEncrypter() {
@@ -304,7 +321,7 @@ public class AESCryptoService implements CryptoService {
       public OutputStream encryptStream(OutputStream outputStream) throws CryptoException {
         if (ivReused) {
           throw new CryptoException(
-              "AESGCMCryptoModule is attempting a Key/IV reuse which is forbidden. Too many RBlocks.");
+              "Key/IV reuse is forbidden in AESGCMCryptoModule. Too many RBlocks.");
         }
         incrementIV(initVector, initVector.length - 1);
         if (Arrays.equals(initVector, firstInitVector)) {
@@ -362,7 +379,8 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public String getParameters() {
-        return (createCryptoParameters(VERSION, fek));
+        return createCryptoParameters(VERSION, encryptingKek, encryptingKekId, encryptingKeyManager,
+            fek);
       }
     }
 
@@ -407,6 +425,16 @@ public class AESCryptoService implements CryptoService {
     private final Integer IV_LENGTH_IN_BYTES = 16;
     private final Integer KEY_LENGTH_IN_BYTES = 16;
     private final String transformation = "AES/CBC/NoPadding";
+    private Key encryptingKek;
+    private String encryptingKekId;
+    private String encryptingKeyManager;
+
+    public AESCBCCryptoModule(Key encryptingKek, String encryptingKekId,
+        String encryptingKeyManager) {
+      this.encryptingKek = encryptingKek;
+      this.encryptingKekId = encryptingKekId;
+      this.encryptingKeyManager = encryptingKeyManager;
+    }
 
     @Override
     public FileEncrypter getEncrypter() {
@@ -456,7 +484,8 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public String getParameters() {
-        return (createCryptoParameters(VERSION, fek));
+        return createCryptoParameters(VERSION, encryptingKek, encryptingKekId, encryptingKeyManager,
+            fek);
       }
     }
 

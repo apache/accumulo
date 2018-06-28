@@ -136,11 +136,6 @@ public final class BCFile {
       private final SimpleBufferedOutputStream fsBufferedOutput;
       private OutputStream out;
 
-      /**
-       * @param compressionAlgo
-       *          The compression algorithm to be used to for compression.
-       * 
-       */
       public WBlockState(Algorithm compressionAlgo, RateLimitedOutputStream fsOut,
           BytesWritable fsOutputBuffer, Configuration conf, FileEncrypter encrypter)
           throws IOException {

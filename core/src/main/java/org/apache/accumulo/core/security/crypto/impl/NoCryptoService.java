@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.security.crypto.impl;
 
+import java.util.Map;
+
 import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.security.crypto.FileDecrypter;
@@ -26,6 +28,11 @@ import org.apache.accumulo.core.security.crypto.FileEncrypter;
  */
 public class NoCryptoService implements CryptoService {
   public static final String VERSION = "U+1F47B";
+
+  @Override
+  public void init(Map<String,String> conf) throws CryptoException {
+    // do nothing
+  }
 
   @Override
   public FileEncrypter getFileEncrypter(CryptoEnvironment environment) {
