@@ -3346,9 +3346,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
   }
 
-  // This is a set of WALs that are closed but may still be referenced byt tablets. A LinkedHashSet
+  // This is a set of WALs that are closed but may still be referenced by tablets. A LinkedHashSet
   // is used because its very import to know the order in which WALs were closed when deciding if a
-  // WAL is eligible for removal.
+  // WAL is eligible for removal. Maintaining the order that logs were used in is currently a simple
+  // task because there is only one active log at a time.
   LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
 
   @VisibleForTesting

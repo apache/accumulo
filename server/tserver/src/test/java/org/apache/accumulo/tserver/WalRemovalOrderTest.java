@@ -34,9 +34,9 @@ import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
-public class TabletServerTest {
+public class WalRemovalOrderTest {
 
-  static DfsLogger logger(String log) {
+  private static DfsLogger mockLogger(String filename) {
     ServerResources conf = new ServerResources() {
       @Override
       public AccumuloConfiguration getConfiguration() {
@@ -50,17 +50,17 @@ public class TabletServerTest {
     };
 
     try {
-      return new DfsLogger(conf, log, null);
+      return new DfsLogger(conf, filename, null);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
-  static LinkedHashSet<DfsLogger> logs(String... logs) {
+  private static LinkedHashSet<DfsLogger> mockLoggers(String... logs) {
     LinkedHashSet<DfsLogger> logSet = new LinkedHashSet<>();
 
     for (String log : logs) {
-      logSet.add(logger(log));
+      logSet.add(mockLogger(log));
     }
 
     return logSet;
@@ -89,27 +89,27 @@ public class TabletServerTest {
 
   @Test
   public void testWalRemoval() {
-    runTest(logs("W1", "W2"), logs(), logs("W1", "W2"));
-    runTest(logs("W1", "W2"), logs("W1"), logs());
-    runTest(logs("W1", "W2"), logs("W2"), logs("W1"));
-    runTest(logs("W1", "W2"), logs("W1", "W2"), logs());
+    runTest(mockLoggers("W1", "W2"), mockLoggers(), mockLoggers("W1", "W2"));
+    runTest(mockLoggers("W1", "W2"), mockLoggers("W1"), mockLoggers());
+    runTest(mockLoggers("W1", "W2"), mockLoggers("W2"), mockLoggers("W1"));
+    runTest(mockLoggers("W1", "W2"), mockLoggers("W1", "W2"), mockLoggers());
 
     // below W5 represents an open log not in the closed set
-    for (Set<DfsLogger> inUse : Sets.powerSet(logs("W1", "W2", "W3", "W4", "W5"))) {
+    for (Set<DfsLogger> inUse : Sets.powerSet(mockLoggers("W1", "W2", "W3", "W4", "W5"))) {
       Set<DfsLogger> expected;
-      if (inUse.contains(logger("W1"))) {
+      if (inUse.contains(mockLogger("W1"))) {
         expected = Collections.emptySet();
-      } else if (inUse.contains(logger("W2"))) {
-        expected = logs("W1");
-      } else if (inUse.contains(logger("W3"))) {
-        expected = logs("W1", "W2");
-      } else if (inUse.contains(logger("W4"))) {
-        expected = logs("W1", "W2", "W3");
+      } else if (inUse.contains(mockLogger("W2"))) {
+        expected = mockLoggers("W1");
+      } else if (inUse.contains(mockLogger("W3"))) {
+        expected = mockLoggers("W1", "W2");
+      } else if (inUse.contains(mockLogger("W4"))) {
+        expected = mockLoggers("W1", "W2", "W3");
       } else {
-        expected = logs("W1", "W2", "W3", "W4");
+        expected = mockLoggers("W1", "W2", "W3", "W4");
       }
 
-      runTest(logs("W1", "W2", "W3", "W4"), inUse, expected);
+      runTest(mockLoggers("W1", "W2", "W3", "W4"), inUse, expected);
     }
   }
 }
