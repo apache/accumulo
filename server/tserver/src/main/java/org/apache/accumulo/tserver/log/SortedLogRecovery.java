@@ -200,7 +200,6 @@ public class SortedLogRecovery {
             break;
           default:
             throw new IllegalStateException("Non compaction event seen " + key.event);
-
         }
 
         lastEvent = key.event;
