@@ -183,34 +183,37 @@ public class SortedLogRecovery {
 
         checkState(key.seq >= 0, "Unexpected negative seq %s for tabletId %s", key.seq, tabletId);
         checkState(key.tabletId == tabletId); // should only fail if bug elsewhere
+        checkState(key.seq >= Math.max(lastFinish, lastStart)); // should only fail if bug elsewhere
 
-        if (key.event == COMPACTION_START) {
-          checkState(key.seq >= lastStart); // should only fail if bug elsewhere
-          lastStart = key.seq;
-          lastStartFile = key.filename;
-        } else if (key.event == COMPACTION_FINISH) {
-          checkState(key.seq >= lastFinish); // should only fail if bug elsewhere
-          checkState(key.seq > lastStart, "Compaction finish <= start %s %s %s", key.tabletId,
-              key.seq, lastStart);
-          checkState(lastEvent == null || lastEvent == COMPACTION_START,
-              "Saw consecutive COMPACTION_FINISH events %s %s %s", key.tabletId, lastFinish,
-              key.seq);
-          lastFinish = key.seq;
-        } else {
-          throw new IllegalStateException("Non compaction event seen " + key.event);
+        switch (key.event) {
+          case COMPACTION_START:
+            lastStart = key.seq;
+            lastStartFile = key.filename;
+            break;
+          case COMPACTION_FINISH:
+            checkState(key.seq > lastStart, "Compaction finish <= start %s %s %s", key.tabletId,
+                key.seq, lastStart);
+            checkState(lastEvent != COMPACTION_FINISH,
+                "Saw consecutive COMPACTION_FINISH events %s %s %s", key.tabletId, lastFinish,
+                key.seq);
+            lastFinish = key.seq;
+            break;
+          default:
+            throw new IllegalStateException("Non compaction event seen " + key.event);
+
         }
 
         lastEvent = key.event;
       }
 
-      if (lastStart > lastFinish && lastStartFile != null
-          && suffixes.contains(getPathSuffix(lastStartFile))) {
+      if (lastEvent == COMPACTION_START && suffixes.contains(getPathSuffix(lastStartFile))) {
         // There was no compaction finish event following this start, however the last compaction
         // start event has a file in the metadata table, so the compaction finished.
         log.debug("Considering compaction start {} {} finished because file {} in metadata table",
             tabletId, lastStart, getPathSuffix(lastStartFile));
         recoverySeq = lastStart;
       } else {
+        // Recover everything >= the maximum finish sequence number if its set, otherwise return 0.
         recoverySeq = Math.max(0, lastFinish - 1);
       }
     }
