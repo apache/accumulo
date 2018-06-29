@@ -409,8 +409,15 @@ public class AESCryptoService implements CryptoService {
           cipher = Cipher.getInstance(transformation);
           cipher.init(Cipher.DECRYPT_MODE, fek,
               new GCMParameterSpec(GCM_TAG_LENGTH_IN_BITS, initVector));
+          /**
+           * Read the 16 bytes for the gcm tag. There is probably a way to do this using the java
+           * crypto API... something to do with {@link Cipher#update(byte[])} and
+           * {@link Cipher#doFinal()} See {@link Cipher}
+           */
+          byte[] gcmTag = new byte[GCM_TAG_LENGTH_IN_BITS / 8];
+          inputStream.read(gcmTag);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
-            | InvalidAlgorithmParameterException e) {
+            | InvalidAlgorithmParameterException | IOException e) {
           throw new CryptoException("Unable to initialize cipher", e);
         }
 
