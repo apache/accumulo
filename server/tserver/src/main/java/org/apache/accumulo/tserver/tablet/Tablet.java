@@ -2431,11 +2431,22 @@ public class Tablet implements TabletCommitter {
 
   private Set<DfsLogger> currentLogs = new HashSet<>();
 
-  public synchronized void removeInUseLogs(Set<DfsLogger> candidates) {
-    // remove logs related to minor compacting data
-    candidates.removeAll(otherLogs);
-    // remove logs related to tablets in memory data
-    candidates.removeAll(currentLogs);
+  public void removeInUseLogs(Set<DfsLogger> candidates) {
+    // This lock is held while clearing otherLogs and adding a minc file to metadata table. Not
+    // holding this lock leads to a small chance of data loss if tserver dies between clearing
+    // otherLogs and adding file to metadata table AND this method was called in the time between.
+    logLock.lock();
+    try {
+      // acquire locks in same order as other places in code to avoid deadlock
+      synchronized (this) {
+        // remove logs related to minor compacting data
+        candidates.removeAll(otherLogs);
+        // remove logs related to tablets in memory data
+        candidates.removeAll(currentLogs);
+      }
+    } finally {
+      logLock.unlock();
+    }
   }
 
   Set<String> beginClearingUnusedLogs() {
