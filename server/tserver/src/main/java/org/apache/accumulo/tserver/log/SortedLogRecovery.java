@@ -160,13 +160,14 @@ public class SortedLogRecovery {
 
   }
 
-  private long findLastStartToFinish(List<Path> recoveryLogs, Set<String> tabletFiles, int tabletId)
+  private long findRecoverySeq(List<Path> recoveryLogs, Set<String> tabletFiles, int tabletId)
       throws IOException {
     HashSet<String> suffixes = new HashSet<>();
     for (String path : tabletFiles)
       suffixes.add(getPathSuffix(path));
 
     long lastStart = 0;
+    long lastFinish = 0;
     long recoverySeq = 0;
 
     try (RecoveryLogsIterator rli = new RecoveryLogsIterator(fs, recoveryLogs,
@@ -176,52 +177,43 @@ public class SortedLogRecovery {
 
       String lastStartFile = null;
       LogEvents lastEvent = null;
-      boolean firstEventWasFinish = false;
-      boolean sawStartFinish = false;
 
       while (ddi.hasNext()) {
         LogFileKey key = ddi.next().getKey();
 
         checkState(key.seq >= 0, "Unexpected negative seq %s for tabletId %s", key.seq, tabletId);
         checkState(key.tabletId == tabletId); // should only fail if bug elsewhere
+        checkState(key.seq >= Math.max(lastFinish, lastStart)); // should only fail if bug elsewhere
 
-        if (key.event == COMPACTION_START) {
-          checkState(key.seq >= lastStart); // should only fail if bug elsewhere
-          lastStart = key.seq;
-          lastStartFile = key.filename;
-        } else if (key.event == COMPACTION_FINISH) {
-          if (lastEvent == null) {
-            firstEventWasFinish = true;
-          } else if (lastEvent == COMPACTION_FINISH) {
-            throw new IllegalStateException(
-                "Saw consecutive COMPACTION_FINISH events " + key.tabletId + " " + key.seq);
-          } else {
-            if (key.seq <= lastStart) {
-              throw new IllegalStateException(
-                  "Compaction finish <= start " + lastStart + " " + key.seq);
-            }
-            recoverySeq = lastStart;
-            lastStartFile = null;
-            sawStartFinish = true;
-          }
-        } else {
-          throw new IllegalStateException("Non compaction event seen " + key.event);
+        switch (key.event) {
+          case COMPACTION_START:
+            lastStart = key.seq;
+            lastStartFile = key.filename;
+            break;
+          case COMPACTION_FINISH:
+            checkState(key.seq > lastStart, "Compaction finish <= start %s %s %s", key.tabletId,
+                key.seq, lastStart);
+            checkState(lastEvent != COMPACTION_FINISH,
+                "Saw consecutive COMPACTION_FINISH events %s %s %s", key.tabletId, lastFinish,
+                key.seq);
+            lastFinish = key.seq;
+            break;
+          default:
+            throw new IllegalStateException("Non compaction event seen " + key.event);
         }
 
         lastEvent = key.event;
       }
 
-      if (firstEventWasFinish && !sawStartFinish) {
-        throw new IllegalStateException("COMPACTION_FINISH (without preceding COMPACTION_START)"
-            + " is not followed by a successful minor compaction.");
-      }
-
-      if (lastStartFile != null && suffixes.contains(getPathSuffix(lastStartFile))) {
-        // There was no compaction finish event, however the last compaction start event has a file
-        // in the metadata table, so the compaction finished.
+      if (lastEvent == COMPACTION_START && suffixes.contains(getPathSuffix(lastStartFile))) {
+        // There was no compaction finish event following this start, however the last compaction
+        // start event has a file in the metadata table, so the compaction finished.
         log.debug("Considering compaction start {} {} finished because file {} in metadata table",
             tabletId, lastStart, getPathSuffix(lastStartFile));
         recoverySeq = lastStart;
+      } else {
+        // Recover everything >= the maximum finish sequence number if its set, otherwise return 0.
+        recoverySeq = Math.max(0, lastFinish - 1);
       }
     }
     return recoverySeq;
@@ -277,7 +269,7 @@ public class SortedLogRecovery {
     }
 
     // Find the seq # for the last compaction that started and finished
-    long recoverySeq = findLastStartToFinish(recoveryLogs, tabletFiles, tabletId);
+    long recoverySeq = findRecoverySeq(recoveryLogs, tabletFiles, tabletId);
 
     log.info("Recovering mutations, tablet:{} tabletId:{} seq:{} logs:{}", extent, tabletId,
         recoverySeq, asNames(recoveryLogs));
