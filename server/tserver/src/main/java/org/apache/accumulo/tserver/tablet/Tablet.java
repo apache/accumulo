@@ -2518,6 +2518,7 @@ public class Tablet implements TabletCommitter {
   }
 
   private Set<DfsLogger> otherLogs = Collections.emptySet();
+  // logs related to minor compaction file being added to the metadata table
   private Set<DfsLogger> doomedLogs = new HashSet<>();
 
   // this lock is basically used to synchronize writing of log info to metadata
