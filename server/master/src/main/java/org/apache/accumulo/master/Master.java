@@ -1148,17 +1148,16 @@ public class Master extends AccumuloServerContext
 
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
       Set<TServerInstance> currentServers) {
+    final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     long start = System.currentTimeMillis();
     ExecutorService tp = Executors.newCachedThreadPool();
-    // use ConcurrentSkipListMap for two reasons. First, multiple threads may concurrently put.
-    // Second, its ok for one thread to iterate over map entries while another thread puts.
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       // Since an unbounded thread pool is being used, rate limit how fast task are added to the
       // executor. This prevents the threads from growing large unless there are lots of
       // unresponsive tservers.
-      sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(Math.max(5, rpcTimeout / 24000), TimeUnit.MILLISECONDS);
       tp.submit(new Runnable() {
         @Override
         public void run() {
@@ -1198,16 +1197,14 @@ public class Master extends AccumuloServerContext
     }
     tp.shutdown();
     try {
-      tp.awaitTermination(getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT) * 2,
-          TimeUnit.MILLISECONDS);
+      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       log.debug("Interrupted while fetching status");
     }
 
     tp.shutdownNow();
 
-    // Because result is a ConcurrentSkipListMap will not see a concurrent modification exception,
-    // even though background threads may still try to put.
+    // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
     SortedMap<TServerInstance,TabletServerStatus> info = ImmutableSortedMap.copyOf(result);
 
     synchronized (badServers) {
