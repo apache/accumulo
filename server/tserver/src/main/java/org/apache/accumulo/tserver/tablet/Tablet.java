@@ -2459,25 +2459,17 @@ public class Tablet implements TabletCommitter {
   private Set<DfsLogger> currentLogs = new HashSet<>();
 
   public void removeInUseLogs(Set<DfsLogger> candidates) {
-    // This lock is held while clearing otherLogs and adding a minc file to metadata table. Not
-    // holding this lock leads to a small chance of data loss if tserver dies between clearing
-    // otherLogs and adding file to metadata table AND this method was called in the time between.
-    logLock.lock();
-    try {
-      // acquire locks in same order as other places in code to avoid deadlock
-      synchronized (this) {
-        // remove logs related to minor compacting data
-        candidates.removeAll(otherLogs);
-        // remove logs related to tablets in memory data
-        candidates.removeAll(currentLogs);
-      }
-    } finally {
-      logLock.unlock();
+    synchronized (this) {
+      // remove logs related to minor compacting data
+      candidates.removeAll(otherLogs);
+      // remove logs related to tablets in memory data
+      candidates.removeAll(currentLogs);
+      // remove logs related to minor compaction file being added to the metadata table
+      candidates.removeAll(doomedLogs);
     }
   }
 
   Set<String> beginClearingUnusedLogs() {
-    Set<String> doomed = new HashSet<>();
 
     ArrayList<String> otherLogsCopy = new ArrayList<>();
     ArrayList<String> currentLogsCopy = new ArrayList<>();
@@ -2486,48 +2478,48 @@ public class Tablet implements TabletCommitter {
     logLock.lock();
 
     synchronized (this) {
-      if (removingLogs)
+      if (doomedLogs.size() > 0)
         throw new IllegalStateException("Attempted to clear logs when removal of logs in progress");
 
       for (DfsLogger logger : otherLogs) {
         otherLogsCopy.add(logger.toString());
-        doomed.add(logger.getMeta());
+        doomedLogs.add(logger);
       }
 
       for (DfsLogger logger : currentLogs) {
         currentLogsCopy.add(logger.toString());
-        doomed.remove(logger.getMeta());
+        doomedLogs.remove(logger);
       }
 
       otherLogs = Collections.emptySet();
-
-      if (doomed.size() > 0)
-        removingLogs = true;
     }
 
     // do debug logging outside tablet lock
     for (String logger : otherLogsCopy) {
-      log.debug("Logs for memory compacted: " + getExtent() + " " + logger.toString());
+      log.debug("Logs for memory compacted: " + getExtent() + " " + logger);
     }
 
     for (String logger : currentLogsCopy) {
       log.debug("Logs for current memory: " + getExtent() + " " + logger);
     }
 
-    for (String logger : doomed) {
-      log.debug("Logs to be destroyed: " + getExtent() + " " + logger);
+    Set<String> doomed = new HashSet<>();
+    for (DfsLogger logger : doomedLogs) {
+      log.debug("Logs to be destroyed: " + getExtent() + " " + logger.getMeta());
+      doomed.add(logger.getMeta());
     }
 
     return doomed;
   }
 
   synchronized void finishClearingUnusedLogs() {
-    removingLogs = false;
+    doomedLogs.clear();
     logLock.unlock();
   }
 
   private Set<DfsLogger> otherLogs = Collections.emptySet();
-  private boolean removingLogs = false;
+  // logs related to minor compaction file being added to the metadata table
+  private Set<DfsLogger> doomedLogs = new HashSet<>();
 
   // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
