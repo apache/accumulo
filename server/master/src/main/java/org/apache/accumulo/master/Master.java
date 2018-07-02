@@ -1149,9 +1149,6 @@ public class Master extends AccumuloServerContext
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
       Set<TServerInstance> currentServers) {
     long start = System.currentTimeMillis();
-    // TODO deprecate property
-    // int threads = Math.max(getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE),
-    // 8);
     ExecutorService tp = Executors.newCachedThreadPool();
     // use ConcurrentSkipListMap for two reasons. First, multiple threads may concurrently put.
     // Second, its ok for one thread to iterate over map entries while another thread puts.
