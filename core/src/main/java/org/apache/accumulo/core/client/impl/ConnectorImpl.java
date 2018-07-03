@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -108,6 +109,14 @@ public class ConnectorImpl extends Connector {
         numQueryThreads);
   }
 
+  @Override
+  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
+    Integer numQueryThreads = ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS
+        .getInteger(context.getClientInfo().getProperties());
+    Objects.requireNonNull(numQueryThreads);
+    return createBatchScanner(tableName, authorizations, numQueryThreads);
+  }
+
   @Deprecated
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
@@ -191,7 +200,13 @@ public class ConnectorImpl extends Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new ScannerImpl(context, getTableId(tableName), authorizations);
+    Scanner scanner = new ScannerImpl(context, getTableId(tableName), authorizations);
+    Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE
+        .getInteger(context.getClientInfo().getProperties());
+    if (batchSize != null) {
+      scanner.setBatchSize(batchSize);
+    }
+    return scanner;
   }
 
   @Override

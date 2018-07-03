@@ -61,6 +61,14 @@ public enum ClientProperty {
       "Change the" + " durability for the BatchWriter session. To use the table's durability"
           + " setting. use \"default\" which is the table's durability setting."),
 
+  // Scanner
+  SCANNER_BATCH_SIZE("scanner.batch.size", "1000",
+      "Number of key/value pairs that will be fetched at time from tablet server"),
+
+  // BatchScanner
+  BATCH_SCANNER_NUM_QUERY_THREADS("batch.scanner.num.query.threads", "3",
+      "Number of concurrent query threads to spawn for querying"),
+
   // Bulk load
   BULK_LOAD_THREADS("bulk.threads", "8C",
       "The number of threads used to inspect bulk load files to determine where files go.  "
