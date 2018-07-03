@@ -20,14 +20,12 @@ package org.apache.accumulo.core.spi.scan;
 import java.util.Comparator;
 import java.util.Map;
 
-import org.apache.accumulo.core.spi.common.Stats;
-
 import com.google.common.base.Preconditions;
 
 /**
  * Prioritize scans based on the ratio of runTime/idleTime. Scans with a lower ratio have a higher
  * priority. When the ratio is equal, the scan with the oldest last run time has the highest
- * priority.
+ * priority. If neither have run, then the oldest gets priority.
  *
  * @since 2.0.0
  */
@@ -43,11 +41,11 @@ public class IdleRatioScanPrioritizer implements ScanPrioritizer {
     Preconditions.checkArgument(options.isEmpty());
 
     Comparator<ScanInfo> c1 = (si1, si2) -> {
-      long currTime = ScanInfo.getCurrentTime();
+      long currTime = System.currentTimeMillis();
       return Double.compare(idleRatio(currTime, si1), idleRatio(currTime, si2));
     };
 
     return c1.thenComparingLong(si -> si.getLastRunTime().orElse(0))
-        .thenComparing(si -> si.getCreationTime());
+        .thenComparingLong(si -> si.getCreationTime());
   }
 }

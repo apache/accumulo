@@ -28,6 +28,9 @@ import org.apache.accumulo.core.spi.common.Stats;
  * Provides information about an active Accumulo scan against a tablet. Accumulo scans operate by
  * repeatedly gathering batches of data and returning those to the client.
  *
+ * <p>
+ * All times are in milliseconds and obtained using System.currentTimeMillis().
+ *
  * @since 2.0.0
  */
 public interface ScanInfo {
@@ -42,15 +45,11 @@ public interface ScanInfo {
 
   /**
    * Returns the first time a tablet knew about a scan over its portion of data.
-   *
-   * @see ScanInfo#getCurrentTime()
    */
   long getCreationTime();
 
   /**
    * If the scan has run, returns the last run time.
-   *
-   * @see ScanInfo#getCurrentTime()
    */
   OptionalLong getLastRunTime();
 
@@ -75,18 +74,36 @@ public interface ScanInfo {
    */
   Stats getIdleTimeStats(long currentTime);
 
+  /**
+   * This method returns what column were fetched by a scan. When a family is fetched, a Column
+   * object where everything but the family is null is in the set.
+   *
+   * <p>
+   * The following example code shows how this method can be used to check if a family was fetched
+   * or a family+qualifier was fetched. If continually checking for the same column, should probably
+   * create a constant.
+   *
+   * <pre>
+   * <code>
+   *   boolean wasFamilyFetched(ScanInfo si, byte[] fam) {
+   *     Column family = new Column(fam, null, null);
+   *     return si.getFetchedColumns().contains(family);
+   *   }
+   *
+   *   boolean wasColumnFetched(ScanInfo si, byte[] fam, byte[] qual) {
+   *     Column col = new Column(fam, qual, null);
+   *     return si.getFetchedColumns().contains(col);
+   *   }
+   * </code>
+   * </pre>
+   *
+   *
+   * @return The family and family+qualifier pairs fetched.
+   */
   Set<Column> getFetchedColumns();
 
   /**
    * @return iterators that where configured on the client side scanner
    */
   Collection<IteratorConfiguration> getClientScanIterators();
-
-  /**
-   * There are multiple ways to get time in Java. Use this method to get current time in same way
-   * that Accumulo obtains time.
-   */
-  public static long getCurrentTime() {
-    return System.currentTimeMillis();
-  }
 }

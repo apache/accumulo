@@ -16,12 +16,45 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import java.util.Map;
+import java.util.Optional;
+
 /**
+ * Interface for obtaining information about a scan executor
+ *
  * @since 2.0.0
  */
 public interface ScanExecutor {
-  // some runtime info about the executor
+
+  public interface Config {
+    /**
+     * @return the unique name used to identified executor in config
+     */
+    String getName();
+
+    /**
+     * @return the max number of threads that were configured
+     */
+    int getMaxThreads();
+
+    /**
+     * @return the prioritizer that was configured
+     */
+    Optional<String> getPrioritizerClass();
+
+    /**
+     * @return the prioritizer options
+     */
+    Map<String,String> getPrioritizerOptions();
+  }
+
+  /**
+   * @return The number of task queued for the executor
+   */
   int getQueued();
 
-  Object getConfig(); // TODO create class that represents config used to create executor
+  /**
+   * @return The configuration used to create the executor
+   */
+  Config getConfig();
 }

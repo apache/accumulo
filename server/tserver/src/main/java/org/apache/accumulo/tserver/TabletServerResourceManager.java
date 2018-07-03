@@ -21,12 +21,15 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Queue;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
@@ -42,8 +45,6 @@ import java.util.function.Function;
 import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguratio
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.util.Daemon;
@@ -112,6 +114,7 @@ public class TabletServerResourceManager {
   private final Map<String,ExecutorService> threadPools = new TreeMap<>();
 
   private final Map<String,ExecutorService> scanExecutors;
+  private final Map<String,ScanExecutor> scanExecutorChoices;
 
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
 
@@ -177,7 +180,8 @@ public class TabletServerResourceManager {
     return createEs(max, name, new LinkedBlockingQueue<>());
   }
 
-  private ExecutorService createPriorityExecutor(ScanExecutorConfig sec) {
+  private ExecutorService createPriorityExecutor(ScanExecutorConfig sec,
+      Map<String,Queue<?>> scanExecQueues) {
 
     BlockingQueue<Runnable> queue;
 
@@ -206,6 +210,8 @@ public class TabletServerResourceManager {
       }
     }
 
+    scanExecQueues.put(sec.name, queue);
+
     return createEs(() -> sec.getCurrentMaxThreads(), "scan-" + sec.name, queue, sec.priority);
   }
 
@@ -227,24 +233,75 @@ public class TabletServerResourceManager {
         new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
   }
 
-  /**
-   * Creates table specific thread pool for executing scan threads
-   *
-   * @param instance
-   *          ZK instance.
-   * @param acuConf
-   *          accumulo configuration.
-   * @throws NamespaceNotFoundException
-   *           Error thrown by tables.getTableId when a name space is not found.
-   * @throws TableNotFoundException
-   *           Error thrown by tables.getTableId when a table is not found.
-   */
   protected Map<String,ExecutorService> createScanExecutors(Instance instance,
-      AccumuloConfiguration acuConf) {
+      Collection<ScanExecutorConfig> scanExecCfg, Map<String,Queue<?>> scanExecQueues) {
     Builder<String,ExecutorService> builder = ImmutableMap.builder();
 
-    for (ScanExecutorConfig sec : acuConf.getScanExecutors()) {
-      builder.put(sec.name, createPriorityExecutor(sec));
+    for (ScanExecutorConfig sec : scanExecCfg) {
+      builder.put(sec.name, createPriorityExecutor(sec, scanExecQueues));
+    }
+
+    return builder.build();
+  }
+
+  private static class ScanExecutorImpl implements ScanExecutor {
+
+    private static class ConfigImpl implements ScanExecutor.Config {
+
+      final ScanExecutorConfig cfg;
+
+      public ConfigImpl(ScanExecutorConfig sec) {
+        this.cfg = sec;
+      }
+
+      @Override
+      public String getName() {
+        return cfg.name;
+      }
+
+      @Override
+      public int getMaxThreads() {
+        return cfg.maxThreads;
+      }
+
+      @Override
+      public Optional<String> getPrioritizerClass() {
+        return cfg.prioritizerClass;
+      }
+
+      @Override
+      public Map<String,String> getPrioritizerOptions() {
+        return cfg.prioritizerOpts;
+      }
+
+    }
+
+    private final ConfigImpl config;
+    private final Queue<?> queue;
+
+    ScanExecutorImpl(ScanExecutorConfig sec, Queue<?> q) {
+      this.config = new ConfigImpl(sec);
+      this.queue = q;
+    }
+
+    @Override
+    public int getQueued() {
+      return queue.size();
+    }
+
+    @Override
+    public Config getConfig() {
+      return config;
+    }
+
+  }
+
+  private Map<String,ScanExecutor> createScanExecutorChoices(
+      Collection<ScanExecutorConfig> scanExecCfg, Map<String,Queue<?>> scanExecQueues) {
+    Builder<String,ScanExecutor> builder = ImmutableMap.builder();
+
+    for (ScanExecutorConfig sec : scanExecCfg) {
+      builder.put(sec.name, new ScanExecutorImpl(sec, scanExecQueues.get(sec.name)));
     }
 
     return builder.build();
@@ -336,7 +393,11 @@ public class TabletServerResourceManager {
     summaryParitionPool = createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS,
         "summary partition", 60, TimeUnit.SECONDS);
 
-    scanExecutors = createScanExecutors(tserver.getInstance(), acuConf);
+    Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
+    Map<String,Queue<?>> scanExecQueues = new HashMap<>();
+    scanExecutors = createScanExecutors(tserver.getInstance(), scanExecCfg, scanExecQueues);
+    scanExecutorChoices = createScanExecutorChoices(scanExecCfg, scanExecQueues);
+
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
     Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
@@ -876,7 +937,7 @@ public class TabletServerResourceManager {
     } else if (tablet.isMeta()) {
       scanExecutors.get("meta").execute(task);
     } else {
-      String scanExecutorName = dispatcher.dispatch(scanInfo, null); // remove
+      String scanExecutorName = dispatcher.dispatch(scanInfo, scanExecutorChoices);
       Preconditions.checkState(!"meta".equals(scanExecutorName),
           "Attempted to dispatch user scan to metadata table scan executor");
       scanExecutors.get(scanExecutorName).execute(task);

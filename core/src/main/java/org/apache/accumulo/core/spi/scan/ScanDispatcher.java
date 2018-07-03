@@ -21,7 +21,7 @@ import java.util.Map;
 import com.google.common.base.Preconditions;
 
 /**
- * A per table scan dispatcher that decided which executor should be used to processes a scan. For
+ * A per table scan dispatcher that decides which executor should be used to processes a scan. For
  * information about configuring, find the documentation for the {@code table.scan.dispatcher} and
  * {@code table.scan.dispatcher.opts.} properties.
  *

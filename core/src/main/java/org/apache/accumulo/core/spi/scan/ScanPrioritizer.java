@@ -19,6 +19,12 @@ package org.apache.accumulo.core.spi.scan;
 import java.util.Comparator;
 import java.util.Map;
 
+/**
+ * A factory for creating comparators used for prioritizing scans. For information about
+ * configuring, find the documentation for the {@code tserver.scan.executors.} property.
+ *
+ * @since 2.0.0
+ */
 public interface ScanPrioritizer {
   Comparator<ScanInfo> createComparator(Map<String,String> options);
 }
