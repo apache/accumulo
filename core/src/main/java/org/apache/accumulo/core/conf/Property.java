@@ -700,7 +700,7 @@ public enum Property {
           + "classes must implement " + ScanDispatcher.class.getName() + ".  This property is "
           + "ignored for the root and metadata table.  The metadata table always dispatches to a "
           + "scan executor named `meta`."),
-  TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", "", PropertyType.PREFIX,
+  TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table scan dispatcher"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
