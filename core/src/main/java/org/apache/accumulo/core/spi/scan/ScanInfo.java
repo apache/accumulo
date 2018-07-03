@@ -69,8 +69,6 @@ public interface ScanInfo {
    * This method is similar to {@link #getIdleTimeStats()}, but it also includes the time period
    * between the last run time and now in the stats. If the scan has never run, then the stats are
    * computed using only {@code currentTime - creationTime}.
-   *
-   * @see ScanInfo#getCurrentTime()
    */
   Stats getIdleTimeStats(long currentTime);
 
