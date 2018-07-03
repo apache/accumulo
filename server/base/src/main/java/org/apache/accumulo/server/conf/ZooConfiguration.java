@@ -81,11 +81,12 @@ public class ZooConfiguration extends AccumuloConfiguration {
   @Override
   public String get(Property property) {
     if (Property.isFixedZooPropertyKey(property)) {
-      if (fixedProps.containsKey(property.getKey())) {
-        return fixedProps.get(property.getKey());
+      String val = fixedProps.get(property.getKey());
+      if (val != null) {
+        return val;
       } else {
         synchronized (fixedProps) {
-          String val = _get(property);
+          val = _get(property);
           fixedProps.put(property.getKey(), val);
           return val;
         }
@@ -94,6 +95,12 @@ public class ZooConfiguration extends AccumuloConfiguration {
     } else {
       return _get(property);
     }
+  }
+
+  @Override
+  public boolean isPropertySet(Property prop) {
+    return fixedProps.containsKey(prop.getKey()) || getRaw(prop.getKey()) != null
+        || parent.isPropertySet(prop);
   }
 
   private String getRaw(String key) {

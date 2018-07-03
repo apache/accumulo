@@ -43,32 +43,26 @@ public class StatTest {
 
   @Test
   public void testGetMin() {
-    assertEquals(0, zero.getMin());
-    assertEquals(3677, stat.getMin());
+    assertEquals(0, zero.min());
+    assertEquals(3677, stat.min());
   }
 
   @Test
   public void testGetMax() {
-    assertEquals(0, zero.getMax());
-    assertEquals(9792, stat.getMax());
+    assertEquals(0, zero.max());
+    assertEquals(9792, stat.max());
   }
 
   @Test
   public void testGetAverage() {
-    assertEquals(0, zero.getAverage(), delta);
-    assertEquals(5529, stat.getAverage(), delta);
-  }
-
-  @Test
-  public void testGetStdDev() {
-    assertEquals(0, zero.getStdDev(), delta);
-    assertEquals(2073.7656569632, stat.getStdDev(), delta);
+    assertEquals(0, zero.mean(), delta);
+    assertEquals(5529, stat.mean(), delta);
   }
 
   @Test
   public void testGetSum() {
-    assertEquals(0, zero.getSum());
-    assertEquals(38703, stat.getSum());
+    assertEquals(0, zero.sum());
+    assertEquals(38703, stat.sum());
   }
 
   @Test
@@ -76,16 +70,14 @@ public class StatTest {
     zero.clear();
     stat.clear();
 
-    assertEquals(0, zero.getMax());
-    assertEquals(zero.getMax(), stat.getMax());
-    assertEquals(0, zero.getMin());
-    assertEquals(zero.getMin(), stat.getMin());
-    assertEquals(0, zero.getSum());
-    assertEquals(zero.getSum(), stat.getSum());
+    assertEquals(0, zero.max());
+    assertEquals(zero.max(), stat.max());
+    assertEquals(0, zero.min());
+    assertEquals(zero.min(), stat.min());
+    assertEquals(0, zero.sum());
+    assertEquals(zero.sum(), stat.sum());
 
-    assertEquals(Double.NaN, zero.getAverage(), 0);
-    assertEquals(zero.getAverage(), stat.getAverage(), 0);
-    assertEquals(Double.NaN, zero.getStdDev(), 0);
-    assertEquals(zero.getStdDev(), stat.getStdDev(), 0);
+    assertEquals(Double.NaN, zero.mean(), 0);
+    assertEquals(zero.mean(), stat.mean(), 0);
   }
 }

@@ -14,37 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.scan;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.rpc.TServerUtils;
+import java.util.Comparator;
+import java.util.Map;
 
-public class Session {
-
-  enum State {
-    NEW, UNRESERVED, RESERVED, REMOVED
-  }
-
-  public final String client;
-  public long lastAccessTime;
-  public long startTime;
-  State state = State.NEW;
-  private final TCredentials credentials;
-
-  Session(TCredentials credentials) {
-    this.credentials = credentials;
-    this.client = TServerUtils.clientAddress.get();
-  }
-
-  public String getUser() {
-    return credentials.getPrincipal();
-  }
-
-  public TCredentials getCredentials() {
-    return credentials;
-  }
-
-  public boolean cleanup() {
-    return true;
-  }
+/**
+ * A factory for creating comparators used for prioritizing scans. For information about
+ * configuring, find the documentation for the {@code tserver.scan.executors.} property.
+ *
+ * @since 2.0.0
+ */
+public interface ScanPrioritizer {
+  Comparator<ScanInfo> createComparator(Map<String,String> options);
 }

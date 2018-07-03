@@ -14,23 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.scan;
 
-public class SingleRangePriorityComparator extends DefaultSessionComparator {
+import java.util.Map;
+import java.util.Set;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
+public class DefaultScanDispatcher implements ScanDispatcher {
+
+  private final Set<String> VALID_OPTS = ImmutableSet.of("executor");
+  private String scanExecutor;
 
   @Override
-  public int compareSession(Session sessionA, Session sessionB) {
-    int priority = super.compareSession(sessionA, sessionB);
+  public void init(Map<String,String> options) {
+    Set<String> invalidOpts = Sets.difference(options.keySet(), VALID_OPTS);
+    Preconditions.checkArgument(invalidOpts.size() == 0, "Invalid options : %s", invalidOpts);
+    this.scanExecutor = options.getOrDefault("executor", "default");
+  }
 
-    if (sessionA instanceof MultiScanSession && sessionB instanceof ScanSession) {
-      if (priority < 0) {
-        priority *= -1;
-      }
-    } else if (sessionB instanceof MultiScanSession && sessionA instanceof ScanSession) {
-      if (priority > 0) {
-        priority *= -1;
-      }
-    }
-    return priority;
+  @Override
+  public String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors) {
+    return scanExecutor;
   }
 }

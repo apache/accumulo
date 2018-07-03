@@ -14,19 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.common;
 
-import java.util.Comparator;
+import java.util.Map;
 
-public abstract class SessionComparator implements Comparator<Runnable> {
+/**
+ * Provides information about a configured Accumulo Iterator
+ *
+ * @since 2.0.0
+ */
+public interface IteratorConfiguration {
+  public String getIteratorClass();
 
-  @Override
-  public int compare(Runnable sessionA, Runnable sessionB) {
-    if (sessionA instanceof Session && sessionB instanceof Session)
-      return compareSession((Session) sessionA, (Session) sessionB);
-    else
-      return 0;
-  }
+  public String getName();
 
-  public abstract int compareSession(final Session sessionA, final Session sessionB);
+  public int getPriority();
+
+  Map<String,String> getOptions();
 }

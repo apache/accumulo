@@ -68,7 +68,7 @@ public class IMMLGBenchmark {
     }
 
     for (Entry<String,Stat> entry : stats.entrySet()) {
-      System.out.printf("%20s : %6.2f\n", entry.getKey(), entry.getValue().getAverage());
+      System.out.printf("%20s : %6.2f\n", entry.getKey(), entry.getValue().mean());
     }
 
   }

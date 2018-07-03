@@ -52,4 +52,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     resolvedProps.entrySet().stream().filter(p -> filter.test(p.getKey()))
         .forEach(e -> props.put(e.getKey(), e.getValue()));
   }
+
+  @Override
+  public boolean isPropertySet(Property prop) {
+    return false;
+  }
 }

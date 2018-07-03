@@ -27,7 +27,6 @@ public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandle
 
   @Override
   public void uncaughtException(Thread t, Throwable e) {
-
     log.error(String.format("Caught an exception in %s.  Shutting down.", t), e);
   }
 
