@@ -14,19 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.scan;
 
 import java.util.Comparator;
+import java.util.Map;
 
-public abstract class SessionComparator implements Comparator<Runnable> {
-
-  @Override
-  public int compare(Runnable sessionA, Runnable sessionB) {
-    if (sessionA instanceof Session && sessionB instanceof Session)
-      return compareSession((Session) sessionA, (Session) sessionB);
-    else
-      return 0;
-  }
-
-  public abstract int compareSession(final Session sessionA, final Session sessionB);
+/**
+ * A factory for creating comparators used for prioritizing scans. For information about
+ * configuring, find the documentation for the {@code tserver.scan.executors.} property.
+ *
+ * @since 2.0.0
+ */
+public interface ScanPrioritizer {
+  Comparator<ScanInfo> createComparator(Map<String,String> options);
 }

@@ -19,58 +19,60 @@ package org.apache.accumulo.tserver.session;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.tserver.scan.ScanTask;
+import org.apache.accumulo.tserver.tablet.ScanBatch;
+import org.apache.accumulo.tserver.tablet.Scanner;
 
-public class MultiScanSession extends ScanSession {
-  public final KeyExtent threadPoolExtent;
-  public final Map<KeyExtent,List<Range>> queries;
-  public final SamplerConfiguration samplerConfig;
+public class SingleScanSession extends ScanSession {
+  public final KeyExtent extent;
+  public final AtomicBoolean interruptFlag = new AtomicBoolean();
+  public long entriesReturned = 0;
+  public long batchCount = 0;
+  public volatile ScanTask<ScanBatch> nextBatchTask;
+  public Scanner scanner;
+  public final long readaheadThreshold;
   public final long batchTimeOut;
   public final String context;
 
-  // stats
-  public int numRanges;
-  public int numTablets;
-  public int numEntries;
-  public long totalLookupTime;
-
-  public volatile ScanTask<MultiScanResult> lookupTask;
-
-  public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent,
-      Map<KeyExtent,List<Range>> queries, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, Authorizations authorizations,
-      SamplerConfiguration samplerConfig, long batchTimeOut, String context) {
-    super(credentials, new HashSet<>(), ssiList, ssio, authorizations);
-    this.queries = queries;
-    this.threadPoolExtent = threadPoolExtent;
-    this.samplerConfig = samplerConfig;
+  public SingleScanSession(TCredentials credentials, KeyExtent extent, HashSet<Column> columnSet,
+      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, Authorizations authorizations,
+      long readaheadThreshold, long batchTimeOut, String context) {
+    super(credentials, columnSet, ssiList, ssio, authorizations);
+    this.extent = extent;
+    this.readaheadThreshold = readaheadThreshold;
     this.batchTimeOut = batchTimeOut;
     this.context = context;
   }
 
   @Override
   public Type getScanType() {
-    return Type.MULTI;
+    return Type.SINGLE;
   }
 
   @Override
   public String getTableId() {
-    return threadPoolExtent.getTableId().canonicalID();
+    return extent.getTableId().canonicalID();
   }
 
   @Override
   public boolean cleanup() {
-    if (lookupTask != null)
-      lookupTask.cancel(true);
-    // the cancellation should provide us the safety to return true here
-    return true;
+    final boolean ret;
+    try {
+      if (nextBatchTask != null)
+        nextBatchTask.cancel(true);
+    } finally {
+      if (scanner != null)
+        ret = scanner.close();
+      else
+        ret = true;
+    }
+    return ret;
   }
 }

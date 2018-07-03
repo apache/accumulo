@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.OptionalInt;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,20 +28,30 @@ import org.slf4j.LoggerFactory;
 public class NamingThreadFactory implements ThreadFactory {
   private static final Logger log = LoggerFactory.getLogger(NamingThreadFactory.class);
 
-  private static final AccumuloUncaughtExceptionHandler uncaughtHandler = new AccumuloUncaughtExceptionHandler();
+  private static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
 
   private AtomicInteger threadNum = new AtomicInteger(1);
   private String name;
+  private OptionalInt priority;
 
   public NamingThreadFactory(String name) {
     this.name = name;
+    this.priority = OptionalInt.empty();
+  }
+
+  public NamingThreadFactory(String name, OptionalInt priority) {
+    this.name = name;
+    this.priority = priority;
   }
 
   @Override
   public Thread newThread(Runnable r) {
     Thread thread = new Daemon(new LoggingRunnable(log, r),
         name + " " + threadNum.getAndIncrement());
-    thread.setUncaughtExceptionHandler(uncaughtHandler);
+    thread.setUncaughtExceptionHandler(UEH);
+    if (priority.isPresent()) {
+      thread.setPriority(priority.getAsInt());
+    }
     return thread;
   }
 
