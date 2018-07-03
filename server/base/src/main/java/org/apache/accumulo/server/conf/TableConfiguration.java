@@ -19,6 +19,7 @@ package org.apache.accumulo.server.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -215,5 +217,40 @@ public class TableConfiguration extends ObservableConfiguration {
     }
 
     return pic;
+  }
+
+  public static class TablesScanDispatcher {
+    public final ScanDispatcher dispatcher;
+    public final long count;
+
+    public TablesScanDispatcher(ScanDispatcher dispatcher, long count) {
+      this.dispatcher = dispatcher;
+      this.count = count;
+    }
+  }
+
+  private AtomicReference<TablesScanDispatcher> scanDispatcherRef = new AtomicReference<>();
+
+  public ScanDispatcher getScanDispatcher() {
+    long count = getUpdateCount();
+    TablesScanDispatcher currRef = scanDispatcherRef.get();
+    if (currRef == null || currRef.count != count) {
+      ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(this,
+          Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
+
+      Map<String,String> opts = new HashMap<>();
+      getAllPropertiesWithPrefix(Property.TABLE_SCAN_DISPATCHER_OPTS).forEach((k, v) -> {
+        String optKey = k.substring(Property.TABLE_SCAN_DISPATCHER_OPTS.getKey().length());
+        opts.put(optKey, v);
+      });
+
+      newDispatcher.init(Collections.unmodifiableMap(opts));
+
+      TablesScanDispatcher newRef = new TablesScanDispatcher(newDispatcher, count);
+      scanDispatcherRef.compareAndSet(currRef, newRef);
+      currRef = newRef;
+    }
+
+    return currRef.dispatcher;
   }
 }

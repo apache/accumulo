@@ -14,38 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.common;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.rpc.TServerUtils;
+/**
+ * @since 2.0.0
+ */
+public interface Stats {
 
-public abstract class Session {
+  /**
+   * @return the minimum data point seen, or 0 if no data was seen
+   */
+  long min();
 
-  enum State {
-    NEW, UNRESERVED, RESERVED, REMOVED
-  }
+  /**
+   * @return the maximum data point seen, or 0 if no data was seen
+   */
+  long max();
 
-  public final String client;
-  public long lastAccessTime;
-  public long startTime;
-  public long maxIdleAccessTime;
-  State state = State.NEW;
-  private final TCredentials credentials;
+  /**
+   * @return the mean of the data points seen, or {@link Double#NaN} if no data was seen
+   */
+  double mean();
 
-  Session(TCredentials credentials) {
-    this.credentials = credentials;
-    this.client = TServerUtils.clientAddress.get();
-  }
+  /**
+   * @return the sum of the data points seen, or 0 if no data was seen
+   */
+  long sum();
 
-  public String getUser() {
-    return credentials.getPrincipal();
-  }
-
-  public TCredentials getCredentials() {
-    return credentials;
-  }
-
-  public boolean cleanup() {
-    return true;
-  }
+  /**
+   * @return the number of data points seen
+   */
+  long num();
 }

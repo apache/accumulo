@@ -212,6 +212,25 @@
               </allows>
             </configuration>
           </execution>
+          <execution>
+            <id>apilyzer-spi</id>
+            <goals>
+              <goal>analyze</goal>
+            </goals>
+            <configuration>
+              <outputFile>${project.build.directory}/apilyzer-spi.txt</outputFile>
+              <includes>
+                <include>org[.]apache[.]accumulo[.]core[.]spi[.].*</include>
+              </includes>
+              <excludes />
+              <allows>
+                <allow>org[.]apache[.]hadoop[.]io[.]Text</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]client(?!.*[.](impl|thrift)[.].*)[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]data(?!.*[.](impl|thrift)[.].*)[.].*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.]security(?!.*[.](crypto)[.].*)[.].*</allow>
+              </allows>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>

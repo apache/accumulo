@@ -14,38 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.common;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.rpc.TServerUtils;
+import java.util.Map;
 
-public abstract class Session {
+/**
+ * Provides information about a configured Accumulo Iterator
+ *
+ * @since 2.0.0
+ */
+public interface IteratorConfiguration {
+  public String getIteratorClass();
 
-  enum State {
-    NEW, UNRESERVED, RESERVED, REMOVED
-  }
+  public String getName();
 
-  public final String client;
-  public long lastAccessTime;
-  public long startTime;
-  public long maxIdleAccessTime;
-  State state = State.NEW;
-  private final TCredentials credentials;
+  public int getPriority();
 
-  Session(TCredentials credentials) {
-    this.credentials = credentials;
-    this.client = TServerUtils.clientAddress.get();
-  }
-
-  public String getUser() {
-    return credentials.getPrincipal();
-  }
-
-  public TCredentials getCredentials() {
-    return credentials;
-  }
-
-  public boolean cleanup() {
-    return true;
-  }
+  Map<String,String> getOptions();
 }

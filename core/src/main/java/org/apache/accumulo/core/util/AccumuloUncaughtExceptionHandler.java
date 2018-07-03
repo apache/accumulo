@@ -14,38 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.rpc.TServerUtils;
+import java.lang.Thread.UncaughtExceptionHandler;
 
-public abstract class Session {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-  enum State {
-    NEW, UNRESERVED, RESERVED, REMOVED
+public class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(AccumuloUncaughtExceptionHandler.class);
+
+  @Override
+  public void uncaughtException(Thread t, Throwable e) {
+    log.error(String.format("Caught an exception in %s.  Shutting down.", t), e);
   }
 
-  public final String client;
-  public long lastAccessTime;
-  public long startTime;
-  public long maxIdleAccessTime;
-  State state = State.NEW;
-  private final TCredentials credentials;
-
-  Session(TCredentials credentials) {
-    this.credentials = credentials;
-    this.client = TServerUtils.clientAddress.get();
-  }
-
-  public String getUser() {
-    return credentials.getPrincipal();
-  }
-
-  public TCredentials getCredentials() {
-    return credentials;
-  }
-
-  public boolean cleanup() {
-    return true;
-  }
 }

@@ -14,38 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.session;
+package org.apache.accumulo.core.spi.scan;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.rpc.TServerUtils;
+import java.util.Map;
+import java.util.Set;
 
-public abstract class Session {
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
-  enum State {
-    NEW, UNRESERVED, RESERVED, REMOVED
+public class DefaultScanDispatcher implements ScanDispatcher {
+
+  private final Set<String> VALID_OPTS = ImmutableSet.of("executor");
+  private String scanExecutor;
+
+  @Override
+  public void init(Map<String,String> options) {
+    Set<String> invalidOpts = Sets.difference(options.keySet(), VALID_OPTS);
+    Preconditions.checkArgument(invalidOpts.size() == 0, "Invalid options : %s", invalidOpts);
+    this.scanExecutor = options.getOrDefault("executor", "default");
   }
 
-  public final String client;
-  public long lastAccessTime;
-  public long startTime;
-  public long maxIdleAccessTime;
-  State state = State.NEW;
-  private final TCredentials credentials;
-
-  Session(TCredentials credentials) {
-    this.credentials = credentials;
-    this.client = TServerUtils.clientAddress.get();
-  }
-
-  public String getUser() {
-    return credentials.getPrincipal();
-  }
-
-  public TCredentials getCredentials() {
-    return credentials;
-  }
-
-  public boolean cleanup() {
-    return true;
+  @Override
+  public String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors) {
+    return scanExecutor;
   }
 }

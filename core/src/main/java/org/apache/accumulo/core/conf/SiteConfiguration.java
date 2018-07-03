@@ -33,6 +33,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using
  * the -o option) and then from an XML file, usually accumulo-site.xml. This implementation supports
@@ -162,6 +164,14 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
 
     return value;
+  }
+
+  @Override
+  public boolean isPropertySet(Property prop) {
+    Preconditions.checkArgument(!prop.isSensitive(),
+        "This method not implemented for sensitive props");
+    return CliConfiguration.get(prop) != null || staticConfigs.containsKey(prop.getKey())
+        || getXmlConfig().get(prop.getKey()) != null || parent.isPropertySet(prop);
   }
 
   @Override
