@@ -21,7 +21,6 @@ import java.lang.reflect.Field;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
 
-import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.transport.TNonblockingServerTransport;

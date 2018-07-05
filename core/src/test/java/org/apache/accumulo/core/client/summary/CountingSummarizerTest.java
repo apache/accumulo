@@ -30,11 +30,7 @@ import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_MAN
 import java.util.Arrays;
 import java.util.HashMap;
 
-import org.apache.accumulo.core.client.summary.CounterSummary;
-import org.apache.accumulo.core.client.summary.CountingSummarizer;
-import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.Summarizer.Collector;
-import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.data.Key;

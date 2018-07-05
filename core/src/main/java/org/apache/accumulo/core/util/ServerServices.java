@@ -18,8 +18,6 @@ package org.apache.accumulo.core.util;
 
 import java.util.EnumMap;
 
-import org.apache.accumulo.core.util.HostAndPort;
-
 public class ServerServices implements Comparable<ServerServices> {
   public static enum Service {
     TSERV_CLIENT, GC_CLIENT;
