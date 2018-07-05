@@ -42,7 +42,7 @@ public class BulkImportServlet extends BasicServlet {
   }
 
   static private long duration(long start) {
-    return (System.currentTimeMillis() - start) / 1000L;
+    return System.currentTimeMillis() - start;
   }
 
   @Override
