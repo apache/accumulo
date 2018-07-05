@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.util.HostAndPort;
-
 public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 
   static public HostAndPort parseAddress(String address, boolean ignoreMissingPort)
