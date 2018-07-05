@@ -340,12 +340,9 @@ public enum Property {
   MASTER_REPLICATION_COORDINATOR_THREADCHECK("master.replication.coordinator.threadcheck.time",
       "5s", PropertyType.TIMEDURATION,
       "The time between adjustments of the coordinator thread pool"),
-  /**
-   * @deprecated since 1.9.1
-   */
   @Deprecated
   MASTER_STATUS_THREAD_POOL_SIZE("master.status.threadpool.size", "1", PropertyType.COUNT,
-      "The number of threads to use when fetching the tablet server status for balancing."),
+      "Deprecated since 1.9.2 and no longer used."),
   MASTER_METADATA_SUSPENDABLE("master.metadata.suspendable", "false", PropertyType.BOOLEAN,
       "Allow tablets for the " + MetadataTable.NAME
           + " table to be suspended via table.suspend.duration."),
