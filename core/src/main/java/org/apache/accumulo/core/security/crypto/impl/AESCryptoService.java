@@ -415,7 +415,10 @@ public class AESCryptoService implements CryptoService {
            * {@link Cipher#doFinal()} See {@link Cipher}
            */
           byte[] gcmTag = new byte[GCM_TAG_LENGTH_IN_BITS / 8];
-          inputStream.read(gcmTag);
+          bytesRead = inputStream.read(gcmTag);
+          if (bytesRead != GCM_TAG_LENGTH_IN_BITS / 8)
+            throw new CryptoException("Read " + bytesRead + " bytes, not GCM tag length of "
+                + GCM_TAG_LENGTH_IN_BITS / 8 + " in decryptStream.");
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
             | InvalidAlgorithmParameterException | IOException e) {
           throw new CryptoException("Unable to initialize cipher", e);

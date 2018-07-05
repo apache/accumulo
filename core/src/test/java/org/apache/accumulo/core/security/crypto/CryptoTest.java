@@ -45,6 +45,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.Before;
 import org.junit.Test;
 
 public class CryptoTest {
@@ -54,8 +55,8 @@ public class CryptoTest {
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
 
-  @Test
-  public void testAESCryptoServiceWAL() throws Exception {
+  @Before
+  public void setupKeyFile() throws Exception {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     String file = "/tmp/testAESFile";
     Path aesPath = new Path(file);
@@ -64,7 +65,10 @@ public class CryptoTest {
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey");
     }
+  }
 
+  @Test
+  public void testAESCryptoServiceWAL() throws Exception {
     AESCryptoService cs = new AESCryptoService();
     byte[] resultingBytes = encrypt(cs, Scope.WAL, CRYPTO_ON_CONF);
 
@@ -78,15 +82,6 @@ public class CryptoTest {
 
   @Test
   public void testAESCryptoServiceRFILE() throws Exception {
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    String file = "/tmp/testAESFile";
-    Path aesPath = new Path(file);
-    fs.delete(aesPath, true);
-    fs.createNewFile(aesPath);
-    try (FSDataOutputStream out = fs.create(aesPath)) {
-      out.writeUTF("sixteenbytekey");
-    }
-
     AESCryptoService cs = new AESCryptoService();
     byte[] resultingBytes = encrypt(cs, Scope.RFILE, CRYPTO_ON_CONF);
 
@@ -126,6 +121,8 @@ public class CryptoTest {
 
   @Test
   public void testRFileEncrypted() throws Exception {
+    setupKeyFile();
+
     AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     ArrayList<Key> keys = testData();
