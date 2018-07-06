@@ -110,7 +110,8 @@ public class ConnectorImpl extends Connector {
   }
 
   @Override
-  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
+  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
+      throws TableNotFoundException {
     Integer numQueryThreads = ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS
         .getInteger(context.getClientInfo().getProperties());
     Objects.requireNonNull(numQueryThreads);
@@ -359,6 +360,18 @@ public class ConnectorImpl extends Connector {
           batchWriterConfig.getMaxWriteThreads());
       setProperty(ClientProperty.BATCH_WRITER_DURABILITY,
           batchWriterConfig.getDurability().toString());
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions withBatchScannerQueryThreads(int numQueryThreads) {
+      setProperty(ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS, numQueryThreads);
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions withScannerBatchSize(int batchSize) {
+      setProperty(ClientProperty.SCANNER_BATCH_SIZE, batchSize);
       return this;
     }
 

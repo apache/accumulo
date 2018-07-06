@@ -68,7 +68,7 @@ public abstract class Connector {
    *          each key in order to filter data. The authorizations passed in must be a subset of the
    *          accumulo user's set of authorizations. If the accumulo user has authorizations (A1,
    *          A2) and authorizations (A2, A3) are passed, then an exception will be thrown.
-  *
+   *
    * @return BatchScanner object for configuring and querying
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
@@ -605,6 +605,16 @@ public abstract class Connector {
      * @return this builder
      */
     ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig);
+
+    /**
+     * Build with default number of query threads for BatchScanner
+     */
+    ConnectionOptions withBatchScannerQueryThreads(int numQueryThreads);
+
+    /**
+     * Build with default batch size for Scanner
+     */
+    ConnectionOptions withScannerBatchSize(int batchSize);
   }
 
   public interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {

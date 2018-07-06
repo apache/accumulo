@@ -47,6 +47,8 @@ class ClientConfigGenerate {
       generateSection("Instance", "instance.");
       generateSection("Authentication", "auth.", "auth.type", "auth.principal");
       generateSection("Batch Writer", "batch.writer.");
+      generateSection("Batch Scanner", "batch.scanner.");
+      generateSection("Scanner", "scanner.");
       generateSection("SSL", "ssl.");
       generateSection("SASL", "sasl.");
       generateSection("Tracing", "trace.");
