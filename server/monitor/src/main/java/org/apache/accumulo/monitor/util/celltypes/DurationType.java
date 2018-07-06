@@ -37,16 +37,13 @@ public class DurationType extends NumberType<Long> {
     if (obj == null)
       return "-";
     Long millis = (Long) obj;
-    if (errMin != null && errMax != null)
-      return seconds(millis, errMin, errMax);
+    if (errMin != null && errMax != null) {
+      String numbers = Duration.format(millis);
+      if (millis < errMin || millis > errMax)
+        return "<span class='error'>" + numbers + "</span>";
+      return numbers;
+    }
     return Duration.format(millis);
-  }
-
-  private static String seconds(long secs, long errMin, long errMax) {
-    String numbers = Duration.format(secs);
-    if (secs < errMin || secs > errMax)
-      return "<span class='error'>" + numbers + "</span>";
-    return numbers;
   }
 
 }
