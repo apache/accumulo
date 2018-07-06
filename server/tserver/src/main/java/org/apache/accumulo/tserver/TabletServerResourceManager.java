@@ -60,6 +60,7 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
@@ -85,7 +86,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -938,9 +938,18 @@ public class TabletServerResourceManager {
       scanExecutors.get("meta").execute(task);
     } else {
       String scanExecutorName = dispatcher.dispatch(scanInfo, scanExecutorChoices);
-      Preconditions.checkState(!"meta".equals(scanExecutorName),
-          "Attempted to dispatch user scan to metadata table scan executor");
-      scanExecutors.get(scanExecutorName).execute(task);
+      ExecutorService executor = scanExecutors.get(scanExecutorName);
+      if (executor == null) {
+        log.warn(
+            "For table id {}, {} dispatched to non-existant executor {} Using default executor.",
+            tablet.getTableId(), dispatcher.getClass().getName(), scanExecutorName);
+        executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
+      } else if ("meta".equals(scanExecutorName)) {
+        log.warn("For table id {}, {} dispatched to meta executor. Using default executor.",
+            tablet.getTableId(), dispatcher.getClass().getName());
+        executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
+      }
+      executor.execute(task);
     }
   }
 

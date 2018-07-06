@@ -30,9 +30,9 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.spi.scan.DefaultScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
@@ -435,11 +435,14 @@ public enum Property {
           + " sessions to determine if they can be closed due to inactivity"),
   @Deprecated
   TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
-      "This property is deprecated, use tserver.scan.executors.default.threads instead."),
+      "This property is deprecated since 2.0.0, use tserver.scan.executors.default.threads instead."
+          + " The maximum number of concurrent read ahead that will execute. This effectively limits "
+          + "the number of long running scans that can run concurrently per tserver.\""),
   @Deprecated
   TSERV_METADATA_READ_AHEAD_MAXCONCURRENT("tserver.metadata.readahead.concurrent.max", "8",
       PropertyType.COUNT,
-      "This property is deprecated, use tserver.scan.executors.meta.threads instead."),
+      "This property is deprecated since 2.0.0, use tserver.scan.executors.meta.threads instead. "
+          + "The maximum number of concurrent metadata read ahead that will execute."),
   TSERV_SCAN_EXECUTORS_PREFIX("tserver.scan.executors.", null, PropertyType.PREFIX,
       "Prefix for defining executors to service scans.  For each executor the number of threads, "
           + "thread priority, and an optional prioritizer can be configured.  The prioritizer "
@@ -455,7 +458,7 @@ public enum Property {
       "The number of threads for the scan executor that tables use by default."),
   TSERV_SCAN_EXECUTORS_DEFAULT_PRIORITIZER("tserver.scan.executors.default.prioritizer", "",
       PropertyType.STRING,
-      "Prioritizer for the default scan exector.  Defaults to none which "
+      "Prioritizer for the default scan executor.  Defaults to none which "
           + "results in FIFO priority.  Set to a class that implements "
           + ScanPrioritizer.class.getName() + " to configure one."),
   TSERV_SCAN_EXECUTORS_META_THREADS("tserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
@@ -688,15 +691,17 @@ public enum Property {
       PropertyType.BYTES,
       "The max RFile size used for a merging minor compaction. The default"
           + " value of 0 disables a max file size."),
-  TABLE_SCAN_DISPATCHER("table.scan.dispatcher", DefaultScanDispatcher.class.getName(),
+  TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
-      "This class is used to dynamically dispatch scans to configured scan executors.  By default "
-          + "scans are dispatched to the scan executor named `default`.  "
-          + DefaultScanDispatcher.class.getSimpleName() + " supports an option for setting another"
-          + " executor, to do this set table.scan.dispatcher.opts.executor=<name>. Configured "
-          + "classes must implement " + ScanDispatcher.class.getName() + ".  This property is "
-          + "ignored for the root and metadata table.  The metadata table always dispatches to a "
-          + "scan executor named `meta`."),
+      "This class is used to dynamically dispatch scans to configured scan executors.  This setting"
+          + " defaults to " + SimpleScanDispatcher.class.getSimpleName()
+          + " which dispatches to an executor"
+          + " named 'default' when it is optionless. Setting the option "
+          + "'table.scan.dispatcher.opts.executor=<name>' causes "
+          + SimpleScanDispatcher.class.getSimpleName() + " to dispatch to the specified executor. "
+          + "It has more options listed in its javadoc. Configured classes must implement "
+          + ScanDispatcher.class.getName() + ".  This property is ignored for the root and metadata"
+          + " table.  The metadata table always dispatches to a scan executor named `meta`."),
   TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table scan dispatcher"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,

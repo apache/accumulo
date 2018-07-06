@@ -24,11 +24,11 @@ import java.util.Map;
  * @since 2.0.0
  */
 public interface IteratorConfiguration {
-  public String getIteratorClass();
+  String getIteratorClass();
 
-  public String getName();
+  String getName();
 
-  public int getPriority();
+  int getPriority();
 
   Map<String,String> getOptions();
 }

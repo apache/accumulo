@@ -26,7 +26,7 @@ import java.util.Optional;
  */
 public interface ScanExecutor {
 
-  public interface Config {
+  interface Config {
     /**
      * @return the unique name used to identified executor in config
      */

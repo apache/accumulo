@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
@@ -36,7 +38,14 @@ import org.apache.accumulo.core.spi.common.Stats;
 public interface ScanInfo {
 
   enum Type {
-    SINGLE, MULTI
+    /**
+     * A single range scan started using a {@link Scanner}
+     */
+    SINGLE,
+    /**
+     * A multi range scan started using a {@link BatchScanner}
+     */
+    MULTI
   }
 
   Type getScanType();

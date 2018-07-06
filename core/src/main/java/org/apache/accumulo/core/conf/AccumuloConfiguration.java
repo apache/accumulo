@@ -34,6 +34,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -374,6 +375,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
      * Re-reads the max threads from the configuration that created this class
      */
     public int getCurrentMaxThreads() {
+      Integer depThreads = getDeprecatedScanThreads(name);
+      if (depThreads != null) {
+        return depThreads;
+      }
+
       String prop = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
       String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
       return Integer.parseInt(val);
@@ -390,7 +396,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     Property prop;
     Property deprecatedProp;
 
-    if (name.equals("default")) {
+    if (name.equals(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME)) {
       prop = Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
       deprecatedProp = Property.TSERV_READ_AHEAD_MAXCONCURRENT;
     } else if (name.equals("meta")) {
@@ -401,7 +407,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
-      log.warn("Property {} is deprecatd, use {} instead.", prop.getKey(), deprecatedProp.getKey());
+      log.warn("Property {} is deprecated, use {} instead.", prop.getKey(),
+          deprecatedProp.getKey());
       return Integer.valueOf(get(deprecatedProp));
     } else if (isPropertySet(prop) && isPropertySet(deprecatedProp)) {
       log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
