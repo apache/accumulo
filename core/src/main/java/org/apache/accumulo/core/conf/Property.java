@@ -435,9 +435,9 @@ public enum Property {
           + " sessions to determine if they can be closed due to inactivity"),
   @Deprecated
   TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
-      "This property is deprecated since 2.0.0, use tserver.scan.executors.default.threads instead."
-          + " The maximum number of concurrent read ahead that will execute. This effectively limits "
-          + "the number of long running scans that can run concurrently per tserver.\""),
+      "This property is deprecated since 2.0.0, use tserver.scan.executors.default.threads "
+      + "instead. The maximum number of concurrent read ahead that will execute. This effectively"
+      + " limits the number of long running scans that can run concurrently per tserver.\""),
   @Deprecated
   TSERV_METADATA_READ_AHEAD_MAXCONCURRENT("tserver.metadata.readahead.concurrent.max", "8",
       PropertyType.COUNT,
@@ -447,7 +447,7 @@ public enum Property {
       "Prefix for defining executors to service scans.  For each executor the number of threads, "
           + "thread priority, and an optional prioritizer can be configured.  The prioritizer "
           + "determines which scan an executor should run first and must implement "
-          + ScanPrioritizer.class.getName() + ". Tables can select which executor to use by setting"
+          + ScanPrioritizer.class.getName() + ". Tables can select an executor by setting"
           + " table.scan.dispatcher. To configure a new executor, set "
           + "tserver.scan.executors.<name>.threads=<number>.  Optionally, can also set "
           + "tserver.scan.executors.<name>.priority=<number 1 to 10>, "
