@@ -19,11 +19,7 @@ package org.apache.accumulo.core.util;
 public class Duration {
 
   public static String format(long time) {
-    return format(time, "&nbsp;");
-  }
-
-  public static String format(long time, String space) {
-    return format(time, space, "&mdash;");
+    return format(time, "&nbsp;", "&mdash;");
   }
 
   public static String format(long time, String space, String zero) {
