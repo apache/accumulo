@@ -57,6 +57,27 @@ public abstract class Connector {
       int numQueryThreads) throws TableNotFoundException;
 
   /**
+   * Factory method to create a BatchScanner connected to Accumulo. This method uses the number of
+   * query threads configured when Connector was created. If none were configured, defaults will be
+   * used.
+   *
+   * @param tableName
+   *          the name of the table to query
+   * @param authorizations
+   *          A set of authorization labels that will be checked against the column visibility of
+   *          each key in order to filter data. The authorizations passed in must be a subset of the
+   *          accumulo user's set of authorizations. If the accumulo user has authorizations (A1,
+   *          A2) and authorizations (A2, A3) are passed, then an exception will be thrown.
+   *
+   * @return BatchScanner object for configuring and querying
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   * @since 2.0.0
+   */
+  public abstract BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
+      throws TableNotFoundException;
+
+  /**
    * Factory method to create a BatchDeleter connected to Accumulo.
    *
    * @param tableName
@@ -165,7 +186,6 @@ public abstract class Connector {
    * @return BatchWriter object for configuring and writing data to
    * @since 1.5.0
    */
-
   public abstract BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException;
 
@@ -585,6 +605,16 @@ public abstract class Connector {
      * @return this builder
      */
     ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig);
+
+    /**
+     * Build with default number of query threads for BatchScanner
+     */
+    ConnectionOptions withBatchScannerQueryThreads(int numQueryThreads);
+
+    /**
+     * Build with default batch size for Scanner
+     */
+    ConnectionOptions withScannerBatchSize(int batchSize);
   }
 
   public interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
