@@ -436,8 +436,9 @@ public enum Property {
   @Deprecated
   TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
       "This property is deprecated since 2.0.0, use tserver.scan.executors.default.threads "
-      + "instead. The maximum number of concurrent read ahead that will execute. This effectively"
-      + " limits the number of long running scans that can run concurrently per tserver.\""),
+          + "instead. The maximum number of concurrent read ahead that will execute. This "
+          + "effectively limits the number of long running scans that can run concurrently "
+          + "per tserver.\""),
   @Deprecated
   TSERV_METADATA_READ_AHEAD_MAXCONCURRENT("tserver.metadata.readahead.concurrent.max", "8",
       PropertyType.COUNT,
