@@ -1149,15 +1149,19 @@ public class Master extends AccumuloServerContext
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
       Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+    int threads = Math.max(getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE), 0);
+    ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool()
+        : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
-    ExecutorService tp = Executors.newCachedThreadPool();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
-      // Since an unbounded thread pool is being used, rate limit how fast task are added to the
-      // executor. This prevents the threads from growing large unless there are lots of
-      // unresponsive tservers.
-      sleepUninterruptibly(Math.max(5, rpcTimeout / 24000), TimeUnit.MILLISECONDS);
+      if (threads == 0) {
+        // Since an unbounded thread pool is being used, rate limit how fast task are added to the
+        // executor. This prevents the threads from growing large unless there are lots of
+        // unresponsive tservers.
+        sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
+      }
       tp.submit(new Runnable() {
         @Override
         public void run() {
