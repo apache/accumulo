@@ -17,7 +17,7 @@
 
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,8 +32,6 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -44,10 +42,10 @@ import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
-import org.apache.accumulo.core.security.crypto.CryptoModule;
-import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
-import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
-import org.apache.accumulo.core.security.crypto.SecretKeyEncryptionStrategy;
+import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.security.crypto.CryptoService;
+import org.apache.accumulo.core.security.crypto.FileDecrypter;
+import org.apache.accumulo.core.security.crypto.FileEncrypter;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -66,7 +64,20 @@ import org.apache.hadoop.io.compress.Decompressor;
 public final class BCFile {
   // the current version of BCFile impl, increment them (major or minor) made
   // enough changes
-  static final Version API_VERSION = new Version((short) 2, (short) 0);
+  /**
+   * Simplified encryption interface. Allows more flexible encryption.
+   *
+   * @since 2.0
+   */
+  static final Version API_VERSION_3 = new Version((short) 3, (short) 0);
+  /**
+   * Experimental crypto parameters, not flexible. Do not use.
+   */
+  static final Version API_VERSION_2 = new Version((short) 2, (short) 0);
+  /**
+   * Original BCFile version, prior to encryption. Also, any files before 2.0 that didn't have
+   * encryption were marked with this version.
+   */
   static final Version API_VERSION_1 = new Version((short) 1, (short) 0);
   static final Log LOG = LogFactory.getLog(BCFile.class);
 
@@ -94,9 +105,8 @@ public final class BCFile {
   static public class Writer implements Closeable {
     private final RateLimitedOutputStream out;
     private final Configuration conf;
-    private final CryptoModule cryptoModule;
-    private BCFileCryptoModuleParameters cryptoParams;
-    private SecretKeyEncryptionStrategy secretKeyEncryptionStrategy;
+    private FileEncrypter encrypter;
+    private CryptoEnvironment cryptoEnvironment;
     // the single meta block containing index of compressed data blocks
     final DataIndex dataIndex;
     // index for meta blocks
@@ -126,15 +136,9 @@ public final class BCFile {
       private final SimpleBufferedOutputStream fsBufferedOutput;
       private OutputStream out;
 
-      /**
-       * @param compressionAlgo
-       *          The compression algorithm to be used to for compression.
-       * @param cryptoModule
-       *          the module to use to obtain cryptographic streams
-       */
       public WBlockState(Algorithm compressionAlgo, RateLimitedOutputStream fsOut,
-          BytesWritable fsOutputBuffer, Configuration conf, CryptoModule cryptoModule,
-          CryptoModuleParameters cryptoParams) throws IOException {
+          BytesWritable fsOutputBuffer, Configuration conf, FileEncrypter encrypter)
+          throws IOException {
         this.compressAlgo = compressionAlgo;
         this.fsOut = fsOut;
         this.posStart = fsOut.position();
@@ -143,50 +147,10 @@ public final class BCFile {
 
         this.fsBufferedOutput = new SimpleBufferedOutputStream(this.fsOut,
             fsOutputBuffer.getBytes());
-
-        // *This* is very important. Without this, when the crypto stream is closed (in order to
-        // flush its last bytes),
-        // the underlying RFile stream will *also* be closed, and that's undesirable as the cipher
-        // stream is closed for
-        // every block written.
-        cryptoParams.setCloseUnderylingStreamAfterCryptoStreamClose(false);
-
-        // *This* is also very important. We don't want the underlying stream messed with.
-        cryptoParams.setRecordParametersToStream(false);
-
-        // Create a new IV for the block or update an existing one in the case of GCM
-        cryptoParams.updateInitializationVector();
-
-        // Initialize the cipher including generating a new IV
-        cryptoParams = cryptoModule.initializeCipher(cryptoParams);
-
-        // Write the init vector in plain text, uncompressed, to the output stream. Due to the way
-        // the streams work out, there's no good way to write this
-        // compressed, but it's pretty small.
-        DataOutputStream tempDataOutputStream = new DataOutputStream(fsBufferedOutput);
-
-        // Init vector might be null if the underlying cipher does not require one (NullCipher being
-        // a good example)
-        if (cryptoParams.getInitializationVector() != null) {
-          tempDataOutputStream.writeInt(cryptoParams.getInitializationVector().length);
-          tempDataOutputStream.write(cryptoParams.getInitializationVector());
-        } else {
-          // Do nothing
-        }
-
-        // Initialize the cipher stream and get the IV
-        cryptoParams.setPlaintextOutputStream(tempDataOutputStream);
-        cryptoParams = cryptoModule.getEncryptingOutputStream(cryptoParams);
-
-        if (cryptoParams.getEncryptedOutputStream() == tempDataOutputStream) {
-          this.cipherOut = fsBufferedOutput;
-        } else {
-          this.cipherOut = cryptoParams.getEncryptedOutputStream();
-        }
-
         this.compressor = compressAlgo.getCompressor();
 
         try {
+          this.cipherOut = encrypter.encryptStream(fsBufferedOutput);
           this.out = compressionAlgo.createCompressionStream(cipherOut, compressor, 0);
         } catch (IOException e) {
           compressAlgo.returnCompressor(compressor);
@@ -349,7 +313,8 @@ public final class BCFile {
      * @see Compression#getSupportedAlgorithms
      */
     public Writer(FSDataOutputStream fout, RateLimiter writeLimiter, String compressionName,
-        Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+        Configuration conf, AccumuloConfiguration aconf, CryptoService cryptoService)
+        throws IOException {
       if (fout.getPos() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
@@ -360,22 +325,9 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-
-      // Set up crypto-related detail, including secret key generation and encryption
-
-      this.cryptoModule = CryptoModuleFactory.getCryptoModule(accumuloConfiguration);
-      this.cryptoParams = new BCFileCryptoModuleParameters();
-      CryptoModuleFactory.fillParamsObjectFromConfiguration(cryptoParams, accumuloConfiguration);
-      this.cryptoParams = (BCFileCryptoModuleParameters) cryptoModule
-          .generateNewRandomSessionKey(cryptoParams);
-
-      this.secretKeyEncryptionStrategy = CryptoModuleFactory
-          .getSecretKeyEncryptionStrategy(accumuloConfiguration);
-      this.cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy
-          .encryptSecretKey(cryptoParams);
-
-      // secretKeyEncryptionStrategy.encryptSecretKey(cryptoParameters);
-
+      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
+          aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+      this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
     }
 
     /**
@@ -403,20 +355,12 @@ public final class BCFile {
           long offsetIndexMeta = out.position();
           metaIndex.write(out);
 
-          if (cryptoParams.getCipherSuite() == null || cryptoParams.getCipherSuite()
-              .equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
-            out.writeLong(offsetIndexMeta);
-            API_VERSION_1.write(out);
-          } else {
-            long offsetCryptoParameters = out.position();
-            cryptoParams.write(out);
+          long offsetCryptoParameter = out.position();
+          out.writeUTF(this.encrypter.getParameters());
 
-            // Meta Index, crypto params offsets and the trailing section are written out directly.
-            out.writeLong(offsetIndexMeta);
-            out.writeLong(offsetCryptoParameters);
-            API_VERSION.write(out);
-          }
-
+          out.writeLong(offsetIndexMeta);
+          out.writeLong(offsetCryptoParameter);
+          API_VERSION_3.write(out);
           Magic.write(out);
           out.flush();
           length = out.position();
@@ -442,8 +386,7 @@ public final class BCFile {
       }
 
       MetaBlockRegister mbr = new MetaBlockRegister(name, compressAlgo);
-      WBlockState wbs = new WBlockState(compressAlgo, out, fsOutputBuffer, conf, cryptoModule,
-          cryptoParams);
+      WBlockState wbs = new WBlockState(compressAlgo, out, fsOutputBuffer, conf, encrypter);
       BlockAppender ba = new BlockAppender(mbr, wbs);
       blkInProgress = true;
       metaBlkSeen = true;
@@ -483,7 +426,7 @@ public final class BCFile {
       }
 
       WBlockState wbs = new WBlockState(getDefaultCompressionAlgorithm(), out, fsOutputBuffer, conf,
-          cryptoModule, cryptoParams);
+          encrypter);
       BlockAppender ba = new BlockAppender(wbs);
       blkInProgress = true;
       return ba;
@@ -508,76 +451,6 @@ public final class BCFile {
     }
   }
 
-  // sha256 of some random data
-  // @formatter:off
-  private static final byte[] NO_CPYPTO_KEY =
-    "ce18cf53c4c5077f771249b38033fa14bcb31cca0e5e95a371ee72daa8342ea2".getBytes(UTF_8);
-  // @formatter:on
-
-  // This class is used as a place holder in the cache for RFiles that have no crypto....
-  private static final BCFileCryptoModuleParameters NO_CRYPTO = new BCFileCryptoModuleParameters() {
-
-    @Override
-    public Map<String,String> getAllOptions() {
-      return Collections.emptyMap();
-    }
-
-    @Override
-    public byte[] getEncryptedKey() {
-      return NO_CPYPTO_KEY;
-    }
-
-    @Override
-    public String getOpaqueKeyEncryptionKeyID() {
-      // NONE + sha256 of random data
-      return "NONE:a4007e6aefb095a5a47030cd6c850818fb3a685dc6e85ba1ecc5a44ba68b193b";
-    }
-
-  };
-
-  private static class BCFileCryptoModuleParameters extends CryptoModuleParameters {
-
-    public void write(DataOutput out) throws IOException {
-      // Write out the context
-      out.writeInt(getAllOptions().size());
-      for (String key : getAllOptions().keySet()) {
-        out.writeUTF(key);
-        out.writeUTF(getAllOptions().get(key));
-      }
-
-      // Write the opaque ID
-      out.writeUTF(getOpaqueKeyEncryptionKeyID());
-
-      // Write the encrypted secret key
-      out.writeInt(getEncryptedKey().length);
-      out.write(getEncryptedKey());
-
-    }
-
-    public void read(DataInput in) throws IOException {
-
-      Map<String,String> optionsFromFile = new HashMap<>();
-
-      int numContextEntries = in.readInt();
-      for (int i = 0; i < numContextEntries; i++) {
-        optionsFromFile.put(in.readUTF(), in.readUTF());
-      }
-
-      CryptoModuleFactory.fillParamsObjectFromStringMap(this, optionsFromFile);
-
-      // Read opaque key encryption ID
-      setOpaqueKeyEncryptionKeyID(in.readUTF());
-
-      // Read encrypted secret key
-      int encryptedSecretKeyLength = in.readInt();
-      byte[] encryptedSecretKey = new byte[encryptedSecretKeyLength];
-      in.readFully(encryptedSecretKey);
-      setEncryptedKey(encryptedSecretKey);
-
-    }
-
-  }
-
   /**
    * BCFile Reader, interface to read the file's data and meta blocks.
    */
@@ -588,9 +461,10 @@ public final class BCFile {
     // Index for meta blocks
     final MetaIndex metaIndex;
     final Version version;
-    private BCFileCryptoModuleParameters cryptoParams;
-    private CryptoModule cryptoModule;
-    private SecretKeyEncryptionStrategy secretKeyEncryptionStrategy;
+    private CryptoEnvironment cryptoEnvironment;
+    private FileDecrypter decrypter;
+    // encrypter needed for cache serialization
+    private FileEncrypter encrypter;
 
     /**
      * Intermediate class that maintain the state of a Readable Compression Block.
@@ -603,8 +477,8 @@ public final class BCFile {
       private volatile boolean closed;
 
       public <InputStreamType extends InputStream & Seekable> RBlockState(Algorithm compressionAlgo,
-          InputStreamType fsin, BlockRegion region, Configuration conf, CryptoModule cryptoModule,
-          CryptoModuleParameters cryptoParams) throws IOException {
+          InputStreamType fsin, BlockRegion region, Configuration conf, FileDecrypter decrypter)
+          throws IOException {
         this.compressAlgo = compressionAlgo;
         this.region = region;
         this.decompressor = compressionAlgo.getDecompressor();
@@ -613,28 +487,8 @@ public final class BCFile {
             fsin, this.region.getOffset(), this.region.getCompressedSize());
         InputStream inputStreamToBeCompressed = boundedRangeFileInputStream;
 
-        if (cryptoParams != null && cryptoModule != null) {
-          DataInputStream tempDataInputStream = new DataInputStream(boundedRangeFileInputStream);
-          // Read the init vector from the front of the stream before initializing the cipher stream
-
-          int ivLength = tempDataInputStream.readInt();
-          byte[] initVector = new byte[ivLength];
-          tempDataInputStream.readFully(initVector);
-
-          cryptoParams.setInitializationVector(initVector);
-          cryptoParams.setEncryptedInputStream(boundedRangeFileInputStream);
-
-          // These two flags mirror those in WBlockState, and are very necessary to set in order
-          // that the underlying stream be written and handled
-          // correctly.
-          cryptoParams.setCloseUnderylingStreamAfterCryptoStreamClose(false);
-          cryptoParams.setRecordParametersToStream(false);
-
-          cryptoParams = cryptoModule.getDecryptingInputStream(cryptoParams);
-          inputStreamToBeCompressed = cryptoParams.getPlaintextInputStream();
-        }
-
         try {
+          inputStreamToBeCompressed = decrypter.decryptStream(inputStreamToBeCompressed);
           this.in = compressAlgo.createDecompressionStream(inputStreamToBeCompressed, decompressor,
               getFSInputBufferSize(conf));
         } catch (IOException e) {
@@ -729,12 +583,8 @@ public final class BCFile {
         if (out.size() > maxSize) {
           return null;
         }
-        if (cryptoParams == null) {
-          out.writeBoolean(false);
-        } else {
-          out.writeBoolean(true);
-          cryptoParams.write(out);
-        }
+
+        out.writeUTF(new String(this.cryptoEnvironment.getParameters()));
 
         if (out.size() > maxSize) {
           return null;
@@ -756,8 +606,8 @@ public final class BCFile {
      *          Length of the corresponding file
      */
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fin,
-        long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+        long fileLength, Configuration conf, AccumuloConfiguration aconf,
+        CryptoService cryptoService) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -766,9 +616,11 @@ public final class BCFile {
       version = new Version(this.in);
       Magic.readAndVerify(this.in);
 
-      // Do a version check
-      if (!version.compatibleWith(BCFile.API_VERSION) && !version.equals(BCFile.API_VERSION_1)) {
-        throw new RuntimeException("Incompatible BCFile fileBCFileVersion.");
+      // Do a version check - API_VERSION_2 used experimental crypto parameters, no longer supported
+      if (!version.compatibleWith(BCFile.API_VERSION_3)
+          && !version.compatibleWith(BCFile.API_VERSION_1)) {
+        throw new IOException("Unsupported BCFile Version found: " + version.toString() + ". "
+            + "Only support " + API_VERSION_1 + " or " + API_VERSION_3);
       }
 
       // Read the right number offsets based on version
@@ -776,11 +628,10 @@ public final class BCFile {
       long offsetCryptoParameters = 0;
 
       if (version.equals(API_VERSION_1)) {
-        this.in.seek(fileLength - Magic.size() - Version.size() - (Long.SIZE / Byte.SIZE));
+        this.in.seek(fileLength - Magic.size() - Version.size() - Long.BYTES);
         offsetIndexMeta = this.in.readLong();
-
       } else {
-        this.in.seek(fileLength - Magic.size() - Version.size() - (2 * (Long.SIZE / Byte.SIZE)));
+        this.in.seek(fileLength - Magic.size() - Version.size() - (2 * Long.BYTES));
         offsetIndexMeta = this.in.readLong();
         offsetCryptoParameters = this.in.readLong();
       }
@@ -789,49 +640,16 @@ public final class BCFile {
       this.in.seek(offsetIndexMeta);
       metaIndex = new MetaIndex(this.in);
 
-      // If they exist, read the crypto parameters
-      if (!version.equals(BCFile.API_VERSION_1)) {
-
-        // read crypto parameters
-        this.in.seek(offsetCryptoParameters);
-        cryptoParams = new BCFileCryptoModuleParameters();
-        cryptoParams.read(this.in);
-
-        this.cryptoModule = CryptoModuleFactory.getCryptoModule(
-            cryptoParams.getAllOptions().get(Property.CRYPTO_MODULE_CLASS.getKey()));
-
-        // TODO: Do I need this? Hmmm, maybe I do.
-        if (accumuloConfiguration
-            .getBoolean(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY)) {
-          Map<String,String> cryptoConfFromAccumuloConf = accumuloConfiguration
-              .getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
-          Map<String,String> instanceConf = accumuloConfiguration
-              .getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX);
-
-          cryptoConfFromAccumuloConf.putAll(instanceConf);
-
-          for (String name : cryptoParams.getAllOptions().keySet()) {
-            if (!name.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey())) {
-              cryptoConfFromAccumuloConf.put(name, cryptoParams.getAllOptions().get(name));
-            } else {
-              cryptoParams.setKeyEncryptionStrategyClass(cryptoConfFromAccumuloConf
-                  .get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
-            }
-          }
-
-          cryptoParams.setAllOptions(cryptoConfFromAccumuloConf);
-        }
-
-        this.secretKeyEncryptionStrategy = CryptoModuleFactory
-            .getSecretKeyEncryptionStrategy(cryptoParams.getKeyEncryptionStrategyClass());
-
-        // This call should put the decrypted session key within the cryptoParameters object
-        cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy
-            .decryptSecretKey(cryptoParams);
-
-        // secretKeyEncryptionStrategy.decryptSecretKey(cryptoParameters);
-      } else {
+      // backwards compatibility
+      if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
+      } else {
+        // read crypto version string and get decrypter
+        this.in.seek(offsetCryptoParameters);
+        this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
+            aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+        this.cryptoEnvironment.setParameters(this.in.readUTF());
+        this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
       }
 
       // read data:BCFile.index, the data block index
@@ -841,7 +659,8 @@ public final class BCFile {
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata,
-        InputStreamType fin, Configuration conf) throws IOException {
+        InputStreamType fin, Configuration conf, AccumuloConfiguration aconf,
+        CryptoService cryptoService) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -852,30 +671,11 @@ public final class BCFile {
 
       metaIndex = new MetaIndex(dis);
       dataIndex = new DataIndex(dis);
-      if (dis.readBoolean()) {
-        setupCryptoFromCachedData(dis);
-      }
-    }
 
-    private void setupCryptoFromCachedData(DataInput cachedCryptoParams) throws IOException {
-      BCFileCryptoModuleParameters params = new BCFileCryptoModuleParameters();
-      params.read(cachedCryptoParams);
-
-      if (Arrays.equals(params.getEncryptedKey(), NO_CRYPTO.getEncryptedKey())
-          && NO_CRYPTO.getOpaqueKeyEncryptionKeyID().equals(params.getOpaqueKeyEncryptionKeyID())) {
-        this.cryptoParams = null;
-        this.cryptoModule = null;
-        this.secretKeyEncryptionStrategy = null;
-      } else {
-        this.cryptoModule = CryptoModuleFactory
-            .getCryptoModule(params.getAllOptions().get(Property.CRYPTO_MODULE_CLASS.getKey()));
-        this.secretKeyEncryptionStrategy = CryptoModuleFactory
-            .getSecretKeyEncryptionStrategy(params.getKeyEncryptionStrategyClass());
-
-        // This call should put the decrypted session key within the cryptoParameters object
-        cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy
-            .decryptSecretKey(params);
-      }
+      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
+          aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+      this.cryptoEnvironment.setParameters(dis.readUTF());
+      this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
     }
 
     /**
@@ -957,7 +757,7 @@ public final class BCFile {
 
     private BlockReader createReader(Algorithm compressAlgo, BlockRegion region)
         throws IOException {
-      RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, cryptoModule, cryptoParams);
+      RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, decrypter);
       return new BlockReader(rbs);
     }
   }

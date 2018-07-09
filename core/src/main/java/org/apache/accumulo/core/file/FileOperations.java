@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -395,6 +396,7 @@ public abstract class FileOperations {
     private BlockCache dataCache;
     private BlockCache indexCache;
     private Cache<String,Long> fileLenCache;
+    private CryptoService cryptoService;
 
     /**
      * (Optional) Set the block cache pair to be used to optimize reads within the constructed
@@ -429,6 +431,11 @@ public abstract class FileOperations {
       return (SubclassType) this;
     }
 
+    public SubclassType withCryptoService(CryptoService cryptoService) {
+      this.cryptoService = cryptoService;
+      return (SubclassType) this;
+    }
+
     public BlockCache getDataCache() {
       return dataCache;
     }
@@ -439,6 +446,10 @@ public abstract class FileOperations {
 
     public Cache<String,Long> getFileLenCache() {
       return fileLenCache;
+    }
+
+    public CryptoService getCryptoService() {
+      return cryptoService;
     }
   }
 

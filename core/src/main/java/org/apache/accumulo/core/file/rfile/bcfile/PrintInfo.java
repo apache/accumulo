@@ -21,8 +21,10 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,10 +34,11 @@ public class PrintInfo {
   public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path)
       throws IOException {
     FSDataInputStream fsin = fs.open(path);
+    AccumuloConfiguration aconf = SiteConfiguration.getInstance();
     BCFile.Reader bcfr = null;
     try {
-      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf,
-          SiteConfiguration.getInstance());
+      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, aconf,
+          CryptoServiceFactory.getConfigured(aconf));
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 

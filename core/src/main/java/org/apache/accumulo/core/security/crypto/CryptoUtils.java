@@ -27,9 +27,13 @@ import javax.crypto.NullCipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DefaultCryptoModuleUtils {
+public class CryptoUtils {
 
-  private static final Logger log = LoggerFactory.getLogger(DefaultCryptoModuleUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(CryptoUtils.class);
+
+  public static SecureRandom getSha1SecureRandom() {
+    return getSecureRandom("SHA1PRNG", "SUN");
+  }
 
   public static SecureRandom getSecureRandom(String secureRNG, String secureRNGProvider) {
     SecureRandom secureRandom = null;
