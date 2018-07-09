@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -62,6 +63,7 @@ import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
+import org.apache.accumulo.tserver.session.SessionComparator;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
@@ -160,6 +162,38 @@ public class TabletServerResourceManager {
     return addEs(max, name, tp);
   }
 
+  /**
+   * If we cannot instantiate the comparator we will default to the linked blocking queue comparator
+   *
+   * @param max
+   *          max number of threads
+   * @param comparator
+   *          comparator property
+   * @param name
+   *          name passed to the thread factory
+   * @return priority executor
+   */
+  private ExecutorService createPriorityExecutor(Property max, Property comparator, String name) {
+    int maxThreads = conf.getSystemConfiguration().getCount(max);
+
+    String comparatorClazz = conf.getSystemConfiguration().get(comparator);
+
+    if (null == comparatorClazz || comparatorClazz.length() == 0) {
+      log.debug("Using no comparator");
+      return createEs(max, name, new LinkedBlockingQueue<>());
+    } else {
+      SessionComparator comparatorObj = Property.createInstanceFromPropertyName(
+          conf.getSystemConfiguration(), comparator, SessionComparator.class, null);
+      if (null != comparatorObj) {
+        log.debug("Using priority based scheduler {}", comparatorClazz);
+        return createEs(max, name, new PriorityBlockingQueue<>(maxThreads, comparatorObj));
+      } else {
+        log.debug("Using no comparator");
+        return createEs(max, name, new LinkedBlockingQueue<>());
+      }
+    }
+  }
+
   private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
     int maxThreads = conf.getSystemConfiguration().getCount(max);
     ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L,
@@ -251,7 +285,8 @@ public class TabletServerResourceManager {
 
     activeAssignments = new ConcurrentHashMap<>();
 
-    readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
+    readAheadThreadPool = createPriorityExecutor(Property.TSERV_READ_AHEAD_MAXCONCURRENT,
+        Property.TSERV_SESSION_COMPARATOR_CLASS, "tablet read ahead");
     defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT,
         "metadata tablets read ahead");
 

@@ -19,15 +19,17 @@ package org.apache.accumulo.tserver.session;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.rpc.TServerUtils;
 
-public class Session {
+public abstract class Session implements Runnable {
 
   enum State {
     NEW, UNRESERVED, RESERVED, REMOVED
   }
 
   public final String client;
-  long lastAccessTime;
+  public long lastAccessTime;
+  protected volatile long lastExecTime = -1;
   public long startTime;
+  public long maxIdleAccessTime;
   State state = State.NEW;
   private final TCredentials credentials;
 
@@ -47,4 +49,18 @@ public class Session {
   public boolean cleanup() {
     return true;
   }
+
+  @Override
+  public void run() {
+    lastExecTime = System.currentTimeMillis();
+  }
+
+  public void setLastExecutionTime(long lastExecTime) {
+    this.lastExecTime = lastExecTime;
+  }
+
+  public long getLastExecutionTime() {
+    return lastExecTime;
+  }
+
 }

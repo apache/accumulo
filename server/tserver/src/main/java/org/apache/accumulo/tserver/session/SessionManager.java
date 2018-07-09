@@ -231,6 +231,9 @@ public class SessionManager {
             configuredIdle = maxUpdateIdle;
           }
           long idleTime = System.currentTimeMillis() - session.lastAccessTime;
+          if (idleTime > session.maxIdleAccessTime) {
+            session.maxIdleAccessTime = idleTime;
+          }
           if (idleTime > configuredIdle) {
             log.info("Closing idle session from user={}, client={}, idle={}ms", session.getUser(),
                 session.client, idleTime);
