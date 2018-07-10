@@ -15,18 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.spi.cache;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+/**
+ *
+ * @since 2.0.0
+ */
 public abstract class BlockCacheManager {
-
-  public static final Logger LOG = LoggerFactory.getLogger(BlockCacheManager.class);
 
   private final Map<CacheType,BlockCache> caches = new HashMap<>();
 

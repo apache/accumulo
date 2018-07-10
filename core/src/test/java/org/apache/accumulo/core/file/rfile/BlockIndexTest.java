@@ -23,10 +23,10 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
+import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class BlockIndexTest {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends Weighbable> T getIndex(Supplier<T> indexSupplier) {
+    public <T extends Weighable> T getIndex(Supplier<T> indexSupplier) {
       if (idx == null) {
         idx = indexSupplier.get();
       }

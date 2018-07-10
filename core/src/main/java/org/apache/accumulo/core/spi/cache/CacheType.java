@@ -15,8 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.spi.cache;
 
+/**
+ * @since 2.0.0
+ */
 public enum CacheType {
 
   DATA, INDEX, SUMMARY;

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.spi.cache;
 
 import java.util.Map;
 
@@ -23,6 +23,8 @@ import org.apache.accumulo.core.file.blockfile.cache.lru.SynchronousLoadingBlock
 
 /**
  * Block cache interface.
+ *
+ * @since 2.0.0
  */
 public interface BlockCache {
 

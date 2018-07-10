@@ -19,10 +19,14 @@ package org.apache.accumulo.core.file.blockfile.cache.impl;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlockCacheManagerFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(BlockCacheManager.class);
 
   /**
    * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class' using the
@@ -39,8 +43,7 @@ public class BlockCacheManagerFactory {
     String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
     Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl,
         BlockCacheManager.class);
-    BlockCacheManager.LOG.info("Created new block cache manager of type: {}",
-        clazz.getSimpleName());
+    LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
     return clazz.newInstance();
   }
 
@@ -58,9 +61,7 @@ public class BlockCacheManagerFactory {
     String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
     Class<? extends BlockCacheManager> clazz = Class.forName(impl)
         .asSubclass(BlockCacheManager.class);
-    BlockCacheManager.LOG.info("Created new block cache factory of type: {}",
-        clazz.getSimpleName());
+    LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
     return clazz.newInstance();
   }
-
 }

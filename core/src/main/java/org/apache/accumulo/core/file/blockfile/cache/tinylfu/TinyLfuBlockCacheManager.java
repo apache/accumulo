@@ -17,8 +17,8 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
-import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -26,13 +26,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager.Configuration;
-import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
-import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
-import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
+import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
+import org.apache.accumulo.core.spi.cache.CacheEntry;
+import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +123,7 @@ public final class TinyLfuBlockCache implements BlockCache {
   private static final class Block {
 
     private final byte[] buffer;
-    private Weighbable index;
+    private Weighable index;
     private volatile int lastIndexWeight;
 
     Block(byte[] buffer) {
@@ -142,7 +142,7 @@ public final class TinyLfuBlockCache implements BlockCache {
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+    public synchronized <T extends Weighable> T getIndex(Supplier<T> supplier) {
       if (index == null) {
         index = supplier.get();
       }
@@ -187,7 +187,7 @@ public final class TinyLfuBlockCache implements BlockCache {
     }
 
     @Override
-    public <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+    public <T extends Weighable> T getIndex(Supplier<T> supplier) {
       return block.getIndex(supplier);
     }
 

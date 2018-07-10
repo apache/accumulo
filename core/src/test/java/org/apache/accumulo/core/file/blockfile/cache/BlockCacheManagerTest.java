@@ -17,6 +17,8 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.junit.Assert;
 import org.junit.Test;
 

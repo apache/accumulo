@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.spi.cache;
 
 import java.util.function.Supplier;
 
+/**
+ * @since 2.0.0
+ */
 public interface CacheEntry {
 
-  interface Weighbable {
+  interface Weighable {
     int weight();
   }
 
@@ -33,7 +36,7 @@ public interface CacheEntry {
    * <p>
    * This method exists to support building indexes of frequently accessed cached data.
    */
-  <T extends Weighbable> T getIndex(Supplier<T> supplier);
+  <T extends Weighable> T getIndex(Supplier<T> supplier);
 
   /**
    * The object optionally stored by {@link #getIndex(Supplier)} is a mutable object. Accumulo will

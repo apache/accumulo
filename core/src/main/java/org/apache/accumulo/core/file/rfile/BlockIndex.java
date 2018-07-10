@@ -25,12 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
+import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 
-public class BlockIndex implements Weighbable {
+public class BlockIndex implements Weighable {
 
   public static BlockIndex getIndex(CachedBlockRead cacheBlock, IndexEntry indexEntry)
       throws IOException {

@@ -21,9 +21,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager.Configuration;
-import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
+import org.apache.accumulo.core.spi.cache.CacheType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;

@@ -21,9 +21,9 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
+import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 
 /**
  * Represents an entry in the configurable block cache.
@@ -59,7 +59,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
   private volatile long accessTime;
   private volatile long recordedSize;
   private BlockPriority priority;
-  private Weighbable index;
+  private Weighable index;
 
   public CachedBlock(String blockName, byte buf[], long accessTime, boolean inMemory) {
     this.buffer = buf;
@@ -121,7 +121,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
   }
 
   @SuppressWarnings("unchecked")
-  public synchronized <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+  public synchronized <T extends Weighable> T getIndex(Supplier<T> supplier) {
     if (index == null && recordedSize >= 0) {
       index = supplier.get();
     }
