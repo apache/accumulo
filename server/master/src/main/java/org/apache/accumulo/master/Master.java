@@ -1149,7 +1149,7 @@ public class Master extends AccumuloServerContext
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
       Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
-    int threads = Math.max(getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE), 0);
+    int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
     ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool()
         : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
