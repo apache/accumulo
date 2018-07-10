@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -168,6 +169,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 
 /**
@@ -1065,7 +1067,7 @@ public class Master extends AccumuloServerContext
     private long updateStatus()
         throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-      tserverStatus = Collections.synchronizedSortedMap(gatherTableInformation(currentServers));
+      tserverStatus = gatherTableInformation(currentServers);
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -1145,12 +1147,20 @@ public class Master extends AccumuloServerContext
 
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
       Set<TServerInstance> currentServers) {
+    final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+    int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
+    ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool()
+        : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
-    int threads = Math.max(getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE), 1);
-    ExecutorService tp = Executors.newFixedThreadPool(threads);
-    final SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<>();
+    final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
+      if (threads == 0) {
+        // Since an unbounded thread pool is being used, rate limit how fast task are added to the
+        // executor. This prevents the threads from growing large unless there are lots of
+        // unresponsive tservers.
+        sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
+      }
       tp.submit(new Runnable() {
         @Override
         public void run() {
@@ -1190,18 +1200,24 @@ public class Master extends AccumuloServerContext
     }
     tp.shutdown();
     try {
-      tp.awaitTermination(getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT) * 2,
-          TimeUnit.MILLISECONDS);
+      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       log.debug("Interrupted while fetching status");
     }
+
+    tp.shutdownNow();
+
+    // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
+    SortedMap<TServerInstance,TabletServerStatus> info = ImmutableSortedMap.copyOf(result);
+
     synchronized (badServers) {
       badServers.keySet().retainAll(currentServers);
-      badServers.keySet().removeAll(result.keySet());
+      badServers.keySet().removeAll(info.keySet());
     }
-    log.debug(String.format("Finished gathering information from %d servers in %.2f seconds",
-        result.size(), (System.currentTimeMillis() - start) / 1000.));
-    return result;
+    log.debug(String.format("Finished gathering information from %d of %d servers in %.2f seconds",
+        info.size(), currentServers.size(), (System.currentTimeMillis() - start) / 1000.));
+
+    return info;
   }
 
   public void run() throws IOException, InterruptedException, KeeperException {
