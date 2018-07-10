@@ -21,11 +21,15 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -131,10 +135,24 @@ public class AccumuloConfigurationTest {
 
     private HashMap<String,String> props = new HashMap<>();
     private int upCount = 0;
+    private AccumuloConfiguration parent;
+
+    TestConfiguration() {
+      parent = null;
+    }
+
+    TestConfiguration(AccumuloConfiguration parent) {
+      this.parent = parent;
+    }
 
     public void set(String p, String v) {
       props.put(p, v);
       upCount++;
+    }
+
+    @Override
+    public boolean isPropertySet(Property prop) {
+      return props.containsKey(prop.getKey());
     }
 
     @Override
@@ -144,11 +162,18 @@ public class AccumuloConfigurationTest {
 
     @Override
     public String get(Property property) {
-      return props.get(property.getKey());
+      String v = props.get(property.getKey());
+      if (v == null & parent != null) {
+        v = parent.get(property);
+      }
+      return v;
     }
 
     @Override
     public void getProperties(Map<String,String> output, Predicate<String> filter) {
+      if (parent != null) {
+        parent.getProperties(output, filter);
+      }
       for (Entry<String,String> entry : props.entrySet()) {
         if (filter.test(entry.getKey())) {
           output.put(entry.getKey(), entry.getValue());
@@ -266,5 +291,90 @@ public class AccumuloConfigurationTest {
 
     Map<String,String> pmL = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     assertSame(pmG, pmL);
+  }
+
+  @Test
+  public void testScanExecutors() {
+    String defName = SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME;
+
+    TestConfiguration tc = new TestConfiguration(DefaultConfiguration.getInstance());
+
+    Collection<ScanExecutorConfig> executors = tc.getScanExecutors();
+
+    Assert.assertEquals(2, executors.size());
+
+    ScanExecutorConfig sec = executors.stream().filter(c -> c.name.equals(defName)).findFirst()
+        .get();
+    Assert.assertEquals(
+        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+        sec.maxThreads);
+    Assert.assertFalse(sec.priority.isPresent());
+    Assert.assertTrue(sec.prioritizerClass.get().isEmpty());
+    Assert.assertTrue(sec.prioritizerOpts.isEmpty());
+
+    // ensure deprecated props is read if nothing else is set
+    tc.set("tserver.readahead.concurrent.max", "6");
+    Assert.assertEquals(6, sec.getCurrentMaxThreads());
+    Assert.assertEquals(
+        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+        sec.maxThreads);
+    ScanExecutorConfig sec2 = tc.getScanExecutors().stream().filter(c -> c.name.equals(defName))
+        .findFirst().get();
+    Assert.assertEquals(6, sec2.maxThreads);
+
+    // ensure new prop overrides deperecated prop
+    tc.set(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "9");
+    Assert.assertEquals(9, sec.getCurrentMaxThreads());
+    Assert.assertEquals(
+        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+        sec.maxThreads);
+    ScanExecutorConfig sec3 = tc.getScanExecutors().stream().filter(c -> c.name.equals(defName))
+        .findFirst().get();
+    Assert.assertEquals(9, sec3.maxThreads);
+
+    ScanExecutorConfig sec4 = executors.stream().filter(c -> c.name.equals("meta")).findFirst()
+        .get();
+    Assert.assertEquals(
+        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getDefaultValue()),
+        sec4.maxThreads);
+    Assert.assertFalse(sec4.priority.isPresent());
+    Assert.assertFalse(sec4.prioritizerClass.isPresent());
+    Assert.assertTrue(sec4.prioritizerOpts.isEmpty());
+
+    tc.set("tserver.metadata.readahead.concurrent.max", "2");
+    Assert.assertEquals(2, sec4.getCurrentMaxThreads());
+    ScanExecutorConfig sec5 = tc.getScanExecutors().stream().filter(c -> c.name.equals("meta"))
+        .findFirst().get();
+    Assert.assertEquals(2, sec5.maxThreads);
+
+    tc.set(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getKey(), "3");
+    Assert.assertEquals(3, sec4.getCurrentMaxThreads());
+    ScanExecutorConfig sec6 = tc.getScanExecutors().stream().filter(c -> c.name.equals("meta"))
+        .findFirst().get();
+    Assert.assertEquals(3, sec6.maxThreads);
+
+    String prefix = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey();
+    tc.set(prefix + "hulksmash.threads", "66");
+    tc.set(prefix + "hulksmash.priority", "3");
+    tc.set(prefix + "hulksmash.prioritizer", "com.foo.ScanPrioritizer");
+    tc.set(prefix + "hulksmash.prioritizer.opts.k1", "v1");
+    tc.set(prefix + "hulksmash.prioritizer.opts.k2", "v3");
+
+    executors = tc.getScanExecutors();
+    Assert.assertEquals(3, executors.size());
+    ScanExecutorConfig sec7 = executors.stream().filter(c -> c.name.equals("hulksmash")).findFirst()
+        .get();
+    Assert.assertEquals(66, sec7.maxThreads);
+    Assert.assertEquals(3, sec7.priority.getAsInt());
+    Assert.assertEquals("com.foo.ScanPrioritizer", sec7.prioritizerClass.get());
+    Assert.assertEquals(ImmutableMap.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
+
+    tc.set(prefix + "hulksmash.threads", "44");
+    Assert.assertEquals(66, sec7.maxThreads);
+    Assert.assertEquals(44, sec7.getCurrentMaxThreads());
+
+    ScanExecutorConfig sec8 = tc.getScanExecutors().stream().filter(c -> c.name.equals("hulksmash"))
+        .findFirst().get();
+    Assert.assertEquals(44, sec8.maxThreads);
   }
 }
