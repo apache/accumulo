@@ -75,6 +75,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.security.crypto.CryptoTest;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -86,7 +87,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -122,6 +125,16 @@ public class RFileTest {
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(
       new File(System.getProperty("user.dir") + "/target"));
+
+  @BeforeClass
+  public static void setupCryptoKeyFile() throws Exception {
+    CryptoTest.setupKeyFile();
+  }
+
+  @AfterClass
+  public static void removeCryptoKeyFile() throws Exception {
+    CryptoTest.cleanupKeyFile();
+  }
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream
       implements Seekable, PositionedReadable {
@@ -233,7 +246,8 @@ public class RFileTest {
     public void openWriter(boolean startDLG, int blockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration);
+      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
+          CryptoServiceFactory.getConfigured(accumuloConfiguration));
 
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
           .newSamplerConfig(accumuloConfiguration);
@@ -295,7 +309,8 @@ public class RFileTest {
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
-          dataCache, indexCache, DefaultConfiguration.getInstance());
+          dataCache, indexCache, accumuloConfiguration,
+          CryptoServiceFactory.getConfigured(accumuloConfiguration));
       reader = new RFile.Reader(_cbr);
       if (cfsi)
         iter = new ColumnFamilySkippingIterator(reader);
@@ -1716,7 +1731,7 @@ public class RFileTest {
     FSDataInputStream in2 = new FSDataInputStream(bais);
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length,
-        CachedConfiguration.getInstance(), aconf);
+        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.getConfigured(aconf));
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);
 
@@ -1762,7 +1777,7 @@ public class RFileTest {
     reader.close();
   }
 
-  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
+  public static AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
     ConfigurationCopy result = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);

@@ -487,7 +487,8 @@ public class Initialize implements KeywordExecutable {
 
   private void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir)
       throws IOException {
-    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
+    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConf), false);
 
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig();
@@ -513,7 +514,7 @@ public class Initialize implements KeywordExecutable {
     String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet = new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir,
         null, null);
-    createMetadataFile(fs, metadataFileName, replicationTablet);
+    createMetadataFile(fs, metadataFileName, siteConf, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
@@ -521,7 +522,7 @@ public class Initialize implements KeywordExecutable {
     Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint,
         metadataFileName);
     Tablet defaultTablet = new Tablet(MetadataTable.ID, defaultMetadataTabletDir, splitPoint, null);
-    createMetadataFile(fs, rootTabletFileName, tablesTablet, defaultTablet);
+    createMetadataFile(fs, rootTabletFileName, siteConf, tablesTablet, defaultTablet);
   }
 
   private static class Tablet {
@@ -540,7 +541,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void createMetadataFile(VolumeManager volmanager, String fileName,
-      Tablet... tablets) throws IOException {
+      AccumuloConfiguration conf, Tablet... tablets) throws IOException {
     // sort file contents in memory, then play back to the file
     TreeMap<Key,Value> sorted = new TreeMap<>();
     for (Tablet tablet : tablets) {
@@ -548,8 +549,7 @@ public class Initialize implements KeywordExecutable {
     }
     FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fileName, fs, fs.getConf())
-        .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+        .forFile(fileName, fs, fs.getConf()).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Entry<Key,Value> entry : sorted.entrySet()) {

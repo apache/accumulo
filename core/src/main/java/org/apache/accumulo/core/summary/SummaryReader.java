@@ -35,6 +35,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
+import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.summary.Gatherer.RowRange;
@@ -173,24 +174,26 @@ public class SummaryReader {
 
   public static SummaryReader load(Configuration conf, AccumuloConfiguration aConf,
       InputStream inputStream, long length, Predicate<SummarizerConfiguration> summarySelector,
-      SummarizerFactory factory) throws IOException {
+      SummarizerFactory factory, CryptoService cryptoService) throws IOException {
     // @formatter:off
     org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader =
-      new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length, conf, aConf);
+      new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length, conf, aConf,
+              cryptoService);
     // @formatter:on
     return load(bcReader, summarySelector, factory);
   }
 
   public static SummaryReader load(FileSystem fs, Configuration conf, AccumuloConfiguration aConf,
       SummarizerFactory factory, Path file, Predicate<SummarizerConfiguration> summarySelector,
-      BlockCache summaryCache, BlockCache indexCache) {
+      BlockCache summaryCache, BlockCache indexCache, CryptoService cryptoService) {
     CachableBlockFile.Reader bcReader = null;
 
     try {
       // the reason BCFile is used instead of RFile is to avoid reading in the RFile meta block when
       // only summary data is wanted.
       CompositeCache compositeCache = new CompositeCache(summaryCache, indexCache);
-      bcReader = new CachableBlockFile.Reader(fs, file, conf, null, compositeCache, aConf);
+      bcReader = new CachableBlockFile.Reader(fs, file, conf, null, compositeCache, aConf,
+          cryptoService);
       return load(bcReader, summarySelector, factory);
     } catch (FileNotFoundException fne) {
       SummaryReader sr = new SummaryReader();

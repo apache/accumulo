@@ -659,6 +659,15 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
+   * Sets arbitrary configuration properties.
+   *
+   * @since 2.0.0
+   */
+  public void setProperty(String p, String value) {
+    this.siteConfig.put(p, value);
+  }
+
+  /**
    * @return the useCredentialProvider
    */
   public boolean isUseCredentialProvider() {
