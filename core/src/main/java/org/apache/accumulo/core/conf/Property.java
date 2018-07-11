@@ -446,15 +446,14 @@ public enum Property {
       "This property is deprecated since 2.0.0, use tserver.scan.executors.meta.threads instead. "
           + "The maximum number of concurrent metadata read ahead that will execute."),
   TSERV_SCAN_EXECUTORS_PREFIX("tserver.scan.executors.", null, PropertyType.PREFIX,
-      "Prefix for defining executors to service scans.  For each executor the number of threads, "
-          + "thread priority, and an optional prioritizer can be configured.  The prioritizer "
-          + "determines which scan an executor should run first and must implement "
-          + ScanPrioritizer.class.getName() + ". Tables can select an executor by setting"
-          + " table.scan.dispatcher. To configure a new executor, set "
-          + "tserver.scan.executors.<name>.threads=<number>.  Optionally, can also set "
-          + "tserver.scan.executors.<name>.priority=<number 1 to 10>, "
-          + "tserver.scan.executors.<name>.prioritizer=<class name>, and "
-          + "tserver.scan.executors.<name>.prioritizer.opts.<key>=<value>"),
+      "Prefix for defining executors to service scans. See "
+          + "[scan executors]({% durl administration/scan-executors %}) for an overview of why and"
+          + " how to use this property. For each executor the number of threads, thread priority, "
+          + "and an optional prioritizer can be configured. To configure a new executor, set "
+          + "`tserver.scan.executors.<name>.threads=<number>`.  Optionally, can also set "
+          + "`tserver.scan.executors.<name>.priority=<number 1 to 10>`, "
+          + "`tserver.scan.executors.<name>.prioritizer=<class name>`, and "
+          + "`tserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`"),
   TSERV_SCAN_EXECUTORS_DEFAULT_THREADS("tserver.scan.executors.default.threads", "16",
       PropertyType.COUNT,
       "The number of threads for the scan executor that tables use by default."),
@@ -624,7 +623,7 @@ public enum Property {
       "A JSON Map of Strings. Each String should be an HTML tag of an external"
           + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
           + " with CDATA tags. If this value is set, all of the external resources"
-          + " in the <head> tag of the Monitor will be replaced with the tags set here."
+          + " in the `<head>` tag of the Monitor will be replaced with the tags set here."
           + " Be sure the jquery tag is first since other scripts will depend on it."
           + " The resources that are used by default can be seen in"
           + " accumulo/server/monitor/src/main/resources/templates/default.ftl"),
@@ -695,14 +694,10 @@ public enum Property {
           + " value of 0 disables a max file size."),
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
-      "This class is used to dynamically dispatch scans to configured scan executors.  This setting"
-          + " defaults to " + SimpleScanDispatcher.class.getSimpleName()
-          + " which dispatches to an executor"
-          + " named 'default' when it is optionless. Setting the option "
-          + "'table.scan.dispatcher.opts.executor=<name>' causes "
-          + SimpleScanDispatcher.class.getSimpleName() + " to dispatch to the specified executor. "
-          + "It has more options listed in its javadoc. Configured classes must implement "
-          + ScanDispatcher.class.getName() + ".  This property is ignored for the root and metadata"
+      "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
+          + "classes must implement {% jlink " + ScanDispatcher.class.getName() + " %} See "
+          + "[scan executors]({% durl administration/scan-executors %}) for an overview of why"
+          + " and how to use this property. This property is ignored for the root and metadata"
           + " table.  The metadata table always dispatches to a scan executor named `meta`."),
   TABLE_SCAN_DISPATCHER_OPTS("table.scan.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table scan dispatcher"),
@@ -828,7 +823,7 @@ public enum Property {
           + " group called group1. Once configured, group1 can be enabled by adding"
           + " it to the list of groups in the " + TABLE_LOCALITY_GROUPS.getKey() + " property.\n"
           + "Additional group options may be specified for a named group by setting"
-          + " table.group.<name>.opt.<key>=<value>."),
+          + " `table.group.<name>.opt.<key>=<value>`."),
   TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
       "The Formatter class to apply on results in the shell"),
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(),
@@ -869,9 +864,9 @@ public enum Property {
       "Prefix for configuring summarizers for a table. Using this prefix"
           + " multiple summarizers can be configured with options for each one. Each"
           + " summarizer configured should have a unique id, this id can be anything."
-          + " To add a summarizer set table.summarizer.<unique id>=<summarizer class"
-          + " name>. If the summarizer has options, then for each option set"
-          + " table.summarizer.<unique id>.opt.<key>=<value>."),
+          + " To add a summarizer set "
+          + "`table.summarizer.<unique id>=<summarizer class name>.` If the summarizer has options"
+          + ", then for each option set" + " `table.summarizer.<unique id>.opt.<key>=<value>`."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
@@ -886,7 +881,7 @@ public enum Property {
           + " For example, general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar."
           + " You can enable post delegation for a context, which will load classes from the"
           + " context first instead of the parent first. Do this by setting"
-          + " general.vfs.context.classpath.<name>.delegation=post, where <name> is"
+          + " `general.vfs.context.classpath.<name>.delegation=post`, where `<name>` is"
           + " your context name. If delegation is not specified, it defaults to loading"
           + " from parent classloader first."),
   @Interpolated
