@@ -117,7 +117,13 @@ class ConfigurationDocGen {
         // deal with multi-line values, skip strikethrough of value
         defaultValue = strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
       } else {
-        defaultValue = strike("**default value:** " + "`" + defaultValue + "`", depr);
+        if (prop.getType() == PropertyType.CLASSNAME
+            && defaultValue.startsWith("org.apache.accumulo")) {
+          defaultValue = strike("**default value:** " + "{% jlink -f " + defaultValue + " %}",
+              depr);
+        } else {
+          defaultValue = strike("**default value:** " + "`" + defaultValue + "`", depr);
+        }
       }
       doc.println(defaultValue + " |");
     }
