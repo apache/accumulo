@@ -118,7 +118,7 @@ class ConfigurationDocGen {
         defaultValue = strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
       } else {
         if (prop.getType() == PropertyType.CLASSNAME
-            && defaultValue.startsWith("org.apache.accumulo.core")) {
+            && defaultValue.startsWith("org.apache.accumulo")) {
           defaultValue = strike("**default value:** " + "{% jlink -f " + defaultValue + " %}",
               depr);
         } else {
