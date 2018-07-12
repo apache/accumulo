@@ -79,8 +79,7 @@ public class ConditionCheckerContext {
 
     classCache = new HashMap<>();
 
-    tie = new TabletIteratorEnvironment(IteratorScope.scan, tableConf,
-        MajorCompactionReason.NORMAL);
+    tie = new TabletIteratorEnvironment(IteratorScope.scan, tableConf);
   }
 
   SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter,

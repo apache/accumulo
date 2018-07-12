@@ -52,8 +52,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
 
-  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
-      MajorCompactionReason reason) {
+  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
@@ -61,7 +60,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.trm = null;
     this.config = config;
     this.fullMajorCompaction = false;
-    this.userCompaction = reason.equals(MajorCompactionReason.USER);
+    this.userCompaction = false;
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
@@ -129,6 +128,9 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public boolean isUserCompaction() {
+    if (scope != IteratorScope.majc)
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + scope);
     return userCompaction;
   }
 
