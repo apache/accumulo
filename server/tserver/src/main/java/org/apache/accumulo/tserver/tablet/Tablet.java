@@ -154,8 +154,11 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 
 /**
  *
@@ -494,6 +497,8 @@ public class Tablet implements TabletCommitter {
         currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.filename,
             logEntry.getColumnQualifier().toString()));
       }
+
+      rebuildReferenedLogs();
 
       log.info(
           "Write-Ahead Log recovery complete for " + this.extent + " (" + entriesUsedOnTablet.get()
@@ -950,6 +955,8 @@ public class Tablet implements TabletCommitter {
 
   private synchronized MinorCompactionTask prepareForMinC(long flushId,
       MinorCompactionReason mincReason) {
+    Preconditions.checkState(otherLogs.isEmpty());
+    Preconditions.checkState(refererncedLogs.equals(currentLogs));
     CommitSession oldCommitSession = getTabletMemory().prepareForMinC();
     otherLogs = currentLogs;
     currentLogs = new HashSet<>();
@@ -1524,9 +1531,9 @@ public class Tablet implements TabletCommitter {
 
     }
 
-    if (otherLogs.size() != 0 || currentLogs.size() != 0) {
+    if (otherLogs.size() != 0 || currentLogs.size() != 0 || refererncedLogs.size() != 0) {
       String msg = "Closed tablet " + extent + " has walog entries in memory currentLogs = "
-          + currentLogs + "  otherLogs = " + otherLogs;
+          + currentLogs + "  otherLogs = " + otherLogs + " refererncedLogs = " + refererncedLogs;
       log.error(msg);
       throw new RuntimeException(msg);
     }
@@ -2457,19 +2464,25 @@ public class Tablet implements TabletCommitter {
   }
 
   private Set<DfsLogger> currentLogs = new HashSet<>();
+  private Set<DfsLogger> otherLogs = Collections.emptySet();
+
+  // An immutable copy of currentLogs + otherLogs. This exists so that removeInUseLogs() does not
+  // have to get the tablet lock. See #558
+  private volatile Set<DfsLogger> refererncedLogs = Collections.emptySet();
+
+  private synchronized void rebuildReferenedLogs() {
+    Builder<DfsLogger> builder = ImmutableSet.builder();
+    builder.addAll(currentLogs);
+    builder.addAll(otherLogs);
+    refererncedLogs = builder.build();
+  }
 
   public void removeInUseLogs(Set<DfsLogger> candidates) {
-    synchronized (this) {
-      // remove logs related to minor compacting data
-      candidates.removeAll(otherLogs);
-      // remove logs related to tablets in memory data
-      candidates.removeAll(currentLogs);
-      // remove logs related to minor compaction file being added to the metadata table
-      candidates.removeAll(doomedLogs);
-    }
+    candidates.removeAll(refererncedLogs);
   }
 
   Set<String> beginClearingUnusedLogs() {
+    Set<String> doomed = new HashSet<>();
 
     ArrayList<String> otherLogsCopy = new ArrayList<>();
     ArrayList<String> currentLogsCopy = new ArrayList<>();
@@ -2478,20 +2491,26 @@ public class Tablet implements TabletCommitter {
     logLock.lock();
 
     synchronized (this) {
-      if (doomedLogs.size() > 0)
+      if (removingLogs)
         throw new IllegalStateException("Attempted to clear logs when removal of logs in progress");
 
       for (DfsLogger logger : otherLogs) {
         otherLogsCopy.add(logger.toString());
-        doomedLogs.add(logger);
+        doomed.add(logger.getMeta());
       }
 
       for (DfsLogger logger : currentLogs) {
         currentLogsCopy.add(logger.toString());
-        doomedLogs.remove(logger);
+        doomed.remove(logger.getMeta());
       }
 
       otherLogs = Collections.emptySet();
+      // Do NOT call rebuildReferenedLogs() here as that could cause walogs to be GCed before the
+      // minc rfile is written to metadata table (see #539). The clearing of otherLogs is reflected
+      // in refererncedLogs when finishClearingUnusedLogs() calls rebuildReferenedLogs().
+
+      if (doomed.size() > 0)
+        removingLogs = true;
     }
 
     // do debug logging outside tablet lock
@@ -2503,23 +2522,20 @@ public class Tablet implements TabletCommitter {
       log.debug("Logs for current memory: " + getExtent() + " " + logger);
     }
 
-    Set<String> doomed = new HashSet<>();
-    for (DfsLogger logger : doomedLogs) {
-      log.debug("Logs to be destroyed: " + getExtent() + " " + logger.getMeta());
-      doomed.add(logger.getMeta());
+    for (String logger : doomed) {
+      log.debug("Logs to be destroyed: " + getExtent() + " " + logger);
     }
 
     return doomed;
   }
 
   synchronized void finishClearingUnusedLogs() {
-    doomedLogs.clear();
+    removingLogs = false;
+    rebuildReferenedLogs();
     logLock.unlock();
   }
 
-  private Set<DfsLogger> otherLogs = Collections.emptySet();
-  // logs related to minor compaction file being added to the metadata table
-  private Set<DfsLogger> doomedLogs = new HashSet<>();
+  private boolean removingLogs = false;
 
   // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
@@ -2582,6 +2598,8 @@ public class Tablet implements TabletCommitter {
           if (otherLogs.contains(more))
             numContained++;
         }
+
+        rebuildReferenedLogs();
 
         if (numAdded > 0 && numAdded != 1) {
           // expect to add all or none
