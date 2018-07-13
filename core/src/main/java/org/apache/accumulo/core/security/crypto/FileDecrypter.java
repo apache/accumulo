@@ -22,8 +22,6 @@ public interface FileDecrypter {
   /**
    * Decrypt the InputStream
    *
-   * @throws CryptoService.CryptoException
-   *
    * @since 2.0
    */
   InputStream decryptStream(InputStream inputStream) throws CryptoService.CryptoException;

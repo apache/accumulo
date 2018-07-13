@@ -30,8 +30,6 @@ public interface CryptoService {
   /**
    * Initialize CryptoService. This is called once at Tablet Server startup.
    *
-   * @throws CryptoException
-   *
    * @since 2.0
    */
   void init(Map<String,String> conf) throws CryptoException;
@@ -39,16 +37,12 @@ public interface CryptoService {
   /**
    * Initialize the FileEncrypter for the environment and return
    *
-   * @return FileEncrypter
-   *
    * @since 2.0
    */
   FileEncrypter getFileEncrypter(CryptoEnvironment environment);
 
   /**
    * Initialize the FileDecrypter for the environment and return
-   *
-   * @return FileDecrypter
    *
    * @since 2.0
    */

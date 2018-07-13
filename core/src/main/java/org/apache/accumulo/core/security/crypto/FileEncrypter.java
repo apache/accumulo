@@ -22,8 +22,6 @@ public interface FileEncrypter {
   /**
    * Encrypt the OutputStream.
    *
-   * @throws CryptoService.CryptoException
-   *
    * @since 2.0
    */
   OutputStream encryptStream(OutputStream outputStream) throws CryptoService.CryptoException;

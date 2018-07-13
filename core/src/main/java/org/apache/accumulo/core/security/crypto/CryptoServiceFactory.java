@@ -24,9 +24,7 @@ public class CryptoServiceFactory {
   private static CryptoService singleton = null;
 
   /**
-   * Load the singleton class configured in {@link Property.TABLE_CRYPTO_SERVICE}
-   *
-   * @return CryptoService
+   * Load the singleton class configured in {@link Property#TABLE_CRYPTO_SERVICE}
    */
   public static CryptoService getConfigured(AccumuloConfiguration conf) {
     String configuredClass = conf.get(Property.TABLE_CRYPTO_SERVICE.getKey());
