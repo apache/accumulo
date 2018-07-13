@@ -2599,7 +2599,9 @@ public class Tablet implements TabletCommitter {
             numContained++;
         }
 
-        rebuildReferenedLogs();
+        if (numAdded > 0) {
+          rebuildReferenedLogs();
+        }
 
         if (numAdded > 0 && numAdded != 1) {
           // expect to add all or none
