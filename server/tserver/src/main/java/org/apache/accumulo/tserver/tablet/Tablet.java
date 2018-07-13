@@ -498,7 +498,7 @@ public class Tablet implements TabletCommitter {
             logEntry.getColumnQualifier().toString()));
       }
 
-      rebuildReferenedLogs();
+      rebuildReferencedLogs();
 
       log.info(
           "Write-Ahead Log recovery complete for " + this.extent + " (" + entriesUsedOnTablet.get()
@@ -956,7 +956,7 @@ public class Tablet implements TabletCommitter {
   private synchronized MinorCompactionTask prepareForMinC(long flushId,
       MinorCompactionReason mincReason) {
     Preconditions.checkState(otherLogs.isEmpty());
-    Preconditions.checkState(refererncedLogs.equals(currentLogs));
+    Preconditions.checkState(referencedLogs.equals(currentLogs));
     CommitSession oldCommitSession = getTabletMemory().prepareForMinC();
     otherLogs = currentLogs;
     currentLogs = new HashSet<>();
@@ -1531,9 +1531,9 @@ public class Tablet implements TabletCommitter {
 
     }
 
-    if (otherLogs.size() != 0 || currentLogs.size() != 0 || refererncedLogs.size() != 0) {
+    if (otherLogs.size() != 0 || currentLogs.size() != 0 || referencedLogs.size() != 0) {
       String msg = "Closed tablet " + extent + " has walog entries in memory currentLogs = "
-          + currentLogs + "  otherLogs = " + otherLogs + " refererncedLogs = " + refererncedLogs;
+          + currentLogs + "  otherLogs = " + otherLogs + " refererncedLogs = " + referencedLogs;
       log.error(msg);
       throw new RuntimeException(msg);
     }
@@ -2468,17 +2468,17 @@ public class Tablet implements TabletCommitter {
 
   // An immutable copy of currentLogs + otherLogs. This exists so that removeInUseLogs() does not
   // have to get the tablet lock. See #558
-  private volatile Set<DfsLogger> refererncedLogs = Collections.emptySet();
+  private volatile Set<DfsLogger> referencedLogs = Collections.emptySet();
 
-  private synchronized void rebuildReferenedLogs() {
+  private synchronized void rebuildReferencedLogs() {
     Builder<DfsLogger> builder = ImmutableSet.builder();
     builder.addAll(currentLogs);
     builder.addAll(otherLogs);
-    refererncedLogs = builder.build();
+    referencedLogs = builder.build();
   }
 
   public void removeInUseLogs(Set<DfsLogger> candidates) {
-    candidates.removeAll(refererncedLogs);
+    candidates.removeAll(referencedLogs);
   }
 
   Set<String> beginClearingUnusedLogs() {
@@ -2531,7 +2531,7 @@ public class Tablet implements TabletCommitter {
 
   synchronized void finishClearingUnusedLogs() {
     removingLogs = false;
-    rebuildReferenedLogs();
+    rebuildReferencedLogs();
     logLock.unlock();
   }
 
@@ -2600,7 +2600,7 @@ public class Tablet implements TabletCommitter {
         }
 
         if (numAdded > 0) {
-          rebuildReferenedLogs();
+          rebuildReferencedLogs();
         }
 
         if (numAdded > 0 && numAdded != 1) {
