@@ -2482,7 +2482,7 @@ public class Tablet implements TabletCommitter {
   }
 
   Set<String> beginClearingUnusedLogs() {
-    Set<String> doomed = new HashSet<>();
+    Set<String> unusedLogs = new HashSet<>();
 
     ArrayList<String> otherLogsCopy = new ArrayList<>();
     ArrayList<String> currentLogsCopy = new ArrayList<>();
@@ -2496,12 +2496,12 @@ public class Tablet implements TabletCommitter {
 
       for (DfsLogger logger : otherLogs) {
         otherLogsCopy.add(logger.toString());
-        doomed.add(logger.getMeta());
+        unusedLogs.add(logger.getMeta());
       }
 
       for (DfsLogger logger : currentLogs) {
         currentLogsCopy.add(logger.toString());
-        doomed.remove(logger.getMeta());
+        unusedLogs.remove(logger.getMeta());
       }
 
       otherLogs = Collections.emptySet();
@@ -2509,7 +2509,7 @@ public class Tablet implements TabletCommitter {
       // minc rfile is written to metadata table (see #539). The clearing of otherLogs is reflected
       // in refererncedLogs when finishClearingUnusedLogs() calls rebuildReferenedLogs().
 
-      if (doomed.size() > 0)
+      if (unusedLogs.size() > 0)
         removingLogs = true;
     }
 
@@ -2522,11 +2522,11 @@ public class Tablet implements TabletCommitter {
       log.debug("Logs for current memory: " + getExtent() + " " + logger);
     }
 
-    for (String logger : doomed) {
+    for (String logger : unusedLogs) {
       log.debug("Logs to be destroyed: " + getExtent() + " " + logger);
     }
 
-    return doomed;
+    return unusedLogs;
   }
 
   synchronized void finishClearingUnusedLogs() {
