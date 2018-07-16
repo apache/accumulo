@@ -678,6 +678,9 @@ public final class BCFile {
       this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
           aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
       this.cryptoEnvironment.setParameters(dis.readUTF());
+      if (cryptoService == null) {
+        cryptoService = CryptoServiceFactory.getConfigured(aconf);
+      }
       this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
     }
 
