@@ -365,7 +365,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
         CryptoEnvironment env = new CryptoEnvironment(Scope.WAL,
             conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-        env.setParameters(input.readUTF());
+        env.readParams(input);
         FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
@@ -429,7 +429,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
       CryptoEnvironment env = new CryptoEnvironment(Scope.WAL,
           conf.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
       FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
-      logFile.writeUTF(encrypter.getParameters());
+      byte[] cryptoParams = encrypter.getParameters();
+      logFile.writeInt(cryptoParams.length);
+      logFile.write(cryptoParams);
 
       encryptingLogFile = new DataOutputStream(
           encrypter.encryptStream(new NoFlushOutputStream(logFile)));

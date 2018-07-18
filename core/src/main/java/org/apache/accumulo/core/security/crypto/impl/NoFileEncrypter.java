@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.security.crypto.impl;
 
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.security.crypto.FileEncrypter;
@@ -30,7 +31,7 @@ public class NoFileEncrypter implements FileEncrypter {
   }
 
   @Override
-  public String getParameters() {
-    return NoCryptoService.VERSION;
+  public byte[] getParameters() {
+    return NoCryptoService.VERSION.getBytes(Charset.forName("UTF-8"));
   }
 }

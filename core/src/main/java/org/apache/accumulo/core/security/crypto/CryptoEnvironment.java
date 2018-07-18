@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 public class CryptoEnvironment {
   /**
@@ -31,7 +35,7 @@ public class CryptoEnvironment {
 
   private Scope scope;
   private Map<String,String> conf;
-  private String parameters;
+  private byte[] parameters;
 
   public CryptoEnvironment(Scope scope, Map<String,String> conf) {
     this.scope = scope;
@@ -46,11 +50,33 @@ public class CryptoEnvironment {
     return this.conf;
   }
 
-  public String getParameters() {
+  public byte[] getParameters() {
     return parameters;
   }
 
-  public void setParameters(String parameters) {
-    this.parameters = parameters;
+  public void setParameters(byte[] params) {
+    this.parameters = params;
+  }
+
+  /**
+   * Read the crypto parameters from the DataInputStream into the crypto environment
+   */
+  public void readParams(DataInputStream in) throws IOException {
+    int len = in.readInt();
+    this.parameters = new byte[len];
+    int bytesRead = in.read(this.parameters);
+    if (bytesRead != len) {
+      throw new CryptoService.CryptoException("Incorrect number of bytes read for crypto params.");
+    }
+  }
+
+  /**
+   * Write the crypto parameters in this crypto environment to the DataOutputStream
+   */
+  public void writeParams(DataOutputStream out) throws IOException {
+    Objects.requireNonNull(this.parameters, "Crypto parameters are null. Please read them into "
+        + "this crypto environment before calling writeParams.");
+    out.writeInt(this.parameters.length);
+    out.write(this.parameters);
   }
 }

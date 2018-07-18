@@ -357,7 +357,9 @@ public final class BCFile {
           metaIndex.write(out);
 
           long offsetCryptoParameter = out.position();
-          out.writeUTF(this.encrypter.getParameters());
+          byte[] cryptoParams = this.encrypter.getParameters();
+          out.writeInt(cryptoParams.length);
+          out.write(cryptoParams);
 
           out.writeLong(offsetIndexMeta);
           out.writeLong(offsetCryptoParameter);
@@ -583,7 +585,7 @@ public final class BCFile {
           return null;
         }
 
-        out.writeUTF(this.cryptoEnvironment.getParameters());
+        this.cryptoEnvironment.writeParams(out);
 
         if (out.size() > maxSize) {
           return null;
@@ -649,9 +651,9 @@ public final class BCFile {
       if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
       } else {
-        // read crypto parameters string and get decrypter
+        // read crypto parameters and get decrypter
         this.in.seek(offsetCryptoParameters);
-        this.cryptoEnvironment.setParameters(this.in.readUTF());
+        this.cryptoEnvironment.readParams(this.in);
       }
       this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
 
@@ -677,7 +679,7 @@ public final class BCFile {
 
       this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
           aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-      this.cryptoEnvironment.setParameters(dis.readUTF());
+      this.cryptoEnvironment.readParams(dis);
       if (cryptoService == null) {
         cryptoService = CryptoServiceFactory.getConfigured(aconf);
       }
