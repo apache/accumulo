@@ -230,10 +230,6 @@ public class Master extends AccumuloServerContext
 
   private final AtomicBoolean masterInitialized = new AtomicBoolean(false);
 
-  private ClientContext getClientContext() {
-    return this;
-  }
-
   @Override
   public synchronized MasterState getMasterState() {
     return state;
@@ -415,7 +411,7 @@ public class Master extends AccumuloServerContext
           String ns = namespace.getFirst();
           Namespace.ID id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"{}\" (ID: {})", ns, id);
-          if (!Namespaces.exists(getClientContext(), id))
+          if (!Namespaces.exists(this, id))
             TableManager.prepareNewNamespaceState(getInstanceID(), id, ns, NodeExistsPolicy.SKIP);
         }
 
@@ -948,7 +944,7 @@ public class Master extends AccumuloServerContext
      */
     private void cleanupOfflineMigrations() {
       TableManager manager = TableManager.getInstance();
-      for (Table.ID tableId : Tables.getIdToNameMap(getClientContext()).keySet()) {
+      for (Table.ID tableId : Tables.getIdToNameMap(Master.this).keySet()) {
         TableState state = manager.getTableState(tableId);
         if (TableState.OFFLINE == state) {
           clearMigrations(tableId);

@@ -192,10 +192,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("delete threads: {}", getNumDeleteThreads());
   }
 
-  private ClientContext getClientContext() {
-    return this;
-  }
-
   /**
    * Gets the delay before the first collection.
    *
@@ -322,7 +318,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     @Override
     public Set<Table.ID> getTableIDs() {
-      return Tables.getIdToNameMap(getClientContext()).keySet();
+      return Tables.getIdToNameMap(SimpleGarbageCollector.this).keySet();
     }
 
     @Override
