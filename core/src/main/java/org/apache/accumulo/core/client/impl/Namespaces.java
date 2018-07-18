@@ -86,7 +86,8 @@ public class Namespaces {
 
   public static boolean exists(ClientContext context, Namespace.ID namespaceId) {
     ZooCache zc = getZooCache(context.getInstance());
-    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZNAMESPACES);
+    List<String> namespaceIds = zc
+        .getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZNAMESPACES);
     return namespaceIds.contains(namespaceId.canonicalID());
   }
 

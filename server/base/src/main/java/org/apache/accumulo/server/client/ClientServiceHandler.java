@@ -91,8 +91,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     this.security = AuditedSecurityOperation.getInstance(context);
   }
 
-  public static Table.ID checkTableId(ClientContext context, String tableName, TableOperation operation)
-      throws ThriftTableOperationException {
+  public static Table.ID checkTableId(ClientContext context, String tableName,
+      TableOperation operation) throws ThriftTableOperationException {
     TableOperationExceptionType reason = null;
     try {
       return Tables._getTableId(context, tableName);

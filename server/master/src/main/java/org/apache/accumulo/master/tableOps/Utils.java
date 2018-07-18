@@ -51,7 +51,7 @@ public class Utils {
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
   static void checkTableDoesNotExist(ClientContext context, String tableName, Table.ID tableId,
-                                     TableOperation operation) throws AcceptableThriftTableOperationException {
+      TableOperation operation) throws AcceptableThriftTableOperationException {
 
     Table.ID id = Tables.getNameToIdMap(context).get(tableName);
 

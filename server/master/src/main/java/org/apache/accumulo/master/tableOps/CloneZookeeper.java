@@ -32,7 +32,8 @@ class CloneZookeeper extends MasterRepo {
 
   private CloneInfo cloneInfo;
 
-  public CloneZookeeper(CloneInfo cloneInfo, ClientContext context) throws NamespaceNotFoundException {
+  public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
+      throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
     this.cloneInfo.namespaceId = Namespaces.getNamespaceId(context,
         Tables.qualify(this.cloneInfo.tableName).getFirst());

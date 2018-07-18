@@ -66,8 +66,8 @@ public class RenameTable extends MasterRepo {
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
     // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".") && !namespaceId
-        .equals(Namespaces.getNamespaceId(master, qualifiedNewTableName.getFirst())))
+    if (newTableName.contains(".")
+        && !namespaceId.equals(Namespaces.getNamespaceId(master, qualifiedNewTableName.getFirst())))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
