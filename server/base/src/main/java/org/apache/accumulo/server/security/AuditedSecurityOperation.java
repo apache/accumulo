@@ -80,7 +80,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   private String getTableName(Table.ID tableId) {
     try {
-      return Tables.getTableName(context.getInstance(), tableId);
+      return Tables.getTableName(context, tableId);
     } catch (TableNotFoundException e) {
       return "Unknown Table with ID " + tableId;
     }

@@ -369,7 +369,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(aconf);
-    this.logSorter = new LogSorter(instance, fs, aconf);
+    this.logSorter = new LogSorter(this, fs, aconf);
     this.replWorker = new ReplicationWorker(this, fs);
     this.statsKeeper = new TabletStatsKeeper();
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {
@@ -432,7 +432,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TabletLocator.clearLocators();
       }
     }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
-    walMarker = new WalStateManager(instance, ZooReaderWriter.getInstance());
+    walMarker = new WalStateManager(this, ZooReaderWriter.getInstance());
 
     // Create the secret manager
     setSecretManager(new AuthenticationTokenSecretManager(instance,

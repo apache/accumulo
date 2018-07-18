@@ -148,7 +148,7 @@ abstract class TabletGroupWatcher extends Daemon {
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
 
-    WalStateManager wals = new WalStateManager(master.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(master, ZooReaderWriter.getInstance());
 
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events

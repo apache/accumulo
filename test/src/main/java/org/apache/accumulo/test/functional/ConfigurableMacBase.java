@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -188,6 +189,10 @@ public class ConfigurableMacBase extends AccumuloITBase {
 
   protected Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     return getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
+  }
+
+  protected ClientContext getClientContext() {
+    return new ClientContext(getClientInfo());
   }
 
   protected ClientInfo getClientInfo() {

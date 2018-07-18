@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
@@ -191,6 +192,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("delete threads: {}", getNumDeleteThreads());
   }
 
+  private ClientContext getClientContext() {
+    return this;
+  }
+
   /**
    * Gets the delay before the first collection.
    *
@@ -317,7 +322,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     @Override
     public Set<Table.ID> getTableIDs() {
-      return Tables.getIdToNameMap(getInstance()).keySet();
+      return Tables.getIdToNameMap(getClientContext()).keySet();
     }
 
     @Override

@@ -165,8 +165,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    TreeSet<String> tableNames = new TreeSet<>(
-        Tables.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> tableNames = new TreeSet<>(Tables.getNameToIdMap(context).keySet());
 
     if (timer != null) {
       timer.stop();
@@ -190,7 +189,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    boolean exists = Tables.getNameToIdMap(context.getInstance()).containsKey(tableName);
+    boolean exists = Tables.getNameToIdMap(context).containsKey(tableName);
 
     if (timer != null) {
       timer.stop();
@@ -363,8 +362,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new NamespaceNotFoundException(null, tableOrNamespaceName,
               "Target namespace does not exist");
         default:
-          String tableInfo = Tables.getPrintableTableInfoFromName(context.getInstance(),
-              tableOrNamespaceName);
+          String tableInfo = Tables.getPrintableTableInfoFromName(context, tableOrNamespaceName);
           throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
       }
     } catch (ThriftTableOperationException e) {
@@ -1404,7 +1402,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Map<String,String> tableIdMap() {
-    return Tables.getNameToIdMap(context.getInstance()).entrySet().stream()
+    return Tables.getNameToIdMap(context).entrySet().stream()
         .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().canonicalID(), (v1, v2) -> {
           throw new RuntimeException(String.format("Duplicate key for values %s and %s", v1, v2));
         }, TreeMap::new));

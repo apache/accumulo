@@ -100,14 +100,15 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * Fetch all of the WALs referenced by tablets in the metadata table for this table
    */
   private Set<String> getWalsForTable(String tableName) throws Exception {
-    final Connector conn = getConnector();
+    final ClientContext context = new ClientContext(getClientInfo());
+    final Connector conn = context.getConnector();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
         conn.info().getZooKeepersSessionTimeOut(), "");
-    WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
+    WalStateManager wals = new WalStateManager(context, zk);
 
     Set<String> result = new HashSet<>();
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {

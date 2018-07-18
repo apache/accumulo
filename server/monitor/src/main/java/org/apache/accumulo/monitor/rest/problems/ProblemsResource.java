@@ -37,7 +37,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -81,8 +80,7 @@ public class ProblemsResource {
           }
         }
 
-        String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(),
-            entry.getKey());
+        String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(), entry.getKey());
 
         problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(),
             readCount, writeCount, loadCount));
@@ -132,7 +130,7 @@ public class ProblemsResource {
         while (iter.hasNext())
           problemReports.add(iter.next());
         for (ProblemReport pr : problemReports) {
-          String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(),
+          String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(),
               pr.getTableId());
 
           problems.addProblemDetail(

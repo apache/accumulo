@@ -89,7 +89,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {
       @Override
-      protected Table.ID getTableId(Instance inst, String tableName)
+      protected Table.ID getTableId(ClientContext context, String tableName)
           throws ThriftTableOperationException {
         try {
           return Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));

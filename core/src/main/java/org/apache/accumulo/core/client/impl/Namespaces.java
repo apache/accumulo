@@ -84,27 +84,27 @@ public class Namespaces {
         instance.getZooKeepersSessionTimeOut());
   }
 
-  public static boolean exists(Instance instance, Namespace.ID namespaceId) {
-    ZooCache zc = getZooCache(instance);
-    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
+  public static boolean exists(ClientContext context, Namespace.ID namespaceId) {
+    ZooCache zc = getZooCache(context.getInstance());
+    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZNAMESPACES);
     return namespaceIds.contains(namespaceId.canonicalID());
   }
 
-  public static List<Table.ID> getTableIds(Instance instance, Namespace.ID namespaceId)
+  public static List<Table.ID> getTableIds(ClientContext context, Namespace.ID namespaceId)
       throws NamespaceNotFoundException {
-    String namespace = getNamespaceName(instance, namespaceId);
+    String namespace = getNamespaceName(context, namespaceId);
     List<Table.ID> tableIds = new LinkedList<>();
-    for (Entry<String,Table.ID> nameToId : Tables.getNameToIdMap(instance).entrySet())
+    for (Entry<String,Table.ID> nameToId : Tables.getNameToIdMap(context).entrySet())
       if (namespace.equals(Tables.qualify(nameToId.getKey()).getFirst()))
         tableIds.add(nameToId.getValue());
     return tableIds;
   }
 
-  public static List<String> getTableNames(Instance instance, Namespace.ID namespaceId)
+  public static List<String> getTableNames(ClientContext context, Namespace.ID namespaceId)
       throws NamespaceNotFoundException {
-    String namespace = getNamespaceName(instance, namespaceId);
+    String namespace = getNamespaceName(context.getInstance(), namespaceId);
     List<String> names = new LinkedList<>();
-    for (String name : Tables.getNameToIdMap(instance).keySet())
+    for (String name : Tables.getNameToIdMap(context).keySet())
       if (namespace.equals(Tables.qualify(name).getFirst()))
         names.add(name);
     return names;
@@ -129,9 +129,9 @@ public class Namespaces {
   /**
    * Return sorted map with key = ID, value = namespaceName
    */
-  public static SortedMap<Namespace.ID,String> getIdToNameMap(Instance instance) {
+  public static SortedMap<Namespace.ID,String> getIdToNameMap(ClientContext context) {
     SortedMap<Namespace.ID,String> idMap = new TreeMap<>();
-    getAllNamespaces(instance, (id, name) -> idMap.put(Namespace.ID.of(id), name));
+    getAllNamespaces(context.getInstance(), (id, name) -> idMap.put(Namespace.ID.of(id), name));
     return idMap;
   }
 
@@ -147,10 +147,10 @@ public class Namespaces {
   /**
    * Look for namespace ID in ZK. Throw NamespaceNotFoundException if not found.
    */
-  public static Namespace.ID getNamespaceId(Instance instance, String namespaceName)
+  public static Namespace.ID getNamespaceId(ClientContext context, String namespaceName)
       throws NamespaceNotFoundException {
     final ArrayList<Namespace.ID> singleId = new ArrayList<>(1);
-    getAllNamespaces(instance, (id, name) -> {
+    getAllNamespaces(context.getInstance(), (id, name) -> {
       if (name.equals(namespaceName))
         singleId.add(Namespace.ID.of(id));
     });
@@ -163,10 +163,10 @@ public class Namespaces {
   /**
    * Look for namespace ID in ZK. Fail quietly by logging and returning null.
    */
-  public static Namespace.ID lookupNamespaceId(Instance instance, String namespaceName) {
+  public static Namespace.ID lookupNamespaceId(ClientContext context, String namespaceName) {
     Namespace.ID id = null;
     try {
-      id = getNamespaceId(instance, namespaceName);
+      id = getNamespaceId(context, namespaceName);
     } catch (NamespaceNotFoundException e) {
       if (log.isDebugEnabled())
         log.debug("Failed to find namespace ID from name: " + namespaceName, e);
@@ -177,13 +177,18 @@ public class Namespaces {
   /**
    * Return true if namespace name exists
    */
-  public static boolean namespaceNameExists(Instance instance, String namespaceName) {
-    return lookupNamespaceId(instance, namespaceName) != null;
+  public static boolean namespaceNameExists(ClientContext context, String namespaceName) {
+    return lookupNamespaceId(context, namespaceName) != null;
   }
 
   /**
    * Look for namespace name in ZK. Throw NamespaceNotFoundException if not found.
    */
+  public static String getNamespaceName(ClientContext context, Namespace.ID namespaceId)
+      throws NamespaceNotFoundException {
+    return getNamespaceName(context.getInstance(), namespaceId);
+  }
+
   public static String getNamespaceName(Instance instance, Namespace.ID namespaceId)
       throws NamespaceNotFoundException {
     String name;

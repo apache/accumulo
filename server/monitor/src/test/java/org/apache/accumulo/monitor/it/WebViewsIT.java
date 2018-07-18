@@ -109,7 +109,7 @@ public class WebViewsIT extends JerseyTest {
     expect(Monitor.getContext()).andReturn(contextMock).anyTimes();
 
     PowerMock.mockStatic(Tables.class);
-    expect(Tables.getTableName(instanceMock, Table.ID.of("foo"))).andReturn("bar");
+    expect(Tables.getTableName(contextMock, Table.ID.of("foo"))).andReturn("bar");
     PowerMock.replayAll();
     org.easymock.EasyMock.replay(instanceMock, contextMock);
 

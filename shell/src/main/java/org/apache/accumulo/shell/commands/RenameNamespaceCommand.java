@@ -45,16 +45,16 @@ public class RenameNamespaceCommand extends Command {
     boolean resetContext = false;
     Table.ID currentTableId = null;
     if (!(shellState.getTableName() == null) && !shellState.getTableName().isEmpty()) {
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(shellState.getInstance(), old);
-      List<Table.ID> tableIds = Namespaces.getTableIds(shellState.getInstance(), namespaceId);
-      currentTableId = Tables.getTableId(shellState.getInstance(), shellState.getTableName());
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(shellState.getContext(), old);
+      List<Table.ID> tableIds = Namespaces.getTableIds(shellState.getContext(), namespaceId);
+      currentTableId = Tables.getTableId(shellState.getContext(), shellState.getTableName());
       resetContext = tableIds.contains(currentTableId);
     }
 
     shellState.getConnector().namespaceOperations().rename(old, newer);
 
     if (resetContext) {
-      shellState.setTableName(Tables.getTableName(shellState.getInstance(), currentTableId));
+      shellState.setTableName(Tables.getTableName(shellState.getContext(), currentTableId));
     }
 
     return 0;

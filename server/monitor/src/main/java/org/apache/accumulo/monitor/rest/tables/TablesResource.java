@@ -45,7 +45,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.tables.TableManager;
@@ -83,7 +82,7 @@ public class TablesResource {
     TableManager tableManager = TableManager.getInstance();
 
     // Add tables to the list
-    for (Map.Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance())
+    for (Map.Entry<String,Table.ID> entry : Tables.getNameToIdMap(Monitor.getContext())
         .entrySet()) {
       String tableName = entry.getKey();
       Table.ID tableId = entry.getValue();

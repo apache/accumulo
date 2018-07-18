@@ -19,11 +19,16 @@ package org.apache.accumulo.server.cli;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
   {
     setPrincipal("root");
+  }
+
+  public ClientContext getClientContext() {
+    return new ClientContext(getClientInfo());
   }
 
   @Override
