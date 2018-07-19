@@ -494,6 +494,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
           && !params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()).equals("")) {
         params
             .setCipherSuite(params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()));
+        params.getAllOptions().put(Property.CRYPTO_CIPHER_SUITE.getKey(), params.getCipherSuite());
       }
 
       NoFlushOutputStream nfos = new NoFlushOutputStream(logFile);
