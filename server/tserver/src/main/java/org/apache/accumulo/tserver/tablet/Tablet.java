@@ -2451,6 +2451,22 @@ public class Tablet implements TabletCommitter {
   private volatile Set<DfsLogger> referencedLogs = Collections.emptySet();
 
   private synchronized void rebuildReferencedLogs() {
+    /*
+     * Each tablet has the following sets of WALogs. While a WALog exists in one set, garbage
+     * collection must be avoided.
+     *
+     * 1. WALogs for the active in memory map
+     *
+     * 2. WAlogs for the minor compacting in memory map
+     *
+     * 3. WAlogs for a newly minor compacted file that is being added to the metadata table.
+     *
+     * Set 1 is currentLogs. Set 2 is otherLogs. Set 3 only exist in referenced logs as a side
+     * effect of not calling this method in beginClearingUnusedLogs() when otherLogs is cleared.
+     *
+     * Ensuring referencedLogs accurately tracks these sets ensures in use walogs are not GCed.
+     */
+
     Builder<DfsLogger> builder = ImmutableSet.builder();
     builder.addAll(currentLogs);
     builder.addAll(otherLogs);
@@ -2485,9 +2501,10 @@ public class Tablet implements TabletCommitter {
       }
 
       otherLogs = Collections.emptySet();
-      // Do NOT call rebuildReferenedLogs() here as that could cause walogs to be GCed before the
-      // minc rfile is written to metadata table (see #539). The clearing of otherLogs is reflected
-      // in refererncedLogs when finishClearingUnusedLogs() calls rebuildReferenedLogs().
+      // Intentionally NOT calling rebuildReferenedLogs() here as that could cause GC of in use
+      // walogs(see #539). The clearing of otherLogs is reflected in refererncedLogs when
+      // finishClearingUnusedLogs() calls rebuildReferenedLogs(). See the comments in
+      // rebuildReferenedLogs() for more info.
 
       if (unusedLogs.size() > 0)
         removingLogs = true;
