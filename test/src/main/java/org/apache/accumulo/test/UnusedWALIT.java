@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -78,6 +79,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     c.tableOperations().create(bigTable);
     c.tableOperations().create(lilTable);
 
+    ClientContext context = getClientContext();
     Instance i = c.getInstance();
     zk = new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
 
@@ -86,11 +88,11 @@ public class UnusedWALIT extends ConfigurableMacBase {
     scanSomeData(c, bigTable, 0, 10, 0, 10);
     writeSomeData(c, lilTable, 0, 1, 0, 1);
     scanSomeData(c, lilTable, 0, 1, 0, 1);
-    assertEquals(2, getWALCount(i, zk));
+    assertEquals(2, getWALCount(context, zk));
 
     // roll the logs by pushing data into bigTable
     writeSomeData(c, bigTable, 0, 3000, 0, 1000);
-    assertEquals(3, getWALCount(i, zk));
+    assertEquals(3, getWALCount(context, zk));
 
     // put some data in the latest log
     writeSomeData(c, lilTable, 1, 10, 0, 10);
@@ -130,8 +132,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
     }
   }
 
-  private int getWALCount(Instance i, ZooReaderWriter zk) throws Exception {
-    WalStateManager wals = new WalStateManager(i, zk);
+  private int getWALCount(ClientContext context, ZooReaderWriter zk) throws Exception {
+    WalStateManager wals = new WalStateManager(context, zk);
     int result = 0;
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       result += entry.getValue().size();

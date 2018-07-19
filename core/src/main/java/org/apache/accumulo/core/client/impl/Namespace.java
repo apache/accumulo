@@ -18,8 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.ExecutionException;
 
-import org.apache.accumulo.core.client.Instance;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -31,7 +29,7 @@ public class Namespace {
   /**
    * Object representing an internal Namespace ID. This class was created to help with type safety.
    * For help obtaining the value of a namespace ID from Zookeeper, see
-   * {@link Namespaces#getNamespaceId(Instance, String)}
+   * {@link Namespaces#getNamespaceId(ClientContext, String)}
    *
    * Uses an internal cache and private constructor for storing a WeakReference of every
    * Namespace.ID. Therefore, a Namespace.ID can't be instantiated outside this class and is

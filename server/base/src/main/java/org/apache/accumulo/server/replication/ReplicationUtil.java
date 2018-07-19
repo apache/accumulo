@@ -125,7 +125,7 @@ public class ReplicationUtil {
   public Set<ReplicationTarget> getReplicationTargets() {
     // The total set of configured targets
     final Set<ReplicationTarget> allConfiguredTargets = new HashSet<>();
-    final Map<String,Table.ID> tableNameToId = Tables.getNameToIdMap(context.getInstance());
+    final Map<String,Table.ID> tableNameToId = Tables.getNameToIdMap(context);
 
     for (String table : tableNameToId.keySet()) {
       if (MetadataTable.NAME.equals(table) || RootTable.NAME.equals(table)) {

@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -88,18 +88,18 @@ public class WalStateManager {
     UNREFERENCED
   }
 
-  private final Instance instance;
+  private final ClientContext context;
   private final ZooReaderWriter zoo;
 
   private volatile boolean checkedExistance = false;
 
-  public WalStateManager(Instance instance, ZooReaderWriter zoo) {
-    this.instance = instance;
+  public WalStateManager(ClientContext context, ZooReaderWriter zoo) {
+    this.context = context;
     this.zoo = zoo;
   }
 
   private String root() throws WalMarkerException {
-    String root = ZooUtil.getRoot(instance) + ZWALS;
+    String root = ZooUtil.getRoot(context.getInstanceID()) + ZWALS;
 
     try {
       if (!checkedExistance && !zoo.exists(root)) {

@@ -33,13 +33,13 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.DelegationTokenConfigSerializer;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
@@ -444,7 +444,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throws ThriftSecurityException, ThriftTableOperationException {
 
     Namespace.ID namespaceId = null;
-    namespaceId = ClientServiceHandler.checkNamespaceId(master.getInstance(), namespace, op);
+    namespaceId = ClientServiceHandler.checkNamespaceId(master, namespace, op);
 
     if (!master.security.canAlterNamespace(c, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -458,7 +458,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     } catch (KeeperException.NoNodeException e) {
       // race condition... namespace no longer exists? This call will throw an exception if the
       // namespace was deleted:
-      ClientServiceHandler.checkNamespaceId(master.getInstance(), namespace, op);
+      ClientServiceHandler.checkNamespaceId(master, namespace, op);
       log.info("Error altering namespace property", e);
       throw new ThriftTableOperationException(namespaceId.canonicalID(), namespace, op,
           TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
@@ -471,7 +471,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
   private void alterTableProperty(TCredentials c, String tableName, String property, String value,
       TableOperation op) throws ThriftSecurityException, ThriftTableOperationException {
-    final Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
+    final Table.ID tableId = ClientServiceHandler.checkTableId(master, tableName, op);
     Namespace.ID namespaceId = getNamespaceIdFromTableId(op, tableId);
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -485,7 +485,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     } catch (KeeperException.NoNodeException e) {
       // race condition... table no longer exists? This call will throw an exception if the table
       // was deleted:
-      ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
+      ClientServiceHandler.checkTableId(master, tableName, op);
       log.info("Error altering table property", e);
       throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op,
           TableOperationExceptionType.OTHER, "Problem altering table property");
@@ -560,7 +560,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throw new RuntimeException("Failed to obtain connector", e);
     }
 
-    final Text tableId = new Text(getTableId(master.getInstance(), tableName).getUtf8());
+    final Text tableId = new Text(getTableId(master, tableName).getUtf8());
 
     drainLog.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
 
@@ -598,9 +598,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
     }
   }
 
-  protected Table.ID getTableId(Instance instance, String tableName)
+  protected Table.ID getTableId(ClientContext context, String tableName)
       throws ThriftTableOperationException {
-    return ClientServiceHandler.checkTableId(instance, tableName, null);
+    return ClientServiceHandler.checkTableId(context, tableName, null);
   }
 
   /**

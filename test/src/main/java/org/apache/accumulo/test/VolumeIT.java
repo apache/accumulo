@@ -453,7 +453,7 @@ public class VolumeIT extends ConfigurableMacBase {
         Instance i = conn.getInstance();
         ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
             conn.info().getZooKeepersSessionTimeOut(), "");
-        WalStateManager wals = new WalStateManager(i, zk);
+        WalStateManager wals = new WalStateManager(getClientContext(), zk);
         try {
           outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
             for (Path path : paths) {

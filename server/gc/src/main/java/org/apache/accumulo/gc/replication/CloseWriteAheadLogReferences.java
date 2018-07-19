@@ -104,7 +104,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     HashSet<String> closed = null;
     try {
       sw.start();
-      closed = getClosedLogs(conn);
+      closed = getClosedLogs();
     } finally {
       sw.stop();
       findWalsSpan.stop();
@@ -129,12 +129,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
   /**
    * Construct the set of referenced WALs from zookeeper
    *
-   * @param conn
-   *          Connector
    * @return The Set of WALs that are referenced in the metadata table
    */
-  protected HashSet<String> getClosedLogs(Connector conn) {
-    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+  protected HashSet<String> getClosedLogs() {
+    WalStateManager wals = new WalStateManager(context, ZooReaderWriter.getInstance());
 
     HashSet<String> result = new HashSet<>();
     try {

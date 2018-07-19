@@ -28,6 +28,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AbstractId;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Table;
@@ -49,10 +50,10 @@ public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  static void checkTableDoesNotExist(Instance instance, String tableName, Table.ID tableId,
+  static void checkTableDoesNotExist(ClientContext context, String tableName, Table.ID tableId,
       TableOperation operation) throws AcceptableThriftTableOperationException {
 
-    Table.ID id = Tables.getNameToIdMap(instance).get(tableName);
+    Table.ID id = Tables.getNameToIdMap(context).get(tableName);
 
     if (id != null && !id.equals(tableId))
       throw new AcceptableThriftTableOperationException(null, tableName, operation,
@@ -170,11 +171,11 @@ public class Utils {
     return Utils.getLock(tableId, tid, false);
   }
 
-  static void checkNamespaceDoesNotExist(Instance instance, String namespace,
+  static void checkNamespaceDoesNotExist(ClientContext context, String namespace,
       Namespace.ID namespaceId, TableOperation operation)
       throws AcceptableThriftTableOperationException {
 
-    Namespace.ID n = Namespaces.lookupNamespaceId(instance, namespace);
+    Namespace.ID n = Namespaces.lookupNamespaceId(context, namespace);
 
     if (n != null && !n.equals(namespaceId))
       throw new AcceptableThriftTableOperationException(null, namespace, operation,

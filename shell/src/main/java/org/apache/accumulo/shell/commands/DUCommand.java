@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
@@ -50,10 +49,9 @@ public class DUCommand extends Command {
     }
 
     if (cl.hasOption(optNamespace.getOpt())) {
-      Instance instance = shellState.getInstance();
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(instance,
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
           cl.getOptionValue(optNamespace.getOpt()));
-      tables.addAll(Namespaces.getTableNames(instance, namespaceId));
+      tables.addAll(Namespaces.getTableNames(shellState.getContext(), namespaceId));
     }
 
     boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt());

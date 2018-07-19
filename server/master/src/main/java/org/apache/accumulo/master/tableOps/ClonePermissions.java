@@ -60,7 +60,7 @@ class ClonePermissions extends MasterRepo {
     // this way concurrent users will not get a spurious pemission denied
     // error
     try {
-      return new CloneZookeeper(cloneInfo);
+      return new CloneZookeeper(cloneInfo, environment);
     } catch (NamespaceNotFoundException e) {
       throw new AcceptableThriftTableOperationException(null, cloneInfo.tableName,
           TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,

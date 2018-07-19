@@ -17,7 +17,6 @@
 package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -52,13 +51,11 @@ public class RenameNamespace extends MasterRepo {
   @Override
   public Repo<Master> call(long id, Master master) throws Exception {
 
-    Instance instance = master.getInstance();
-
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkNamespaceDoesNotExist(instance, newName, namespaceId, TableOperation.RENAME);
+      Utils.checkNamespaceDoesNotExist(master, newName, namespaceId, TableOperation.RENAME);
 
       final String tap = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZNAMESPACES + "/"
           + namespaceId + Constants.ZNAMESPACE_NAME;
@@ -76,7 +73,7 @@ public class RenameNamespace extends MasterRepo {
           return newName.getBytes();
         }
       });
-      Tables.clearCache(instance);
+      Tables.clearCache(master);
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveNamespace(namespaceId, id, true);

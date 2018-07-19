@@ -100,7 +100,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    boolean exists = Namespaces.namespaceNameExists(context.getInstance(), namespace);
+    boolean exists = Namespaces.namespaceNameExists(context, namespace);
 
     if (timer != null) {
       timer.stop();
@@ -130,7 +130,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
       NamespaceNotFoundException, NamespaceNotEmptyException {
     checkArgument(namespace != null, "namespace is null");
-    Namespace.ID namespaceId = Namespaces.getNamespaceId(context.getInstance(), namespace);
+    Namespace.ID namespaceId = Namespaces.getNamespaceId(context, namespace);
 
     if (namespaceId.equals(Namespace.ID.ACCUMULO) || namespaceId.equals(Namespace.ID.DEFAULT)) {
       Credentials credentials = context.getCredentials();
@@ -139,7 +139,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
           SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
-    if (Namespaces.getTableIds(context.getInstance(), namespaceId).size() > 0) {
+    if (Namespaces.getTableIds(context, namespaceId).size() > 0) {
       throw new NamespaceNotEmptyException(namespaceId.canonicalID(), namespace, null);
     }
 
