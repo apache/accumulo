@@ -30,7 +30,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -77,7 +76,6 @@ public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final TransactionWatcher transactionWatcher;
   private final AccumuloServerContext context;
-  private final Instance instance;
   private final VolumeManager fs;
   private final SecurityOperation security;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
@@ -85,7 +83,6 @@ public class ClientServiceHandler implements ClientService.Iface {
   public ClientServiceHandler(AccumuloServerContext context, TransactionWatcher transactionWatcher,
       VolumeManager fs) {
     this.context = context;
-    this.instance = context.getInstance();
     this.transactionWatcher = transactionWatcher;
     this.fs = fs;
     this.security = AuditedSecurityOperation.getInstance(context);
@@ -219,7 +216,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     Table.ID tableId = checkTableId(context, tableName, TableOperation.PERMISSION);
     Namespace.ID namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(instance, tableId);
+      namespaceId = Tables.getNamespaceId(context, tableId);
     } catch (TableNotFoundException e) {
       throw new TException(e);
     }
@@ -249,7 +246,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     Table.ID tableId = checkTableId(context, tableName, TableOperation.PERMISSION);
     Namespace.ID namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(instance, tableId);
+      namespaceId = Tables.getNamespaceId(context, tableId);
     } catch (TableNotFoundException e) {
       throw new TException(e);
     }
@@ -466,7 +463,7 @@ public class ClientServiceHandler implements ClientService.Iface {
         // ensure that table table exists
         Table.ID tableId = checkTableId(context, table, null);
         tableIds.add(tableId);
-        Namespace.ID namespaceId = Tables.getNamespaceId(instance, tableId);
+        Namespace.ID namespaceId = Tables.getNamespaceId(context, tableId);
         if (!security.canScan(credentials, tableId, namespaceId))
           throw new ThriftSecurityException(credentials.getPrincipal(),
               SecurityErrorCode.PERMISSION_DENIED);
