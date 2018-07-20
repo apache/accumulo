@@ -543,7 +543,7 @@ class FateServiceHandler implements FateService.Iface {
       throws ThriftTableOperationException {
     Namespace.ID namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
+      namespaceId = Tables.getNamespaceId(master, tableId);
     } catch (TableNotFoundException e) {
       throw new ThriftTableOperationException(tableId.canonicalID(), null, tableOp,
           TableOperationExceptionType.NOTFOUND, e.getMessage());

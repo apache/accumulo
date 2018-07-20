@@ -566,7 +566,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Table.ID tableId = Table.ID.of(new String(textent.getTable(), UTF_8));
       Namespace.ID namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+        namespaceId = Tables.getNamespaceId(TabletServer.this, tableId);
       } catch (TableNotFoundException e1) {
         throw new NotServingTabletException(textent);
       }
@@ -755,7 +755,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       for (Table.ID tableId : tables) {
         Namespace.ID namespaceId;
         try {
-          namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+          namespaceId = Tables.getNamespaceId(TabletServer.this, tableId);
         } catch (TableNotFoundException e1) {
           throw new ThriftSecurityException(credentials.getPrincipal(),
               SecurityErrorCode.TABLE_DOESNT_EXIST);
@@ -914,7 +914,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
         tableId = keyExtent.getTableId();
         if (sameTable || security.canWrite(us.getCredentials(), tableId,
-            Tables.getNamespaceId(getInstance(), tableId))) {
+            Tables.getNamespaceId(TabletServer.this, tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = onlineTablets.get(keyExtent);
@@ -1222,7 +1222,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       final Table.ID tableId = Table.ID.of(new String(tkeyExtent.getTable(), UTF_8));
       Namespace.ID namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+        namespaceId = Tables.getNamespaceId(TabletServer.this, tableId);
       } catch (TableNotFoundException e1) {
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.TABLE_DOESNT_EXIST);
@@ -1488,7 +1488,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Authorizations userauths = null;
       Namespace.ID namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+        namespaceId = Tables.getNamespaceId(TabletServer.this, tableId);
       } catch (TableNotFoundException e) {
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.TABLE_DOESNT_EXIST);
@@ -1588,7 +1588,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Table.ID tableId = Table.ID.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
       Namespace.ID namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+        namespaceId = Tables.getNamespaceId(TabletServer.this, tableId);
       } catch (TableNotFoundException ex) {
         // tableOperationsImpl catches ThriftSeccurityException and checks for missing table
         throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -2054,7 +2054,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Namespace.ID namespaceId;
       Table.ID tableId = Table.ID.of(request.getTableId());
       try {
-        namespaceId = Tables.getNamespaceId(TabletServer.this.getInstance(), tableId);
+        namespaceId = Tables.getNamespaceId(TabletServer.this, tableId);
       } catch (TableNotFoundException e1) {
         throw new ThriftTableOperationException(tableId.canonicalID(), null, null,
             TableOperationExceptionType.NOTFOUND, null);

@@ -300,6 +300,11 @@ public class Tables {
     return new Pair<>(defaultNamespace, tableName);
   }
 
+  public static Namespace.ID getNamespaceId(ClientContext context, Table.ID tableId)
+      throws TableNotFoundException {
+    return getNamespaceId(context.getInstance(), tableId);
+  }
+
   /**
    * Returns the namespace id for a given table ID.
    *
