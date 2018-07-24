@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -186,7 +186,7 @@ public class PerTableVolumeChooser implements VolumeChooser {
     ServerConfigurationFactory localConf = lazyConfFactory;
     if (localConf == null) {
       // If we're under contention when first getting here we'll throw away some initializations.
-      localConf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
+      localConf = ServerInfo.getInstance().getServerConfFactory();
       lazyConfFactory = localConf;
     }
     return localConf;

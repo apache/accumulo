@@ -30,11 +30,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
@@ -114,7 +113,7 @@ public class FateCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException {
-    Instance instance = shellState.getInstance();
+    ClientContext context = shellState.getContext();
     String[] args = cl.getArgs();
     if (args.length <= 0) {
       throw new ParseException("Must provide a command to execute");
@@ -124,10 +123,9 @@ public class FateCommand extends Command {
 
     AdminUtil<FateCommand> admin = new AdminUtil<>(false);
 
-    String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
-    String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = getZooReaderWriter(shellState.getInstance(),
-        cl.getOptionValue(secretOption.getOpt()));
+    String path = context.getZooKeeperRoot() + Constants.ZFATE;
+    String masterPath = context.getZooKeeperRoot() + Constants.ZMASTER_LOCK;
+    IZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
@@ -146,7 +144,7 @@ public class FateCommand extends Command {
       }
       for (int i = 1; i < args.length; i++) {
         if (admin.prepDelete(zs, zk, masterPath, args[i])) {
-          admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, args[i]);
+          admin.deleteLocks(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
         } else {
           System.out.printf("Could not delete transaction: %s%n", args[i]);
           failedCommand = true;
@@ -187,7 +185,7 @@ public class FateCommand extends Command {
 
       StringBuilder buf = new StringBuilder(8096);
       Formatter fmt = new Formatter(buf);
-      admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, fmt, filterTxid,
+      admin.print(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, fmt, filterTxid,
           filterStatus);
       shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
           !cl.hasOption(disablePaginationOpt.getOpt()));
@@ -224,14 +222,14 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
 
-  protected synchronized IZooReaderWriter getZooReaderWriter(Instance instance, String secret) {
+  protected synchronized IZooReaderWriter getZooReaderWriter(ClientContext context, String secret) {
 
     if (secret == null) {
       AccumuloConfiguration conf = SiteConfiguration.getInstance();
       secret = conf.get(Property.INSTANCE_SECRET);
     }
 
-    return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(),
+    return new ZooReaderWriter(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
         SCHEME, (USER + ":" + secret).getBytes());
   }
 

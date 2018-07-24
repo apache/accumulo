@@ -32,7 +32,6 @@ import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -50,7 +50,7 @@ import org.junit.Test;
 
 public class SimpleGarbageCollectorTest {
   private VolumeManager volMgr;
-  private Instance instance;
+  private ServerInfo info;
   private Credentials credentials;
   private Opts opts;
   private SimpleGarbageCollector gc;
@@ -59,11 +59,11 @@ public class SimpleGarbageCollectorTest {
   @Before
   public void setUp() {
     volMgr = createMock(VolumeManager.class);
-    instance = createMock(Instance.class);
+    info = createMock(ServerInfo.class);
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
-    expect(instance.getInstanceID()).andReturn("mock").anyTimes();
-    expect(instance.getZooKeepers()).andReturn("localhost").anyTimes();
-    expect(instance.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
+    expect(info.getInstanceID()).andReturn("mock").anyTimes();
+    expect(info.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(info.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
 
     opts = new Opts();
     systemConfig = createSystemConfig();
@@ -81,13 +81,18 @@ public class SimpleGarbageCollectorTest {
       Object[] args = EasyMock.getCurrentArguments();
       return systemConfig.getBoolean((Property) args[0]);
     }).anyTimes();
+    expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
+    expect(info.getVolumeManager()).andReturn(volMgr).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConfig.iterator()).anyTimes();
 
-    replay(instance, factory, siteConfig);
+    credentials = SystemCredentials.get("mock");
+    expect(info.getPrincipal()).andReturn(credentials.getPrincipal()).anyTimes();
+    expect(info.getAuthenticationToken()).andReturn(credentials.getToken()).anyTimes();
 
-    credentials = SystemCredentials.get(instance);
-    gc = new SimpleGarbageCollector(opts, instance, volMgr, factory);
+    replay(factory, siteConfig, info);
+
+    gc = new SimpleGarbageCollector(opts, info);
   }
 
   @Test
@@ -111,7 +116,6 @@ public class SimpleGarbageCollectorTest {
   @Test
   public void testInit() throws Exception {
     assertSame(volMgr, gc.getVolumeManager());
-    assertSame(instance, gc.getInstance());
     assertEquals(credentials, gc.getCredentials());
     assertTrue(gc.isUsingTrash());
     assertEquals(1000L, gc.getStartDelay());

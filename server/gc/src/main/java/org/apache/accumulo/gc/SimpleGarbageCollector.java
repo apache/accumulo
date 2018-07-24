@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -46,7 +45,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -67,7 +65,6 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
@@ -83,23 +80,18 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
-import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -141,45 +133,30 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
   private VolumeManager fs;
-  private Opts opts = new Opts();
+  private Opts opts;
   private ZooLock lock;
 
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(),
       new GcCycleStats());
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     final String app = "gc";
     Opts opts = new Opts();
     opts.parseArgs(app, args);
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-    Instance instance = HdfsZooInstance.getInstance();
-    ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + instance.getInstanceID());
-    final VolumeManager fs = VolumeManagerImpl.get();
-    MetricsSystemHelper.configure(SimpleGarbageCollector.class.getSimpleName());
-    Accumulo.init(fs, instance, conf, app);
-    SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, instance, fs, conf);
-
-    DistributedTrace.enable(opts.getAddress(), app, conf.getSystemConfiguration());
+    ServerInfo info = ServerInfo.getInstance();
+    info.setupServer(app, SimpleGarbageCollector.class.getName(), opts.getAddress());
     try {
+      SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, info);
       gc.run();
     } finally {
-      DistributedTrace.disable();
+      info.teardownServer();
     }
   }
 
-  /**
-   * Creates a new garbage collector.
-   *
-   * @param opts
-   *          options
-   */
-  public SimpleGarbageCollector(Opts opts, Instance instance, VolumeManager fs,
-      ServerConfigurationFactory confFactory) {
-    super(instance, confFactory);
+  public SimpleGarbageCollector(Opts opts, ServerInfo info) {
+    super(info);
     this.opts = opts;
-    this.fs = fs;
+    this.fs = info.getVolumeManager();
 
     long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
     log.info("start delay: {} milliseconds", getStartDelay());
@@ -704,7 +681,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    String path = ZooUtil.getRoot(getInstance()) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(getInstanceID()) + Constants.ZGC_LOCK;
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override

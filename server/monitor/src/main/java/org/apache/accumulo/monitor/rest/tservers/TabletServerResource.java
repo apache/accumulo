@@ -104,7 +104,7 @@ public class TabletServerResource {
   public void clearDeadServer(
       @QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
     DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
+        ZooUtil.getRoot(Monitor.getContext().getInstanceID()) + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }
 

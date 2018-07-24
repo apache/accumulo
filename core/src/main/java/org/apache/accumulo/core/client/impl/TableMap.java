@@ -24,9 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,14 +40,14 @@ public class TableMap {
   private final Map<String,Table.ID> tableNameToIdMap;
   private final Map<Table.ID,String> tableIdToNameMap;
 
-  public TableMap(Instance instance, ZooCache zooCache) {
-    List<String> tableIds = zooCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
+  public TableMap(ClientContext context, ZooCache zooCache) {
+    List<String> tableIds = zooCache.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
     Map<Namespace.ID,String> namespaceIdToNameMap = new HashMap<>();
     ImmutableMap.Builder<String,Table.ID> tableNameToIdBuilder = new ImmutableMap.Builder<>();
     ImmutableMap.Builder<Table.ID,String> tableIdToNameBuilder = new ImmutableMap.Builder<>();
     // use StringBuilder to construct zPath string efficiently across many tables
     StringBuilder zPathBuilder = new StringBuilder();
-    zPathBuilder.append(ZooUtil.getRoot(instance)).append(Constants.ZTABLES).append("/");
+    zPathBuilder.append(context.getZooKeeperRoot()).append(Constants.ZTABLES).append("/");
     int prefixLength = zPathBuilder.length();
 
     for (String tableIdStr : tableIds) {
@@ -71,7 +69,7 @@ public class TableMap {
           try {
             namespaceName = namespaceIdToNameMap.get(namespaceId);
             if (namespaceName == null) {
-              namespaceName = Namespaces.getNamespaceName(instance, namespaceId);
+              namespaceName = Namespaces.getNamespaceName(context, namespaceId);
               namespaceIdToNameMap.put(namespaceId, namespaceName);
             }
           } catch (NamespaceNotFoundException e) {

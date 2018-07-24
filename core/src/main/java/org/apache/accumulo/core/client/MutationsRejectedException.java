@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -53,12 +54,44 @@ public class MutationsRejectedException extends AccumuloException {
    *          number of unknown errors
    *
    * @since 1.7.0
+   * @deprecated since 2.0.0, replaced by
+   *             {@link #MutationsRejectedException(ClientInfo, List, Map, Collection, int, Throwable)}
    */
+  @Deprecated
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
       Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
       int unknownErrors, Throwable cause) {
+    super(
+        "# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.toString()
+            + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors,
+        cause);
+    this.cvsl = cvsList;
+    this.af = hashMap;
+    this.es = serverSideErrors;
+    this.unknownErrors = unknownErrors;
+  }
+
+  /**
+   * Creates Mutations rejected exception
+   *
+   * @param info
+   *          Client info
+   * @param cvsList
+   *          list of constraint violations
+   * @param hashMap
+   *          authorization failures
+   * @param serverSideErrors
+   *          server side errors
+   * @param unknownErrors
+   *          number of unknown errors
+   *
+   * @since 2.0.0
+   */
+  public MutationsRejectedException(ClientInfo info, List<ConstraintViolationSummary> cvsList,
+      Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
+      int unknownErrors, Throwable cause) {
     super("# constraint violations : " + cvsList.size() + "  security codes: "
-        + format(hashMap, instance) + "  # server errors " + serverSideErrors.size()
+        + format(hashMap, new ClientContext(info)) + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = hashMap;
@@ -66,12 +99,13 @@ public class MutationsRejectedException extends AccumuloException {
     this.unknownErrors = unknownErrors;
   }
 
-  private static String format(Map<TabletId,Set<SecurityErrorCode>> hashMap, Instance instance) {
+  private static String format(Map<TabletId,Set<SecurityErrorCode>> hashMap,
+      ClientContext context) {
     Map<String,Set<SecurityErrorCode>> result = new HashMap<>();
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       TabletId tabletId = entry.getKey();
-      String tableInfo = Tables.getPrintableTableInfoFromId(instance,
+      String tableInfo = Tables.getPrintableTableInfoFromId(context,
           Table.ID.of(tabletId.getTableId().toString()));
 
       if (!result.containsKey(tableInfo)) {

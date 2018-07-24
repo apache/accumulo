@@ -29,17 +29,18 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.server.ServerInfo;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,7 +50,7 @@ public class TableConfigurationTest {
   private static final int ZK_SESSION_TIMEOUT = 120000;
 
   private String iid;
-  private Instance instance;
+  private ServerInfo info;
   private NamespaceConfiguration parent;
   private ZooCacheFactory zcf;
   private ZooCache zc;
@@ -58,14 +59,16 @@ public class TableConfigurationTest {
   @Before
   public void setUp() {
     iid = UUID.randomUUID().toString();
-    instance = createMock(Instance.class);
-    expect(instance.getInstanceID()).andReturn(iid).anyTimes();
-    expect(instance.getZooKeepers()).andReturn(ZOOKEEPERS);
-    expect(instance.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT);
-    replay(instance);
+    info = createMock(ServerInfo.class);
+    expect(info.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(info.getInstanceID()).andReturn(iid).anyTimes();
+    expect(info.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
+    expect(info.getZooKeepers()).andReturn(ZOOKEEPERS).anyTimes();
+    expect(info.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT).anyTimes();
+    replay(info);
 
     parent = createMock(NamespaceConfiguration.class);
-    c = new TableConfiguration(instance, TID, parent);
+    c = new TableConfiguration(info, TID, parent);
     zcf = createMock(ZooCacheFactory.class);
     c.setZooCacheFactory(zcf);
 

@@ -23,13 +23,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
-import org.easymock.EasyMock;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +37,8 @@ public class SystemCredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private Instance inst;
+  private String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
+      .toString();
 
   @BeforeClass
   public static void setUp() throws IOException {
@@ -63,15 +61,6 @@ public class SystemCredentialsTest {
     }
   }
 
-  @Before
-  public void setupInstance() {
-    inst = EasyMock.createMock(Instance.class);
-    EasyMock.expect(inst.getInstanceID())
-        .andReturn(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString())
-        .anyTimes();
-    EasyMock.replay(inst);
-  }
-
   /**
    * This is a test to ensure the string literal in
    * {@link ConnectorImpl#ConnectorImpl(org.apache.accumulo.core.client.impl.ClientContext)} is kept
@@ -82,13 +71,13 @@ public class SystemCredentialsTest {
   public void testSystemToken() {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken",
         SystemToken.class.getName());
-    assertEquals(SystemCredentials.get(inst).getToken().getClass(), SystemToken.class);
+    assertEquals(SystemCredentials.get(instanceId).getToken().getClass(), SystemToken.class);
   }
 
   @Test
   public void testSystemCredentials() {
-    Credentials a = SystemCredentials.get(inst);
-    Credentials b = SystemCredentials.get(inst);
+    Credentials a = SystemCredentials.get(instanceId);
+    Credentials b = SystemCredentials.get(instanceId);
     assertEquals(a, b);
   }
 }

@@ -27,15 +27,12 @@ import static org.junit.Assert.fail;
 import javax.security.auth.DestroyFailedException;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.easymock.EasyMock;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -45,20 +42,13 @@ public class CredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private Instance inst;
-
-  @Before
-  public void setupInstance() {
-    inst = EasyMock.createMock(Instance.class);
-    EasyMock.expect(inst.getInstanceID()).andReturn(test.getMethodName()).anyTimes();
-    EasyMock.replay(inst);
-  }
+  private String instanceID = test.getMethodName();
 
   @Test
   public void testToThrift() throws DestroyFailedException {
     // verify thrift serialization
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
-    TCredentials tCreds = creds.toThrift(inst);
+    TCredentials tCreds = creds.toThrift(instanceID);
     assertEquals("test", tCreds.getPrincipal());
     assertEquals(PasswordToken.class.getName(), tCreds.getTokenClassName());
     assertArrayEquals(AuthenticationTokenSerializer.serialize(new PasswordToken("testing")),
@@ -67,7 +57,7 @@ public class CredentialsTest {
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
     try {
-      creds.toThrift(inst);
+      creds.toThrift(instanceID);
       fail();
     } catch (Exception e) {
       assertTrue(e instanceof RuntimeException);
@@ -80,7 +70,7 @@ public class CredentialsTest {
   @Test
   public void roundtripThrift() throws DestroyFailedException {
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
-    TCredentials tCreds = creds.toThrift(inst);
+    TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
     assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
   }

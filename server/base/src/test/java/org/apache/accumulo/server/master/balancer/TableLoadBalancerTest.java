@@ -16,17 +16,19 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static org.easymock.EasyMock.replay;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -38,6 +40,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -130,28 +133,34 @@ public class TableLoadBalancerTest {
     protected TableOperations getTableOperations() {
       TableOperations tops = EasyMock.createMock(TableOperations.class);
       EasyMock.expect(tops.tableIdMap()).andReturn(TABLE_ID_MAP).anyTimes();
-      EasyMock.replay(tops);
+      replay(tops);
       return tops;
     }
   }
 
+  private ServerInfo createMockInfo() {
+    ServerInfo info = EasyMock.createMock(ServerInfo.class);
+    final String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
+        .toString();
+    EasyMock.expect(info.getProperties()).andReturn(new Properties()).anyTimes();
+    EasyMock.expect(info.getInstanceID()).andReturn(instanceId).anyTimes();
+    EasyMock.expect(info.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
+    EasyMock.expect(info.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
+    EasyMock.expect(info.getZooKeeperRoot()).andReturn("/root/").anyTimes();
+    return info;
+  }
+
   @Test
   public void test() throws Exception {
-    final Instance inst = EasyMock.createMock(Instance.class);
-    EasyMock.expect(inst.getInstanceID())
-        .andReturn(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString())
-        .anyTimes();
-    EasyMock.expect(inst.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
-    EasyMock.expect(inst.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
-    EasyMock.replay(inst);
-
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(inst) {
+    final ServerInfo info = createMockInfo();
+    replay(info);
+    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(info) {
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
         // constructor
-        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, inst, null);
-        return new TableConfiguration(inst, tableId, dummyConf) {
+        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, info, null);
+        return new TableConfiguration(info, tableId, dummyConf) {
           @Override
           public String get(Property property) {
             // fake the get table configuration so the test doesn't try to look in zookeeper for
@@ -161,6 +170,9 @@ public class TableLoadBalancerTest {
         };
       }
     };
+    final ServerInfo info2 = createMockInfo();
+    EasyMock.expect(info2.getServerConfFactory()).andReturn(confFactory).anyTimes();
+    replay(info2);
 
     String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"),
         t3Id = TABLE_ID_MAP.get("t3");
@@ -171,13 +183,13 @@ public class TableLoadBalancerTest {
     Set<KeyExtent> migrations = Collections.emptySet();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
-    tls.init(new AccumuloServerContext(inst, confFactory));
+    tls.init(new AccumuloServerContext(info2));
     tls.balance(state, migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", "0x02030405"), status());
     tls = new TableLoadBalancer();
-    tls.init(new AccumuloServerContext(inst, confFactory));
+    tls.init(new AccumuloServerContext(info2));
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<Table.ID,Integer> movedByTable = new HashMap<>();

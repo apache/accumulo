@@ -90,8 +90,8 @@ public class CompactRange extends MasterRepo {
 
   @Override
   public Repo<Master> call(final long tid, Master env) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + env.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_COMPACT_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     byte[] cid;
@@ -143,8 +143,8 @@ public class CompactRange extends MasterRepo {
 
   static void removeIterators(Master environment, final long txid, Table.ID tableId)
       throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + environment.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zTablePath = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
+        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 

@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +43,9 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -50,9 +55,23 @@ import org.junit.Test;
 
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
 
+  public void init() {
+    ServerInfo info1 = createMockInfo();
+    replay(info1);
+    final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(info1);
+    initFactory(factory);
+  }
+
+  private void initFactory(ServerConfigurationFactory factory) {
+    ServerInfo info = createMockInfo();
+    expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
+    replay(info);
+    init(new AccumuloServerContext(info));
+  }
+
   @Test
   public void testInit() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     Assert.assertEquals("OOB check interval value is incorrect", 7000, this.getOobCheckMillis());
     Assert.assertEquals("Max migrations is incorrect", 4, this.getMaxMigrations());
     Assert.assertEquals("Max outstanding migrations is incorrect", 10,
@@ -79,7 +98,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testBalance() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     Set<KeyExtent> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
@@ -125,7 +144,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testBalanceWithTooManyOutstandingMigrations() {
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    init(new AccumuloServerContext(instance, factory));
+    init();
     // lets say we already have migrations ongoing for the FOO and BAR table extends (should be 5 of
     // each of them) for a total of 10
     Set<KeyExtent> migrations = new HashSet<>();
@@ -140,7 +159,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingHostname() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
         .splitCurrentByRegex(createCurrent(15));
     Assert.assertEquals(3, groups.size());
@@ -172,13 +191,15 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingOverlappingPools() {
-    init(new AccumuloServerContext(instance, new TestServerConfigurationFactory(instance) {
+    ServerInfo info = createMockInfo();
+    replay(info);
+    initFactory(new TestServerConfigurationFactory(info) {
 
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
-            this.instance, DefaultConfiguration.getInstance());
-        return new TableConfiguration(instance, tableId, defaultConf) {
+            this.info, DefaultConfiguration.getInstance());
+        return new TableConfiguration(this.info, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
           {
             tableProperties
@@ -208,7 +229,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
           }
         };
       }
-    }));
+    });
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
         .splitCurrentByRegex(createCurrent(15));
     Assert.assertEquals(2, groups.size());
@@ -247,7 +268,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingIP() {
-    init(new AccumuloServerContext(instance, new TestServerConfigurationFactory(instance) {
+    ServerInfo info = createMockInfo();
+    replay(info);
+    initFactory(new TestServerConfigurationFactory(info) {
       @Override
       public synchronized AccumuloConfiguration getSystemConfiguration() {
         HashMap<String,String> props = new HashMap<>();
@@ -259,8 +282,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
-            this.instance, DefaultConfiguration.getInstance());
-        return new TableConfiguration(instance, tableId, defaultConf) {
+            this.info, DefaultConfiguration.getInstance());
+        return new TableConfiguration(info, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
           {
             tableProperties.put(
@@ -291,7 +314,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
           }
         };
       }
-    }));
+    });
     Assert.assertTrue(isIpBasedRegex());
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
         .splitCurrentByRegex(createCurrent(15));
@@ -324,7 +347,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testAllUnassigned() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     for (List<KeyExtent> extents : tableExtents.values()) {
@@ -356,7 +379,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testAllAssigned() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
@@ -366,7 +389,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testPartiallyAssigned() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     int i = 0;
@@ -402,7 +425,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testUnassignedWithNoTServers() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     for (KeyExtent ke : tableExtents.get(BAR.getTableName())) {
@@ -434,7 +457,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testOutOfBoundsTablets() {
-    init(new AccumuloServerContext(instance, factory));
+    init();
     // Wait to trigger the out of bounds check which will call our version of
     // getOnlineTabletsForTable
     UtilWaitThread.sleep(11000);

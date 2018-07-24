@@ -382,8 +382,8 @@ public class ThriftScanner {
 
           sleepMillis = pause(sleepMillis, maxSleepTime);
         } catch (TException e) {
-          TabletLocator.getLocator(context, scanState.tableId)
-              .invalidateCache(context.getInstance(), loc.tablet_location);
+          TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
+              loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
               + " " + loc;
           if (!error.equals(lastError))

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -56,6 +55,7 @@ public class ConnectorImpl extends Connector {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
       + "SystemCredentials$SystemToken";
   private final ClientContext context;
+  private final String instanceID;
   private SecurityOperations secops = null;
   private TableOperationsImpl tableops = null;
   private NamespaceOperations namespaceops = null;
@@ -72,6 +72,7 @@ public class ConnectorImpl extends Connector {
           SecurityErrorCode.TOKEN_EXPIRED);
 
     this.context = context;
+    instanceID = context.getInstanceID();
 
     // Skip fail fast for system services; string literal for class name, to avoid dependency on
     // server jar
@@ -96,7 +97,8 @@ public class ConnectorImpl extends Connector {
   }
 
   @Override
-  public Instance getInstance() {
+  @Deprecated
+  public org.apache.accumulo.core.client.Instance getInstance() {
     return context.getInstance();
   }
 
@@ -217,7 +219,7 @@ public class ConnectorImpl extends Connector {
 
   @Override
   public String getInstanceID() {
-    return getInstance().getInstanceID();
+    return instanceID;
   }
 
   @Override

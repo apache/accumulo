@@ -44,7 +44,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -233,7 +232,7 @@ public class TabletServerResourceManager {
         new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
   }
 
-  protected Map<String,ExecutorService> createScanExecutors(Instance instance,
+  protected Map<String,ExecutorService> createScanExecutors(
       Collection<ScanExecutorConfig> scanExecCfg, Map<String,Queue<?>> scanExecQueues) {
     Builder<String,ExecutorService> builder = ImmutableMap.builder();
 
@@ -395,7 +394,7 @@ public class TabletServerResourceManager {
 
     Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
     Map<String,Queue<?>> scanExecQueues = new HashMap<>();
-    scanExecutors = createScanExecutors(tserver.getInstance(), scanExecCfg, scanExecQueues);
+    scanExecutors = createScanExecutors(scanExecCfg, scanExecQueues);
     scanExecutorChoices = createScanExecutorChoices(scanExecCfg, scanExecQueues);
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);

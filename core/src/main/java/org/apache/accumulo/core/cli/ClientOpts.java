@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -160,19 +159,7 @@ public class ClientOpts extends Help {
 
   private ClientInfo cachedInfo = null;
   private Connector cachedConnector = null;
-  protected Instance cachedInstance = null;
   private Properties cachedProps = null;
-
-  synchronized public Instance getInstance() {
-    if (cachedInstance == null) {
-      try {
-        cachedInstance = getConnector().getInstance();
-      } catch (AccumuloSecurityException | AccumuloException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-    return cachedInstance;
-  }
 
   public String getPrincipal() {
     return getClientInfo().getPrincipal();

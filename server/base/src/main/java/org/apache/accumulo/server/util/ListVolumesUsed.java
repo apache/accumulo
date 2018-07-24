@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Key;
@@ -31,8 +30,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -41,8 +39,7 @@ import org.apache.hadoop.fs.Path;
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
-    listVolumes(new AccumuloServerContext(instance, new ServerConfigurationFactory(instance)));
+    listVolumes(new AccumuloServerContext(ServerInfo.getInstance()));
   }
 
   private static String getTableURI(String rootTabletDir) {

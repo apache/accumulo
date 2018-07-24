@@ -80,13 +80,12 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -138,7 +137,7 @@ public class MetadataTableUtil {
 
   public static void putLockID(ZooLock zooLock, Mutation m) {
     TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m, new Value(zooLock.getLockID()
-        .serialize(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + "/").getBytes(UTF_8)));
+        .serialize(ServerInfo.getInstance().getZooKeeperRoot() + "/").getBytes(UTF_8)));
   }
 
   private static void update(ClientContext context, Mutation m, KeyExtent extent) {
@@ -506,12 +505,12 @@ public class MetadataTableUtil {
   }
 
   static String getZookeeperLogLocation() {
-    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
+    return ServerInfo.getInstance().getZooKeeperRoot() + RootTable.ZROOT_TABLET_WALOGS;
   }
 
   public static void setRootTabletDir(String dir) throws IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ServerInfo.getInstance().getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
     try {
       zoo.putPersistentData(zpath, dir.getBytes(UTF_8), -1, NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException e) {
@@ -524,7 +523,7 @@ public class MetadataTableUtil {
 
   public static String getRootTabletDir() throws IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ServerInfo.getInstance().getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
     try {
       return new String(zoo.getData(zpath, null), UTF_8);
     } catch (KeeperException e) {

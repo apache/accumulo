@@ -25,7 +25,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
@@ -104,7 +103,7 @@ public class BulkImporterTest {
     }
 
     @Override
-    public void invalidateCache(Instance instance, String server) {
+    public void invalidateCache(ClientContext context, String server) {
       throw new NotImplementedException();
     }
   }

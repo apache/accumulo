@@ -16,11 +16,9 @@
  */
 package org.apache.accumulo.server.cli;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerInfo;
 
 public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
   {
@@ -31,15 +29,11 @@ public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
     return new ClientContext(getClientInfo());
   }
 
-  @Override
-  public Instance getInstance() {
+  public ServerInfo getServerInfo() {
     if (instance == null) {
-      return HdfsZooInstance.getInstance();
+      return ServerInfo.getInstance();
     }
-    try {
-      return getConnector().getInstance();
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new IllegalStateException(e);
-    }
+    ClientInfo info = getClientInfo();
+    return new ServerInfo(instance, info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
   }
 }

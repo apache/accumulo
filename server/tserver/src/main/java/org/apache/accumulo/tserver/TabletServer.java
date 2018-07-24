@@ -65,7 +65,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
@@ -148,7 +147,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -174,20 +172,18 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.GarbageCollectionLogger;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -201,7 +197,6 @@ import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
@@ -318,6 +313,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
 
+  private final ServerInfo info;
   private final VolumeManager fs;
 
   private final SortedMap<KeyExtent,Tablet> onlineTablets = Collections
@@ -360,11 +356,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
 
-  public TabletServer(Instance instance, ServerConfigurationFactory confFactory, VolumeManager fs)
-      throws IOException {
-    super(instance, confFactory);
-    this.confFactory = confFactory;
-    this.fs = fs;
+  public TabletServer(ServerInfo info) {
+    super(info);
+    this.info = info;
+    this.confFactory = info.getServerConfFactory();
+    this.fs = info.getVolumeManager();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -435,7 +431,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     walMarker = new WalStateManager(this, ZooReaderWriter.getInstance());
 
     // Create the secret manager
-    setSecretManager(new AuthenticationTokenSecretManager(instance,
+    setSecretManager(new AuthenticationTokenSecretManager(info.getInstanceID(),
         aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
@@ -446,6 +442,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       authKeyWatcher = null;
     }
+    config();
   }
 
   public String getVersion() {
@@ -3159,14 +3156,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
   }
 
-  public void config(String hostname) {
-    log.info("Tablet server starting on {}", hostname);
+  private void config() {
+    log.info("Tablet server starting on {}", info.getHostname());
     majorCompactorThread = new Daemon(
         new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
     majorCompactorThread.setName("Split/MajC initiator");
     majorCompactorThread.start();
 
-    clientAddress = HostAndPort.fromParts(hostname, 0);
+    clientAddress = HostAndPort.fromParts(info.getHostname(), 0);
     try {
       AccumuloVFSClassLoader.getContextManager()
           .setContextConfig(new ContextManager.DefaultContextsConfig() {
@@ -3327,21 +3324,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     return result;
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
+    final String app = "tserver";
+    ServerOpts opts = new ServerOpts();
+    opts.parseArgs(app, args);
+    ServerInfo info = ServerInfo.getInstance();
+    info.setupServer(app, TabletServer.class.getSimpleName(), opts.getAddress());
     try {
-      final String app = "tserver";
-      ServerOpts opts = new ServerOpts();
-      opts.parseArgs(app, args);
-      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-      String hostname = opts.getAddress();
-      Instance instance = HdfsZooInstance.getInstance();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
-      VolumeManager fs = VolumeManagerImpl.get();
-      MetricsSystemHelper.configure(TabletServer.class.getSimpleName());
-      Accumulo.init(fs, instance, conf, app);
-      final TabletServer server = new TabletServer(instance, conf, fs);
-      server.config(hostname);
-      DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
+      final TabletServer server = new TabletServer(info);
       if (UserGroupInformation.isSecurityEnabled()) {
         UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
         loginUser.doAs((PrivilegedExceptionAction<Void>) () -> {
@@ -3351,11 +3341,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } else {
         server.run();
       }
-    } catch (Exception ex) {
-      log.error("Uncaught exception in TabletServer.main, exiting", ex);
-      System.exit(1);
     } finally {
-      DistributedTrace.disable();
+      info.teardownServer();
     }
   }
 

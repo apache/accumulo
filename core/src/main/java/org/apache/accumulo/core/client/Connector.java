@@ -285,7 +285,9 @@ public abstract class Connector {
    * Accessor method for internal instance object.
    *
    * @return the internal instance object
+   * @deprecated since 2.0.0, use {@link #info()} instead
    */
+  @Deprecated
   public abstract Instance getInstance();
 
   /**

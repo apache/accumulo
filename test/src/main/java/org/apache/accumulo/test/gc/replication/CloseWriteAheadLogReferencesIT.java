@@ -23,12 +23,13 @@ import static org.easymock.EasyMock.replay;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -87,11 +89,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   @Before
   public void setupEasyMockStuff() {
-    Instance mockInst = createMock(Instance.class);
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
-    expect(mockInst.getInstanceID()).andReturn(testName.getMethodName()).anyTimes();
-    expect(mockInst.getZooKeepers()).andReturn("localhost").anyTimes();
-    expect(mockInst.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
     final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<>());
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getSystemConfiguration()).andReturn(systemConf).anyTimes();
@@ -109,9 +107,18 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
+    ServerInfo info = createMock(ServerInfo.class);
+    expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
+    expect(info.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(info.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(info.getInstanceName()).andReturn("test").anyTimes();
+    expect(info.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
+    expect(info.getInstanceID()).andReturn("1111").anyTimes();
+    expect(info.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
 
-    replay(mockInst, factory, siteConfig);
-    refs = new WrappedCloseWriteAheadLogReferences(new AccumuloServerContext(mockInst, factory));
+    replay(factory, siteConfig, info);
+
+    refs = new WrappedCloseWriteAheadLogReferences(new AccumuloServerContext(info));
   }
 
   @Test
@@ -174,5 +181,4 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
       Assert.assertFalse(status.getClosed());
     }
   }
-
 }

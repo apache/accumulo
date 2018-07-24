@@ -60,7 +60,7 @@ class CloneZookeeper extends MasterRepo {
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
-      Tables.clearCache(environment.getInstance());
+      Tables.clearCache(environment);
 
       return new CloneMetadata(cloneInfo);
     } finally {
@@ -74,7 +74,7 @@ class CloneZookeeper extends MasterRepo {
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       Utils.unreserveNamespace(cloneInfo.namespaceId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
-    Tables.clearCache(environment.getInstance());
+    Tables.clearCache(environment);
   }
 
 }

@@ -140,7 +140,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     verify(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
     String monitorLocation = null;
     while (null == monitorLocation) {
-      monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
+      monitorLocation = MonitorUtil.getLocation(getClientContext());
       if (null == monitorLocation) {
         log.debug("Could not fetch monitor HTTP address from zookeeper");
         Thread.sleep(2000);

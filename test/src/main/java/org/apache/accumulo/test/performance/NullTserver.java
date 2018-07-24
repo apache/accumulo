@@ -27,8 +27,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -69,9 +67,8 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
@@ -311,14 +308,12 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     // modify metadata
-    ZooKeeperInstance zki = new ZooKeeperInstance(opts.iname, opts.keepers);
-    Instance inst = HdfsZooInstance.getInstance();
-    AccumuloServerContext context = new AccumuloServerContext(inst,
-        new ServerConfigurationFactory(zki));
-
+    int zkTimeOut = (int) DefaultConfiguration.getInstance()
+        .getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    ServerInfo info = new ServerInfo(opts.iname, opts.keepers, zkTimeOut);
+    AccumuloServerContext context = new AccumuloServerContext(info);
     TransactionWatcher watcher = new TransactionWatcher();
-    ThriftClientHandler tch = new ThriftClientHandler(
-        new AccumuloServerContext(inst, new ServerConfigurationFactory(inst)), watcher);
+    ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
     TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor,
         "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,

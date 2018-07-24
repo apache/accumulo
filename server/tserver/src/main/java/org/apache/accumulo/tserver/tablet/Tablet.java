@@ -336,7 +336,7 @@ public class Tablet implements TabletCommitter {
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
-      Tables.clearCache(tabletServer.getInstance());
+      Tables.clearCache(tabletServer);
       tblConf = tabletServer.getTableConfiguration(extent);
       requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId());
     }

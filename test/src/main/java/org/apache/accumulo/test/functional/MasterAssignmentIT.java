@@ -90,7 +90,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
 
   private TabletLocationState getTabletLocationState(Connector c, String tableId)
       throws FileNotFoundException, ConfigurationException {
-    ClientContext context = new ClientContext(getClientInfo());
+    ClientContext context = getClientContext();
     try (MetaDataTableScanner s = new MetaDataTableScanner(context,
         new Range(KeyExtent.getMetadataEntry(Table.ID.of(tableId), null)))) {
       return s.next();

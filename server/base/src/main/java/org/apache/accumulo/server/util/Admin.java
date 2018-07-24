@@ -37,7 +37,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -55,13 +54,11 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
@@ -217,11 +214,8 @@ public class Admin implements KeywordExecutable {
       SecurityUtil.serverLogin(siteConf);
     }
 
-    Instance instance = opts.getInstance();
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
-
     try {
-      ClientContext context = new AccumuloServerContext(instance, confFactory);
+      ClientContext context = new AccumuloServerContext(opts.getServerInfo());
 
       int rc = 0;
 
@@ -373,8 +367,7 @@ public class Admin implements KeywordExecutable {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
-    final Instance instance = context.getInstance();
-    final String zTServerRoot = getTServersZkPath(instance);
+    final String zTServerRoot = getTServersZkPath(context);
     final ZooCache zc = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut());
     for (String server : servers) {
@@ -392,14 +385,13 @@ public class Admin implements KeywordExecutable {
   /**
    * Get the parent ZNode for tservers for the given instance
    *
-   * @param instance
-   *          The Instance
+   * @param context
+   *          ClientContext
    * @return The tservers znode for the instance
    */
-  static String getTServersZkPath(Instance instance) {
-    requireNonNull(instance);
-    final String instanceRoot = ZooUtil.getRoot(instance);
-    return instanceRoot + Constants.ZTSERVERS;
+  static String getTServersZkPath(ClientContext context) {
+    requireNonNull(context);
+    return context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
   /**

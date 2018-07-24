@@ -52,7 +52,7 @@ class NamespaceCleanUp extends MasterRepo {
     } catch (Exception e) {
       log.error("Failed to find namespace in zookeeper", e);
     }
-    Tables.clearCache(master.getInstance());
+    Tables.clearCache(master);
 
     // remove any permissions associated with this namespace
     try {

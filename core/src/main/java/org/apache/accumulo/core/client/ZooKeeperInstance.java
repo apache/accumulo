@@ -56,7 +56,10 @@ import org.slf4j.LoggerFactory;
  *
  * If you do not know the instance names then run accumulo
  * org.apache.accumulo.server.util.ListInstances on an accumulo server.
+ *
+ * @deprecated since 2.0.0, Use {@link Connector#builder()} instead
  */
+@Deprecated
 public class ZooKeeperInstance implements Instance {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperInstance.class);
@@ -145,7 +148,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public List<String> getMasterLocations() {
-    String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
+    String masterLocPath = ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_LOCK;
 
     OpTimer timer = null;
 
@@ -172,7 +175,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public String getRootTabletLocation() {
-    String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
+    String zRootLocPath = ZooUtil.getRoot(getInstanceID()) + RootTable.ZROOT_TABLET_LOCATION;
 
     OpTimer timer = null;
 

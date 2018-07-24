@@ -44,7 +44,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -57,7 +56,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -79,7 +77,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.core.util.Daemon;
@@ -101,13 +98,12 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -129,7 +125,6 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -138,7 +133,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
@@ -627,18 +621,17 @@ public class Master extends AccumuloServerContext
   }
 
   public void mustBeOnline(final Table.ID tableId) throws ThriftTableOperationException {
-    Tables.clearCache(getInstance());
+    Tables.clearCache(this);
     if (!Tables.getTableState(this, tableId).equals(TableState.ONLINE))
       throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
   }
 
-  public Master(Instance instance, ServerConfigurationFactory config, VolumeManager fs,
-      String hostname) throws IOException {
-    super(instance, config);
-    this.serverConfig = config;
-    this.fs = fs;
-    this.hostname = hostname;
+  public Master(ServerInfo info) throws IOException {
+    super(info);
+    this.serverConfig = info.getServerConfFactory();
+    this.fs = info.getVolumeManager();
+    this.hostname = info.getHostname();
 
     AccumuloConfiguration aconf = serverConfig.getSystemConfiguration();
 
@@ -669,7 +662,7 @@ public class Master extends AccumuloServerContext
 
     // Create the secret manager (can generate and verify delegation tokens)
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
-    setSecretManager(new AuthenticationTokenSecretManager(getInstance(), tokenLifetime));
+    setSecretManager(new AuthenticationTokenSecretManager(getInstanceID(), tokenLifetime));
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -1536,25 +1529,16 @@ public class Master extends AccumuloServerContext
   }
 
   public static void main(String[] args) throws Exception {
+    final String app = "master";
+    ServerOpts opts = new ServerOpts();
+    opts.parseArgs(app, args);
+    ServerInfo info = ServerInfo.getInstance();
+    info.setupServer(app, Master.class.getName(), opts.getAddress());
     try {
-      final String app = "master";
-      ServerOpts opts = new ServerOpts();
-      opts.parseArgs(app, args);
-      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-      String hostname = opts.getAddress();
-      Instance instance = HdfsZooInstance.getInstance();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
-      VolumeManager fs = VolumeManagerImpl.get();
-      MetricsSystemHelper.configure(Master.class.getSimpleName());
-      Accumulo.init(fs, instance, conf, app);
-      Master master = new Master(instance, conf, fs, hostname);
-      DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
+      Master master = new Master(info);
       master.run();
-    } catch (Exception ex) {
-      log.error("Unexpected exception, exiting", ex);
-      System.exit(1);
     } finally {
-      DistributedTrace.disable();
+      info.teardownServer();
     }
   }
 

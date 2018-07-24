@@ -199,7 +199,7 @@ class CleanUp extends MasterRepo {
     // remove table from zookeeper
     try {
       TableManager.getInstance().removeTable(tableId);
-      Tables.clearCache(master.getInstance());
+      Tables.clearCache(master);
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);
     }

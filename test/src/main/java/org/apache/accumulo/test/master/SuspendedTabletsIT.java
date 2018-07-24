@@ -161,7 +161,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
    *          callback which shuts down some tablet servers.
    */
   private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
-    ClientContext ctx = new ClientContext(getClientInfo());
+    ClientContext ctx = getClientContext();
 
     String tableName = getUniqueNames(1)[0];
 

@@ -21,10 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
@@ -61,7 +60,7 @@ public class NamespacePropUtil {
   }
 
   private static String getPath(Namespace.ID namespaceId) {
-    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZNAMESPACES + "/"
-        + namespaceId + Constants.ZNAMESPACE_CONF;
+    return ServerInfo.getInstance().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
+        + Constants.ZNAMESPACE_CONF;
   }
 }

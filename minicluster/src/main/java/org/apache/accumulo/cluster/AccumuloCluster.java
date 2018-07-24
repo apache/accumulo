@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -45,6 +46,11 @@ public interface AccumuloCluster {
    * @return zookeeper connection string
    */
   String getZooKeepers();
+
+  /**
+   * @return ServerInfo
+   */
+  ServerInfo getServerInfo();
 
   /**
    * Utility method to get a connector to the cluster.

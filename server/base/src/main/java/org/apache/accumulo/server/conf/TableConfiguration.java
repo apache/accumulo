@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ObservableConfiguration;
@@ -38,9 +37,9 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,7 @@ public class TableConfiguration extends ObservableConfiguration {
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
   private ZooCachePropertyAccessor propCacheAccessor = null;
-  private final Instance instance;
+  private final ServerInfo info;
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
@@ -63,8 +62,8 @@ public class TableConfiguration extends ObservableConfiguration {
 
   private EnumMap<IteratorScope,AtomicReference<ParsedIteratorConfig>> iteratorConfig;
 
-  public TableConfiguration(Instance instance, Table.ID tableId, NamespaceConfiguration parent) {
-    this.instance = requireNonNull(instance);
+  public TableConfiguration(ServerInfo info, Table.ID tableId, NamespaceConfiguration parent) {
+    this.info = requireNonNull(info);
     this.tableId = requireNonNull(tableId);
     this.parent = requireNonNull(parent);
 
@@ -81,11 +80,11 @@ public class TableConfiguration extends ObservableConfiguration {
   private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
     if (propCacheAccessor == null) {
       synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(instance.getInstanceID(), tableId.canonicalID());
+        PropCacheKey key = new PropCacheKey(info.getInstanceID(), tableId.canonicalID());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
-          propCache = zcf.getZooCache(instance.getZooKeepers(),
-              instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
+          propCache = zcf.getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut(),
+              new TableConfWatcher(info));
           propCaches.put(key, propCache);
         }
         propCacheAccessor = new ZooCachePropertyAccessor(propCache);
@@ -116,8 +115,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_CONF;
+    return info.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
   }
 
   @Override
@@ -138,7 +136,7 @@ public class TableConfiguration extends ObservableConfiguration {
    * returns the actual NamespaceConfiguration that corresponds to the current parent namespace.
    */
   public NamespaceConfiguration getNamespaceConfiguration() {
-    return new ServerConfigurationFactory(parent.inst)
+    return new ServerConfigurationFactory(parent.info)
         .getNamespaceConfiguration(parent.namespaceId);
   }
 

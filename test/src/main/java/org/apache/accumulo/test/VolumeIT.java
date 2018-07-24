@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -450,7 +449,6 @@ public class VolumeIT extends ConfigurableMacBase {
 
       // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
       retry: while (true) {
-        Instance i = conn.getInstance();
         ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
             conn.info().getZooKeepersSessionTimeOut(), "");
         WalStateManager wals = new WalStateManager(getClientContext(), zk);
@@ -519,7 +517,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(getConnector().getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ZooUtil.getRoot(getConnector().getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
 
@@ -583,7 +581,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1 or 2
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(getConnector().getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ZooUtil.getRoot(getConnector().getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(
         rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));

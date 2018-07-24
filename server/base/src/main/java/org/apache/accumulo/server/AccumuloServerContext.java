@@ -23,20 +23,15 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -46,24 +41,12 @@ import org.apache.hadoop.security.UserGroupInformation;
  */
 public class AccumuloServerContext extends ClientContext {
 
-  private final ServerConfigurationFactory confFactory;
+  private final ServerInfo info;
   private AuthenticationTokenSecretManager secretManager;
 
-  /**
-   * Construct a server context from the server's configuration
-   */
-  public AccumuloServerContext(Instance instance, ServerConfigurationFactory confFactory) {
-    this(instance, confFactory, null);
-  }
-
-  /**
-   * Construct a server context from the server's configuration
-   */
-  private AccumuloServerContext(Instance instance, ServerConfigurationFactory confFactory,
-      AuthenticationTokenSecretManager secretManager) {
-    super(instance, SystemCredentials.get(instance), confFactory.getSystemConfiguration());
-    this.confFactory = confFactory;
-    this.secretManager = secretManager;
+  public AccumuloServerContext(ServerInfo info) {
+    super(info, info.getServerConfFactory().getSystemConfiguration());
+    this.info = info;
     if (null != getSaslParams()) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       enforceKerberosLogin();
@@ -76,7 +59,7 @@ public class AccumuloServerContext extends ClientContext {
    */
   // Should be private, but package-protected so EasyMock will work
   void enforceKerberosLogin() {
-    final AccumuloConfiguration conf = confFactory.getSiteConfiguration();
+    final AccumuloConfiguration conf = info.getServerConfFactory().getSiteConfiguration();
     // Unwrap _HOST into the FQDN to make the kerberos principal we'll compare against
     final String kerberosPrincipal = SecurityUtil
         .getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
@@ -94,11 +77,15 @@ public class AccumuloServerContext extends ClientContext {
         "Expected login user to be " + kerberosPrincipal + " but was " + loginUser.getUserName());
   }
 
+  public ServerInfo getServerInfo() {
+    return info;
+  }
+
   /**
    * Retrieve the configuration factory used to construct this context
    */
   public ServerConfigurationFactory getServerConfigurationFactory() {
-    return confFactory;
+    return info.getServerConfFactory();
   }
 
   /**
@@ -153,19 +140,10 @@ public class AccumuloServerContext extends ClientContext {
     return secretManager;
   }
 
-  // Need to override this from ClientContext to ensure that HdfsZooInstance doesn't "downcast"
-  // the AccumuloServerContext into a ClientContext (via the copy-constructor on ClientContext)
   @Override
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    // avoid making more connectors than necessary
+  public synchronized Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (conn == null) {
-      if (getInstance() instanceof ZooKeeperInstance || getInstance() instanceof HdfsZooInstance) {
-        // reuse existing context
-        conn = new ConnectorImpl(this);
-      } else {
-        Credentials c = getCredentials();
-        conn = getInstance().getConnector(c.getPrincipal(), c.getToken());
-      }
+      conn = new ConnectorImpl(this);
     }
     return conn;
   }

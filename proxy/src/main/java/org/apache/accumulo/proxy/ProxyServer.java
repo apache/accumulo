@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
@@ -56,14 +55,14 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportExecutorOptions;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.impl.ClientConfConverter;
+import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -132,7 +131,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public static final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
   public static final String RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG = "RPC"
       + " principal did not match requested Accumulo principal";
-  protected Instance instance;
+  protected ClientContext context;
 
   protected Class<? extends AuthenticationToken> tokenClass;
 
@@ -190,10 +189,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   public ProxyServer(Properties props) {
 
-    @SuppressWarnings("deprecation")
-    Instance i = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
-    instance = i;
-
+    context = new ClientContext(new ClientInfoImpl(props));
     try {
       String tokenProp = props.getProperty("tokenClass", PasswordToken.class.getName());
       tokenClass = Class.forName(tokenProp).asSubclass(AuthenticationToken.class);
@@ -222,9 +218,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   protected Connector getConnector(ByteBuffer login) throws Exception {
     String[] pair = ByteBufferUtil.toString(login).split(",", 2);
-    if (instance.getInstanceID().equals(pair[0])) {
+    if (context.getInstanceID().equals(pair[0])) {
       Credentials creds = Credentials.deserialize(pair[1]);
-      return instance.getConnector(creds.getPrincipal(), creds.getToken());
+      return context.getConnector().changeUser(creds.getPrincipal(), creds.getToken());
     } else {
       throw new org.apache.accumulo.core.client.AccumuloSecurityException(pair[0],
           org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.INVALID_INSTANCEID);
@@ -2092,7 +2088,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       AuthenticationToken token = getToken(principal, loginProperties);
       ByteBuffer login = ByteBuffer
-          .wrap((instance.getInstanceID() + "," + new Credentials(principal, token).serialize())
+          .wrap((context.getInstanceID() + "," + new Credentials(principal, token).serialize())
               .getBytes(UTF_8));
       getConnector(login); // check to make sure user exists
       return login;

@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,6 +34,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
@@ -44,8 +48,13 @@ public class HostRegexTableLoadBalancerReconfigurationTest
 
   @Test
   public void testConfigurationChanges() {
-
-    init(new AccumuloServerContext(instance, factory));
+    ServerInfo info1 = createMockInfo();
+    replay(info1);
+    final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(info1);
+    ServerInfo info2 = createMockInfo();
+    expect(info2.getServerConfFactory()).andReturn(factory).anyTimes();
+    replay(info2);
+    init(new AccumuloServerContext(info2));
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     for (List<KeyExtent> extents : tableExtents.values()) {
       for (KeyExtent ke : extents) {

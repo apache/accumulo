@@ -21,20 +21,22 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -55,8 +58,11 @@ import com.google.common.base.Joiner;
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet
  * location.
+ *
+ * @deprecated since 2.0.0, Use {@link ServerInfo#getInstance()} instead
  */
-public class HdfsZooInstance implements Instance {
+@Deprecated
+public class HdfsZooInstance implements org.apache.accumulo.core.client.Instance {
 
   private final AccumuloConfiguration site = SiteConfiguration.getInstance();
 
@@ -67,7 +73,7 @@ public class HdfsZooInstance implements Instance {
 
   private static final HdfsZooInstance cachedHdfsZooInstance = new HdfsZooInstance();
 
-  public static Instance getInstance() {
+  public static org.apache.accumulo.core.client.Instance getInstance() {
     return cachedHdfsZooInstance;
   }
 
@@ -77,7 +83,7 @@ public class HdfsZooInstance implements Instance {
 
   @Override
   public String getRootTabletLocation() {
-    String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
+    String zRootLocPath = ZooUtil.getRoot(getInstanceID()) + RootTable.ZROOT_TABLET_LOCATION;
 
     OpTimer timer = null;
 
@@ -106,7 +112,7 @@ public class HdfsZooInstance implements Instance {
   @Override
   public List<String> getMasterLocations() {
 
-    String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
+    String masterLocPath = ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_LOCK;
 
     OpTimer timer = null;
 
@@ -172,11 +178,18 @@ public class HdfsZooInstance implements Instance {
   @Override
   public Connector getConnector(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), site));
+    Properties properties = ClientConfConverter.toProperties(site);
+    properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
+    properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), getZooKeepers());
+    properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),
+        Integer.toString(getZooKeepersSessionTimeOut()));
+    properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
+    ClientProperty.setAuthenticationToken(properties, token);
+    return new ConnectorImpl(new ClientContext(ClientInfo.from(properties, token)));
   }
 
   public static void main(String[] args) {
-    Instance instance = HdfsZooInstance.getInstance();
+    org.apache.accumulo.core.client.Instance instance = HdfsZooInstance.getInstance();
     System.out.println("Instance Name: " + instance.getInstanceName());
     System.out.println("Instance ID: " + instance.getInstanceID());
     System.out.println("ZooKeepers: " + instance.getZooKeepers());

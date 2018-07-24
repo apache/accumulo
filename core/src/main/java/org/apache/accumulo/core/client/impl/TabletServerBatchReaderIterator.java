@@ -376,7 +376,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             failures.putAll(unscanned);
           }
 
-          locator.invalidateCache(context.getInstance(), tsLocation);
+          locator.invalidateCache(context, tsLocation);
         }
         log.debug("IOException thrown", e);
       } catch (AccumuloSecurityException e) {

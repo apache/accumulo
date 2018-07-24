@@ -41,7 +41,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -264,7 +264,7 @@ public class MetadataConstraints implements Constraint {
           }
 
           if (zooRoot == null) {
-            zooRoot = ZooUtil.getRoot(HdfsZooInstance.getInstance());
+            zooRoot = ServerInfo.getInstance().getZooKeeperRoot();
           }
 
           boolean lockHeld = false;

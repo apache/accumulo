@@ -57,7 +57,7 @@ public class CreateTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, master.getInstance(), Table.ID::of);
+      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, master, Table.ID::of);
       return new SetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();

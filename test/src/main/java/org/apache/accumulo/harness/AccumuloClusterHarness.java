@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -268,6 +269,11 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public static ClientInfo getClientInfo() {
     checkState(initialized);
     return getCluster().getClientInfo();
+  }
+
+  public static ClientContext getClientContext() {
+    checkState(initialized);
+    return new ClientContext(getClientInfo());
   }
 
   public static boolean saslEnabled() {

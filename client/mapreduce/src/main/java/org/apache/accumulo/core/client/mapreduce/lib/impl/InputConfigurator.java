@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
@@ -726,22 +725,6 @@ public class InputConfigurator extends ConfiguratorBase {
     ClientInfo info = getClientInfo(implementingClass, conf);
     ClientContext context = new ClientContext(info);
     return TabletLocator.getLocator(context, tableId);
-  }
-
-  /**
-   * Validates and extracts an {@link Instance} from the configuration
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @since 1.7.0
-   */
-  public static Instance validateInstance(Class<?> implementingClass, Configuration conf)
-      throws IOException {
-    if (!isConnectorInfoSet(implementingClass, conf))
-      throw new IOException("Input info has not been set.");
-    return getInstance(implementingClass, conf);
   }
 
   /**

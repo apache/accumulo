@@ -16,29 +16,28 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static org.easymock.EasyMock.expect;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -56,46 +56,6 @@ import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 
 public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
-
-  protected static class TestInstance implements Instance {
-
-    @Override
-    public String getRootTabletLocation() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<String> getMasterLocations() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getInstanceID() {
-      return "1111";
-    }
-
-    @Override
-    public String getInstanceName() {
-      return "test";
-    }
-
-    @Override
-    public String getZooKeepers() {
-      return "";
-    }
-
-    @Override
-    public int getZooKeepersSessionTimeOut() {
-      return 30;
-    }
-
-    @Override
-    public Connector getConnector(String principal, AuthenticationToken token)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-  }
 
   protected static class TestTable {
     private String tableName;
@@ -132,11 +92,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
-    final Instance instance;
+    final ServerInfo info;
 
-    public TestServerConfigurationFactory(Instance instance) {
-      super(instance);
-      this.instance = instance;
+    public TestServerConfigurationFactory(ServerInfo info) {
+      super(info);
+      this.info = info;
     }
 
     @Override
@@ -148,9 +108,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     public TableConfiguration getTableConfiguration(final Table.ID tableId) {
       // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
       // constructor
-      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
-          this.instance, DefaultConfiguration.getInstance());
-      return new TableConfiguration(this.instance, tableId, dummyConf) {
+      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, info,
+          DefaultConfiguration.getInstance());
+      return new TableConfiguration(info, tableId, dummyConf) {
         @Override
         public String get(Property property) {
           return DEFAULT_TABLE_PROPERTIES.get(property.name());
@@ -196,9 +156,17 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
   }
 
-  protected final TestInstance instance = new TestInstance();
-  protected final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
-      instance);
+  protected ServerInfo createMockInfo() {
+    ServerInfo mockInfo = EasyMock.createMock(ServerInfo.class);
+    expect(mockInfo.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(mockInfo.getZooKeepers()).andReturn("").anyTimes();
+    expect(mockInfo.getInstanceName()).andReturn("test").anyTimes();
+    expect(mockInfo.getZooKeepersSessionTimeOut()).andReturn(30).anyTimes();
+    expect(mockInfo.getInstanceID()).andReturn("1111").anyTimes();
+    expect(mockInfo.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
+    return mockInfo;
+  }
+
   protected final Map<String,String> servers = new HashMap<>(15);
   protected final SortedMap<TServerInstance,TabletServerStatus> allTabletServers = new TreeMap<>();
   protected final Map<String,List<KeyExtent>> tableExtents = new HashMap<>(3);
@@ -365,5 +333,4 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
     return current;
   }
-
 }

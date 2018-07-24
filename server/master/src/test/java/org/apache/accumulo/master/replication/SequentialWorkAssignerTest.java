@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -54,7 +53,6 @@ public class SequentialWorkAssignerTest {
   public void basicZooKeeperCleanup() throws Exception {
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     ZooCache zooCache = createMock(ZooCache.class);
-    Instance inst = createMock(Instance.class);
 
     Map<String,Map<Table.ID,String>> queuedWork = new TreeMap<>();
     Map<Table.ID,String> cluster1Work = new TreeMap<>();
@@ -73,8 +71,7 @@ public class SequentialWorkAssignerTest {
     assigner.setWorkQueue(workQueue);
     assigner.setQueuedWork(queuedWork);
 
-    expect(conn.getInstance()).andReturn(inst);
-    expect(inst.getInstanceID()).andReturn("instance");
+    expect(conn.getInstanceID()).andReturn("instance");
 
     // file1 replicated
     expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
@@ -88,11 +85,11 @@ public class SequentialWorkAssignerTest {
                     new ReplicationTarget("cluster1", "2", Table.ID.of("2")))))
                         .andReturn(new byte[0]);
 
-    replay(workQueue, zooCache, conn, inst);
+    replay(workQueue, zooCache, conn);
 
     assigner.cleanupFinishedWork();
 
-    verify(workQueue, zooCache, conn, inst);
+    verify(workQueue, zooCache, conn);
 
     Assert.assertEquals(1, cluster1Work.size());
     Assert.assertEquals(

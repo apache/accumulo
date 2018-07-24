@@ -100,7 +100,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * Fetch all of the WALs referenced by tablets in the metadata table for this table
    */
   private Set<String> getWalsForTable(String tableName) throws Exception {
-    final ClientContext context = new ClientContext(getClientInfo());
+    final ClientContext context = getClientContext();
     final Connector conn = context.getConnector();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
@@ -381,7 +381,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     conn.tableOperations().flush(otherTable, null, null, true);
 
     // Get the tservers which the master deems as active
-    final ClientContext context = new ClientContext(getClientInfo());
+    final ClientContext context = getClientContext();
     List<String> tservers = MasterClient.execute(context,
         client -> client.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
 

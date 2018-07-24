@@ -65,7 +65,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
       splits.add(new Text(split));
     c.tableOperations().addSplits(tableName, splits);
     Configuration conf = new Configuration();
-    AccumuloConfiguration aconf = new ServerConfigurationFactory(c.getInstance())
+    AccumuloConfiguration aconf = new ServerConfigurationFactory(getCluster().getServerInfo())
         .getSystemConfiguration();
     FileSystem fs = getCluster().getFileSystem();
 

@@ -23,7 +23,7 @@ import java.util.Random;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 /**
@@ -39,7 +39,7 @@ public class UniqueNameAllocator {
   private Random rand;
 
   private UniqueNameAllocator() {
-    nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
+    nextNamePath = Constants.ZROOT + "/" + ServerInfo.getInstance().getInstanceID()
         + Constants.ZNEXT_FILE;
     rand = new Random();
   }

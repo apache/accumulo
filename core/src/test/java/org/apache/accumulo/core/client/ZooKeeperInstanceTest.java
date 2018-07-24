@@ -37,6 +37,7 @@ public class ZooKeeperInstanceTest {
   private static final String IID_STRING = IID.toString();
   private ZooCacheFactory zcf;
   private ZooCache zc;
+  @SuppressWarnings("deprecation")
   private ZooKeeperInstance zki;
 
   @SuppressWarnings("deprecation")
@@ -64,6 +65,7 @@ public class ZooKeeperInstanceTest {
     expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
   }
 
+  @SuppressWarnings("deprecation")
   @Before
   public void setUp() {
     @SuppressWarnings("deprecation")
@@ -119,6 +121,7 @@ public class ZooKeeperInstanceTest {
     assertEquals(IID_STRING, zki.getInstanceID());
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testGetInstanceID_Direct() {
     @SuppressWarnings("deprecation")
@@ -131,6 +134,7 @@ public class ZooKeeperInstanceTest {
     assertEquals(IID_STRING, zki.getInstanceID());
   }
 
+  @SuppressWarnings("deprecation")
   @Test(expected = RuntimeException.class)
   public void testGetInstanceID_NoMapping() {
     @SuppressWarnings("deprecation")
@@ -150,6 +154,7 @@ public class ZooKeeperInstanceTest {
     zki.getInstanceID();
   }
 
+  @SuppressWarnings("deprecation")
   @Test(expected = RuntimeException.class)
   public void testGetInstanceID_IDMissingForID() {
     @SuppressWarnings("deprecation")
@@ -162,6 +167,7 @@ public class ZooKeeperInstanceTest {
     zki.getInstanceID();
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testGetInstanceName() {
     @SuppressWarnings("deprecation")
@@ -182,6 +188,7 @@ public class ZooKeeperInstanceTest {
     assertEquals("child2", zki.getInstanceName());
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testAllZooKeepersAreUsed() {
     final String zookeepers = "zk1,zk2,zk3", instanceName = "accumulo";

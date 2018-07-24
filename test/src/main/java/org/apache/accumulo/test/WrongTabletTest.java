@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
@@ -29,7 +28,6 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -46,9 +44,7 @@ public class WrongTabletTest {
     opts.parseArgs(WrongTabletTest.class.getName(), args);
 
     final HostAndPort location = HostAndPort.fromString(opts.location);
-    final Instance inst = opts.getInstance();
-    final ServerConfigurationFactory conf = new ServerConfigurationFactory(inst);
-    final ClientContext context = new AccumuloServerContext(inst, conf) {
+    final ClientContext context = new AccumuloServerContext(opts.getServerInfo()) {
       @Override
       public synchronized Credentials getCredentials() {
         return new Credentials(opts.getPrincipal(), opts.getToken());
