@@ -18,8 +18,8 @@
 package org.apache.accumulo.core.security.crypto;
 
 import static org.apache.accumulo.core.file.rfile.RFileTest.setAndGetAccumuloConfig;
-import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -29,9 +29,17 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.rfile.RFile;
@@ -42,7 +50,9 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.security.crypto.impl.AESCryptoService;
+import org.apache.accumulo.core.security.crypto.impl.KeyManager;
 import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -52,7 +62,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class CryptoTest {
 
@@ -60,6 +72,9 @@ public class CryptoTest {
   public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   @BeforeClass
   public static void setupKeyFile() throws Exception {
@@ -218,6 +233,44 @@ public class CryptoTest {
     cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
     assertEquals(AESCryptoService.class, cs.getClass());
+  }
+
+  @Test
+  public void testKeyManagerGeneratesKey() throws NoSuchAlgorithmException, NoSuchProviderException,
+      NoSuchPaddingException, InvalidKeyException {
+    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
+    java.security.Key key;
+    key = KeyManager.generateKey(sr, 16);
+    Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
+
+    key = KeyManager.generateKey(sr, 24);
+    key = KeyManager.generateKey(sr, 32);
+    key = KeyManager.generateKey(sr, 11);
+
+    exception.expect(InvalidKeyException.class);
+    Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
+  }
+
+  @Test
+  public void testKeyManagerWrapAndUnwrap()
+      throws NoSuchAlgorithmException, NoSuchProviderException {
+    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
+    java.security.Key kek = KeyManager.generateKey(sr, 16);
+    java.security.Key fek = KeyManager.generateKey(sr, 16);
+    byte[] wrapped = KeyManager.wrapKey(fek, kek);
+    assertFalse(Arrays.equals(fek.getEncoded(), wrapped));
+    java.security.Key unwrapped = KeyManager.unwrapKey(wrapped, kek);
+    assertEquals(unwrapped, fek);
+  }
+
+  @Test
+  public void testKeyManagerLoadKekFromUri() throws IOException {
+    SecretKeySpec fileKey = KeyManager.loadKekFromUri("file:///tmp/testAESFile");
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    dos.writeUTF("sixteenbytekey");
+    SecretKeySpec handKey = new SecretKeySpec(baos.toByteArray(), "AES");
+    assertEquals(fileKey, handKey);
   }
 
   private ArrayList<Key> testData() {
