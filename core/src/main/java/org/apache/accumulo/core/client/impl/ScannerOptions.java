@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -41,6 +42,8 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.collect.ImmutableMap;
 
 public class ScannerOptions implements ScannerBase {
 
@@ -58,6 +61,8 @@ public class ScannerOptions implements ScannerBase {
   private SamplerConfiguration samplerConfig = null;
 
   protected String classLoaderContext = null;
+
+  protected Map<String,String> executionHints = Collections.emptyMap();
 
   protected ScannerOptions() {}
 
@@ -179,6 +184,9 @@ public class ScannerOptions implements ScannerBase {
 
         dst.samplerConfig = src.samplerConfig;
         dst.batchTimeOut = src.batchTimeOut;
+
+        // its an immutable map, so can avoid copy here
+        dst.executionHints = src.executionHints;
       }
     }
   }
@@ -262,6 +270,11 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public String getClassLoaderContext() {
     return this.classLoaderContext;
+  }
+
+  @Override
+  public synchronized void setExecutionHints(Map<String,String> hints) {
+    this.executionHints = ImmutableMap.copyOf(Objects.requireNonNull(hints));
   }
 
 }

@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -372,6 +373,16 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    */
   public static void setSamplerConfiguration(JobConf job, SamplerConfiguration samplerConfig) {
     InputConfigurator.setSamplerConfiguration(CLASS, job, samplerConfig);
+  }
+
+  /**
+   * Set these execution hints on scanners created for input splits. See
+   * {@link ScannerBase#setExecutionHints(java.util.Map)}
+   *
+   * @since 2.0.0
+   */
+  public static void setExecutionHints(JobConf job, Map<String,String> hints) {
+    InputConfigurator.setExecutionHints(CLASS, job, hints);
   }
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {

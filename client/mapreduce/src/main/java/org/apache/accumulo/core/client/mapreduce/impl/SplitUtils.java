@@ -39,6 +39,7 @@ public class SplitUtils {
     split.setIterators(tableConfig.getIterators());
     split.setLogLevel(logLevel);
     split.setSamplerConfiguration(tableConfig.getSamplerConfiguration());
+    split.setExecutionHints(tableConfig.getExecutionHints());
   }
 
   public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {

@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -371,6 +373,16 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    */
   public static void setSamplerConfiguration(Job job, SamplerConfiguration samplerConfig) {
     InputConfigurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
+  }
+
+  /**
+   * Set these execution hints on scanners created for input splits. See
+   * {@link ScannerBase#setExecutionHints(java.util.Map)}
+   *
+   * @since 2.0.0
+   */
+  public static void setExecutionHints(JobConf job, Map<String,String> hints) {
+    InputConfigurator.setExecutionHints(CLASS, job, hints);
   }
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {

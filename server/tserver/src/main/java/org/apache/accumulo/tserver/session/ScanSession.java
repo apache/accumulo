@@ -73,14 +73,21 @@ public abstract class ScanSession extends Session implements ScanInfo {
   public final List<IterInfo> ssiList;
   public final Map<String,Map<String,String>> ssio;
   public final Authorizations auths;
+  private Map<String,String> executionHints;
 
   ScanSession(TCredentials credentials, HashSet<Column> cols, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, Authorizations auths) {
+      Map<String,Map<String,String>> ssio, Authorizations auths,
+      Map<String,String> executionHints) {
     super(credentials);
     this.columnSet = cols;
     this.ssiList = ssiList;
     this.ssio = ssio;
     this.auths = auths;
+    if (executionHints == null) {
+      this.executionHints = Collections.emptyMap();
+    } else {
+      this.executionHints = Collections.unmodifiableMap(executionHints);
+    }
   }
 
   @Override
@@ -151,6 +158,11 @@ public abstract class ScanSession extends Session implements ScanInfo {
   @Override
   public Collection<IteratorConfiguration> getClientScanIterators() {
     return Lists.transform(ssiList, IterConfImpl::new);
+  }
+
+  @Override
+  public Map<String,String> getExecutionHints() {
+    return executionHints;
   }
 
   public void finishedRun(long start, long finish) {

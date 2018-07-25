@@ -233,7 +233,7 @@ public class TabletServerResource {
   }
 
   private static final int concurrentScans = Monitor.getContext().getConfiguration()
-      .getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+      .getCount(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS);
 
   /**
    * Generates the server stats

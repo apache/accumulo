@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -94,7 +95,8 @@ public class InputConfigurator extends ConfiguratorBase {
     ITERATORS,
     TABLE_CONFIGS,
     SAMPLER_CONFIG,
-    CLASSLOADER_CONTEXT
+    CLASSLOADER_CONTEXT,
+    EXECUTION_HINTS
   }
 
   /**
@@ -827,7 +829,8 @@ public class InputConfigurator extends ConfiguratorBase {
       queryConfig.setAutoAdjustRanges(getAutoAdjustRanges(implementingClass, conf))
           .setUseIsolatedScanners(isIsolated(implementingClass, conf))
           .setUseLocalIterators(usesLocalIterators(implementingClass, conf))
-          .setOfflineScan(isOfflineScan(implementingClass, conf));
+          .setOfflineScan(isOfflineScan(implementingClass, conf))
+          .setExecutionHints(getExecutionHints(implementingClass, conf));
       return Maps.immutableEntry(tableName, queryConfig);
     }
     return null;
@@ -974,5 +977,32 @@ public class InputConfigurator extends ConfiguratorBase {
       return null;
 
     return fromBase64(new SamplerConfigurationImpl(), encodedSC).toSamplerConfiguration();
+  }
+
+  public static void setExecutionHints(Class<?> implementingClass, Configuration conf,
+      Map<String,String> hints) {
+    MapWritable mapWritable = new MapWritable();
+    hints.forEach((k, v) -> mapWritable.put(new Text(k), new Text(v)));
+
+    String key = enumToConfKey(implementingClass, ScanOpts.EXECUTION_HINTS);
+    String val = toBase64(mapWritable);
+
+    conf.set(key, val);
+  }
+
+  public static Map<String,String> getExecutionHints(Class<?> implementingClass,
+      Configuration conf) {
+    String key = enumToConfKey(implementingClass, ScanOpts.EXECUTION_HINTS);
+    String encodedEH = conf.get(key);
+    if (encodedEH == null) {
+      return Collections.emptyMap();
+    }
+
+    MapWritable mapWritable = new MapWritable();
+    fromBase64(mapWritable, encodedEH);
+
+    HashMap<String,String> hints = new HashMap<>();
+    mapWritable.forEach((k, v) -> hints.put(k.toString(), v.toString()));
+    return hints;
   }
 }

@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.ShellUtil;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -155,16 +156,8 @@ public class CompactCommand extends TableOperation {
 
       CompactionStrategyConfig csc = new CompactionStrategyConfig(
           cl.getOptionValue(strategyOpt.getOpt()));
-      if (cl.hasOption(strategyConfigOpt.getOpt())) {
-        Map<String,String> props = new HashMap<>();
-        String[] keyVals = cl.getOptionValue(strategyConfigOpt.getOpt()).split(",");
-        for (String keyVal : keyVals) {
-          String[] sa = keyVal.split("=");
-          props.put(sa[0], sa[1]);
-        }
 
-        csc.setOptions(props);
-      }
+      csc.setOptions(ShellUtil.parseMapOpt(cl, strategyConfigOpt));
 
       compactionConfig.setCompactionStrategy(csc);
     }

@@ -63,7 +63,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     cfg.setNumTservers(1);
     siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
-    siteConfig.put(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "11");
+    siteConfig.put(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "11");
     cfg.setSiteConfig(siteConfig);
   }
 
