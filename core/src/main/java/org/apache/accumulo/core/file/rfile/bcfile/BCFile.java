@@ -327,7 +327,7 @@ public final class BCFile {
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
       this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
-          aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+          aconf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
       this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
     }
 
@@ -642,7 +642,7 @@ public final class BCFile {
       metaIndex = new MetaIndex(this.in);
 
       this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
-          aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+          aconf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
       if (cryptoService == null) {
         cryptoService = CryptoServiceFactory.getConfigured(aconf);
       }
@@ -678,7 +678,7 @@ public final class BCFile {
       dataIndex = new DataIndex(dis);
 
       this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
-          aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+          aconf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
       this.cryptoEnvironment.readParams(dis);
       if (cryptoService == null) {
         cryptoService = CryptoServiceFactory.getConfigured(aconf);

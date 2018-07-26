@@ -101,7 +101,7 @@ public class CryptoTest {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
     CryptoEnvironment env = new CryptoEnvironment(Scope.RFILE,
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+        conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
     byte[] params = encrypter.getParameters();
     env.setParameters(params);
@@ -224,9 +224,9 @@ public class CryptoTest {
     for (Map.Entry<String,String> e : conf) {
       aconf.set(e.getKey(), e.getValue());
     }
-    aconf.set(Property.TABLE_CRYPTO_SERVICE,
+    aconf.set(Property.INSTANCE_CRYPTO_SERVICE,
         "org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
-    String configuredClass = aconf.get(Property.TABLE_CRYPTO_SERVICE.getKey());
+    String configuredClass = aconf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
     Class<? extends CryptoService> clazz = AccumuloVFSClassLoader.loadClass(configuredClass,
         CryptoService.class);
     CryptoService cs = clazz.newInstance();

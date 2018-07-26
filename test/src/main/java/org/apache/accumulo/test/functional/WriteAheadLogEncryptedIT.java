@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -45,10 +45,10 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     String keyPath = System.getProperty("user.dir")
         + "/target/mini-tests/WriteAheadLogEncryptedIT-testkeyfile";
-    cfg.setProperty(Property.TABLE_CRYPTO_SERVICE,
+    cfg.setProperty(Property.INSTANCE_CRYPTO_SERVICE,
         "org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
-    cfg.setProperty(TABLE_CRYPTO_PREFIX.getKey() + "kekId", keyPath);
-    cfg.setProperty(TABLE_CRYPTO_PREFIX.getKey() + "keyManager", "uri");
+    cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "kekId", keyPath);
+    cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "keyManager", "uri");
 
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");

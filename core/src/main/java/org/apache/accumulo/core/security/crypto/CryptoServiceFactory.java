@@ -24,17 +24,17 @@ public class CryptoServiceFactory {
   private static CryptoService singleton = null;
 
   /**
-   * Load the singleton class configured in {@link Property#TABLE_CRYPTO_SERVICE}
+   * Load the singleton class configured in {@link Property#INSTANCE_CRYPTO_SERVICE}
    */
   public static CryptoService getConfigured(AccumuloConfiguration conf) {
-    String configuredClass = conf.get(Property.TABLE_CRYPTO_SERVICE.getKey());
+    String configuredClass = conf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
     if (singleton == null) {
       singleton = loadCryptoService(configuredClass);
-      singleton.init(conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+      singleton.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     } else {
       if (!singleton.getClass().getName().equals(configuredClass)) {
         singleton = loadCryptoService(configuredClass);
-        singleton.init(conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+        singleton.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
       }
     }
     return singleton;

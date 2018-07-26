@@ -63,8 +63,8 @@ public class AESCryptoService implements CryptoService {
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
-    String kekId = conf.get("table.crypto.opts.kekId");
-    String keyMgr = conf.get("table.crypto.opts.keyManager");
+    String kekId = conf.get("instance.crypto.opts.kekId");
+    String keyMgr = conf.get("instance.crypto.opts.keyManager");
     Objects.requireNonNull(kekId, "Config property table.crypto.opts.kekId is required.");
     Objects.requireNonNull(keyMgr, "Config property table.crypto.opts.keyManager is required.");
     switch (keyMgr) {

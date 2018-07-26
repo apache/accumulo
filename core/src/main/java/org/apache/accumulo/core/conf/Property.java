@@ -168,6 +168,20 @@ public enum Property {
       PropertyType.STRING,
       "One-line configuration property controlling the network locations "
           + "(hostnames) that are allowed to impersonate other users"),
+  // Crypto-related properties
+  @Experimental
+  INSTANCE_CRYPTO_PREFIX("instance.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption."),
+  @Experimental
+  @Sensitive
+  INSTANCE_CRYPTO_SENSITIVE_PREFIX("instance.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption."),
+  @Experimental
+  INSTANCE_CRYPTO_SERVICE("instance.crypto.service",
+      "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
+      "The class which executes on-disk file encryption. The default does nothing. To enable "
+          + "encryption, replace this classname with an implementation of the"
+          + "org.apache.accumulo.core.security.crypto.CryptoService interface."),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -797,20 +811,6 @@ public enum Property {
           + " To add a summarizer set "
           + "`table.summarizer.<unique id>=<summarizer class name>.` If the summarizer has options"
           + ", then for each option set" + " `table.summarizer.<unique id>.opt.<key>=<value>`."),
-  // Crypto-related properties
-  @Experimental
-  TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
-      "Properties related to on-disk file encryption."),
-  @Experimental
-  @Sensitive
-  TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
-      "Sensitive properties related to on-disk file encryption."),
-  @Experimental
-  TABLE_CRYPTO_SERVICE("table.crypto.service",
-      "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
-      "The class which executes on-disk file encryption. The default does nothing. To enable "
-          + "encryption, replace this classname with an implementation of the"
-          + "org.apache.accumulo.core.security.crypto.CryptoService interface."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
@@ -1129,7 +1129,6 @@ public enum Property {
             || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey())
             || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())
             || key.startsWith(TABLE_SAMPLER_OPTS.getKey())
-            || key.startsWith(TABLE_CRYPTO_PREFIX.getKey())
             || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())));
   }

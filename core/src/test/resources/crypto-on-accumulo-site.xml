@@ -19,15 +19,15 @@
 
 <configuration>
     <property>
-        <name>table.crypto.service</name>
+        <name>instance.crypto.service</name>
         <value>org.apache.accumulo.core.security.crypto.impl.AESCryptoService</value>
     </property>
     <property>
-        <name>table.crypto.opts.kekId</name>
+        <name>instance.crypto.opts.kekId</name>
         <value>file:///tmp/testAESFile</value>
     </property>
     <property>
-        <name>table.crypto.opts.keyManager</name>
+        <name>instance.crypto.opts.keyManager</name>
         <value>uri</value>
     </property>
 
