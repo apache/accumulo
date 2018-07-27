@@ -59,13 +59,8 @@ public class Tables {
 
   public static Table.ID getTableId(ClientContext context, String tableName)
       throws TableNotFoundException {
-    return getTableId(context.getInstance(), tableName);
-  }
-
-  public static Table.ID getTableId(Instance instance, String tableName)
-      throws TableNotFoundException {
     try {
-      return _getTableId(instance, tableName);
+      return _getTableId(context, tableName);
     } catch (NamespaceNotFoundException e) {
       throw new TableNotFoundException(tableName, e);
     }
@@ -98,17 +93,17 @@ public class Tables {
   /**
    * Lookup table ID in ZK. If not found, clears cache and tries again.
    */
-  public static Table.ID _getTableId(Instance instance, String tableName)
+  public static Table.ID _getTableId(ClientContext context, String tableName)
       throws NamespaceNotFoundException, TableNotFoundException {
-    Table.ID tableId = getNameToIdMap(instance).get(tableName);
+    Table.ID tableId = getNameToIdMap(context).get(tableName);
     if (tableId == null) {
       // maybe the table exist, but the cache was not updated yet... so try to clear the cache and
       // check again
-      clearCache(instance);
-      tableId = getNameToIdMap(instance).get(tableName);
+      clearCache(context.getInstance());
+      tableId = getNameToIdMap(context).get(tableName);
       if (tableId == null) {
         String namespace = qualify(tableName).getFirst();
-        if (Namespaces.getNameToIdMap(instance).containsKey(namespace))
+        if (Namespaces.getNameToIdMap(context.getInstance()).containsKey(namespace))
           throw new TableNotFoundException(null, tableName, null);
         else
           throw new NamespaceNotFoundException(null, namespace, null);
@@ -145,8 +140,12 @@ public class Tables {
     }
   }
 
-  public static Map<String,Table.ID> getNameToIdMap(Instance instance) {
-    return getTableMap(instance).getNameToIdMap();
+  public static Map<String,Table.ID> getNameToIdMap(ClientContext context) {
+    return getTableMap(context.getInstance()).getNameToIdMap();
+  }
+
+  public static Map<Table.ID,String> getIdToNameMap(ClientContext context) {
+    return getIdToNameMap(context.getInstance());
   }
 
   public static Map<Table.ID,String> getIdToNameMap(Instance instance) {
@@ -218,10 +217,10 @@ public class Tables {
         : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
   }
 
-  public static String getPrintableTableInfoFromName(Instance instance, String tableName) {
+  public static String getPrintableTableInfoFromName(ClientContext context, String tableName) {
     Table.ID tableId = null;
     try {
-      tableId = getTableId(instance, tableName);
+      tableId = getTableId(context, tableName);
     } catch (TableNotFoundException e) {
       // handled in the string formatting
     }
@@ -299,6 +298,11 @@ public class Tables {
       return new Pair<>(s[0], s[1]);
     }
     return new Pair<>(defaultNamespace, tableName);
+  }
+
+  public static Namespace.ID getNamespaceId(ClientContext context, Table.ID tableId)
+      throws TableNotFoundException {
+    return getNamespaceId(context.getInstance(), tableId);
   }
 
   /**

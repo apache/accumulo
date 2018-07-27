@@ -112,7 +112,7 @@ public class ReplicationResource {
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = new HashMap<>();
 
-    Map<String,Table.ID> tableNameToId = Tables.getNameToIdMap(conn.getInstance());
+    Map<String,Table.ID> tableNameToId = Tables.getNameToIdMap(Monitor.getContext());
     Map<Table.ID,String> tableIdToName = invert(tableNameToId);
 
     for (String table : tops.list()) {

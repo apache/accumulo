@@ -104,7 +104,7 @@ public class GarbageCollectWriteAheadLogs {
       }
     });
     liveServers.startListeningForTabletServerChanges();
-    this.walMarker = new WalStateManager(context.getInstance(), ZooReaderWriter.getInstance());
+    this.walMarker = new WalStateManager(context, ZooReaderWriter.getInstance());
     this.store = new Iterable<TabletLocationState>() {
       @Override
       public Iterator<TabletLocationState> iterator() {

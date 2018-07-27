@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -141,8 +142,9 @@ public class ReplicationIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private Multimap<String,Table.ID> getLogs(Connector conn) throws Exception {
+  private Multimap<String,Table.ID> getLogs(ClientContext context) throws Exception {
     // Map of server to tableId
+    Connector conn = context.getConnector();
     Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
     try (Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
@@ -157,7 +159,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       Multimap<String,Table.ID> logs = HashMultimap.create();
       ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
           conn.info().getZooKeepersSessionTimeOut(), "");
-      WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
+      WalStateManager wals = new WalStateManager(context, zk);
       for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
         for (UUID id : entry.getValue()) {
           Pair<WalState,Path> state = wals.state(entry.getKey(), id);
@@ -170,9 +172,10 @@ public class ReplicationIT extends ConfigurableMacBase {
     }
   }
 
-  private Multimap<String,Table.ID> getAllLogs(Connector conn) throws Exception {
-    Multimap<String,Table.ID> logs = getLogs(conn);
-    try (Scanner scanner = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+  private Multimap<String,Table.ID> getAllLogs(ClientContext context) throws Exception {
+    Multimap<String,Table.ID> logs = getLogs(context);
+    try (Scanner scanner = context.getConnector().createScanner(ReplicationTable.NAME,
+        Authorizations.EMPTY)) {
       StatusSection.limit(scanner);
       Text buff = new Text();
       for (Entry<Key,Value> entry : scanner) {
@@ -344,7 +347,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
         conn.info().getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
-      WalStateManager markers = new WalStateManager(i, zk);
+      WalStateManager markers = new WalStateManager(getClientContext(), zk);
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {
         wals.add(entry.getKey().toString());
       }
@@ -529,6 +532,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void replicationEntriesPrecludeWalDeletion() throws Exception {
+    final ClientContext context = getClientContext();
     final Connector conn = getConnector();
     String table1 = "table1", table2 = "table2", table3 = "table3";
     final Multimap<String,Table.ID> logs = HashMultimap.create();
@@ -541,7 +545,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         // when that happens
         while (keepRunning.get()) {
           try {
-            logs.putAll(getAllLogs(conn));
+            logs.putAll(getAllLogs(context));
           } catch (Exception e) {
             log.error("Error getting logs", e);
           }
@@ -1100,6 +1104,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   public void replicationRecordsAreClosedAfterGarbageCollection() throws Exception {
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
+    final ClientContext context = getClientContext();
     final Connector conn = getConnector();
 
     ReplicationTable.setOnline(conn);
@@ -1117,7 +1122,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         // when that happens
         while (keepRunning.get()) {
           try {
-            metadataWals.addAll(getLogs(conn).keySet());
+            metadataWals.addAll(getLogs(context).keySet());
           } catch (Exception e) {
             log.error("Metadata table doesn't exist");
           }

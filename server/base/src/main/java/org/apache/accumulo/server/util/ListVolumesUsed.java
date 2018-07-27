@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -80,11 +79,11 @@ public class ListVolumesUsed {
 
   }
 
-  private static void listTable(String name, Connector conn) throws Exception {
+  private static void listTable(String name, ClientContext context) throws Exception {
 
     System.out.println("Listing volumes referenced in " + name + " tablets section");
 
-    Scanner scanner = conn.createScanner(name, Authorizations.EMPTY);
+    Scanner scanner = context.getConnector().createScanner(name, Authorizations.EMPTY);
 
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -129,7 +128,7 @@ public class ListVolumesUsed {
 
     volumes.clear();
 
-    WalStateManager wals = new WalStateManager(conn.getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(context, ZooReaderWriter.getInstance());
     for (Path path : wals.getAllState().keySet()) {
       volumes.add(getLogURI(path.toString()));
     }
@@ -141,12 +140,11 @@ public class ListVolumesUsed {
   }
 
   public static void listVolumes(ClientContext context) throws Exception {
-    Connector conn = context.getConnector();
     listZookeeper();
     System.out.println();
-    listTable(RootTable.NAME, conn);
+    listTable(RootTable.NAME, context);
     System.out.println();
-    listTable(MetadataTable.NAME, conn);
+    listTable(MetadataTable.NAME, context);
   }
 
 }

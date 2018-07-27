@@ -29,7 +29,7 @@ public class ListTables {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(ListTables.class.getName(), args);
-    for (Entry<String,Table.ID> table : Tables.getNameToIdMap(opts.getInstance()).entrySet())
+    for (Entry<String,Table.ID> table : Tables.getNameToIdMap(opts.getClientContext()).entrySet())
       System.out.println(table.getKey() + " => " + table.getValue());
   }
 }

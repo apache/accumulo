@@ -18,8 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.ExecutionException;
 
-import org.apache.accumulo.core.client.Instance;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -28,7 +26,7 @@ public class Table {
   /**
    * Object representing an internal table ID. This class was created to help with type safety. For
    * help obtaining the value of a table ID from Zookeeper, see
-   * {@link Tables#getTableId(Instance, String)}
+   * {@link Tables#getTableId(ClientContext, String)}
    *
    * Uses an internal cache and private constructor for storing a WeakReference of every Table.ID.
    * Therefore, a Table.ID can't be instantiated outside this class and is accessed by calling

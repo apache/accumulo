@@ -29,7 +29,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
@@ -217,11 +217,11 @@ public class LogSorter {
   }
 
   ThreadPoolExecutor threadPool;
-  private final Instance instance;
+  private final ClientContext context;
   private double walBlockSize;
 
-  public LogSorter(Instance instance, VolumeManager fs, AccumuloConfiguration conf) {
-    this.instance = instance;
+  public LogSorter(ClientContext context, VolumeManager fs, AccumuloConfiguration conf) {
+    this.context = context;
     this.fs = fs;
     this.conf = conf;
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
@@ -232,7 +232,7 @@ public class LogSorter {
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
       throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
-    new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, conf)
+    new DistributedWorkQueue(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZRECOVERY, conf)
         .startProcessing(new LogProcessor(), this.threadPool);
   }
 

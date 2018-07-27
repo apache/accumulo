@@ -105,6 +105,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return false;
     }
 
+    @Override
+    public boolean isUserCompaction() {
+      return false;
+    }
+
     private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
 
     @Override
@@ -329,7 +334,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     // TODO share code w/ tablet - ACCUMULO-1303
 
     // possible race condition here, if table is renamed
-    String tableName = Tables.getTableName(conn.getInstance(), tableId);
+    String tableName = Tables.getTableName(context, tableId);
     AccumuloConfiguration acuTableConf = new ConfigurationCopy(
         conn.tableOperations().getProperties(tableName));
 

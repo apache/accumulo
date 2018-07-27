@@ -410,7 +410,7 @@ public class Master extends AccumuloServerContext
           String ns = namespace.getFirst();
           Namespace.ID id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"{}\" (ID: {})", ns, id);
-          if (!Namespaces.exists(getInstance(), id))
+          if (!Namespaces.exists(this, id))
             TableManager.prepareNewNamespaceState(getInstanceID(), id, ns, NodeExistsPolicy.SKIP);
         }
 
@@ -943,7 +943,7 @@ public class Master extends AccumuloServerContext
      */
     private void cleanupOfflineMigrations() {
       TableManager manager = TableManager.getInstance();
-      for (Table.ID tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
+      for (Table.ID tableId : Tables.getIdToNameMap(Master.this).keySet()) {
         TableState state = manager.getTableState(tableId);
         if (TableState.OFFLINE == state) {
           clearMigrations(tableId);
@@ -1652,7 +1652,7 @@ public class Master extends AccumuloServerContext
     }
     TableManager manager = TableManager.getInstance();
 
-    for (Table.ID tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
+    for (Table.ID tableId : Tables.getIdToNameMap(this).keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state != null) {
         if (state == TableState.ONLINE)
@@ -1670,7 +1670,7 @@ public class Master extends AccumuloServerContext
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (Table.ID tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
+    for (Table.ID tableId : Tables.getIdToNameMap(this).keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;
@@ -1781,7 +1781,7 @@ public class Master extends AccumuloServerContext
 
   public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers)
       throws WalMarkerException {
-    WalStateManager mgr = new WalStateManager(getInstance(), ZooReaderWriter.getInstance());
+    WalStateManager mgr = new WalStateManager(this, ZooReaderWriter.getInstance());
     for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
       for (Path path : server.getValue()) {
         mgr.closeWal(server.getKey(), path);

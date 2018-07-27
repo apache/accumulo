@@ -56,7 +56,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.master.MasterResource;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 
@@ -326,7 +325,7 @@ public class TabletServerResource {
       String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
       String displayExtent = String.format("[%s]", obscuredExtent);
 
-      String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(), tableId);
+      String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(), tableId);
 
       currentOperations.add(
           new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate,

@@ -76,11 +76,11 @@ class ImportPopulateZookeeper extends MasterRepo {
       // write tableName & tableId to zookeeper
       Instance instance = env.getInstance();
 
-      Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId,
+      Utils.checkTableDoesNotExist(env, tableInfo.tableName, tableInfo.tableId,
           TableOperation.CREATE);
 
       String namespace = Tables.qualify(tableInfo.tableName).getFirst();
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(instance, namespace);
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(env, namespace);
       TableManager.getInstance().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName,
           NodeExistsPolicy.OVERWRITE);
 

@@ -167,8 +167,8 @@ public class ConfigCommand extends Command {
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = Namespaces.getNamespaceName(shellState.getInstance(), Tables.getNamespaceId(
-            shellState.getInstance(), Tables.getTableId(shellState.getInstance(), tableName)));
+        String n = Namespaces.getNamespaceName(shellState.getContext(), Tables.getNamespaceId(
+            shellState.getContext(), Tables.getTableId(shellState.getContext(), tableName)));
         for (Entry<String,String> e : shellState.getConnector().namespaceOperations()
             .getProperties(n)) {
           namespaceConfig.put(e.getKey(), e.getValue());

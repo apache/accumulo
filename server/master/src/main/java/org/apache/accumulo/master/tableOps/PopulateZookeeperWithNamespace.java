@@ -18,7 +18,6 @@ package org.apache.accumulo.master.tableOps;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
@@ -48,19 +47,17 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
     Utils.tableNameLock.lock();
     try {
-      Instance instance = master.getInstance();
-
-      Utils.checkNamespaceDoesNotExist(instance, namespaceInfo.namespaceName,
+      Utils.checkNamespaceDoesNotExist(master, namespaceInfo.namespaceName,
           namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.prepareNewNamespaceState(instance.getInstanceID(), namespaceInfo.namespaceId,
+      TableManager.prepareNewNamespaceState(master.getInstanceID(), namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : namespaceInfo.props.entrySet())
         NamespacePropUtil.setNamespaceProperty(namespaceInfo.namespaceId, entry.getKey(),
             entry.getValue());
 
-      Tables.clearCache(instance);
+      Tables.clearCache(master);
 
       return new FinishCreateNamespace(namespaceInfo);
     } finally {

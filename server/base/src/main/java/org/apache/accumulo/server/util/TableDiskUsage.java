@@ -33,6 +33,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -216,7 +217,8 @@ public class TableDiskUsage {
       }
     }
 
-    Map<Table.ID,String> reverseTableIdMap = Tables.getIdToNameMap(conn.getInstance());
+    ClientContext context = new ClientContext(conn.info());
+    Map<Table.ID,String> reverseTableIdMap = Tables.getIdToNameMap(context);
 
     TreeMap<TreeSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
       int len1 = o1.size();
@@ -269,10 +271,11 @@ public class TableDiskUsage {
       Printer printer, boolean humanReadable) throws TableNotFoundException, IOException {
 
     HashSet<Table.ID> tableIds = new HashSet<>();
+    ClientContext context = new ClientContext(conn.info());
 
     // Get table IDs for all tables requested to be 'du'
     for (String tableName : tableNames) {
-      Table.ID tableId = Tables.getTableId(conn.getInstance(), tableName);
+      Table.ID tableId = Tables.getTableId(context, tableName);
       if (tableId == null)
         throw new TableNotFoundException(null, tableName, "Table " + tableName + " not found");
 

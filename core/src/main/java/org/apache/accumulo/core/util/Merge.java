@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -220,7 +221,8 @@ public class Merge {
     Table.ID tableId;
     Scanner scanner;
     try {
-      tableId = Tables.getTableId(conn.getInstance(), tablename);
+      ClientContext context = new ClientContext(conn.info());
+      tableId = Tables.getTableId(context, tablename);
       scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     } catch (Exception e) {
       throw new MergeException(e);

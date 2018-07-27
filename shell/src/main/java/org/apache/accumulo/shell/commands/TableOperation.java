@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
@@ -57,11 +56,10 @@ public abstract class TableOperation extends Command {
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (cl.hasOption(optNamespace.getOpt())) {
-      Instance instance = shellState.getInstance();
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(instance,
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
           cl.getOptionValue(optNamespace.getOpt()));
-      for (Table.ID tableId : Namespaces.getTableIds(instance, namespaceId)) {
-        tableSet.add(Tables.getTableName(instance, tableId));
+      for (Table.ID tableId : Namespaces.getTableIds(shellState.getContext(), namespaceId)) {
+        tableSet.add(Tables.getTableName(shellState.getContext(), tableId));
       }
     } else if (useCommandLine && cl.getArgs().length > 0) {
       for (String tableName : cl.getArgs()) {

@@ -17,13 +17,13 @@
 package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.tables.TableManager;
 
 class CloneZookeeper extends MasterRepo {
@@ -32,9 +32,10 @@ class CloneZookeeper extends MasterRepo {
 
   private CloneInfo cloneInfo;
 
-  public CloneZookeeper(CloneInfo cloneInfo) throws NamespaceNotFoundException {
+  public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
+      throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
-    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(),
+    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(context,
         Tables.qualify(this.cloneInfo.tableName).getFirst());
   }
 
@@ -53,8 +54,8 @@ class CloneZookeeper extends MasterRepo {
     try {
       // write tableName & tableId to zookeeper
 
-      Utils.checkTableDoesNotExist(environment.getInstance(), cloneInfo.tableName,
-          cloneInfo.tableId, TableOperation.CLONE);
+      Utils.checkTableDoesNotExist(environment, cloneInfo.tableName, cloneInfo.tableId,
+          TableOperation.CLONE);
 
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,

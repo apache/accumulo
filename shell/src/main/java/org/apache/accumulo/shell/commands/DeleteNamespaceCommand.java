@@ -64,8 +64,8 @@ public class DeleteNamespaceCommand extends Command {
     boolean resetContext = false;
     String currentTable = shellState.getTableName();
 
-    Namespace.ID namespaceId = Namespaces.getNamespaceId(shellState.getInstance(), namespace);
-    List<String> tables = Namespaces.getTableNames(shellState.getInstance(), namespaceId);
+    Namespace.ID namespaceId = Namespaces.getNamespaceId(shellState.getContext(), namespace);
+    List<String> tables = Namespaces.getTableNames(shellState.getContext(), namespaceId);
     resetContext = tables.contains(currentTable);
 
     if (force)
