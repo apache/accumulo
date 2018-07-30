@@ -49,6 +49,7 @@ import org.apache.accumulo.core.security.crypto.CryptoUtils;
 import org.apache.accumulo.core.security.crypto.DiscardCloseOutputStream;
 import org.apache.accumulo.core.security.crypto.FileDecrypter;
 import org.apache.accumulo.core.security.crypto.FileEncrypter;
+import org.apache.accumulo.core.security.crypto.RFileCipherOutputStream;
 
 /**
  * Example implementation of AES encryption for Accumulo
@@ -337,8 +338,8 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException("Unable to initialize cipher", e);
         }
 
-        CipherOutputStream cos = new CipherOutputStream(new DiscardCloseOutputStream(outputStream),
-            cipher);
+        RFileCipherOutputStream cos = new RFileCipherOutputStream(
+            new DiscardCloseOutputStream(outputStream), cipher);
         // Prevent underlying stream from being closed with DiscardCloseOutputStream
         // Without this, when the crypto stream is closed (in order to flush its last bytes)
         // the underlying RFile stream will *also* be closed, and that's undesirable as the
