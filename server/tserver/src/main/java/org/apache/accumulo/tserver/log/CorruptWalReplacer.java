@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.tserver.log;
 
-import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URLEncoder;
