@@ -181,4 +181,9 @@ public class Utils {
       throw new AcceptableThriftTableOperationException(null, namespace, operation,
           TableOperationExceptionType.NAMESPACE_EXISTS, null);
   }
+
+  public static String getTablePath(Table.ID tableId) {
+    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/"
+        + tableId.canonicalID() + Constants.ZTABLE_CONF;
+  }
 }

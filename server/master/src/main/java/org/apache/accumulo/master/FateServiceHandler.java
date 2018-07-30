@@ -22,6 +22,7 @@ import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
 import static org.apache.accumulo.master.util.TableValidators.VALID_ID;
 import static org.apache.accumulo.master.util.TableValidators.VALID_NAME;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Validator;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.master.tableOps.CancelCompactions;
 import org.apache.accumulo.master.tableOps.ChangeTableState;
@@ -74,6 +76,7 @@ import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.util.TablePropUtil;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 
@@ -144,7 +147,12 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CREATE;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
-
+        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(2)));
+        String splitFile = null;
+        if (splitCount > 0) {
+          int SPLIT_OFFSET = 3; // offset where split data begins in arguments list
+          splitFile = createSplitFile(opid, arguments, splitCount, SPLIT_OFFSET);
+        }
         Namespace.ID namespaceId;
 
         try {
@@ -157,10 +165,8 @@ class FateServiceHandler implements FateService.Iface {
         if (!master.security.canCreateTable(c, tableName, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid,
-            new TraceRepo<>(
-                new CreateTable(c.getPrincipal(), tableName, timeType, options, namespaceId)),
-            autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new CreateTable(c.getPrincipal(),
+            tableName, timeType, options, splitFile, namespaceId)), autoCleanup);
 
         break;
       }
@@ -663,5 +669,42 @@ class FateServiceHandler implements FateService.Iface {
       throw new ThriftTableOperationException(null, String.valueOf(arg), op,
           TableOperationExceptionType.INVALID_NAME, why);
     }
+  }
+
+  /**
+   * Create a file on the file system to hold the splits to be created at table creation.
+   */
+  private String createSplitFile(final long opid, final List<ByteBuffer> arguments,
+      final int splitCount, final int splitOffset) {
+    String opidStr = String.format("%016x", opid);
+    String splitPath = getSplitPath("/tmp/splits-" + opidStr);
+    try (FSDataOutputStream stream = master.getOutputStream(splitPath)) {
+      writeSplitsToFileSystem(stream, arguments, splitCount, splitOffset);
+    } catch (IOException e) {
+      splitPath = null;
+      e.printStackTrace();
+    }
+    return splitPath;
+  }
+
+  /**
+   * Write the split values to a tmp directory with unique name.
+   */
+  private void writeSplitsToFileSystem(final FSDataOutputStream stream,
+      final List<ByteBuffer> arguments, final int splitCount, final int splitOffset)
+      throws IOException {
+    for (int i = splitOffset; i < splitCount + splitOffset; i++) {
+      stream.writeBytes(ByteBufferUtil.toString(arguments.get(i)) + "\n");
+    }
+  }
+
+  /**
+   * Get full path to location where initial splits are stored in file system.
+   */
+  private String getSplitPath(String relPath) {
+    Volume defaultVolume = master.getFileSystem().getDefaultVolume();
+    String uri = defaultVolume.getFileSystem().getUri().toString();
+    String basePath = defaultVolume.getBasePath();
+    return uri + basePath + relPath;
   }
 }

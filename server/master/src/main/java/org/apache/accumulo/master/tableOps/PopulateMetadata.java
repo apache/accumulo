@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -42,8 +43,11 @@ class PopulateMetadata extends MasterRepo {
     MetadataTableUtil.addTablet(extent, tableInfo.dir, environment, tableInfo.timeType,
         environment.getMasterLock());
 
-    return new FinishCreateTable(tableInfo);
-
+    if (tableInfo.props.containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits")) {
+      return new CreateInitialSplits(tableInfo);
+    } else {
+      return new FinishCreateTable(tableInfo);
+    }
   }
 
   @Override

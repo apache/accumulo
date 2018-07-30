@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -56,12 +58,15 @@ public class NewTableConfiguration {
   private TimeType timeType = DEFAULT_TIME_TYPE;
 
   private boolean limitVersion = true;
+  private boolean createInitialSplits = false;
+  private boolean createOffline = false;
 
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
   private Map<String,String> iteratorProps = new HashMap<>();
+  private SortedSet<Text> splitProps = Collections.emptySortedSet();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
       String kind) {
@@ -104,6 +109,16 @@ public class NewTableConfiguration {
   }
 
   /**
+   * Create the new table in an offline state.
+   *
+   * @return this
+   */
+  public NewTableConfiguration createOffline() {
+    this.createOffline = true;
+    return this;
+  }
+
+  /**
    * Sets additional properties to be applied to tables created with this configuration. Additional
    * calls to this method replace properties set by previous calls.
    *
@@ -134,12 +149,23 @@ public class NewTableConfiguration {
     if (limitVersion)
       propertyMap.putAll(IteratorUtil.generateInitialTableProperties(limitVersion));
 
+    if (createOffline)
+      propertyMap.put(Property.TABLE_OFFLINE_OPTS + "create.offline", "true");
+
+    if (createInitialSplits) {
+      propertyMap.put(Property.TABLE_OFFLINE_OPTS + "create.initial.splits", "true");
+    }
+
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
     propertyMap.putAll(properties);
     propertyMap.putAll(iteratorProps);
     propertyMap.putAll(localityProps);
     return Collections.unmodifiableMap(propertyMap);
+  }
+
+  public Collection<Text> getSplits() {
+    return this.splitProps;
   }
 
   /**
@@ -196,6 +222,21 @@ public class NewTableConfiguration {
         groups.keySet().stream().collect(Collectors.joining(",")));
     checkDisjoint(properties, tmp, "locality groups");
     localityProps = tmp;
+    return this;
+  }
+
+  /**
+   * Create a new table wkth pre-configured splits from the provided imput collection.
+   *
+   * @param splits
+   *          A SortedSet of String values to be used as split points in a newly created table.
+   * @return this
+   */
+  public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
+    checkArgument(splits != null, "splits set is null");
+    checkArgument(splits.isEmpty() != true, "splits set is empty");
+    this.createInitialSplits = true;
+    this.splitProps = splits;
     return this;
   }
 

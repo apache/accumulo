@@ -234,8 +234,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(ntc != null, "ntc is null");
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
+    List<ByteBuffer> args = new ArrayList<>();
+    args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    args.add(ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
+    // Check for possible initial splits to be added at table creation
+    // Always send number of initial splits to be created, even if zero. If greater than zero,
+    // add the splits to the argument List which will be used by the FATE operations.
+    int numSplits = ntc.getSplits().size();
+    args.add(ByteBuffer.wrap(String.valueOf(numSplits).getBytes(UTF_8)));
+    if (numSplits > 0) {
+      for (Text t : ntc.getSplits()) {
+        args.add(ByteBuffer.wrap(t.toString().getBytes(UTF_8)));
+      }
+    }
 
     Map<String,String> opts = ntc.getProperties();
 

@@ -16,11 +16,19 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.IOException;
+
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.tables.TableManager;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 
 class FinishCreateTable extends MasterRepo {
 
@@ -39,17 +47,33 @@ class FinishCreateTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
-    TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+
+    if (tableInfo.props.containsKey(Property.TABLE_OFFLINE_OPTS + "create.offline")) {
+      TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.OFFLINE);
+    } else {
+      TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    }
 
     Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 
-    LoggerFactory.getLogger(FinishCreateTable.class)
-        .debug("Created table " + tableInfo.tableId + " " + tableInfo.tableName);
-
+    if (tableInfo.props.containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits")) {
+      cleanupSplits(env);
+    }
     return null;
+  }
+
+  private void cleanupSplits(Master env) throws KeeperException, InterruptedException, IOException {
+    String zkTablePath = Utils.getTablePath(tableInfo.tableId);
+    String zPath = zkTablePath + "/" + Property.TABLE_OFFLINE_OPTS + "splits.file";
+    ZooReaderWriter instance = ZooReaderWriter.getInstance();
+    byte[] data = instance.getData(zPath, new Stat());
+    String splitFile = new String(data);
+    Volume defaultVolume = env.getFileSystem().getDefaultVolume();
+    FileSystem fs = defaultVolume.getFileSystem();
+    fs.delete(new Path(splitFile), true);
   }
 
   @Override
