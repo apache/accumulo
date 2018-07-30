@@ -17,7 +17,7 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
+import static org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl.Scope;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -47,9 +47,11 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.security.crypto.CryptoUtils;
 import org.apache.accumulo.core.security.crypto.FileDecrypter;
 import org.apache.accumulo.core.security.crypto.FileEncrypter;
 import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
+import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
@@ -362,10 +364,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
+        byte[] params = CryptoUtils.readParams(input);
         CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-        CryptoEnvironment env = new CryptoEnvironment(Scope.WAL,
-            conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-        env.readParams(input);
+        CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
+
         FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
@@ -426,12 +428,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
           filename);
-      CryptoEnvironment env = new CryptoEnvironment(Scope.WAL,
-          conf.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+      CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, null);
       FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
-      byte[] cryptoParams = encrypter.getParameters();
-      logFile.writeInt(cryptoParams.length);
-      logFile.write(cryptoParams);
+      byte[] cryptoParams = encrypter.getDecryptionParameters();
+      CryptoUtils.writeParams(cryptoParams, logFile);
 
       encryptingLogFile = new DataOutputStream(
           encrypter.encryptStream(new NoFlushOutputStream(logFile)));

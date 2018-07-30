@@ -14,24 +14,29 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.security.crypto.impl;
 
-import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
+import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
 
 /**
- * Useful information provided to the crypto implementation
- *
  * @since 2.0
  */
-public interface CryptoEnvironment {
-  /**
-   * Where in Accumulo the on-disk file encryption takes place.
-   */
-  enum Scope {
-    WAL, RFILE;
+public class CryptoEnvironmentImpl implements CryptoEnvironment {
+
+  private Scope scope;
+  private byte[] decryptionParams;
+
+  public CryptoEnvironmentImpl(Scope scope, byte[] decryptionParams) {
+    this.scope = scope;
+    this.decryptionParams = decryptionParams;
   }
 
-  CryptoEnvironmentImpl.Scope getScope();
+  public Scope getScope() {
+    return this.scope;
+  }
 
-  byte[] getDecryptionParams();
+  public byte[] getDecryptionParams() {
+    return decryptionParams;
+  }
+
 }

@@ -31,7 +31,7 @@ public class NoFileEncrypter implements FileEncrypter {
   }
 
   @Override
-  public byte[] getParameters() {
+  public byte[] getDecryptionParameters() {
     return NoCryptoService.VERSION.getBytes(Charset.forName("UTF-8"));
   }
 }

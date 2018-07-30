@@ -16,9 +16,13 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.util.Objects;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -86,6 +90,30 @@ public class CryptoUtils {
       }
     }
     return cipher;
+  }
+
+  /**
+   * Read the decryption parameters from the DataInputStream
+   */
+  public static byte[] readParams(DataInputStream in) throws IOException {
+    Objects.requireNonNull(in);
+    int len = in.readInt();
+    byte[] decryptionParams = new byte[len];
+    int bytesRead = in.read(decryptionParams);
+    if (bytesRead != len) {
+      throw new CryptoService.CryptoException("Incorrect number of bytes read for crypto params.");
+    }
+    return decryptionParams;
+  }
+
+  /**
+   * Write the decryption parameters to the DataOutputStream
+   */
+  public static void writeParams(byte[] decryptionParams, DataOutputStream out) throws IOException {
+    Objects.requireNonNull(decryptionParams);
+    Objects.requireNonNull(out);
+    out.writeInt(decryptionParams.length);
+    out.write(decryptionParams);
   }
 
 }

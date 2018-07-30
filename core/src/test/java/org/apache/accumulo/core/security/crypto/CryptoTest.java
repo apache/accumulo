@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.security.crypto.impl.AESCryptoService;
+import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.security.crypto.impl.KeyManager;
 import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -100,36 +101,33 @@ public class CryptoTest {
   public void simpleGCMTest() throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-    CryptoEnvironment env = new CryptoEnvironment(Scope.RFILE,
-        conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
-    FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
-    byte[] params = encrypter.getParameters();
-    env.setParameters(params);
+    CryptoEnvironment encEnv = new CryptoEnvironmentImpl(Scope.RFILE, null);
+    FileEncrypter encrypter = cryptoService.getFileEncrypter(encEnv);
+    byte[] params = encrypter.getDecryptionParameters();
+    assertNotNull(params);
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
-    env.writeParams(dataOut);
+    CryptoUtils.writeParams(params, dataOut);
     OutputStream encrypted = encrypter.encryptStream(dataOut);
-    // System.out.println("after enc out Bytes written " + out.size());
 
     assertNotNull(encrypted);
     DataOutputStream cipherOut = new DataOutputStream(encrypted);
 
     cipherOut.writeUTF(MARKER_STRING);
 
-    // System.out.println("b4 flush return out bytes = " + out.toByteArray().length);
     cipherOut.close();
     dataOut.close();
     encrypted.close();
     out.close();
 
     byte[] cipherText = out.toByteArray();
-    // System.out.println("return cipherText bytes = " + cipherText.length);
 
     // decrypt
     ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
-    env.readParams(new DataInputStream(in));
-    FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
+    params = CryptoUtils.readParams(new DataInputStream(in));
+    CryptoEnvironment decEnv = new CryptoEnvironmentImpl(Scope.RFILE, params);
+    FileDecrypter decrypter = cryptoService.getFileDecrypter(decEnv);
     DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in));
     String plainText = decrypted.readUTF();
     decrypted.close();
@@ -286,18 +284,16 @@ public class CryptoTest {
       throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-    CryptoEnvironment env = new CryptoEnvironment(scope,
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
+    CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(scope, null);
     FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
-    byte[] params = encrypter.getParameters();
+    byte[] params = encrypter.getDecryptionParameters();
 
     assertNotNull("CryptoService returned null FileEncrypter", encrypter);
     assertEquals(cryptoService.getClass(), cs.getClass());
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
-    dataOut.writeInt(params.length);
-    dataOut.write(params);
+    CryptoUtils.writeParams(params, dataOut);
     DataOutputStream encrypted = new DataOutputStream(
         encrypter.encryptStream(new NoFlushOutputStream(dataOut)));
     assertNotNull(encrypted);
@@ -313,12 +309,12 @@ public class CryptoTest {
   private void decrypt(byte[] resultingBytes, Scope scope, String configFile) throws Exception {
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
     DataInputStream dataIn = new DataInputStream(in);
+    byte[] params = CryptoUtils.readParams(dataIn);
 
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
-    CryptoEnvironment env = new CryptoEnvironment(scope,
-        conf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
-    env.readParams(dataIn);
+    CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
+
     FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
 
     DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(dataIn));

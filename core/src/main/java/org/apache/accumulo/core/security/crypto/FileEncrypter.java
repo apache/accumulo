@@ -39,5 +39,5 @@ public interface FileEncrypter {
    *
    * @since 2.0
    */
-  byte[] getParameters();
+  byte[] getDecryptionParameters();
 }

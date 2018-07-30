@@ -17,7 +17,7 @@
 
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import static org.apache.accumulo.core.security.crypto.CryptoEnvironment.Scope;
+import static org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl.Scope;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
@@ -45,8 +44,10 @@ import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
 import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.security.crypto.CryptoUtils;
 import org.apache.accumulo.core.security.crypto.FileDecrypter;
 import org.apache.accumulo.core.security.crypto.FileEncrypter;
+import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -107,7 +108,7 @@ public final class BCFile {
     private final RateLimitedOutputStream out;
     private final Configuration conf;
     private FileEncrypter encrypter;
-    private CryptoEnvironment cryptoEnvironment;
+    private CryptoEnvironmentImpl cryptoEnvironment;
     // the single meta block containing index of compressed data blocks
     final DataIndex dataIndex;
     // index for meta blocks
@@ -326,8 +327,7 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
-          aconf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+      this.cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, null);
       this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
     }
 
@@ -357,7 +357,7 @@ public final class BCFile {
           metaIndex.write(out);
 
           long offsetCryptoParameter = out.position();
-          byte[] cryptoParams = this.encrypter.getParameters();
+          byte[] cryptoParams = this.encrypter.getDecryptionParameters();
           out.writeInt(cryptoParams.length);
           out.write(cryptoParams);
 
@@ -464,7 +464,7 @@ public final class BCFile {
     // Index for meta blocks
     final MetaIndex metaIndex;
     final Version version;
-    private CryptoEnvironment cryptoEnvironment;
+    private byte[] decryptionParams;
     private FileDecrypter decrypter;
 
     /**
@@ -585,7 +585,7 @@ public final class BCFile {
           return null;
         }
 
-        this.cryptoEnvironment.writeParams(out);
+        CryptoUtils.writeParams(this.decryptionParams, out);
 
         if (out.size() > maxSize) {
           return null;
@@ -641,8 +641,7 @@ public final class BCFile {
       this.in.seek(offsetIndexMeta);
       metaIndex = new MetaIndex(this.in);
 
-      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
-          aconf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+      CryptoEnvironment cryptoEnvironment = null;
       if (cryptoService == null) {
         cryptoService = CryptoServiceFactory.getConfigured(aconf);
       }
@@ -653,9 +652,10 @@ public final class BCFile {
       } else {
         // read crypto parameters and get decrypter
         this.in.seek(offsetCryptoParameters);
-        this.cryptoEnvironment.readParams(this.in);
+        decryptionParams = CryptoUtils.readParams(this.in);
+        cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
       }
-      this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
+      this.decrypter = cryptoService.getFileDecrypter(cryptoEnvironment);
 
       // read data:BCFile.index, the data block index
       try (BlockReader blockR = getMetaBlock(DataIndex.BLOCK_NAME)) {
@@ -677,13 +677,12 @@ public final class BCFile {
       metaIndex = new MetaIndex(dis);
       dataIndex = new DataIndex(dis);
 
-      this.cryptoEnvironment = new CryptoEnvironment(Scope.RFILE,
-          aconf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
-      this.cryptoEnvironment.readParams(dis);
+      decryptionParams = CryptoUtils.readParams(dis);
+      CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
       if (cryptoService == null) {
         cryptoService = CryptoServiceFactory.getConfigured(aconf);
       }
-      this.decrypter = cryptoService.getFileDecrypter(this.cryptoEnvironment);
+      this.decrypter = cryptoService.getFileDecrypter(env);
     }
 
     /**

@@ -102,7 +102,7 @@ public class AESCryptoService implements CryptoService {
   @Override
   public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
     CryptoModule cm;
-    ParsedCryptoParameters parsed = parseCryptoParameters(environment.getParameters());
+    ParsedCryptoParameters parsed = parseCryptoParameters(environment.getDecryptionParams());
     Key kek = loadDecryptionKek(parsed);
     Key fek = KeyManager.unwrapKey(parsed.getEncFek(), kek);
     switch (parsed.getCryptoServiceVersion()) {
@@ -369,7 +369,7 @@ public class AESCryptoService implements CryptoService {
       }
 
       @Override
-      public byte[] getParameters() {
+      public byte[] getDecryptionParameters() {
         return createCryptoParameters(VERSION, encryptingKek, encryptingKekId, encryptingKeyManager,
             fek);
       }
@@ -474,7 +474,7 @@ public class AESCryptoService implements CryptoService {
       }
 
       @Override
-      public byte[] getParameters() {
+      public byte[] getDecryptionParameters() {
         return createCryptoParameters(VERSION, encryptingKek, encryptingKekId, encryptingKeyManager,
             fek);
       }
