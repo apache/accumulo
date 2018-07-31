@@ -81,10 +81,10 @@ public class SimpleScanDispatcherTest {
         ImmutableMap.of("executor", "E2"), "E2", "E2");
     runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true"),
         ImmutableMap.of("executor", "E5"), "E1", "E1");
-    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "ignored_hint_action", "error"),
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "ignored_hint_action", "fail"),
         ImmutableMap.of("executor", "E5"), "E1", "E1");
-    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "bad_hint_action", "error",
-        "ignored_hint_action", "error"), ImmutableMap.of("executor", "E2"), "E2", "E2");
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "bad_hint_action", "fail",
+        "ignored_hint_action", "fail"), ImmutableMap.of("executor", "E2"), "E2", "E2");
     runTest(ImmutableMap.of("executor", "E1", "heed_hints", "false"),
         ImmutableMap.of("executor", "E2"), "E1", "E1");
     runTest(ImmutableMap.of("executor", "E1"), ImmutableMap.of("executor", "E2"), "E1", "E1");
@@ -92,14 +92,13 @@ public class SimpleScanDispatcherTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testBadHint() {
-    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "bad_hint_action", "error"),
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "bad_hint_action", "fail"),
         ImmutableMap.of("executor", "E5"), "E2", "E2");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testIgnoredHint() {
-    runTest(
-        ImmutableMap.of("executor", "E1", "heed_hints", "false", "ignored_hint_action", "error"),
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "false", "ignored_hint_action", "fail"),
         ImmutableMap.of("executor", "E2"), "E1", "E1");
   }
 }

@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.ScannerBase;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -38,6 +39,12 @@ import org.slf4j.LoggerFactory;
  * {@link Integer#MAX_VALUE}.
  *
  * <p>
+ * This prioritizer accepts the option {@code bad_hint_action=fail|log|none}. This option determines
+ * what happens when a priority hint is not an integer. It defaults to {@code log} which logs a
+ * warning. The {@code fail} option throws an exception which may fail the scan. The {@code none}
+ * option silently ignores invalid hints.
+ *
+ * <p>
  * When two scans have the same priority, the scan is prioritized based on last run time and then
  * creation time.
  *
@@ -46,20 +53,40 @@ import org.slf4j.LoggerFactory;
  * assume a primary priority of 1 to 3 is desired followed by a secondary priority of 1 to 10 . This
  * can be encoded as {@code int priority = primary << 4 | secondary}. When the primary bits are
  * equal the comparison naturally falls back to the secondary bits. The example does not handle the
- * case there the primary of secondary priorities are outside expected ranges.
+ * case where the primary of secondary priorities are outside expected ranges.
  *
  * @since 2.0.0
  */
 public class HintScanPrioritizer implements ScanPrioritizer {
 
-  private static int getPriority(ScanInfo si, int defaultPriority) {
+  private static final Logger log = LoggerFactory.getLogger(HintScanPrioritizer.class);
+
+  private enum HintProblemAction {
+    NONE, LOG, FAIL
+  }
+
+  private static int getPriority(ScanInfo si, int defaultPriority, HintProblemAction hpa) {
     String prio = si.getExecutionHints().get("priority");
-    if (prio == null) {
-      return defaultPriority;
-    } else {
-      LoggerFactory.getLogger(HintScanPrioritizer.class).info("priority=" + prio);
-      return Integer.parseInt(prio);
+    if (prio != null) {
+      try {
+        return Integer.parseInt(prio);
+      } catch (NumberFormatException nfe) {
+        switch (hpa) {
+          case FAIL:
+            throw nfe;
+          case LOG:
+            log.warn("Unable to parse priority hint {}, falling back to default {}.", prio,
+                defaultPriority);
+            break;
+          case NONE:
+            break;
+          default:
+            throw new IllegalStateException();
+        }
+      }
     }
+
+    return defaultPriority;
   }
 
   @Override
@@ -67,7 +94,10 @@ public class HintScanPrioritizer implements ScanPrioritizer {
     int defaultPriority = Integer
         .parseInt(options.getOrDefault("default_priority", Integer.MAX_VALUE + ""));
 
-    Comparator<ScanInfo> cmp = Comparator.comparingInt(si -> getPriority(si, defaultPriority));
+    HintProblemAction hpa = HintProblemAction.valueOf(
+        options.getOrDefault("bad_hint_action", HintProblemAction.LOG.name()).toUpperCase());
+
+    Comparator<ScanInfo> cmp = Comparator.comparingInt(si -> getPriority(si, defaultPriority, hpa));
 
     return cmp.thenComparingLong(si -> si.getLastRunTime().orElse(0))
         .thenComparingLong(si -> si.getCreationTime());
