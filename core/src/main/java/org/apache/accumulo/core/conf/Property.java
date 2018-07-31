@@ -864,9 +864,9 @@ public enum Property {
       "Prefix for configuring summarizers for a table. Using this prefix"
           + " multiple summarizers can be configured with options for each one. Each"
           + " summarizer configured should have a unique id, this id can be anything."
-          + " To add a summarizer set table.summarizer.<unique id>=<summarizer class"
-          + " name>. If the summarizer has options, then for each option set"
-          + " table.summarizer.<unique id>.opt.<key>=<value>."),
+          + " To add a summarizer set "
+          + "`table.summarizer.<unique id>=<summarizer class name>.` If the summarizer has options"
+          + ", then for each option set `table.summarizer.<unique id>.opt.<key>=<value>`."),
   TABLE_OFFLINE_OPTS("table.offline.", null, PropertyType.PREFIX,
       "Prefix for properties related to offline creation and initial offline split creation."),
   // VFS ClassLoader properties

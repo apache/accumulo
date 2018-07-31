@@ -112,6 +112,8 @@ public class NewTableConfiguration {
    * Create the new table in an offline state.
    *
    * @return this
+   *
+   * @since 2.0.0
    */
   public NewTableConfiguration createOffline() {
     this.createOffline = true;
@@ -231,6 +233,8 @@ public class NewTableConfiguration {
    * @param splits
    *          A SortedSet of String values to be used as split points in a newly created table.
    * @return this
+   *
+   * @since 2.0.0
    */
   public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
     checkArgument(splits != null, "splits set is null");
