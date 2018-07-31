@@ -226,7 +226,7 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Create a new table wkth pre-configured splits from the provided imput collection.
+   * Create a new table with pre-configured splits from the provided input collection.
    *
    * @param splits
    *          A SortedSet of String values to be used as split points in a newly created table.
