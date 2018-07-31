@@ -90,12 +90,12 @@ public class HintScanPrioritizer implements ScanPrioritizer {
   }
 
   @Override
-  public Comparator<ScanInfo> createComparator(Map<String,String> options) {
+  public Comparator<ScanInfo> createComparator(CreateParameters params) {
     int defaultPriority = Integer
-        .parseInt(options.getOrDefault("default_priority", Integer.MAX_VALUE + ""));
+        .parseInt(params.getOptions().getOrDefault("default_priority", Integer.MAX_VALUE + ""));
 
-    HintProblemAction hpa = HintProblemAction.valueOf(
-        options.getOrDefault("bad_hint_action", HintProblemAction.LOG.name()).toUpperCase());
+    HintProblemAction hpa = HintProblemAction.valueOf(params.getOptions()
+        .getOrDefault("bad_hint_action", HintProblemAction.LOG.name()).toUpperCase());
 
     Comparator<ScanInfo> cmp = Comparator.comparingInt(si -> getPriority(si, defaultPriority, hpa));
 

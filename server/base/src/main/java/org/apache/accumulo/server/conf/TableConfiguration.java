@@ -19,7 +19,6 @@ package org.apache.accumulo.server.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -238,13 +237,15 @@ public class TableConfiguration extends ObservableConfiguration {
       ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(this,
           Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
 
-      Map<String,String> opts = new HashMap<>();
+      Builder<String,String> builder = ImmutableMap.builder();
       getAllPropertiesWithPrefix(Property.TABLE_SCAN_DISPATCHER_OPTS).forEach((k, v) -> {
         String optKey = k.substring(Property.TABLE_SCAN_DISPATCHER_OPTS.getKey().length());
-        opts.put(optKey, v);
+        builder.put(optKey, v);
       });
 
-      newDispatcher.init(Collections.unmodifiableMap(opts));
+      Map<String,String> opts = builder.build();
+
+      newDispatcher.init(() -> opts);
 
       TablesScanDispatcher newRef = new TablesScanDispatcher(newDispatcher, count);
       scanDispatcherRef.compareAndSet(currRef, newRef);

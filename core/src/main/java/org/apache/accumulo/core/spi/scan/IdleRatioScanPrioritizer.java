@@ -18,7 +18,6 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.util.Comparator;
-import java.util.Map;
 
 import com.google.common.base.Preconditions;
 
@@ -37,8 +36,8 @@ public class IdleRatioScanPrioritizer implements ScanPrioritizer {
   }
 
   @Override
-  public Comparator<ScanInfo> createComparator(Map<String,String> options) {
-    Preconditions.checkArgument(options.isEmpty());
+  public Comparator<ScanInfo> createComparator(CreateParameters params) {
+    Preconditions.checkArgument(params.getOptions().isEmpty());
 
     Comparator<ScanInfo> c1 = (si1, si2) -> {
       long currTime = System.currentTimeMillis();
