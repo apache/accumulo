@@ -244,7 +244,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     args.add(ByteBuffer.wrap(String.valueOf(numSplits).getBytes(UTF_8)));
     if (numSplits > 0) {
       for (Text t : ntc.getSplits()) {
-        args.add(ByteBuffer.wrap(t.toString().getBytes(UTF_8)));
+        args.add(TextUtil.getByteBuffer(t));
       }
     }
 
