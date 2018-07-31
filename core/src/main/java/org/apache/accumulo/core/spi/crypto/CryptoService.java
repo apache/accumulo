@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.spi.crypto;
 
 import java.util.Map;
 
@@ -29,22 +29,18 @@ public interface CryptoService {
 
   /**
    * Initialize CryptoService. This is called once at Tablet Server startup.
-   *
-   * @since 2.0
    */
   void init(Map<String,String> conf) throws CryptoException;
 
   /**
-   * Initialize the FileEncrypter for the environment and return
-   *
-   * @since 2.0
+   * Initialize the FileEncrypter for the environment and return. This will get called once per
+   * R-File or Write Ahead Log. FileEncrypter implementation must be thread safe.
    */
   FileEncrypter getFileEncrypter(CryptoEnvironment environment);
 
   /**
-   * Initialize the FileDecrypter for the environment and return
-   *
-   * @since 2.0
+   * Initialize the FileDecrypter for the environment and return. This will get called once per
+   * R-File or Write Ahead Log. FileDecrypter implementation must be thread safe.
    */
   FileDecrypter getFileDecrypter(CryptoEnvironment environment);
 

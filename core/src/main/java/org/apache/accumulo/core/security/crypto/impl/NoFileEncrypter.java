@@ -19,8 +19,8 @@ package org.apache.accumulo.core.security.crypto.impl;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
-import org.apache.accumulo.core.security.crypto.CryptoService;
-import org.apache.accumulo.core.security.crypto.FileEncrypter;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 
 public class NoFileEncrypter implements FileEncrypter {
 

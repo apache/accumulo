@@ -14,15 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.spi.crypto;
 
 import java.io.InputStream;
 
+/**
+ * Class implementation that will decrypt a file. Make sure implementation is thread safe.
+ *
+ * @since 2.0
+ */
 public interface FileDecrypter {
   /**
    * Decrypt the InputStream
-   *
-   * @since 2.0
    */
   InputStream decryptStream(InputStream inputStream) throws CryptoService.CryptoException;
 }

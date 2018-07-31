@@ -18,6 +18,7 @@ package org.apache.accumulo.core.security.crypto;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class CryptoServiceFactory {

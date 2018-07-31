@@ -18,10 +18,10 @@ package org.apache.accumulo.core.security.crypto.impl;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
-import org.apache.accumulo.core.security.crypto.CryptoService;
-import org.apache.accumulo.core.security.crypto.FileDecrypter;
-import org.apache.accumulo.core.security.crypto.FileEncrypter;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileDecrypter;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 
 /**
  * The default encryption strategy which does nothing.

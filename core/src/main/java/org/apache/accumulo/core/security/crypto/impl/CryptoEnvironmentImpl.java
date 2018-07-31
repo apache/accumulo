@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.security.crypto.impl;
 
-import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 
 /**
  * @since 2.0

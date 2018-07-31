@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
-import org.apache.accumulo.core.security.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

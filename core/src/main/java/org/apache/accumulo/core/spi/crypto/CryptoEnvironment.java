@@ -14,9 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.accumulo.core.security.crypto;
-
-import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
+package org.apache.accumulo.core.spi.crypto;
 
 /**
  * Useful information provided to the crypto implementation
@@ -31,7 +29,7 @@ public interface CryptoEnvironment {
     WAL, RFILE;
   }
 
-  CryptoEnvironmentImpl.Scope getScope();
+  Scope getScope();
 
   byte[] getDecryptionParams();
 }

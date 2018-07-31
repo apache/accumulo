@@ -41,20 +41,24 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 
-import org.apache.accumulo.core.security.crypto.BlockedInputStream;
-import org.apache.accumulo.core.security.crypto.BlockedOutputStream;
-import org.apache.accumulo.core.security.crypto.CryptoEnvironment;
-import org.apache.accumulo.core.security.crypto.CryptoService;
 import org.apache.accumulo.core.security.crypto.CryptoUtils;
-import org.apache.accumulo.core.security.crypto.DiscardCloseOutputStream;
-import org.apache.accumulo.core.security.crypto.FileDecrypter;
-import org.apache.accumulo.core.security.crypto.FileEncrypter;
-import org.apache.accumulo.core.security.crypto.RFileCipherOutputStream;
+import org.apache.accumulo.core.security.crypto.streams.BlockedInputStream;
+import org.apache.accumulo.core.security.crypto.streams.BlockedOutputStream;
+import org.apache.accumulo.core.security.crypto.streams.DiscardCloseOutputStream;
+import org.apache.accumulo.core.security.crypto.streams.RFileCipherOutputStream;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileDecrypter;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 
 /**
  * Example implementation of AES encryption for Accumulo
  */
 public class AESCryptoService implements CryptoService {
+
+  // Hard coded NoCryptoService.VERSION - this permits the removal of NoCryptoService from the
+  // core jar, allowing use of only one crypto service
+  private static final String NO_CRYPTO_VERSION = "U+1F47B";
 
   private Key encryptingKek = null;
   private String encryptingKekId = null;
@@ -115,10 +119,7 @@ public class AESCryptoService implements CryptoService {
             this.encryptingKeyManager);
         return (cm.getDecrypter(fek));
 
-      // TODO I suspect we want to leave "U+1F47B" and create an internal NoFileDecrypter
-      // so that the crypto service .jar file can pluggable without requiring the
-      // NoCryptoService.jar
-      case NoCryptoService.VERSION:
+      case NO_CRYPTO_VERSION:
         return new NoFileDecrypter();
       default:
         throw new CryptoException(
@@ -181,7 +182,7 @@ public class AESCryptoService implements CryptoService {
     byte[] bytes;
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream params = new DataOutputStream(baos)) {
-      params.writeUTF("org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
+      params.writeUTF(AESCryptoService.class.getName());
       params.writeUTF(version);
       params.writeUTF(encryptingKeyManager);
       params.writeUTF(encryptingKekId);

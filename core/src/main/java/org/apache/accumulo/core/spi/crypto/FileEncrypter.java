@@ -14,15 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.spi.crypto;
 
 import java.io.OutputStream;
 
+/**
+ * Class implementation that will encrypt a file. Make sure implementation is thread safe.
+ *
+ * @since 2.0
+ */
 public interface FileEncrypter {
   /**
    * Encrypt the OutputStream.
-   *
-   * @since 2.0
    */
   OutputStream encryptStream(OutputStream outputStream) throws CryptoService.CryptoException;
 
@@ -36,8 +39,6 @@ public interface FileEncrypter {
    * encrypted Write Ahead Log (WAL) or at the end of an encrypted R-File. Later, it will be read
    * from the file and passed to the {@link FileDecrypter} as part of {@link CryptoEnvironment} for
    * everything it needs for decryption.
-   *
-   * @since 2.0
    */
   byte[] getDecryptionParameters();
 }

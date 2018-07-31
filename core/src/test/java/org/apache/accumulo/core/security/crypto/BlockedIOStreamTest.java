@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.accumulo.core.security.crypto.streams.BlockedInputStream;
+import org.apache.accumulo.core.security.crypto.streams.BlockedOutputStream;
 import org.junit.Test;
 
 public class BlockedIOStreamTest {

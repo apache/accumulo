@@ -181,7 +181,7 @@ public enum Property {
       "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
       "The class which executes on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
-          + "org.apache.accumulo.core.security.crypto.CryptoService interface."),
+          + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,

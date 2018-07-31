@@ -18,8 +18,8 @@ package org.apache.accumulo.core.security.crypto.impl;
 
 import java.io.InputStream;
 
-import org.apache.accumulo.core.security.crypto.CryptoService;
-import org.apache.accumulo.core.security.crypto.FileDecrypter;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 
 public class NoFileDecrypter implements FileDecrypter {
   @Override

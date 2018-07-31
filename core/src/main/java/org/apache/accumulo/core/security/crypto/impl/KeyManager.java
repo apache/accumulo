@@ -32,7 +32,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.accumulo.core.security.crypto.CryptoService.CryptoException;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 
 public class KeyManager {
 

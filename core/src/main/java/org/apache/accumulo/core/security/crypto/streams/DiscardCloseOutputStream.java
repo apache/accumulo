@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.security.crypto.streams;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
