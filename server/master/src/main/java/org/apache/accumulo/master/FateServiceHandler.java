@@ -151,7 +151,13 @@ class FateServiceHandler implements FateService.Iface {
         String splitFile = null;
         if (splitCount > 0) {
           int SPLIT_OFFSET = 3; // offset where split data begins in arguments list
-          splitFile = createSplitFile(opid, arguments, splitCount, SPLIT_OFFSET);
+          try {
+            splitFile = createSplitFile(opid, arguments, splitCount, SPLIT_OFFSET);
+          } catch (IOException e) {
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER, "Exception thrown while writing "
+                + "splits to file system");
+          }
         }
         Namespace.ID namespaceId;
 
@@ -675,14 +681,15 @@ class FateServiceHandler implements FateService.Iface {
    * Create a file on the file system to hold the splits to be created at table creation.
    */
   private String createSplitFile(final long opid, final List<ByteBuffer> arguments,
-      final int splitCount, final int splitOffset) {
+      final int splitCount, final int splitOffset) throws IOException {
     String opidStr = String.format("%016x", opid);
     String splitPath = getSplitPath("/tmp/splits-" + opidStr);
     try (FSDataOutputStream stream = master.getOutputStream(splitPath)) {
       writeSplitsToFileSystem(stream, arguments, splitCount, splitOffset);
     } catch (IOException e) {
-      splitPath = null;
-      e.printStackTrace();
+      log.error("Error in FateServiceHandler while writing splits for opid: "
+          + opidStr + ": " +  e.getMessage());
+      throw e;
     }
     return splitPath;
   }
