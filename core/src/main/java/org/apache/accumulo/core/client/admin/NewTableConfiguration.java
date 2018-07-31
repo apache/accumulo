@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSortedSet;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.TableOperationsHelper;
@@ -240,7 +241,7 @@ public class NewTableConfiguration {
     checkArgument(splits != null, "splits set is null");
     checkArgument(splits.isEmpty() != true, "splits set is empty");
     this.createInitialSplits = true;
-    this.splitProps = splits;
+    this.splitProps = ImmutableSortedSet.copyOf(splits);
     return this;
   }
 
