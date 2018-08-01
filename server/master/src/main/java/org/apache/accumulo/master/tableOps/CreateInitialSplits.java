@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -94,10 +95,10 @@ public class CreateInitialSplits extends MasterRepo {
       throws MutationsRejectedException {
     Text lastRow = new Text(tableInfo.tableId.toString() + "<");
     Mutation mut = new Mutation(lastRow);
-    mut.put(new Text("srv"), new Text("dir"), splitEntry.dirValue);
-    mut.put(new Text("srv"), new Text("lock"), splitEntry.lockValue);
-    mut.put(new Text("srv"), new Text("time"), splitEntry.timeValue);
-    mut.put(new Text("~tab"), new Text("~pr"),
+    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, splitEntry.dirValue);
+    MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mut, splitEntry.lockValue);
+    MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, splitEntry.timeValue);
+    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(mut,
         KeyExtent.encodePrevEndRow(new Text(splitEntry.lastSplit)));
     bw.addMutation(mut);
   }
@@ -111,14 +112,18 @@ public class CreateInitialSplits extends MasterRepo {
         while ((split = br.readLine()) != null) {
           try {
             Mutation mut = new Mutation(tableId + ";" + split);
-            mut.put(new Text("srv"), new Text("dir"), splitEntry.dirValue);
-            mut.put(new Text("srv"), new Text("lock"), splitEntry.lockValue);
-            mut.put(new Text("srv"), new Text("time"), splitEntry.timeValue);
+            MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+                splitEntry.dirValue);
+            MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mut,
+                splitEntry.lockValue);
+            MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
+                splitEntry.timeValue);
             if (splitEntry.first) {
-              mut.put(new Text("~tab"), new Text("~pr"), splitEntry.firstRow);
+              MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(mut,
+                  splitEntry.firstRow);
               splitEntry.first = false;
             } else {
-              mut.put(new Text("~tab"), new Text("~pr"),
+              MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(mut,
                   KeyExtent.encodePrevEndRow(new Text(splitEntry.lastSplit)));
             }
             bw.addMutation(mut);
@@ -137,7 +142,7 @@ public class CreateInitialSplits extends MasterRepo {
    */
   private void populateSplitEntry(Master environment, SplitEntry splitEntry)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    String tableId = tableInfo.tableId.toString();
+    String tableId = tableInfo.tableId.canonicalID();
     Scanner scan = environment.getConnector().createScanner("accumulo.metadata",
         Authorizations.EMPTY);
     scan.setRange(new Range(tableId + "<"));
@@ -157,8 +162,9 @@ public class CreateInitialSplits extends MasterRepo {
             break;
         }
       }
-      if (colf.equals(new Text("~tab")))
+      if (colf.equals(new Text(MetadataSchema.TabletsSection.TabletColumnFamily.STR_NAME))) {
         splitEntry.firstRow = new Value(entry.getValue());
+      }
     }
     scan.close();
   }
