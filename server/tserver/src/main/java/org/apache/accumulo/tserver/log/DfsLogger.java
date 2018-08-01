@@ -78,6 +78,7 @@ import com.google.common.base.Joiner;
  *
  */
 public class DfsLogger implements Comparable<DfsLogger> {
+  // older versions should no longer be supported in 2.0
   public static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
   public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
   /**
