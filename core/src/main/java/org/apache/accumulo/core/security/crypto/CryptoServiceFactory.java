@@ -19,6 +19,7 @@ package org.apache.accumulo.core.security.crypto;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class CryptoServiceFactory {
@@ -47,7 +48,7 @@ public class CryptoServiceFactory {
           CryptoService.class);
       return clazz.newInstance();
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new CryptoException(e);
     }
   }
 }

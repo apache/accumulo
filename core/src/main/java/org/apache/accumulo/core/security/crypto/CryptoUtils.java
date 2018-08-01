@@ -29,6 +29,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.NullCipher;
 
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,11 +53,11 @@ public class CryptoUtils {
     } catch (NoSuchAlgorithmException e) {
       log.error(String.format("Accumulo configuration file specified a secure"
           + " random generator \"%s\" that was not found by any provider.", secureRNG));
-      throw new RuntimeException(e);
+      throw new CryptoException(e);
     } catch (NoSuchProviderException e) {
       log.error(String.format("Accumulo configuration file specified a secure"
           + " random provider \"%s\" that does not exist", secureRNGProvider));
-      throw new RuntimeException(e);
+      throw new CryptoException(e);
     }
     return secureRandom;
   }
@@ -76,18 +77,18 @@ public class CryptoUtils {
       } catch (NoSuchAlgorithmException e) {
         log.error(String.format("Accumulo configuration file contained a cipher"
             + " suite \"%s\" that was not recognized by any providers", cipherSuite));
-        throw new RuntimeException(e);
+        throw new CryptoException(e);
       } catch (NoSuchPaddingException e) {
         log.error(String.format(
             "Accumulo configuration file contained a"
                 + " cipher, \"%s\" with a padding that was not recognized by any" + " providers",
             cipherSuite));
-        throw new RuntimeException(e);
+        throw new CryptoException(e);
       } catch (NoSuchProviderException e) {
         log.error(String.format(
             "Accumulo configuration file contained a provider, \"%s\" an unrecognized provider",
             securityProvider));
-        throw new RuntimeException(e);
+        throw new CryptoException(e);
       }
     }
     return cipher;

@@ -92,7 +92,7 @@ public class BlockedOutputStream extends OutputStream {
       len -= remaining;
     }
     // And then write the remainder (and this is guaranteed to not fill the buffer, so we won't
-    // flush afteward
+    // flush afterward
     bb.put(b, off, len);
   }
 
