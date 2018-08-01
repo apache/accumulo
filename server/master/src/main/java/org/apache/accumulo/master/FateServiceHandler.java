@@ -155,8 +155,8 @@ class FateServiceHandler implements FateService.Iface {
             splitFile = createSplitFile(opid, arguments, splitCount, SPLIT_OFFSET);
           } catch (IOException e) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER, "Exception thrown while writing "
-                + "splits to file system");
+                TableOperationExceptionType.OTHER,
+                "Exception thrown while writing " + "splits to file system");
           }
         }
         Namespace.ID namespaceId;
@@ -687,8 +687,8 @@ class FateServiceHandler implements FateService.Iface {
     try (FSDataOutputStream stream = master.getOutputStream(splitPath)) {
       writeSplitsToFileSystem(stream, arguments, splitCount, splitOffset);
     } catch (IOException e) {
-      log.error("Error in FateServiceHandler while writing splits for opid: "
-          + opidStr + ": " +  e.getMessage());
+      log.error("Error in FateServiceHandler while writing splits for opid: " + opidStr + ": "
+          + e.getMessage());
       throw e;
     }
     return splitPath;

@@ -32,6 +32,9 @@ class TableInfo implements Serializable {
   char timeType;
   String user;
 
+  // store name of file containing split info when creating splits at table creation
+  String splitFile;
+
   public Map<String,String> props;
 
   public String dir = null;

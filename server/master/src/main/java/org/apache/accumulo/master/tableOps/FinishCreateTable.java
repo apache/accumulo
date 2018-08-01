@@ -24,11 +24,8 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 
 class FinishCreateTable extends MasterRepo {
 
@@ -65,15 +62,10 @@ class FinishCreateTable extends MasterRepo {
     return null;
   }
 
-  private void cleanupSplits(Master env) throws KeeperException, InterruptedException, IOException {
-    String zkTablePath = Utils.getTablePath(tableInfo.tableId);
-    String zPath = zkTablePath + "/" + Property.TABLE_OFFLINE_OPTS + "splits.file";
-    ZooReaderWriter instance = ZooReaderWriter.getInstance();
-    byte[] data = instance.getData(zPath, new Stat());
-    String splitFile = new String(data);
+  private void cleanupSplits(Master env) throws IOException {
     Volume defaultVolume = env.getFileSystem().getDefaultVolume();
     FileSystem fs = defaultVolume.getFileSystem();
-    fs.delete(new Path(splitFile), true);
+    fs.delete(new Path(tableInfo.splitFile), true);
   }
 
   @Override

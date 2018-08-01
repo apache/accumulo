@@ -18,26 +18,18 @@ package org.apache.accumulo.master.tableOps;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.TablePropUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.zookeeper.KeeperException;
 
 public class CreateTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private TableInfo tableInfo;
-  private String splitFile = null;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
       String splitFile, Namespace.ID namespaceId) {
@@ -47,8 +39,7 @@ public class CreateTable extends MasterRepo {
     tableInfo.user = user;
     tableInfo.props = props;
     tableInfo.namespaceId = namespaceId;
-
-    this.splitFile = splitFile;
+    tableInfo.splitFile = splitFile;
   }
 
   @Override
@@ -68,49 +59,15 @@ public class CreateTable extends MasterRepo {
     Utils.idLock.lock();
     try {
       tableInfo.tableId = Utils.getNextId(tableInfo.tableName, master.getInstance(), Table.ID::of);
-      if (tableInfo.props.containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits")
-          && this.splitFile != null) {
-        storeSplitFileNameInZooKeeper();
-      }
       return new SetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();
     }
-
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
     Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
-  }
-
-  private boolean storeSplitFileNameInZooKeeper() {
-    boolean result = false;
-    try {
-      String zkTablePath = getTablePath(tableInfo.tableId);
-      String zkConfPath = getConfPath(tableInfo.tableId);
-      ZooReaderWriter.getInstance().putPersistentData(zkTablePath, new byte[0],
-          org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy.SKIP);
-      ZooReaderWriter.getInstance().putPersistentData(zkConfPath, new byte[0],
-          org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy.SKIP);
-      result = TablePropUtil.setTableProperty(tableInfo.tableId,
-          Property.TABLE_OFFLINE_OPTS + "splits.file", this.splitFile);
-    } catch (KeeperException e) {
-      e.printStackTrace();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    return result;
-  }
-
-  private String getConfPath(Table.ID tableId) {
-    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/"
-        + tableId.canonicalID() + Constants.ZTABLE_CONF;
-  }
-
-  private String getTablePath(Table.ID tableId) {
-    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/"
-        + tableId.canonicalID();
   }
 
 }

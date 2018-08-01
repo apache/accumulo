@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSortedSet;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.TableOperationsHelper;
@@ -46,6 +45,8 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.collect.ImmutableSortedSet;
 
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to

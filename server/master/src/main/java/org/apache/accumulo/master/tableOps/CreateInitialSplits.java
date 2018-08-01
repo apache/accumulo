@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -36,11 +35,8 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 
 public class CreateInitialSplits extends MasterRepo {
 
@@ -77,7 +73,6 @@ public class CreateInitialSplits extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    String splitFile = getSplitFileName();
 
     // Read table entry and store values for later use
     SplitEntry splitEntry = new SplitEntry();
@@ -86,7 +81,7 @@ public class CreateInitialSplits extends MasterRepo {
     try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
 
       // Read splits from filesystem and write to metadata table.
-      writeSplitsToMetadataTable(environment, splitFile, splitEntry, bw);
+      writeSplitsToMetadataTable(environment, tableInfo.splitFile, splitEntry, bw);
 
       // last row is handled as a special case
       writeLastRowToMetadataTable(splitEntry, bw);
@@ -134,14 +129,6 @@ public class CreateInitialSplits extends MasterRepo {
         }
       }
     }
-  }
-
-  private String getSplitFileName() throws KeeperException, InterruptedException {
-    String zkTablePath = Utils.getTablePath(tableInfo.tableId);
-    String zPath = zkTablePath + "/" + Property.TABLE_OFFLINE_OPTS + "splits.file";
-    ZooReaderWriter instance = ZooReaderWriter.getInstance();
-    byte[] data = instance.getData(zPath, new Stat());
-    return new String(data);
   }
 
   /**

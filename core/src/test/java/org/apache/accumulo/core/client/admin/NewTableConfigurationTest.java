@@ -53,8 +53,8 @@ public class NewTableConfigurationTest {
   @Test
   public void testWithSplitsSetsProperty() {
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
-    assertTrue(ntc.getProperties()
-        .containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits"));
+    assertTrue(
+        ntc.getProperties().containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits"));
     assertTrue(ntc.getProperties().containsValue("true"));
   }
 
