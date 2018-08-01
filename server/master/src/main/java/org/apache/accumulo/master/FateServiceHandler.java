@@ -156,7 +156,7 @@ class FateServiceHandler implements FateService.Iface {
           } catch (IOException e) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
                 TableOperationExceptionType.OTHER,
-                "Exception thrown while writing " + "splits to file system");
+                "Exception thrown while writing splits to file system");
           }
         }
         Namespace.ID namespaceId;
