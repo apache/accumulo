@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -23,23 +25,21 @@ import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class CryptoServiceFactory {
-  private static CryptoService singleton = null;
+  private static AtomicReference<CryptoService> singleton = new AtomicReference<>();
 
   /**
    * Load the singleton class configured in {@link Property#INSTANCE_CRYPTO_SERVICE}
    */
   public static CryptoService getConfigured(AccumuloConfiguration conf) {
+    CryptoService cyptoService = singleton.get();
     String configuredClass = conf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
-    if (singleton == null) {
-      singleton = loadCryptoService(configuredClass);
-      singleton.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
-    } else {
-      if (!singleton.getClass().getName().equals(configuredClass)) {
-        singleton = loadCryptoService(configuredClass);
-        singleton.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
-      }
+    if (cyptoService == null || !cyptoService.getClass().getName().equals(configuredClass)) {
+      CryptoService newCryptoService = loadCryptoService(configuredClass);
+      newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+      singleton.compareAndSet(cyptoService, newCryptoService);
+      return singleton.get();
     }
-    return singleton;
+    return cyptoService;
   }
 
   private static CryptoService loadCryptoService(String className) {

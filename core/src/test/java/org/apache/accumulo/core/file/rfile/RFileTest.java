@@ -1706,18 +1706,28 @@ public class RFileTest {
 
   @Test(expected = NullPointerException.class)
   public void testMissingUnreleasedVersions() throws Exception {
-    runVersionTest(5);
+    runVersionTest(5, DefaultConfiguration.getInstance());
   }
 
   @Test
   public void testOldVersions() throws Exception {
-    runVersionTest(3);
-    runVersionTest(4);
-    runVersionTest(6);
-    runVersionTest(7);
+    AccumuloConfiguration defaultConfiguration = DefaultConfiguration.getInstance();
+    runVersionTest(3, defaultConfiguration);
+    runVersionTest(4, defaultConfiguration);
+    runVersionTest(6, defaultConfiguration);
+    runVersionTest(7, defaultConfiguration);
   }
 
-  private void runVersionTest(int version) throws IOException {
+  @Test
+  public void testOldVersionsWithCrypto() throws Exception {
+    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    runVersionTest(3, cryptoOnConf);
+    runVersionTest(4, cryptoOnConf);
+    runVersionTest(6, cryptoOnConf);
+    runVersionTest(7, cryptoOnConf);
+  }
+
+  private void runVersionTest(int version, AccumuloConfiguration aconf) throws IOException {
     InputStream in = this.getClass().getClassLoader()
         .getResourceAsStream("org/apache/accumulo/core/file/rfile/ver_" + version + ".rf");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1729,7 +1739,6 @@ public class RFileTest {
     byte data[] = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
-    AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length,
         CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.getConfigured(aconf));
     Reader reader = new RFile.Reader(_cbr);

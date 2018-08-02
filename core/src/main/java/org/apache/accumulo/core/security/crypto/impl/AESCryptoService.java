@@ -23,6 +23,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -106,7 +107,11 @@ public class AESCryptoService implements CryptoService {
   @Override
   public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
     CryptoModule cm;
-    ParsedCryptoParameters parsed = parseCryptoParameters(environment.getDecryptionParams());
+    byte[] decryptionParams = environment.getDecryptionParams();
+    if (decryptionParams == null || checkNoCrypto(decryptionParams))
+      return new NoFileDecrypter();
+
+    ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams);
     Key kek = loadDecryptionKek(parsed);
     Key fek = KeyManager.unwrapKey(parsed.getEncFek(), kek);
     switch (parsed.getCryptoServiceVersion()) {
@@ -118,13 +123,15 @@ public class AESCryptoService implements CryptoService {
         cm = new AESGCMCryptoModule(this.encryptingKek, this.encryptingKekId,
             this.encryptingKeyManager);
         return (cm.getDecrypter(fek));
-
-      case NO_CRYPTO_VERSION:
-        return new NoFileDecrypter();
       default:
         throw new CryptoException(
             "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
     }
+  }
+
+  private static boolean checkNoCrypto(byte[] params) {
+    byte[] noCryptoBytes = NO_CRYPTO_VERSION.getBytes(Charset.forName("UTF-8"));
+    return Arrays.equals(params, noCryptoBytes);
   }
 
   static class ParsedCryptoParameters {

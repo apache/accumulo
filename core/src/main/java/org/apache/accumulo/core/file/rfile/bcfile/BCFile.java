@@ -44,6 +44,7 @@ import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.security.crypto.CryptoUtils;
 import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
+import org.apache.accumulo.core.security.crypto.impl.NoFileDecrypter;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
@@ -649,13 +650,14 @@ public final class BCFile {
       // backwards compatibility
       if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
+        this.decrypter = new NoFileDecrypter();
       } else {
         // read crypto parameters and get decrypter
         this.in.seek(offsetCryptoParameters);
         decryptionParams = CryptoUtils.readParams(this.in);
         cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
+        this.decrypter = cryptoService.getFileDecrypter(cryptoEnvironment);
       }
-      this.decrypter = cryptoService.getFileDecrypter(cryptoEnvironment);
 
       // read data:BCFile.index, the data block index
       try (BlockReader blockR = getMetaBlock(DataIndex.BLOCK_NAME)) {

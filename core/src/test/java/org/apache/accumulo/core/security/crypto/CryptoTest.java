@@ -201,7 +201,7 @@ public class CryptoTest {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     ArrayList<Key> keys = testData();
 
-    String file = "target/testFile.rf";
+    String file = "target/testFile1.rf";
     fs.delete(new Path(file), true);
     try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
         .withTableProperties(cryptoOnConf).build()) {
@@ -219,7 +219,33 @@ public class CryptoTest {
     assertEquals(keys, keysRead);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
+  // This test is to ensure when Crypto is configured that it can read unencrypted files
+  public void testReadNoCryptoWithCryptoConfigured() throws Exception {
+    AccumuloConfiguration cryptoOffConf = setAndGetAccumuloConfig(CRYPTO_OFF_CONF);
+    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    ArrayList<Key> keys = testData();
+
+    String file = "target/testFile2.rf";
+    fs.delete(new Path(file), true);
+    try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
+        .withTableProperties(cryptoOffConf).build()) {
+      Value empty = new Value(new byte[] {});
+      writer.startDefaultLocalityGroup();
+      for (Key key : keys) {
+        writer.append(key, empty);
+      }
+    }
+
+    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
+        .withTableProperties(cryptoOnConf).build();
+    ArrayList<Key> keysRead = new ArrayList<>();
+    iter.forEach(e -> keysRead.add(e.getKey()));
+    assertEquals(keys, keysRead);
+  }
+
+  @Test
   public void testMissingConfigProperties()
       throws ClassNotFoundException, InstantiationException, IllegalAccessException {
     ConfigurationCopy aconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
@@ -233,8 +259,9 @@ public class CryptoTest {
     Class<? extends CryptoService> clazz = AccumuloVFSClassLoader.loadClass(configuredClass,
         CryptoService.class);
     CryptoService cs = clazz.newInstance();
-    cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
 
+    exception.expect(NullPointerException.class);
+    cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));
     assertEquals(AESCryptoService.class, cs.getClass());
   }
 
