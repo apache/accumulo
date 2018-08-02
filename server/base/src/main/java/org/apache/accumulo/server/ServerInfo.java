@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -179,7 +180,7 @@ public class ServerInfo implements ClientInfo {
 
   @Override
   public Properties getProperties() {
-    Properties properties = new Properties();
+    Properties properties = ClientConfConverter.toProperties(getServerConfFactory().getSystemConfiguration());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), getZooKeepers());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),
         Integer.toString(getZooKeepersSessionTimeOut()));

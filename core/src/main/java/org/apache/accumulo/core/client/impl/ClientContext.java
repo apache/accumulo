@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
@@ -90,19 +89,11 @@ public class ClientContext {
     zooCache = new ZooCacheFactory().getZooCache(info.getZooKeepers(),
         info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
-    saslSupplier = () -> {
-      if (ClientProperty.SASL_ENABLED.getBoolean(info.getProperties())) {
-        return new SaslConnectionParams(info.getProperties(), getCredentials().getToken());
-      }
-      if (getConfiguration().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-        return new SaslConnectionParams(getConfiguration(), getCredentials().getToken());
-      }
-      return null;
-    };
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
-    saslSupplier = memoizeWithExpiration(saslSupplier);
+    saslSupplier = memoizeWithExpiration(() -> SaslConnectionParams.from(getConfiguration(),
+        getCredentials().getToken()));
   }
 
   /**
@@ -207,7 +198,7 @@ public class ClientContext {
   /**
    * Retrieve a connector
    */
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+  public synchronized Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (conn == null) {
       conn = new ConnectorImpl(this);
     }

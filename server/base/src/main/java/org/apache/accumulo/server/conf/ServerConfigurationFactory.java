@@ -89,13 +89,12 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   private final ServerInfo info;
-  private final ClientContext context;
+  private ClientContext context;
   private final String instanceID;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
   public ServerConfigurationFactory(ServerInfo info) {
     this.info = info;
-    context = new ClientContext(info);
     instanceID = info.getInstanceID();
     addInstanceToCaches(instanceID);
   }
@@ -107,6 +106,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private SiteConfiguration siteConfig = null;
   private DefaultConfiguration defaultConfig = null;
   private AccumuloConfiguration systemConfig = null;
+
+  private synchronized ClientContext getClientContext() {
+    if (context == null) {
+      context = new ClientContext(info);
+    }
+    return context;
+  }
 
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
@@ -147,7 +153,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // Tablet sets will never see updates from ZooKeeper which means that things like constraints
     // and
     // default visibility labels will never be updated in a Tablet until it is reloaded.
-    if (conf == null && Tables.exists(context, tableId)) {
+    if (conf == null && Tables.exists(getClientContext(), tableId)) {
       conf = new TableConfiguration(info, tableId, getNamespaceConfigurationForTable(tableId));
       ConfigSanityCheck.validate(conf);
       synchronized (tableConfigs) {
@@ -175,7 +181,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     if (conf == null) {
       Namespace.ID namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(context, tableId);
+        namespaceId = Tables.getNamespaceId(getClientContext(), tableId);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }

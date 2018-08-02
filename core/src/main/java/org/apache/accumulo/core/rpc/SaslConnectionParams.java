@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosUtil;
@@ -137,6 +138,13 @@ public class SaslConnectionParams {
     updatePrincipalFromUgi();
     updateFromConfiguration(properties);
     updateFromToken(token);
+  }
+
+  public static SaslConnectionParams from(AccumuloConfiguration config, AuthenticationToken token) {
+    if (!config.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      return null;
+    }
+    return new SaslConnectionParams(config, token);
   }
 
   protected void updateFromToken(AuthenticationToken token) {
