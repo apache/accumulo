@@ -107,7 +107,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     log.info("File relative to accumulo dir: " + filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
-        ServerConstants.FILE_ARCHIVE_DIR);
+        ServerConstants.ARCHIVE_DIR);
 
     Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
@@ -167,7 +167,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     log.info("File relative to accumulo dir: " + filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
-        ServerConstants.FILE_ARCHIVE_DIR);
+        ServerConstants.ARCHIVE_DIR);
 
     Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
@@ -228,7 +228,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     log.info("File relative to accumulo dir: " + filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
-        ServerConstants.FILE_ARCHIVE_DIR);
+        ServerConstants.ARCHIVE_DIR);
 
     Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
