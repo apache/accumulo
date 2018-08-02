@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -61,7 +60,6 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    Instance instance = master.getInstance();
     Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 

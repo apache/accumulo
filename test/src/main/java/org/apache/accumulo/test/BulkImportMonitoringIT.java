@@ -54,7 +54,6 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.useMiniDFS(true);
-    cfg.setProperty(Property.GC_FILE_ARCHIVE, "false");
   }
 
   @Test

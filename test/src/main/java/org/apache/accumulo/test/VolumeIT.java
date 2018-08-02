@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -450,7 +449,6 @@ public class VolumeIT extends ConfigurableMacBase {
 
       // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
       retry: while (true) {
-        Instance i = conn.getInstance();
         ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
             conn.info().getZooKeepersSessionTimeOut(), "");
         WalStateManager wals = new WalStateManager(getClientContext(), zk);

@@ -29,8 +29,6 @@ import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -40,7 +38,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
@@ -171,18 +168,11 @@ class CleanUp extends MasterRepo {
     }
 
     if (refCount == 0) {
-      final AccumuloConfiguration conf = master.getConfiguration();
-      boolean archiveFiles = conf.getBoolean(Property.GC_FILE_ARCHIVE);
-
       // delete the map files
       try {
         VolumeManager fs = master.getFileSystem();
         for (String dir : ServerConstants.getTablesDirs()) {
-          if (archiveFiles) {
-            archiveFile(fs, dir, tableId);
-          } else {
-            fs.deleteRecursively(new Path(dir, tableId.canonicalID()));
-          }
+          fs.deleteRecursively(new Path(dir, tableId.canonicalID()));
         }
       } catch (IOException e) {
         log.error("Unable to remove deleted table directory", e);
@@ -218,45 +208,6 @@ class CleanUp extends MasterRepo {
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 
     return null;
-  }
-
-  protected void archiveFile(VolumeManager fs, String dir, Table.ID tableId) throws IOException {
-    Path tableDirectory = new Path(dir, tableId.canonicalID());
-    Volume v = fs.getVolumeByPath(tableDirectory);
-    String basePath = v.getBasePath();
-
-    // Path component of URI
-    String tableDirPath = tableDirectory.toUri().getPath();
-
-    // Just the suffix of the path (after the Volume's base path)
-    String tableDirSuffix = tableDirPath.substring(basePath.length());
-
-    // Remove a leading path separator char because Path will treat the "child" as an absolute path
-    // with it
-    if (Path.SEPARATOR_CHAR == tableDirSuffix.charAt(0)) {
-      if (tableDirSuffix.length() > 1) {
-        tableDirSuffix = tableDirSuffix.substring(1);
-      } else {
-        tableDirSuffix = "";
-      }
-    }
-
-    // Get the file archive directory on this volume
-    final Path fileArchiveDir = new Path(basePath, ServerConstants.FILE_ARCHIVE_DIR);
-
-    // Make sure it exists just to be safe
-    fs.mkdirs(fileArchiveDir);
-
-    // The destination to archive this table to
-    final Path destTableDir = new Path(fileArchiveDir, tableDirSuffix);
-
-    log.debug("Archiving " + tableDirectory + " to " + tableDirectory);
-
-    if (fs.exists(destTableDir)) {
-      merge(fs, tableDirectory, destTableDir);
-    } else {
-      fs.rename(tableDirectory, destTableDir);
-    }
   }
 
   protected void merge(VolumeManager fs, Path src, Path dest) throws IOException {

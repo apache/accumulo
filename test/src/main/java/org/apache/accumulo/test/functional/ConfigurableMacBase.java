@@ -153,7 +153,6 @@ public class ConfigurableMacBase extends AccumuloITBase {
     String nativePathInDevTree = NativeMapIT.nativeMapLocation().getAbsolutePath();
     String nativePathInMapReduce = new File(System.getProperty("user.dir")).toString();
     cfg.setNativeLibPaths(nativePathInDevTree, nativePathInMapReduce);
-    cfg.setProperty(Property.GC_FILE_ARCHIVE, Boolean.TRUE.toString());
     Configuration coreSite = new Configuration(false);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     configure(cfg, coreSite);
