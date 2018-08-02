@@ -296,8 +296,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   /**
    * Set hints for the configured {@link ScanPrioritizer} and {@link ScanDispatcher}. These hints
    * are available on the server side via {@link ScanInfo#getExecutionHints()} Depending on the
-   * configuration, these hints may be ignored. These hints should never impacts what data is
-   * returned by a scan, only how quickly it is returned.
+   * configuration, these hints may be ignored. Hints will never impact what data is returned by a
+   * scan, only how quickly it is returned.
    *
    * <p>
    * The default configuration for Accumulo will ignore hints. See {@link HintScanPrioritizer} and
