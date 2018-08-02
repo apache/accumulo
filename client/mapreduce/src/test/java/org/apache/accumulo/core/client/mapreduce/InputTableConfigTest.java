@@ -29,11 +29,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 public class InputTableConfigTest {
 
@@ -100,6 +103,21 @@ public class InputTableConfigTest {
     InputTableConfig actualConfig = deserialize(serialized);
     assertEquals(actualConfig.getIterators(), settings);
 
+  }
+
+  @Test
+  public void testSamplerConfig() throws IOException {
+    SamplerConfiguration sc = new SamplerConfiguration("com.foo.S1").addOption("k1", "v1");
+    tableQueryConfig.setSamplerConfiguration(sc);
+    InputTableConfig actualConfig = deserialize(serialize(tableQueryConfig));
+    assertEquals(sc, actualConfig.getSamplerConfiguration());
+  }
+
+  @Test
+  public void testExecutionHints() throws IOException {
+    tableQueryConfig.setExecutionHints(ImmutableMap.of("priority", "9"));
+    InputTableConfig actualConfig = deserialize(serialize(tableQueryConfig));
+    assertEquals(ImmutableMap.of("priority", "9"), actualConfig.getExecutionHints());
   }
 
   private byte[] serialize(InputTableConfig tableQueryConfig) throws IOException {

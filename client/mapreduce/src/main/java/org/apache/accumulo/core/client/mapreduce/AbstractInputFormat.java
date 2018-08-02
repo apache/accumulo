@@ -595,6 +595,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         scannerBase.setSamplerConfiguration(samplerConfig);
       }
 
+      Map<String,String> executionHints = split.getExecutionHints();
+      if (executionHints == null || executionHints.isEmpty()) {
+        executionHints = tableConfig.getExecutionHints();
+      }
+
+      if (executionHints != null) {
+        scannerBase.setExecutionHints(executionHints);
+      }
+
       scannerIterator = scannerBase.iterator();
       numKeysRead = 0;
     }

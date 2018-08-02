@@ -47,8 +47,9 @@ public class MultiScanSession extends ScanSession {
   public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent,
       Map<KeyExtent,List<Range>> queries, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, Authorizations authorizations,
-      SamplerConfiguration samplerConfig, long batchTimeOut, String context) {
-    super(credentials, new HashSet<>(), ssiList, ssio, authorizations);
+      SamplerConfiguration samplerConfig, long batchTimeOut, String context,
+      Map<String,String> executionHints) {
+    super(credentials, new HashSet<>(), ssiList, ssio, authorizations, executionHints);
     this.queries = queries;
     this.threadPoolExtent = threadPoolExtent;
     this.samplerConfig = samplerConfig;

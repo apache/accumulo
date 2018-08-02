@@ -41,7 +41,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
@@ -233,7 +232,7 @@ public class TabletServerResource {
   }
 
   private static final int concurrentScans = Monitor.getContext().getConfiguration()
-      .getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+      .getScanExecutors().stream().mapToInt(sec -> sec.maxThreads).sum();
 
   /**
    * Generates the server stats

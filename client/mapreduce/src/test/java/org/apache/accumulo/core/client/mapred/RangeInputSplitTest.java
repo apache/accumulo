@@ -37,6 +37,8 @@ import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class RangeInputSplitTest {
 
   @Test
@@ -84,6 +86,7 @@ public class RangeInputSplitTest {
     split.setFetchedColumns(fetchedColumns);
     split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
+    split.setExecutionHints(ImmutableMap.of("priority", "9"));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -104,6 +107,7 @@ public class RangeInputSplitTest {
     Assert.assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());
+    Assert.assertEquals(split.getExecutionHints(), newSplit.getExecutionHints());
   }
 
 }

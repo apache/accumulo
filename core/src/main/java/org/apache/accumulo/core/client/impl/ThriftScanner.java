@@ -101,7 +101,8 @@ public class ThriftScanner {
         // isolation below
         ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
-            Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext);
+            Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
+            null);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
@@ -109,7 +110,8 @@ public class ThriftScanner {
             scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
-            scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext);
+            scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
+            scanState.executionHints);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
 
@@ -167,13 +169,14 @@ public class ThriftScanner {
     Map<String,Map<String,String>> serverSideIteratorOptions;
 
     SamplerConfiguration samplerConfig;
+    Map<String,String> executionHints;
 
     public ScanState(ClientContext context, Table.ID tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
         Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated,
         long readaheadThreshold, SamplerConfiguration samplerConfig, long batchTimeOut,
-        String classLoaderContext) {
+        String classLoaderContext, Map<String,String> executionHints) {
       this.context = context;
       this.authorizations = authorizations;
       this.classLoaderContext = classLoaderContext;
@@ -205,6 +208,11 @@ public class ThriftScanner {
       this.samplerConfig = samplerConfig;
 
       this.batchTimeOut = batchTimeOut;
+
+      if (executionHints == null || executionHints.size() == 0)
+        this.executionHints = null; // avoid thrift serlialization for empty map
+      else
+        this.executionHints = executionHints;
     }
   }
 
@@ -455,7 +463,7 @@ public class ThriftScanner {
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold,
             SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-            scanState.classLoaderContext);
+            scanState.classLoaderContext, scanState.executionHints);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 

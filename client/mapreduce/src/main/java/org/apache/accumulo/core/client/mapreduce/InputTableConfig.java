@@ -21,13 +21,18 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -47,6 +52,7 @@ public class InputTableConfig implements Writable {
   private boolean useIsolatedScanners = false;
   private boolean offlineScan = false;
   private SamplerConfiguration samplerConfig = null;
+  private Map<String,String> executionHints = Collections.emptyMap();
 
   public InputTableConfig() {}
 
@@ -276,6 +282,22 @@ public class InputTableConfig implements Writable {
     return samplerConfig;
   }
 
+  /**
+   * The execution hints to set on created scanners. See {@link ScannerBase#setExecutionHints(Map)}
+   *
+   * @since 2.0.0
+   */
+  public void setExecutionHints(Map<String,String> executionHints) {
+    this.executionHints = executionHints;
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  public Map<String,String> getExecutionHints() {
+    return executionHints;
+  }
+
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     if (iterators != null) {
@@ -311,6 +333,22 @@ public class InputTableConfig implements Writable {
     dataOutput.writeBoolean(useLocalIterators);
     dataOutput.writeBoolean(useIsolatedScanners);
     dataOutput.writeBoolean(offlineScan);
+    if (samplerConfig == null) {
+      dataOutput.writeBoolean(false);
+    } else {
+      dataOutput.writeBoolean(true);
+      new SamplerConfigurationImpl(samplerConfig).write(dataOutput);
+    }
+
+    if (executionHints == null || executionHints.size() == 0) {
+      dataOutput.writeInt(0);
+    } else {
+      dataOutput.writeInt(executionHints.size());
+      for (Entry<String,String> entry : executionHints.entrySet()) {
+        dataOutput.writeUTF(entry.getKey());
+        dataOutput.writeUTF(entry.getValue());
+      }
+    }
   }
 
   @Override
@@ -350,6 +388,18 @@ public class InputTableConfig implements Writable {
     useLocalIterators = dataInput.readBoolean();
     useIsolatedScanners = dataInput.readBoolean();
     offlineScan = dataInput.readBoolean();
+
+    if (dataInput.readBoolean()) {
+      samplerConfig = new SamplerConfigurationImpl(dataInput).toSamplerConfiguration();
+    }
+
+    executionHints = new HashMap<>();
+    int numHints = dataInput.readInt();
+    for (int i = 0; i < numHints; i++) {
+      String k = dataInput.readUTF();
+      String v = dataInput.readUTF();
+      executionHints.put(k, v);
+    }
   }
 
   @Override
@@ -375,6 +425,9 @@ public class InputTableConfig implements Writable {
       return false;
     if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
       return false;
+    if (executionHints != null ? !executionHints.equals(that.executionHints)
+        : that.executionHints != null)
+      return false;
     return samplerConfig != null ? samplerConfig.equals(that.samplerConfig)
         : that.samplerConfig == null;
   }
@@ -389,6 +442,7 @@ public class InputTableConfig implements Writable {
     result = 31 * result + (useIsolatedScanners ? 1 : 0);
     result = 31 * result + (offlineScan ? 1 : 0);
     result = 31 * result + (samplerConfig == null ? 0 : samplerConfig.hashCode());
+    result = 31 * result + (executionHints == null ? 0 : executionHints.hashCode());
     return result;
   }
 }

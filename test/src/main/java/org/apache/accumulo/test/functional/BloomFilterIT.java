@@ -71,8 +71,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     Connector c = getConnector();
     final String readAhead = c.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey());
-    c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "1");
+        .get(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey());
+    c.instanceOperations().setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "1");
     try {
       Thread.sleep(1000);
       final String[] tables = getUniqueNames(4);
@@ -160,7 +160,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         }
       }
     } finally {
-      c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(),
+      c.instanceOperations().setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(),
           readAhead);
     }
   }

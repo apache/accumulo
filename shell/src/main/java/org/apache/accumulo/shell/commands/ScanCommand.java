@@ -47,6 +47,7 @@ import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Shell.PrintFile;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.accumulo.shell.ShellCommandException.ErrorCode;
+import org.apache.accumulo.shell.ShellUtil;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -66,6 +67,7 @@ public class ScanCommand extends Command {
   private Option profileOpt;
   private Option sampleOpt;
   private Option contextOpt;
+  private Option executionHintsOpt;
 
   protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState,
       ScannerBase scanner)
@@ -115,6 +117,8 @@ public class ScanCommand extends Command {
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
       setupSampling(tableName, cl, shellState, scanner);
+
+      scanner.setExecutionHints(ShellUtil.parseMapOpt(cl, executionHintsOpt));
 
       // output the records
 
@@ -347,6 +351,7 @@ public class ScanCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     sampleOpt = new Option(null, "sample", false, "Show sample");
     contextOpt = new Option("cc", "context", true, "name of the classloader context");
+    executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -358,6 +363,7 @@ public class ScanCommand extends Command {
     timeoutOption.setArgName("timeout");
     outputFileOpt.setArgName("file");
     contextOpt.setArgName("context");
+    executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
@@ -389,6 +395,7 @@ public class ScanCommand extends Command {
     o.addOption(profileOpt);
     o.addOption(sampleOpt);
     o.addOption(contextOpt);
+    o.addOption(executionHintsOpt);
 
     return o;
   }
