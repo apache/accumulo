@@ -106,29 +106,25 @@ public class CreateInitialSplits extends MasterRepo {
   }
 
   private void writeSplitsToMetadataTable(Master environment, String splitFile,
-      SplitEntry splitEntry, BatchWriter bw) throws IOException {
+      SplitEntry splitEntry, BatchWriter bw) throws IOException, MutationsRejectedException {
     String tableId = tableInfo.tableId.toString();
     try (FSDataInputStream splitStream = environment.getInputStream(splitFile)) {
       try (BufferedReader br = new BufferedReader(new InputStreamReader(splitStream))) {
         String split;
         while ((split = br.readLine()) != null) {
-          try {
-            Mutation mut = new Mutation(tableId + ";" + split);
-            ServerColumnFamily.DIRECTORY_COLUMN.put(mut, splitEntry.dirValue);
-            ServerColumnFamily.LOCK_COLUMN.put(mut, splitEntry.lockValue);
-            ServerColumnFamily.TIME_COLUMN.put(mut, splitEntry.timeValue);
-            if (splitEntry.first) {
-              TabletColumnFamily.PREV_ROW_COLUMN.put(mut, splitEntry.firstRow);
-              splitEntry.first = false;
-            } else {
-              TabletColumnFamily.PREV_ROW_COLUMN.put(mut,
-                  KeyExtent.encodePrevEndRow(new Text(splitEntry.lastSplit)));
-            }
-            bw.addMutation(mut);
-            splitEntry.lastSplit = split;
-          } catch (Exception e) {
-            e.printStackTrace();
+          Mutation mut = new Mutation(tableId + ";" + split);
+          ServerColumnFamily.DIRECTORY_COLUMN.put(mut, splitEntry.dirValue);
+          ServerColumnFamily.LOCK_COLUMN.put(mut, splitEntry.lockValue);
+          ServerColumnFamily.TIME_COLUMN.put(mut, splitEntry.timeValue);
+          if (splitEntry.first) {
+            TabletColumnFamily.PREV_ROW_COLUMN.put(mut, splitEntry.firstRow);
+            splitEntry.first = false;
+          } else {
+            TabletColumnFamily.PREV_ROW_COLUMN.put(mut,
+                KeyExtent.encodePrevEndRow(new Text(splitEntry.lastSplit)));
           }
+          bw.addMutation(mut);
+          splitEntry.lastSplit = split;
         }
       }
     }
