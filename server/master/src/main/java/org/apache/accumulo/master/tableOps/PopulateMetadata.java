@@ -22,8 +22,11 @@ import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import com.sun.media.jfxmedia.MetadataParser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -31,16 +34,20 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -77,6 +84,8 @@ class PopulateMetadata extends MasterRepo {
     MetadataTableUtil.addTablet(extent, tableInfo.dir, environment, tableInfo.timeType,
         environment.getMasterLock());
 
+    // How to I get reference to lock, timetype, and dir here.
+
     if (tableInfo.props.containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits")) {
       log.info(">>>> create initial splits");
 
@@ -84,13 +93,22 @@ class PopulateMetadata extends MasterRepo {
       populateSplitEntry(environment, splitEntry);
       log.info(">>>> completed populating SplitEntry...");
 
+      SortedSet<Text> splits = readSplits(tableInfo.splitFile, environment);
+
       try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
 
+        // private void writeSplitsToMetadataTable2(Table.ID tableId, SortedSet<Text> splits,
+        //      Function<Text,Value> dirFunction, SplitEntry splitEntry, char timeType, ZooLock lock,
+        //      BatchWriter bw)
+
+        writeSplits(tableInfo.tableId, splits, splitEntry.dirValue, splitEntry.timeValue,
+            splitEntry.lockValue, bw);
+
         // Read splits from filesystem and write to metadata table.
-        writeSplitsToMetadataTable(environment, tableInfo.splitFile, splitEntry, bw);
+        //writeSplitsToMetadataTable(environment, tableInfo.splitFile, splitEntry, bw);
 
         // last row is handled as a special case
-        writeLastRowToMetadataTable(splitEntry, bw);
+        //writeLastRowToMetadataTable(splitEntry, bw);
       }
 
     }
@@ -98,30 +116,53 @@ class PopulateMetadata extends MasterRepo {
     return new FinishCreateTable(tableInfo);
   }
 
-  @Override
-  public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment,
-        environment.getMasterLock());
-  }
 
-  private void writeSplitsToMetadataTable2(Table.ID tableId, SortedSet<Text> splits,
-      Function<Text,Value> dirFunction, SplitEntry splitEntry, char timeType, ZooLock lock,
-      BatchWriter bw) throws MutationsRejectedException {
+
+  private void writeSplits(Table.ID tableId, SortedSet<Text> splits, Value dirValue,
+      Value timeValue, Value lockValue, BatchWriter bw) throws MutationsRejectedException {
     Text prevSplit = null;
     for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
       Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-          splitEntry.dirValue);
-      // MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-      // dirFunction.apply(split));
+          dirValue);
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
-          new Value(timeType + "0"));
+          timeValue);
+      MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mut,
+          lockValue);
+      //MetadataTableUtil.putLockID(lockValue, mut);
+      prevSplit = split;
+
+      bw.addMutation(mut);
+    }
+  }
+
+  /*
+    private void writeSplitsToMetadataTable(
+        Table.ID tableId,
+        SortedSet<Text> splits,
+        Function<Text,Value> dirFunction,
+        char timeType,
+        ZooLock lock,
+        BatchWriter bw) {
+    Text prevSplit = null;
+    for(Text split : Iterables.concat(splits, Collections.singleton(null))) {
+      Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();
+      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirFunction.apply(split));
+      ServerColumnFamily.TIME_COLUMN.put(mut, new Value(timeType+"0"));
       MetadataTableUtil.putLockID(lock, mut);
       prevSplit = split;
 
       bw.addMutation(mut);
     }
   }
+   */
+
+  @Override
+  public void undo(long tid, Master environment) throws Exception {
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment,
+        environment.getMasterLock());
+  }
+
 
   private class SplitEntry {
     Value dirValue;
@@ -142,7 +183,6 @@ class PopulateMetadata extends MasterRepo {
   }
 
   ;
-
   /**
    * This method reads the newly created metadata table entry for the table being created and stores
    * the information into a SplitEntry class for use in follow-on methods.
@@ -176,16 +216,32 @@ class PopulateMetadata extends MasterRepo {
     scan.close();
   }
 
-  private void writeLastRowToMetadataTable(SplitEntry splitEntry, BatchWriter bw)
-      throws MutationsRejectedException {
-    Text lastRow = new Text(tableInfo.tableId.toString() + "<");
-    Mutation mut = new Mutation(lastRow);
-    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, splitEntry.dirValue);
-    MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mut, splitEntry.lockValue);
-    MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, splitEntry.timeValue);
-    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(mut,
-        KeyExtent.encodePrevEndRow(new Text(splitEntry.lastSplit)));
-    bw.addMutation(mut);
+  private SortedSet<Text> readSplits(String splitFile, Master environment) throws IOException {
+    SortedSet<Text> splits;
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(environment.getInputStream(splitFile)))) {
+      splits = br.lines().map(Text::new)
+          .collect(Collectors.toCollection(TreeSet::new));
+    }
+    return splits;
+  }
+
+  private void writeSplitsToMetadataTable2(Table.ID tableId, SortedSet<Text> splits,
+      Function<Text,Value> dirFunction, SplitEntry splitEntry, char timeType, ZooLock lock,
+      BatchWriter bw) throws MutationsRejectedException {
+    Text prevSplit = null;
+    for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
+      Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();
+      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+          splitEntry.dirValue);
+      // MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+      // dirFunction.apply(split));
+      MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
+          new Value(timeType + "0"));
+      MetadataTableUtil.putLockID(lock, mut);
+      prevSplit = split;
+
+      bw.addMutation(mut);
+    }
   }
 
   private void writeSplitsToMetadataTable(Master environment, String splitFile,
@@ -216,6 +272,18 @@ class PopulateMetadata extends MasterRepo {
         }
       }
     }
+  }
+
+  private void writeLastRowToMetadataTable(SplitEntry splitEntry, BatchWriter bw)
+      throws MutationsRejectedException {
+    Text lastRow = new Text(tableInfo.tableId.toString() + "<");
+    Mutation mut = new Mutation(lastRow);
+    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, splitEntry.dirValue);
+    MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mut, splitEntry.lockValue);
+    MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, splitEntry.timeValue);
+    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(mut,
+        KeyExtent.encodePrevEndRow(new Text(splitEntry.lastSplit)));
+    bw.addMutation(mut);
   }
 
 }
