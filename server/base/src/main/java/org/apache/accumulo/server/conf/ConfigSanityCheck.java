@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -25,7 +25,7 @@ import com.google.auto.service.AutoService;
 public class ConfigSanityCheck implements KeywordExecutable {
 
   public static void main(String[] args) {
-    ServerInfo.getInstance().getServerConfFactory().getSystemConfiguration();
+    ServerContext.getInstance().getServerConfFactory().getSystemConfiguration();
   }
 
   @Override

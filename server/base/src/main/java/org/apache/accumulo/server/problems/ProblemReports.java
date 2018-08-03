@@ -47,8 +47,7 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
@@ -72,9 +71,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
   private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS,
       new LinkedBlockingQueue<>(500), new NamingThreadFactory("acu-problem-reporter"));
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
-  public ProblemReports(AccumuloServerContext context) {
+  public ProblemReports(ServerContext context) {
     this.context = context;
   }
 
@@ -294,7 +293,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     return iterator(null);
   }
 
-  public static synchronized ProblemReports getInstance(AccumuloServerContext context) {
+  public static synchronized ProblemReports getInstance(ServerContext context) {
     if (instance == null) {
       instance = new ProblemReports(context);
     }
@@ -303,8 +302,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String args[]) throws Exception {
-    ServerInfo info = ServerInfo.getInstance();
-    getInstance(new AccumuloServerContext(info)).printProblems();
+    ServerContext context = ServerContext.getInstance();
+    getInstance(context).printProblems();
   }
 
   public Map<Table.ID,Map<ProblemType,Integer>> summarize() {

@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 
 public class ProblemReportingIterator implements InterruptibleIterator {
   private final SortedKeyValueIterator<Key,Value> source;
@@ -37,10 +37,10 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private final boolean continueOnError;
   private String resource;
   private Table.ID tableId;
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
-  public ProblemReportingIterator(AccumuloServerContext context, Table.ID tableId, String resource,
-      boolean continueOnError, SortedKeyValueIterator<Key,Value> source) {
+  public ProblemReportingIterator(ServerContext context, Table.ID tableId, String resource,
+                                  boolean continueOnError, SortedKeyValueIterator<Key,Value> source) {
     this.context = context;
     this.tableId = tableId;
     this.resource = resource;

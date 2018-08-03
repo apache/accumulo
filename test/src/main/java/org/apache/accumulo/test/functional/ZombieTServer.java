@@ -38,8 +38,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -63,7 +62,7 @@ public class ZombieTServer {
 
     boolean halted = false;
 
-    ThriftClientHandler(AccumuloServerContext context, TransactionWatcher watcher) {
+    ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
       super(context, watcher);
     }
 
@@ -101,7 +100,7 @@ public class ZombieTServer {
   public static void main(String[] args) throws Exception {
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
-    AccumuloServerContext context = new AccumuloServerContext(ServerInfo.getInstance());
+    ServerContext context = new ServerContext(ServerContext.getInstance());
     TransactionWatcher watcher = new TransactionWatcher();
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);

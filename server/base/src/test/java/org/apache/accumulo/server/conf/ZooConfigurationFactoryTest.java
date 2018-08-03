@@ -28,14 +28,14 @@ import static org.junit.Assert.assertSame;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.Watcher;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ZooConfigurationFactoryTest {
 
-  private ServerInfo info;
+  private ServerContext info;
   private ZooCacheFactory zcf;
   private ZooCache zc;
   private ZooConfigurationFactory zconff;
@@ -43,7 +43,7 @@ public class ZooConfigurationFactoryTest {
 
   @Before
   public void setUp() {
-    info = createMock(ServerInfo.class);
+    info = createMock(ServerContext.class);
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
     zconff = new ZooConfigurationFactory();

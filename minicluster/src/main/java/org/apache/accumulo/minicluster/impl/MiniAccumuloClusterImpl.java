@@ -81,7 +81,7 @@ import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
@@ -714,8 +714,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public ServerInfo getServerInfo() {
-    return new ServerInfo(getClientInfo());
+  public ServerContext getServerContext() {
+    return new ServerContext(getClientInfo());
   }
 
   /**

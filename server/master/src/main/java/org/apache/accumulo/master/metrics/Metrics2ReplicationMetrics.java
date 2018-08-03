@@ -70,7 +70,7 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
 
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
-    replicationUtil = new ReplicationUtil(master);
+    replicationUtil = new ReplicationUtil(master.getContext());
     replicationQueueTimeQuantiles = registry.newQuantiles(REPLICATION_QUEUE_TIME_QUANTILES,
         "Replication queue time quantiles in milliseconds", "ops", "latency", 600);
     replicationQueueTimeStat = registry.newStat(REPLICATION_QUEUE_TIME,
@@ -79,7 +79,7 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
 
   protected void snapshot() {
     // Only add these metrics if the replication table is online and there are peers
-    if (TableState.ONLINE == Tables.getTableState(master, ReplicationTable.ID)
+    if (TableState.ONLINE == Tables.getTableState(master.getContext(), ReplicationTable.ID)
         && !replicationUtil.getPeers().isEmpty()) {
       registry.add(PENDING_FILES, getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();

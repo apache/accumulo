@@ -33,15 +33,14 @@ import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
 public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    AccumuloServerContext context = new AccumuloServerContext(ServerInfo.getInstance());
+    ServerContext context = new ServerContext(ServerContext.getInstance());
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

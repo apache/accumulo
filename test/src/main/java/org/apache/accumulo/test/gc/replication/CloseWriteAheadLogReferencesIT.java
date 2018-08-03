@@ -47,8 +47,7 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -67,7 +66,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   private Connector conn;
 
   private static class WrappedCloseWriteAheadLogReferences extends CloseWriteAheadLogReferences {
-    public WrappedCloseWriteAheadLogReferences(AccumuloServerContext context) {
+    public WrappedCloseWriteAheadLogReferences(ServerContext context) {
       super(context);
     }
 
@@ -107,7 +106,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
-    ServerInfo info = createMock(ServerInfo.class);
+    ServerContext info = createMock(ServerContext.class);
     expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
     expect(info.getProperties()).andReturn(new Properties()).anyTimes();
     expect(info.getZooKeepers()).andReturn("localhost").anyTimes();
@@ -118,7 +117,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     replay(factory, siteConfig, info);
 
-    refs = new WrappedCloseWriteAheadLogReferences(new AccumuloServerContext(info));
+    refs = new WrappedCloseWriteAheadLogReferences(new ServerContext(info));
   }
 
   @Test

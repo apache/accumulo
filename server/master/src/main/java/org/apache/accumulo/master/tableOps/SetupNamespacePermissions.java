@@ -37,10 +37,10 @@ class SetupNamespacePermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all namespace permissions to the creator
-    SecurityOperation security = AuditedSecurityOperation.getInstance(env);
+    SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     for (NamespacePermission permission : NamespacePermission.values()) {
       try {
-        security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user,
+        security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,
             namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);
@@ -48,7 +48,7 @@ class SetupNamespacePermissions extends MasterRepo {
       }
     }
 
-    // setup permissions in zookeeper before table info in zookeeper
+    // setup permissions in zookeeper before table context in zookeeper
     // this way concurrent users will not get a spurious permission denied
     // error
     return new PopulateZookeeperWithNamespace(namespaceInfo);

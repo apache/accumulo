@@ -38,7 +38,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
@@ -84,7 +84,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void testRemoveUnusedLog() throws Exception {
-    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
@@ -118,7 +118,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void testKeepClosedLog() throws Exception {
-    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
@@ -148,7 +148,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void deleteUnreferenceLogOnDeadServer() throws Exception {
-    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
@@ -194,7 +194,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void ignoreReferenceLogOnDeadServer() throws Exception {
-    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
@@ -235,7 +235,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void replicationDelaysFileCollection() throws Exception {
-    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);

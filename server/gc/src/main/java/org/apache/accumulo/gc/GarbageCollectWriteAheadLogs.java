@@ -46,7 +46,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -73,7 +73,7 @@ import com.google.common.collect.Iterators;
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
   private final VolumeManager fs;
   private final boolean useTrash;
   private final LiveTServerSet liveServers;
@@ -90,8 +90,8 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(final AccumuloServerContext context, VolumeManager fs,
-      boolean useTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(final ServerContext context, VolumeManager fs,
+                               boolean useTrash) throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
@@ -127,8 +127,8 @@ public class GarbageCollectWriteAheadLogs {
    *          a started LiveTServerSet instance
    */
   @VisibleForTesting
-  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash,
-      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletLocationState> store)
+  GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
+                               LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletLocationState> store)
       throws IOException {
     this.context = context;
     this.fs = fs;
@@ -148,7 +148,7 @@ public class GarbageCollectWriteAheadLogs {
 
       Map<TServerInstance,Set<UUID>> logsByServer = new HashMap<>();
       Map<UUID,Pair<WalState,Path>> logsState = new HashMap<>();
-      // Scan for log file info first: the order is important
+      // Scan for log file context first: the order is important
       // Consider:
       // * get live servers
       // * new server gets a lock, creates a log

@@ -38,7 +38,7 @@ import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -56,12 +56,12 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class WorkMaker {
   private static final Logger log = LoggerFactory.getLogger(WorkMaker.class);
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
   private Connector conn;
 
   private BatchWriter writer;
 
-  public WorkMaker(AccumuloServerContext context, Connector conn) {
+  public WorkMaker(ServerContext context, Connector conn) {
     this.context = context;
     this.conn = conn;
   }
@@ -114,7 +114,7 @@ public class WorkMaker {
         }
 
         // Get the table configuration for the table specified by the status record
-        tableConf = context.getServerConfigurationFactory().getTableConfiguration(tableId);
+        tableConf = context.getServerConfFactory().getTableConfiguration(tableId);
 
         // getTableConfiguration(String) returns null if the table no longer exists
         if (null == tableConf) {

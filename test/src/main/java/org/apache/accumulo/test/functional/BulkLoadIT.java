@@ -99,7 +99,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    aconf = new ServerConfigurationFactory(getCluster().getServerInfo()).getSystemConfiguration();
+    aconf = getCluster().getServerContext().getConfiguration();
     fs = getCluster().getFileSystem();
     rootPath = cluster.getTemporaryPath().toString();
   }

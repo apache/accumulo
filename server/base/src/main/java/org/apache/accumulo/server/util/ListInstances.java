@@ -109,7 +109,7 @@ public class ListInstances {
 
     if (!printErrors && errors > 0) {
       System.err.println(
-          "WARN : There were " + errors + " errors, run with --print-errors to see more info");
+          "WARN : There were " + errors + " errors, run with --print-errors to see more context");
     }
   }
 

@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -164,7 +164,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     ServerConfigurationFactory localConf = lazyConfFactory;
     if (localConf == null) {
       // If we're under contention when first getting here we'll throw away some initializations.
-      localConf = ServerInfo.getInstance().getServerConfFactory();
+      localConf = ServerContext.getInstance().getServerConfFactory();
       lazyConfFactory = localConf;
     }
     return localConf;

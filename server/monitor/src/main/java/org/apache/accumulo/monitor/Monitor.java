@@ -63,9 +63,8 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.monitor.LogService;
@@ -166,7 +165,7 @@ public class Monitor implements HighlyAvailableService {
   private static GCStatus gcStatus;
 
   private static ServerConfigurationFactory config;
-  private static AccumuloServerContext context;
+  private static ServerContext context;
 
   private static EmbeddedWebServer server;
 
@@ -258,7 +257,7 @@ public class Monitor implements HighlyAvailableService {
           public void run() {
             synchronized (Monitor.class) {
               if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
-                final String instanceName = ServerInfo.getInstance().getInstanceName();
+                final String instanceName = ServerContext.getInstance().getInstanceName();
                 if (null != instanceName) {
                   cachedInstanceName.set(instanceName);
                 }
@@ -436,11 +435,11 @@ public class Monitor implements HighlyAvailableService {
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerInfo info = ServerInfo.getInstance();
+    ServerContext info = ServerContext.getInstance();
     info.setupServer(app, Monitor.class.getName(), opts.getAddress());
     try {
       config = info.getServerConfFactory();
-      context = new AccumuloServerContext(info);
+      context = new ServerContext(info);
       Monitor monitor = new Monitor();
       // Servlets need access to limit requests when the monitor is not active, but Servlets are
       // instantiated via reflection. Expose the service this way instead.
@@ -843,7 +842,7 @@ public class Monitor implements HighlyAvailableService {
     return new ArrayList<>(dataCacheHitRateOverTime);
   }
 
-  public static AccumuloServerContext getContext() {
+  public static ServerContext getContext() {
     return context;
   }
 

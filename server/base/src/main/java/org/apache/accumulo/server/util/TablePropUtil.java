@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
@@ -59,7 +59,7 @@ public class TablePropUtil {
   }
 
   private static String getTablePath(Table.ID tableId) {
-    return ServerInfo.getInstance().getZooKeeperRoot() + Constants.ZTABLES + "/"
+    return ServerContext.getInstance().getZooKeeperRoot() + Constants.ZTABLES + "/"
         + tableId.canonicalID() + Constants.ZTABLE_CONF;
   }
 }

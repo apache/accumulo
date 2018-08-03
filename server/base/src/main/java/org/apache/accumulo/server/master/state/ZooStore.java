@@ -24,7 +24,7 @@ import java.util.List;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ public class ZooStore implements DistributedStore {
   }
 
   public ZooStore() throws IOException {
-    this(ServerInfo.getInstance().getZooKeeperRoot());
+    this(ServerContext.getInstance().getZooKeeperRoot());
   }
 
   @Override

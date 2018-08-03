@@ -87,7 +87,7 @@ public class PrepBulkImport extends MasterRepo {
 
     if (master.onlineTabletServers().size() == 0)
       return 500;
-    Tables.clearCache(master);
+    Tables.clearCache(master.getContext());
 
     return Utils.reserveHdfsDirectory(bulkInfo.sourceDir, tid);
   }
@@ -162,7 +162,7 @@ public class PrepBulkImport extends MasterRepo {
       Iterators.transform(lmi, entry -> entry.getKey());
 
       TabletIterFactory tabletIterFactory = startRow -> {
-        return MetadataScanner.builder().from(master).scanMetadataTable()
+        return MetadataScanner.builder().from(master.getContext()).scanMetadataTable()
             .overRange(bulkInfo.tableId, startRow, null).checkConsistency().fetchPrev().build()
             .stream().map(TabletMetadata::getExtent).iterator();
       };
@@ -177,7 +177,7 @@ public class PrepBulkImport extends MasterRepo {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(master);
 
-    bulkInfo.tableState = Tables.getTableState(master, bulkInfo.tableId);
+    bulkInfo.tableState = Tables.getTableState(master.getContext(), bulkInfo.tableId);
 
     VolumeManager fs = master.getFileSystem();
     final UniqueNameAllocator namer = UniqueNameAllocator.getInstance();

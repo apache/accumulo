@@ -107,14 +107,14 @@ public class KeywordStartIT {
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("gc", GCExecutable.class);
     expectSet.put("help", Help.class);
-    expectSet.put("info", Info.class);
+    expectSet.put("context", Info.class);
     expectSet.put("init", Initialize.class);
-    expectSet.put("login-info", LoginProperties.class);
+    expectSet.put("login-context", LoginProperties.class);
     expectSet.put("master", MasterExecutable.class);
     expectSet.put("minicluster", MiniClusterExecutable.class);
     expectSet.put("monitor", MonitorExecutable.class);
     expectSet.put("proxy", Proxy.class);
-    expectSet.put("rfile-info", PrintInfo.class);
+    expectSet.put("rfile-context", PrintInfo.class);
     expectSet.put("shell", Shell.class);
     expectSet.put("tracer", TracerExecutable.class);
     expectSet.put("tserver", TServerExecutable.class);

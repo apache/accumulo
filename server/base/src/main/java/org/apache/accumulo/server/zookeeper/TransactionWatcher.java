@@ -25,43 +25,43 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
 public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.TransactionWatcher {
   public static class ZooArbitrator implements Arbitrator {
 
-    private static ServerInfo info = ServerInfo.getInstance();
-    ZooReader rdr = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
+    private static ServerContext context = ServerContext.getInstance();
+    ZooReader rdr = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
 
     @Override
     public boolean transactionAlive(String type, long tid) throws Exception {
-      String path = info.getZooKeeperRoot() + "/" + type + "/" + tid;
+      String path = context.getZooKeeperRoot() + "/" + type + "/" + tid;
       rdr.sync(path);
       return rdr.exists(path);
     }
 
     public static void start(String type, long tid) throws KeeperException, InterruptedException {
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
-      writer.putPersistentData(info.getZooKeeperRoot() + "/" + type, new byte[] {},
+      writer.putPersistentData(context.getZooKeeperRoot() + "/" + type, new byte[] {},
           NodeExistsPolicy.OVERWRITE);
-      writer.putPersistentData(info.getZooKeeperRoot() + "/" + type + "/" + tid, new byte[] {},
+      writer.putPersistentData(context.getZooKeeperRoot() + "/" + type + "/" + tid, new byte[] {},
           NodeExistsPolicy.OVERWRITE);
-      writer.putPersistentData(info.getZooKeeperRoot() + "/" + type + "/" + tid + "-running",
+      writer.putPersistentData(context.getZooKeeperRoot() + "/" + type + "/" + tid + "-running",
           new byte[] {}, NodeExistsPolicy.OVERWRITE);
     }
 
     public static void stop(String type, long tid) throws KeeperException, InterruptedException {
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
-      writer.recursiveDelete(info.getZooKeeperRoot() + "/" + type + "/" + tid,
+      writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
     }
 
     public static void cleanup(String type, long tid) throws KeeperException, InterruptedException {
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
-      writer.recursiveDelete(info.getZooKeeperRoot() + "/" + type + "/" + tid,
+      writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
-      writer.recursiveDelete(info.getZooKeeperRoot() + "/" + type + "/" + tid + "-running",
+      writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid + "-running",
           NodeMissingPolicy.SKIP);
     }
 
@@ -69,7 +69,7 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
         throws KeeperException, InterruptedException {
       final IZooReader reader = ZooReaderWriter.getInstance();
       final Set<Long> result = new HashSet<>();
-      final String parent = info.getZooKeeperRoot() + "/" + type;
+      final String parent = context.getZooKeeperRoot() + "/" + type;
       reader.sync(parent);
       List<String> children = reader.getChildren(parent);
       for (String child : children) {
@@ -83,7 +83,7 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
 
     @Override
     public boolean transactionComplete(String type, long tid) throws Exception {
-      String path = info.getZooKeeperRoot() + "/" + type + "/" + tid + "-running";
+      String path = context.getZooKeeperRoot() + "/" + type + "/" + tid + "-running";
       rdr.sync(path);
       return !rdr.exists(path);
     }

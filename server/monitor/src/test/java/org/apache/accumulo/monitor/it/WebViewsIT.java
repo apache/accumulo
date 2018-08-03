@@ -37,7 +37,7 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.view.WebViews;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.MonitorTests;
 import org.easymock.EasyMock;
 import org.glassfish.jersey.client.ClientConfig;
@@ -99,7 +99,7 @@ public class WebViewsIT extends JerseyTest {
    */
   @Test
   public void testGetTablesConstraintPassing() throws Exception {
-    AccumuloServerContext contextMock = EasyMock.createMock(AccumuloServerContext.class);
+    ServerContext contextMock = EasyMock.createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(contextMock.getInstanceID()).andReturn("foo").atLeastOnce();
 

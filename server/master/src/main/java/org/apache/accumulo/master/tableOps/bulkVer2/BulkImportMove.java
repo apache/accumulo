@@ -98,7 +98,7 @@ class BulkImportMove extends MasterRepo {
    */
   private void moveFiles(String fmtTid, Path sourceDir, Path bulkDir, Master master,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
-    MetadataTableUtil.addBulkLoadInProgressFlag(master,
+    MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
 
     int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);

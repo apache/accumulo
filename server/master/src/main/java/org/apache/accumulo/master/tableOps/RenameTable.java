@@ -65,7 +65,7 @@ public class RenameTable extends MasterRepo {
 
     // ensure no attempt is made to rename across namespaces
     if (newTableName.contains(".")
-        && !namespaceId.equals(Namespaces.getNamespaceId(master, qualifiedNewTableName.getFirst())))
+        && !namespaceId.equals(Namespaces.getNamespaceId(master.getContext(), qualifiedNewTableName.getFirst())))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
@@ -74,7 +74,7 @@ public class RenameTable extends MasterRepo {
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkTableDoesNotExist(master, newTableName, tableId, TableOperation.RENAME);
+      Utils.checkTableDoesNotExist(master.getContext(), newTableName, tableId, TableOperation.RENAME);
 
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
@@ -96,7 +96,7 @@ public class RenameTable extends MasterRepo {
           return newName.getBytes(UTF_8);
         }
       });
-      Tables.clearCache(master);
+      Tables.clearCache(master.getContext());
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveTable(tableId, tid, true);

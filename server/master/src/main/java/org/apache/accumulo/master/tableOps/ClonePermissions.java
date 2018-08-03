@@ -47,8 +47,8 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance(environment).grantTablePermission(
-            environment.rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
+        AuditedSecurityOperation.getInstance(environment.getContext()).grantTablePermission(
+            environment.getContext().rpcCreds(), cloneInfo.user, cloneInfo.tableId, permission,
             cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ClonePermissions.class).error("{}", e.getMessage(), e);
@@ -56,11 +56,11 @@ class ClonePermissions extends MasterRepo {
       }
     }
 
-    // setup permissions in zookeeper before table info in zookeeper
+    // setup permissions in zookeeper before table context in zookeeper
     // this way concurrent users will not get a spurious pemission denied
     // error
     try {
-      return new CloneZookeeper(cloneInfo, environment);
+      return new CloneZookeeper(cloneInfo, environment.getContext());
     } catch (NamespaceNotFoundException e) {
       throw new AcceptableThriftTableOperationException(null, cloneInfo.tableName,
           TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
@@ -70,7 +70,7 @@ class ClonePermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance(environment).deleteTable(environment.rpcCreds(),
+    AuditedSecurityOperation.getInstance(environment.getContext()).deleteTable(environment.getContext().rpcCreds(),
         cloneInfo.tableId, cloneInfo.namespaceId);
   }
 }

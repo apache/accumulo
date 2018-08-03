@@ -57,7 +57,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -215,7 +215,7 @@ public class Admin implements KeywordExecutable {
     }
 
     try {
-      ClientContext context = new AccumuloServerContext(opts.getServerInfo());
+      ClientContext context = opts.getServerContext();
 
       int rc = 0;
 

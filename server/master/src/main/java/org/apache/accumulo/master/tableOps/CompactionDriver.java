@@ -144,12 +144,12 @@ class CompactionDriver extends MasterRepo {
 
     long scanTime = System.currentTimeMillis() - t1;
 
-    Tables.clearCache(master);
-    if (tabletCount == 0 && !Tables.exists(master, tableId))
+    Tables.clearCache(master.getContext());
+    if (tabletCount == 0 && !Tables.exists(master.getContext(), tableId))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 
-    if (serversToFlush.size() == 0 && Tables.getTableState(master, tableId) == TableState.OFFLINE)
+    if (serversToFlush.size() == 0 && Tables.getTableState(master.getContext(), tableId) == TableState.OFFLINE)
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
 

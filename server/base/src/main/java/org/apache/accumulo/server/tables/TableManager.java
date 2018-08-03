@@ -37,7 +37,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -106,9 +106,9 @@ public class TableManager {
   }
 
   private TableManager() {
-    ServerInfo info = ServerInfo.getInstance();
-    zkRoot = info.getZooKeeperRoot();
-    instanceID = info.getInstanceID();
+    ServerContext context = ServerContext.getInstance();
+    zkRoot = context.getZooKeeperRoot();
+    instanceID = context.getInstanceID();
     zooStateCache = new ZooCache(new TableStateWatcher());
     updateTableStateCache();
   }

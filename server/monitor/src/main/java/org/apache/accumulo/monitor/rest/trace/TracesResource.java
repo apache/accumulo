@@ -56,7 +56,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tracer.SpanTree;
 import org.apache.accumulo.tracer.SpanTreeVisitor;
@@ -359,7 +359,7 @@ public class TracesResource {
   private Scanner getScanner(String table, String principal, AuthenticationToken at)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      Connector conn = ServerInfo.getInstance().getConnector(principal, at);
+      Connector conn = ServerContext.getInstance().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {
         return null;
       }

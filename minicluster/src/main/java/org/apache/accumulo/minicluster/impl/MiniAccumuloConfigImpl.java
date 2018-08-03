@@ -287,7 +287,7 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
     if (existingInstance != null && existingInstance)
       throw new UnsupportedOperationException(
-          "Cannot set set config info when using an existing instance.");
+          "Cannot set set config context when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
 
@@ -297,7 +297,7 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl setClientProps(Map<String,String> clientProps) {
     if (existingInstance != null && existingInstance)
       throw new UnsupportedOperationException(
-          "Cannot set zookeeper info when using an existing instance.");
+          "Cannot set zookeeper context when using an existing instance.");
     this.existingInstance = Boolean.FALSE;
     this.clientProps = clientProps;
     return this;
@@ -320,7 +320,7 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
     if (existingInstance != null && existingInstance)
       throw new UnsupportedOperationException(
-          "Cannot set zookeeper info when using an existing instance.");
+          "Cannot set zookeeper context when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
 
@@ -341,7 +341,7 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
     if (existingInstance != null && existingInstance)
       throw new UnsupportedOperationException(
-          "Cannot set zookeeper info when using an existing instance.");
+          "Cannot set zookeeper context when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
 

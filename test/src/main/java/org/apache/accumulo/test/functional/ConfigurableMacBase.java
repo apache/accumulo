@@ -40,7 +40,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.io.FileUtils;
@@ -202,8 +202,8 @@ public class ConfigurableMacBase extends AccumuloITBase {
         .usingPassword("root", ROOT_PASSWORD).info();
   }
 
-  protected ServerInfo getServerInfo() {
-    return getCluster().getServerInfo();
+  protected ServerContext getServerContext() {
+    return getCluster().getServerContext();
   }
 
   protected Process exec(Class<?> clazz, String... args) throws IOException {

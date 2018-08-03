@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -80,9 +81,8 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.ServerInfo;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -110,7 +110,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 // Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
-public class SimpleGarbageCollector extends AccumuloServerContext implements Iface {
+public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
 
   /**
@@ -132,6 +132,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
+  private ServerContext context;
   private VolumeManager fs;
   private Opts opts;
   private ZooLock lock;
@@ -143,20 +144,20 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     final String app = "gc";
     Opts opts = new Opts();
     opts.parseArgs(app, args);
-    ServerInfo info = ServerInfo.getInstance();
-    info.setupServer(app, SimpleGarbageCollector.class.getName(), opts.getAddress());
+    ServerContext context = ServerContext.getInstance();
+    context.setupServer(app, SimpleGarbageCollector.class.getName(), opts.getAddress());
     try {
-      SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, info);
+      SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, context);
       gc.run();
     } finally {
-      info.teardownServer();
+      context.teardownServer();
     }
   }
 
-  public SimpleGarbageCollector(Opts opts, ServerInfo info) {
-    super(info);
+  public SimpleGarbageCollector(Opts opts, ServerContext context) {
+    this.context = context;
     this.opts = opts;
-    this.fs = info.getVolumeManager();
+    this.fs = context.getVolumeManager();
 
     long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
     log.info("start delay: {} milliseconds", getStartDelay());
@@ -166,6 +167,18 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("memory threshold: {} of bytes", CANDIDATE_MEMORY_PERCENTAGE,
         Runtime.getRuntime().maxMemory());
     log.info("delete threads: {}", getNumDeleteThreads());
+  }
+
+  ServerContext getContext() {
+    return context;
+  }
+
+  AccumuloConfiguration getConfiguration() {
+    return context.getConfiguration();
+  }
+
+  Connector getConnector() throws AccumuloSecurityException, AccumuloException {
+    return context.getConnector();
   }
 
   /**
@@ -294,7 +307,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     @Override
     public Set<Table.ID> getTableIDs() {
-      return Tables.getIdToNameMap(SimpleGarbageCollector.this).keySet();
+      return Tables.getIdToNameMap(context).keySet();
     }
 
     @Override
@@ -562,7 +575,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       // before running GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
       Span replSpan = Trace.start("replicationClose");
       try {
-        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(this);
+        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(context);
         closeWals.run();
       } catch (Exception e) {
         log.error("Error trying to close write-ahead logs for replication table", e);
@@ -573,7 +586,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs,
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(context, fs,
             isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
@@ -681,7 +694,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    String path = ZooUtil.getRoot(getInstanceID()) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZGC_LOCK;
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
@@ -718,7 +731,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   private HostAndPort startStatsService() throws UnknownHostException {
     Iface rpcProxy = TraceWrap.service(this);
     final Processor<Iface> processor;
-    if (ThriftServerType.SASL == getThriftServerType()) {
+    if (ThriftServerType.SASL == context.getThriftServerType()) {
       Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
       processor = new Processor<>(tcProxy);
     } else {
@@ -728,10 +741,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server = TServerUtils.startTServer(getConfiguration(), getThriftServerType(),
+      ServerAddress server = TServerUtils.startTServer(getConfiguration(), context.getThriftServerType(),
           processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
-          maxMessageSize, getServerSslParams(), getSaslParams(), 0, addresses);
+          maxMessageSize, context.getServerSslParams(), context.getSaslParams(), 0, addresses);
       log.debug("Starting garbage collector listening on " + server.address);
       return server.address;
     } catch (Exception ex) {

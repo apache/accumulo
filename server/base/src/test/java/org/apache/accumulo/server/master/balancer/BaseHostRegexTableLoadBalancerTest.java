@@ -46,7 +46,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -92,9 +92,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
-    final ServerInfo info;
+    final ServerContext info;
 
-    public TestServerConfigurationFactory(ServerInfo info) {
+    public TestServerConfigurationFactory(ServerContext info) {
       super(info);
       this.info = info;
     }
@@ -156,15 +156,15 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
   }
 
-  protected ServerInfo createMockInfo() {
-    ServerInfo mockInfo = EasyMock.createMock(ServerInfo.class);
-    expect(mockInfo.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(mockInfo.getZooKeepers()).andReturn("").anyTimes();
-    expect(mockInfo.getInstanceName()).andReturn("test").anyTimes();
-    expect(mockInfo.getZooKeepersSessionTimeOut()).andReturn(30).anyTimes();
-    expect(mockInfo.getInstanceID()).andReturn("1111").anyTimes();
-    expect(mockInfo.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
-    return mockInfo;
+  protected ServerContext createMockContext() {
+    ServerContext mockContext = EasyMock.createMock(ServerContext.class);
+    expect(mockContext.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(mockContext.getZooKeepers()).andReturn("").anyTimes();
+    expect(mockContext.getInstanceName()).andReturn("test").anyTimes();
+    expect(mockContext.getZooKeepersSessionTimeOut()).andReturn(30).anyTimes();
+    expect(mockContext.getInstanceID()).andReturn("1111").anyTimes();
+    expect(mockContext.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
+    return mockContext;
   }
 
   protected final Map<String,String> servers = new HashMap<>(15);

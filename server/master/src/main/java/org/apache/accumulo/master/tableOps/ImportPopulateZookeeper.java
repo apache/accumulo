@@ -73,15 +73,15 @@ class ImportPopulateZookeeper extends MasterRepo {
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Utils.checkTableDoesNotExist(env, tableInfo.tableName, tableInfo.tableId,
+      Utils.checkTableDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.tableId,
           TableOperation.CREATE);
 
       String namespace = Tables.qualify(tableInfo.tableName).getFirst();
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(env, namespace);
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
       TableManager.getInstance().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName,
           NodeExistsPolicy.OVERWRITE);
 
-      Tables.clearCache(env);
+      Tables.clearCache(env.getContext());
     } finally {
       Utils.tableNameLock.unlock();
     }
@@ -100,6 +100,6 @@ class ImportPopulateZookeeper extends MasterRepo {
   public void undo(long tid, Master env) throws Exception {
     TableManager.getInstance().removeTable(tableInfo.tableId);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
-    Tables.clearCache(env);
+    Tables.clearCache(env.getContext());
   }
 }

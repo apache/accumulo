@@ -254,7 +254,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
         // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
 
-        if (tabletCount == 0 && !Tables.exists(master, tableId))
+        if (tabletCount == 0 && !Tables.exists(master.getContext(), tableId))
           throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
               TableOperationExceptionType.NOTFOUND, null);
 
@@ -276,7 +276,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throws ThriftTableOperationException {
     Namespace.ID namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(master, tableId);
+      namespaceId = Tables.getNamespaceId(master.getContext(), tableId);
     } catch (TableNotFoundException e) {
       throw new ThriftTableOperationException(tableId.canonicalID(), null, tableOp,
           TableOperationExceptionType.NOTFOUND, e.getMessage());
@@ -444,7 +444,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throws ThriftSecurityException, ThriftTableOperationException {
 
     Namespace.ID namespaceId = null;
-    namespaceId = ClientServiceHandler.checkNamespaceId(master, namespace, op);
+    namespaceId = ClientServiceHandler.checkNamespaceId(master.getContext(), namespace, op);
 
     if (!master.security.canAlterNamespace(c, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -458,7 +458,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     } catch (KeeperException.NoNodeException e) {
       // race condition... namespace no longer exists? This call will throw an exception if the
       // namespace was deleted:
-      ClientServiceHandler.checkNamespaceId(master, namespace, op);
+      ClientServiceHandler.checkNamespaceId(master.getContext(), namespace, op);
       log.info("Error altering namespace property", e);
       throw new ThriftTableOperationException(namespaceId.canonicalID(), namespace, op,
           TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
@@ -471,7 +471,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
   private void alterTableProperty(TCredentials c, String tableName, String property, String value,
       TableOperation op) throws ThriftSecurityException, ThriftTableOperationException {
-    final Table.ID tableId = ClientServiceHandler.checkTableId(master, tableName, op);
+    final Table.ID tableId = ClientServiceHandler.checkTableId(master.getContext(), tableName, op);
     Namespace.ID namespaceId = getNamespaceIdFromTableId(op, tableId);
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -485,7 +485,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     } catch (KeeperException.NoNodeException e) {
       // race condition... table no longer exists? This call will throw an exception if the table
       // was deleted:
-      ClientServiceHandler.checkTableId(master, tableName, op);
+      ClientServiceHandler.checkTableId(master.getContext(), tableName, op);
       log.info("Error altering table property", e);
       throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op,
           TableOperationExceptionType.OTHER, "Problem altering table property");
@@ -501,7 +501,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       AccumuloConfiguration conf = master.getConfiguration();
       TabletBalancer balancer = Property.createInstanceFromPropertyName(conf,
           Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-      balancer.init(master);
+      balancer.init(master.getContext());
       master.tabletBalancer = balancer;
       log.info("tablet balancer changed to {}", master.tabletBalancer.getClass().getName());
     }
@@ -538,7 +538,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     }
 
     final DelegationTokenConfig config = DelegationTokenConfigSerializer.deserialize(tConfig);
-    final AuthenticationTokenSecretManager secretManager = master.getSecretManager();
+    final AuthenticationTokenSecretManager secretManager = master.getContext().getSecretManager();
     try {
       Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
           .generateToken(credentials.principal, config);
@@ -560,7 +560,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       throw new RuntimeException("Failed to obtain connector", e);
     }
 
-    final Text tableId = new Text(getTableId(master, tableName).getUtf8());
+    final Text tableId = new Text(getTableId(master.getContext(), tableName).getUtf8());
 
     drainLog.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
 

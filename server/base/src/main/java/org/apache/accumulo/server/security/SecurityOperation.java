@@ -49,7 +49,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
@@ -76,11 +76,11 @@ public class SecurityOperation {
   private final ZooCache zooCache;
   private final String ZKUserPath;
 
-  protected final AccumuloServerContext context;
+  protected final ServerContext context;
 
   static SecurityOperation instance;
 
-  public static synchronized SecurityOperation getInstance(AccumuloServerContext context,
+  public static synchronized SecurityOperation getInstance(ServerContext context,
       boolean initialize) {
     if (instance == null) {
       String instanceId = context.getInstanceID();
@@ -116,14 +116,14 @@ public class SecurityOperation {
     return toRet;
   }
 
-  protected SecurityOperation(AccumuloServerContext context) {
+  protected SecurityOperation(ServerContext context) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
     zooCache = new ZooCache();
   }
 
-  public SecurityOperation(AccumuloServerContext context, Authorizor author, Authenticator authent,
-      PermissionHandler pm) {
+  public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
+                           PermissionHandler pm) {
     this(context);
     authorizor = author;
     authenticator = authent;

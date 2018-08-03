@@ -90,8 +90,8 @@ public class BulkImport extends MasterRepo {
     if (!Utils.getReadLock(tableId, tid).tryLock())
       return 100;
 
-    Tables.clearCache(master);
-    if (Tables.getTableState(master, tableId) == TableState.ONLINE) {
+    Tables.clearCache(master.getContext());
+    if (Tables.getTableState(master.getContext(), tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
       reserve1 = reserve2 = Utils.reserveHdfsDirectory(sourceDir, tid);
       if (reserve1 == 0)
@@ -182,7 +182,7 @@ public class BulkImport extends MasterRepo {
       Table.ID tableId) throws Exception {
     final Path bulkDir = createNewBulkDir(fs, tableId);
 
-    MetadataTableUtil.addBulkLoadInProgressFlag(master,
+    MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
 
     Path dirPath = new Path(dir);

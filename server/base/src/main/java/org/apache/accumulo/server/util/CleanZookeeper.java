@@ -22,7 +22,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -56,7 +56,7 @@ public class CleanZookeeper {
       zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
     }
 
-    ServerInfo info = ServerInfo.getInstance();
+    ServerContext context = ServerContext.getInstance();
 
     try {
       for (String child : zk.getChildren(root)) {
@@ -64,7 +64,7 @@ public class CleanZookeeper {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES)) {
             String instanceNamePath = root + Constants.ZINSTANCES + "/" + instanceName;
             byte[] id = zk.getData(instanceNamePath, null);
-            if (id != null && !new String(id, UTF_8).equals(info.getInstanceID())) {
+            if (id != null && !new String(id, UTF_8).equals(context.getInstanceID())) {
               try {
                 zk.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
               } catch (KeeperException.NoAuthException ex) {
@@ -72,7 +72,7 @@ public class CleanZookeeper {
               }
             }
           }
-        } else if (!child.equals(info.getInstanceID())) {
+        } else if (!child.equals(context.getInstanceID())) {
           String path = root + "/" + child;
           try {
             zk.recursiveDelete(path, NodeMissingPolicy.SKIP);

@@ -35,8 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
@@ -138,35 +137,35 @@ public class ProblemReport {
     }
   }
 
-  void removeFromMetadataTable(AccumuloServerContext context) throws Exception {
+  void removeFromMetadataTable(ServerContext context) throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableId));
     m.putDelete(new Text(problemType.name()), new Text(resource));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
-  void saveToMetadataTable(AccumuloServerContext context) throws Exception {
+  void saveToMetadataTable(ServerContext context) throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableId));
     m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
   void removeFromZooKeeper() throws Exception {
-    removeFromZooKeeper(ZooReaderWriter.getInstance(), ServerInfo.getInstance());
+    removeFromZooKeeper(ZooReaderWriter.getInstance(), ServerContext.getInstance());
   }
 
-  void removeFromZooKeeper(ZooReaderWriter zoorw, ServerInfo info)
+  void removeFromZooKeeper(ZooReaderWriter zoorw, ServerContext context)
       throws IOException, KeeperException, InterruptedException {
-    String zpath = getZPath(info.getZooKeeperRoot());
+    String zpath = getZPath(context.getZooKeeperRoot());
     zoorw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
   }
 
   void saveToZooKeeper() throws Exception {
-    saveToZooKeeper(ZooReaderWriter.getInstance(), ServerInfo.getInstance());
+    saveToZooKeeper(ZooReaderWriter.getInstance(), ServerContext.getInstance());
   }
 
-  void saveToZooKeeper(ZooReaderWriter zoorw, ServerInfo info)
+  void saveToZooKeeper(ZooReaderWriter zoorw, ServerContext context)
       throws IOException, KeeperException, InterruptedException {
-    zoorw.putPersistentData(getZPath(info.getZooKeeperRoot()), encode(),
+    zoorw.putPersistentData(getZPath(context.getZooKeeperRoot()), encode(),
         NodeExistsPolicy.OVERWRITE);
   }
 
@@ -184,10 +183,10 @@ public class ProblemReport {
   }
 
   static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
-    return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), ServerInfo.getInstance());
+    return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), ServerContext.getInstance());
   }
 
-  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, ServerInfo info)
+  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, ServerContext context)
       throws IOException, KeeperException, InterruptedException {
     byte bytes[] = Encoding.decodeBase64FileName(node);
 
@@ -198,7 +197,7 @@ public class ProblemReport {
     String problemType = dis.readUTF();
     String resource = dis.readUTF();
 
-    String zpath = info.getZooKeeperRoot() + Constants.ZPROBLEMS + "/" + node;
+    String zpath = context.getZooKeeperRoot() + Constants.ZPROBLEMS + "/" + node;
     byte[] enc = zoorw.getData(zpath, null);
 
     return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);

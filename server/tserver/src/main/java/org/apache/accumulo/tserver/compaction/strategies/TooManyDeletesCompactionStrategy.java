@@ -124,7 +124,7 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
     // check if delete summarizer is configured for table
     if (configuredSummarizers.stream().map(sc -> sc.getClassName())
         .anyMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
-      // This is called before gatherInformation, so need to always queue for compaction until info
+      // This is called before gatherInformation, so need to always queue for compaction until context
       // can be gathered. Also its not safe to request summary
       // information here as its a blocking operation. Blocking operations are not allowed in
       // shouldCompact.

@@ -148,7 +148,7 @@ abstract class TabletGroupWatcher extends Daemon {
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
 
-    WalStateManager wals = new WalStateManager(master, ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(master.getContext(), ZooReaderWriter.getInstance());
 
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
@@ -620,7 +620,7 @@ abstract class TabletGroupWatcher extends Daemon {
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           datafiles.add(new FileRef(this.master.fs, key));
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, master);
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
           }
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
@@ -641,12 +641,12 @@ abstract class TabletGroupWatcher extends Daemon {
                 Path.SEPARATOR + extent.getTableId() + path)));
           }
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, master);
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
           }
         }
       }
-      MetadataTableUtil.addDeleteEntries(extent, datafiles, master);
+      MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
       BatchWriter bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       try {
         deleteTablets(info, deleteRange, bw, conn);
@@ -675,7 +675,7 @@ abstract class TabletGroupWatcher extends Daemon {
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.getTableId()
             + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(
-            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master,
+            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master.getContext(),
             timeType, this.master.masterLock);
       }
     } catch (RuntimeException | IOException | TableNotFoundException

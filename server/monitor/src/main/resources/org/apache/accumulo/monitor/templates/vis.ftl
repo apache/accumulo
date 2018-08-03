@@ -27,7 +27,7 @@
             <span class="viscontrol">Color: <select id="color" onchange="setColor(this)"></select></span>
           </div>
           <br>
-          <span>Hover for info, click for details</span>
+          <span>Hover for context, click for details</span>
           <div id="hoverable">
             <div id="vishoverinfo"></div>
             <br>

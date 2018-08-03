@@ -42,10 +42,10 @@ class ImportSetupPermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
-    SecurityOperation security = AuditedSecurityOperation.getInstance(env);
+    SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     for (TablePermission permission : TablePermission.values()) {
       try {
-        security.grantTablePermission(env.rpcCreds(), tableInfo.user, tableInfo.tableId, permission,
+        security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.user, tableInfo.tableId, permission,
             tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ImportSetupPermissions.class).error("{}", e.getMessage(), e);
@@ -53,7 +53,7 @@ class ImportSetupPermissions extends MasterRepo {
       }
     }
 
-    // setup permissions in zookeeper before table info in zookeeper
+    // setup permissions in zookeeper before table context in zookeeper
     // this way concurrent users will not get a spurious permission denied
     // error
     return new ImportPopulateZookeeper(tableInfo);
@@ -61,7 +61,7 @@ class ImportSetupPermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance(env).deleteTable(env.rpcCreds(), tableInfo.tableId,
+    AuditedSecurityOperation.getInstance(env.getContext()).deleteTable(env.getContext().rpcCreds(), tableInfo.tableId,
         tableInfo.namespaceId);
   }
 }

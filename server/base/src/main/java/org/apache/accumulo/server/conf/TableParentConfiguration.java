@@ -21,8 +21,7 @@ import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * Used by TableConfiguration to dynamically get the NamespaceConfiguration if the namespace changes
@@ -30,13 +29,11 @@ import org.apache.accumulo.server.ServerInfo;
 public class TableParentConfiguration extends NamespaceConfiguration {
 
   private Table.ID tableId;
-  private AccumuloServerContext context;
 
-  public TableParentConfiguration(Table.ID tableId, ServerInfo info, AccumuloConfiguration parent) {
-    super(null, info, parent);
+  public TableParentConfiguration(Table.ID tableId, ServerContext context, AccumuloConfiguration parent) {
+    super(null, context, parent);
     this.tableId = tableId;
     this.namespaceId = getNamespaceId();
-    this.context = new AccumuloServerContext(info);
   }
 
   @Override

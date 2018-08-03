@@ -28,8 +28,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceExcepti
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -53,8 +52,7 @@ public class ListBulkCommand extends Command {
 
     MasterMonitorInfo stats;
     MasterClientService.Iface client = null;
-    ServerInfo info = new ServerInfo(shellState.getContext().getClientInfo());
-    AccumuloServerContext context = new AccumuloServerContext(info);
+    ServerContext context = new ServerContext(shellState.getContext());
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

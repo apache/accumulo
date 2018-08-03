@@ -47,7 +47,7 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.ZooCache;
@@ -63,16 +63,16 @@ public class ReplicationUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationUtil.class);
   public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
   private final ZooCache zooCache;
   private final ReplicaSystemFactory factory;
 
-  public ReplicationUtil(AccumuloServerContext context) {
+  public ReplicationUtil(ServerContext context) {
     this(context, new ZooCache(), new ReplicaSystemFactory());
   }
 
-  public ReplicationUtil(AccumuloServerContext context, ZooCache cache,
-      ReplicaSystemFactory factory) {
+  public ReplicationUtil(ServerContext context, ZooCache cache,
+                         ReplicaSystemFactory factory) {
     this.zooCache = cache;
     this.context = context;
     this.factory = factory;
@@ -138,7 +138,7 @@ public class ReplicationUtil {
         continue;
       }
 
-      TableConfiguration tableConf = context.getServerConfigurationFactory()
+      TableConfiguration tableConf = context.getServerConfFactory()
           .getTableConfiguration(localId);
       if (null == tableConf) {
         log.trace("Could not get configuration for table {} (it no longer exists)", table);

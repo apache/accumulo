@@ -39,8 +39,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -58,7 +57,7 @@ public class TServerUtilsTest {
 
     private ConfigurationCopy conf = null;
 
-    public TestServerConfigurationFactory(ServerInfo info) {
+    public TestServerConfigurationFactory(ServerContext info) {
       super(info);
       conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
@@ -121,8 +120,8 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
-  private static ServerInfo createMockInfo() {
-    ServerInfo mockInfo = EasyMock.createMock(ServerInfo.class);
+  private static ServerContext createMockInfo() {
+    ServerContext mockInfo = EasyMock.createMock(ServerContext.class);
     expect(mockInfo.getProperties()).andReturn(new Properties()).anyTimes();
     expect(mockInfo.getZooKeepers()).andReturn("").anyTimes();
     expect(mockInfo.getInstanceName()).andReturn("instance").anyTimes();
@@ -131,8 +130,8 @@ public class TServerUtilsTest {
     return mockInfo;
   }
 
-  private static ServerInfo createReplayMockInfo() {
-    ServerInfo info = createMockInfo();
+  private static ServerContext createReplayMockInfo() {
+    ServerContext info = createMockInfo();
     replay(info);
     return info;
   }
@@ -290,9 +289,9 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ServerInfo info = createMockInfo();
+    ServerContext info = createMockInfo();
     expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
-    AccumuloServerContext ctx = createMock(AccumuloServerContext.class);
+    ServerContext ctx = createMock(ServerContext.class);
     expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
     expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration());
     expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL);

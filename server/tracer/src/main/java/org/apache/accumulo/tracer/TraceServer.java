@@ -52,8 +52,7 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
@@ -86,7 +85,7 @@ public class TraceServer implements Watcher {
 
   final private static Logger log = LoggerFactory.getLogger(TraceServer.class);
   final private ServerConfigurationFactory serverConfiguration;
-  final private AccumuloServerContext context;
+  final private ServerContext context;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
@@ -189,9 +188,9 @@ public class TraceServer implements Watcher {
 
   }
 
-  public TraceServer(AccumuloServerContext context, String hostname) throws Exception {
+  public TraceServer(ServerContext context, String hostname) throws Exception {
     this.context = context;
-    this.serverConfiguration = context.getServerConfigurationFactory();
+    this.serverConfiguration = context.getServerConfFactory();
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
@@ -404,10 +403,9 @@ public class TraceServer implements Watcher {
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
     loginTracer(SiteConfiguration.getInstance());
-    ServerInfo info = ServerInfo.getInstance();
+    ServerContext context = ServerContext.getInstance();
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
-    Accumulo.init(info.getVolumeManager(), info.getInstanceID(), info.getServerConfFactory(), app);
-    AccumuloServerContext context = new AccumuloServerContext(info);
+    Accumulo.init(context.getVolumeManager(), context.getInstanceID(), context.getServerConfFactory(), app);
     TraceServer server = new TraceServer(context, opts.getAddress());
     try {
       server.run();

@@ -158,14 +158,14 @@ class CleanUp extends MasterRepo {
       // If the master lock passed to deleteTable, it is possible that the delete mutations will be
       // dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTableUtil.deleteTable(tableId, refCount != 0, master, null);
+      MetadataTableUtil.deleteTable(tableId, refCount != 0, master.getContext(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }
 
     // remove any problem reports the table may have
     try {
-      ProblemReports.getInstance(master).deleteProblemReports(tableId);
+      ProblemReports.getInstance(master.getContext()).deleteProblemReports(tableId);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableId, e);
     }
@@ -199,14 +199,14 @@ class CleanUp extends MasterRepo {
     // remove table from zookeeper
     try {
       TableManager.getInstance().removeTable(tableId);
-      Tables.clearCache(master);
+      Tables.clearCache(master.getContext());
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);
     }
 
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance(master).deleteTable(master.rpcCreds(), tableId,
+      AuditedSecurityOperation.getInstance(master.getContext()).deleteTable(master.getContext().rpcCreds(), tableId,
           namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);

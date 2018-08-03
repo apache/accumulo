@@ -55,19 +55,13 @@ public class ServerInfo implements ClientInfo {
 
   private static final Logger log = LoggerFactory.getLogger(ServerInfo.class);
 
-  private static ServerInfo serverInfoInstance = null;
   private String instanceID;
   private String instanceName;
   private String zooKeepers;
   private int zooKeepersSessionTimeOut;
   private String zooKeeperRoot;
-  private ServerConfigurationFactory serverConfFactory = null;
   private VolumeManager volumeManager;
-  private String applicationName = null;
-  private String applicationClassName = null;
-  private String hostname = null;
   private ZooCache zooCache;
-  private ClientContext context;
 
   public ServerInfo(ClientInfo info) {
     this(info.getInstanceName(), info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
@@ -114,30 +108,6 @@ public class ServerInfo implements ClientInfo {
     instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(instanceID));
   }
 
-  synchronized public static ServerInfo getInstance() {
-    if (serverInfoInstance == null) {
-      serverInfoInstance = new ServerInfo();
-    }
-    return serverInfoInstance;
-  }
-
-  public void setupServer(String appName, String appClassName, String hostname) {
-    applicationName = appName;
-    applicationClassName = appClassName;
-    this.hostname = hostname;
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + instanceID);
-    try {
-      Accumulo.init(volumeManager, getInstanceID(), getServerConfFactory(), applicationName);
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
-    MetricsSystemHelper.configure(applicationClassName);
-    DistributedTrace.enable(hostname, applicationName,
-        getServerConfFactory().getSystemConfiguration());
-  }
-
   public VolumeManager getVolumeManager() {
     return volumeManager;
   }
@@ -170,13 +140,12 @@ public class ServerInfo implements ClientInfo {
 
   @Override
   public boolean saslEnabled() {
-    return getServerConfFactory().getSystemConfiguration()
-        .getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
+    return SiteConfiguration.getInstance().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
   }
 
   @Override
   public Properties getProperties() {
-    Properties properties = ClientConfConverter.toProperties(getServerConfFactory().getSystemConfiguration());
+    Properties properties = ClientConfConverter.toProperties(SiteConfiguration.getInstance());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), getZooKeepers());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),
         Integer.toString(getZooKeepersSessionTimeOut()));
@@ -192,43 +161,5 @@ public class ServerInfo implements ClientInfo {
 
   public Credentials getCredentials() {
     return SystemCredentials.get(getInstanceID());
-  }
-
-  public synchronized ClientContext getClientContext() {
-    if (context == null) {
-      context = new ClientContext(this);
-    }
-    return context;
-  }
-
-  public Connector getConnector(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException, AccumuloException {
-    return Connector.builder().usingClientInfo(this).usingToken(principal, token).build();
-  }
-
-  public synchronized ServerConfigurationFactory getServerConfFactory() {
-    if (serverConfFactory == null) {
-      serverConfFactory = new ServerConfigurationFactory(this);
-    }
-    return serverConfFactory;
-  }
-
-  public String getApplicationName() {
-    Objects.requireNonNull(applicationName);
-    return applicationName;
-  }
-
-  public String getApplicationClassName() {
-    Objects.requireNonNull(applicationClassName);
-    return applicationName;
-  }
-
-  public String getHostname() {
-    Objects.requireNonNull(hostname);
-    return hostname;
-  }
-
-  public void teardownServer() {
-    DistributedTrace.disable();
   }
 }

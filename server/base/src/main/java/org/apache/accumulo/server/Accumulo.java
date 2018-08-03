@@ -264,7 +264,7 @@ public class Accumulo {
   public static void abortIfFateTransactions() {
     try {
       final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(
-          new ZooStore<>(ServerInfo.getInstance().getZooKeeperRoot() + Constants.ZFATE,
+          new ZooStore<>(ServerContext.getInstance().getZooKeeperRoot() + Constants.ZFATE,
               ZooReaderWriter.getInstance()));
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are"

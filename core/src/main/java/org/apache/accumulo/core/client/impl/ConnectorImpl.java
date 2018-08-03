@@ -99,7 +99,7 @@ public class ConnectorImpl extends Connector {
   @Override
   @Deprecated
   public org.apache.accumulo.core.client.Instance getInstance() {
-    return context.getInstance();
+    return context.getDeprecatedInstance();
   }
 
   @Override

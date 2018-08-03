@@ -62,7 +62,7 @@ import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.replication.ReplicaSystem;
@@ -147,7 +147,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
 
-    conf = ServerInfo.getInstance().getServerConfFactory().getSystemConfiguration();
+    conf = ServerContext.getInstance().getServerConfFactory().getSystemConfiguration();
 
     try {
       fs = VolumeManagerImpl.get(conf);
@@ -160,7 +160,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   @Override
   public Status replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper) {
-    final AccumuloConfiguration localConf = ServerInfo.getInstance().getServerConfFactory()
+    final AccumuloConfiguration localConf = ServerContext.getInstance().getServerConfFactory()
         .getSystemConfiguration();
 
     log.debug("Replication RPC timeout is {}",
@@ -401,7 +401,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       Status lastStatus = status, currentStatus = status;
       final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
       while (true) {
-        // Set some trace info
+        // Set some trace context
         span = Trace.start("Replicate WAL batch");
         span.data("Batch size (bytes)", Long.toString(sizeLimit));
         span.data("File", p.toString());

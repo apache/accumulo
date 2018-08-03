@@ -308,7 +308,7 @@ public class TabletServerResourceManager {
 
   public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
     this.tserver = tserver;
-    this.conf = tserver.getServerConfigurationFactory();
+    this.conf = tserver.getContext().getServerConfFactory();
     final AccumuloConfiguration acuConf = conf.getSystemConfiguration();
 
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
@@ -402,11 +402,11 @@ public class TabletServerResourceManager {
     Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
         .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
-    fileManager = new FileManager(tserver, fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
+    fileManager = new FileManager(tserver.getContext(), fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
         MemoryManager.class, new LargestFirstMemoryManager());
-    memoryManager.init(tserver.getServerConfigurationFactory());
+    memoryManager.init(tserver.getContext().getServerConfFactory());
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 

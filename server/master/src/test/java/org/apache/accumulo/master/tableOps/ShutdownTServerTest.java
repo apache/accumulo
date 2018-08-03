@@ -45,7 +45,7 @@ public class ShutdownTServerTest {
     final TServerConnection tserverCnxn = EasyMock.createMock(TServerConnection.class);
     final TabletServerStatus status = new TabletServerStatus();
     status.tableMap = new HashMap<>();
-    // Put in a table info record, don't care what
+    // Put in a table context record, don't care what
     status.tableMap.put("a_table", new TableInfo());
 
     master.shutdownTServer(tserver);

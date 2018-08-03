@@ -45,7 +45,7 @@ import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.cache.BlockCache;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -119,7 +119,7 @@ public class FileManager {
 
   private long maxIdleTime;
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
   private class IdleFileCloser implements Runnable {
 
@@ -167,8 +167,8 @@ public class FileManager {
    * @param indexCache
    *          : underlying file can and should be able to handle a null cache
    */
-  public FileManager(AccumuloServerContext context, VolumeManager fs, int maxOpen,
-      Cache<String,Long> fileLenCache, BlockCache dataCache, BlockCache indexCache) {
+  public FileManager(ServerContext context, VolumeManager fs, int maxOpen,
+                     Cache<String,Long> fileLenCache, BlockCache dataCache, BlockCache indexCache) {
 
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
@@ -325,7 +325,7 @@ public class FileManager {
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf())
             .withTableConfiguration(
-                context.getServerConfigurationFactory().getTableConfiguration(tablet.getTableId()))
+                context.getServerConfFactory().getTableConfiguration(tablet.getTableId()))
             .withBlockCache(dataCache, indexCache).withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
@@ -485,7 +485,7 @@ public class FileManager {
       dataSources = new ArrayList<>();
       this.tablet = tablet;
 
-      continueOnFailure = context.getServerConfigurationFactory()
+      continueOnFailure = context.getServerConfFactory()
           .getTableConfiguration(tablet.getTableId()).getBoolean(Property.TABLE_FAILURES_IGNORE);
 
       if (tablet.isMeta()) {

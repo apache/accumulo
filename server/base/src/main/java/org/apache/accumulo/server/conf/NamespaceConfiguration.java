@@ -27,7 +27,7 @@ import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,16 +40,16 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   private final AccumuloConfiguration parent;
   private ZooCachePropertyAccessor propCacheAccessor = null;
   protected Namespace.ID namespaceId = null;
-  protected ServerInfo info;
+  protected ServerContext context;
   private ZooCacheFactory zcf = new ZooCacheFactory();
   private final String path;
 
-  public NamespaceConfiguration(Namespace.ID namespaceId, ServerInfo info,
+  public NamespaceConfiguration(Namespace.ID namespaceId, ServerContext context,
       AccumuloConfiguration parent) {
-    this.info = info;
+    this.context = context;
     this.parent = parent;
     this.namespaceId = namespaceId;
-    this.path = info.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
+    this.path = context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
         + Constants.ZNAMESPACE_CONF;
   }
 
@@ -69,11 +69,11 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
     if (propCacheAccessor == null) {
       synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(info.getInstanceID(), namespaceId.canonicalID());
+        PropCacheKey key = new PropCacheKey(context.getInstanceID(), namespaceId.canonicalID());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
-          propCache = zcf.getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut(),
-              new NamespaceConfWatcher(info));
+          propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
+              new NamespaceConfWatcher(context));
           propCaches.put(key, propCache);
         }
         propCacheAccessor = new ZooCachePropertyAccessor(propCache);

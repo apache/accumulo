@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -67,7 +67,7 @@ public class QueryMetadataTable {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
 
-        Connector connector = ServerInfo.getInstance().getConnector(principal, token);
+        Connector connector = ServerContext.getInstance().getConnector(principal, token);
         mdScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         Text row = extent.getMetadataEntry();
 

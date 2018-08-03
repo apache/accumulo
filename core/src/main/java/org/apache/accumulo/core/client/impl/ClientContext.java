@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -102,7 +103,7 @@ public class ClientContext {
    * @deprecated since 2.0.0
    */
   @Deprecated
-  public org.apache.accumulo.core.client.Instance getInstance() {
+  public org.apache.accumulo.core.client.Instance getDeprecatedInstance() {
     final ClientContext context = this;
     return new org.apache.accumulo.core.client.Instance() {
       @Override
@@ -155,6 +156,18 @@ public class ClientContext {
       creds = new Credentials(info.getPrincipal(), info.getAuthenticationToken());
     }
     return creds;
+  }
+
+  public String getPrincipal() {
+    return getCredentials().getPrincipal();
+  }
+
+  public AuthenticationToken getAuthenticationToken() {
+    return getCredentials().getToken();
+  }
+
+  public Properties getProperties() {
+    return info.getProperties();
   }
 
   /**

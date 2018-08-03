@@ -23,7 +23,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -40,7 +40,7 @@ public class SetGoalState {
     }
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
-    ServerInfo info = ServerInfo.getInstance();
+    ServerContext info = ServerContext.getInstance();
     Accumulo.waitForZookeeperAndHdfs(info.getVolumeManager());
     ZooReaderWriter.getInstance().putPersistentData(
         info.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),

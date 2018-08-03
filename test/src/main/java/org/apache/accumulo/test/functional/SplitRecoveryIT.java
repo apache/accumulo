@@ -50,9 +50,8 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -79,8 +78,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void run() throws Exception {
-    ServerInfo info = ServerInfo.getInstance();
-    AccumuloServerContext c = new AccumuloServerContext(info);
+    ServerContext info = ServerContext.getInstance();
+    ServerContext c = new ServerContext(info);
     String zPath = info.getZooKeeperRoot() + "/testLock";
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
@@ -132,8 +131,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         nke("foob", null, "r"));
   }
 
-  private void runSplitRecoveryTest(AccumuloServerContext context, int failPoint, String mr,
-      int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
+  private void runSplitRecoveryTest(ServerContext context, int failPoint, String mr,
+                                    int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
 
     Text midRow = new Text(mr);
 
@@ -165,9 +164,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
-  private void splitPartiallyAndRecover(AccumuloServerContext context, KeyExtent extent,
-      KeyExtent high, KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles,
-      Text midRow, String location, int steps, ZooLock zl) throws Exception {
+  private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent,
+                                        KeyExtent high, KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles,
+                                        Text midRow, String location, int steps, ZooLock zl) throws Exception {
 
     SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
@@ -218,7 +217,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  private void ensureTabletHasNoUnexpectedMetadataEntries(AccumuloServerContext context,
+  private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context,
       KeyExtent extent, SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetadataRange());

@@ -45,7 +45,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -59,7 +59,7 @@ import com.google.common.base.Joiner;
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet
  * location.
  *
- * @deprecated since 2.0.0, Use {@link ServerInfo#getInstance()} instead
+ * @deprecated since 2.0.0, Use {@link ServerContext#getInstance()} instead
  */
 @Deprecated
 public class HdfsZooInstance implements org.apache.accumulo.core.client.Instance {

@@ -48,7 +48,7 @@ class PopulateZookeeper extends MasterRepo {
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Utils.checkTableDoesNotExist(master, tableInfo.tableName, tableInfo.tableId,
+      Utils.checkTableDoesNotExist(master.getContext(), tableInfo.tableName, tableInfo.tableId,
           TableOperation.CREATE);
 
       TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.namespaceId,
@@ -57,7 +57,7 @@ class PopulateZookeeper extends MasterRepo {
       for (Entry<String,String> entry : tableInfo.props.entrySet())
         TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue());
 
-      Tables.clearCache(master);
+      Tables.clearCache(master.getContext());
       return new ChooseDir(tableInfo);
     } finally {
       Utils.tableNameLock.unlock();
@@ -69,7 +69,7 @@ class PopulateZookeeper extends MasterRepo {
   public void undo(long tid, Master master) throws Exception {
     TableManager.getInstance().removeTable(tableInfo.tableId);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
-    Tables.clearCache(master);
+    Tables.clearCache(master.getContext());
   }
 
 }

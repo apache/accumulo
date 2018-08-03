@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
@@ -60,7 +60,7 @@ public class NamespacePropUtil {
   }
 
   private static String getPath(Namespace.ID namespaceId) {
-    return ServerInfo.getInstance().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
+    return ServerContext.getInstance().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
         + Constants.ZNAMESPACE_CONF;
   }
 }

@@ -109,14 +109,14 @@ public class TableInformation {
   }
 
   /**
-   * Generate table based on the thrift table info
+   * Generate table based on the thrift table context
    *
    * @param tableName
    *          Name of the table to create
    * @param tableId
    *          ID of the table to create
    * @param info
-   *          Thift table info
+   *          Thift table context
    * @param holdTime
    *          Hold time for the table
    * @param tableState

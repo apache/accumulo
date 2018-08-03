@@ -39,8 +39,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -104,7 +103,7 @@ public class TableLoadBalancerTest {
     }
 
     @Override
-    public void init(AccumuloServerContext context) {}
+    public void init(ServerContext context) {}
 
     @Override
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
@@ -138,8 +137,8 @@ public class TableLoadBalancerTest {
     }
   }
 
-  private ServerInfo createMockInfo() {
-    ServerInfo info = EasyMock.createMock(ServerInfo.class);
+  private ServerContext createMockInfo() {
+    ServerContext info = EasyMock.createMock(ServerContext.class);
     final String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
         .toString();
     EasyMock.expect(info.getProperties()).andReturn(new Properties()).anyTimes();
@@ -152,7 +151,7 @@ public class TableLoadBalancerTest {
 
   @Test
   public void test() throws Exception {
-    final ServerInfo info = createMockInfo();
+    final ServerContext info = createMockInfo();
     replay(info);
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(info) {
       @Override
@@ -170,7 +169,7 @@ public class TableLoadBalancerTest {
         };
       }
     };
-    final ServerInfo info2 = createMockInfo();
+    final ServerContext info2 = createMockInfo();
     EasyMock.expect(info2.getServerConfFactory()).andReturn(confFactory).anyTimes();
     replay(info2);
 
@@ -183,13 +182,13 @@ public class TableLoadBalancerTest {
     Set<KeyExtent> migrations = Collections.emptySet();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
-    tls.init(new AccumuloServerContext(info2));
+    tls.init(info2);
     tls.balance(state, migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", "0x02030405"), status());
     tls = new TableLoadBalancer();
-    tls.init(new AccumuloServerContext(info2));
+    tls.init(info2);
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<Table.ID,Integer> movedByTable = new HashMap<>();

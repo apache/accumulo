@@ -102,7 +102,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
                 responseCode, errorText);
           } catch (Exception e) {
-            LOG.debug("Caught exception trying to fetch monitor info", e);
+            LOG.debug("Caught exception trying to fetch monitor context", e);
           }
           // Wait before trying again
           Thread.sleep(1000);

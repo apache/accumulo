@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
 public class MetaDataStateStore extends TabletStateStore {
@@ -52,11 +52,11 @@ public class MetaDataStateStore extends TabletStateStore {
     this(context, state, MetadataTable.NAME);
   }
 
-  protected MetaDataStateStore(AccumuloServerContext context, String tableName) {
+  protected MetaDataStateStore(ServerContext context, String tableName) {
     this(context, null, tableName);
   }
 
-  public MetaDataStateStore(AccumuloServerContext context) {
+  public MetaDataStateStore(ServerContext context) {
     this(context, MetadataTable.NAME);
   }
 

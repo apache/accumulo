@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -29,7 +28,7 @@ import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
@@ -88,14 +87,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
-  private final ServerInfo info;
-  private ClientContext context;
+  private final ServerContext context;
   private final String instanceID;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
-  public ServerConfigurationFactory(ServerInfo info) {
-    this.info = info;
-    instanceID = info.getInstanceID();
+  public ServerConfigurationFactory(ServerContext context) {
+    this.context = context;
+    instanceID = context.getInstanceID();
     addInstanceToCaches(instanceID);
   }
 
@@ -124,7 +122,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      systemConfig = new ZooConfigurationFactory().getInstance(info, zcf, getSiteConfiguration());
+      systemConfig = new ZooConfigurationFactory().getInstance(context, zcf, getSiteConfiguration());
     }
     return systemConfig;
   }
@@ -146,8 +144,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // Tablet sets will never see updates from ZooKeeper which means that things like constraints
     // and
     // default visibility labels will never be updated in a Tablet until it is reloaded.
-    if (conf == null && Tables.exists(info.getClientContext(), tableId)) {
-      conf = new TableConfiguration(info, tableId, getNamespaceConfigurationForTable(tableId));
+    if (conf == null && Tables.exists(context, tableId)) {
+      conf = new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
       ConfigSanityCheck.validate(conf);
       synchronized (tableConfigs) {
         Map<Table.ID,TableConfiguration> configs = tableConfigs.get(instanceID);
@@ -174,11 +172,11 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     if (conf == null) {
       Namespace.ID namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(info.getClientContext(), tableId);
+        namespaceId = Tables.getNamespaceId(context, tableId);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
-      conf = new NamespaceConfiguration(namespaceId, info, getSystemConfiguration());
+      conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
       ConfigSanityCheck.validate(conf);
       synchronized (tableParentConfigs) {
         tableParentConfigs.get(instanceID).put(tableId, conf);
@@ -197,7 +195,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
     if (conf == null) {
       // changed - include instance in constructor call
-      conf = new NamespaceConfiguration(namespaceId, info, getSystemConfiguration());
+      conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
       conf.setZooCacheFactory(zcf);
       ConfigSanityCheck.validate(conf);
       synchronized (namespaceConfigs) {

@@ -33,8 +33,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
@@ -48,13 +47,13 @@ public class HostRegexTableLoadBalancerReconfigurationTest
 
   @Test
   public void testConfigurationChanges() {
-    ServerInfo info1 = createMockInfo();
-    replay(info1);
-    final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(info1);
-    ServerInfo info2 = createMockInfo();
-    expect(info2.getServerConfFactory()).andReturn(factory).anyTimes();
-    replay(info2);
-    init(new AccumuloServerContext(info2));
+    ServerContext context1 = createMockContext();
+    replay(context1);
+    final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(context1);
+    ServerContext context2 = createMockContext();
+    expect(context2.getServerConfFactory()).andReturn(factory).anyTimes();
+    replay(context2);
+    init(context2);
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     for (List<KeyExtent> extents : tableExtents.values()) {
       for (KeyExtent ke : extents) {

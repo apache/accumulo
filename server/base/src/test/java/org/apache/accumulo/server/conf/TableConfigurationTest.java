@@ -40,7 +40,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +50,7 @@ public class TableConfigurationTest {
   private static final int ZK_SESSION_TIMEOUT = 120000;
 
   private String iid;
-  private ServerInfo info;
+  private ServerContext context;
   private NamespaceConfiguration parent;
   private ZooCacheFactory zcf;
   private ZooCache zc;
@@ -59,16 +59,16 @@ public class TableConfigurationTest {
   @Before
   public void setUp() {
     iid = UUID.randomUUID().toString();
-    info = createMock(ServerInfo.class);
-    expect(info.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(info.getInstanceID()).andReturn(iid).anyTimes();
-    expect(info.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
-    expect(info.getZooKeepers()).andReturn(ZOOKEEPERS).anyTimes();
-    expect(info.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT).anyTimes();
-    replay(info);
+    context = createMock(ServerContext.class);
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
+    expect(context.getZooKeepers()).andReturn(ZOOKEEPERS).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT).anyTimes();
+    replay(context);
 
     parent = createMock(NamespaceConfiguration.class);
-    c = new TableConfiguration(info, TID, parent);
+    c = new TableConfiguration(context, TID, parent);
     zcf = createMock(ZooCacheFactory.class);
     c.setZooCacheFactory(zcf);
 

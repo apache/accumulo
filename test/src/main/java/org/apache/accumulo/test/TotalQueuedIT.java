@@ -33,7 +33,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
@@ -122,7 +122,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   private long getSyncs() throws Exception {
     Connector c = getConnector();
-    AccumuloServerContext context = new AccumuloServerContext(getServerInfo());
+    ServerContext context = getServerContext();
     for (String address : c.instanceOperations().getTabletServers()) {
       TabletClientService.Client client = ThriftUtil
           .getTServerClient(HostAndPort.fromString(address), context);

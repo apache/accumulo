@@ -59,7 +59,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -75,13 +75,13 @@ import org.slf4j.LoggerFactory;
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final TransactionWatcher transactionWatcher;
-  private final AccumuloServerContext context;
+  private final ServerContext context;
   private final VolumeManager fs;
   private final SecurityOperation security;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
-  public ClientServiceHandler(AccumuloServerContext context, TransactionWatcher transactionWatcher,
-      VolumeManager fs) {
+  public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher,
+                              VolumeManager fs) {
     this.context = context;
     this.transactionWatcher = transactionWatcher;
     this.fs = fs;
@@ -310,7 +310,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
-    ServerConfigurationFactory factory = context.getServerConfigurationFactory();
+    ServerConfigurationFactory factory = context.getServerConfFactory();
     switch (type) {
       case CURRENT:
         return conf(credentials, factory.getSystemConfiguration());
@@ -326,7 +326,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     Table.ID tableId = checkTableId(context, tableName, null);
-    AccumuloConfiguration config = context.getServerConfigurationFactory()
+    AccumuloConfiguration config = context.getServerConfFactory()
         .getTableConfiguration(tableId);
     return conf(credentials, config);
   }
@@ -395,7 +395,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfigurationFactory()
+      AccumuloConfiguration conf = context.getServerConfFactory()
           .getTableConfiguration(tableId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
@@ -431,7 +431,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfigurationFactory()
+      AccumuloConfiguration conf = context.getServerConfFactory()
           .getNamespaceConfiguration(namespaceId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
@@ -496,7 +496,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    AccumuloConfiguration config = context.getServerConfigurationFactory()
+    AccumuloConfiguration config = context.getServerConfFactory()
         .getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
   }

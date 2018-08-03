@@ -42,7 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +52,7 @@ public class NamespaceConfigurationTest {
   private static final int ZK_SESSION_TIMEOUT = 120000;
 
   private String iid;
-  private ServerInfo info;
+  private ServerContext info;
   private AccumuloConfiguration parent;
   private ZooCacheFactory zcf;
   private ZooCache zc;
@@ -62,7 +62,7 @@ public class NamespaceConfigurationTest {
   public void setUp() {
     iid = UUID.randomUUID().toString();
 
-    info = createMock(ServerInfo.class);
+    info = createMock(ServerContext.class);
     parent = createMock(AccumuloConfiguration.class);
 
     expect(info.getProperties()).andReturn(new Properties());

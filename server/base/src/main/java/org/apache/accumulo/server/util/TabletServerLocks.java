@@ -24,7 +24,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -41,12 +41,12 @@ public class TabletServerLocks {
 
   public static void main(String[] args) throws Exception {
 
-    ServerInfo info = ServerInfo.getInstance();
-    String tserverPath = info.getZooKeeperRoot() + Constants.ZTSERVERS;
+    ServerContext context = ServerContext.getInstance();
+    String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     Opts opts = new Opts();
     opts.parseArgs(TabletServerLocks.class.getName(), args);
 
-    ZooCache cache = new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
+    ZooCache cache = new ZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
 
     if (opts.list) {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();

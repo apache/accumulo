@@ -37,7 +37,7 @@ import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
@@ -48,13 +48,13 @@ public class ProblemReportTest {
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 
-  private ServerInfo info;
+  private ServerContext info;
   private ZooReaderWriter zoorw;
   private ProblemReport r;
 
   @Before
   public void setUp() throws Exception {
-    info = createMock(ServerInfo.class);
+    info = createMock(ServerContext.class);
     expect(info.getZooKeeperRoot()).andReturn("/accumulo/instance");
     replay(info);
     zoorw = createMock(ZooReaderWriter.class);

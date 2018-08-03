@@ -42,8 +42,7 @@ import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -56,17 +55,17 @@ import org.junit.Test;
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
 
   public void init() {
-    ServerInfo info1 = createMockInfo();
-    replay(info1);
-    final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(info1);
+    ServerContext context1 = createMockContext();
+    replay(context1);
+    final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(context1);
     initFactory(factory);
   }
 
   private void initFactory(ServerConfigurationFactory factory) {
-    ServerInfo info = createMockInfo();
-    expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
-    replay(info);
-    init(new AccumuloServerContext(info));
+    ServerContext context = createMockContext();
+    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
+    replay(context);
+    init(context);
   }
 
   @Test
@@ -191,9 +190,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingOverlappingPools() {
-    ServerInfo info = createMockInfo();
-    replay(info);
-    initFactory(new TestServerConfigurationFactory(info) {
+    ServerContext context = createMockContext();
+    replay(context);
+    initFactory(new TestServerConfigurationFactory(context) {
 
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
@@ -268,9 +267,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingIP() {
-    ServerInfo info = createMockInfo();
-    replay(info);
-    initFactory(new TestServerConfigurationFactory(info) {
+    ServerContext context = createMockContext();
+    replay(context);
+    initFactory(new TestServerConfigurationFactory(context) {
       @Override
       public synchronized AccumuloConfiguration getSystemConfiguration() {
         HashMap<String,String> props = new HashMap<>();

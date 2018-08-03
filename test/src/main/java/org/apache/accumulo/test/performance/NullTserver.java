@@ -66,8 +66,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processo
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
@@ -93,7 +92,7 @@ public class NullTserver {
 
     private long updateSession = 1;
 
-    public ThriftClientHandler(AccumuloServerContext context, TransactionWatcher watcher) {
+    public ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
       super(context, watcher, null);
     }
 
@@ -310,8 +309,8 @@ public class NullTserver {
     // modify metadata
     int zkTimeOut = (int) DefaultConfiguration.getInstance()
         .getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    ServerInfo info = new ServerInfo(opts.iname, opts.keepers, zkTimeOut);
-    AccumuloServerContext context = new AccumuloServerContext(info);
+    ServerContext info = new ServerContext(opts.iname, opts.keepers, zkTimeOut);
+    ServerContext context = new ServerContext(info);
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);

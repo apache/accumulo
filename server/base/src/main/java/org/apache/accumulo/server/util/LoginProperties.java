@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -36,17 +36,17 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "login-info";
+    return "login-context";
   }
 
   @Override
   public String description() {
-    return "Prints Accumulo login info";
+    return "Prints Accumulo login context";
   }
 
   @Override
   public void execute(String[] args) throws Exception {
-    AccumuloConfiguration config = ServerInfo.getInstance().getServerConfFactory()
+    AccumuloConfiguration config = ServerContext.getInstance().getServerConfFactory()
         .getSystemConfiguration();
     Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader()
         .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))

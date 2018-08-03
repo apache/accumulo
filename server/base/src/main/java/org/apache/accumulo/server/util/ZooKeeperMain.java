@@ -18,7 +18,7 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.FileSystem;
@@ -68,13 +68,13 @@ public class ZooKeeperMain implements KeywordExecutable {
     String baseDir = ServerConstants.getBaseUris()[0];
     System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id"))
         + " to lookup accumulo instance");
-    ServerInfo info = ServerInfo.getInstance();
+    ServerContext context = ServerContext.getInstance();
     if (opts.servers == null) {
-      opts.servers = info.getZooKeepers();
+      opts.servers = context.getZooKeepers();
     }
-    System.out.println("The accumulo instance id is " + info.getInstanceID());
+    System.out.println("The accumulo instance id is " + context.getInstanceID());
     if (!opts.servers.contains("/"))
-      opts.servers += "/accumulo/" + info.getInstanceID();
+      opts.servers += "/accumulo/" + context.getInstanceID();
     org.apache.zookeeper.ZooKeeperMain
         .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
   }

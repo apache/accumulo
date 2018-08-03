@@ -173,8 +173,8 @@ class LoadFiles extends MasterRepo {
               thriftImports.size());
           TabletClientService.Client client = null;
           try {
-            client = ThriftUtil.getTServerClient(server, master, timeInMillis);
-            client.loadFiles(Tracer.traceInfo(), master.rpcCreds(), tid,
+            client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
+            client.loadFiles(Tracer.traceInfo(), master.getContext().rpcCreds(), tid,
                 tablet.getExtent().toThrift(), bulkDir.toString(), thriftImports, setTime);
           } catch (TException ex) {
             log.debug("rpc failed server: " + server + ", tid:" + fmtTid + " " + ex.getMessage(),
@@ -271,7 +271,7 @@ class LoadFiles extends MasterRepo {
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
-    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master).scanMetadataTable()
+    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master.getContext()).scanMetadataTable()
         .overRange(tableId, startRow, null).checkConsistency().fetchPrev().fetchLocation()
         .fetchLoaded().build().iterator();
 

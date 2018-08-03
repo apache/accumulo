@@ -31,7 +31,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.junit.Assert;
@@ -50,13 +50,13 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     Connector conn = getConnector();
-    ServerInfo info = getCluster().getServerInfo();
+    ServerContext context = getCluster().getServerContext();
 
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
 
     final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
-        info, DefaultConfiguration.getInstance());
+        context, DefaultConfiguration.getInstance());
 
     // Cache invalidates 25% of the time
     int randomMax = 4;
@@ -64,7 +64,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     int numThreads = 2;
     // Number of iterations per thread
     int iterations = 100000;
-    AccumuloConfiguration tableConf = new TableConfiguration(info,
+    AccumuloConfiguration tableConf = new TableConfiguration(context,
         org.apache.accumulo.core.client.impl.Table.ID.of(table), defaultConf);
 
     long start = System.currentTimeMillis();
@@ -120,7 +120,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       try {
         for (int i = 0; i < iterations; i++) {
           // if (i % 10000 == 0) {
-          // log.info(t + " " + i);
+          // log.context(t + " " + i);
           // }
           int choice = r.nextInt(randMax);
           if (choice < 1) {

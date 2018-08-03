@@ -17,8 +17,7 @@
 package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 
@@ -29,7 +28,7 @@ public class Info implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "info";
+    return "context";
   }
 
   @Override
@@ -39,13 +38,12 @@ public class Info implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Prints Accumulo cluster info";
+    return "Prints Accumulo cluster context";
   }
 
   @Override
   public void execute(final String[] args) throws KeeperException, InterruptedException {
-    ServerInfo info = ServerInfo.getInstance();
-    AccumuloServerContext context = new AccumuloServerContext(info);
+    ServerContext context = ServerContext.getInstance();
     System.out.println("monitor: " + MonitorUtil.getLocation(context));
     System.out.println("masters: " + context.getMasterLocations());
     System.out.println("zookeepers: " + context.getZooKeepers());

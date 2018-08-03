@@ -19,39 +19,125 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
+import java.util.Objects;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
  * and have access to the system files and configuration.
  */
-public class AccumuloServerContext extends ClientContext {
+public class ServerContext extends ClientContext {
+
+  private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
+
+  private static ServerContext serverContextInstance = null;
 
   private final ServerInfo info;
+  private ServerConfigurationFactory serverConfFactory = null;
+  private String applicationName = null;
+  private String applicationClassName = null;
+  private String hostname = null;
   private AuthenticationTokenSecretManager secretManager;
 
-  public AccumuloServerContext(ServerInfo info) {
-    super(info, info.getServerConfFactory().getSystemConfiguration());
+  public ServerContext(ServerInfo info) {
+    super(info, SiteConfiguration.getInstance());
     this.info = info;
+  }
+
+  public ServerContext(String instanceName, String zooKeepers, int zooKeepersSessionTimeOut) {
+    this(new ServerInfo(instanceName, zooKeepers, zooKeepersSessionTimeOut));
+  }
+
+  public ServerContext(ClientInfo info) {
+    this(new ServerInfo(info));
+  }
+
+  public ServerContext(ClientContext context) {
+    this(new ServerInfo(context.getClientInfo()));
+  }
+
+  synchronized public static ServerContext getInstance() {
+    if (serverContextInstance == null) {
+      serverContextInstance = new ServerContext(new ServerInfo());
+    }
+    return serverContextInstance;
+  }
+
+  public void setupServer(String appName, String appClassName, String hostname) {
+    applicationName = appName;
+    applicationClassName = appClassName;
+    this.hostname = hostname;
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + info.getInstanceID());
+    try {
+      Accumulo.init(getVolumeManager(), getInstanceID(), getServerConfFactory(), applicationName);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    MetricsSystemHelper.configure(applicationClassName);
+    DistributedTrace.enable(hostname, applicationName,
+        getServerConfFactory().getSystemConfiguration());
     if (null != getSaslParams()) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       enforceKerberosLogin();
     }
   }
+
+  public void teardownServer() {
+    DistributedTrace.disable();
+  }
+
+  public String getApplicationName() {
+    Objects.requireNonNull(applicationName);
+    return applicationName;
+  }
+
+  public String getApplicationClassName() {
+    Objects.requireNonNull(applicationClassName);
+    return applicationName;
+  }
+
+  public String getHostname() {
+    Objects.requireNonNull(hostname);
+    return hostname;
+  }
+
+  public synchronized ServerConfigurationFactory getServerConfFactory() {
+    if (serverConfFactory == null) {
+      serverConfFactory = new ServerConfigurationFactory(this);
+    }
+    return serverConfFactory;
+  }
+
+  @Override
+  public AccumuloConfiguration getConfiguration() {
+    return getServerConfFactory().getSystemConfiguration();
+  }
+
 
   /**
    * A "client-side" assertion for servers to validate that they are logged in as the expected user,
@@ -59,7 +145,7 @@ public class AccumuloServerContext extends ClientContext {
    */
   // Should be private, but package-protected so EasyMock will work
   void enforceKerberosLogin() {
-    final AccumuloConfiguration conf = info.getServerConfFactory().getSiteConfiguration();
+    final AccumuloConfiguration conf = getServerConfFactory().getSiteConfiguration();
     // Unwrap _HOST into the FQDN to make the kerberos principal we'll compare against
     final String kerberosPrincipal = SecurityUtil
         .getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
@@ -77,15 +163,8 @@ public class AccumuloServerContext extends ClientContext {
         "Expected login user to be " + kerberosPrincipal + " but was " + loginUser.getUserName());
   }
 
-  public ServerInfo getServerInfo() {
-    return info;
-  }
-
-  /**
-   * Retrieve the configuration factory used to construct this context
-   */
-  public ServerConfigurationFactory getServerConfigurationFactory() {
-    return info.getServerConfFactory();
+  public VolumeManager getVolumeManager() {
+    return info.getVolumeManager();
   }
 
   /**
@@ -97,7 +176,7 @@ public class AccumuloServerContext extends ClientContext {
 
   @Override
   public SaslServerConnectionParams getSaslParams() {
-    AccumuloConfiguration conf = getServerConfigurationFactory().getSiteConfiguration();
+    AccumuloConfiguration conf = getServerConfFactory().getSiteConfiguration();
     if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return null;
     }
@@ -146,5 +225,10 @@ public class AccumuloServerContext extends ClientContext {
       conn = new ConnectorImpl(this);
     }
     return conn;
+  }
+
+  public Connector getConnector(String principal, AuthenticationToken token)
+      throws AccumuloSecurityException, AccumuloException {
+    return Connector.builder().usingClientInfo(info).usingToken(principal, token).build();
   }
 }

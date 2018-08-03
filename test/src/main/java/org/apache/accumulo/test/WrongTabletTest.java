@@ -26,7 +26,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 
@@ -44,12 +44,8 @@ public class WrongTabletTest {
     opts.parseArgs(WrongTabletTest.class.getName(), args);
 
     final HostAndPort location = HostAndPort.fromString(opts.location);
-    final ClientContext context = new AccumuloServerContext(opts.getServerInfo()) {
-      @Override
-      public synchronized Credentials getCredentials() {
-        return new Credentials(opts.getPrincipal(), opts.getToken());
-      }
-    };
+    final ClientContext context = opts.getClientContext();
+
     try {
       TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context);
 

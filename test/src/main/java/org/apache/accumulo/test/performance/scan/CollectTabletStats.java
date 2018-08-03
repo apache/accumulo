@@ -63,8 +63,7 @@ import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -108,9 +107,8 @@ public class CollectTabletStats {
     final String columns[] = columnsTmp;
 
     final VolumeManager fs = VolumeManagerImpl.get();
-    ServerInfo info = opts.getServerInfo();
-    ServerConfigurationFactory sconf = info.getServerConfFactory();
-    ClientContext context = new AccumuloServerContext(info);
+    ServerContext context = opts.getServerContext();
+    ServerConfigurationFactory sconf = context.getServerConfFactory();
 
     Table.ID tableId = Tables.getTableId(context, opts.getTableName());
     if (tableId == null) {

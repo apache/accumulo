@@ -36,7 +36,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.ServerInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -69,16 +69,16 @@ public class ServerConfigurationFactoryTest {
     replay(zc);
   }
 
-  private ServerInfo info;
+  private ServerContext context;
   private ServerConfigurationFactory scf;
 
   @Before
   public void setUp() throws Exception {
-    info = createMock(ServerInfo.class);
-    expect(info.getInstanceID()).andReturn(IID).anyTimes();
-    expect(info.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(info.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
-    expect(info.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
+    context = createMock(ServerContext.class);
+    expect(context.getInstanceID()).andReturn(IID).anyTimes();
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
   }
 
   @After
@@ -87,12 +87,12 @@ public class ServerConfigurationFactoryTest {
   }
 
   private void mockInstanceForConfig() {
-    expect(info.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
   }
 
   private void ready() {
-    replay(info);
-    scf = new ServerConfigurationFactory(info);
+    replay(context);
+    scf = new ServerConfigurationFactory(context);
     scf.setZooCacheFactory(zcf);
   }
 
