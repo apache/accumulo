@@ -122,7 +122,7 @@ public class ClientContext {
 
       @Override
       public String getInstanceName() {
-        return null;
+        return context.getInstanceName();
       }
 
       @Override

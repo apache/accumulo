@@ -145,6 +145,7 @@ public class MiniAccumuloCluster {
    * @param directory
    *          MiniAccumuloCluster directory
    * @return {@link ClientInfo} for that directory
+   * @since 2.0.0
    */
   public static ClientInfo getClientInfo(File directory) {
     File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");

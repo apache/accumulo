@@ -47,8 +47,8 @@ public class Info implements KeywordExecutable {
     ServerInfo info = ServerInfo.getInstance();
     AccumuloServerContext context = new AccumuloServerContext(info);
     System.out.println("monitor: " + MonitorUtil.getLocation(context));
-    System.out.println("masters: " + info.getMasterLocations());
-    System.out.println("zookeepers: " + info.getZooKeepers());
+    System.out.println("masters: " + context.getMasterLocations());
+    System.out.println("zookeepers: " + context.getZooKeepers());
   }
 
   public static void main(String[] args) throws Exception {
