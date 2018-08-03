@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -66,6 +67,7 @@ public class ServerInfo implements ClientInfo {
   private String applicationClassName = null;
   private String hostname = null;
   private ZooCache zooCache;
+  private ClientContext context;
 
   public ServerInfo(ClientInfo info) {
     this(info.getInstanceName(), info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
@@ -192,10 +194,16 @@ public class ServerInfo implements ClientInfo {
     return SystemCredentials.get(getInstanceID());
   }
 
+  public synchronized ClientContext getClientContext() {
+    if (context == null) {
+      context = new ClientContext(this);
+    }
+    return context;
+  }
+
   public Connector getConnector(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
-    return Connector.builder().forInstance(instanceName, zooKeepers).usingToken(principal, token)
-        .withZkTimeout(zooKeepersSessionTimeOut).build();
+    return Connector.builder().usingClientInfo(this).usingToken(principal, token).build();
   }
 
   public synchronized ServerConfigurationFactory getServerConfFactory() {
