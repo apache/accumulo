@@ -35,4 +35,6 @@ class TableInfo implements Serializable {
   public Map<String,String> props;
 
   public String dir = null;
+
+  public boolean exactDelete;
 }

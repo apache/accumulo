@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.TableOperationsHelper;
+import org.apache.accumulo.core.client.rfile.RFile.ScannerOptions;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -56,6 +57,7 @@ public class NewTableConfiguration {
   private TimeType timeType = DEFAULT_TIME_TYPE;
 
   private boolean limitVersion = true;
+  private boolean exactDelete = false;
 
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
@@ -154,6 +156,31 @@ public class NewTableConfiguration {
     checkDisjoint(properties, tmp, "sampler");
     this.samplerProps = tmp;
     return this;
+  }
+
+  /**
+   * This setting determines how deletes are interpreted for a table. When this setting is false,
+   * which is the default, deletes hide everything in a column where the timestamp is less than or
+   * equal to the delete. When this setting is true, only versions in a column with the same
+   * timestamp as a delete are hidden.
+   *
+   * @see TableOperations#isExactDeleteEnabled(String)
+   * @see ScannerOptions#withExactDeletes()
+   * @since 2.0.0
+   * @return this
+   */
+  public NewTableConfiguration setExactDeleteEnabled(boolean b) {
+    exactDelete = b;
+    return this;
+  }
+
+  /**
+   * @since 2.0.0
+   * @return The value previously passed to {@link #setExactDeleteEnabled(boolean)}. If
+   *         {@link #setExactDeleteEnabled(boolean)} was never called then returns false.
+   */
+  public boolean isExactDeleteEnabled() {
+    return exactDelete;
   }
 
   /**

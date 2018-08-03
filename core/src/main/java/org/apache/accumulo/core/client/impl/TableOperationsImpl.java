@@ -235,7 +235,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(ntc != null, "ntc is null");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
+        ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)),
+        ByteBuffer.wrap(Boolean.toString(ntc.isExactDeleteEnabled()).getBytes(UTF_8)));
 
     Map<String,String> opts = ntc.getProperties();
 
@@ -1928,5 +1929,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public ImportSourceArguments addFilesTo(String tableName) {
     return new BulkImport(tableName, context);
+  }
+
+  @Override
+  public boolean isExactDeleteEnabled(String tableName) throws TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+
+    Table.ID tableId = Tables.getTableId(context, tableName);
+
+    return Tables.isExactDeleteEnabled(context, tableId);
+
   }
 }

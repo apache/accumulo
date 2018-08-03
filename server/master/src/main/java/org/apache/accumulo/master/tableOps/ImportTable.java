@@ -60,7 +60,7 @@ public class ImportTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
-    checkVersions(env);
+    tableInfo.exactDelete = checkVersions(env);
 
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
@@ -77,10 +77,12 @@ public class ImportTable extends MasterRepo {
     }
   }
 
-  public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
+  public boolean checkVersions(Master env) throws AcceptableThriftTableOperationException {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
     Integer exportVersion = null;
     Integer dataVersion = null;
+
+    Boolean exactDelete = null;
 
     try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(path))) {
       ZipEntry zipEntry;
@@ -94,8 +96,11 @@ public class ImportTable extends MasterRepo {
               exportVersion = Integer.parseInt(sa[1]);
             } else if (sa[0].equals(ExportTable.DATA_VERSION_PROP)) {
               dataVersion = Integer.parseInt(sa[1]);
+            } else if (sa[0].equals(ExportTable.EXACT_DELETE_PROP)) {
+              exactDelete = Boolean.valueOf(sa[1]);
             }
           }
+          in.close();
           break;
         }
       }
@@ -115,6 +120,16 @@ public class ImportTable extends MasterRepo {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible data version " + dataVersion);
+
+    if (exactDelete == null && exportVersion == ExportTable.VERSION_1)
+      exactDelete = false;
+
+    if (exactDelete == null)
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Missing expected exact delete property");
+
+    return exactDelete;
   }
 
   @Override

@@ -145,6 +145,7 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CREATE;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
+        boolean exactDelete = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
 
         Namespace.ID namespaceId;
 
@@ -159,10 +160,8 @@ class FateServiceHandler implements FateService.Iface {
         if (!master.security.canCreateTable(c, tableName, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid,
-            new TraceRepo<>(
-                new CreateTable(c.getPrincipal(), tableName, timeType, options, namespaceId)),
-            autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new CreateTable(c.getPrincipal(),
+            tableName, timeType, exactDelete, options, namespaceId)), autoCleanup);
 
         break;
       }

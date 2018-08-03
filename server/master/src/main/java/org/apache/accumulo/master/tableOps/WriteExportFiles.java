@@ -166,6 +166,8 @@ class WriteExportFiles extends MasterRepo {
       osw.append("srcTableID:" + tableID.canonicalID() + "\n");
       osw.append(ExportTable.DATA_VERSION_PROP + ":" + ServerConstants.DATA_VERSION + "\n");
       osw.append("srcCodeVersion:" + Constants.VERSION + "\n");
+      osw.append(
+          ExportTable.EXACT_DELETE_PROP + ":" + Tables.isExactDeleteEnabled(context, tableID));
 
       osw.flush();
       dataOut.flush();

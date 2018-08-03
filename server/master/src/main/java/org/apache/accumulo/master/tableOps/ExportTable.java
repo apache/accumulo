@@ -52,9 +52,12 @@ public class ExportTable extends MasterRepo {
     Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
   }
 
-  public static final int VERSION = 1;
+  public static final int VERSION_1 = 1;
+  public static final int VERSION = 2;
 
   public static final String DATA_VERSION_PROP = "srcDataVersion";
   public static final String EXPORT_VERSION_PROP = "exportVersion";
+
+  public static final String EXACT_DELETE_PROP = "exactDelete";
 
 }

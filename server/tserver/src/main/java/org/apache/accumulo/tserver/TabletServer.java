@@ -72,6 +72,7 @@ import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletType;
@@ -276,6 +277,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 public class TabletServer implements Runnable {
 
@@ -2406,6 +2410,24 @@ public class TabletServer implements Runnable {
     }
   }
 
+  // This information is immutable per table, so cache it with guava instead of using ZooCache.
+  // ZooCache would leave a watch active on the node which consumes server side resources. There is
+  // no need to consume server side resources for something that is not expected to change.
+  private LoadingCache<Table.ID,Boolean> exactDeletesCache = CacheBuilder.newBuilder()
+      .maximumSize(10000).build(new CacheLoader<Table.ID,Boolean>() {
+        @Override
+        public Boolean load(ID tid) throws Exception {
+          String zTablePath = Constants.ZROOT + "/" + getInstanceID() + Constants.ZTABLES + "/"
+              + tid + Constants.ZTABLE_EXACT_DELETE;
+          byte[] data = ZooReaderWriter.getInstance().getData(zTablePath, null);
+          return Boolean.parseBoolean(new String(data, UTF_8));
+        }
+      });
+
+  boolean isExactDeleteEnabled(Table.ID tableId) {
+    return exactDeletesCache.getUnchecked(tableId);
+  }
+
   protected class AssignmentHandler implements Runnable {
     private final KeyExtent extent;
     private final int retryAttempt;
@@ -2513,9 +2535,11 @@ public class TabletServer implements Runnable {
             getTableConfiguration(extent));
         TabletData data;
         if (extent.isRootTablet()) {
-          data = new TabletData(fs, ZooReaderWriter.getInstance(), getTableConfiguration(extent));
+          data = new TabletData(fs, ZooReaderWriter.getInstance(), getTableConfiguration(extent),
+              isExactDeleteEnabled(extent.getTableId()));
         } else {
-          data = new TabletData(extent, fs, tabletsKeyValues.entrySet().iterator());
+          data = new TabletData(extent, fs, tabletsKeyValues.entrySet().iterator(),
+              isExactDeleteEnabled(extent.getTableId()));
         }
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);

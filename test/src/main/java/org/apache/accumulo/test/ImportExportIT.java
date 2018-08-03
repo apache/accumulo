@@ -23,12 +23,14 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -69,7 +71,12 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     String[] tableNames = getUniqueNames(2);
     String srcTable = tableNames[0], destTable = tableNames[1];
-    conn.tableOperations().create(srcTable);
+
+    Random rand = new Random();
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    boolean enableExactDeletes = rand.nextBoolean();
+    ntc.setExactDeleteEnabled(enableExactDeletes);
+    conn.tableOperations().create(srcTable, ntc);
 
     BatchWriter bw = conn.createBatchWriter(srcTable, new BatchWriterConfig());
     for (int row = 0; row < 1000; row++) {
@@ -169,6 +176,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
     }
     // Online the original table before we verify equivalence
     conn.tableOperations().online(srcTable, true);
+
+    Assert.assertEquals(enableExactDeletes, conn.tableOperations().isExactDeleteEnabled(destTable));
 
     verifyTableEquality(conn, srcTable, destTable);
   }

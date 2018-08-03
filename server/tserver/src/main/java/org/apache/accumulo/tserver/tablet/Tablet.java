@@ -259,6 +259,8 @@ public class Tablet implements TabletCommitter {
 
   private final int logId;
 
+  private final boolean exactDeletes;
+
   @Override
   public int getLogId() {
     return logId;
@@ -306,8 +308,8 @@ public class Tablet implements TabletCommitter {
   protected Tablet(TabletTime tabletTime, String tabletDirectory, int logId, Path location,
       DatafileManager datafileManager, TabletServer tabletServer,
       TabletResourceManager tabletResources, TabletMemory tabletMemory,
-      TableConfiguration tableConfiguration, KeyExtent extent,
-      ConfigurationObserver configObserver) {
+      TableConfiguration tableConfiguration, KeyExtent extent, ConfigurationObserver configObserver,
+      boolean exactDeletes) {
     this.tabletTime = tabletTime;
     this.tabletDirectory = tabletDirectory;
     this.logId = logId;
@@ -321,6 +323,7 @@ public class Tablet implements TabletCommitter {
     this.extent = extent;
     this.configObserver = configObserver;
     this.splitCreationTime = 0;
+    this.exactDeletes = exactDeletes;
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
@@ -337,6 +340,7 @@ public class Tablet implements TabletCommitter {
     this.tabletTime = TabletTime.getInstance(data.getTime());
     this.persistedTime = tabletTime.getTime();
     this.logId = tabletServer.createLogId();
+    this.exactDeletes = data.isExactDeleteEnabled();
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
@@ -2010,7 +2014,7 @@ public class Tablet implements TabletCommitter {
           boolean lastBatch = filesToCompact.isEmpty();
           Compactor compactor = new Compactor(context, this, copy, null, compactTmpName,
               lastBatch ? propogateDeletes : true, cenv, compactionIterators, reason.ordinal(),
-              tableConf);
+              tableConf, exactDeletes);
 
           CompactionStats mcs = compactor.call();
 
@@ -2326,9 +2330,9 @@ public class Tablet implements TabletCommitter {
       log.debug("TABLET_HIST {} split {} {}", extent, low, high);
 
       newTablets.put(high, new TabletData(tabletDirectory, highDatafileSizes, time, lastFlushID,
-          lastCompactID, lastLocation, getBulkIngestedFiles()));
+          lastCompactID, lastLocation, getBulkIngestedFiles(), exactDeletes));
       newTablets.put(low, new TabletData(lowDirectory, lowDatafileSizes, time, lastFlushID,
-          lastCompactID, lastLocation, getBulkIngestedFiles()));
+          lastCompactID, lastLocation, getBulkIngestedFiles(), exactDeletes));
 
       long t2 = System.currentTimeMillis();
 
@@ -2892,6 +2896,10 @@ public class Tablet implements TabletCommitter {
     for (Long tid : tids) {
       bulkImported.invalidate(tid);
     }
+  }
+
+  public boolean isExactDeleteEnabled() {
+    return exactDeletes;
   }
 
 }

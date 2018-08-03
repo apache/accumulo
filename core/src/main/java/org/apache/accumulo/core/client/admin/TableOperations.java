@@ -1015,4 +1015,14 @@ public interface TableOperations {
    */
   List<SummarizerConfiguration> listSummarizers(String tableName)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException;
+
+  /**
+   * Determines if exact deletes were enabled for a table when it was created. By default exact
+   * deletes are not enabled.
+   *
+   * @see NewTableConfiguration#setExactDeleteEnabled(boolean)
+   * @since 2.0.0
+   */
+  public boolean isExactDeleteEnabled(String tableName)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException;
 }

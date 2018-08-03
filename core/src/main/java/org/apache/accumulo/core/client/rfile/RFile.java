@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
@@ -168,6 +169,18 @@ public class RFile {
      * @return this
      */
     ScannerOptions withBounds(Range range);
+
+    /**
+     * This setting determines how delete marker are interpreted. By default deletes hide everything
+     * in a column where the timestamp is less then or equal to the delete. With this setting only
+     * versions of the column with the same timestamp as a delete are hidden.
+     *
+     * @see NewTableConfiguration#setExactDeleteEnabled(boolean)
+     * @see TableOperations#isExactDeleteEnabled(String)
+     * @since 2.0.0
+     * @return this
+     */
+    ScannerOptions withExactDeletes();
 
     /**
      * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for

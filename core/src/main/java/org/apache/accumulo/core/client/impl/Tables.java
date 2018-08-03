@@ -237,6 +237,16 @@ public class Tables {
 
   }
 
+  public static boolean isExactDeleteEnabled(ClientContext context, Table.ID tableId) {
+    String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTABLES + "/"
+        + tableId.canonicalID() + Constants.ZTABLE_EXACT_DELETE;
+    ZooCache zc = getZooCache(context);
+
+    byte[] val = zc.get(path);
+
+    return Boolean.parseBoolean(new String(val, UTF_8));
+  }
+
   public static String qualified(String tableName) {
     return qualified(tableName, Namespace.DEFAULT);
   }

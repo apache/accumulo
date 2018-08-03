@@ -350,10 +350,16 @@ public class Master
         log.debug("Initializing recovery area.");
         zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
 
+        final byte[] falseBytes = Boolean.toString(false).getBytes(UTF_8);
+
         for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
           log.debug("Prepping table {} for compaction cancellations.", id);
           zoo.putPersistentData(
               zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero,
+              NodeExistsPolicy.SKIP);
+
+          zoo.putPersistentData(
+              zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_EXACT_DELETE, falseBytes,
               NodeExistsPolicy.SKIP);
         }
 
@@ -410,13 +416,13 @@ public class Master
         // create replication table in zk
         log.debug("Upgrade creating table {} (ID: {})", ReplicationTable.NAME, ReplicationTable.ID);
         TableManager.prepareNewTableState(getInstanceID(), ReplicationTable.ID,
-            Namespace.ID.ACCUMULO, ReplicationTable.NAME, TableState.OFFLINE,
+            Namespace.ID.ACCUMULO, ReplicationTable.NAME, TableState.OFFLINE, false,
             NodeExistsPolicy.SKIP);
 
         // create root table
         log.debug("Upgrade creating table {} (ID: {})", RootTable.NAME, RootTable.ID);
         TableManager.prepareNewTableState(getInstanceID(), RootTable.ID, Namespace.ID.ACCUMULO,
-            RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
+            RootTable.NAME, TableState.ONLINE, false, NodeExistsPolicy.SKIP);
         Initialize.initSystemTablesConfig();
         // ensure root user can flush root table
         security.grantTablePermission(context.rpcCreds(), security.getRootUsername(), RootTable.ID,
