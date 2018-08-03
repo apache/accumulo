@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.client.admin.TableCreationMode;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
@@ -45,7 +45,7 @@ class FinishCreateTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
 
-    if (tableInfo.props.containsKey(Property.TABLE_OFFLINE_OPTS + "create.offline")) {
+    if (tableInfo.creationMode == TableCreationMode.OFFLINE) {
       TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.OFFLINE);
     } else {
       TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
@@ -56,7 +56,7 @@ class FinishCreateTable extends MasterRepo {
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 
-    if (tableInfo.props.containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits")) {
+    if (tableInfo.initialSplitSize > 0) {
       cleanupSplits(env);
     }
     return null;

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.TableCreationMode;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -77,6 +78,8 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 
@@ -147,10 +150,12 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CREATE;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
-        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(2)));
+        TableCreationMode creationMode = TableCreationMode
+            .valueOf(ByteBufferUtil.toString(arguments.get(2)));
+        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
         String splitFile = null;
         if (splitCount > 0) {
-          int SPLIT_OFFSET = 3; // offset where split data begins in arguments list
+          int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
           try {
             splitFile = createSplitFile(opid, arguments, splitCount, SPLIT_OFFSET);
           } catch (IOException e) {
@@ -172,7 +177,8 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<>(new CreateTable(c.getPrincipal(),
-            tableName, timeType, options, splitFile, namespaceId)), autoCleanup);
+            tableName, timeType, options, splitFile, splitCount, creationMode, namespaceId)),
+            autoCleanup);
 
         break;
       }
@@ -684,6 +690,13 @@ class FateServiceHandler implements FateService.Iface {
       final int splitCount, final int splitOffset) throws IOException {
     String opidStr = String.format("%016x", opid);
     String splitPath = getSplitPath("/tmp/splits-" + opidStr);
+
+    // Always check for and delete the splits file if it exists to prevent issues in case of
+    // server failure and/or FateServiceHandler retries.
+    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    if (fs.exists(new Path(splitPath)))
+      fs.delete(new Path(splitPath), true);
+
     try (FSDataOutputStream stream = master.getOutputStream(splitPath)) {
       writeSplitsToFileSystem(stream, arguments, splitCount, splitOffset);
     } catch (IOException e) {

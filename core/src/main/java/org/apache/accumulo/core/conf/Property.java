@@ -867,8 +867,6 @@ public enum Property {
           + " To add a summarizer set "
           + "`table.summarizer.<unique id>=<summarizer class name>.` If the summarizer has options"
           + ", then for each option set `table.summarizer.<unique id>.opt.<key>=<value>`."),
-  TABLE_OFFLINE_OPTS("table.offline.", null, PropertyType.PREFIX,
-      "Prefix for properties related to offline creation and initial offline split creation."),
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
@@ -1186,7 +1184,6 @@ public enum Property {
             || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey())
             || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())
             || key.startsWith(TABLE_SAMPLER_OPTS.getKey())
-            || key.startsWith(TABLE_OFFLINE_OPTS.getKey())
             || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())));
   }

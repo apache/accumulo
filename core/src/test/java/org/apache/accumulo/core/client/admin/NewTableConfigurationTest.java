@@ -50,13 +50,11 @@ public class NewTableConfigurationTest {
   /**
    * Verify withSplits method sets proper Property value.
    */
-  @Test
-  public void testWithSplitsSetsProperty() {
-    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
-    assertTrue(
-        ntc.getProperties().containsKey(Property.TABLE_OFFLINE_OPTS + "create.initial.splits"));
-    assertTrue(ntc.getProperties().containsValue("true"));
-  }
+  // @Test
+  // public void testWithSplitsSetsProperty() {
+  // NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+  // assertTrue(ntc.getCreateInitialSplits() == SplitMode.INITIAL_SPLTIS);
+  // }
 
   /**
    * Verify the withSplits/getSplits methods do as expected.
@@ -100,7 +98,6 @@ public class NewTableConfigurationTest {
   @Test
   public void testCreateOffline() {
     NewTableConfiguration ntc = new NewTableConfiguration().createOffline();
-    assertTrue(ntc.getProperties().containsKey(Property.TABLE_OFFLINE_OPTS + "create.offline"));
-    assertTrue(ntc.getProperties().containsValue("true"));
+    assertTrue(ntc.getTableCreationMode() == TableCreationMode.OFFLINE);
   }
 }

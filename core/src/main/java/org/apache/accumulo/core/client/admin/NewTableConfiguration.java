@@ -59,9 +59,13 @@ public class NewTableConfiguration {
   private static final TimeType DEFAULT_TIME_TYPE = TimeType.MILLIS;
   private TimeType timeType = DEFAULT_TIME_TYPE;
 
+  private static final TableCreationMode DEFAULT_CREATION_MODE = TableCreationMode.ONLINE;
+  private TableCreationMode tableCreationMode = DEFAULT_CREATION_MODE;
+
+  // private static final SplitMode DEFAULT_SPLIT_MODE = SplitMode.NO_SPLITS;
+  // private SplitMode splitCreation = DEFAULT_SPLIT_MODE;
+
   private boolean limitVersion = true;
-  private boolean createInitialSplits = false;
-  private boolean createOffline = false;
 
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
@@ -118,8 +122,19 @@ public class NewTableConfiguration {
    * @since 2.0.0
    */
   public NewTableConfiguration createOffline() {
-    this.createOffline = true;
+    this.tableCreationMode = TableCreationMode.OFFLINE;
     return this;
+  }
+
+  /**
+   * Return value indicating whether table is to be created in offline or online mode.
+   *
+   * @return 1 if true; 0 otherwise.
+   *
+   * @since 2.0.0
+   */
+  public TableCreationMode getTableCreationMode() {
+    return tableCreationMode;
   }
 
   /**
@@ -153,13 +168,6 @@ public class NewTableConfiguration {
     if (limitVersion)
       propertyMap.putAll(IteratorUtil.generateInitialTableProperties(limitVersion));
 
-    if (createOffline)
-      propertyMap.put(Property.TABLE_OFFLINE_OPTS + "create.offline", "true");
-
-    if (createInitialSplits) {
-      propertyMap.put(Property.TABLE_OFFLINE_OPTS + "create.initial.splits", "true");
-    }
-
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
     propertyMap.putAll(properties);
@@ -168,9 +176,27 @@ public class NewTableConfiguration {
     return Collections.unmodifiableMap(propertyMap);
   }
 
+  /**
+   * Return Collection of split values.
+   *
+   * @return this
+   *
+   * @since 2.0.0
+   */
   public Collection<Text> getSplits() {
-    return this.splitProps;
+    return splitProps;
   }
+
+  /**
+   * Return boolean indicating whether table is to be created with initial splits.
+   *
+   * @return 1 if creating initial splits; 0 otherwise.
+   *
+   * @since 2.0.0
+   */
+  // public SplitMode getCreateInitialSplits() {
+  // return splitCreation;
+  // }
 
   /**
    * Enable building a sample data set on the new table using the given sampler configuration.
@@ -241,7 +267,6 @@ public class NewTableConfiguration {
   public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
     checkArgument(splits != null, "splits set is null");
     checkArgument(splits.isEmpty() != true, "splits set is empty");
-    this.createInitialSplits = true;
     this.splitProps = ImmutableSortedSet.copyOf(splits);
     return this;
   }

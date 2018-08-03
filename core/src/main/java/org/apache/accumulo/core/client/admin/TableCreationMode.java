@@ -14,31 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.tableOps;
+package org.apache.accumulo.core.client.admin;
 
-import java.io.Serializable;
-import java.util.Map;
-
-import org.apache.accumulo.core.client.admin.TableCreationMode;
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
-
-class TableInfo implements Serializable {
-
-  private static final long serialVersionUID = 1L;
-
-  String tableName;
-  Table.ID tableId;
-  Namespace.ID namespaceId;
-  char timeType;
-  String user;
-
-  // store name of file containing split info when creating splits at table creation
-  String splitFile;
-  int initialSplitSize;
-  TableCreationMode creationMode;
-
-  public Map<String,String> props;
-
-  public String dir = null;
+public enum TableCreationMode {
+  /*
+   * Set if table is to be created in OFFLINE mode.
+   */
+  OFFLINE,
+  /*
+   * Used if table is to be created in ONLINE mode.
+   */
+  ONLINE
 }
