@@ -197,8 +197,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
-            this.info, DefaultConfiguration.getInstance());
-        return new TableConfiguration(this.info, tableId, defaultConf) {
+            this.context, DefaultConfiguration.getInstance());
+        return new TableConfiguration(this.context, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
           {
             tableProperties
@@ -281,8 +281,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
-            this.info, DefaultConfiguration.getInstance());
-        return new TableConfiguration(info, tableId, defaultConf) {
+            this.context, DefaultConfiguration.getInstance());
+        return new TableConfiguration(context, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
           {
             tableProperties.put(

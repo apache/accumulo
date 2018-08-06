@@ -52,7 +52,7 @@ public class NamespaceConfigurationTest {
   private static final int ZK_SESSION_TIMEOUT = 120000;
 
   private String iid;
-  private ServerContext info;
+  private ServerContext context;
   private AccumuloConfiguration parent;
   private ZooCacheFactory zcf;
   private ZooCache zc;
@@ -62,17 +62,17 @@ public class NamespaceConfigurationTest {
   public void setUp() {
     iid = UUID.randomUUID().toString();
 
-    info = createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     parent = createMock(AccumuloConfiguration.class);
 
-    expect(info.getProperties()).andReturn(new Properties());
-    expect(info.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
-    expect(info.getInstanceID()).andReturn(iid).anyTimes();
-    expect(info.getZooKeepers()).andReturn(ZOOKEEPERS).anyTimes();
-    expect(info.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT).anyTimes();
-    replay(info);
+    expect(context.getProperties()).andReturn(new Properties());
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
+    expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    expect(context.getZooKeepers()).andReturn(ZOOKEEPERS).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT).anyTimes();
+    replay(context);
 
-    c = new NamespaceConfiguration(NSID, info, parent);
+    c = new NamespaceConfiguration(NSID, context, parent);
     zcf = createMock(ZooCacheFactory.class);
     c.setZooCacheFactory(zcf);
 
@@ -110,7 +110,7 @@ public class NamespaceConfigurationTest {
 
   @Test
   public void testGet_SkipParentIfAccumuloNS() {
-    c = new NamespaceConfiguration(Namespace.ID.ACCUMULO, info, parent);
+    c = new NamespaceConfiguration(Namespace.ID.ACCUMULO, context, parent);
     c.setZooCacheFactory(zcf);
     Property p = Property.INSTANCE_SECRET;
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + Namespace.ID.ACCUMULO

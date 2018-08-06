@@ -35,16 +35,13 @@ import java.util.Map;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,37 +57,21 @@ public class SimpleGarbageCollectorTest {
   public void setUp() {
     volMgr = createMock(VolumeManager.class);
     context = createMock(ServerContext.class);
-    SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     expect(context.getInstanceID()).andReturn("mock").anyTimes();
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
 
     opts = new Opts();
     systemConfig = createSystemConfig();
-    ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
-    expect(factory.getSystemConfiguration()).andReturn(systemConfig).anyTimes();
-    expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
-
-    // Just make the SiteConfiguration delegate to our AccumuloConfiguration
-    // Presently, we only need get(Property) and iterator().
-    EasyMock.expect(siteConfig.get(EasyMock.anyObject(Property.class))).andAnswer(() -> {
-      Object[] args = EasyMock.getCurrentArguments();
-      return systemConfig.get((Property) args[0]);
-    }).anyTimes();
-    EasyMock.expect(siteConfig.getBoolean(EasyMock.anyObject(Property.class))).andAnswer(() -> {
-      Object[] args = EasyMock.getCurrentArguments();
-      return systemConfig.getBoolean((Property) args[0]);
-    }).anyTimes();
-    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
+    expect(context.getConfiguration()).andReturn(systemConfig).anyTimes();
     expect(context.getVolumeManager()).andReturn(volMgr).anyTimes();
-
-    EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConfig.iterator()).anyTimes();
 
     credentials = SystemCredentials.get("mock");
     expect(context.getPrincipal()).andReturn(credentials.getPrincipal()).anyTimes();
     expect(context.getAuthenticationToken()).andReturn(credentials.getToken()).anyTimes();
+    expect(context.getCredentials()).andReturn(credentials).anyTimes();
 
-    replay(factory, siteConfig, context);
+    replay(context);
 
     gc = new SimpleGarbageCollector(opts, context);
   }

@@ -36,12 +36,12 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "login-context";
+    return "login-info";
   }
 
   @Override
   public String description() {
-    return "Prints Accumulo login context";
+    return "Prints Accumulo login info";
   }
 
   @Override

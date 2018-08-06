@@ -47,6 +47,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.MasterClientServiceHandler;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
@@ -80,7 +81,9 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
    */
   private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
+    ServerContext serverContext = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(master.getConnector()).andReturn(conn).anyTimes();
+    EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 
     final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {

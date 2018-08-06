@@ -503,14 +503,14 @@ public class Initialize implements KeywordExecutable {
 
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
 
-    // populate the metadata tables tablet with context about the replication table's one initial
+    // populate the metadata tables tablet with info about the replication table's one initial
     // tablet
     String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet = new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir,
         null, null);
     createMetadataFile(fs, metadataFileName, replicationTablet);
 
-    // populate the root tablet with context about the metadata table's two initial tablets
+    // populate the root tablet with info about the metadata table's two initial tablets
     String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
     Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint,

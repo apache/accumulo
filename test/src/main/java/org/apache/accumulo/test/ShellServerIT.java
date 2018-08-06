@@ -1338,7 +1338,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void help() throws Exception {
     ts.exec("help -np", true, "Help Commands", true);
     ts.exec("?", true, "Help Commands", true);
-    for (String c : ("bye exit quit " + "about help context ? "
+    for (String c : ("bye exit quit " + "about help info ? "
         + "deleteiter deletescaniter listiter setiter setscaniter "
         + "grant revoke systempermissions tablepermissions userpermissions " + "execfile history "
         + "authenticate cls clear notable sleep table user whoami "
@@ -1405,7 +1405,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void info() throws Exception {
-    ts.exec("context", true, Constants.VERSION, true);
+    ts.exec("info", true, Constants.VERSION, true);
   }
 
   @Test
@@ -2101,16 +2101,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertNotContains(output, "c:f1");
     assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+1.*$.*");
     assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
-    // check that there are two files, with one missing summary context
+    // check that there are two files, with one missing summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]1[,]\\s+extra[:]0.*$.*");
 
-    // compact only the file missing summary context
+    // compact only the file missing summary info
     ts.exec("compact -t summary2 --sf-no-summary -w");
     output = ts.exec("summaries");
     assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
     assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
     assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
-    // check that there are two files, with none missing summary context
+    // check that there are two files, with none missing summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
 
     // create a situation where files has summary data outside of tablet
@@ -2119,16 +2119,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
     assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
     assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
-    // check that there are two files, with one having extra summary context
+    // check that there are two files, with one having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]1.*$.*");
 
-    // compact only the files with extra summary context
+    // compact only the files with extra summary info
     ts.exec("compact -t summary2 --sf-extra-summary -w");
     output = ts.exec("summaries -e r2");
     assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
     assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
     assertNotContains(output, "c:f3");
-    // check that there are two files, with none having extra summary context
+    // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
   }
 

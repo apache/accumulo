@@ -92,11 +92,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
-    final ServerContext info;
+    final ServerContext context;
 
-    public TestServerConfigurationFactory(ServerContext info) {
-      super(info);
-      this.info = info;
+    public TestServerConfigurationFactory(ServerContext context) {
+      super(context);
+      this.context = context;
     }
 
     @Override
@@ -108,9 +108,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     public TableConfiguration getTableConfiguration(final Table.ID tableId) {
       // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
       // constructor
-      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, info,
+      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, context,
           DefaultConfiguration.getInstance());
-      return new TableConfiguration(info, tableId, dummyConf) {
+      return new TableConfiguration(context, tableId, dummyConf) {
         @Override
         public String get(Property property) {
           return DEFAULT_TABLE_PROPERTIES.get(property.name());

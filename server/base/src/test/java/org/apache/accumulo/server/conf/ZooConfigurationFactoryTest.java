@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class ZooConfigurationFactoryTest {
 
-  private ServerContext info;
+  private ServerContext context;
   private ZooCacheFactory zcf;
   private ZooCache zc;
   private ZooConfigurationFactory zconff;
@@ -43,7 +43,7 @@ public class ZooConfigurationFactoryTest {
 
   @Before
   public void setUp() {
-    info = createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
     zconff = new ZooConfigurationFactory();
@@ -52,19 +52,19 @@ public class ZooConfigurationFactoryTest {
 
   @Test
   public void testGetInstance() {
-    expect(info.getInstanceID()).andReturn("iid").anyTimes();
-    expect(info.getZooKeepers()).andReturn("localhost").anyTimes();
-    expect(info.getZooKeepersSessionTimeOut()).andReturn(120000).anyTimes();
-    replay(info);
+    expect(context.getInstanceID()).andReturn("iid").anyTimes();
+    expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(120000).anyTimes();
+    replay(context);
     expect(zcf.getZooCache(eq("localhost"), eq(120000), isA(Watcher.class))).andReturn(zc)
         .anyTimes();
     replay(zcf);
 
-    ZooConfiguration c = zconff.getInstance(info, zcf, parent);
+    ZooConfiguration c = zconff.getInstance(context, zcf, parent);
     assertNotNull(c);
-    assertSame(c, zconff.getInstance(info, zcf, parent));
+    assertSame(c, zconff.getInstance(context, zcf, parent));
 
-    verify(info);
+    verify(context);
     verify(zcf);
   }
 }

@@ -106,18 +106,18 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }).anyTimes();
 
     EasyMock.expect(siteConfig.iterator()).andAnswer(() -> systemConf.iterator()).anyTimes();
-    ServerContext info = createMock(ServerContext.class);
-    expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
-    expect(info.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(info.getZooKeepers()).andReturn("localhost").anyTimes();
-    expect(info.getInstanceName()).andReturn("test").anyTimes();
-    expect(info.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
-    expect(info.getInstanceID()).andReturn("1111").anyTimes();
-    expect(info.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
+    ServerContext context = createMock(ServerContext.class);
+    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
+    expect(context.getInstanceName()).andReturn("test").anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
+    expect(context.getInstanceID()).andReturn("1111").anyTimes();
+    expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
 
-    replay(factory, siteConfig, info);
+    replay(factory, siteConfig, context);
 
-    refs = new WrappedCloseWriteAheadLogReferences(new ServerContext(info));
+    refs = new WrappedCloseWriteAheadLogReferences(context);
   }
 
   @Test

@@ -60,6 +60,8 @@ public class TableConfigurationTest {
   public void setUp() {
     iid = UUID.randomUUID().toString();
     context = createMock(ServerContext.class);
+    ServerConfigurationFactory scf = createMock(ServerConfigurationFactory.class);
+    expect(context.getServerConfFactory()).andReturn(scf);
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
