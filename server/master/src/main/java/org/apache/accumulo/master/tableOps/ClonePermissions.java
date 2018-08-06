@@ -70,7 +70,7 @@ class ClonePermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance(environment.getContext()).deleteTable(environment.getContext().rpcCreds(),
-        cloneInfo.tableId, cloneInfo.namespaceId);
+    AuditedSecurityOperation.getInstance(environment.getContext())
+        .deleteTable(environment.getContext().rpcCreds(), cloneInfo.tableId, cloneInfo.namespaceId);
   }
 }

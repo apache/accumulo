@@ -51,7 +51,8 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   private final SecurityOperation security;
 
   public MasterReplicationCoordinator(Master master) {
-    this(master, new ZooReader(master.getContext().getZooKeepers(), master.getContext().getZooKeepersSessionTimeOut()));
+    this(master, new ZooReader(master.getContext().getZooKeepers(),
+        master.getContext().getZooKeepersSessionTimeOut()));
   }
 
   protected MasterReplicationCoordinator(Master master, ZooReader reader) {

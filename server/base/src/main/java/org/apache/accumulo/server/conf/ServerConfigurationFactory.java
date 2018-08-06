@@ -122,7 +122,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      systemConfig = new ZooConfigurationFactory().getInstance(context, zcf, getSiteConfiguration());
+      systemConfig = new ZooConfigurationFactory().getInstance(context, zcf,
+          getSiteConfiguration());
     }
     return systemConfig;
   }

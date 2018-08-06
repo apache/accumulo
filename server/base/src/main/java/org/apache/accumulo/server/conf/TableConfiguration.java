@@ -62,7 +62,8 @@ public class TableConfiguration extends ObservableConfiguration {
 
   private EnumMap<IteratorScope,AtomicReference<ParsedIteratorConfig>> iteratorConfig;
 
-  public TableConfiguration(ServerContext context, Table.ID tableId, NamespaceConfiguration parent) {
+  public TableConfiguration(ServerContext context, Table.ID tableId,
+      NamespaceConfiguration parent) {
     this.context = requireNonNull(context);
     this.tableId = requireNonNull(tableId);
     this.parent = requireNonNull(parent);
@@ -83,8 +84,8 @@ public class TableConfiguration extends ObservableConfiguration {
         PropCacheKey key = new PropCacheKey(context.getInstanceID(), tableId.canonicalID());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
-          propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
-              new TableConfWatcher(context));
+          propCache = zcf.getZooCache(context.getZooKeepers(),
+              context.getZooKeepersSessionTimeOut(), new TableConfWatcher(context));
           propCaches.put(key, propCache);
         }
         propCacheAccessor = new ZooCachePropertyAccessor(propCache);

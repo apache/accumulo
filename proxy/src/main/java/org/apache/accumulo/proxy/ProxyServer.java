@@ -190,9 +190,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public ProxyServer(Properties props) {
 
     @SuppressWarnings("deprecation")
-    org.apache.accumulo.core.client.Instance i =
-        new org.apache.accumulo.core.client.ZooKeeperInstance(ClientConfConverter
-            .toClientConf(props));
+    org.apache.accumulo.core.client.Instance i = new org.apache.accumulo.core.client.ZooKeeperInstance(
+        ClientConfConverter.toClientConf(props));
     instance = i;
 
     try {

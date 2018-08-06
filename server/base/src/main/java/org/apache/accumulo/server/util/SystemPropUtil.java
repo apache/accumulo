@@ -60,7 +60,8 @@ public class SystemPropUtil {
     }
 
     // create the zk node for this property and set it's data to the specified value
-    String zPath = ServerContext.getInstance().getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
+    String zPath = ServerContext.getInstance().getZooKeeperRoot() + Constants.ZCONFIG + "/"
+        + property;
 
     return ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
@@ -68,7 +69,8 @@ public class SystemPropUtil {
 
   public static void removeSystemProperty(String property)
       throws InterruptedException, KeeperException {
-    String zPath = ServerContext.getInstance().getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
+    String zPath = ServerContext.getInstance().getZooKeeperRoot() + Constants.ZCONFIG + "/"
+        + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }
 }

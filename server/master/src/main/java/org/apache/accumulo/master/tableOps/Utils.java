@@ -49,7 +49,7 @@ public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  private static final ServerContext info = ServerContext.getInstance();
+  private static final ServerContext context = ServerContext.getInstance();
 
   static void checkTableDoesNotExist(ClientContext context, String tableName, Table.ID tableId,
       TableOperation operation) throws AcceptableThriftTableOperationException {
@@ -87,7 +87,7 @@ public class Utils {
     if (getLock(tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
-        if (!zk.exists(info.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
+        if (!zk.exists(context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
           throw new AcceptableThriftTableOperationException(tableId.canonicalID(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
@@ -117,7 +117,7 @@ public class Utils {
     if (getLock(namespaceId, id, writeLock).tryLock()) {
       if (mustExist) {
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
-        if (!zk.exists(info.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
+        if (!zk.exists(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
           throw new AcceptableThriftTableOperationException(namespaceId.canonicalID(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
@@ -130,7 +130,7 @@ public class Utils {
 
   public static long reserveHdfsDirectory(String directory, long tid)
       throws KeeperException, InterruptedException {
-    String resvPath = info.getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
+    String resvPath = context.getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
@@ -143,7 +143,7 @@ public class Utils {
 
   public static void unreserveHdfsDirectory(String directory, long tid)
       throws KeeperException, InterruptedException {
-    String resvPath = info.getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
+    String resvPath = context.getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
     ZooReservation.release(ZooReaderWriter.getInstance(), resvPath, String.format("%016x", tid));
   }
@@ -151,7 +151,7 @@ public class Utils {
   private static Lock getLock(AbstractId id, long tid, boolean writeLock) throws Exception {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
     ZooQueueLock qlock = new ZooQueueLock(
-        info.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id, false);
+        context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id, false);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);

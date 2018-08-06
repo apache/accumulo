@@ -81,8 +81,8 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -741,8 +741,9 @@ public class SimpleGarbageCollector implements Iface {
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server = TServerUtils.startTServer(getConfiguration(), context.getThriftServerType(),
-          processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
+      ServerAddress server = TServerUtils.startTServer(getConfiguration(),
+          context.getThriftServerType(), processor, this.getClass().getSimpleName(),
+          "GC Monitor Service", 2,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
           maxMessageSize, context.getServerSslParams(), context.getSaslParams(), 0, addresses);
       log.debug("Starting garbage collector listening on " + server.address);

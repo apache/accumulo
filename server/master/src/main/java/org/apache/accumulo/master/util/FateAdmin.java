@@ -77,8 +77,8 @@ public class FateAdmin {
 
     AdminUtil<Master> admin = new AdminUtil<>();
 
-    ServerContext info = ServerContext.getInstance();
-    final String zkRoot = info.getZooKeeperRoot();
+    ServerContext context = ServerContext.getInstance();
+    final String zkRoot = context.getZooKeeperRoot();
     String path = zkRoot + Constants.ZFATE;
     String masterPath = zkRoot + Constants.ZMASTER_LOCK;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();

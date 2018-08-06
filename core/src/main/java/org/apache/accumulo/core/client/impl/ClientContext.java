@@ -93,8 +93,8 @@ public class ClientContext {
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
-    saslSupplier = memoizeWithExpiration(() -> SaslConnectionParams.from(getConfiguration(),
-        getCredentials().getToken()));
+    saslSupplier = memoizeWithExpiration(
+        () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
   }
 
   /**

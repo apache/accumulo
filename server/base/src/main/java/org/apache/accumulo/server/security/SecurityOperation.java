@@ -123,7 +123,7 @@ public class SecurityOperation {
   }
 
   public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
-                           PermissionHandler pm) {
+      PermissionHandler pm) {
     this(context);
     authorizor = author;
     authenticator = authent;

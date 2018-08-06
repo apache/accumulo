@@ -137,29 +137,29 @@ public class TableLoadBalancerTest {
     }
   }
 
-  private ServerContext createMockInfo() {
-    ServerContext info = EasyMock.createMock(ServerContext.class);
+  private ServerContext createMockContext() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     final String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
         .toString();
-    EasyMock.expect(info.getProperties()).andReturn(new Properties()).anyTimes();
-    EasyMock.expect(info.getInstanceID()).andReturn(instanceId).anyTimes();
-    EasyMock.expect(info.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
-    EasyMock.expect(info.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
-    EasyMock.expect(info.getZooKeeperRoot()).andReturn("/root/").anyTimes();
-    return info;
+    EasyMock.expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    EasyMock.expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+    EasyMock.expect(context.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
+    EasyMock.expect(context.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
+    EasyMock.expect(context.getZooKeeperRoot()).andReturn("/root/").anyTimes();
+    return context;
   }
 
   @Test
   public void test() throws Exception {
-    final ServerContext info = createMockInfo();
-    replay(info);
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(info) {
+    final ServerContext context = createMockContext();
+    replay(context);
+    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context) {
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
         // constructor
-        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, info, null);
-        return new TableConfiguration(info, tableId, dummyConf) {
+        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, context, null);
+        return new TableConfiguration(context, tableId, dummyConf) {
           @Override
           public String get(Property property) {
             // fake the get table configuration so the test doesn't try to look in zookeeper for
@@ -169,9 +169,9 @@ public class TableLoadBalancerTest {
         };
       }
     };
-    final ServerContext info2 = createMockInfo();
-    EasyMock.expect(info2.getServerConfFactory()).andReturn(confFactory).anyTimes();
-    replay(info2);
+    final ServerContext context2 = createMockContext();
+    EasyMock.expect(context2.getServerConfFactory()).andReturn(confFactory).anyTimes();
+    replay(context2);
 
     String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"),
         t3Id = TABLE_ID_MAP.get("t3");
@@ -182,13 +182,13 @@ public class TableLoadBalancerTest {
     Set<KeyExtent> migrations = Collections.emptySet();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
-    tls.init(info2);
+    tls.init(context2);
     tls.balance(state, migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", "0x02030405"), status());
     tls = new TableLoadBalancer();
-    tls.init(info2);
+    tls.init(context2);
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<Table.ID,Integer> movedByTable = new HashMap<>();

@@ -170,8 +170,8 @@ import com.google.common.collect.Iterables;
  *
  * The master will also coordinate log recoveries and reports general status.
  */
-public class Master implements LiveTServerSet.Listener, TableObserver, CurrentState,
-    HighlyAvailableService {
+public class Master
+    implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
 
   final static Logger log = LoggerFactory.getLogger(Master.class);
 
@@ -1308,8 +1308,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     });
 
-    watchers
-        .add(new TabletGroupWatcher(this, new RootTabletStateStore(context, this), watchers.get(0)) {
+    watchers.add(
+        new TabletGroupWatcher(this, new RootTabletStateStore(context, this), watchers.get(0)) {
           @Override
           boolean canSuspendTablets() {
             // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1548,13 +1548,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     final String app = "master";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerContext info = ServerContext.getInstance();
-    info.setupServer(app, Master.class.getName(), opts.getAddress());
+    ServerContext context = ServerContext.getInstance();
+    context.setupServer(app, Master.class.getName(), opts.getAddress());
     try {
-      Master master = new Master(info);
+      Master master = new Master(context);
       master.run();
     } finally {
-      info.teardownServer();
+      context.teardownServer();
     }
   }
 

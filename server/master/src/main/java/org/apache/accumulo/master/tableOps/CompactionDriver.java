@@ -149,7 +149,8 @@ class CompactionDriver extends MasterRepo {
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 
-    if (serversToFlush.size() == 0 && Tables.getTableState(master.getContext(), tableId) == TableState.OFFLINE)
+    if (serversToFlush.size() == 0
+        && Tables.getTableState(master.getContext(), tableId) == TableState.OFFLINE)
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
 

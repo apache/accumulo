@@ -87,7 +87,8 @@ public class MinorCompactor extends Compactor {
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getContext(), extent.getTableId()) == TableState.DELETING;
+      return Tables.getTableState(tabletServer.getContext(),
+          extent.getTableId()) == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
@@ -116,8 +117,8 @@ public class MinorCompactor extends Compactor {
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
 
           if (reportedProblem) {
-            ProblemReports.getInstance(tabletServer.getContext()).deleteProblemReport(getExtent().getTableId(),
-                ProblemType.FILE_WRITE, outputFileName);
+            ProblemReports.getInstance(tabletServer.getContext()).deleteProblemReport(
+                getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName);
           }
 
           return ret;

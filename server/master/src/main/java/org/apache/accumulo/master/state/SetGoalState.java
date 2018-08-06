@@ -40,10 +40,10 @@ public class SetGoalState {
     }
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
-    ServerContext info = ServerContext.getInstance();
-    Accumulo.waitForZookeeperAndHdfs(info.getVolumeManager());
+    ServerContext context = ServerContext.getInstance();
+    Accumulo.waitForZookeeperAndHdfs(context.getVolumeManager());
     ZooReaderWriter.getInstance().putPersistentData(
-        info.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
+        context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
   }
 

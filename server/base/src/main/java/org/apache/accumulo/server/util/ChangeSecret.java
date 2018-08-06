@@ -96,7 +96,8 @@ public class ChangeSecret {
     }
   }
 
-  private static void verifyAccumuloIsDown(ServerContext context, String oldPassword) throws Exception {
+  private static void verifyAccumuloIsDown(ServerContext context, String oldPassword)
+      throws Exception {
     ZooReader zooReader = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), oldPassword);
     String root = context.getZooKeeperRoot();
@@ -118,8 +119,8 @@ public class ChangeSecret {
     }
   }
 
-  private static void rewriteZooKeeperInstance(final ServerContext context, final String newInstanceId,
-                                               String oldPass, String newPass) throws Exception {
+  private static void rewriteZooKeeperInstance(final ServerContext context,
+      final String newInstanceId, String oldPass, String newPass) throws Exception {
     final ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), oldPass);
     final IZooReaderWriter new_ = new ZooReaderWriter(context.getZooKeepers(),

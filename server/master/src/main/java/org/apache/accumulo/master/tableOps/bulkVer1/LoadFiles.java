@@ -171,8 +171,9 @@ class LoadFiles extends MasterRepo {
               client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.getContext().rpcCreds(), tid,
-                  tableId.canonicalID(), attempt1, errorDir, setTime);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(),
+                  master.getContext().rpcCreds(), tid, tableId.canonicalID(), attempt1, errorDir,
+                  setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
               } else {

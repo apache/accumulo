@@ -51,7 +51,8 @@ class ZooConfigurationFactory {
    *          parent configuration (required)
    * @return configuration
    */
-  ZooConfiguration getInstance(ServerContext context, ZooCacheFactory zcf, AccumuloConfiguration parent) {
+  ZooConfiguration getInstance(ServerContext context, ZooCacheFactory zcf,
+      AccumuloConfiguration parent) {
     String instanceId;
     if (context == null) {
       // InstanceID should be the same across all volumes, so just choose one
@@ -84,8 +85,8 @@ class ZooConfigurationFactory {
           propCache = zcf.getZooCache(parent.get(Property.INSTANCE_ZK_HOST),
               (int) parent.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), watcher);
         } else {
-          propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
-              watcher);
+          propCache = zcf.getZooCache(context.getZooKeepers(),
+              context.getZooKeepersSessionTimeOut(), watcher);
         }
         config = new ZooConfiguration(instanceId, propCache, parent);
         instances.put(instanceId, config);

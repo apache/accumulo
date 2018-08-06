@@ -78,9 +78,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void run() throws Exception {
-    ServerContext info = ServerContext.getInstance();
-    ServerContext c = new ServerContext(info);
-    String zPath = info.getZooKeeperRoot() + "/testLock";
+    ServerContext c = ServerContext.getInstance();
+    String zPath = c.getZooKeeperRoot() + "/testLock";
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
     ZooLock zl = new ZooLock(zPath);
@@ -132,7 +131,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void runSplitRecoveryTest(ServerContext context, int failPoint, String mr,
-                                    int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
+      int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
 
     Text midRow = new Text(mr);
 
@@ -164,9 +163,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
-  private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent,
-                                        KeyExtent high, KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles,
-                                        Text midRow, String location, int steps, ZooLock zl) throws Exception {
+  private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
+      KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles, Text midRow,
+      String location, int steps, ZooLock zl) throws Exception {
 
     SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
@@ -217,8 +216,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context,
-      KeyExtent extent, SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
+  private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
+      SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetadataRange());
 

@@ -675,8 +675,8 @@ abstract class TabletGroupWatcher extends Daemon {
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.getTableId()
             + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(
-            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master.getContext(),
-            timeType, this.master.masterLock);
+            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,
+            master.getContext(), timeType, this.master.masterLock);
       }
     } catch (RuntimeException | IOException | TableNotFoundException
         | AccumuloSecurityException ex) {

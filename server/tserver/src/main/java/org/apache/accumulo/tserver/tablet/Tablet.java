@@ -353,8 +353,8 @@ public class Tablet implements TabletCommitter {
         this.tableConfiguration);
     TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntries(),
         data.getDataFiles());
-    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(), fs, extent,
-        tabletPaths, replicationEnabled);
+    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
+        fs, extent, tabletPaths, replicationEnabled);
 
     // deal with relative path for the directory
     Path locationPath;
@@ -455,8 +455,8 @@ public class Tablet implements TabletCommitter {
 
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
-          MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent, logEntries,
-              tabletServer.getLock());
+          MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
+              logEntries, tabletServer.getLock());
 
           // No replication update to be made because the fact that this tablet didn't use any
           // mutations
@@ -483,7 +483,8 @@ public class Tablet implements TabletCommitter {
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,
                 ProtobufUtil.toString(status));
-            ReplicationTableUtil.updateFiles(tabletServer.getContext(), extent, logEntry.filename, status);
+            ReplicationTableUtil.updateFiles(tabletServer.getContext(), extent, logEntry.filename,
+                status);
           }
         }
 
@@ -2136,7 +2137,8 @@ public class Tablet implements TabletCommitter {
 
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
-        MetadataTableUtil.chopped(getTabletServer().getContext(), getExtent(), this.getTabletServer().getLock());
+        MetadataTableUtil.chopped(getTabletServer().getContext(), getExtent(),
+            this.getTabletServer().getLock());
         getTabletServer()
             .enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
@@ -2313,8 +2315,8 @@ public class Tablet implements TabletCommitter {
 
       String time = tabletTime.getMetadataValue();
 
-      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, getTabletServer().getContext(),
-          getTabletServer().getLock());
+      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio,
+          getTabletServer().getContext(), getTabletServer().getLock());
       MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectory,
           getTabletServer().getTabletSession(), lowDatafileSizes, getBulkIngestedFiles(), time,
           lastFlushID, lastCompactID, getTabletServer().getLock());
@@ -2706,8 +2708,8 @@ public class Tablet implements TabletCommitter {
       try {
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
-        MetadataTableUtil.updateTabletCompactID(extent, compactionId, getTabletServer().getContext(),
-            getTabletServer().getLock());
+        MetadataTableUtil.updateTabletCompactID(extent, compactionId,
+            getTabletServer().getContext(), getTabletServer().getLock());
       } finally {
         synchronized (this) {
           majorCompactionState = null;
@@ -2764,8 +2766,8 @@ public class Tablet implements TabletCommitter {
         persistedTime = maxCommittedTime;
 
       String time = tabletTime.getMetadataValue(persistedTime);
-      MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent, newDatafile, absMergeFile,
-          dfv, time, filesInUseByScans, tabletServer.getClientAddressString(),
+      MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent, newDatafile,
+          absMergeFile, dfv, time, filesInUseByScans, tabletServer.getClientAddressString(),
           tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
     }
 

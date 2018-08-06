@@ -72,8 +72,8 @@ public class NamespaceConfiguration extends ObservableConfiguration {
         PropCacheKey key = new PropCacheKey(context.getInstanceID(), namespaceId.canonicalID());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
-          propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
-              new NamespaceConfWatcher(context));
+          propCache = zcf.getZooCache(context.getZooKeepers(),
+              context.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(context));
           propCaches.put(key, propCache);
         }
         propCacheAccessor = new ZooCachePropertyAccessor(propCache);

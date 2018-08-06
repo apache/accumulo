@@ -138,7 +138,6 @@ public class ServerContext extends ClientContext {
     return getServerConfFactory().getSystemConfiguration();
   }
 
-
   /**
    * A "client-side" assertion for servers to validate that they are logged in as the expected user,
    * per the configuration, before performing any RPC

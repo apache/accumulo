@@ -115,9 +115,9 @@ public class TServerUtils {
    *           when we don't know our own address
    */
   public static ServerAddress startServer(ServerContext service, String hostname,
-                                          Property portHintProperty, TProcessor processor, String serverName, String threadName,
-                                          Property portSearchProperty, Property minThreadProperty,
-                                          Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
+      Property portHintProperty, TProcessor processor, String serverName, String threadName,
+      Property portSearchProperty, Property minThreadProperty,
+      Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
       throws UnknownHostException {
     final AccumuloConfiguration config = service.getConfiguration();
 

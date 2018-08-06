@@ -271,9 +271,9 @@ class LoadFiles extends MasterRepo {
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
-    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master.getContext()).scanMetadataTable()
-        .overRange(tableId, startRow, null).checkConsistency().fetchPrev().fetchLocation()
-        .fetchLoaded().build().iterator();
+    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master.getContext())
+        .scanMetadataTable().overRange(tableId, startRow, null).checkConsistency().fetchPrev()
+        .fetchLocation().fetchLoaded().build().iterator();
 
     List<TabletMetadata> tablets = new ArrayList<>();
     TabletMetadata currentTablet = tabletIter.next();

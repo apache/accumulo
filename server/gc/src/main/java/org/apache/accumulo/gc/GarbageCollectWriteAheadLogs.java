@@ -46,8 +46,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -90,8 +90,8 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(final ServerContext context, VolumeManager fs,
-                               boolean useTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(final ServerContext context, VolumeManager fs, boolean useTrash)
+      throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
@@ -128,7 +128,7 @@ public class GarbageCollectWriteAheadLogs {
    */
   @VisibleForTesting
   GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
-                               LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletLocationState> store)
+      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletLocationState> store)
       throws IOException {
     this.context = context;
     this.fs = fs;

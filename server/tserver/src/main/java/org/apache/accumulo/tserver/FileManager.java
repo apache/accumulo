@@ -168,7 +168,7 @@ public class FileManager {
    *          : underlying file can and should be able to handle a null cache
    */
   public FileManager(ServerContext context, VolumeManager fs, int maxOpen,
-                     Cache<String,Long> fileLenCache, BlockCache dataCache, BlockCache indexCache) {
+      Cache<String,Long> fileLenCache, BlockCache dataCache, BlockCache indexCache) {
 
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
@@ -485,8 +485,8 @@ public class FileManager {
       dataSources = new ArrayList<>();
       this.tablet = tablet;
 
-      continueOnFailure = context.getServerConfFactory()
-          .getTableConfiguration(tablet.getTableId()).getBoolean(Property.TABLE_FAILURES_IGNORE);
+      continueOnFailure = context.getServerConfFactory().getTableConfiguration(tablet.getTableId())
+          .getBoolean(Property.TABLE_FAILURES_IGNORE);
 
       if (tablet.isMeta()) {
         continueOnFailure = false;

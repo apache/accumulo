@@ -82,13 +82,13 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
       throws DistributedStoreException;
 
   public static void unassign(ServerContext context, TabletLocationState tls,
-                              Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls),
         logsForDeadServers);
   }
 
   public static void suspend(ServerContext context, TabletLocationState tls,
-                             Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
         logsForDeadServers, suspensionTimestamp);
@@ -100,8 +100,8 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
         .setLocations(Collections.singletonList(assignment));
   }
 
-  protected static TabletStateStore getStoreForTablet(KeyExtent extent,
-      ServerContext context) throws DistributedStoreException {
+  protected static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context)
+      throws DistributedStoreException {
     if (extent.isRootTablet()) {
       return new ZooTabletStateStore();
     } else if (extent.isMeta()) {

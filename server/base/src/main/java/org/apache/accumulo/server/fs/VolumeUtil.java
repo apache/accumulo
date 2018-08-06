@@ -32,8 +32,8 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -180,7 +180,7 @@ public class VolumeUtil {
    * for use it chooses a new tablet directory.
    */
   public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
-                                                VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
+      VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
       throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
     log.trace("Using volume replacements: {}", replacements);
@@ -262,7 +262,7 @@ public class VolumeUtil {
   }
 
   private static String decommisionedTabletDir(ServerContext context, ZooLock zooLock,
-                                               VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
+      VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
     Path dir = new Path(metaDir);
     if (isActiveVolume(dir))
       return metaDir;

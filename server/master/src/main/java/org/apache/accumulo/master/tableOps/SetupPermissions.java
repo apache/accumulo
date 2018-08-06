@@ -41,8 +41,8 @@ class SetupPermissions extends MasterRepo {
     if (!tableInfo.user.equals(env.getContext().getCredentials().getPrincipal())) {
       for (TablePermission permission : TablePermission.values()) {
         try {
-          security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.user, tableInfo.tableId,
-              permission, tableInfo.namespaceId);
+          security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.user,
+              tableInfo.tableId, permission, tableInfo.namespaceId);
         } catch (ThriftSecurityException e) {
           LoggerFactory.getLogger(SetupPermissions.class).error("{}", e.getMessage(), e);
           throw e;
@@ -58,8 +58,8 @@ class SetupPermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance(env.getContext()).deleteTable(env.getContext().rpcCreds(), tableInfo.tableId,
-        tableInfo.namespaceId);
+    AuditedSecurityOperation.getInstance(env.getContext()).deleteTable(env.getContext().rpcCreds(),
+        tableInfo.tableId, tableInfo.namespaceId);
   }
 
 }

@@ -57,8 +57,8 @@ public class TServerUtilsTest {
 
     private ConfigurationCopy conf = null;
 
-    public TestServerConfigurationFactory(ServerContext info) {
-      super(info);
+    public TestServerConfigurationFactory(ServerContext context) {
+      super(context);
       conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
 
@@ -131,9 +131,9 @@ public class TServerUtilsTest {
   }
 
   private static ServerContext createReplayMockInfo() {
-    ServerContext info = createMockInfo();
-    replay(info);
-    return info;
+    ServerContext context = createMockInfo();
+    replay(context);
+    return context;
   }
 
   private static final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
@@ -289,8 +289,8 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ServerContext info = createMockInfo();
-    expect(info.getServerConfFactory()).andReturn(factory).anyTimes();
+    ServerContext context = createMockInfo();
+    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
     ServerContext ctx = createMock(ServerContext.class);
     expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
     expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration());
@@ -298,7 +298,7 @@ public class TServerUtilsTest {
     expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
     expect(ctx.getSaslParams()).andReturn(null).anyTimes();
     expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
-    replay(ctx, info);
+    replay(ctx, context);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = TraceWrap.service(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);

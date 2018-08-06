@@ -54,8 +54,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -124,8 +124,8 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      exportTable(master.getFileSystem(), master.getContext(), tableInfo.tableName, tableInfo.tableID,
-          tableInfo.exportDir);
+      exportTable(master.getFileSystem(), master.getContext(), tableInfo.tableName,
+          tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
@@ -144,7 +144,7 @@ class WriteExportFiles extends MasterRepo {
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
-                                 Table.ID tableID, String exportDir) throws Exception {
+      Table.ID tableID, String exportDir) throws Exception {
 
     fs.mkdirs(new Path(exportDir));
     Path exportMetaFilePath = fs.getVolumeByPath(new Path(exportDir)).getFileSystem()
@@ -251,8 +251,8 @@ class WriteExportFiles extends MasterRepo {
     return uniqueFiles;
   }
 
-  private static void exportConfig(ServerContext context, Table.ID tableID,
-                                   ZipOutputStream zipOut, DataOutputStream dataOut)
+  private static void exportConfig(ServerContext context, Table.ID tableID, ZipOutputStream zipOut,
+      DataOutputStream dataOut)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
     Connector conn = context.getConnector();
 
@@ -260,8 +260,7 @@ class WriteExportFiles extends MasterRepo {
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();
     Map<String,String> systemConfig = conn.instanceOperations().getSystemConfiguration();
 
-    TableConfiguration tableConfig = context.getServerConfFactory()
-        .getTableConfiguration(tableID);
+    TableConfiguration tableConfig = context.getServerConfFactory().getTableConfiguration(tableID);
 
     OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8);
 

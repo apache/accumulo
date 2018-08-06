@@ -30,7 +30,8 @@ public class TableParentConfiguration extends NamespaceConfiguration {
 
   private Table.ID tableId;
 
-  public TableParentConfiguration(Table.ID tableId, ServerContext context, AccumuloConfiguration parent) {
+  public TableParentConfiguration(Table.ID tableId, ServerContext context,
+      AccumuloConfiguration parent) {
     super(null, context, parent);
     this.tableId = tableId;
     this.namespaceId = getNamespaceId();

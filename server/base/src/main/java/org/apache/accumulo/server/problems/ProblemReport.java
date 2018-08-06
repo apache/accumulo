@@ -186,8 +186,8 @@ public class ProblemReport {
     return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), ServerContext.getInstance());
   }
 
-  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, ServerContext context)
-      throws IOException, KeeperException, InterruptedException {
+  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw,
+      ServerContext context) throws IOException, KeeperException, InterruptedException {
     byte bytes[] = Encoding.decodeBase64FileName(node);
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);

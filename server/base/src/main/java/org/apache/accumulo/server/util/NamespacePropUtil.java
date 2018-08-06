@@ -60,7 +60,7 @@ public class NamespacePropUtil {
   }
 
   private static String getPath(Namespace.ID namespaceId) {
-    return ServerContext.getInstance().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
-        + Constants.ZNAMESPACE_CONF;
+    return ServerContext.getInstance().getZooKeeperRoot() + Constants.ZNAMESPACES + "/"
+        + namespaceId + Constants.ZNAMESPACE_CONF;
   }
 }

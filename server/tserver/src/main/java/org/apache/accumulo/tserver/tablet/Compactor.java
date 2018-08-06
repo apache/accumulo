@@ -146,8 +146,8 @@ public class Compactor implements Callable<CompactionStats> {
   }
 
   public Compactor(ServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
-                   InMemoryMap imm, FileRef outputFile, boolean propogateDeletes, CompactionEnv env,
-                   List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+      InMemoryMap imm, FileRef outputFile, boolean propogateDeletes, CompactionEnv env,
+      List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;
     this.extent = tablet.getExtent();
     this.fs = tablet.getTabletServer().getFileSystem();

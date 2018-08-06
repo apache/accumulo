@@ -19,7 +19,6 @@ package org.apache.accumulo.server.cli;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerInfo;
 
 public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
   {

@@ -59,8 +59,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String AUDITLOG = "org.apache.accumulo.audit";
   public static final Logger audit = LoggerFactory.getLogger(AUDITLOG);
 
-  public AuditedSecurityOperation(ServerContext context, Authorizor author,
-                                  Authenticator authent, PermissionHandler pm) {
+  public AuditedSecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
+      PermissionHandler pm) {
     super(context, author, authent, pm);
   }
 

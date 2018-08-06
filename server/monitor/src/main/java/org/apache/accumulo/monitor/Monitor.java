@@ -435,18 +435,18 @@ public class Monitor implements HighlyAvailableService {
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerContext info = ServerContext.getInstance();
-    info.setupServer(app, Monitor.class.getName(), opts.getAddress());
+    ServerContext context = ServerContext.getInstance();
+    context.setupServer(app, Monitor.class.getName(), opts.getAddress());
     try {
-      config = info.getServerConfFactory();
-      context = new ServerContext(info);
+      config = context.getServerConfFactory();
+      Monitor.context = context;
       Monitor monitor = new Monitor();
       // Servlets need access to limit requests when the monitor is not active, but Servlets are
       // instantiated via reflection. Expose the service this way instead.
       Monitor.HA_SERVICE_INSTANCE = monitor;
-      monitor.run(info.getHostname());
+      monitor.run(context.getHostname());
     } finally {
-      info.teardownServer();
+      context.teardownServer();
     }
   }
 

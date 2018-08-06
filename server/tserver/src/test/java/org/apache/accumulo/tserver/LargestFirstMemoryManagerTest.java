@@ -51,18 +51,18 @@ public class LargestFirstMemoryManagerTest {
   private static final long QGIG = ONE_GIG / 4;
   private static final long ONE_MINUTE = 60 * 1000;
 
-  private ServerContext info;
+  private ServerContext context;
 
   @Before
   public void mockServerInfo() {
-    info = EasyMock.createMock(ServerContext.class);
+    context = EasyMock.createMock(ServerContext.class);
   }
 
   @Test
   public void test() throws Exception {
     LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
     ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = info.getServerConfFactory();
+      ServerConfigurationFactory delegate = context.getServerConfFactory();
 
       @Override
       public AccumuloConfiguration getSystemConfiguration() {
@@ -200,7 +200,7 @@ public class LargestFirstMemoryManagerTest {
       new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
     // @formatter:on
     ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = info.getServerConfFactory();
+      ServerConfigurationFactory delegate = context.getServerConfFactory();
 
       @Override
       public AccumuloConfiguration getSystemConfiguration() {

@@ -71,8 +71,7 @@ public class ReplicationUtil {
     this(context, new ZooCache(), new ReplicaSystemFactory());
   }
 
-  public ReplicationUtil(ServerContext context, ZooCache cache,
-                         ReplicaSystemFactory factory) {
+  public ReplicationUtil(ServerContext context, ZooCache cache, ReplicaSystemFactory factory) {
     this.zooCache = cache;
     this.context = context;
     this.factory = factory;
@@ -138,8 +137,7 @@ public class ReplicationUtil {
         continue;
       }
 
-      TableConfiguration tableConf = context.getServerConfFactory()
-          .getTableConfiguration(localId);
+      TableConfiguration tableConf = context.getServerConfFactory().getTableConfiguration(localId);
       if (null == tableConf) {
         log.trace("Could not get configuration for table {} (it no longer exists)", table);
         continue;

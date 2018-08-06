@@ -772,8 +772,8 @@ public class Initialize implements KeywordExecutable {
     return optionalWarning;
   }
 
-  private static void initSecurity(ServerContext context, Opts opts, String iid,
-                                   String rootUser) throws AccumuloSecurityException, ThriftSecurityException, IOException {
+  private static void initSecurity(ServerContext context, Opts opts, String iid, String rootUser)
+      throws AccumuloSecurityException, ThriftSecurityException, IOException {
     AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(),
         rootUser, opts.rootpass);
   }

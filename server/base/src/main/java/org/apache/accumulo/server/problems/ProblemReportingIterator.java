@@ -40,7 +40,7 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private final ServerContext context;
 
   public ProblemReportingIterator(ServerContext context, Table.ID tableId, String resource,
-                                  boolean continueOnError, SortedKeyValueIterator<Key,Value> source) {
+      boolean continueOnError, SortedKeyValueIterator<Key,Value> source) {
     this.context = context;
     this.tableId = tableId;
     this.resource = resource;

@@ -84,8 +84,7 @@ public class ServerContextTest {
 
       ServerContext context = EasyMock.createMockBuilder(ServerContext.class)
           .addMockedMethod("enforceKerberosLogin").addMockedMethod("getConfiguration")
-          .addMockedMethod("getServerConfFactory").addMockedMethod("getCredentials")
-          .createMock();
+          .addMockedMethod("getServerConfFactory").addMockedMethod("getCredentials").createMock();
       context.enforceKerberosLogin();
       EasyMock.expectLastCall().anyTimes();
       EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();

@@ -309,8 +309,7 @@ public class NullTserver {
     // modify metadata
     int zkTimeOut = (int) DefaultConfiguration.getInstance()
         .getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    ServerContext info = new ServerContext(opts.iname, opts.keepers, zkTimeOut);
-    ServerContext context = new ServerContext(info);
+    ServerContext context = new ServerContext(opts.iname, opts.keepers, zkTimeOut);
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);

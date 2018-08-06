@@ -55,7 +55,8 @@ public class RenameNamespace extends MasterRepo {
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkNamespaceDoesNotExist(master.getContext(), newName, namespaceId, TableOperation.RENAME);
+      Utils.checkNamespaceDoesNotExist(master.getContext(), newName, namespaceId,
+          TableOperation.RENAME);
 
       final String tap = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZNAMESPACES + "/"
           + namespaceId + Constants.ZNAMESPACE_NAME;

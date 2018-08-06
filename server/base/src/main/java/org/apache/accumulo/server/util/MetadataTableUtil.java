@@ -279,7 +279,7 @@ public class MetadataTableUtil {
   }
 
   private static void addRootLogEntry(ServerContext context, ZooLock zooLock,
-                                      final LogEntry entry) {
+      final LogEntry entry) {
     retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
       @Override
       public void run(IZooReaderWriter rw)
@@ -692,7 +692,7 @@ public class MetadataTableUtil {
   }
 
   public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-                                            final List<LogEntry> entries, ZooLock zooLock) {
+      final List<LogEntry> entries, ZooLock zooLock) {
     if (extent.isRootTablet()) {
       retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
         @Override

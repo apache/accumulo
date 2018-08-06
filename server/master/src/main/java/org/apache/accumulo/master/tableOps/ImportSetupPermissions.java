@@ -45,8 +45,8 @@ class ImportSetupPermissions extends MasterRepo {
     SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     for (TablePermission permission : TablePermission.values()) {
       try {
-        security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.user, tableInfo.tableId, permission,
-            tableInfo.namespaceId);
+        security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.user,
+            tableInfo.tableId, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ImportSetupPermissions.class).error("{}", e.getMessage(), e);
         throw e;
@@ -61,7 +61,7 @@ class ImportSetupPermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance(env.getContext()).deleteTable(env.getContext().rpcCreds(), tableInfo.tableId,
-        tableInfo.namespaceId);
+    AuditedSecurityOperation.getInstance(env.getContext()).deleteTable(env.getContext().rpcCreds(),
+        tableInfo.tableId, tableInfo.namespaceId);
   }
 }

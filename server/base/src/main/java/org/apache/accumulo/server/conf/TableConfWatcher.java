@@ -89,7 +89,8 @@ class TableConfWatcher implements Watcher {
           // only remove the AccumuloConfiguration object when a
           // table node is deleted, not when a tables property is
           // deleted.
-          ServerConfigurationFactory.removeCachedTableConfiguration(context.getInstanceID(), tableId);
+          ServerConfigurationFactory.removeCachedTableConfiguration(context.getInstanceID(),
+              tableId);
         }
         break;
       case None:

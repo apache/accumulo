@@ -48,15 +48,15 @@ public class ProblemReportTest {
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 
-  private ServerContext info;
+  private ServerContext context;
   private ZooReaderWriter zoorw;
   private ProblemReport r;
 
   @Before
   public void setUp() throws Exception {
-    info = createMock(ServerContext.class);
-    expect(info.getZooKeeperRoot()).andReturn("/accumulo/instance");
-    replay(info);
+    context = createMock(ServerContext.class);
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/instance");
+    replay(context);
     zoorw = createMock(ZooReaderWriter.class);
   }
 
@@ -158,7 +158,7 @@ public class ProblemReportTest {
     zoorw.recursiveDelete(path, NodeMissingPolicy.SKIP);
     replay(zoorw);
 
-    r.removeFromZooKeeper(zoorw, info);
+    r.removeFromZooKeeper(zoorw, context);
     verify(zoorw);
   }
 
@@ -174,7 +174,7 @@ public class ProblemReportTest {
         .andReturn(true);
     replay(zoorw);
 
-    r.saveToZooKeeper(zoorw, info);
+    r.saveToZooKeeper(zoorw, context);
     verify(zoorw);
   }
 
@@ -189,7 +189,7 @@ public class ProblemReportTest {
         .andReturn(encoded);
     replay(zoorw);
 
-    r = ProblemReport.decodeZooKeeperEntry(node, zoorw, info);
+    r = ProblemReport.decodeZooKeeperEntry(node, zoorw, context);
     assertEquals(TABLE_ID, r.getTableId());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());

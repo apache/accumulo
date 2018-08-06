@@ -58,7 +58,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
   public static void main(final String[] args)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    ServerContext info = ServerContext.getInstance();
+    ServerContext context = ServerContext.getInstance();
     Credentials creds = null;
     String badInstanceID = SystemCredentials.class.getName();
     if (args.length < 2)
@@ -66,7 +66,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     if (args[0].equals("bad")) {
       creds = SystemCredentials.get(badInstanceID);
     } else if (args[0].equals("good")) {
-      creds = SystemCredentials.get(info.getInstanceID());
+      creds = SystemCredentials.get(context.getInstanceID());
     } else if (args[0].equals("bad_password")) {
       creds = new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
     } else {
@@ -74,7 +74,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     }
     Connector conn;
     try {
-      conn = info.getConnector(creds.getPrincipal(), creds.getToken());
+      conn = context.getConnector(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloSecurityException e) {
       e.printStackTrace(System.err);
       System.exit(BAD_PASSWD_FAIL_CODE);

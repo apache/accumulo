@@ -81,7 +81,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher,
-                              VolumeManager fs) {
+      VolumeManager fs) {
     this.context = context;
     this.transactionWatcher = transactionWatcher;
     this.fs = fs;
@@ -326,8 +326,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException, ThriftTableOperationException {
     Table.ID tableId = checkTableId(context, tableName, null);
-    AccumuloConfiguration config = context.getServerConfFactory()
-        .getTableConfiguration(tableId);
+    AccumuloConfiguration config = context.getServerConfFactory().getTableConfiguration(tableId);
     return conf(credentials, config);
   }
 
@@ -395,8 +394,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfFactory()
-          .getTableConfiguration(tableId);
+      AccumuloConfiguration conf = context.getServerConfFactory().getTableConfiguration(tableId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 

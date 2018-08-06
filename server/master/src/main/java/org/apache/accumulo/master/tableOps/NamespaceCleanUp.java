@@ -56,7 +56,8 @@ class NamespaceCleanUp extends MasterRepo {
 
     // remove any permissions associated with this namespace
     try {
-      AuditedSecurityOperation.getInstance(master.getContext()).deleteNamespace(master.getContext().rpcCreds(), namespaceId);
+      AuditedSecurityOperation.getInstance(master.getContext())
+          .deleteNamespace(master.getContext().rpcCreds(), namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
