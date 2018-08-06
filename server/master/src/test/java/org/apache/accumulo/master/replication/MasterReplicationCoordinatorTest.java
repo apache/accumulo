@@ -22,6 +22,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.easymock.EasyMock;
 import org.junit.Assert;
@@ -33,6 +34,8 @@ public class MasterReplicationCoordinatorTest {
   public void randomServer() {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(master.getContext()).andReturn(context);
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
     EasyMock.replay(master, reader);
 
@@ -45,7 +48,9 @@ public class MasterReplicationCoordinatorTest {
   @Test(expected = IllegalArgumentException.class)
   public void invalidOffset() {
     Master master = EasyMock.createMock(Master.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
+    EasyMock.expect(master.getContext()).andReturn(context);
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
     EasyMock.replay(master, reader);
 
@@ -59,8 +64,12 @@ public class MasterReplicationCoordinatorTest {
   public void randomServerFromMany() {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+
+    EasyMock.expect(context.getInstanceID()).andReturn("1234").anyTimes();
     EasyMock.expect(master.getInstanceID()).andReturn("1234").anyTimes();
-    EasyMock.replay(master, reader);
+    EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
+    EasyMock.replay(master, context, reader);
 
     MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
 
