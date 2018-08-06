@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.plugin.CustomFilter;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -50,7 +51,7 @@ public class PluginIT {
   @BeforeClass
   public static void setUp() throws Exception {
     String instanceName = "plugin-it-instance";
-    info = MiniAccumuloCluster.getClientInfo(new File("target/accumulo-maven-plugin/" + instanceName)));
+    info = MiniAccumuloCluster.getClientInfo(new File("target/accumulo-maven-plugin/" + instanceName));
     connector = Connector.builder().usingClientInfo(info).build();
   }
 
