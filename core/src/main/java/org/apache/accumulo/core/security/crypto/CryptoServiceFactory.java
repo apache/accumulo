@@ -20,24 +20,37 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class CryptoServiceFactory {
-  private static AtomicReference<CryptoService> singleton = new AtomicReference<>();
+  private static AtomicReference<CryptoService> singleton = new AtomicReference<>(init());
+
+  private static CryptoService init() {
+    SiteConfiguration conf = SiteConfiguration.getInstance();
+    String configuredClass = conf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
+    CryptoService newCryptoService = loadCryptoService(configuredClass);
+    newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+    return newCryptoService;
+  }
 
   /**
-   * Load the singleton class configured in {@link Property#INSTANCE_CRYPTO_SERVICE}
+   * Get the class configured in {@link Property#INSTANCE_CRYPTO_SERVICE}. This class should have
+   * been loaded and initialized when CryptoServiceFactory is loaded.
+   *
+   * @throws CryptoException
+   *           if class configured differs from the original class loaded
    */
   public static CryptoService getConfigured(AccumuloConfiguration conf) {
     CryptoService cyptoService = singleton.get();
+    String currentClass = cyptoService.getClass().getName();
     String configuredClass = conf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
-    if (cyptoService == null || !cyptoService.getClass().getName().equals(configuredClass)) {
-      CryptoService newCryptoService = loadCryptoService(configuredClass);
-      newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
-      singleton.compareAndSet(cyptoService, newCryptoService);
-      return singleton.get();
+    if (!currentClass.equals(configuredClass)) {
+      String msg = String.format("Configured crypto class %s changed since initialization of %s.",
+          configuredClass, currentClass);
+      throw new CryptoService.CryptoException(msg);
     }
     return cyptoService;
   }
