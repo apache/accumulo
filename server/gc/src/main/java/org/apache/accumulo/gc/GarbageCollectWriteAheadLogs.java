@@ -148,7 +148,7 @@ public class GarbageCollectWriteAheadLogs {
 
       Map<TServerInstance,Set<UUID>> logsByServer = new HashMap<>();
       Map<UUID,Pair<WalState,Path>> logsState = new HashMap<>();
-      // Scan for log file context first: the order is important
+      // Scan for log file info first: the order is important
       // Consider:
       // * get live servers
       // * new server gets a lock, creates a log

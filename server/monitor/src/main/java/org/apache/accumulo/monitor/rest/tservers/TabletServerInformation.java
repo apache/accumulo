@@ -106,7 +106,7 @@ public class TabletServerInformation {
    * @param thriftStatus
    *          Thrift status to obtain information
    * @param summary
-   *          Table context summary
+   *          Table info summary
    */
   public void updateTabletServerInfo(TabletServerStatus thriftStatus, TableInfo summary) {
 

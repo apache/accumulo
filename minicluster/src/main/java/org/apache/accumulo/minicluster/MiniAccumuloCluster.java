@@ -132,7 +132,7 @@ public class MiniAccumuloCluster {
   }
 
   /**
-   * @return Connection context for cluster
+   * @return Connection info for cluster
    * @since 2.0.0
    */
   public ClientInfo getClientInfo() {

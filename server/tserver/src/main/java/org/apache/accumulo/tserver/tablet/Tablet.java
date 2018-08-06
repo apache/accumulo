@@ -210,7 +210,7 @@ public class Tablet implements TabletCommitter {
     long compactionID = -1;
   }
 
-  // stores context about user initiated major compaction that is waiting on a minor compaction to
+  // stores info about user initiated major compaction that is waiting on a minor compaction to
   // finish
   private final CompactionWaitInfo compactionWaitInfo = new CompactionWaitInfo();
 
@@ -2256,9 +2256,9 @@ public class Tablet implements TabletCommitter {
       return null;
     }
 
-    // obtain this context outside of synch block since it will involve opening
+    // obtain this info outside of synch block since it will involve opening
     // the map files... it is ok if the set of map files changes, because
-    // this context is used for optimization... it is ok if map files are missing
+    // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
     Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(
@@ -2514,7 +2514,7 @@ public class Tablet implements TabletCommitter {
       // Intentionally NOT calling rebuildReferenedLogs() here as that could cause GC of in use
       // walogs(see #539). The clearing of otherLogs is reflected in refererncedLogs when
       // finishClearingUnusedLogs() calls rebuildReferenedLogs(). See the comments in
-      // rebuildReferenedLogs() for more context.
+      // rebuildReferenedLogs() for more info.
 
       if (unusedLogs.size() > 0)
         removingLogs = true;
@@ -2544,7 +2544,7 @@ public class Tablet implements TabletCommitter {
 
   private boolean removingLogs = false;
 
-  // this lock is basically used to synchronize writing of log context to metadata
+  // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
 
   public synchronized int getLogCount() {

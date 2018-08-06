@@ -879,7 +879,7 @@ public class InMemoryMap {
   private void dumpLocalityGroup(FileSKVWriter out, InterruptibleIterator iter) throws IOException {
     while (iter.hasTop() && activeIters.size() > 0) {
       // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
-      // There is no need to change the MemKey to a normal key because the kvCount context gets lost
+      // There is no need to change the MemKey to a normal key because the kvCount info gets lost
       // when it is written
       out.append(iter.getTopKey(),
           MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).getKVCount()));

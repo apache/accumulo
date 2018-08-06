@@ -231,7 +231,7 @@ public class FileUtil {
       numKeys = countIndexEntries(acuconf, prevEndRow, endRow, mapFiles, true, conf, fs, readers);
 
       if (numKeys == 0) {
-        // not enough context in the index to answer the question, so instead of going to
+        // not enough info in the index to answer the question, so instead of going to
         // the data just punt and return .5
         return .5;
       }

@@ -495,7 +495,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   }
 
   /**
-   * Get a mutable table context for the specified table and server
+   * Get a mutable table info for the specified table and server
    */
   private TableInfo getTableInfo(SortedMap<TServerInstance,TabletServerStatus> currentCopy,
       Multimap<TServerInstance,String> serverTableIdCopied, String tableId,

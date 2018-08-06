@@ -53,7 +53,7 @@ class ImportSetupPermissions extends MasterRepo {
       }
     }
 
-    // setup permissions in zookeeper before table context in zookeeper
+    // setup permissions in zookeeper before table info in zookeeper
     // this way concurrent users will not get a spurious permission denied
     // error
     return new ImportPopulateZookeeper(tableInfo);
