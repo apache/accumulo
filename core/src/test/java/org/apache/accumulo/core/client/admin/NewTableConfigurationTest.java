@@ -48,15 +48,6 @@ public class NewTableConfigurationTest {
   }
 
   /**
-   * Verify withSplits method sets proper Property value.
-   */
-  // @Test
-  // public void testWithSplitsSetsProperty() {
-  // NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
-  // assertTrue(ntc.getCreateInitialSplits() == SplitMode.INITIAL_SPLTIS);
-  // }
-
-  /**
    * Verify the withSplits/getSplits methods do as expected.
    *
    * The withSplits() takes a SortedSet as its input. Verify that the set orders the data even if
@@ -93,11 +84,13 @@ public class NewTableConfigurationTest {
   }
 
   /**
-   * Verify that createOffline option sets proper Property value
+   * Verify that createOffline option
    */
   @Test
   public void testCreateOffline() {
-    NewTableConfiguration ntc = new NewTableConfiguration().createOffline();
-    assertTrue(ntc.getTableCreationMode() == TableCreationMode.OFFLINE);
+    NewTableConfiguration ntcOffline = new NewTableConfiguration().createOffline();
+    assertTrue(ntcOffline.getTableCreationMode() == TableCreationMode.OFFLINE);
+    NewTableConfiguration ntcOnline = new NewTableConfiguration();
+    assertTrue(ntcOnline.getTableCreationMode() == TableCreationMode.ONLINE);
   }
 }
