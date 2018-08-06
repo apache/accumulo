@@ -120,18 +120,18 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
-  private static ServerContext createMockInfo() {
-    ServerContext mockInfo = EasyMock.createMock(ServerContext.class);
-    expect(mockInfo.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(mockInfo.getZooKeepers()).andReturn("").anyTimes();
-    expect(mockInfo.getInstanceName()).andReturn("instance").anyTimes();
-    expect(mockInfo.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
-    expect(mockInfo.getInstanceID()).andReturn("11111").anyTimes();
-    return mockInfo;
+  private static ServerContext createMockContext() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(context.getZooKeepers()).andReturn("").anyTimes();
+    expect(context.getInstanceName()).andReturn("instance").anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
+    expect(context.getInstanceID()).andReturn("11111").anyTimes();
+    return context;
   }
 
   private static ServerContext createReplayMockInfo() {
-    ServerContext context = createMockInfo();
+    ServerContext context = createMockContext();
     replay(context);
     return context;
   }
@@ -289,7 +289,7 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ServerContext context = createMockInfo();
+    ServerContext context = createMockContext();
     expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
     ServerContext ctx = createMock(ServerContext.class);
     expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
