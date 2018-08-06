@@ -62,9 +62,6 @@ public class NewTableConfiguration {
   private static final TableCreationMode DEFAULT_CREATION_MODE = TableCreationMode.ONLINE;
   private TableCreationMode tableCreationMode = DEFAULT_CREATION_MODE;
 
-  // private static final SplitMode DEFAULT_SPLIT_MODE = SplitMode.NO_SPLITS;
-  // private SplitMode splitCreation = DEFAULT_SPLIT_MODE;
-
   private boolean limitVersion = true;
 
   private Map<String,String> properties = Collections.emptyMap();
