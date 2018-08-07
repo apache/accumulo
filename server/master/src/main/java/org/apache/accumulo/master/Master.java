@@ -333,7 +333,7 @@ public class Master
             + " initialized prior to the Master transitioning to active. Please"
             + " save all logs and file a bug.");
       }
-      Accumulo.abortIfFateTransactions();
+      Accumulo.abortIfFateTransactions(getContext());
       try {
         log.info("Upgrading zookeeper");
 
@@ -417,7 +417,7 @@ public class Master
         log.debug("Upgrade creating table {} (ID: {})", RootTable.NAME, RootTable.ID);
         TableManager.prepareNewTableState(getInstanceID(), RootTable.ID, Namespace.ID.ACCUMULO,
             RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
-        Initialize.initSystemTablesConfig();
+        Initialize.initSystemTablesConfig(context.getZooKeeperRoot());
         // ensure root user can flush root table
         security.grantTablePermission(context.rpcCreds(), security.getRootUsername(), RootTable.ID,
             TablePermission.ALTER_TABLE, Namespace.ID.ACCUMULO);
@@ -587,7 +587,7 @@ public class Master
       case NORMAL:
         // Count offline tablets for online tables
         for (TabletGroupWatcher watcher : watchers) {
-          TableManager manager = TableManager.getInstance();
+          TableManager manager = context.getTableManager();
           for (Entry<Table.ID,TableCounts> entry : watcher.getStats().entrySet()) {
             Table.ID tableId = entry.getKey();
             TableCounts counts = entry.getValue();
@@ -628,6 +628,10 @@ public class Master
 
   public ServerContext getContext() {
     return context;
+  }
+
+  public TableManager getTableManager() {
+    return context.getTableManager();
   }
 
   public Connector getConnector() throws AccumuloSecurityException, AccumuloException {
@@ -848,7 +852,7 @@ public class Master
   }
 
   TabletGoalState getTableGoalState(KeyExtent extent) {
-    TableState tableState = TableManager.getInstance().getTableState(extent.getTableId());
+    TableState tableState = context.getTableManager().getTableState(extent.getTableId());
     if (tableState == null)
       return TabletGoalState.DELETED;
     switch (tableState) {
@@ -953,7 +957,7 @@ public class Master
      * tablet server will load the tablet. check for offline tables and remove their migrations.
      */
     private void cleanupOfflineMigrations() {
-      TableManager manager = TableManager.getInstance();
+      TableManager manager = context.getTableManager();
       for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
         TableState state = manager.getTableState(tableId);
         if (TableState.OFFLINE == state) {
@@ -1277,7 +1281,7 @@ public class Master
 
     recoveryManager = new RecoveryManager(this);
 
-    TableManager.getInstance().addObserver(this);
+    context.getTableManager().addObserver(this);
 
     StatusThread statusThread = new StatusThread();
     statusThread.start();
@@ -1649,7 +1653,7 @@ public class Master
         result.add(RootTable.ID);
       return result;
     }
-    TableManager manager = TableManager.getInstance();
+    TableManager manager = context.getTableManager();
 
     for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
       TableState state = manager.getTableState(tableId);

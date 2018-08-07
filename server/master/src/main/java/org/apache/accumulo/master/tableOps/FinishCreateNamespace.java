@@ -38,7 +38,7 @@ class FinishCreateNamespace extends MasterRepo {
   @Override
   public Repo<Master> call(long id, Master env) throws Exception {
 
-    Utils.unreserveNamespace(namespaceInfo.namespaceId, id, true);
+    Utils.unreserveNamespace(env, namespaceInfo.namespaceId, id, true);
 
     env.getEventCoordinator().event("Created namespace %s ", namespaceInfo.namespaceName);
 

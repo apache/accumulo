@@ -25,7 +25,6 @@ import java.util.NoSuchElementException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicaSystem;
@@ -55,13 +55,13 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class ReplicationProcessor implements Processor {
   private static final Logger log = LoggerFactory.getLogger(ReplicationProcessor.class);
 
-  private final ClientContext context;
+  private final ServerContext context;
   private final AccumuloConfiguration conf;
   private final VolumeManager fs;
   private final ReplicaSystemHelper helper;
   private final ReplicaSystemFactory factory;
 
-  public ReplicationProcessor(ClientContext context, AccumuloConfiguration conf, VolumeManager fs) {
+  public ReplicationProcessor(ServerContext context, AccumuloConfiguration conf, VolumeManager fs) {
     this.context = context;
     this.conf = conf;
     this.fs = fs;
@@ -151,7 +151,7 @@ public class ReplicationProcessor implements Processor {
     String peerType = getPeerType(target.getPeerName());
 
     // Get the peer that we're replicating to
-    return factory.get(peerType);
+    return factory.get(context, peerType);
   }
 
   protected String getPeerType(String peerName) {

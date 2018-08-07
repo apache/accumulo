@@ -55,8 +55,8 @@ public class CleanUpBulkImport extends MasterRepo {
       Connector conn = master.getConnector();
       MetadataTableUtil.removeBulkLoadEntries(conn, info.tableId, tid);
     }
-    Utils.unreserveHdfsDirectory(info.sourceDir, tid);
-    Utils.getReadLock(info.tableId, tid).unlock();
+    Utils.unreserveHdfsDirectory(master, info.sourceDir, tid);
+    Utils.getReadLock(master, info.tableId, tid).unlock();
     // delete json renames and mapping files
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
@@ -69,7 +69,7 @@ public class CleanUpBulkImport extends MasterRepo {
 
     log.debug("completing bulkDir import transaction " + tid);
     if (info.tableState == TableState.ONLINE) {
-      ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
+      ZooArbitrator.cleanup(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     }
     return null;
   }

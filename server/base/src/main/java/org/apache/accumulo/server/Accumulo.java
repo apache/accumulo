@@ -261,11 +261,10 @@ public class Accumulo {
    *
    * see ACCUMULO-2519
    */
-  public static void abortIfFateTransactions() {
+  public static void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(
-          new ZooStore<>(ServerContext.getInstance().getZooKeeperRoot() + Constants.ZFATE,
-              ZooReaderWriter.getInstance()));
+      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(new ZooStore<>(
+          context.getZooKeeperRoot() + Constants.ZFATE, ZooReaderWriter.getInstance()));
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."

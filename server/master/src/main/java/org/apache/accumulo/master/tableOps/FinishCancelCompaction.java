@@ -33,8 +33,8 @@ class FinishCancelCompaction extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    Utils.unreserveTable(tableId, tid, false);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(environment, tableId, tid, false);
+    Utils.unreserveNamespace(environment, namespaceId, tid, false);
     return null;
   }
 

@@ -100,7 +100,7 @@ public class ZombieTServer {
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
     ServerContext context = ServerContext.getInstance();
-    TransactionWatcher watcher = new TransactionWatcher();
+    TransactionWatcher watcher = new TransactionWatcher(context);
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
     ServerAddress serverPort = TServerUtils.startTServer(context.getConfiguration(),

@@ -21,11 +21,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicaSystem;
@@ -41,7 +41,7 @@ public class ReplicationProcessorTest {
   @Test
   public void peerTypeExtractionFromConfiguration() {
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    ClientContext context = EasyMock.createMock(ClientContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
 
     Map<String,String> data = new HashMap<>();
 
@@ -58,7 +58,7 @@ public class ReplicationProcessorTest {
   @Test(expected = IllegalArgumentException.class)
   public void noPeerConfigurationThrowsAnException() {
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    ClientContext context = EasyMock.createMock(ClientContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
 
     Map<String,String> data = new HashMap<>();
     ConfigurationCopy conf = new ConfigurationCopy(data);

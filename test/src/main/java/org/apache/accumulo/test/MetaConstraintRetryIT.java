@@ -17,7 +17,6 @@
 
 package org.apache.accumulo.test;
 
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.data.Mutation;
@@ -26,6 +25,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.junit.Test;
 
@@ -43,7 +43,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
     getConnector().securityOperations().grantTablePermission(getAdminPrincipal(),
         MetadataTable.NAME, TablePermission.WRITE);
 
-    ClientContext context = getClientContext();
+    ServerContext context = getServerContext();
     Writer w = new Writer(context, MetadataTable.ID);
     KeyExtent extent = new KeyExtent(Table.ID.of("5"), null, null);
 
@@ -52,7 +52,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
     m.put("badcolfam", "badcolqual", "3");
 
     try {
-      MetadataTableUtil.update(w, null, m);
+      MetadataTableUtil.update(context, w, null, m);
     } catch (RuntimeException e) {
       if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
         throw (ConstraintViolationException) e.getCause();

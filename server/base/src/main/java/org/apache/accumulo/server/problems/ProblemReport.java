@@ -149,8 +149,8 @@ public class ProblemReport {
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
-  void removeFromZooKeeper() throws Exception {
-    removeFromZooKeeper(ZooReaderWriter.getInstance(), ServerContext.getInstance());
+  void removeFromZooKeeper(ServerContext context) throws Exception {
+    removeFromZooKeeper(ZooReaderWriter.getInstance(), context);
   }
 
   void removeFromZooKeeper(ZooReaderWriter zoorw, ServerContext context)
@@ -159,8 +159,8 @@ public class ProblemReport {
     zoorw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
   }
 
-  void saveToZooKeeper() throws Exception {
-    saveToZooKeeper(ZooReaderWriter.getInstance(), ServerContext.getInstance());
+  void saveToZooKeeper(ServerContext context) throws Exception {
+    saveToZooKeeper(ZooReaderWriter.getInstance(), context);
   }
 
   void saveToZooKeeper(ZooReaderWriter zoorw, ServerContext context)
@@ -182,8 +182,8 @@ public class ProblemReport {
         + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
   }
 
-  static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
-    return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), ServerContext.getInstance());
+  static ProblemReport decodeZooKeeperEntry(ServerContext context, String node) throws Exception {
+    return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), context);
   }
 
   static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw,

@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.LoggerFactory;
 
@@ -43,12 +42,12 @@ class FinishImportTable extends MasterRepo {
 
     env.getFileSystem().deleteRecursively(new Path(tableInfo.importDir, "mappings.txt"));
 
-    TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
 
-    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
-    Utils.unreserveTable(tableInfo.tableId, tid, true);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+    Utils.unreserveTable(env, tableInfo.tableId, tid, true);
 
-    Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
 
     env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
 

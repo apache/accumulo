@@ -21,7 +21,6 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -59,13 +58,13 @@ public class ListVolumesUsed {
     volumes.add(getLogURI(logEntry.filename));
   }
 
-  private static void listZookeeper() throws Exception {
+  private static void listZookeeper(ServerContext context) throws Exception {
     System.out.println("Listing volumes referenced in zookeeper");
     TreeSet<String> volumes = new TreeSet<>();
 
-    volumes.add(getTableURI(MetadataTableUtil.getRootTabletDir()));
+    volumes.add(getTableURI(MetadataTableUtil.getRootTabletDir(context)));
     ArrayList<LogEntry> result = new ArrayList<>();
-    MetadataTableUtil.getRootLogEntries(result);
+    MetadataTableUtil.getRootLogEntries(context, result);
     for (LogEntry logEntry : result) {
       getLogURIs(volumes, logEntry);
     }
@@ -75,7 +74,7 @@ public class ListVolumesUsed {
 
   }
 
-  private static void listTable(String name, ClientContext context) throws Exception {
+  private static void listTable(String name, ServerContext context) throws Exception {
 
     System.out.println("Listing volumes referenced in " + name + " tablets section");
 
@@ -135,8 +134,8 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
   }
 
-  public static void listVolumes(ClientContext context) throws Exception {
-    listZookeeper();
+  public static void listVolumes(ServerContext context) throws Exception {
+    listZookeeper(context);
     System.out.println();
     listTable(RootTable.NAME, context);
     System.out.println();

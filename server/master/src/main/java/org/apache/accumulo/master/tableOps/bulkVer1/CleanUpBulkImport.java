@@ -60,11 +60,11 @@ public class CleanUpBulkImport extends MasterRepo {
     Connector conn = master.getConnector();
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
-    Utils.unreserveHdfsDirectory(source, tid);
-    Utils.unreserveHdfsDirectory(error, tid);
-    Utils.getReadLock(tableId, tid).unlock();
+    Utils.unreserveHdfsDirectory(master, source, tid);
+    Utils.unreserveHdfsDirectory(master, error, tid);
+    Utils.getReadLock(master, tableId, tid).unlock();
     log.debug("completing bulkDir import transaction " + tid);
-    ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
+    ZooArbitrator.cleanup(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     master.removeBulkImportStatus(source);
     return null;
   }

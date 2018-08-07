@@ -442,7 +442,7 @@ public class Initialize implements KeywordExecutable {
           String key = entry.getKey();
           String value = entry.getValue();
           if (Property.isValidZooPropertyKey(key)) {
-            SystemPropUtil.setSystemProperty(key, value);
+            SystemPropUtil.setSystemProperty(context, key, value);
             log.info("Uploaded - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
           } else {
             log.info("Skipped - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
@@ -485,7 +485,7 @@ public class Initialize implements KeywordExecutable {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
 
     // initialize initial system tables config in zookeeper
-    initSystemTablesConfig();
+    initSystemTablesConfig(Constants.ZROOT + "/" + uuid);
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT);
     String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris())
@@ -778,7 +778,7 @@ public class Initialize implements KeywordExecutable {
         rootUser, opts.rootpass);
   }
 
-  public static void initSystemTablesConfig() throws IOException {
+  public static void initSystemTablesConfig(String zooKeeperRoot) throws IOException {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       int max = conf.getInt("dfs.replication.max", 512);
@@ -790,20 +790,24 @@ public class Initialize implements KeywordExecutable {
       if (min > 5)
         setMetadataReplication(min, "min");
       for (Entry<String,String> entry : initialMetadataConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(RootTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zooKeeperRoot, RootTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
-        if (!TablePropUtil.setTableProperty(MetadataTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zooKeeperRoot, MetadataTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
       // Only add combiner config to accumulo.metadata table (ACCUMULO-3077)
       for (Entry<String,String> entry : initialMetadataCombinerConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(MetadataTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zooKeeperRoot, MetadataTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
 
       // add configuration to the replication table
       for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(ReplicationTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zooKeeperRoot, ReplicationTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
     } catch (Exception e) {

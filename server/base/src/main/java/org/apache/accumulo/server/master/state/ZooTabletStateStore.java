@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -43,9 +44,9 @@ public class ZooTabletStateStore extends TabletStateStore {
     this.store = store;
   }
 
-  public ZooTabletStateStore() throws DistributedStoreException {
+  public ZooTabletStateStore(ClientContext context) throws DistributedStoreException {
     try {
-      store = new ZooStore();
+      store = new ZooStore(context);
     } catch (IOException ex) {
       throw new DistributedStoreException(ex);
     }

@@ -41,6 +41,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -87,15 +88,15 @@ public class BulkImport extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master master) throws Exception {
-    if (!Utils.getReadLock(tableId, tid).tryLock())
+    if (!Utils.getReadLock(master, tableId, tid).tryLock())
       return 100;
 
     Tables.clearCache(master.getContext());
     if (Tables.getTableState(master.getContext(), tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
-      reserve1 = reserve2 = Utils.reserveHdfsDirectory(sourceDir, tid);
+      reserve1 = reserve2 = Utils.reserveHdfsDirectory(master, sourceDir, tid);
       if (reserve1 == 0)
-        reserve2 = Utils.reserveHdfsDirectory(errorDir, tid);
+        reserve2 = Utils.reserveHdfsDirectory(master, errorDir, tid);
       return reserve2;
     } else {
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
@@ -107,7 +108,7 @@ public class BulkImport extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug(" tid {} sourceDir {}", tid, sourceDir);
 
-    Utils.getReadLock(tableId, tid).lock();
+    Utils.getReadLock(master, tableId, tid).lock();
 
     // check that the error directory exists and is empty
     VolumeManager fs = master.getFileSystem();
@@ -132,7 +133,7 @@ public class BulkImport extends MasterRepo {
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
           errorDir + " is not empty");
 
-    ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
+    ZooArbitrator.start(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     master.updateBulkImportStatus(sourceDir, BulkImportState.MOVING);
     // move the files into the directory
     try {
@@ -147,7 +148,8 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  private Path createNewBulkDir(VolumeManager fs, Table.ID tableId) throws IOException {
+  private Path createNewBulkDir(ServerContext context, VolumeManager fs, Table.ID tableId)
+      throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(sourceDir), ServerConstants.getTablesDirs());
     if (tempPath == null)
       throw new IOException(sourceDir + " is not in a volume configured for Accumulo");
@@ -164,7 +166,7 @@ public class BulkImport extends MasterRepo {
     // fs.mkdirs()... if only hadoop had a mkdir() function
     // that failed when the dir existed
 
-    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    UniqueNameAllocator namer = context.getUniqueNameAllocator();
 
     while (true) {
       Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
@@ -180,7 +182,7 @@ public class BulkImport extends MasterRepo {
 
   private String prepareBulkImport(Master master, final VolumeManager fs, String dir,
       Table.ID tableId) throws Exception {
-    final Path bulkDir = createNewBulkDir(fs, tableId);
+    final Path bulkDir = createNewBulkDir(master.getContext(), fs, tableId);
 
     MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
@@ -188,7 +190,7 @@ public class BulkImport extends MasterRepo {
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
 
-    final UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    final UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
 
     int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulk move");
@@ -265,9 +267,9 @@ public class BulkImport extends MasterRepo {
   @Override
   public void undo(long tid, Master environment) throws Exception {
     // unreserve source/error directories
-    Utils.unreserveHdfsDirectory(sourceDir, tid);
-    Utils.unreserveHdfsDirectory(errorDir, tid);
-    Utils.getReadLock(tableId, tid).unlock();
-    ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
+    Utils.unreserveHdfsDirectory(environment, sourceDir, tid);
+    Utils.unreserveHdfsDirectory(environment, errorDir, tid);
+    Utils.getReadLock(environment, tableId, tid).unlock();
+    ZooArbitrator.cleanup(environment.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
   }
 }

@@ -33,7 +33,7 @@ public class DeleteNamespace extends MasterRepo {
 
   @Override
   public long isReady(long id, Master environment) throws Exception {
-    return Utils.reserveNamespace(namespaceId, id, true, true, TableOperation.DELETE);
+    return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.DELETE);
   }
 
   @Override
@@ -44,7 +44,7 @@ public class DeleteNamespace extends MasterRepo {
 
   @Override
   public void undo(long id, Master environment) throws Exception {
-    Utils.unreserveNamespace(namespaceId, id, true);
+    Utils.unreserveNamespace(environment, namespaceId, id, true);
   }
 
 }

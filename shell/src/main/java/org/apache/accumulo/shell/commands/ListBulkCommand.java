@@ -52,7 +52,7 @@ public class ListBulkCommand extends Command {
 
     MasterMonitorInfo stats;
     MasterClientService.Iface client = null;
-    ServerContext context = new ServerContext(shellState.getContext());
+    ServerContext context = ServerContext.getInstance(shellState.getContext().getClientInfo());
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

@@ -280,7 +280,6 @@ public class MetadataConstraints implements Constraint {
             violations = addViolation(violations, 7);
           }
         }
-
       }
     }
 
@@ -297,7 +296,7 @@ public class MetadataConstraints implements Constraint {
   }
 
   protected Arbitrator getArbitrator() {
-    return new ZooArbitrator();
+    return new ZooArbitrator(ServerContext.getInstance());
   }
 
   @Override

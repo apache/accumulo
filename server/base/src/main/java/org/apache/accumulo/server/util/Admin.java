@@ -56,6 +56,7 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -213,7 +214,7 @@ public class Admin implements KeywordExecutable {
     }
 
     try {
-      ClientContext context = opts.getServerContext();
+      ServerContext context = opts.getServerContext();
 
       int rc = 0;
 
@@ -245,7 +246,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context.getConnector(), randomizeVolumesOpts.tableName);
+        rc = RandomizeVolumes.randomize(context, context.getConnector(),
+            randomizeVolumesOpts.tableName);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 

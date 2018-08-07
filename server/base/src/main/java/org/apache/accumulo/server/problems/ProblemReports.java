@@ -97,7 +97,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         try {
           if (isMeta(pr.getTableId())) {
             // file report in zookeeper
-            pr.saveToZooKeeper();
+            pr.saveToZooKeeper(context);
           } else {
             // file report in metadata table
             pr.saveToMetadataTable(context);
@@ -136,7 +136,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         try {
           if (isMeta(pr.getTableId())) {
             // file report in zookeeper
-            pr.removeFromZooKeeper();
+            pr.removeFromZooKeeper(context);
           } else {
             // file report in metadata table
             pr.removeFromMetadataTable(context);
@@ -163,7 +163,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     if (isMeta(table)) {
       Iterator<ProblemReport> pri = iterator(table);
       while (pri.hasNext()) {
-        pri.next().removeFromZooKeeper();
+        pri.next().removeFromZooKeeper(context);
       }
       return;
     }
@@ -261,7 +261,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           try {
             if (getIter1().hasNext()) {
               iter1Count++;
-              return ProblemReport.decodeZooKeeperEntry(getIter1().next());
+              return ProblemReport.decodeZooKeeperEntry(context, getIter1().next());
             }
 
             if (getIter2().hasNext()) {

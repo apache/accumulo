@@ -45,8 +45,8 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME)
-        + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.RENAME)
+        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.RENAME);
   }
 
   public RenameTable(Namespace.ID namespaceId, Table.ID tableId, String oldTableName,
@@ -99,8 +99,8 @@ public class RenameTable extends MasterRepo {
       Tables.clearCache(master.getContext());
     } finally {
       Utils.tableNameLock.unlock();
-      Utils.unreserveTable(tableId, tid, true);
-      Utils.unreserveNamespace(namespaceId, tid, false);
+      Utils.unreserveTable(master, tableId, tid, true);
+      Utils.unreserveNamespace(master, namespaceId, tid, false);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -111,8 +111,8 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, true);
+    Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 
 }

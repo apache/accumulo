@@ -54,8 +54,9 @@ public class ImportTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid)
-        + Utils.reserveNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.IMPORT);
+    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(), tid)
+        + Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+            TableOperation.IMPORT);
   }
 
   @Override
@@ -119,7 +120,7 @@ public class ImportTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
-    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
   }
 }

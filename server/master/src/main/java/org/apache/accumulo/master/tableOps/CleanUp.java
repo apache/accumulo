@@ -47,7 +47,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -188,7 +187,7 @@ class CleanUp extends MasterRepo {
 
     // remove table from zookeeper
     try {
-      TableManager.getInstance().removeTable(tableId);
+      master.getTableManager().removeTable(tableId);
       Tables.clearCache(master.getContext());
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);
@@ -202,8 +201,8 @@ class CleanUp extends MasterRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(master, tableId, tid, true);
+    Utils.unreserveNamespace(master, namespaceId, tid, false);
 
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 

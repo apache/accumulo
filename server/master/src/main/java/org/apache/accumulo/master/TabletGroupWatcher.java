@@ -87,7 +87,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -205,7 +204,7 @@ abstract class TabletGroupWatcher extends Daemon {
           }
           Master.log.debug("{} location State: {}", store.name(), tls);
           // ignore entries for tables that do not exist in zookeeper
-          if (TableManager.getInstance().getTableState(tls.extent.getTableId()) == null)
+          if (master.getTableManager().getTableState(tls.extent.getTableId()) == null)
             continue;
 
           if (Master.log.isTraceEnabled())
@@ -415,7 +414,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
   private void cancelOfflineTableMigrations(TabletLocationState tls) {
     TServerInstance dest = this.master.migrations.get(tls.extent);
-    TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId());
+    TableState tableState = master.getTableManager().getTableState(tls.extent.getTableId());
     if (dest != null && tableState == TableState.OFFLINE) {
       this.master.migrations.remove(tls.extent);
     }

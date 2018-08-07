@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.replication;
 
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 
@@ -46,5 +47,5 @@ public interface ReplicaSystem {
    * For example, we only need one implementation for Accumulo, but, for each peer, we have a ZK
    * quorum and instance name
    */
-  void configure(String configuration);
+  void configure(ServerContext context, String configuration);
 }

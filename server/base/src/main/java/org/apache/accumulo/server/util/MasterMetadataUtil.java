@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -67,7 +67,7 @@ public class MasterMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(MasterMetadataUtil.class);
 
-  public static void addNewTablet(ClientContext context, KeyExtent extent, String path,
+  public static void addNewTablet(ServerContext context, KeyExtent extent, String path,
       TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
       Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, String time, long lastFlushID,
       long lastCompactID, ZooLock zooLock) {
@@ -101,7 +101,7 @@ public class MasterMetadataUtil {
     MetadataTableUtil.update(context, zooLock, m, extent);
   }
 
-  public static KeyExtent fixSplit(ClientContext context, Text metadataEntry,
+  public static KeyExtent fixSplit(ServerContext context, Text metadataEntry,
       SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, ZooLock lock)
       throws AccumuloException, IOException {
     log.info("Incomplete split {} attempting to fix", metadataEntry);
@@ -148,7 +148,7 @@ public class MasterMetadataUtil {
         time.toString(), initFlushID, initCompactID, lock);
   }
 
-  private static KeyExtent fixSplit(ClientContext context, Table.ID tableId, Text metadataEntry,
+  private static KeyExtent fixSplit(ServerContext context, Table.ID tableId, Text metadataEntry,
       Text metadataPrevEndRow, Value oper, double splitRatio, TServerInstance tserver, String time,
       long initFlushID, long initCompactID, ZooLock lock) throws AccumuloException, IOException {
     if (metadataPrevEndRow == null)
@@ -214,7 +214,7 @@ public class MasterMetadataUtil {
     }
   }
 
-  public static void replaceDatafiles(ClientContext context, KeyExtent extent,
+  public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path, Long compactionId,
       DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock)
       throws IOException {
@@ -222,7 +222,7 @@ public class MasterMetadataUtil {
         address, lastLocation, zooLock, true);
   }
 
-  public static void replaceDatafiles(ClientContext context, KeyExtent extent,
+  public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<FileRef> datafilesToDelete, Set<FileRef> scanFiles, FileRef path, Long compactionId,
       DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock,
       boolean insertDeleteFlags) throws IOException {
@@ -265,14 +265,14 @@ public class MasterMetadataUtil {
    *          should be relative to the table directory
    *
    */
-  public static void updateTabletDataFile(ClientContext context, KeyExtent extent, FileRef path,
+  public static void updateTabletDataFile(ServerContext context, KeyExtent extent, FileRef path,
       FileRef mergeFile, DataFileValue dfv, String time, Set<FileRef> filesInUseByScans,
       String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
       long flushId) {
     if (extent.isRootTablet()) {
       if (unusedWalLogs != null) {
-        updateRootTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address,
-            zooLock, unusedWalLogs, lastLocation, flushId);
+        updateRootTabletDataFile(context, extent, path, mergeFile, dfv, time, filesInUseByScans,
+            address, zooLock, unusedWalLogs, lastLocation, flushId);
       }
       return;
     }
@@ -284,11 +284,12 @@ public class MasterMetadataUtil {
   /**
    * Update the data file for the root tablet
    */
-  private static void updateRootTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile,
-      DataFileValue dfv, String time, Set<FileRef> filesInUseByScans, String address,
-      ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+  private static void updateRootTabletDataFile(ServerContext context, KeyExtent extent,
+      FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
+      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs,
+      TServerInstance lastLocation, long flushId) {
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
-    String root = MetadataTableUtil.getZookeeperLogLocation();
+    String root = MetadataTableUtil.getZookeeperLogLocation(context);
     for (String entry : unusedWalLogs) {
       String[] parts = entry.split("/");
       String zpath = root + "/" + parts[parts.length - 1];

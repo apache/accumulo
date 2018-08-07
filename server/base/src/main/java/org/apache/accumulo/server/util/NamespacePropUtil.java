@@ -28,14 +28,14 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 public class NamespacePropUtil {
-  public static boolean setNamespaceProperty(Namespace.ID namespaceId, String property,
-      String value) throws KeeperException, InterruptedException {
+  public static boolean setNamespaceProperty(ServerContext context, Namespace.ID namespaceId,
+      String property, String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
 
     // create the zk node for per-namespace properties for this namespace if it doesn't already
     // exist
-    String zkNamespacePath = getPath(namespaceId);
+    String zkNamespacePath = getPath(context, namespaceId);
     ZooReaderWriter.getInstance().putPersistentData(zkNamespacePath, new byte[0],
         NodeExistsPolicy.SKIP);
 
@@ -53,14 +53,14 @@ public class NamespacePropUtil {
         && Property.isValidTablePropertyKey(property);
   }
 
-  public static void removeNamespaceProperty(Namespace.ID namespaceId, String property)
-      throws InterruptedException, KeeperException {
-    String zPath = getPath(namespaceId) + "/" + property;
+  public static void removeNamespaceProperty(ServerContext context, Namespace.ID namespaceId,
+      String property) throws InterruptedException, KeeperException {
+    String zPath = getPath(context, namespaceId) + "/" + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
-  private static String getPath(Namespace.ID namespaceId) {
-    return ServerContext.getInstance().getZooKeeperRoot() + Constants.ZNAMESPACES + "/"
-        + namespaceId + Constants.ZNAMESPACE_CONF;
+  private static String getPath(ServerContext context, Namespace.ID namespaceId) {
+    return context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
+        + Constants.ZNAMESPACE_CONF;
   }
 }

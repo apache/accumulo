@@ -57,8 +57,7 @@ public class TableManager {
       .synchronizedMap(new HashMap<>());
   private static final byte[] ZERO_BYTE = {'0'};
 
-  private static TableManager tableManager = null;
-
+  private final ServerContext context;
   private final String zkRoot;
   private final String instanceID;
   private ZooCache zooStateCache;
@@ -99,14 +98,8 @@ public class TableManager {
         existsPolicy);
   }
 
-  public synchronized static TableManager getInstance() {
-    if (tableManager == null)
-      tableManager = new TableManager();
-    return tableManager;
-  }
-
-  private TableManager() {
-    ServerContext context = ServerContext.getInstance();
+  public TableManager(ServerContext context) {
+    this.context = context;
     zkRoot = context.getZooKeeperRoot();
     instanceID = context.getInstanceID();
     zooStateCache = new ZooCache(new TableStateWatcher());
@@ -245,7 +238,7 @@ public class TableManager {
         NodeExistsPolicy.OVERWRITE);
 
     for (Entry<String,String> entry : propertiesToSet.entrySet())
-      TablePropUtil.setTableProperty(tableId, entry.getKey(), entry.getValue());
+      TablePropUtil.setTableProperty(context, tableId, entry.getKey(), entry.getValue());
 
     for (String prop : propertiesToExclude)
       ZooReaderWriter.getInstance().recursiveDelete(Constants.ZROOT + "/" + instanceID

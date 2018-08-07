@@ -77,8 +77,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         prevEndRow == null ? null : new Text(prevEndRow));
   }
 
-  private void run() throws Exception {
-    ServerContext c = ServerContext.getInstance();
+  private void run(ServerContext c) throws Exception {
     String zPath = c.getZooKeeperRoot() + "/testLock";
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
@@ -150,7 +149,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         splitMapFiles = mapFiles;
       }
       int tid = 0;
-      TransactionWatcher.ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
+      TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
       MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles, "L0", context, zl);
     }
 
@@ -286,7 +285,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run();
+    new SplitRecoveryIT().run(ServerContext.getInstance());
   }
 
   @Test

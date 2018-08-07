@@ -90,7 +90,6 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.FileStatus;
@@ -403,8 +402,8 @@ public class SimpleGarbageCollector implements Iface {
                 if (parts.length > 2) {
                   Table.ID tableId = Table.ID.of(parts[1]);
                   String tabletDir = parts[2];
-                  TableManager.getInstance().updateTableStateCache(tableId);
-                  TableState tableState = TableManager.getInstance().getTableState(tableId);
+                  context.getTableManager().updateTableStateCache(tableId);
+                  TableState tableState = context.getTableManager().getTableState(tableId);
                   if (tableState != null && tableState != TableState.DELETING) {
                     // clone directories don't always exist
                     if (!tabletDir.startsWith(Constants.CLONE_PREFIX))

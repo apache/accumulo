@@ -715,7 +715,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public ServerContext getServerContext() {
-    return new ServerContext(getClientInfo());
+    return ServerContext.getInstance(getClientInfo());
   }
 
   /**

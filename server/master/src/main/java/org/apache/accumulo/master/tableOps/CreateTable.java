@@ -44,7 +44,8 @@ public class CreateTable extends MasterRepo {
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
-    return Utils.reserveNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.CREATE);
+    return Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+        TableOperation.CREATE);
   }
 
   @Override
@@ -67,7 +68,7 @@ public class CreateTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
   }
 
 }

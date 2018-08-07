@@ -28,13 +28,19 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 public class TablePropUtil {
-  public static boolean setTableProperty(Table.ID tableId, String property, String value)
-      throws KeeperException, InterruptedException {
+
+  public static boolean setTableProperty(ServerContext context, Table.ID tableId, String property,
+      String value) throws KeeperException, InterruptedException {
+    return setTableProperty(context.getZooKeeperRoot(), tableId, property, value);
+  }
+
+  public static boolean setTableProperty(String zkRoot, Table.ID tableId, String property,
+      String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
 
     // create the zk node for per-table properties for this table if it doesn't already exist
-    String zkTablePath = getTablePath(tableId);
+    String zkTablePath = getTablePath(zkRoot, tableId);
     ZooReaderWriter.getInstance().putPersistentData(zkTablePath, new byte[0],
         NodeExistsPolicy.SKIP);
 
@@ -52,14 +58,13 @@ public class TablePropUtil {
         && Property.isValidTablePropertyKey(property);
   }
 
-  public static void removeTableProperty(Table.ID tableId, String property)
+  public static void removeTableProperty(ServerContext context, Table.ID tableId, String property)
       throws InterruptedException, KeeperException {
-    String zPath = getTablePath(tableId) + "/" + property;
+    String zPath = getTablePath(context.getZooKeeperRoot(), tableId) + "/" + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
-  private static String getTablePath(Table.ID tableId) {
-    return ServerContext.getInstance().getZooKeeperRoot() + Constants.ZTABLES + "/"
-        + tableId.canonicalID() + Constants.ZTABLE_CONF;
+  private static String getTablePath(String zkRoot, Table.ID tableId) {
+    return zkRoot + Constants.ZTABLES + "/" + tableId.canonicalID() + Constants.ZTABLE_CONF;
   }
 }
