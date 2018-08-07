@@ -582,8 +582,6 @@ public enum Property {
       "The number of threads used to delete RFiles and write-ahead logs"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured."),
-  GC_FILE_ARCHIVE("gc.file.archive", "false", PropertyType.BOOLEAN,
-      "Archive any files/directories instead of moving to the HDFS trash or deleting."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
 

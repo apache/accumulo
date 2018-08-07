@@ -89,7 +89,6 @@ public class SimpleGarbageCollectorTest {
     conf.put(Property.GC_CYCLE_DELAY.getKey(), "20");
     conf.put(Property.GC_DELETE_THREADS.getKey(), "2");
     conf.put(Property.GC_TRASH_IGNORE.getKey(), "false");
-    conf.put(Property.GC_FILE_ARCHIVE.getKey(), "false");
 
     return new ConfigurationCopy(conf);
   }
@@ -108,7 +107,7 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
-    assertTrue(gc.archiveOrMoveToTrash(path));
+    assertTrue(gc.moveToTrash(path));
     verify(volMgr);
   }
 
@@ -117,7 +116,7 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
-    assertFalse(gc.archiveOrMoveToTrash(path));
+    assertFalse(gc.moveToTrash(path));
     verify(volMgr);
   }
 
@@ -125,7 +124,7 @@ public class SimpleGarbageCollectorTest {
   public void testMoveToTrash_NotUsingTrash() throws Exception {
     systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
     Path path = createMock(Path.class);
-    assertFalse(gc.archiveOrMoveToTrash(path));
+    assertFalse(gc.moveToTrash(path));
   }
 
   @Test
