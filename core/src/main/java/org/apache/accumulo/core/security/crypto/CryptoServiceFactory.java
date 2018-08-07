@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -26,7 +24,10 @@ import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class CryptoServiceFactory {
-  private static AtomicReference<CryptoService> singleton = new AtomicReference<>(init());
+  /**
+   * Load and initialize the CryptoService only once, when this class is loaded.
+   */
+  private static CryptoService singleton = init();
 
   private static CryptoService init() {
     SiteConfiguration conf = SiteConfiguration.getInstance();
@@ -44,15 +45,14 @@ public class CryptoServiceFactory {
    *           if class configured differs from the original class loaded
    */
   public static CryptoService getConfigured(AccumuloConfiguration conf) {
-    CryptoService cyptoService = singleton.get();
-    String currentClass = cyptoService.getClass().getName();
+    String currentClass = singleton.getClass().getName();
     String configuredClass = conf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
     if (!currentClass.equals(configuredClass)) {
       String msg = String.format("Configured crypto class %s changed since initialization of %s.",
           configuredClass, currentClass);
       throw new CryptoService.CryptoException(msg);
     }
-    return cyptoService;
+    return singleton;
   }
 
   private static CryptoService loadCryptoService(String className) {
