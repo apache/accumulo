@@ -2642,7 +2642,7 @@ public class TabletServer implements Runnable {
       if (address == null) {
         return null;
       }
-      // log.context("Listener API to master has been opened");
+      // log.info("Listener API to master has been opened");
       return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, context);
     } catch (Exception e) {
       log.warn("Issue with masterConnection (" + address + ") " + e, e);

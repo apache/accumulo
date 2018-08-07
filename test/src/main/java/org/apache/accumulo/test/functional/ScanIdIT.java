@@ -268,7 +268,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
           }
 
         }
-        log.debug("Scanner ran out of data. (context only, not an error) ");
+        log.debug("Scanner ran out of data. (info only, not an error) ");
       } catch (TableNotFoundException e) {
         throw new IllegalStateException("Initialization failure. Could not create scanner", e);
       } finally {

@@ -120,7 +120,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       try {
         for (int i = 0; i < iterations; i++) {
           // if (i % 10000 == 0) {
-          // log.context(t + " " + i);
+          // log.info(t + " " + i);
           // }
           int choice = r.nextInt(randMax);
           if (choice < 1) {

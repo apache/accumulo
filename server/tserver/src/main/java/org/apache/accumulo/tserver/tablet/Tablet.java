@@ -780,7 +780,7 @@ public class Tablet implements TabletCommitter {
   Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns,
       long batchTimeOut, boolean isolated) throws IOException {
 
-    // log.context("In nextBatch..");
+    // log.info("In nextBatch..");
 
     long stopTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
     if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
