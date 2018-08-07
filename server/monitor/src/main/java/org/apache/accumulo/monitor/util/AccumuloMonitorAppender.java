@@ -31,7 +31,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.AsyncAppender;
@@ -146,8 +145,7 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
       if (this.zooCache == null) {
         ServerContext context = ServerContext.getInstance();
         this.path = context.getZooKeeperRoot() + Constants.ZMONITOR_LOG4J_ADDR;
-        this.zooCache = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
-            context.getZooKeepersSessionTimeOut());
+        this.zooCache = context.getZooCache();
       }
 
       // get the current location from the cache and update if necessary

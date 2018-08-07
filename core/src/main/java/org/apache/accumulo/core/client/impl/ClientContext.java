@@ -363,4 +363,8 @@ public class ClientContext {
   public int getZooKeepersSessionTimeOut() {
     return info.getZooKeepersSessionTimeOut();
   }
+
+  public ZooCache getZooCache() {
+    return zooCache;
+  }
 }

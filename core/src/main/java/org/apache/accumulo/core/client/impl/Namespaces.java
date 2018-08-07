@@ -29,9 +29,7 @@ import java.util.function.BiConsumer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.util.Validator;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,15 +76,9 @@ public class Namespaces {
     }
   };
 
-  private static ZooCache getZooCache(ClientContext context) {
-    return new ZooCacheFactory().getZooCache(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut());
-  }
-
   public static boolean exists(ClientContext context, Namespace.ID namespaceId) {
-    ZooCache zc = getZooCache(context);
-    List<String> namespaceIds = zc
-        .getChildren(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZNAMESPACES);
+    ZooCache zc = context.getZooCache();
+    List<String> namespaceIds = zc.getChildren(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
     return namespaceIds.contains(namespaceId.canonicalID());
   }
 
@@ -116,7 +108,7 @@ public class Namespaces {
    */
   private static void getAllNamespaces(ClientContext context,
       BiConsumer<String,String> biConsumer) {
-    final ZooCache zc = getZooCache(context);
+    final ZooCache zc = context.getZooCache();
     List<String> namespaceIds = zc.getChildren(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
     for (String id : namespaceIds) {
       byte[] path = zc.get(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + id
@@ -188,7 +180,7 @@ public class Namespaces {
   public static String getNamespaceName(ClientContext context, Namespace.ID namespaceId)
       throws NamespaceNotFoundException {
     String name;
-    ZooCache zc = getZooCache(context);
+    ZooCache zc = context.getZooCache();
     byte[] path = zc.get(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/"
         + namespaceId.canonicalID() + Constants.ZNAMESPACE_NAME);
     if (path != null)

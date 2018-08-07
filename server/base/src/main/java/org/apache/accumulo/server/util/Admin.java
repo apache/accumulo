@@ -55,7 +55,6 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -367,8 +366,7 @@ public class Admin implements KeywordExecutable {
       return;
     }
     final String zTServerRoot = getTServersZkPath(context);
-    final ZooCache zc = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut());
+    final ZooCache zc = context.getZooCache();
     for (String server : servers) {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);

@@ -29,7 +29,6 @@ import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorErrorCode;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorException;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -84,8 +83,9 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
     String replServiceAddr;
     try {
-      replServiceAddr = new String(reader.getData(ZooUtil.getRoot(master.getInstanceID())
-          + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(), null), UTF_8);
+      replServiceAddr = new String(reader.getData(
+          master.getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(),
+          null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
       throw new ReplicationCoordinatorException(

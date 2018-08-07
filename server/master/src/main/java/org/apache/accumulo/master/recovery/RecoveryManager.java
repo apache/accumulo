@@ -35,7 +35,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -69,7 +68,7 @@ public class RecoveryManager {
     try {
       AccumuloConfiguration aconf = master.getConfiguration();
       List<String> workIDs = new DistributedWorkQueue(
-          ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY, aconf).getWorkQueued();
+          master.getZooKeeperRoot() + Constants.ZRECOVERY, aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -120,15 +119,14 @@ public class RecoveryManager {
   private void initiateSort(String sortId, String source, final String destination,
       AccumuloConfiguration aconf) throws KeeperException, InterruptedException, IOException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY, aconf)
-        .addWork(sortId, work.getBytes(UTF_8));
+    new DistributedWorkQueue(master.getZooKeeperRoot() + Constants.ZRECOVERY, aconf).addWork(sortId,
+        work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
     }
 
-    final String path = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY + "/"
-        + sortId;
+    final String path = master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId;
     log.info("Created zookeeper entry {} with data {}", path, work);
   }
 
@@ -161,8 +159,8 @@ public class RecoveryManager {
           sortQueued = sortsQueued.contains(sortId);
         }
 
-        if (sortQueued && zooCache.get(
-            ZooUtil.getRoot(master.getInstanceID()) + Constants.ZRECOVERY + "/" + sortId) == null) {
+        if (sortQueued && zooCache
+            .get(master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId) == null) {
           synchronized (this) {
             sortsQueued.remove(sortId);
           }

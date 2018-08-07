@@ -34,7 +34,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -109,8 +108,7 @@ public class ZombieTServer {
         10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
-    String zPath = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS + "/"
-        + addressString;
+    String zPath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString;
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
 

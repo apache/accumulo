@@ -58,7 +58,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -410,7 +409,7 @@ public class Monitor implements HighlyAvailableService {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = ZooReaderWriter.getInstance();
-      String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZGC_LOCK;
+      String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
       List<String> locks = zk.getChildren(path, null);
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
@@ -493,8 +492,8 @@ public class Monitor implements HighlyAvailableService {
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
       ZooReaderWriter.getInstance().putPersistentData(
-          ZooUtil.getRoot(context.getInstanceID()) + Constants.ZMONITOR_HTTP_ADDR,
-          monitorAddress.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+          context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
+          NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
@@ -630,7 +629,7 @@ public class Monitor implements HighlyAvailableService {
    * Get the monitor lock in ZooKeeper
    */
   private void getMonitorLock() throws KeeperException, InterruptedException {
-    final String zRoot = ZooUtil.getRoot(context.getInstanceID());
+    final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
     final String monitorLockPath = zRoot + Constants.ZMONITOR_LOCK;
 

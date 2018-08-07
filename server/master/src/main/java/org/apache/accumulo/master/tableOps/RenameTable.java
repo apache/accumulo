@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
@@ -80,7 +79,7 @@ public class RenameTable extends MasterRepo {
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZTABLES + "/" + tableId
+      final String tap = master.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
           + Constants.ZTABLE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {

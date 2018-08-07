@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
@@ -58,8 +57,8 @@ public class RenameNamespace extends MasterRepo {
       Utils.checkNamespaceDoesNotExist(master.getContext(), newName, namespaceId,
           TableOperation.RENAME);
 
-      final String tap = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZNAMESPACES + "/"
-          + namespaceId + Constants.ZNAMESPACE_NAME;
+      final String tap = master.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
+          + Constants.ZNAMESPACE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
         @Override
