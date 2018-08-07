@@ -16,10 +16,14 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.IOException;
+import java.util.SortedSet;
+
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 
 class CreateDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
@@ -39,6 +43,13 @@ class CreateDir extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
     fs.mkdirs(new Path(tableInfo.dir));
+
+    if (tableInfo.initialSplitSize > 0) {
+      // read in the splitDir info file and create a directory for each item
+      SortedSet<Text> dirInfo = Utils
+          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile));
+      createTabletDirectories(master.getFileSystem(), dirInfo);
+    }
     return new PopulateMetadata(tableInfo);
   }
 
@@ -47,5 +58,29 @@ class CreateDir extends MasterRepo {
     VolumeManager fs = master.getFileSystem();
     fs.deleteRecursively(new Path(tableInfo.dir));
 
+    if (tableInfo.initialSplitSize > 0) {
+      SortedSet<Text> dirInfo = Utils
+          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile));
+      for (Text info : dirInfo) {
+        String[] splitInfo = info.toString().split(";");
+        String dirname = splitInfo[1];
+        fs.deleteRecursively(new Path(dirname));
+      }
+    }
+  }
+
+  private void createTabletDirectories(VolumeManager fs, SortedSet<Text> dirInfo)
+      throws IOException {
+
+    for (Text info : dirInfo) {
+      String[] splitInfo = info.toString().split(";");
+      String dirname = splitInfo[1];
+      if (fs.exists(new Path(dirname))) {
+        throw new IllegalStateException("Dir exists when it should not " + dirname);
+      }
+      if (!fs.mkdirs(new Path(dirname))) {
+        throw new IOException("Failed to create tablet directory : " + dirname);
+      }
+    }
   }
 }

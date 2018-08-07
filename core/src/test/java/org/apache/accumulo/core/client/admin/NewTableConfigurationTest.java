@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;

@@ -57,15 +57,16 @@ class FinishCreateTable extends MasterRepo {
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 
     if (tableInfo.initialSplitSize > 0) {
-      cleanupSplits(env);
+      cleanupSplitFiles(env);
     }
     return null;
   }
 
-  private void cleanupSplits(Master env) throws IOException {
+  private void cleanupSplitFiles(Master env) throws IOException {
     Volume defaultVolume = env.getFileSystem().getDefaultVolume();
     FileSystem fs = defaultVolume.getFileSystem();
     fs.delete(new Path(tableInfo.splitFile), true);
+    fs.delete(new Path(tableInfo.splitDirsFile), true);
   }
 
   @Override

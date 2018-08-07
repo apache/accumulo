@@ -18,11 +18,17 @@ package org.apache.accumulo.master.tableOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.util.Base64;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -42,6 +48,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooQueueLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,5 +188,13 @@ public class Utils {
     if (n != null && !n.equals(namespaceId))
       throw new AcceptableThriftTableOperationException(null, namespace, operation,
           TableOperationExceptionType.NAMESPACE_EXISTS, null);
+  }
+
+  static SortedSet<Text> getSortedSetFromFile(FSDataInputStream inputStream) throws IOException {
+    SortedSet<Text> data;
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+      data = br.lines().map(Text::new).collect(Collectors.toCollection(TreeSet::new));
+    }
+    return data;
   }
 }

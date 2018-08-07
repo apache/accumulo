@@ -33,7 +33,8 @@ public class CreateTable extends MasterRepo {
   private TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
-      String splitFile, int splitCount, TableCreationMode creationMode, Namespace.ID namespaceId) {
+      String splitFile, int splitCount, String splitDirsFile, TableCreationMode creationMode,
+      Namespace.ID namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
     tableInfo.timeType = TabletTime.getTimeID(timeType);
@@ -43,6 +44,7 @@ public class CreateTable extends MasterRepo {
     tableInfo.splitFile = splitFile;
     tableInfo.initialSplitSize = splitCount;
     tableInfo.creationMode = creationMode;
+    tableInfo.splitDirsFile = splitDirsFile;
   }
 
   @Override

@@ -20,9 +20,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -62,22 +62,31 @@ class PopulateMetadata extends MasterRepo {
         environment.getMasterLock());
 
     if (tableInfo.initialSplitSize > 0) {
-      SortedSet<Text> splits = readSplits(tableInfo.splitFile, environment);
+      SortedSet<Text> splits = Utils
+          .getSortedSetFromFile(environment.getInputStream(tableInfo.splitFile));
+      Map<Text,Text> splitDirMap = createSplitDirectoryMap(tableInfo.splitDirsFile, environment);
       try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
-        writeSplitsToMetadataTable(tableInfo.tableId, splits, tableInfo.timeType,
+        writeSplitsToMetadataTable(tableInfo.tableId, splits, splitDirMap, tableInfo.timeType,
             environment.getMasterLock(), bw);
       }
     }
     return new FinishCreateTable(tableInfo);
   }
 
-  private void writeSplitsToMetadataTable(Table.ID tableId, SortedSet<Text> splits, char timeType,
-      ZooLock lock, BatchWriter bw) throws MutationsRejectedException {
+  private void writeSplitsToMetadataTable(Table.ID tableId, SortedSet<Text> splits,
+      Map<Text,Text> data, char timeType, ZooLock lock, BatchWriter bw)
+      throws MutationsRejectedException {
+
     Text prevSplit = null;
     for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
       Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();
-      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-          new Value(tableInfo.dir));
+      if (split == null) {
+        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+            new Value(tableInfo.dir));
+      } else {
+        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+            new Value(data.get(split)));
+      }
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
           new Value(timeType + "0"));
       MetadataTableUtil.putLockID(lock, mut);
@@ -86,23 +95,23 @@ class PopulateMetadata extends MasterRepo {
     }
   }
 
-  /*
-   * Function<Text,Value> dirFunction, ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-   * dirFunction.apply(split));
-   */
-
   @Override
   public void undo(long tid, Master environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment,
         environment.getMasterLock());
   }
 
-  private SortedSet<Text> readSplits(String splitFile, Master environment) throws IOException {
-    SortedSet<Text> splits;
+  private Map<Text,Text> createSplitDirectoryMap(String splitDirMap, Master environment)
+      throws IOException {
+    Map<Text,Text> data = new HashMap<>();
     try (BufferedReader br = new BufferedReader(
-        new InputStreamReader(environment.getInputStream(splitFile)))) {
-      splits = br.lines().map(Text::new).collect(Collectors.toCollection(TreeSet::new));
+        new InputStreamReader(environment.getInputStream(splitDirMap)))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        String[] split = line.split(";");
+        data.put(new Text(split[0]), new Text(split[1]));
+      }
     }
-    return splits;
+    return data;
   }
 }

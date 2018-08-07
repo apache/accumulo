@@ -110,8 +110,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   public void testCreateInitialSplitFromList() throws TableExistsException,
       AccumuloSecurityException, AccumuloException, TableNotFoundException {
     tableName = getUniqueNames(1)[0];
-    int numSplitsToCreate = 5000;
-    SortedSet<Text> expectedSplits = generateSplitList(numSplitsToCreate);
+    int numSplitsToCreate = 3000;
+    SortedSet<Text> expectedSplits = generateSplitList(numSplitsToCreate, 32);
     NewTableConfiguration ntc = new NewTableConfiguration();
     ntc.withSplits(expectedSplits);
     connector.tableOperations().create(tableName, ntc);
@@ -130,9 +130,9 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     NewTableConfiguration ntc = new NewTableConfiguration();
     connector.tableOperations().create(tableName, ntc);
     SortedSet<Text> splits = new TreeSet<>();
-    splits.add(new Text("abcde"));
-    splits.add(new Text("bcdef"));
-    splits.add(new Text("cdefg"));
+    splits.add(new Text("ccccc"));
+    splits.add(new Text("mmmmm"));
+    splits.add(new Text("ttttt"));
     connector.tableOperations().addSplits(tableName, splits);
     // now create another table using these splits from this table
     Collection<Text> otherSplits = connector.tableOperations().listSplits(tableName);
@@ -195,10 +195,10 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     assertTrue(tableList.contains(tableName));
   }
 
-  private SortedSet<Text> generateSplitList(final int numItems) {
+  private SortedSet<Text> generateSplitList(final int numItems, final int len) {
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < numItems; i++) {
-      splits.add(new Text(getRandomString(32)));
+      splits.add(new Text(getRandomString(len)));
     }
     return splits;
   }

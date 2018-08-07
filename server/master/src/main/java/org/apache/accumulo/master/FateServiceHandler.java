@@ -154,10 +154,12 @@ class FateServiceHandler implements FateService.Iface {
             .valueOf(ByteBufferUtil.toString(arguments.get(2)));
         int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
         String splitFile = null;
+        String splitDirsFile = null;
         if (splitCount > 0) {
           int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
           try {
             splitFile = createSplitFile(opid, arguments, splitCount, SPLIT_OFFSET);
+            splitDirsFile = createSplitDirsFile(opid);
           } catch (IOException e) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
                 TableOperationExceptionType.OTHER,
@@ -176,9 +178,11 @@ class FateServiceHandler implements FateService.Iface {
         if (!master.security.canCreateTable(c, tableName, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid, new TraceRepo<>(new CreateTable(c.getPrincipal(),
-            tableName, timeType, options, splitFile, splitCount, creationMode, namespaceId)),
-            autoCleanup);
+        master.fate
+            .seedTransaction(
+                opid, new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType,
+                    options, splitFile, splitCount, splitDirsFile, creationMode, namespaceId)),
+                autoCleanup);
 
         break;
       }
@@ -705,6 +709,19 @@ class FateServiceHandler implements FateService.Iface {
       throw e;
     }
     return splitPath;
+  }
+
+  private String createSplitDirsFile(final long opid) throws IOException {
+    String opidStr = String.format("%016x", opid);
+    String splitDirPath = getSplitPath("/tmp/splitDirs-" + opidStr);
+
+    // Always check for and delete the splits file if it exists to prevent issues in case of
+    // server failure and/or FateServiceHandler retries.
+    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    if (fs.exists(new Path(splitDirPath)))
+      fs.delete(new Path(splitDirPath), true);
+    fs.create(new Path(splitDirPath));
+    return splitDirPath;
   }
 
   /**
