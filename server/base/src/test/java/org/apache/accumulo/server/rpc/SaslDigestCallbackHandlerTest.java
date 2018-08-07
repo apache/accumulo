@@ -16,10 +16,6 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -32,7 +28,6 @@ import javax.crypto.KeyGenerator;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.rpc.SaslDigestCallbackHandler;
@@ -94,12 +89,8 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenSerialization() throws Exception {
-    Instance instance = createMock(Instance.class);
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        1000L);
-    expect(instance.getInstanceID()).andReturn("instanceid");
-
-    replay(instance);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        "instanceid", 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 100L, keyGen.generateKey()));
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
@@ -109,19 +100,13 @@ public class SaslDigestCallbackHandlerTest {
 
     char[] computedPassword = handler.getPassword(secretManager, entry.getValue());
 
-    verify(instance);
-
     assertArrayEquals(computedPassword, encodedPassword);
   }
 
   @Test
   public void testTokenAndIdentifierSerialization() throws Exception {
-    Instance instance = createMock(Instance.class);
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        1000L);
-    expect(instance.getInstanceID()).andReturn("instanceid");
-
-    replay(instance);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        "instanceid", 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 1000 * 100L, keyGen.generateKey()));
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
@@ -134,8 +119,6 @@ public class SaslDigestCallbackHandlerTest {
     AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
     identifier.readFields(new DataInputStream(new ByteArrayInputStream(decodedIdentifier)));
     char[] computedPassword = handler.getPassword(secretManager, identifier);
-
-    verify(instance);
 
     assertArrayEquals(computedPassword, encodedPassword);
   }

@@ -407,7 +407,7 @@ public class TabletServerLogger {
                 log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
                     + copy.getFileName());
                 // Got some new WALs, note this in the metadata table
-                ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(),
+                ReplicationTableUtil.updateFiles(tserver.getContext(), commitSession.getExtent(),
                     copy.getFileName(), status);
               }
             }

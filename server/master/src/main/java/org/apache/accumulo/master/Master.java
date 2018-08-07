@@ -44,7 +44,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -57,7 +56,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -79,7 +77,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.core.util.Daemon;
@@ -98,16 +95,14 @@ import org.apache.accumulo.master.replication.ReplicationDriver;
 import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -129,7 +124,6 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -138,7 +132,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
@@ -177,7 +170,7 @@ import com.google.common.collect.Iterables;
  *
  * The master will also coordinate log recoveries and reports general status.
  */
-public class Master extends AccumuloServerContext
+public class Master
     implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
 
   final static Logger log = LoggerFactory.getLogger(Master.class);
@@ -410,7 +403,7 @@ public class Master extends AccumuloServerContext
           String ns = namespace.getFirst();
           Namespace.ID id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"{}\" (ID: {})", ns, id);
-          if (!Namespaces.exists(this, id))
+          if (!Namespaces.exists(context, id))
             TableManager.prepareNewNamespaceState(getInstanceID(), id, ns, NodeExistsPolicy.SKIP);
         }
 
@@ -426,7 +419,7 @@ public class Master extends AccumuloServerContext
             RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
         Initialize.initSystemTablesConfig();
         // ensure root user can flush root table
-        security.grantTablePermission(rpcCreds(), security.getRootUsername(), RootTable.ID,
+        security.grantTablePermission(context.rpcCreds(), security.getRootUsername(), RootTable.ID,
             TablePermission.ALTER_TABLE, Namespace.ID.ACCUMULO);
 
         // put existing tables in the correct namespaces
@@ -484,6 +477,7 @@ public class Master extends AccumuloServerContext
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
   private final CountDownLatch waitForMetadataUpgrade = new CountDownLatch(1);
 
+  private final ServerContext context;
   private final ServerConfigurationFactory serverConfig;
 
   private MasterClientServiceHandler clientHandler;
@@ -516,17 +510,17 @@ public class Master extends AccumuloServerContext
               log.info("Starting to upgrade metadata table.");
               if (version == ServerConstants.MOVE_DELETE_MARKERS - 1) {
                 log.info("Updating Delete Markers in metadata table for version 1.4");
-                MetadataTableUtil.moveMetaDeleteMarkersFrom14(Master.this);
+                MetadataTableUtil.moveMetaDeleteMarkersFrom14(context);
                 version++;
               }
               if (version == ServerConstants.MOVE_TO_ROOT_TABLE - 1) {
                 log.info("Updating Delete Markers in metadata table.");
-                MetadataTableUtil.moveMetaDeleteMarkers(Master.this);
+                MetadataTableUtil.moveMetaDeleteMarkers(context);
                 version++;
               }
               if (version == ServerConstants.MOVE_TO_REPLICATION_TABLE - 1) {
                 log.info("Updating metadata table with entries for the replication table");
-                MetadataTableUtil.createReplicationTable(Master.this);
+                MetadataTableUtil.createReplicationTable(context);
                 version++;
               }
               log.info("Updating persistent data version.");
@@ -627,18 +621,25 @@ public class Master extends AccumuloServerContext
   }
 
   public void mustBeOnline(final Table.ID tableId) throws ThriftTableOperationException {
-    Tables.clearCache(getInstance());
-    if (!Tables.getTableState(this, tableId).equals(TableState.ONLINE))
+    Tables.clearCache(context);
+    if (!Tables.getTableState(context, tableId).equals(TableState.ONLINE))
       throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
   }
 
-  public Master(Instance instance, ServerConfigurationFactory config, VolumeManager fs,
-      String hostname) throws IOException {
-    super(instance, config);
-    this.serverConfig = config;
-    this.fs = fs;
-    this.hostname = hostname;
+  public ServerContext getContext() {
+    return context;
+  }
+
+  public Connector getConnector() throws AccumuloSecurityException, AccumuloException {
+    return context.getConnector();
+  }
+
+  public Master(ServerContext context) throws IOException {
+    this.context = context;
+    this.serverConfig = context.getServerConfFactory();
+    this.fs = context.getVolumeManager();
+    this.hostname = context.getHostname();
 
     AccumuloConfiguration aconf = serverConfig.getSystemConfiguration();
 
@@ -647,10 +648,10 @@ public class Master extends AccumuloServerContext
     timeKeeper = new MasterTime(this);
     ThriftTransportPool.getInstance()
         .setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
-    tserverSet = new LiveTServerSet(this, this);
+    tserverSet = new LiveTServerSet(context, this);
     this.tabletBalancer = Property.createInstanceFromPropertyName(aconf,
         Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-    this.tabletBalancer.init(this);
+    this.tabletBalancer.init(context);
 
     try {
       AccumuloVFSClassLoader.getContextManager()
@@ -665,11 +666,11 @@ public class Master extends AccumuloServerContext
       throw new RuntimeException(e);
     }
 
-    this.security = AuditedSecurityOperation.getInstance(this);
+    this.security = AuditedSecurityOperation.getInstance(context);
 
     // Create the secret manager (can generate and verify delegation tokens)
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
-    setSecretManager(new AuthenticationTokenSecretManager(getInstance(), tokenLifetime));
+    context.setSecretManager(new AuthenticationTokenSecretManager(getInstanceID(), tokenLifetime));
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -681,7 +682,7 @@ public class Master extends AccumuloServerContext
           .getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(ZooReaderWriter.getInstance(),
           ZooUtil.getRoot(getInstanceID()) + Constants.ZDELEGATION_TOKEN_KEYS);
-      authenticationTokenKeyManager = new AuthenticationTokenKeyManager(getSecretManager(),
+      authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
       delegationTokensAvailable = true;
     } else {
@@ -689,6 +690,14 @@ public class Master extends AccumuloServerContext
       delegationTokensAvailable = false;
     }
 
+  }
+
+  public String getInstanceID() {
+    return context.getInstanceID();
+  }
+
+  public AccumuloConfiguration getConfiguration() {
+    return context.getConfiguration();
   }
 
   public TServerConnection getConnection(TServerInstance server) {
@@ -909,7 +918,7 @@ public class Master extends AccumuloServerContext
         if (!migrations.isEmpty()) {
           try {
             cleanupOfflineMigrations();
-            cleanupNonexistentMigrations(getConnector());
+            cleanupNonexistentMigrations(context.getConnector());
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
@@ -943,7 +952,7 @@ public class Master extends AccumuloServerContext
      */
     private void cleanupOfflineMigrations() {
       TableManager manager = TableManager.getInstance();
-      for (Table.ID tableId : Tables.getIdToNameMap(Master.this).keySet()) {
+      for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
         TableState state = manager.getTableState(tableId);
         if (TableState.OFFLINE == state) {
           clearMigrations(tableId);
@@ -1232,14 +1241,14 @@ public class Master extends AccumuloServerContext
     Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
     Iface rpcProxy = TraceWrap.service(haProxy);
     final Processor<Iface> processor;
-    if (ThriftServerType.SASL == getThriftServerType()) {
+    if (ThriftServerType.SASL == context.getThriftServerType()) {
       Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(),
           getConfiguration());
       processor = new Processor<>(tcredsProxy);
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    ServerAddress sa = TServerUtils.startServer(this, hostname, Property.MASTER_CLIENTPORT,
+    ServerAddress sa = TServerUtils.startServer(context, hostname, Property.MASTER_CLIENTPORT,
         processor, "Master", "Master Client Service Handler", null, Property.MASTER_MINTHREADS,
         Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;
@@ -1253,7 +1262,7 @@ public class Master extends AccumuloServerContext
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
       new ReplicationCoordinator.Processor<>(TraceWrap.service(haReplicationProxy));
     // @formatter:on
-    ServerAddress replAddress = TServerUtils.startServer(this, hostname,
+    ServerAddress replAddress = TServerUtils.startServer(context, hostname,
         Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null,
         Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
@@ -1291,7 +1300,7 @@ public class Master extends AccumuloServerContext
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(this, this), null) {
+    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(context, this), null) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1299,8 +1308,8 @@ public class Master extends AccumuloServerContext
       }
     });
 
-    watchers
-        .add(new TabletGroupWatcher(this, new RootTabletStateStore(this, this), watchers.get(0)) {
+    watchers.add(
+        new TabletGroupWatcher(this, new RootTabletStateStore(context, this), watchers.get(0)) {
           @Override
           boolean canSuspendTablets() {
             // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1536,25 +1545,16 @@ public class Master extends AccumuloServerContext
   }
 
   public static void main(String[] args) throws Exception {
+    final String app = "master";
+    ServerOpts opts = new ServerOpts();
+    opts.parseArgs(app, args);
+    ServerContext context = ServerContext.getInstance();
+    context.setupServer(app, Master.class.getName(), opts.getAddress());
     try {
-      final String app = "master";
-      ServerOpts opts = new ServerOpts();
-      opts.parseArgs(app, args);
-      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-      String hostname = opts.getAddress();
-      Instance instance = HdfsZooInstance.getInstance();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
-      VolumeManager fs = VolumeManagerImpl.get();
-      MetricsSystemHelper.configure(Master.class.getSimpleName());
-      Accumulo.init(fs, instance, conf, app);
-      Master master = new Master(instance, conf, fs, hostname);
-      DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
+      Master master = new Master(context);
       master.run();
-    } catch (Exception ex) {
-      log.error("Unexpected exception, exiting", ex);
-      System.exit(1);
     } finally {
-      DistributedTrace.disable();
+      context.teardownServer();
     }
   }
 
@@ -1652,7 +1652,7 @@ public class Master extends AccumuloServerContext
     }
     TableManager manager = TableManager.getInstance();
 
-    for (Table.ID tableId : Tables.getIdToNameMap(this).keySet()) {
+    for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state != null) {
         if (state == TableState.ONLINE)
@@ -1670,7 +1670,7 @@ public class Master extends AccumuloServerContext
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (Table.ID tableId : Tables.getIdToNameMap(this).keySet()) {
+    for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;
@@ -1781,7 +1781,7 @@ public class Master extends AccumuloServerContext
 
   public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers)
       throws WalMarkerException {
-    WalStateManager mgr = new WalStateManager(this, ZooReaderWriter.getInstance());
+    WalStateManager mgr = new WalStateManager(context, ZooReaderWriter.getInstance());
     for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
       for (Path path : server.getValue()) {
         mgr.closeWal(server.getKey(), path);

@@ -148,7 +148,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(token != null, "token is null");
     final Credentials toAuth = new Credentials(principal, token);
     return execute(client -> client.authenticateUser(Tracer.traceInfo(), context.rpcCreds(),
-        toAuth.toThrift(context.getInstance())));
+        toAuth.toThrift(context.getInstanceID())));
   }
 
   @Override

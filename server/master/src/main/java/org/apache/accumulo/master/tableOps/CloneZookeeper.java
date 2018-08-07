@@ -54,13 +54,13 @@ class CloneZookeeper extends MasterRepo {
     try {
       // write tableName & tableId to zookeeper
 
-      Utils.checkTableDoesNotExist(environment, cloneInfo.tableName, cloneInfo.tableId,
+      Utils.checkTableDoesNotExist(environment.getContext(), cloneInfo.tableName, cloneInfo.tableId,
           TableOperation.CLONE);
 
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
-      Tables.clearCache(environment.getInstance());
+      Tables.clearCache(environment.getContext());
 
       return new CloneMetadata(cloneInfo);
     } finally {
@@ -74,7 +74,7 @@ class CloneZookeeper extends MasterRepo {
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       Utils.unreserveNamespace(cloneInfo.namespaceId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
-    Tables.clearCache(environment.getInstance());
+    Tables.clearCache(environment.getContext());
   }
 
 }

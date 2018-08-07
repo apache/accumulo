@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +26,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.ShellUtil;
 import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -43,17 +43,9 @@ public class CloneTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
 
-    final HashMap<String,String> props = new HashMap<>();
+    Map<String,String> props = ShellUtil.parseMapOpt(cl, setPropsOption);
     final HashSet<String> exclude = new HashSet<>();
     boolean flush = true;
-
-    if (cl.hasOption(setPropsOption.getOpt())) {
-      String[] keyVals = cl.getOptionValue(setPropsOption.getOpt()).split(",");
-      for (String keyVal : keyVals) {
-        String[] sa = keyVal.split("=");
-        props.put(sa[0], sa[1]);
-      }
-    }
 
     if (cl.hasOption(excludePropsOption.getOpt())) {
       String[] keys = cl.getOptionValue(excludePropsOption.getOpt()).split(",");

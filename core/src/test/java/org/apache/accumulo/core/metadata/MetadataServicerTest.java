@@ -26,7 +26,6 @@ import java.util.HashMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -53,13 +52,11 @@ public class MetadataServicerTest {
 
     context = EasyMock.createMock(ClientContext.class);
     Connector conn = EasyMock.createMock(Connector.class);
-    Instance inst = EasyMock.createMock(Instance.class);
     TableOperations tableOps = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(tableOps.tableIdMap()).andReturn(tableNameToIdMap).anyTimes();
     EasyMock.expect(conn.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(context.getInstance()).andReturn(inst).anyTimes();
     EasyMock.expect(context.getConnector()).andReturn(conn).anyTimes();
-    EasyMock.replay(context, conn, inst, tableOps);
+    EasyMock.replay(context, conn, tableOps);
   }
 
   @Test

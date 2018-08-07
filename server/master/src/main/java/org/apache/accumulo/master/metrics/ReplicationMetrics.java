@@ -52,13 +52,13 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }
-    replicationUtil = new ReplicationUtil(master);
+    replicationUtil = new ReplicationUtil(master.getContext());
   }
 
   @Override
   public int getNumFilesPendingReplication() {
 
-    if (TableState.ONLINE != Tables.getTableState(master, ReplicationTable.ID)) {
+    if (TableState.ONLINE != Tables.getTableState(master.getContext(), ReplicationTable.ID)) {
       return 0;
     }
 

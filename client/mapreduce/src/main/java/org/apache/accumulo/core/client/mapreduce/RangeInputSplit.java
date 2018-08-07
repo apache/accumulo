@@ -22,8 +22,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -53,6 +56,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private List<IteratorSetting> iterators;
   private SamplerConfiguration samplerConfig;
   private Level level;
+  private Map<String,String> executionHints;
 
   public RangeInputSplit() {
     range = new Range();
@@ -169,6 +173,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
     if (in.readBoolean()) {
       samplerConfig = new SamplerConfigurationImpl(in).toSamplerConfiguration();
     }
+
+    executionHints = new HashMap<>();
+    int numHints = in.readInt();
+    for (int i = 0; i < numHints; i++) {
+      String k = in.readUTF();
+      String v = in.readUTF();
+      executionHints.put(k, v);
+    }
   }
 
   @Override
@@ -220,6 +232,16 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeBoolean(null != samplerConfig);
     if (null != samplerConfig) {
       new SamplerConfigurationImpl(samplerConfig).write(out);
+    }
+
+    if (executionHints == null || executionHints.size() == 0) {
+      out.writeInt(0);
+    } else {
+      out.writeInt(executionHints.size());
+      for (Entry<String,String> entry : executionHints.entrySet()) {
+        out.writeUTF(entry.getKey());
+        out.writeUTF(entry.getValue());
+      }
     }
   }
 
@@ -316,6 +338,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" iterators: ").append(iterators);
     sb.append(" logLevel: ").append(level);
     sb.append(" samplerConfig: ").append(samplerConfig);
+    sb.append(" executionHints: ").append(executionHints);
     return sb.toString();
   }
 
@@ -325,5 +348,13 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public SamplerConfiguration getSamplerConfiguration() {
     return samplerConfig;
+  }
+
+  public void setExecutionHints(Map<String,String> executionHints) {
+    this.executionHints = executionHints;
+  }
+
+  public Map<String,String> getExecutionHints() {
+    return executionHints;
   }
 }

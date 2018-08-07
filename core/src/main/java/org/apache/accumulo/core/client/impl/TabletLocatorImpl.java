@@ -37,7 +37,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -400,7 +399,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   @Override
-  public void invalidateCache(Instance instance, String server) {
+  public void invalidateCache(ClientContext context, String server) {
     int invalidatedCount = 0;
 
     wLock.lock();

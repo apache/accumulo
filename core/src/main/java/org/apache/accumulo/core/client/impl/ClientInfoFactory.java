@@ -24,8 +24,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.ClientProperty;
 
 /**
@@ -44,12 +42,6 @@ public class ClientInfoFactory {
   public static Connector getConnector(ClientInfo info)
       throws AccumuloSecurityException, AccumuloException {
     return new ConnectorImpl(new ClientContext(info));
-  }
-
-  public static Instance getInstance(ClientInfo info) {
-    @SuppressWarnings("deprecation")
-    Instance i = new ZooKeeperInstance(ClientConfConverter.toClientConf(info.getProperties()));
-    return i;
   }
 
   public static Credentials getCredentials(ClientInfo info) {

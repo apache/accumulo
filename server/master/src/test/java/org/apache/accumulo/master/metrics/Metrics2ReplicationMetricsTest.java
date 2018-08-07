@@ -19,6 +19,7 @@ package org.apache.accumulo.master.metrics;
 import java.lang.reflect.Field;
 
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -51,6 +52,7 @@ public class Metrics2ReplicationMetricsTest {
   @Test
   public void testAddReplicationQueueTimeMetrics() throws Exception {
     Master master = EasyMock.createMock(Master.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     MetricsSystem system = EasyMock.createMock(MetricsSystem.class);
     VolumeManager fileSystem = EasyMock.createMock(VolumeManager.class);
     ReplicationUtil util = EasyMock.createMock(ReplicationUtil.class);
@@ -61,6 +63,7 @@ public class Metrics2ReplicationMetricsTest {
     Path path2 = new Path("hdfs://localhost:9000/accumulo/wal/file2");
 
     // First call will initialize the map of paths to modification time
+    EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(util.getPendingReplicationPaths()).andReturn(ImmutableSet.of(path1, path2));
     EasyMock.expect(master.getFileSystem()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path1)).andReturn(createStatus(100));

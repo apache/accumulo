@@ -142,7 +142,7 @@ class DatafileManager {
 
     if (filesToDelete.size() > 0) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getTabletServer(),
+      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());
     }
   }
@@ -164,7 +164,7 @@ class DatafileManager {
 
     if (filesToDelete.size() > 0) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getTabletServer(),
+      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());
     }
   }
@@ -398,7 +398,7 @@ class DatafileManager {
     // this metadata write does not go up... it goes sideways or to itself
     if (absMergeFile != null)
       MetadataTableUtil.addDeleteEntries(tablet.getExtent(), Collections.singleton(absMergeFile),
-          tablet.getTabletServer());
+          tablet.getContext());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
     boolean replicate = ReplicationConfigurationUtil.isEnabled(tablet.getExtent(),
@@ -442,7 +442,7 @@ class DatafileManager {
               logFileOnly);
         }
         for (String logFile : logFileOnly) {
-          ReplicationTableUtil.updateFiles(tablet.getTabletServer(), tablet.getExtent(), logFile,
+          ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
               StatusUtil.openWithUnknownLength());
         }
       }
@@ -606,7 +606,7 @@ class DatafileManager {
       Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
       if (filesInUseByScans.size() > 0)
         log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
-      MasterMetadataUtil.replaceDatafiles(tablet.getTabletServer(), extent, oldDatafiles,
+      MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
           filesInUseByScans, newDatafile, compactionId, dfv,
           tablet.getTabletServer().getClientAddressString(), lastLocation,
           tablet.getTabletServer().getLock());

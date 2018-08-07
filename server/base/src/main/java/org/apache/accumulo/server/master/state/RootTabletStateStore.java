@@ -19,7 +19,7 @@ package org.apache.accumulo.server.master.state;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 
 public class RootTabletStateStore extends MetaDataStateStore {
 
@@ -27,7 +27,7 @@ public class RootTabletStateStore extends MetaDataStateStore {
     super(context, state, RootTable.NAME);
   }
 
-  public RootTabletStateStore(AccumuloServerContext context) {
+  public RootTabletStateStore(ServerContext context) {
     super(context, RootTable.NAME);
   }
 

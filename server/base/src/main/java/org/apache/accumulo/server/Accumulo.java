@@ -31,16 +31,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -109,12 +106,12 @@ public class Accumulo {
     return ServerConstants.getInstanceIdLocation(v);
   }
 
-  public static void init(VolumeManager fs, Instance instance,
+  public static void init(VolumeManager fs, String instanceID,
       ServerConfigurationFactory serverConfig, String application) throws IOException {
     final AccumuloConfiguration conf = serverConfig.getSystemConfiguration();
 
     log.info("{} starting", application);
-    log.info("Instance {}", instance.getInstanceID());
+    log.info("Instance {}", instanceID);
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
     log.info("Data Version {}", dataVersion);
     Accumulo.waitForZookeeperAndHdfs(fs);
@@ -267,7 +264,7 @@ public class Accumulo {
   public static void abortIfFateTransactions() {
     try {
       final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(
-          new ZooStore<>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
+          new ZooStore<>(ServerContext.getInstance().getZooKeeperRoot() + Constants.ZFATE,
               ZooReaderWriter.getInstance()));
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are"

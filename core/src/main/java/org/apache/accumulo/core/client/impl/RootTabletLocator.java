@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
@@ -95,10 +94,10 @@ public class RootTabletLocator extends TabletLocator {
   public void invalidateCache(Collection<KeyExtent> keySet) {}
 
   @Override
-  public void invalidateCache(Instance instance, String server) {
-    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
-    String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
+  public void invalidateCache(ClientContext context, String server) {
+    ZooCache zooCache = zcf.getZooCache(context.getZooKeepers(),
+        context.getZooKeepersSessionTimeOut());
+    String root = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
     zooCache.clear(root + "/" + server);
   }
 

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
@@ -35,14 +36,27 @@ public class SimpleScanDispatcherTest {
         .endsWith(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME + ".prioritizer"));
   }
 
-  private void runTest(Map<String,String> opts, String expectedSingle, String expectedMulti) {
-    ScanInfo msi = new TestScanInfo("a", Type.MULTI, 4);
-    ScanInfo ssi = new TestScanInfo("a", Type.SINGLE, 4);
+  private void runTest(Map<String,String> opts, Map<String,String> hints, String expectedSingle,
+      String expectedMulti) {
+    TestScanInfo msi = new TestScanInfo("a", Type.MULTI, 4);
+    msi.executionHints = hints;
+    TestScanInfo ssi = new TestScanInfo("a", Type.SINGLE, 4);
+    ssi.executionHints = hints;
 
     SimpleScanDispatcher ssd1 = new SimpleScanDispatcher();
     ssd1.init(opts);
-    Assert.assertEquals(expectedMulti, ssd1.dispatch(msi, null));
-    Assert.assertEquals(expectedSingle, ssd1.dispatch(ssi, null));
+
+    Map<String,ScanExecutor> executors = new HashMap<>();
+    executors.put("E1", null);
+    executors.put("E2", null);
+    executors.put("E3", null);
+
+    Assert.assertEquals(expectedMulti, ssd1.dispatch(msi, executors));
+    Assert.assertEquals(expectedSingle, ssd1.dispatch(ssi, executors));
+  }
+
+  private void runTest(Map<String,String> opts, String expectedSingle, String expectedMulti) {
+    runTest(opts, Collections.emptyMap(), expectedSingle, expectedMulti);
   }
 
   @Test
@@ -58,5 +72,33 @@ public class SimpleScanDispatcherTest {
     runTest(ImmutableMap.of("single_executor", "E2", "multi_executor", "E3"), "E2", "E3");
     runTest(ImmutableMap.of("executor", "E1", "single_executor", "E2", "multi_executor", "E3"),
         "E2", "E3");
+  }
+
+  @Test
+  public void testHints() {
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true"), ImmutableMap.of(), "E1", "E1");
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true"),
+        ImmutableMap.of("executor", "E2"), "E2", "E2");
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true"),
+        ImmutableMap.of("executor", "E5"), "E1", "E1");
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "ignored_hint_action", "fail"),
+        ImmutableMap.of("executor", "E5"), "E1", "E1");
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "bad_hint_action", "fail",
+        "ignored_hint_action", "fail"), ImmutableMap.of("executor", "E2"), "E2", "E2");
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "false"),
+        ImmutableMap.of("executor", "E2"), "E1", "E1");
+    runTest(ImmutableMap.of("executor", "E1"), ImmutableMap.of("executor", "E2"), "E1", "E1");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBadHint() {
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "true", "bad_hint_action", "fail"),
+        ImmutableMap.of("executor", "E5"), "E2", "E2");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testIgnoredHint() {
+    runTest(ImmutableMap.of("executor", "E1", "heed_hints", "false", "ignored_hint_action", "fail"),
+        ImmutableMap.of("executor", "E2"), "E1", "E1");
   }
 }

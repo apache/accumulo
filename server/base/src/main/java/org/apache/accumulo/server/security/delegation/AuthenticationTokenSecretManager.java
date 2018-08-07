@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
@@ -58,7 +57,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
 
   private static final Logger log = LoggerFactory.getLogger(AuthenticationTokenSecretManager.class);
 
-  private final Instance instance;
+  private final String instanceID;
   private final long tokenMaxLifetime;
   private final ConcurrentHashMap<Integer,AuthenticationKey> allKeys = new ConcurrentHashMap<>();
   private AuthenticationKey currentKey;
@@ -66,15 +65,15 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   /**
    * Create a new secret manager instance for generating keys.
    *
-   * @param instance
-   *          Accumulo instance
+   * @param instanceID
+   *          Accumulo instance ID
    * @param tokenMaxLifetime
    *          Maximum age (in milliseconds) before a token expires and is no longer valid
    */
-  public AuthenticationTokenSecretManager(Instance instance, long tokenMaxLifetime) {
-    requireNonNull(instance);
+  public AuthenticationTokenSecretManager(String instanceID, long tokenMaxLifetime) {
+    requireNonNull(instanceID);
     checkArgument(tokenMaxLifetime > 0, "Max lifetime must be positive");
-    this.instance = instance;
+    this.instanceID = instanceID;
     this.tokenMaxLifetime = tokenMaxLifetime;
   }
 
@@ -115,7 +114,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
       }
     }
 
-    identifier.setInstanceId(instance.getInstanceID());
+    identifier.setInstanceId(instanceID);
     return createPassword(identifier.getBytes(), secretKey.getKey());
   }
 

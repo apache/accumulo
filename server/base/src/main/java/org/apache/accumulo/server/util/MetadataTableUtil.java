@@ -80,13 +80,11 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -138,7 +136,7 @@ public class MetadataTableUtil {
 
   public static void putLockID(ZooLock zooLock, Mutation m) {
     TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m, new Value(zooLock.getLockID()
-        .serialize(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + "/").getBytes(UTF_8)));
+        .serialize(ServerContext.getInstance().getZooKeeperRoot() + "/").getBytes(UTF_8)));
   }
 
   private static void update(ClientContext context, Mutation m, KeyExtent extent) {
@@ -223,7 +221,7 @@ public class MetadataTableUtil {
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
       List<LogEntry> logsToAdd, List<FileRef> filesToRemove,
       SortedMap<FileRef,DataFileValue> filesToAdd, String newDir, ZooLock zooLock,
-      AccumuloServerContext context) {
+      ServerContext context) {
 
     if (extent.isRootTablet()) {
       if (newDir != null)
@@ -280,7 +278,7 @@ public class MetadataTableUtil {
     }
   }
 
-  private static void addRootLogEntry(AccumuloServerContext context, ZooLock zooLock,
+  private static void addRootLogEntry(ServerContext context, ZooLock zooLock,
       final LogEntry entry) {
     retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
       @Override
@@ -375,7 +373,7 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void addDeleteEntry(AccumuloServerContext context, Table.ID tableId, String path)
+  public static void addDeleteEntry(ServerContext context, Table.ID tableId, String path)
       throws IOException {
     update(context, createDeleteMutation(tableId, path), new KeyExtent(tableId, null, null));
   }
@@ -506,12 +504,12 @@ public class MetadataTableUtil {
   }
 
   static String getZookeeperLogLocation() {
-    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
+    return ServerContext.getInstance().getZooKeeperRoot() + RootTable.ZROOT_TABLET_WALOGS;
   }
 
   public static void setRootTabletDir(String dir) throws IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ServerContext.getInstance().getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
     try {
       zoo.putPersistentData(zpath, dir.getBytes(UTF_8), -1, NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException e) {
@@ -524,7 +522,7 @@ public class MetadataTableUtil {
 
   public static String getRootTabletDir() throws IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ServerContext.getInstance().getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
     try {
       return new String(zoo.getData(zpath, null), UTF_8);
     } catch (KeeperException e) {
@@ -693,7 +691,7 @@ public class MetadataTableUtil {
     return new LogEntryIterator(context);
   }
 
-  public static void removeUnusedWALEntries(AccumuloServerContext context, KeyExtent extent,
+  public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
       final List<LogEntry> entries, ZooLock zooLock) {
     if (extent.isRootTablet()) {
       retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
@@ -941,7 +939,7 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void chopped(AccumuloServerContext context, KeyExtent extent, ZooLock zooLock) {
+  public static void chopped(ServerContext context, KeyExtent extent, ZooLock zooLock) {
     Mutation m = new Mutation(extent.getMetadataEntry());
     ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("chopped".getBytes(UTF_8)));
     update(context, zooLock, m, extent);
@@ -1012,7 +1010,7 @@ public class MetadataTableUtil {
     return result;
   }
 
-  public static void addBulkLoadInProgressFlag(AccumuloServerContext context, String path) {
+  public static void addBulkLoadInProgressFlag(ServerContext context, String path) {
 
     Mutation m = new Mutation(MetadataSchema.BlipSection.getRowPrefix() + path);
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
@@ -1023,7 +1021,7 @@ public class MetadataTableUtil {
     update(context, m, new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null));
   }
 
-  public static void removeBulkLoadInProgressFlag(AccumuloServerContext context, String path) {
+  public static void removeBulkLoadInProgressFlag(ServerContext context, String path) {
 
     Mutation m = new Mutation(MetadataSchema.BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);

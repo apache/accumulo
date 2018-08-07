@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
@@ -56,7 +55,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -132,7 +130,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public static final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
   public static final String RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG = "RPC"
       + " principal did not match requested Accumulo principal";
-  protected Instance instance;
+  @SuppressWarnings("deprecation")
+  protected org.apache.accumulo.core.client.Instance instance;
 
   protected Class<? extends AuthenticationToken> tokenClass;
 
@@ -191,7 +190,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public ProxyServer(Properties props) {
 
     @SuppressWarnings("deprecation")
-    Instance i = new ZooKeeperInstance(ClientConfConverter.toClientConf(props));
+    org.apache.accumulo.core.client.Instance i = new org.apache.accumulo.core.client.ZooKeeperInstance(
+        ClientConfConverter.toClientConf(props));
     instance = i;
 
     try {

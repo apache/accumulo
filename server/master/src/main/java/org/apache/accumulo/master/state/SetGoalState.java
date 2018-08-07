@@ -21,12 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -43,11 +40,11 @@ public class SetGoalState {
     }
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
-    VolumeManager fs = VolumeManagerImpl.get();
-    Accumulo.waitForZookeeperAndHdfs(fs);
+    ServerContext context = ServerContext.getInstance();
+    Accumulo.waitForZookeeperAndHdfs(context.getVolumeManager());
     ZooReaderWriter.getInstance().putPersistentData(
-        ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE,
-        args[0].getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+        context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
+        NodeExistsPolicy.OVERWRITE);
   }
 
 }

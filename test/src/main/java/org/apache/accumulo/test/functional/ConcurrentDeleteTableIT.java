@@ -102,7 +102,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         // expected
       }
 
-      FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
     }
 
     es.shutdown();
@@ -249,7 +249,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         // expected
       }
 
-      FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
     }
 
     es.shutdown();

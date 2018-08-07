@@ -53,9 +53,9 @@ public class CleanUpBulkImport extends MasterRepo {
     master.updateBulkImportStatus(source, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
-    MetadataTableUtil.removeBulkLoadInProgressFlag(master,
+    MetadataTableUtil.removeBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    MetadataTableUtil.addDeleteEntry(master, tableId, bulkDir.toString());
+    MetadataTableUtil.addDeleteEntry(master.getContext(), tableId, bulkDir.toString());
     log.debug("removing the metadata table markers for loaded files");
     Connector conn = master.getConnector();
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);

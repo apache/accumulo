@@ -568,7 +568,7 @@ public class TabletServerBatchWriter {
         af.put(new TabletIdImpl(entry.getKey()), codes);
       }
 
-      throw new MutationsRejectedException(context.getInstance(), cvsList, af, serverSideErrors,
+      throw new MutationsRejectedException(context.getClientInfo(), cvsList, af, serverSideErrors,
           unknownErrors, lastUnknownError);
     }
   }
@@ -900,7 +900,7 @@ public class TabletServerBatchWriter {
             tables.add(ke.getTableId());
 
           for (Table.ID table : tables)
-            getLocator(table).invalidateCache(context.getInstance(), location);
+            getLocator(table).invalidateCache(context, location);
 
           failedMutations.add(location, tsm);
         } finally {

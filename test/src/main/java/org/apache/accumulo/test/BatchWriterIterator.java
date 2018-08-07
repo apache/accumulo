@@ -101,7 +101,7 @@ public class BatchWriterIterator extends WrappingIterator {
       boolean splitAfterFirstWrite) {
     return iteratorSetting(priority, sleepAfterFirstWrite, batchWriterTimeout, batchWriterMaxMemory,
         numEntriesToWrite, tableName, connector.info().getZooKeepers(),
-        connector.info().getInstanceName(), connector.getInstance().getZooKeepersSessionTimeOut(),
+        connector.info().getInstanceName(), connector.info().getZooKeepersSessionTimeOut(),
         connector.whoami(), token, clearCacheAfterFirstWrite, splitAfterFirstWrite);
   }
 

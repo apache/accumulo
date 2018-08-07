@@ -49,7 +49,7 @@ public class TableLoadBalancer extends TabletBalancer {
   private TabletBalancer constructNewBalancerForTable(String clazzName, Table.ID tableId)
       throws Exception {
     String context = null;
-    context = this.context.getServerConfigurationFactory().getTableConfiguration(tableId)
+    context = this.context.getServerConfFactory().getTableConfiguration(tableId)
         .get(Property.TABLE_CLASSPATH);
     Class<? extends TabletBalancer> clazz;
     if (context != null && !context.equals(""))
@@ -66,7 +66,7 @@ public class TableLoadBalancer extends TabletBalancer {
     if (tableState == null)
       return null;
     if (tableState.equals(TableState.ONLINE))
-      return this.context.getServerConfigurationFactory().getTableConfiguration(table)
+      return this.context.getServerConfFactory().getTableConfiguration(table)
           .get(Property.TABLE_LOAD_BALANCER);
     return null;
   }

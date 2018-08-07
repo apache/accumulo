@@ -31,7 +31,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Table;
@@ -47,15 +46,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -82,9 +78,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void run() throws Exception {
-    Instance inst = HdfsZooInstance.getInstance();
-    AccumuloServerContext c = new AccumuloServerContext(inst, new ServerConfigurationFactory(inst));
-    String zPath = ZooUtil.getRoot(inst) + "/testLock";
+    ServerContext c = ServerContext.getInstance();
+    String zPath = c.getZooKeeperRoot() + "/testLock";
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
     ZooLock zl = new ZooLock(zPath);
@@ -135,7 +130,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         nke("foob", null, "r"));
   }
 
-  private void runSplitRecoveryTest(AccumuloServerContext context, int failPoint, String mr,
+  private void runSplitRecoveryTest(ServerContext context, int failPoint, String mr,
       int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
 
     Text midRow = new Text(mr);
@@ -168,9 +163,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
-  private void splitPartiallyAndRecover(AccumuloServerContext context, KeyExtent extent,
-      KeyExtent high, KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles,
-      Text midRow, String location, int steps, ZooLock zl) throws Exception {
+  private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
+      KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles, Text midRow,
+      String location, int steps, ZooLock zl) throws Exception {
 
     SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
@@ -221,8 +216,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  private void ensureTabletHasNoUnexpectedMetadataEntries(AccumuloServerContext context,
-      KeyExtent extent, SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
+  private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
+      SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetadataRange());
 

@@ -27,7 +27,6 @@ import java.util.Base64;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -49,12 +48,12 @@ public final class SystemCredentials extends Credentials {
 
   private final TCredentials AS_THRIFT;
 
-  public SystemCredentials(Instance instance, String principal, AuthenticationToken token) {
+  public SystemCredentials(String instanceID, String principal, AuthenticationToken token) {
     super(principal, token);
-    AS_THRIFT = super.toThrift(instance);
+    AS_THRIFT = super.toThrift(instanceID);
   }
 
-  public static SystemCredentials get(Instance instance) {
+  public static SystemCredentials get(String instanceID) {
     String principal = SYSTEM_PRINCIPAL;
     AccumuloConfiguration conf = SiteConfiguration.getInstance();
     if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -66,14 +65,14 @@ public final class SystemCredentials extends Credentials {
       // principal
       principal = SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     }
-    return new SystemCredentials(instance, principal, SystemToken.get(instance));
+    return new SystemCredentials(instanceID, principal, SystemToken.get(instanceID));
   }
 
   @Override
-  public TCredentials toThrift(Instance instance) {
-    if (!AS_THRIFT.getInstanceId().equals(instance.getInstanceID()))
+  public TCredentials toThrift(String instanceID) {
+    if (!AS_THRIFT.getInstanceId().equals(instanceID))
       throw new IllegalArgumentException("Unexpected instance used for "
-          + SystemCredentials.class.getSimpleName() + ": " + instance.getInstanceID());
+          + SystemCredentials.class.getSimpleName() + ": " + instanceID);
     return AS_THRIFT;
   }
 
@@ -93,8 +92,8 @@ public final class SystemCredentials extends Credentials {
       super(systemPassword);
     }
 
-    private static SystemToken get(Instance instance) {
-      byte[] instanceIdBytes = instance.getInstanceID().getBytes(UTF_8);
+    private static SystemToken get(String instanceID) {
+      byte[] instanceIdBytes = instanceID.getBytes(UTF_8);
       byte[] confChecksum;
       MessageDigest md;
       try {

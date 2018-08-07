@@ -51,21 +51,22 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   private final SecurityOperation security;
 
   public MasterReplicationCoordinator(Master master) {
-    this(master, new ZooReader(master.getZooKeepers(), master.getZooKeepersSessionTimeOut()));
+    this(master, new ZooReader(master.getContext().getZooKeepers(),
+        master.getContext().getZooKeepersSessionTimeOut()));
   }
 
   protected MasterReplicationCoordinator(Master master, ZooReader reader) {
     this.master = master;
     this.rand = new Random(358923462L);
     this.reader = reader;
-    this.security = SecurityOperation.getInstance(master, false);
+    this.security = SecurityOperation.getInstance(master.getContext(), false);
   }
 
   @Override
   public String getServicerAddress(String remoteTableId, TCredentials creds)
       throws ReplicationCoordinatorException, TException {
     try {
-      security.authenticateUser(master.rpcCreds(), creds);
+      security.authenticateUser(master.getContext().rpcCreds(), creds);
     } catch (ThriftSecurityException e) {
       log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(),
           remoteTableId);

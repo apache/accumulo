@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
@@ -74,17 +73,15 @@ class ImportPopulateZookeeper extends MasterRepo {
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Instance instance = env.getInstance();
-
-      Utils.checkTableDoesNotExist(env, tableInfo.tableName, tableInfo.tableId,
+      Utils.checkTableDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.tableId,
           TableOperation.CREATE);
 
       String namespace = Tables.qualify(tableInfo.tableName).getFirst();
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(env, namespace);
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
       TableManager.getInstance().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName,
           NodeExistsPolicy.OVERWRITE);
 
-      Tables.clearCache(instance);
+      Tables.clearCache(env.getContext());
     } finally {
       Utils.tableNameLock.unlock();
     }
@@ -101,9 +98,8 @@ class ImportPopulateZookeeper extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Instance instance = env.getInstance();
     TableManager.getInstance().removeTable(tableInfo.tableId);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
-    Tables.clearCache(instance);
+    Tables.clearCache(env.getContext());
   }
 }

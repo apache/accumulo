@@ -123,7 +123,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   protected void cleanupFinishedWork() {
     final Iterator<Entry<String,Map<Table.ID,String>>> queuedWork = queuedWorkByPeerName.entrySet()
         .iterator();
-    final String instanceId = conn.getInstance().getInstanceID();
+    final String instanceId = conn.getInstanceID();
 
     int elementsRemoved = 0;
     // Check the status of all the work we've queued up

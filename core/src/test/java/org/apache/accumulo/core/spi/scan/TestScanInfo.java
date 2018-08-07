@@ -18,6 +18,8 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
 
@@ -34,6 +36,7 @@ public class TestScanInfo implements ScanInfo {
   OptionalLong lastRunTime = OptionalLong.empty();
   Stat runTimeStats = new Stat();
   Stat idleTimeStats = new Stat();
+  Map<String,String> executionHints = Collections.emptyMap();
 
   TestScanInfo(String testId, Type scanType, long creationTime, int... times) {
     this.testId = testId;
@@ -97,5 +100,10 @@ public class TestScanInfo implements ScanInfo {
   @Override
   public Collection<IteratorConfiguration> getClientScanIterators() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Map<String,String> getExecutionHints() {
+    return executionHints;
   }
 }

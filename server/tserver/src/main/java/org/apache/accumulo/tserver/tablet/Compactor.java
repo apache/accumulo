@@ -53,7 +53,7 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -111,7 +111,7 @@ public class Compactor implements Callable<CompactionStats> {
   // a unique id to identify a compactor
   private final long compactorID = nextCompactorID.getAndIncrement();
   protected volatile Thread thread;
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
   public long getCompactorID() {
     return compactorID;
@@ -145,7 +145,7 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(AccumuloServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
+  public Compactor(ServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
       InMemoryMap imm, FileRef outputFile, boolean propogateDeletes, CompactionEnv env,
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;

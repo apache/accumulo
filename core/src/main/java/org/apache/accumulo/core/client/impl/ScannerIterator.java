@@ -123,7 +123,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     scanState = new ScanState(context, tableId, authorizations, new Range(range),
         options.fetchedColumns, size, options.serverSideIteratorList,
         options.serverSideIteratorOptions, isolated, readaheadThreshold,
-        options.getSamplerConfiguration(), options.batchTimeOut, options.classLoaderContext);
+        options.getSamplerConfiguration(), options.batchTimeOut, options.classLoaderContext,
+        options.executionHints);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
     if (0L == readaheadThreshold) {

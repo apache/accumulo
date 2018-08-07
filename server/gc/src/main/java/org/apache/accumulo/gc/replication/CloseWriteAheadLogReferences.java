@@ -45,7 +45,7 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
@@ -74,9 +74,9 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
-  public CloseWriteAheadLogReferences(AccumuloServerContext context) {
+  public CloseWriteAheadLogReferences(ServerContext context) {
     this.context = context;
   }
 

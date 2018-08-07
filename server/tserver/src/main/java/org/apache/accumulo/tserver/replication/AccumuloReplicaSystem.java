@@ -31,23 +31,23 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -62,8 +62,7 @@ import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.replication.ReplicaSystem;
@@ -148,7 +147,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
 
-    conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getSystemConfiguration();
+    conf = ServerContext.getInstance().getServerConfFactory().getSystemConfiguration();
 
     try {
       fs = VolumeManagerImpl.get(conf);
@@ -161,8 +160,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   @Override
   public Status replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper) {
-    final Instance localInstance = HdfsZooInstance.getInstance();
-    final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance)
+    final AccumuloConfiguration localConf = ServerContext.getInstance().getServerConfFactory()
         .getSystemConfiguration();
 
     log.debug("Replication RPC timeout is {}",
@@ -303,8 +301,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             }
           }
 
-          log.debug("New status for {} after replicating to {} is {}", p, peerContext.getInstance(),
-              ProtobufUtil.toString(finalStatus));
+          log.debug("New status for {} after replicating to {} is {}", p,
+              peerContext.getInstanceName(), ProtobufUtil.toString(finalStatus));
 
           return finalStatus;
         } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
@@ -403,7 +401,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       Status lastStatus = status, currentStatus = status;
       final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
       while (true) {
-        // Set some trace info
+        // Set some trace context
         span = Trace.start("Replicate WAL batch");
         span.data("Batch size (bytes)", Long.toString(sizeLimit));
         span.data("File", p.toString());
@@ -681,8 +679,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(principal);
     requireNonNull(token);
 
-    return new ClientContext(new ZooKeeperInstance(instanceName, zookeepers),
-        new Credentials(principal, token), localConf);
+    Properties properties = new Properties();
+    properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
+    properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
+    properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
+    ClientProperty.setAuthenticationToken(properties, token);
+
+    return new ClientContext(ClientInfo.from(properties, token), localConf);
   }
 
   protected RFileReplication getKeyValues(ReplicationTarget target, DataInputStream input, Path p,

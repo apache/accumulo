@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
@@ -25,6 +26,11 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.HintScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanInfo;
+import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -286,4 +292,18 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @since 1.8.0
    */
   String getClassLoaderContext();
+
+  /**
+   * Set hints for the configured {@link ScanPrioritizer} and {@link ScanDispatcher}. These hints
+   * are available on the server side via {@link ScanInfo#getExecutionHints()} Depending on the
+   * configuration, these hints may be ignored. Hints will never impact what data is returned by a
+   * scan, only how quickly it is returned.
+   *
+   * <p>
+   * The default configuration for Accumulo will ignore hints. See {@link HintScanPrioritizer} and
+   * {@link SimpleScanDispatcher} for examples of classes that can react to hints.
+   *
+   * @since 2.0.0
+   */
+  void setExecutionHints(Map<String,String> hints);
 }

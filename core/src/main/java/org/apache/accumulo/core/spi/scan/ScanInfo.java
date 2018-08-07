@@ -17,11 +17,13 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
@@ -113,4 +115,9 @@ public interface ScanInfo {
    * @return iterators that where configured on the client side scanner
    */
   Collection<IteratorConfiguration> getClientScanIterators();
+
+  /**
+   * @return Hints set by a scanner using {@link ScannerBase#setExecutionHints(Map)}
+   */
+  Map<String,String> getExecutionHints();
 }

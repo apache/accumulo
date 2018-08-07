@@ -24,8 +24,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -47,7 +46,7 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    AccumuloConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance())
+    AccumuloConfiguration config = ServerContext.getInstance().getServerConfFactory()
         .getSystemConfiguration();
     Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader()
         .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))

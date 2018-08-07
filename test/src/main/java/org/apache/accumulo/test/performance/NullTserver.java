@@ -27,8 +27,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -68,10 +66,8 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processo
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
@@ -96,7 +92,7 @@ public class NullTserver {
 
     private long updateSession = 1;
 
-    public ThriftClientHandler(AccumuloServerContext context, TransactionWatcher watcher) {
+    public ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
       super(context, watcher, null);
     }
 
@@ -150,7 +146,8 @@ public class NullTserver {
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
         Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
-        TSamplerConfiguration tsc, long batchTimeOut, String context) {
+        TSamplerConfiguration tsc, long batchTimeOut, String context,
+        Map<String,String> executionHints) {
       return null;
     }
 
@@ -159,7 +156,7 @@ public class NullTserver {
         TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
         boolean isolated, long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut,
-        String classLoaderContext) {
+        String classLoaderContext, Map<String,String> executionHints) {
       return null;
     }
 
@@ -310,14 +307,11 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     // modify metadata
-    ZooKeeperInstance zki = new ZooKeeperInstance(opts.iname, opts.keepers);
-    Instance inst = HdfsZooInstance.getInstance();
-    AccumuloServerContext context = new AccumuloServerContext(inst,
-        new ServerConfigurationFactory(zki));
-
+    int zkTimeOut = (int) DefaultConfiguration.getInstance()
+        .getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    ServerContext context = new ServerContext(opts.iname, opts.keepers, zkTimeOut);
     TransactionWatcher watcher = new TransactionWatcher();
-    ThriftClientHandler tch = new ThriftClientHandler(
-        new AccumuloServerContext(inst, new ServerConfigurationFactory(inst)), watcher);
+    ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
     TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor,
         "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,

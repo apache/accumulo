@@ -25,7 +25,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
@@ -71,8 +70,7 @@ public class ImportTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      Instance instance = env.getInstance();
-      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, instance, Table.ID::of);
+      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, env.getContext(), Table.ID::of);
       return new ImportSetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();

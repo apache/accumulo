@@ -227,7 +227,7 @@ class PopulateMetadataTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment,
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment.getContext(),
         environment.getMasterLock());
   }
 }

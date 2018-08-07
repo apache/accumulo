@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
@@ -343,7 +342,6 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     Set<String> wals = new HashSet<>();
     attempts = 5;
-    Instance i = conn.getInstance();
     ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
         conn.info().getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {

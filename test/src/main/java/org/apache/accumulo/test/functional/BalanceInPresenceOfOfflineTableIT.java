@@ -29,10 +29,8 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
@@ -149,12 +147,12 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       log.debug("fetch the list of tablets assigned to each tserver.");
 
       MasterClientService.Iface client = null;
-      MasterMonitorInfo stats = null;
-      Instance instance = getConnector().getInstance();
+      MasterMonitorInfo stats;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(new ClientContext(getClientInfo()));
-          stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(instance));
+          client = MasterClient.getConnectionWithRetry(getClientContext());
+          stats = client.getMasterStats(Tracer.traceInfo(),
+              creds.toThrift(getConnector().getInstanceID()));
           break;
         } catch (ThriftSecurityException exception) {
           throw new AccumuloSecurityException(exception);

@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.impl;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -30,13 +29,13 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
   private final ZooCache zc;
   private final String root;
 
-  ZookeeperLockChecker(Instance instance) {
-    this(instance, new ZooCacheFactory());
+  ZookeeperLockChecker(ClientContext context) {
+    this(context, new ZooCacheFactory());
   }
 
-  ZookeeperLockChecker(Instance instance, ZooCacheFactory zcf) {
-    zc = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-    this.root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
+  ZookeeperLockChecker(ClientContext context, ZooCacheFactory zcf) {
+    zc = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+    this.root = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
   }
 
   @Override

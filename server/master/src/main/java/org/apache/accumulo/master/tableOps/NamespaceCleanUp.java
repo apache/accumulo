@@ -52,11 +52,12 @@ class NamespaceCleanUp extends MasterRepo {
     } catch (Exception e) {
       log.error("Failed to find namespace in zookeeper", e);
     }
-    Tables.clearCache(master.getInstance());
+    Tables.clearCache(master.getContext());
 
     // remove any permissions associated with this namespace
     try {
-      AuditedSecurityOperation.getInstance(master).deleteNamespace(master.rpcCreds(), namespaceId);
+      AuditedSecurityOperation.getInstance(master.getContext())
+          .deleteNamespace(master.getContext().rpcCreds(), namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
