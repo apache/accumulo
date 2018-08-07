@@ -243,7 +243,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<Table.ID> onlineTables() {
-      ClientContext context = new ClientContext(getClientInfo());
+      ClientContext context = getClientContext();
       Set<Table.ID> onlineTables = Tables.getIdToNameMap(context).keySet();
       return Sets.filter(onlineTables,
           tableId -> Tables.getTableState(context, tableId) == TableState.ONLINE);

@@ -22,18 +22,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.htrace.HTraceConfiguration;
 import org.apache.htrace.SpanReceiver;
 import org.apache.htrace.SpanReceiverBuilder;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,15 +50,6 @@ public class DistributedTrace {
   public static final String TRACER_ZK_PATH = "tracer.zookeeper.path";
 
   private static final HashSet<SpanReceiver> receivers = new HashSet<>();
-
-  /**
-   * @deprecated since 1.7, use {@link DistributedTrace#enable(String, String, Properties)} instead
-   */
-  @Deprecated
-  public static void enable(Instance instance, ZooReader zoo, String application, String address)
-      throws IOException, KeeperException, InterruptedException {
-    enable(address, application);
-  }
 
   /**
    * Enable tracing by setting up SpanReceivers for the current process.

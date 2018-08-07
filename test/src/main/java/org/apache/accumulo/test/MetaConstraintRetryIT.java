@@ -43,7 +43,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
     getConnector().securityOperations().grantTablePermission(getAdminPrincipal(),
         MetadataTable.NAME, TablePermission.WRITE);
 
-    ClientContext context = new ClientContext(getClientInfo());
+    ClientContext context = getClientContext();
     Writer w = new Writer(context, MetadataTable.ID);
     KeyExtent extent = new KeyExtent(Table.ID.of("5"), null, null);
 

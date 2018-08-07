@@ -31,7 +31,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -110,22 +109,20 @@ public class UnorderedWorkAssignerTest {
     Set<String> queuedWork = new LinkedHashSet<>(Arrays.asList("wal1", "wal2"));
     assigner.setQueuedWork(queuedWork);
 
-    Instance inst = createMock(Instance.class);
     ZooCache cache = createMock(ZooCache.class);
     assigner.setZooCache(cache);
 
-    expect(conn.getInstance()).andReturn(inst);
-    expect(inst.getInstanceID()).andReturn("id");
+    expect(conn.getInstanceID()).andReturn("id");
     expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal1"))
         .andReturn(null);
     expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal2"))
         .andReturn(null);
 
-    replay(cache, inst, conn);
+    replay(cache, conn);
 
     assigner.cleanupFinishedWork();
 
-    verify(cache, inst, conn);
+    verify(cache, conn);
     Assert.assertTrue("Queued work was not emptied", queuedWork.isEmpty());
   }
 

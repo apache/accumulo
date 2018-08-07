@@ -22,8 +22,7 @@ import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertNull;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Test;
@@ -35,12 +34,12 @@ public class MonitorUtilTest {
     final String instanceId = "12345";
 
     ZooReader zr = mock(ZooReader.class);
-    Instance mockInstance = mock(Instance.class);
-    expect(mockInstance.getInstanceID()).andReturn(instanceId);
-    expect(zr.getData(ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_HTTP_ADDR, null))
+    ClientContext context = mock(ClientContext.class);
+    expect(context.getZooKeeperRoot()).andReturn("/root/");
+    expect(zr.getData("/root/" + Constants.ZMONITOR_HTTP_ADDR, null))
         .andThrow(new NoNodeException());
 
-    replay(zr, mockInstance);
-    assertNull(MonitorUtil.getLocation(zr, mockInstance));
+    replay(zr, context);
+    assertNull(MonitorUtil.getLocation(zr, context));
   }
 }

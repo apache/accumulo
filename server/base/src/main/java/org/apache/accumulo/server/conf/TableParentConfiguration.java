@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * Used by TableConfiguration to dynamically get the NamespaceConfiguration if the namespace changes
@@ -30,8 +30,9 @@ public class TableParentConfiguration extends NamespaceConfiguration {
 
   private Table.ID tableId;
 
-  public TableParentConfiguration(Table.ID tableId, Instance inst, AccumuloConfiguration parent) {
-    super(null, inst, parent);
+  public TableParentConfiguration(Table.ID tableId, ServerContext context,
+      AccumuloConfiguration parent) {
+    super(null, context, parent);
     this.tableId = tableId;
     this.namespaceId = getNamespaceId();
   }
@@ -39,7 +40,7 @@ public class TableParentConfiguration extends NamespaceConfiguration {
   @Override
   protected Namespace.ID getNamespaceId() {
     try {
-      return Tables.getNamespaceId(inst, tableId);
+      return Tables.getNamespaceId(context, tableId);
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }

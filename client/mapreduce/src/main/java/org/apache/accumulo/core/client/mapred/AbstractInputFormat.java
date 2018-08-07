@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -293,8 +292,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
+   * @deprecated since 2.0.0, Use {@link #getClientInfo(JobConf)} instead
    */
-  protected static Instance getInstance(JobConf job) {
+  @Deprecated
+  protected static org.apache.accumulo.core.client.Instance getInstance(JobConf job) {
     return InputConfigurator.getInstance(CLASS, job);
   }
 

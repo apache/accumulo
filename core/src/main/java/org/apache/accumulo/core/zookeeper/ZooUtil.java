@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -35,10 +34,6 @@ import org.slf4j.LoggerFactory;
 public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
-
-  public static String getRoot(final Instance instance) {
-    return getRoot(instance.getInstanceID());
-  }
 
   public static String getRoot(final String instanceId) {
     return Constants.ZROOT + "/" + instanceId;

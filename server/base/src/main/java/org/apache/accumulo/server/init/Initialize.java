@@ -38,7 +38,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -83,10 +82,8 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -394,15 +391,14 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
 
-    final Instance instance = HdfsZooInstance.getInstance();
-    final ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
+    final ServerContext context = ServerContext.getInstance();
 
     // When we're using Kerberos authentication, we need valid credentials to perform
     // initialization. If the user provided some, use them.
     // If they did not, fall back to the credentials present in accumulo-site.xml that the servers
     // will use themselves.
     try {
-      final SiteConfiguration siteConf = confFactory.getSiteConfiguration();
+      final SiteConfiguration siteConf = context.getServerConfFactory().getSiteConfiguration();
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         // We don't have any valid creds to talk to HDFS
@@ -430,7 +426,6 @@ public class Initialize implements KeywordExecutable {
     }
 
     try {
-      AccumuloServerContext context = new AccumuloServerContext(instance, confFactory);
       initSecurity(context, opts, uuid.toString(), rootUser);
     } catch (Exception e) {
       log.error("FATAL: Failed to initialize security", e);
@@ -777,8 +772,8 @@ public class Initialize implements KeywordExecutable {
     return optionalWarning;
   }
 
-  private static void initSecurity(AccumuloServerContext context, Opts opts, String iid,
-      String rootUser) throws AccumuloSecurityException, ThriftSecurityException, IOException {
+  private static void initSecurity(ServerContext context, Opts opts, String iid, String rootUser)
+      throws AccumuloSecurityException, ThriftSecurityException, IOException {
     AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(),
         rootUser, opts.rootpass);
   }
@@ -933,15 +928,13 @@ public class Initialize implements KeywordExecutable {
 
       if (opts.resetSecurity) {
         log.info("Resetting security on accumulo.");
-        Instance instance = HdfsZooInstance.getInstance();
-        AccumuloServerContext context = new AccumuloServerContext(instance,
-            new ServerConfigurationFactory(instance));
+        ServerContext context = ServerContext.getInstance();
         if (isInitialized(fs)) {
           if (!opts.forceResetSecurity) {
             ConsoleReader c = getConsoleReader();
             String userEnteredName = c.readLine("WARNING: This will remove all"
                 + " users from Accumulo! If you wish to proceed enter the instance" + " name: ");
-            if (userEnteredName != null && !instance.getInstanceName().equals(userEnteredName)) {
+            if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
               log.error("Aborted reset security: Instance name did not match current instance.");
               return;
             }
@@ -949,7 +942,7 @@ public class Initialize implements KeywordExecutable {
 
           final String rootUser = getRootUserName(opts);
           opts.rootpass = getRootPassword(opts, rootUser);
-          initSecurity(context, opts, HdfsZooInstance.getInstance().getInstanceID(), rootUser);
+          initSecurity(context, opts, context.getInstanceID(), rootUser);
         } else {
           log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
         }

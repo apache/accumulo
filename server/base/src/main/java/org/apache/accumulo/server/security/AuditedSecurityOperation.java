@@ -45,7 +45,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
@@ -59,16 +59,16 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String AUDITLOG = "org.apache.accumulo.audit";
   public static final Logger audit = LoggerFactory.getLogger(AUDITLOG);
 
-  public AuditedSecurityOperation(AccumuloServerContext context, Authorizor author,
-      Authenticator authent, PermissionHandler pm) {
+  public AuditedSecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
+      PermissionHandler pm) {
     super(context, author, authent, pm);
   }
 
-  public static synchronized SecurityOperation getInstance(AccumuloServerContext context) {
+  public static synchronized SecurityOperation getInstance(ServerContext context) {
     return getInstance(context, false);
   }
 
-  public static synchronized SecurityOperation getInstance(AccumuloServerContext context,
+  public static synchronized SecurityOperation getInstance(ServerContext context,
       boolean initialize) {
     if (instance == null) {
       String instanceId = context.getInstanceID();

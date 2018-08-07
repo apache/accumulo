@@ -42,7 +42,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AccumuloServerContextTest {
+public class ServerContextTest {
 
   private UserGroupInformation testUser;
   private String username;
@@ -82,14 +82,13 @@ public class AccumuloServerContextTest {
       EasyMock.expect(factory.getSystemConfiguration()).andReturn(conf).anyTimes();
       EasyMock.expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
-      AccumuloServerContext context = EasyMock.createMockBuilder(AccumuloServerContext.class)
+      ServerContext context = EasyMock.createMockBuilder(ServerContext.class)
           .addMockedMethod("enforceKerberosLogin").addMockedMethod("getConfiguration")
-          .addMockedMethod("getServerConfigurationFactory").addMockedMethod("getCredentials")
-          .createMock();
+          .addMockedMethod("getServerConfFactory").addMockedMethod("getCredentials").createMock();
       context.enforceKerberosLogin();
       EasyMock.expectLastCall().anyTimes();
       EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
-      EasyMock.expect(context.getServerConfigurationFactory()).andReturn(factory).anyTimes();
+      EasyMock.expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
       EasyMock.expect(context.getCredentials())
           .andReturn(new Credentials("accumulo/hostname@FAKE.COM", token)).once();
 

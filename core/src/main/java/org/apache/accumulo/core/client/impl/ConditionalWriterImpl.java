@@ -631,12 +631,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
           Tables.getPrintableTableInfoFromId(context, tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TTransportException e) {
-      locator.invalidateCache(context.getInstance(), location.toString());
+      locator.invalidateCache(context, location.toString());
       invalidateSession(location, mutations, cmidToCm, sessionId);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
     } catch (TException e) {
-      locator.invalidateCache(context.getInstance(), location.toString());
+      locator.invalidateCache(context, location.toString());
       invalidateSession(location, mutations, cmidToCm, sessionId);
     } catch (Exception e) {
       queueException(location, cmidToCm, e);
@@ -700,7 +700,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
         // invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
-        locator.invalidateCache(context.getInstance(), location.toString());
+        locator.invalidateCache(context, location.toString());
         return;
       }
 
@@ -713,7 +713,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(location.toString(), tae);
       } catch (TException e) {
-        locator.invalidateCache(context.getInstance(), location.toString());
+        locator.invalidateCache(context, location.toString());
       }
 
       if ((System.currentTimeMillis() - startTime) + sleepTime > timeout)

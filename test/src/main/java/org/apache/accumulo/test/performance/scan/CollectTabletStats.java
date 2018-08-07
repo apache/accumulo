@@ -35,10 +35,8 @@ import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -65,6 +63,7 @@ import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -108,11 +107,8 @@ public class CollectTabletStats {
     final String columns[] = columnsTmp;
 
     final VolumeManager fs = VolumeManagerImpl.get();
-
-    Instance instance = opts.getInstance();
-    final ServerConfigurationFactory sconf = new ServerConfigurationFactory(instance);
-    Credentials creds = new Credentials(opts.getPrincipal(), opts.getToken());
-    ClientContext context = new ClientContext(instance, creds, sconf.getSystemConfiguration());
+    ServerContext context = opts.getServerContext();
+    ServerConfigurationFactory sconf = context.getServerConfFactory();
 
     Table.ID tableId = Tables.getTableId(context, opts.getTableName());
     if (tableId == null) {

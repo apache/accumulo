@@ -22,12 +22,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,7 +148,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     return mincIdleThresholds.get(tableId);
   }
 
-  protected boolean tableExists(Instance instance, Table.ID tableId) {
+  protected boolean tableExists(Table.ID tableId) {
     // make sure that the table still exists by checking if it has a configuration
     return config.getTableConfiguration(tableId) != null;
   }
@@ -161,7 +159,6 @@ public class LargestFirstMemoryManager implements MemoryManager {
       throw new IllegalStateException(
           "need to initialize " + LargestFirstMemoryManager.class.getName());
 
-    final Instance instance = HdfsZooInstance.getInstance();
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
 
     mincIdleThresholds.clear();
@@ -179,7 +176,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     // find the largest and most idle tablets
     for (TabletState ts : tablets) {
       // Make sure that the table still exists
-      if (!tableExists(instance, ts.getExtent().getTableId())) {
+      if (!tableExists(ts.getExtent().getTableId())) {
         log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
         continue;
       }

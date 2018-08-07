@@ -122,7 +122,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
     String monitorLocation = null;
     while (null == monitorLocation) {
       try {
-        monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
+        monitorLocation = MonitorUtil.getLocation(getClientContext());
       } catch (Exception e) {
         // ignored
       }

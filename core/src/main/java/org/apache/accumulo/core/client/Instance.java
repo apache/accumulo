@@ -24,7 +24,10 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 /**
  * This class represents the information a client needs to know to connect to an instance of
  * accumulo.
+ *
+ * @deprecated since 2.0.0, use {@link Connector#builder()} and {@link ClientInfo} instead
  */
+@Deprecated
 public interface Instance {
   /**
    * Returns the location of the tablet server that is serving the root tablet.

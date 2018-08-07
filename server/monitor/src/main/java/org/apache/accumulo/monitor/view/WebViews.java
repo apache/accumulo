@@ -98,7 +98,7 @@ public class WebViews {
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
     model.put("instance_name", Monitor.cachedInstanceName.get());
-    model.put("instance_id", Monitor.getContext().getInstance().getInstanceID());
+    model.put("instance_id", Monitor.getContext().getInstanceID());
     addExternalResources(model);
     return model;
   }

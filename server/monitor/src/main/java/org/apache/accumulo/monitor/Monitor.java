@@ -40,11 +40,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -54,7 +52,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -66,19 +63,13 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -174,7 +165,7 @@ public class Monitor implements HighlyAvailableService {
   private static GCStatus gcStatus;
 
   private static ServerConfigurationFactory config;
-  private static AccumuloServerContext context;
+  private static ServerContext context;
 
   private static EmbeddedWebServer server;
 
@@ -266,7 +257,7 @@ public class Monitor implements HighlyAvailableService {
           public void run() {
             synchronized (Monitor.class) {
               if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
-                final String instanceName = HdfsZooInstance.getInstance().getInstanceName();
+                final String instanceName = ServerContext.getInstance().getInstanceName();
                 if (null != instanceName) {
                   cachedInstanceName.set(instanceName);
                 }
@@ -440,30 +431,22 @@ public class Monitor implements HighlyAvailableService {
   }
 
   public static void main(String[] args) throws Exception {
+
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    String hostname = opts.getAddress();
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-
-    VolumeManager fs = VolumeManagerImpl.get();
-    Instance instance = HdfsZooInstance.getInstance();
-    config = new ServerConfigurationFactory(instance);
-    context = new AccumuloServerContext(instance, config);
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + context.getInstanceID());
-    MetricsSystemHelper.configure(Monitor.class.getSimpleName());
-    Accumulo.init(fs, instance, config, app);
-    Monitor monitor = new Monitor();
-    // Servlets need access to limit requests when the monitor is not active, but Servlets are
-    // instantiated
-    // via reflection. Expose the service this way instead.
-    Monitor.HA_SERVICE_INSTANCE = monitor;
-    DistributedTrace.enable(hostname, app, config.getSystemConfiguration());
+    ServerContext context = ServerContext.getInstance();
+    context.setupServer(app, Monitor.class.getName(), opts.getAddress());
     try {
-      monitor.run(hostname);
+      config = context.getServerConfFactory();
+      Monitor.context = context;
+      Monitor monitor = new Monitor();
+      // Servlets need access to limit requests when the monitor is not active, but Servlets are
+      // instantiated via reflection. Expose the service this way instead.
+      Monitor.HA_SERVICE_INSTANCE = monitor;
+      monitor.run(context.getHostname());
     } finally {
-      DistributedTrace.disable();
+      context.teardownServer();
     }
   }
 
@@ -859,7 +842,7 @@ public class Monitor implements HighlyAvailableService {
     return new ArrayList<>(dataCacheHitRateOverTime);
   }
 
-  public static AccumuloServerContext getContext() {
+  public static ServerContext getContext() {
     return context;
   }
 

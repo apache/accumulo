@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
@@ -133,16 +132,6 @@ public class ClientConfConverter {
       }
     }
     return props;
-  }
-
-  public static Properties toProperties(AccumuloConfiguration config, Instance instance,
-      Credentials credentials) {
-    Properties properties = toProperties(toClientConf(config));
-    properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instance.getInstanceName());
-    properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), instance.getZooKeepers());
-    properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), credentials.getPrincipal());
-    ClientProperty.setAuthenticationToken(properties, credentials.getToken());
-    return properties;
   }
 
   public static Properties toProperties(AccumuloConfiguration config) {

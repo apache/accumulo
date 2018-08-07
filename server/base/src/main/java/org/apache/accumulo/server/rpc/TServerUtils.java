@@ -41,7 +41,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.security.SaslRpcServer;
@@ -114,7 +114,7 @@ public class TServerUtils {
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerAddress startServer(AccumuloServerContext service, String hostname,
+  public static ServerAddress startServer(ServerContext service, String hostname,
       Property portHintProperty, TProcessor processor, String serverName, String threadName,
       Property portSearchProperty, Property minThreadProperty,
       Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)

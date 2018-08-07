@@ -27,8 +27,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -38,27 +38,26 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.minicluster.MiniAccumuloInstance;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.plugin.CustomFilter;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PluginIT {
 
-  private static Instance instance;
+  private static ClientInfo info;
   private static Connector connector;
 
   @BeforeClass
   public static void setUp() throws Exception {
     String instanceName = "plugin-it-instance";
-    instance = new MiniAccumuloInstance(instanceName, new File("target/accumulo-maven-plugin/" + instanceName));
-    connector = instance.getConnector("root", new PasswordToken("ITSecret"));
+    info = MiniAccumuloCluster.getClientInfo(new File("target/accumulo-maven-plugin/" + instanceName));
+    connector = Connector.builder().usingClientInfo(info).build();
   }
 
   @Test
-  public void testInstanceConnection() {
-    assertTrue(instance != null);
-    assertTrue(instance instanceof MiniAccumuloInstance);
+  public void testConnection() {
+    assertTrue(info != null);
     assertTrue(connector != null);
     assertTrue(connector instanceof Connector);
   }
@@ -68,7 +67,7 @@ public class PluginIT {
     String tableName = "testCreateTable";
     connector.tableOperations().create(tableName);
     assertTrue(connector.tableOperations().exists(tableName));
-    assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testCreateTablePassed").createNewFile());
+    assertTrue(new File("target/accumulo-maven-plugin/" + info.getInstanceName() + "/testCreateTablePassed").createNewFile());
   }
 
   @Test
@@ -90,7 +89,7 @@ public class PluginIT {
       assertEquals("V", entry.getValue().toString());
     }
     assertEquals(1, count);
-    assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testWriteToTablePassed").createNewFile());
+    assertTrue(new File("target/accumulo-maven-plugin/" + info.getInstanceName() + "/testWriteToTablePassed").createNewFile());
   }
 
   @Test
@@ -131,7 +130,7 @@ public class PluginIT {
       assertEquals("denied", entry.getKey().getColumnFamily().toString());
     }
     assertEquals(2, count);
-    assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testCheckIteratorPassed").createNewFile());
+    assertTrue(new File("target/accumulo-maven-plugin/" + info.getInstanceName() + "/testCheckIteratorPassed").createNewFile());
   }
 
 }

@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -421,10 +420,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public Connector getConnector() {
     return connector;
-  }
-
-  public Instance getInstance() {
-    return connector.getInstance();
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)

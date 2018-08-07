@@ -20,19 +20,19 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 
 /**
  * @since 1.6.0
+ * @deprecated since 2.0.0, Use {@link MiniAccumuloCluster#getClientInfo(File)} instead
  */
-public class MiniAccumuloInstance extends ZooKeeperInstance {
+@Deprecated
+public class MiniAccumuloInstance extends org.apache.accumulo.core.client.ZooKeeperInstance {
 
   /**
-   * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster}
-   * directory
+   * Construct an {@link org.apache.accumulo.core.client.Instance} entry point to Accumulo using a
+   * {@link MiniAccumuloCluster} directory
    */
   @SuppressWarnings("deprecation")
   public MiniAccumuloInstance(String instanceName, File directory) throws FileNotFoundException {

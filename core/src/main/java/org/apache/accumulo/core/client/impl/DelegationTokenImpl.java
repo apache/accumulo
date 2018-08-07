@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.hadoop.io.Text;
@@ -54,15 +53,15 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
     this.identifier = identifier;
   }
 
-  public DelegationTokenImpl(Instance instance, UserGroupInformation user,
+  public DelegationTokenImpl(String instanceID, UserGroupInformation user,
       AuthenticationTokenIdentifier identifier) {
-    requireNonNull(instance);
+    requireNonNull(instanceID);
     requireNonNull(user);
     requireNonNull(identifier);
 
     Credentials creds = user.getCredentials();
     Token<? extends TokenIdentifier> token = creds
-        .getToken(new Text(SERVICE_NAME + "-" + instance.getInstanceID()));
+        .getToken(new Text(SERVICE_NAME + "-" + instanceID));
     if (null == token) {
       throw new IllegalArgumentException(
           "Did not find Accumulo delegation token in provided UserGroupInformation");

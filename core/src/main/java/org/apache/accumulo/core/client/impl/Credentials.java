@@ -23,7 +23,6 @@ import java.util.Base64;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -84,16 +83,15 @@ public class Credentials {
    * a non-destroyable version of the {@link AuthenticationToken}, so this should be used just
    * before placing on the wire, and references to it should be tightly controlled.
    *
-   * @param instance
-   *          client instance
+   * @param instanceID
+   *          Accumulo instance ID
    * @return Thrift credentials
    * @throws RuntimeException
    *           if the authentication token has been destroyed (expired)
    */
-  public TCredentials toThrift(Instance instance) {
+  public TCredentials toThrift(String instanceID) {
     TCredentials tCreds = new TCredentials(getPrincipal(), getToken().getClass().getName(),
-        ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(getToken())),
-        instance.getInstanceID());
+        ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(getToken())), instanceID);
     if (getToken().isDestroyed())
       throw new RuntimeException("Token has been destroyed",
           new AccumuloSecurityException(getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED));

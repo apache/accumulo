@@ -94,6 +94,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
@@ -168,6 +169,7 @@ public class Tablet implements TabletCommitter {
   static private final Logger log = LoggerFactory.getLogger(Tablet.class);
 
   private final TabletServer tabletServer;
+  private final ServerContext context;
   private final KeyExtent extent;
   private final TabletResourceManager tabletResources;
   private final DatafileManager datafileManager;
@@ -312,6 +314,7 @@ public class Tablet implements TabletCommitter {
     this.location = location;
     this.datafileManager = datafileManager;
     this.tabletServer = tabletServer;
+    this.context = tabletServer.getContext();
     this.tabletResources = tabletResources;
     this.tabletMemory = tabletMemory;
     this.tableConfiguration = tableConfiguration;
@@ -324,6 +327,7 @@ public class Tablet implements TabletCommitter {
       final TabletResourceManager trm, TabletData data) throws IOException {
 
     this.tabletServer = tabletServer;
+    this.context = tabletServer.getContext();
     this.extent = extent;
     this.tabletResources = trm;
     this.lastLocation = data.getLastLocation();
@@ -336,7 +340,7 @@ public class Tablet implements TabletCommitter {
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
     if (null == tblConf) {
-      Tables.clearCache(tabletServer.getInstance());
+      Tables.clearCache(tabletServer.getContext());
       tblConf = tabletServer.getTableConfiguration(extent);
       requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId());
     }
@@ -349,8 +353,8 @@ public class Tablet implements TabletCommitter {
         this.tableConfiguration);
     TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntries(),
         data.getDataFiles());
-    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer, tabletServer.getLock(), fs, extent,
-        tabletPaths, replicationEnabled);
+    tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
+        fs, extent, tabletPaths, replicationEnabled);
 
     // deal with relative path for the directory
     Path locationPath;
@@ -451,8 +455,8 @@ public class Tablet implements TabletCommitter {
 
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
-          MetadataTableUtil.removeUnusedWALEntries(getTabletServer(), extent, logEntries,
-              tabletServer.getLock());
+          MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
+              logEntries, tabletServer.getLock());
 
           // No replication update to be made because the fact that this tablet didn't use any
           // mutations
@@ -479,7 +483,8 @@ public class Tablet implements TabletCommitter {
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,
                 ProtobufUtil.toString(status));
-            ReplicationTableUtil.updateFiles(tabletServer, extent, logEntry.filename, status);
+            ReplicationTableUtil.updateFiles(tabletServer.getContext(), extent, logEntry.filename,
+                status);
           }
         }
 
@@ -526,6 +531,10 @@ public class Tablet implements TabletCommitter {
     }
 
     log.debug("TABLET_HIST {} opened", extent);
+  }
+
+  public ServerContext getContext() {
+    return context;
   }
 
   private void removeOldTemporaryFiles() {
@@ -997,7 +1006,7 @@ public class Tablet implements TabletCommitter {
       if (updateMetadata) {
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
-        MetadataTableUtil.updateTabletFlushID(extent, tableFlushID, tabletServer,
+        MetadataTableUtil.updateTabletFlushID(extent, tableFlushID, context,
             getTabletServer().getLock());
       } else if (initiateMinor)
         initiateMinorCompaction(tableFlushID, MinorCompactionReason.USER);
@@ -1437,7 +1446,7 @@ public class Tablet implements TabletCommitter {
         }
       }
       if (err != null) {
-        ProblemReports.getInstance(tabletServer).report(new ProblemReport(extent.getTableId(),
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(),
             ProblemType.TABLET_LOAD, this.extent.toString(), err));
         log.error("Tablet closed consistency check has failed for {} giving up and closing",
             this.extent);
@@ -1481,7 +1490,7 @@ public class Tablet implements TabletCommitter {
 
     try {
       Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog = MetadataTableUtil
-          .getFileAndLogEntries(tabletServer, extent);
+          .getFileAndLogEntries(context, extent);
 
       if (fileLog.getFirst().size() != 0) {
         String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
@@ -1905,7 +1914,7 @@ public class Tablet implements TabletCommitter {
           (t2 - t1) / 1000.0));
 
       if (updateCompactionID) {
-        MetadataTableUtil.updateTabletCompactID(extent, compactionId.getFirst(), tabletServer,
+        MetadataTableUtil.updateTabletCompactID(extent, compactionId.getFirst(), context,
             getTabletServer().getLock());
         return majCStats;
       }
@@ -1999,7 +2008,7 @@ public class Tablet implements TabletCommitter {
 
           // always propagate deletes, unless last batch
           boolean lastBatch = filesToCompact.isEmpty();
-          Compactor compactor = new Compactor(tabletServer, this, copy, null, compactTmpName,
+          Compactor compactor = new Compactor(context, this, copy, null, compactTmpName,
               lastBatch ? propogateDeletes : true, cenv, compactionIterators, reason.ordinal(),
               tableConf);
 
@@ -2128,7 +2137,8 @@ public class Tablet implements TabletCommitter {
 
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
-        MetadataTableUtil.chopped(getTabletServer(), getExtent(), this.getTabletServer().getLock());
+        MetadataTableUtil.chopped(getTabletServer().getContext(), getExtent(),
+            this.getTabletServer().getLock());
         getTabletServer()
             .enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
@@ -2305,13 +2315,13 @@ public class Tablet implements TabletCommitter {
 
       String time = tabletTime.getMetadataValue();
 
-      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, getTabletServer(),
-          getTabletServer().getLock());
-      MasterMetadataUtil.addNewTablet(getTabletServer(), low, lowDirectory,
+      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio,
+          getTabletServer().getContext(), getTabletServer().getLock());
+      MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectory,
           getTabletServer().getTabletSession(), lowDatafileSizes, getBulkIngestedFiles(), time,
           lastFlushID, lastCompactID, getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
-          getTabletServer(), getTabletServer().getLock());
+          getTabletServer().getContext(), getTabletServer().getLock());
 
       log.debug("TABLET_HIST {} split {} {}", extent, low, high);
 
@@ -2698,8 +2708,8 @@ public class Tablet implements TabletCommitter {
       try {
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
-        MetadataTableUtil.updateTabletCompactID(extent, compactionId, getTabletServer(),
-            getTabletServer().getLock());
+        MetadataTableUtil.updateTabletCompactID(extent, compactionId,
+            getTabletServer().getContext(), getTabletServer().getLock());
       } finally {
         synchronized (this) {
           majorCompactionState = null;
@@ -2743,7 +2753,7 @@ public class Tablet implements TabletCommitter {
         persistedTime = bulkTime;
 
       MetadataTableUtil.updateTabletDataFile(tid, extent, paths,
-          tabletTime.getMetadataValue(persistedTime), getTabletServer(),
+          tabletTime.getMetadataValue(persistedTime), getTabletServer().getContext(),
           getTabletServer().getLock());
     }
 
@@ -2756,8 +2766,8 @@ public class Tablet implements TabletCommitter {
         persistedTime = maxCommittedTime;
 
       String time = tabletTime.getMetadataValue(persistedTime);
-      MasterMetadataUtil.updateTabletDataFile(getTabletServer(), extent, newDatafile, absMergeFile,
-          dfv, time, filesInUseByScans, tabletServer.getClientAddressString(),
+      MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent, newDatafile,
+          absMergeFile, dfv, time, filesInUseByScans, tabletServer.getClientAddressString(),
           tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
     }
 

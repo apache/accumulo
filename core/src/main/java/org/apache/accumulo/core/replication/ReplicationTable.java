@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -89,7 +90,7 @@ public class ReplicationTable {
   }
 
   public static boolean isOnline(Connector conn) {
-    return TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
+    return TableState.ONLINE == Tables.getTableState(new ClientContext(conn.info()), ID);
   }
 
   public static void setOnline(Connector conn) throws AccumuloSecurityException, AccumuloException {

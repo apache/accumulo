@@ -16,9 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 
@@ -44,10 +43,10 @@ public class Info implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws KeeperException, InterruptedException {
-    Instance instance = HdfsZooInstance.getInstance();
-    System.out.println("monitor: " + MonitorUtil.getLocation(instance));
-    System.out.println("masters: " + instance.getMasterLocations());
-    System.out.println("zookeepers: " + instance.getZooKeepers());
+    ServerContext context = ServerContext.getInstance();
+    System.out.println("monitor: " + MonitorUtil.getLocation(context));
+    System.out.println("masters: " + context.getMasterLocations());
+    System.out.println("zookeepers: " + context.getZooKeepers());
   }
 
   public static void main(String[] args) throws Exception {

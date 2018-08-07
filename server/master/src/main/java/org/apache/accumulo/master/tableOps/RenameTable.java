@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -61,13 +60,12 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    Instance instance = master.getInstance();
     Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
     // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".")
-        && !namespaceId.equals(Namespaces.getNamespaceId(master, qualifiedNewTableName.getFirst())))
+    if (newTableName.contains(".") && !namespaceId
+        .equals(Namespaces.getNamespaceId(master.getContext(), qualifiedNewTableName.getFirst())))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
@@ -76,7 +74,8 @@ public class RenameTable extends MasterRepo {
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkTableDoesNotExist(master, newTableName, tableId, TableOperation.RENAME);
+      Utils.checkTableDoesNotExist(master.getContext(), newTableName, tableId,
+          TableOperation.RENAME);
 
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
@@ -98,7 +97,7 @@ public class RenameTable extends MasterRepo {
           return newName.getBytes(UTF_8);
         }
       });
-      Tables.clearCache(master);
+      Tables.clearCache(master.getContext());
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveTable(tableId, tid, true);

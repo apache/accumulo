@@ -17,9 +17,8 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
@@ -32,14 +31,14 @@ class TableConfWatcher implements Watcher {
   }
 
   private static final Logger log = Logger.getLogger(TableConfWatcher.class);
-  private final Instance instance;
+  private final ServerContext context;
   private final String tablesPrefix;
   private ServerConfigurationFactory scf;
 
-  TableConfWatcher(Instance instance) {
-    this.instance = instance;
-    tablesPrefix = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/";
-    scf = new ServerConfigurationFactory(instance);
+  TableConfWatcher(ServerContext context) {
+    this.context = context;
+    tablesPrefix = context.getZooKeeperRoot() + Constants.ZTABLES + "/";
+    scf = context.getServerConfFactory();
   }
 
   static String toString(WatchedEvent event) {
@@ -90,7 +89,7 @@ class TableConfWatcher implements Watcher {
           // only remove the AccumuloConfiguration object when a
           // table node is deleted, not when a tables property is
           // deleted.
-          ServerConfigurationFactory.removeCachedTableConfiguration(instance.getInstanceID(),
+          ServerConfigurationFactory.removeCachedTableConfiguration(context.getInstanceID(),
               tableId);
         }
         break;

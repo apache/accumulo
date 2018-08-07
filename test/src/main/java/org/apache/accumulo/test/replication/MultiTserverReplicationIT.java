@@ -52,7 +52,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   public void tserverReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
     Connector conn = getConnector();
-    ClientContext context = new ClientContext(getClientInfo());
+    ClientContext context = getClientContext();
 
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");
@@ -89,7 +89,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   public void masterReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
     Connector conn = getConnector();
-    ClientContext context = new ClientContext(getClientInfo());
+    ClientContext context = getClientContext();
 
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");

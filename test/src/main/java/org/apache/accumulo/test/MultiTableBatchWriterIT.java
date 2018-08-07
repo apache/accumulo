@@ -62,7 +62,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
   }
 
   public MultiTableBatchWriter getMultiTableBatchWriter() {
-    ClientContext context = new ClientContext(getClientInfo());
+    ClientContext context = getClientContext();
     return new MultiTableBatchWriterImpl(context, new BatchWriterConfig());
   }
 

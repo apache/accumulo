@@ -17,6 +17,7 @@
 package org.apache.accumulo.monitor.it;
 
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.verify;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -31,13 +32,12 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.MessageBodyWriter;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.view.WebViews;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.MonitorTests;
 import org.easymock.EasyMock;
 import org.glassfish.jersey.client.ClientConfig;
@@ -99,11 +99,9 @@ public class WebViewsIT extends JerseyTest {
    */
   @Test
   public void testGetTablesConstraintPassing() throws Exception {
-    Instance instanceMock = EasyMock.createMock(Instance.class);
-    expect(instanceMock.getInstanceID()).andReturn("foo").anyTimes();
-    AccumuloServerContext contextMock = EasyMock.createMock(AccumuloServerContext.class);
-    expect(contextMock.getInstance()).andReturn(instanceMock).anyTimes();
+    ServerContext contextMock = EasyMock.createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    expect(contextMock.getInstanceID()).andReturn("foo").atLeastOnce();
 
     PowerMock.mockStatic(Monitor.class);
     expect(Monitor.getContext()).andReturn(contextMock).anyTimes();
@@ -111,7 +109,7 @@ public class WebViewsIT extends JerseyTest {
     PowerMock.mockStatic(Tables.class);
     expect(Tables.getTableName(contextMock, Table.ID.of("foo"))).andReturn("bar");
     PowerMock.replayAll();
-    org.easymock.EasyMock.replay(instanceMock, contextMock);
+    org.easymock.EasyMock.replay(contextMock);
 
     // Using the mocks we can verify that the getModel method gets called via debugger
     // however it's difficult to continue to mock through the jersey MVC code for the properly built
@@ -121,6 +119,7 @@ public class WebViewsIT extends JerseyTest {
     Assert.assertEquals("should return status 200", 200, output.getStatus());
     String responseBody = output.readEntity(String.class);
     Assert.assertTrue(responseBody.contains("tableID=foo") && responseBody.contains("table=bar"));
+    verify(contextMock);
   }
 
   /**

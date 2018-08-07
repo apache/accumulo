@@ -16,29 +16,20 @@
  */
 package org.apache.accumulo.server.cli;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.server.ServerContext;
 
 public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnDefaultTable {
   {
     setPrincipal("root");
   }
 
-  @Override
-  synchronized public Instance getInstance() {
-    if (cachedInstance != null)
-      return cachedInstance;
-
+  public ServerContext getServerContext() {
     if (instance == null) {
-      return cachedInstance = HdfsZooInstance.getInstance();
+      return ServerContext.getInstance();
     }
-    try {
-      return cachedInstance = getConnector().getInstance();
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new IllegalStateException(e);
-    }
+    ClientInfo info = getClientInfo();
+    return new ServerContext(instance, info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
   }
 
   public ClientOnDefaultTable(String table) {

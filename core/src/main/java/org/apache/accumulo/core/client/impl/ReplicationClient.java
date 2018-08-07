@@ -24,13 +24,11 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -69,7 +67,6 @@ public class ReplicationClient {
   }
 
   public static ReplicationCoordinator.Client getCoordinatorConnection(ClientContext context) {
-    Instance instance = context.getInstance();
     List<String> locations = context.getMasterLocations();
 
     if (locations.size() == 0) {
@@ -85,11 +82,11 @@ public class ReplicationClient {
       return null;
     }
 
-    String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
+    String zkPath = context.getZooKeeperRoot() + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
     String replCoordinatorAddr;
 
     log.debug("Using ZooKeeper quorum at {} with path {} to find peer Master information",
-        instance.getZooKeepers(), zkPath);
+        context.getZooKeepers(), zkPath);
 
     // Get the coordinator port for the master we're trying to connect to
     try {

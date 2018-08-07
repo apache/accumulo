@@ -568,7 +568,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(address.toString(), tae);
         } catch (TTransportException e) {
-          tabLocator.invalidateCache(context.getInstance(), tl.tablet_location);
+          tabLocator.invalidateCache(context, tl.tablet_location);
           continue;
         } catch (ThriftSecurityException e) {
           Tables.clearCache(context);
@@ -586,7 +586,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           tabLocator.invalidateCache(tl.tablet_extent);
           continue;
         } catch (TException e) {
-          tabLocator.invalidateCache(context.getInstance(), tl.tablet_location);
+          tabLocator.invalidateCache(context, tl.tablet_location);
           continue;
         }
 
