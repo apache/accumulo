@@ -28,25 +28,52 @@ import com.google.common.base.Preconditions;
  * @since 2.0.0
  */
 public interface ScanDispatcher {
+
   /**
-   * This method is called once after a ScanDispatcher is instantiated.
+   * The method parameters for {@link ScanDispatcher#init(InitParameters)}. This interface exists so
+   * the API can evolve and additional parameters can be passed to the method in the future.
    *
-   * @param options
-   *          The configured options. For example if the table properties
-   *          {@code table.scan.dispatcher.opts.p1=abc} and
-   *          {@code table.scan.dispatcher.opts.p9=123} were set, then this map would contain
-   *          {@code p1=abc} and {@code p9=123}.
+   * @since 2.0.0
    */
-  public default void init(Map<String,String> options) {
-    Preconditions.checkArgument(options.isEmpty(), "No options expected");
+  public static interface InitParameters {
+    /**
+     *
+     * @return The configured options. For example if the table properties
+     *         {@code table.scan.dispatcher.opts.p1=abc} and
+     *         {@code table.scan.dispatcher.opts.p9=123} were set, then this map would contain
+     *         {@code p1=abc} and {@code p9=123}.
+     */
+    Map<String,String> getOptions();
   }
 
   /**
-   * @param scanInfo
-   *          Information about the scan.
-   * @param scanExecutors
-   *          Information about the currently configured executors.
-   * @return Should return one of the executors named in scanExecutors.keySet()
+   * This method is called once after a ScanDispatcher is instantiated.
    */
-  String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors);
+  public default void init(InitParameters params) {
+    Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
+  }
+
+  /**
+   * The method parameters for {@link ScanDispatcher#dispatch(DispatchParmaters)}. This interface
+   * exists so the API can evolve and additional parameters can be passed to the method in the
+   * future.
+   *
+   * @since 2.0.0
+   */
+  public static interface DispatchParmaters {
+    /**
+     * @return information about the scan to be dispatched.
+     */
+    ScanInfo getScanInfo();
+
+    /**
+     * @return the currently configured scan executors
+     */
+    Map<String,ScanExecutor> getScanExecutors();
+  }
+
+  /**
+   * @return Should return one of the executors named params.getScanExecutors().keySet()
+   */
+  String dispatch(DispatchParmaters params);
 }

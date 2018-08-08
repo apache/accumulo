@@ -56,6 +56,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -198,7 +199,7 @@ public class TabletServerResourceManager {
       if (factory == null) {
         queue = new LinkedBlockingQueue<>();
       } else {
-        Comparator<ScanInfo> comparator = factory.createComparator(sec.prioritizerOpts);
+        Comparator<ScanInfo> comparator = factory.createComparator(() -> sec.prioritizerOpts);
 
         // function to extract scan scan session from runnable
         Function<Runnable,ScanInfo> extractor = r -> ((ScanSession.ScanMeasurer) ((TraceRunnable) r)
@@ -937,7 +938,17 @@ public class TabletServerResourceManager {
     } else if (tablet.isMeta()) {
       scanExecutors.get("meta").execute(task);
     } else {
-      String scanExecutorName = dispatcher.dispatch(scanInfo, scanExecutorChoices);
+      String scanExecutorName = dispatcher.dispatch(new DispatchParmaters() {
+        @Override
+        public ScanInfo getScanInfo() {
+          return scanInfo;
+        }
+
+        @Override
+        public Map<String,ScanExecutor> getScanExecutors() {
+          return scanExecutorChoices;
+        }
+      });
       ExecutorService executor = scanExecutors.get(scanExecutorName);
       if (executor == null) {
         log.warn(

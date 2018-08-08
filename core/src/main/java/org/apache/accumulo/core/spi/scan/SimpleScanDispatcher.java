@@ -79,7 +79,8 @@ public class SimpleScanDispatcher implements ScanDispatcher {
   }
 
   @Override
-  public void init(Map<String,String> options) {
+  public void init(InitParameters params) {
+    Map<String,String> options = params.getOptions();
     Set<String> invalidOpts = Sets.difference(options.keySet(), VALID_OPTS);
     Preconditions.checkArgument(invalidOpts.size() == 0, "Invalid options : %s", invalidOpts);
 
@@ -94,11 +95,12 @@ public class SimpleScanDispatcher implements ScanDispatcher {
   }
 
   @Override
-  public String dispatch(ScanInfo scanInfo, Map<String,ScanExecutor> scanExecutors) {
+  public String dispatch(DispatchParmaters params) {
+    ScanInfo scanInfo = params.getScanInfo();
     if (heedHints) {
       String executor = scanInfo.getExecutionHints().get("executor");
       if (executor != null) {
-        if (scanExecutors.containsKey(executor)) {
+        if (params.getScanExecutors().containsKey(executor)) {
           return executor;
         } else {
           switch (badHintAction) {

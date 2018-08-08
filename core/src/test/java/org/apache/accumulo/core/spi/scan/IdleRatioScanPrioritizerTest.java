@@ -47,7 +47,7 @@ public class IdleRatioScanPrioritizerTest {
     Collections.shuffle(scans);
 
     Comparator<ScanInfo> comparator = new IdleRatioScanPrioritizer()
-        .createComparator(Collections.emptyMap());
+        .createComparator(Collections::emptyMap);
 
     Collections.sort(scans, comparator);
 

@@ -26,5 +26,22 @@ import java.util.Map;
  * @since 2.0.0
  */
 public interface ScanPrioritizer {
-  Comparator<ScanInfo> createComparator(Map<String,String> options);
+
+  /**
+   * The method parameters for {@link ScanPrioritizer#createComparator(CreateParameters)}. This
+   * interface exists so the API can evolve and additional parameters can be passed to the method in
+   * the future.
+   *
+   * @since 2.0.0
+   */
+  public static interface CreateParameters {
+    /**
+     * @return The options configured for the scan prioritizer with properties of the form
+     *         {@code tserver.scan.executors.<name>.prioritizer.opts.<key>=<value>}. Only the
+     *         {@code <key>=<value>} portions of those properties ends up in the returned map.
+     */
+    Map<String,String> getOptions();
+  }
+
+  Comparator<ScanInfo> createComparator(CreateParameters params);
 }
