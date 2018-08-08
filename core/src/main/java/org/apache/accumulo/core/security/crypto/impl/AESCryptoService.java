@@ -65,14 +65,14 @@ public class AESCryptoService implements CryptoService {
   private String encryptingKekId = null;
   private String encryptingKeyManager = null;
   // Lets just load keks for reading once
-  private static HashMap<String,Key> decryptingKeys = new HashMap<String,Key>();
+  private static HashMap<String,Key> decryptingKeys = new HashMap<>();
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
     String kekId = conf.get("instance.crypto.opts.kekId");
     String keyMgr = conf.get("instance.crypto.opts.keyManager");
-    Objects.requireNonNull(kekId, "Config property table.crypto.opts.kekId is required.");
-    Objects.requireNonNull(keyMgr, "Config property table.crypto.opts.keyManager is required.");
+    Objects.requireNonNull(kekId, "Config property instance.crypto.opts.kekId is required.");
+    Objects.requireNonNull(keyMgr, "Config property instance.crypto.opts.keyManager is required.");
     switch (keyMgr) {
       case KeyManager.URI:
         this.encryptingKeyManager = keyMgr;

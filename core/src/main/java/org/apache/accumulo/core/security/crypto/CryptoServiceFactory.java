@@ -64,4 +64,11 @@ public class CryptoServiceFactory {
       throw new CryptoException(e);
     }
   }
+
+  /**
+   * This method is only for testing. Do not use.
+   */
+  public static void resetInstance() {
+    singleton = init();
+  }
 }
