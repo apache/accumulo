@@ -164,6 +164,9 @@ public class NewTableConfiguration {
    * equal to the delete. When this setting is true, only versions in a column with the same
    * timestamp as a delete are hidden.
    *
+   * <p>
+   * The Accumulo user manual contains a section about this feature.
+   *
    * @see TableOperations#isExactDeleteEnabled(String)
    * @see ScannerOptions#withExactDeletes()
    * @since 2.0.0

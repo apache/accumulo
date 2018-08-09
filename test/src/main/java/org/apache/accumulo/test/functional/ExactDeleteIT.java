@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.constraints.NoTimestampDeleteConstraint;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -183,5 +184,52 @@ public class ExactDeleteIT extends AccumuloClusterHarness {
 
     verifyVals(scanner1, "v0", "v1", "v3", "v10", "v12");
     verifyVals(scanner2, "v3");
+  }
+
+  @Test
+  public void testConstraint() throws Exception {
+    Connector c = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.setProperties(Collections.singletonMap("table.constraint.1",
+        NoTimestampDeleteConstraint.class.getName()));
+    ntc.setExactDeleteEnabled(true);
+    ntc.withoutDefaultIterators();
+    c.tableOperations().create(tableName, ntc);
+
+    // Following write should not be affected by constraint
+    writeInitialData(c, tableName);
+
+    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+
+    verifyVals(scanner, "v0", "v1", "v2", "v3", "v10", "v11", "v12", "v13");
+
+    // Following deletes should not be affected by constraint
+    try (BatchWriter writer = c.createBatchWriter(tableName)) {
+      Mutation m = new Mutation("1234");
+      m.putDelete("f1", "q1", 2L);
+      writer.addMutation(m);
+
+      m = new Mutation("1235");
+      m.putDelete("f1", "q1", 1L);
+      writer.addMutation(m);
+    }
+
+    verifyVals(scanner, "v0", "v1", "v3", "v10", "v12", "v13");
+
+    BatchWriter writer = c.createBatchWriter(tableName);
+    try {
+      Mutation m = new Mutation("1234");
+      m.putDelete("f1", "q1");
+      writer.addMutation(m);
+      writer.close();
+      Assert.fail("Expected write to fail because of constraint");
+    } catch (MutationsRejectedException mre) {
+      Assert.assertEquals(1, mre.getConstraintViolationSummaries().size());
+      String desc = mre.getConstraintViolationSummaries().get(0).getViolationDescription();
+      Assert.assertEquals("Delete did not specify a timestamp", desc);
+    }
+
+    verifyVals(scanner, "v0", "v1", "v3", "v10", "v12", "v13");
   }
 }
