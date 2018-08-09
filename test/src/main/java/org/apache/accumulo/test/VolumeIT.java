@@ -91,7 +91,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 5 * 60;
+    return 10 * 60;
   }
 
   @SuppressWarnings("deprecation")
@@ -164,7 +164,7 @@ public class VolumeIT extends ConfigurableMacBase {
       assertEquals(1, diskUsage.size());
       long usage = diskUsage.get(0).getUsage();
       log.debug("usage {}", usage);
-      assertTrue(usage > 700 && usage < 800);
+      assertTrue(usage > 700 && usage < 900);
     }
   }
 
