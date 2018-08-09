@@ -128,7 +128,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public ServerContext getServerContext() {
-    return ServerContext.getInstance(getClientInfo());
+    return new ServerContext(getClientInfo());
   }
 
   @Override

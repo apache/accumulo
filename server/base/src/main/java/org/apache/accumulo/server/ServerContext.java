@@ -75,11 +75,11 @@ public class ServerContext extends ClientContext {
     this.info = info;
   }
 
-  private ServerContext(String instanceName, String zooKeepers, int zooKeepersSessionTimeOut) {
+  public ServerContext(String instanceName, String zooKeepers, int zooKeepersSessionTimeOut) {
     this(new ServerInfo(instanceName, zooKeepers, zooKeepersSessionTimeOut));
   }
 
-  private ServerContext(ClientInfo info) {
+  public ServerContext(ClientInfo info) {
     this(new ServerInfo(info));
   }
 
