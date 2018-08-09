@@ -73,7 +73,6 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
-  @SuppressWarnings("deprecation")
   private ClientConfiguration clientConf;
 
   /**
@@ -84,12 +83,10 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an
    *          optional port, of the format host:port.
    */
-  @SuppressWarnings("deprecation")
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
-  @SuppressWarnings("deprecation")
   ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
     this.clientConf = config;

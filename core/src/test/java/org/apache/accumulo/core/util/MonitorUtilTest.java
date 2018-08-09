@@ -31,7 +31,6 @@ public class MonitorUtilTest {
 
   @Test
   public void testNoNodeFound() throws Exception {
-    final String instanceId = "12345";
 
     ZooReader zr = mock(ZooReader.class);
     ClientContext context = mock(ClientContext.class);
