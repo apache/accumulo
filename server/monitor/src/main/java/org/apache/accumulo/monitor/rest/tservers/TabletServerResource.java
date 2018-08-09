@@ -52,7 +52,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.master.MasterResource;
 import org.apache.accumulo.server.master.state.DeadServerList;
@@ -104,7 +103,7 @@ public class TabletServerResource {
   public void clearDeadServer(
       @QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
     DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(Monitor.getContext().getInstanceID()) + Constants.ZDEADTSERVERS);
+        Monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }
 

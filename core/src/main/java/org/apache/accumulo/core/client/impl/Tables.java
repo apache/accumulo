@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 
@@ -161,8 +160,8 @@ public class Tables {
   }
 
   public static void clearCache(ClientContext context) {
-    getZooCache(context).clear(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTABLES);
-    getZooCache(context).clear(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZNAMESPACES);
+    getZooCache(context).clear(context.getZooKeeperRoot() + Constants.ZTABLES);
+    getZooCache(context).clear(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
     instanceToMapCache.invalidate(context.getInstanceID());
   }
 

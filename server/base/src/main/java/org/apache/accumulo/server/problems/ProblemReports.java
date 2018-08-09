@@ -44,7 +44,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
@@ -205,8 +204,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             try {
               List<String> children;
               if (table == null || isMeta(table)) {
-                children = zoo
-                    .getChildren(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZPROBLEMS);
+                children = zoo.getChildren(context.getZooKeeperRoot() + Constants.ZPROBLEMS);
               } else {
                 children = Collections.emptyList();
               }

@@ -46,7 +46,7 @@ public class TabletServerLocks {
     Opts opts = new Opts();
     opts.parseArgs(TabletServerLocks.class.getName(), args);
 
-    ZooCache cache = new ZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+    ZooCache cache = context.getZooCache();
 
     if (opts.list) {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();

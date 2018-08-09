@@ -34,7 +34,6 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -54,9 +53,8 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     long rpcTimeout = ConfigurationTypeHelper
         .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
-    ZooCache zc = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut());
-    final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
+    ZooCache zc = context.getZooCache();
+    final String zkRoot = context.getZooKeeperRoot();
 
     // wait until Zookeeper is populated
     List<String> children = zc.getChildren(zkRoot + Constants.ZTSERVERS);

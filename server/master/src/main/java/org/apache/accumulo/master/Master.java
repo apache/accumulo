@@ -277,7 +277,7 @@ public class Master
   }
 
   private void moveRootTabletToRootTable(IZooReaderWriter zoo) throws Exception {
-    String dirZPath = ZooUtil.getRoot(getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
+    String dirZPath = getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
 
     if (!zoo.exists(dirZPath)) {
       Path oldPath = fs.getFullPath(FileType.TABLE, "/" + MetadataTable.ID + "/root_tablet");
@@ -338,7 +338,7 @@ public class Master
         log.info("Upgrading zookeeper");
 
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-        final String zooRoot = ZooUtil.getRoot(getInstanceID());
+        final String zooRoot = getZooKeeperRoot();
 
         log.debug("Handling updates for version {}", accumuloPersistentVersion);
 
@@ -395,7 +395,7 @@ public class Master
         }
 
         // create initial namespaces
-        String namespaces = ZooUtil.getRoot(getInstanceID()) + Constants.ZNAMESPACES;
+        String namespaces = getZooKeeperRoot() + Constants.ZNAMESPACES;
         zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
         for (Pair<String,Namespace.ID> namespace : Iterables.concat(
             Collections.singleton(new Pair<>(Namespace.ACCUMULO, Namespace.ID.ACCUMULO)),
@@ -423,7 +423,7 @@ public class Master
             TablePermission.ALTER_TABLE, Namespace.ID.ACCUMULO);
 
         // put existing tables in the correct namespaces
-        String tables = ZooUtil.getRoot(getInstanceID()) + Constants.ZTABLES;
+        String tables = getZooKeeperRoot() + Constants.ZTABLES;
         for (String tableId : zoo.getChildren(tables)) {
           Namespace.ID targetNamespace = (MetadataTable.ID.canonicalID().equals(tableId)
               || RootTable.ID.canonicalID().equals(tableId)) ? Namespace.ID.ACCUMULO
@@ -447,7 +447,7 @@ public class Master
         // add system namespace permissions to existing users
         ZKPermHandler perm = new ZKPermHandler();
         perm.initialize(getInstanceID(), true);
-        String users = ZooUtil.getRoot(getInstanceID()) + "/users";
+        String users = getZooKeeperRoot() + "/users";
         for (String user : zoo.getChildren(users)) {
           zoo.putPersistentData(users + "/" + user + "/Namespaces", new byte[0],
               NodeExistsPolicy.SKIP);
@@ -457,12 +457,11 @@ public class Master
             NamespacePermission.ALTER_TABLE);
 
         // add the currlog location for root tablet current logs
-        zoo.putPersistentData(
-            ZooUtil.getRoot(getInstanceID()) + RootTable.ZROOT_TABLET_CURRENT_LOGS, new byte[0],
+        zoo.putPersistentData(getZooKeeperRoot() + RootTable.ZROOT_TABLET_CURRENT_LOGS, new byte[0],
             NodeExistsPolicy.SKIP);
 
         // create tablet server wal logs node in ZK
-        zoo.putPersistentData(ZooUtil.getRoot(getInstanceID()) + WalStateManager.ZWALS, new byte[0],
+        zoo.putPersistentData(getZooKeeperRoot() + WalStateManager.ZWALS, new byte[0],
             NodeExistsPolicy.SKIP);
 
         haveUpgradedZooKeeper = true;
@@ -681,7 +680,7 @@ public class Master
       final long tokenUpdateInterval = aconf
           .getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(ZooReaderWriter.getInstance(),
-          ZooUtil.getRoot(getInstanceID()) + Constants.ZDELEGATION_TOKEN_KEYS);
+          getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
       delegationTokensAvailable = true;
@@ -696,6 +695,10 @@ public class Master
     return context.getInstanceID();
   }
 
+  public String getZooKeeperRoot() {
+    return context.getZooKeeperRoot();
+  }
+
   public AccumuloConfiguration getConfiguration() {
     return context.getConfiguration();
   }
@@ -707,8 +710,7 @@ public class Master
   public MergeInfo getMergeInfo(Table.ID tableId) {
     synchronized (mergeLock) {
       try {
-        String path = ZooUtil.getRoot(getInstanceID()) + Constants.ZTABLES + "/" + tableId
-            + "/merge";
+        String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
         if (!ZooReaderWriter.getInstance().exists(path))
           return new MergeInfo();
         byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());
@@ -730,8 +732,8 @@ public class Master
   public void setMergeState(MergeInfo info, MergeState state)
       throws IOException, KeeperException, InterruptedException {
     synchronized (mergeLock) {
-      String path = ZooUtil.getRoot(getInstanceID()) + Constants.ZTABLES + "/"
-          + info.getExtent().getTableId() + "/merge";
+      String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().getTableId()
+          + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
         ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -754,7 +756,7 @@ public class Master
   public void clearMergeState(Table.ID tableId)
       throws IOException, KeeperException, InterruptedException {
     synchronized (mergeLock) {
-      String path = ZooUtil.getRoot(getInstanceID()) + Constants.ZTABLES + "/" + tableId + "/merge";
+      String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
       ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
       mergeLock.notifyAll();
     }
@@ -764,7 +766,7 @@ public class Master
   void setMasterGoalState(MasterGoalState state) {
     try {
       ZooReaderWriter.getInstance().putPersistentData(
-          ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
+          getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set master goal state in zookeeper");
@@ -775,7 +777,7 @@ public class Master
     while (true)
       try {
         byte[] data = ZooReaderWriter.getInstance()
-            .getData(ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_GOAL_STATE, null);
+            .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, null);
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -1230,7 +1232,7 @@ public class Master
   }
 
   public void run() throws IOException, InterruptedException, KeeperException {
-    final String zroot = ZooUtil.getRoot(getInstanceID());
+    final String zroot = getZooKeeperRoot();
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
@@ -1336,10 +1338,8 @@ public class Master
     waitForMetadataUpgrade.await();
 
     try {
-      final AgeOffStore<Master> store = new AgeOffStore<>(
-          new org.apache.accumulo.fate.ZooStore<>(
-              ZooUtil.getRoot(getInstanceID()) + Constants.ZFATE, ZooReaderWriter.getInstance()),
-          1000 * 60 * 60 * 8);
+      final AgeOffStore<Master> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
+          getZooKeeperRoot() + Constants.ZFATE, ZooReaderWriter.getInstance()), 1000 * 60 * 60 * 8);
 
       int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
@@ -1401,7 +1401,7 @@ public class Master
 
     // Advertise that port we used so peers don't have to be told what it is
     ZooReaderWriter.getInstance().putPersistentData(
-        ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
+        getZooKeeperRoot() + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
     // Register replication metrics
@@ -1561,8 +1561,7 @@ public class Master
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
-    DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(getInstanceID()) + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     if (added.size() > 0) {
       log.info("New servers: {}", added);
       for (TServerInstance up : added)
@@ -1749,8 +1748,7 @@ public class Master
       for (TServerInstance server : serversToShutdown)
         result.serversShuttingDown.add(server.hostPort());
     }
-    DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(getInstanceID()) + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     result.deadTabletServers = obit.getList();
     result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;

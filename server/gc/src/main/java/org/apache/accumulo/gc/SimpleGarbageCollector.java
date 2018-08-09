@@ -76,7 +76,6 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
@@ -628,7 +627,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZGC_LOCK;
+    String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override

@@ -436,7 +436,7 @@ public class TabletServer implements Runnable {
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
       authKeyWatcher = new ZooAuthenticationKeyWatcher(context.getSecretManager(),
           ZooReaderWriter.getInstance(),
-          ZooUtil.getRoot(getInstanceID()) + Constants.ZDELEGATION_TOKEN_KEYS);
+          context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }
@@ -1698,8 +1698,8 @@ public class TabletServer implements Runnable {
       }
 
       if (lock != null) {
-        ZooUtil.LockID lid = new ZooUtil.LockID(
-            ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_LOCK, lock);
+        ZooUtil.LockID lid = new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMASTER_LOCK,
+            lock);
 
         try {
           if (!ZooLock.isLockHeld(masterLockCache, lid)) {
@@ -2696,11 +2696,9 @@ public class TabletServer implements Runnable {
       // The replication service is unique to the thrift service for a tserver, not just a host.
       // Advertise the host and port for replication service given the host and port for the
       // tserver.
-      ZooReaderWriter.getInstance()
-          .putPersistentData(
-              ZooUtil.getRoot(getInstanceID()) + ReplicationConstants.ZOO_TSERVERS + "/"
-                  + clientAddress,
-              sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+      ZooReaderWriter.getInstance().putPersistentData(
+          context.getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress,
+          sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       log.error("Could not advertise replication service port", e);
       throw new RuntimeException(e);
@@ -2716,7 +2714,7 @@ public class TabletServer implements Runnable {
   private void announceExistence() {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      String zPath = ZooUtil.getRoot(getInstanceID()) + Constants.ZTSERVERS + "/"
+      String zPath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
           + getClientAddressString();
 
       try {
@@ -2765,7 +2763,7 @@ public class TabletServer implements Runnable {
         if (tabletServerLock.tryLock(lw, lockContent)) {
           log.debug("Obtained tablet server lock {}", tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID()
-              .serialize(ZooUtil.getRoot(getInstanceID()) + Constants.ZTSERVERS + "/");
+              .serialize(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/");
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -2789,7 +2787,7 @@ public class TabletServer implements Runnable {
     // We can just make the zookeeper paths before we try to use.
     try {
       ZooKeeperInitialization.ensureZooKeeperInitialized(ZooReaderWriter.getInstance(),
-          ZooUtil.getRoot(getInstanceID()));
+          context.getZooKeeperRoot());
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not ensure that ZooKeeper is properly initialized", e);
       throw new RuntimeException(e);
@@ -2838,7 +2836,7 @@ public class TabletServer implements Runnable {
         getConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
 
     bulkFailedCopyQ = new DistributedWorkQueue(
-        ZooUtil.getRoot(getInstanceID()) + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
+        context.getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
     try {
       bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(), distWorkQThreadPool);
     } catch (Exception e1) {

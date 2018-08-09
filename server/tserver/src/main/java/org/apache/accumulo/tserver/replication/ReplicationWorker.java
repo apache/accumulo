@@ -23,7 +23,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.zookeeper.KeeperException;
@@ -64,12 +63,11 @@ public class ReplicationWorker implements Runnable {
         log.debug("Configuration DistributedWorkQueue with delay and period of {} and {}", delay,
             period);
         workQueue = new DistributedWorkQueue(
-            ZooUtil.getRoot(context.getInstanceID()) + ReplicationConstants.ZOO_WORK_QUEUE, conf,
-            delay, period);
+            context.getZooKeeperRoot() + ReplicationConstants.ZOO_WORK_QUEUE, conf, delay, period);
       } else {
         log.debug("Configuring DistributedWorkQueue with default delay and period");
         workQueue = new DistributedWorkQueue(
-            ZooUtil.getRoot(context.getInstanceID()) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
+            context.getZooKeeperRoot() + ReplicationConstants.ZOO_WORK_QUEUE, conf);
       }
 
       workQueue.startProcessing(new ReplicationProcessor(context, conf, fs), executor);

@@ -40,9 +40,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -91,9 +89,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<String> getTabletServers() {
-    ZooCache cache = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut());
-    String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
+    ZooCache cache = context.getZooCache();
+    String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     List<String> results = new ArrayList<>();
     for (String candidate : cache.getChildren(path)) {
       List<String> children = cache.getChildren(path + "/" + candidate);

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
@@ -160,11 +159,9 @@ public class ServerClient {
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
-    ZooCache zc = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut());
-    for (String tserver : zc
-        .getChildren(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS)) {
-      String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS + "/" + tserver;
+    ZooCache zc = context.getZooCache();
+    for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
+      String path = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);

@@ -26,7 +26,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.Logger;
@@ -50,7 +49,7 @@ public class MasterTime extends TimerTask {
   private long skewAmount;
 
   public MasterTime(Master master) throws IOException {
-    this.zPath = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZMASTER_TICK;
+    this.zPath = master.getZooKeeperRoot() + Constants.ZMASTER_TICK;
     this.zk = ZooReaderWriter.getInstance();
     this.master = master;
 
