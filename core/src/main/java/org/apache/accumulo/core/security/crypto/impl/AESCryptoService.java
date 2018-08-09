@@ -384,8 +384,8 @@ public class AESCryptoService implements CryptoService {
     }
 
     public class AESGCMFileDecrypter implements FileDecrypter {
-      private Key fek = null;
-      private byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
+      private Key fek;
+      private byte[] initVector;
 
       AESGCMFileDecrypter(Key fek) {
         this.fek = fek;
@@ -394,6 +394,8 @@ public class AESCryptoService implements CryptoService {
       @Override
       public InputStream decryptStream(InputStream inputStream) throws CryptoException {
         int bytesRead;
+        // clear out any bytes in IV from last decrypt
+        initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
         try {
           bytesRead = inputStream.read(initVector);
         } catch (IOException e) {
