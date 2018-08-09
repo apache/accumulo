@@ -220,6 +220,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         .maximumSize(1000).removalListener(new CloseConditionalWriter()).build();
   }
 
+  @SuppressWarnings("deprecation")
   protected Connector getConnector(ByteBuffer login) throws Exception {
     String[] pair = ByteBufferUtil.toString(login).split(",", 2);
     if (instance.getInstanceID().equals(pair[0])) {
@@ -2091,6 +2092,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
     try {
       AuthenticationToken token = getToken(principal, loginProperties);
+      @SuppressWarnings("deprecation")
       ByteBuffer login = ByteBuffer
           .wrap((instance.getInstanceID() + "," + new Credentials(principal, token).serialize())
               .getBytes(UTF_8));

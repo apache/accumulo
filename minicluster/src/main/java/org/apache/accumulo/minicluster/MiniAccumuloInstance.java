@@ -34,7 +34,6 @@ public class MiniAccumuloInstance extends org.apache.accumulo.core.client.ZooKee
    * Construct an {@link org.apache.accumulo.core.client.Instance} entry point to Accumulo using a
    * {@link MiniAccumuloCluster} directory
    */
-  @SuppressWarnings("deprecation")
   public MiniAccumuloInstance(String instanceName, File directory) throws FileNotFoundException {
     super(org.apache.accumulo.core.client.ClientConfiguration
         .fromFile(new File(new File(directory, "conf"), "client.conf")).withInstance(instanceName)

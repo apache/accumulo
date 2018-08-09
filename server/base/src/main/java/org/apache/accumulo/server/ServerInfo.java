@@ -39,12 +39,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ServerInfo implements ClientInfo {
-
-  private static final Logger log = LoggerFactory.getLogger(ServerInfo.class);
 
   private String instanceID;
   private String instanceName;
