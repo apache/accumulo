@@ -309,6 +309,12 @@ public class TableOperationsHelperTest {
         throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public boolean isExactDeleteEnabled(String tableName)
+        throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
   }
 
   protected TableOperationsHelper getHelper() {

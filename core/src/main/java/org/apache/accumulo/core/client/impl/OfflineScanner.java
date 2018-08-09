@@ -38,6 +38,7 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private ClientContext context;
   private Authorizations authorizations;
   private Text tableId;
+  private boolean exactDeletes;
 
   public OfflineScanner(ClientContext context, Table.ID tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");
@@ -49,6 +50,7 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
     this.authorizations = authorizations;
     this.batchSize = Constants.SCAN_BATCH_SIZE;
     this.timeOut = Integer.MAX_VALUE;
+    this.exactDeletes = Tables.isExactDeleteEnabled(context, tableId);
   }
 
   @Deprecated
@@ -95,7 +97,7 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
 
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    return new OfflineIterator(this, context, authorizations, tableId, range);
+    return new OfflineIterator(this, context, authorizations, tableId, range, exactDeletes);
   }
 
   @Override

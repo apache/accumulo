@@ -149,4 +149,10 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
     this.opts.bounds = range;
     return this;
   }
+
+  @Override
+  public ScannerOptions withExactDeletes() {
+    this.opts.exactDeletes = true;
+    return this;
+  }
 }

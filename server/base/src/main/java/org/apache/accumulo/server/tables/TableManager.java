@@ -77,11 +77,11 @@ public class TableManager {
   }
 
   public static void prepareNewTableState(String instanceId, Table.ID tableId,
-      Namespace.ID namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
-      throws KeeperException, InterruptedException {
+      Namespace.ID namespaceId, String tableName, TableState state, boolean exactDelete,
+      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
     // state gets created last
-    log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
-        tableName, tableId, namespaceId);
+    log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})"
+        + " exactDelete: {}", tableName, tableId, namespaceId, exactDelete);
     Pair<String,String> qualifiedTableName = Tables.qualify(tableName);
     tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
@@ -97,6 +97,9 @@ public class TableManager {
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_EXACT_DELETE,
+        Boolean.toString(exactDelete).getBytes(UTF_8), existsPolicy);
+
   }
 
   public synchronized static TableManager getInstance() {
@@ -226,16 +229,19 @@ public class TableManager {
   }
 
   public void addTable(Table.ID tableId, Namespace.ID namespaceId, String tableName,
-      NodeExistsPolicy existsPolicy)
+      boolean exactDelete, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException, NamespaceNotFoundException {
-    prepareNewTableState(instanceID, tableId, namespaceId, tableName, TableState.NEW, existsPolicy);
+    prepareNewTableState(instanceID, tableId, namespaceId, tableName, TableState.NEW, exactDelete,
+        existsPolicy);
     updateTableStateCache(tableId);
   }
 
   public void cloneTable(Table.ID srcTableId, Table.ID tableId, String tableName,
       Namespace.ID namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,
-      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
-    prepareNewTableState(instanceID, tableId, namespaceId, tableName, TableState.NEW, existsPolicy);
+      boolean exactDelete, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
+    prepareNewTableState(instanceID, tableId, namespaceId, tableName, TableState.NEW, exactDelete,
+        existsPolicy);
 
     String srcTablePath = Constants.ZROOT + "/" + instanceID + Constants.ZTABLES + "/" + srcTableId
         + Constants.ZTABLE_CONF;

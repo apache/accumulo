@@ -52,7 +52,7 @@ class PopulateZookeeper extends MasterRepo {
           TableOperation.CREATE);
 
       TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.namespaceId,
-          tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
+          tableInfo.tableName, tableInfo.exactDelete, NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : tableInfo.props.entrySet())
         TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue());

@@ -79,7 +79,7 @@ class ImportPopulateZookeeper extends MasterRepo {
       String namespace = Tables.qualify(tableInfo.tableName).getFirst();
       Namespace.ID namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
       TableManager.getInstance().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName,
-          NodeExistsPolicy.OVERWRITE);
+          tableInfo.exactDelete, NodeExistsPolicy.OVERWRITE);
 
       Tables.clearCache(env.getContext());
     } finally {

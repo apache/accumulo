@@ -81,7 +81,8 @@ public class MinorCompactor extends Compactor {
           public RateLimiter getWriteLimiter() {
             return null;
           }
-        }, Collections.emptyList(), mincReason.ordinal(), tableConfig);
+        }, Collections.emptyList(), mincReason.ordinal(), tableConfig,
+        tablet.isExactDeleteEnabled());
     this.tabletServer = tabletServer;
   }
 

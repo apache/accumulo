@@ -617,11 +617,11 @@ public class Initialize implements KeywordExecutable {
     TableManager.prepareNewNamespaceState(uuid, Namespace.ID.ACCUMULO, Namespace.ACCUMULO,
         NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, RootTable.ID, Namespace.ID.ACCUMULO, RootTable.NAME,
-        TableState.ONLINE, NodeExistsPolicy.FAIL);
+        TableState.ONLINE, false, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, MetadataTable.ID, Namespace.ID.ACCUMULO,
-        MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
+        MetadataTable.NAME, TableState.ONLINE, false, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, ReplicationTable.ID, Namespace.ID.ACCUMULO,
-        ReplicationTable.NAME, TableState.OFFLINE, NodeExistsPolicy.FAIL);
+        ReplicationTable.NAME, TableState.OFFLINE, false, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,

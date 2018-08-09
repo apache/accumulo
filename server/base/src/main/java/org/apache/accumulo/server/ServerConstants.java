@@ -48,6 +48,11 @@ public class ServerConstants {
   public static final Integer WIRE_VERSION = 3;
 
   /**
+   * version (9) Added exact deletes for 2.0 which a zookeeper setting impacting how deletes are
+   * interpreted. Also added summary data to rfiles.
+   */
+  public static final int EXACT_DELETES_AND_SUMMARIES = 9;
+  /**
    * version (8) reflects changes to RFile index (ACCUMULO-1124) in version 1.8.0
    */
   public static final int SHORTEN_RFILE_KEYS = 8;
@@ -58,7 +63,7 @@ public class ServerConstants {
   /**
    * this is the current data version
    */
-  public static final int DATA_VERSION = SHORTEN_RFILE_KEYS;
+  public static final int DATA_VERSION = EXACT_DELETES_AND_SUMMARIES;
   /**
    * version (6) reflects the addition of a separate root table (ACCUMULO-1481) in version 1.6.0
    */
@@ -73,7 +78,8 @@ public class ServerConstants {
   public static final int LOGGING_TO_HDFS = 4;
   public static final BitSet CAN_UPGRADE = new BitSet();
   static {
-    for (int i : new int[] {DATA_VERSION, MOVE_TO_REPLICATION_TABLE, MOVE_TO_ROOT_TABLE}) {
+    for (int i : new int[] {DATA_VERSION, SHORTEN_RFILE_KEYS, MOVE_TO_REPLICATION_TABLE,
+        MOVE_TO_ROOT_TABLE}) {
       CAN_UPGRADE.set(i);
     }
   }

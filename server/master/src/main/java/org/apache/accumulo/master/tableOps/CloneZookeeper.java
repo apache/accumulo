@@ -31,12 +31,14 @@ class CloneZookeeper extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private CloneInfo cloneInfo;
+  private boolean exactDelete;
 
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
     this.cloneInfo.namespaceId = Namespaces.getNamespaceId(context,
         Tables.qualify(this.cloneInfo.tableName).getFirst());
+    this.exactDelete = Tables.isExactDeleteEnabled(context, cloneInfo.srcTableId);
   }
 
   @Override
@@ -59,7 +61,7 @@ class CloneZookeeper extends MasterRepo {
 
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
-          cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
+          cloneInfo.propertiesToExclude, exactDelete, NodeExistsPolicy.OVERWRITE);
       Tables.clearCache(environment.getContext());
 
       return new CloneMetadata(cloneInfo);

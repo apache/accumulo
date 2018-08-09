@@ -31,4 +31,5 @@ class ImportedTableInfo implements Serializable {
   public Table.ID tableId;
   public String importDir;
   public Namespace.ID namespaceId;
+  public boolean exactDelete;
 }

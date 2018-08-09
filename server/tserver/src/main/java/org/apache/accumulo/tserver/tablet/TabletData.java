@@ -78,9 +78,12 @@ public class TabletData {
   private Map<Long,List<FileRef>> bulkImported = new HashMap<>();
   private long splitTime = 0;
   private String directory = null;
+  private final boolean exactDeletes;
 
   // Read tablet data from metadata tables
-  public TabletData(KeyExtent extent, VolumeManager fs, Iterator<Entry<Key,Value>> entries) {
+  public TabletData(KeyExtent extent, VolumeManager fs, Iterator<Entry<Key,Value>> entries,
+      boolean exactDeletes) {
+    this.exactDeletes = exactDeletes;
     final Text family = new Text();
     Text rowName = extent.getMetadataEntry();
     while (entries.hasNext()) {
@@ -132,8 +135,9 @@ public class TabletData {
   }
 
   // Read basic root table metadata from zookeeper
-  public TabletData(VolumeManager fs, ZooReader rdr, AccumuloConfiguration conf)
-      throws IOException {
+  public TabletData(VolumeManager fs, ZooReader rdr, AccumuloConfiguration conf,
+      boolean exactDeletes) throws IOException {
+    this.exactDeletes = exactDeletes;
     directory = VolumeUtil.switchRootTableVolume(MetadataTableUtil.getRootTabletDir());
 
     Path location = new Path(directory);
@@ -175,7 +179,8 @@ public class TabletData {
   // Data pulled from an existing tablet to make a split
   public TabletData(String tabletDirectory, SortedMap<FileRef,DataFileValue> highDatafileSizes,
       String time, long lastFlushID, long lastCompactID, TServerInstance lastLocation,
-      Map<Long,List<FileRef>> bulkIngestedFiles) {
+      Map<Long,List<FileRef>> bulkIngestedFiles, boolean exactDeletes) {
+    this.exactDeletes = exactDeletes;
     this.directory = tabletDirectory;
     this.dataFiles = highDatafileSizes;
     this.time = time;
@@ -228,5 +233,9 @@ public class TabletData {
 
   public long getSplitTime() {
     return splitTime;
+  }
+
+  public boolean isExactDeleteEnabled() {
+    return exactDeletes;
   }
 }

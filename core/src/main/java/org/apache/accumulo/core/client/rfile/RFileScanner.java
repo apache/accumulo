@@ -89,6 +89,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     boolean useSystemIterators = true;
     public HashMap<String,String> tableConfig;
     Range bounds;
+    public boolean exactDeletes = false;
   }
 
   // This cache exist as a hack to avoid leaking decompressors. When the RFile code is not given a
@@ -178,6 +179,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (!opts.auths.equals(Authorizations.EMPTY) && !opts.useSystemIterators) {
       throw new IllegalArgumentException(
           "Set authorizations and specified not to use system iterators");
+    }
+
+    if (opts.exactDeletes && !opts.useSystemIterators) {
+      throw new IllegalArgumentException(
+          "Requested exact deletes and specified not to use system iterators");
     }
 
     this.opts = opts;
@@ -377,7 +383,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
         SortedSet<Column> cols = this.getFetchedColumns();
         families = LocalityGroupUtil.families(cols);
         iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(),
-            EMPTY_BYTES);
+            EMPTY_BYTES, opts.exactDeletes);
       }
 
       try {

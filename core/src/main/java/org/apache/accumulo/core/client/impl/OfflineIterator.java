@@ -158,12 +158,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
   private AccumuloConfiguration config;
+  private boolean exactDeletes;
 
   public OfflineIterator(ScannerOptions options, ClientContext context,
-      Authorizations authorizations, Text table, Range range) {
+      Authorizations authorizations, Text table, Range range, boolean exactDeletes) {
     this.options = new ScannerOptions(options);
     this.context = context;
     this.range = range;
+    this.exactDeletes = exactDeletes;
 
     if (this.options.fetchedColumns.size() > 0) {
       this.range = range.bound(this.options.fetchedColumns.first(),
@@ -383,7 +385,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     defaultSecurityLabel = cv.getExpression();
 
     SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter,
-        new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel);
+        new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel, exactDeletes);
 
     return iterEnv.getTopLevelIterator(
         IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf,

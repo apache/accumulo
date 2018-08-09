@@ -346,6 +346,12 @@ public class RFileTest {
     Assert.assertEquals(ImmutableMap.of(k3, v3), toMap(scanner));
     Assert.assertEquals(new Authorizations("B"), scanner.getAuthorizations());
     scanner.close();
+
+    try {
+      RFile.newScanner().from(testFile).withFileSystem(localFs)
+          .withAuthorizations(new Authorizations("B")).withoutSystemIterators().build();
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
   }
 
   @Test
@@ -837,5 +843,66 @@ public class RFileTest {
         .withFileSystem(localFs).withIndexCache(1000000).withDataCache(10000000).build();
     Assert.assertEquals(testData, toMap(scanner));
     scanner.close();
+  }
+
+  @Test
+  public void testDeletes() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+
+    SortedMap<Key,Value> testData = new TreeMap<>();
+
+    testData.put(new Key("r1", "fam1", "q1", 5L), new Value("v1"));
+    testData.put(new Key("r1", "fam1", "q1", 6L), new Value("v2"));
+    testData.put(new Key("r1", "fam1", "q1", 7L), new Value("v3"));
+    testData.put(new Key("r1", "fam1", "q1", 8L), new Value("v4"));
+    testData.put(new Key("r1", "fam1", "q1", 9L), new Value("v5"));
+
+    SortedMap<Key,Value> deletes = new TreeMap<>();
+    Key k = new Key("r1", "fam1", "q1", 8L);
+    k.setDeleted(true);
+    deletes.put(k, new Value(""));
+    k = new Key("r1", "fam1", "q1", 6L);
+    k.setDeleted(true);
+    deletes.put(k, new Value(""));
+
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      SortedMap<Key,Value> writeData = new TreeMap<>();
+      writeData.putAll(testData);
+      writeData.putAll(deletes);
+      writer.append(writeData.entrySet());
+    }
+
+    try (Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
+        .withExactDeletes().build()) {
+      SortedMap<Key,Value> expected = new TreeMap<>();
+      expected.putAll(testData);
+      expected.remove(new Key("r1", "fam1", "q1", 8L));
+      expected.remove(new Key("r1", "fam1", "q1", 6L));
+
+      Assert.assertEquals(expected, toMap(scanner));
+    }
+
+    try (Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).build()) {
+      SortedMap<Key,Value> expected = new TreeMap<>();
+      expected.put(new Key("r1", "fam1", "q1", 9L), new Value("v5"));
+
+      Assert.assertEquals(expected, toMap(scanner));
+    }
+
+    try (Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
+        .withoutSystemIterators().build()) {
+      SortedMap<Key,Value> expected = new TreeMap<>();
+      expected.putAll(testData);
+      expected.putAll(deletes);
+
+      Assert.assertEquals(expected, toMap(scanner));
+    }
+
+    try {
+      RFile.newScanner().from(testFile).withFileSystem(localFs).withoutSystemIterators()
+          .withExactDeletes().build();
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
   }
 }

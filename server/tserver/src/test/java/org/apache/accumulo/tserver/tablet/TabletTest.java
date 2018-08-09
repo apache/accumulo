@@ -53,7 +53,7 @@ public class TabletTest {
     ConfigurationObserver obs = EasyMock.createMock(ConfigurationObserver.class);
 
     Tablet tablet = new Tablet(time, "", 0, new Path("/foo"), dfm, tserver, tserverResourceManager,
-        tabletMemory, tableConf, extent, obs);
+        tabletMemory, tableConf, extent, obs, false);
 
     long hdfsBlockSize = 10000L, blockSize = 5000L, indexBlockSize = 500L;
     int replication = 5;

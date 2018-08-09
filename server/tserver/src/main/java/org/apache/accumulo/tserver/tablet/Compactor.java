@@ -112,6 +112,7 @@ public class Compactor implements Callable<CompactionStats> {
   private final long compactorID = nextCompactorID.getAndIncrement();
   protected volatile Thread thread;
   private final ServerContext context;
+  private final boolean exactDeletes;
 
   public long getCompactorID() {
     return compactorID;
@@ -147,7 +148,8 @@ public class Compactor implements Callable<CompactionStats> {
 
   public Compactor(ServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
       InMemoryMap imm, FileRef outputFile, boolean propogateDeletes, CompactionEnv env,
-      List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+      List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation,
+      boolean exactDeletes) {
     this.context = context;
     this.extent = tablet.getExtent();
     this.fs = tablet.getTabletServer().getFileSystem();
@@ -159,6 +161,7 @@ public class Compactor implements Callable<CompactionStats> {
     this.env = env;
     this.iterators = iterators;
     this.reason = reason;
+    this.exactDeletes = exactDeletes;
 
     startTime = System.currentTimeMillis();
   }
@@ -344,7 +347,8 @@ public class Compactor implements Callable<CompactionStats> {
 
       CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()),
           entriesRead);
-      DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
+      SortedKeyValueIterator<Key,Value> delIter = DeletingIterator.wrap(citr, propogateDeletes,
+          exactDeletes);
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
       // if(env.getIteratorScope() )
