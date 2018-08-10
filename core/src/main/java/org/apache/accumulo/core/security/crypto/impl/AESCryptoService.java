@@ -51,6 +51,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Example implementation of AES encryption for Accumulo
@@ -393,17 +394,13 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public InputStream decryptStream(InputStream inputStream) throws CryptoException {
-        int bytesRead;
         // clear out any bytes in IV from last decrypt
         initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
         try {
-          bytesRead = inputStream.read(initVector);
+          IOUtils.readFully(inputStream, initVector);
         } catch (IOException e) {
           throw new CryptoException("Unable to read IV from stream", e);
         }
-        if (bytesRead != GCM_IV_LENGTH_IN_BYTES)
-          throw new CryptoException("Read " + bytesRead + " bytes, not IV length of "
-              + GCM_IV_LENGTH_IN_BYTES + " in decryptStream.");
 
         Cipher cipher;
         try {
@@ -491,8 +488,8 @@ public class AESCryptoService implements CryptoService {
     }
 
     public class AESCBCFileDecrypter implements FileDecrypter {
-      private Key fek = null;
-      private byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
+      private Key fek;
+      private byte[] initVector;
 
       AESCBCFileDecrypter(Key fek) {
         this.fek = fek;
@@ -500,15 +497,12 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public InputStream decryptStream(InputStream inputStream) throws CryptoException {
-        int bytesRead;
+        initVector = new byte[IV_LENGTH_IN_BYTES];
         try {
-          bytesRead = inputStream.read(initVector);
+          IOUtils.readFully(inputStream, initVector);
         } catch (IOException e) {
           throw new CryptoException("Unable to read IV from stream", e);
         }
-        if (bytesRead != IV_LENGTH_IN_BYTES)
-          throw new CryptoException("Read " + bytesRead + " bytes, not IV length of "
-              + IV_LENGTH_IN_BYTES + " in decryptStream.");
 
         Cipher cipher;
         try {
