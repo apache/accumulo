@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -49,8 +48,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MetadataConstraints implements Constraint {
+public class MetadataConstraints implements SystemConstraint {
 
+  private ServerContext context = null;
   private ZooCache zooCache = null;
   private String zooRoot = null;
 
@@ -103,6 +103,12 @@ public class MetadataConstraints implements Constraint {
     if (!lst.contains(violation))
       return addViolation(lst, intViolation);
     return lst;
+  }
+
+  @Override
+  public List<Short> check(SystemEnvironment env, Mutation mutation) {
+    context = env.getServerContext();
+    return check((Environment) env, mutation);
   }
 
   @Override
@@ -264,7 +270,7 @@ public class MetadataConstraints implements Constraint {
           }
 
           if (zooRoot == null) {
-            zooRoot = ServerContext.getInstance().getZooKeeperRoot();
+            zooRoot = context.getZooKeeperRoot();
           }
 
           boolean lockHeld = false;
@@ -296,7 +302,10 @@ public class MetadataConstraints implements Constraint {
   }
 
   protected Arbitrator getArbitrator() {
-    return new ZooArbitrator(ServerContext.getInstance());
+    if (context == null) {
+      throw new IllegalStateException("Requested Arbitrator but ServerContext was not set!");
+    }
+    return new ZooArbitrator(context);
   }
 
   @Override
@@ -327,5 +336,4 @@ public class MetadataConstraints implements Constraint {
     if (zooCache != null)
       zooCache.clear();
   }
-
 }

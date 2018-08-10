@@ -50,8 +50,8 @@ public class TservConstraintEnvTest {
     replay(security);
 
     assertTrue(
-        new TservConstraintEnv(security, goodCred).getAuthorizationsContainer().contains(bs));
+        new TservConstraintEnv(null, security, goodCred).getAuthorizationsContainer().contains(bs));
     assertFalse(
-        new TservConstraintEnv(security, badCred).getAuthorizationsContainer().contains(bs));
+        new TservConstraintEnv(null, security, badCred).getAuthorizationsContainer().contains(bs));
   }
 }

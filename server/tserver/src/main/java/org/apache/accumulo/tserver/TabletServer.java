@@ -902,7 +902,7 @@ public class TabletServer implements Runnable {
       if (updateMetrics.isEnabled())
         updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
 
-      UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials),
+      UpdateSession us = new UpdateSession(new TservConstraintEnv(context, security, credentials),
           credentials, durability);
       return sessionManager.createSession(us, false);
     }
@@ -1268,8 +1268,8 @@ public class TabletServer implements Runnable {
         final Span prep = Trace.start("prep");
         CommitSession cs;
         try {
-          cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, credentials),
-              mutations);
+          cs = tablet.prepareMutationsForCommit(
+              new TservConstraintEnv(context, security, credentials), mutations);
         } finally {
           prep.stop();
         }
@@ -1379,7 +1379,7 @@ public class TabletServer implements Runnable {
               if (mutations.size() > 0) {
 
                 CommitSession cs = tablet.prepareMutationsForCommit(
-                    new TservConstraintEnv(security, sess.credentials), mutations);
+                    new TservConstraintEnv(context, security, sess.credentials), mutations);
 
                 if (cs == null) {
                   for (ServerConditionalMutation scm : entry.getValue())
