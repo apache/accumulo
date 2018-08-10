@@ -26,7 +26,9 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
 import org.apache.hadoop.io.Text;
 
 import junit.framework.TestCase;
@@ -64,7 +66,8 @@ public class DeletingIteratorTest extends TestCase {
 
     Text checkRow = new Text("000");
     try {
-      DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
+      SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
+          Behavior.PROCESS);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
 
       TreeMap<Key,Value> tmOut = new TreeMap<>();
@@ -86,7 +89,8 @@ public class DeletingIteratorTest extends TestCase {
     }
 
     try {
-      DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), true);
+      SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), true,
+          Behavior.PROCESS);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
       TreeMap<Key,Value> tmOut = new TreeMap<>();
       while (it.hasTop()) {
@@ -122,7 +126,8 @@ public class DeletingIteratorTest extends TestCase {
     newKeyValue(tm, "r000", 2, true, "v2");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
+    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
+        Behavior.PROCESS);
 
     // SEEK two keys before delete
     it.seek(newRange("r000", 4), EMPTY_COL_FAMS, false);
@@ -172,7 +177,8 @@ public class DeletingIteratorTest extends TestCase {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
+    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
+        Behavior.PROCESS);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
@@ -197,7 +203,8 @@ public class DeletingIteratorTest extends TestCase {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
+    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
+        Behavior.PROCESS);
 
     it.seek(newRange("r000", 3), EMPTY_COL_FAMS, false);
 
@@ -212,6 +219,26 @@ public class DeletingIteratorTest extends TestCase {
     it.seek(newRange("r000", 3, false), EMPTY_COL_FAMS, false);
 
     assertFalse(it.hasTop());
+  }
+
+  public void testFail() throws IOException {
+    TreeMap<Key,Value> tm = new TreeMap<>();
+
+    newKeyValue(tm, "r000", 3, false, "v3");
+    newKeyValue(tm, "r000", 2, false, "v2");
+    newKeyValue(tm, "r000", 2, true, "");
+    newKeyValue(tm, "r000", 1, false, "v1");
+
+    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
+        Behavior.FAIL);
+    it.seek(new Range(), EMPTY_COL_FAMS, false);
+    try {
+      while (it.hasTop()) {
+        it.getTopKey();
+        it.next();
+      }
+      fail();
+    } catch (IllegalStateException e) {}
   }
 
   private Range newRange(String row, long ts, boolean inclusive) {

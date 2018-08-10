@@ -489,5 +489,4 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * this configuration.
    */
   public void invalidateCache() {}
-
 }

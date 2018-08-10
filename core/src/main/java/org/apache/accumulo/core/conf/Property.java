@@ -29,6 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -809,6 +810,14 @@ public enum Property {
           + " To add a summarizer set "
           + "`table.summarizer.<unique id>=<summarizer class name>.` If the summarizer has options"
           + ", then for each option set" + " `table.summarizer.<unique id>.opt.<key>=<value>`."),
+  @Experimental
+  TABLE_DELETE_BEHAVIOR("table.delete.behavior", DeletingIterator.Behavior.PROCESS.name(),
+      PropertyType.STRING,
+      "This determines what action to take when a delete marker is seen."
+          + " Valid actions are PROCESS and FAIL with PROCESS being the default.  When set to "
+          + "PROCESS, deletes will supress data.  When set to FAIL, any deletes seen will cause an"
+          + " exception. The purpose of FAIL is to support tables that never delete data and need "
+          + "fast seeks within the timestamp range of a column."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
@@ -884,9 +893,7 @@ public enum Property {
       "The sampling percentage to use for replication traces"),
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
-          + " the attempt. See replication.work.attempts."),
-
-  ;
+          + " the attempt. See replication.work.attempts.");
 
   private String key;
   private String defaultValue;
@@ -1141,7 +1148,7 @@ public enum Property {
       Property.TSERV_MAJC_MAXCONCURRENT, Property.REPLICATION_WORKER_THREADS,
       Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT, Property.TABLE_CLASSPATH,
       Property.MASTER_METADATA_SUSPENDABLE, Property.TABLE_FAILURES_IGNORE,
-      Property.TABLE_SCAN_MAXMEM, Property.INSTANCE_CRYPTO_SERVICE);
+      Property.TABLE_SCAN_MAXMEM, Property.INSTANCE_CRYPTO_SERVICE, Property.TABLE_DELETE_BEHAVIOR);
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
       Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,

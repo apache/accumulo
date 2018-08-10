@@ -57,6 +57,7 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
+import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
@@ -439,7 +440,8 @@ public class CollectTabletStats {
     iters.add(smi);
 
     MultiIterator multiIter = new MultiIterator(iters, ke);
-    DeletingIterator delIter = new DeletingIterator(multiIter, false);
+    SortedKeyValueIterator<Key,Value> delIter = DeletingIterator.wrap(multiIter, false,
+        Behavior.PROCESS);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
     SortedKeyValueIterator<Key,Value> colFilter = ColumnQualifierFilter.wrap(cfsi, columnSet);
     SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(colFilter, authorizations,
