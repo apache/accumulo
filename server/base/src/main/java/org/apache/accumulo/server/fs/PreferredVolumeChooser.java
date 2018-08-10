@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -75,9 +74,9 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
             ChooserScope.INIT);
         return options;
       case TABLE:
-        return getPreferredVolumesForTable(env, loadConfFactory(), options);
+        return getPreferredVolumesForTable(env, loadConfFactory(env), options);
       default:
-        return getPreferredVolumesForScope(env, loadConfFactory(), options);
+        return getPreferredVolumesForScope(env, loadConfFactory(env), options);
     }
   }
 
@@ -158,13 +157,13 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
   }
 
   // visible (not private) for testing
-  ServerConfigurationFactory loadConfFactory() {
+  ServerConfigurationFactory loadConfFactory(VolumeChooserEnvironment env) {
     // Get the current table's properties, and find the preferred volumes property
     // This local variable is an intentional component of the single-check idiom.
     ServerConfigurationFactory localConf = lazyConfFactory;
     if (localConf == null) {
       // If we're under contention when first getting here we'll throw away some initializations.
-      localConf = ServerContext.getInstance().getServerConfFactory();
+      localConf = env.getServerContext().getServerConfFactory();
       lazyConfFactory = localConf;
     }
     return localConf;

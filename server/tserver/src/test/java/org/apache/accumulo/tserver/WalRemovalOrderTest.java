@@ -50,7 +50,7 @@ public class WalRemovalOrderTest {
     };
 
     try {
-      return new DfsLogger(conf, filename, null);
+      return new DfsLogger(null, conf, filename, null);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

@@ -39,6 +39,7 @@ public class ImportTableTest {
     // This needs to be unique WRT the importtable command
     String tabletDir = "/c-00000001";
 
+    EasyMock.expect(master.getContext()).andReturn(null);
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(iti.tableId);

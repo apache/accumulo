@@ -55,6 +55,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -308,6 +309,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return getFileName().hashCode();
   }
 
+  private final ServerContext context;
   private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
@@ -322,15 +324,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private AtomicLong flushCounter;
   private final long slowFlushMillis;
 
-  private DfsLogger(ServerResources conf) {
+  private DfsLogger(ServerContext context, ServerResources conf) {
+    this.context = context;
     this.conf = conf;
     this.slowFlushMillis = conf.getConfiguration()
         .getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
   }
 
-  public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter)
-      throws IOException {
-    this(conf);
+  public DfsLogger(ServerContext context, ServerResources conf, AtomicLong syncCounter,
+      AtomicLong flushCounter) throws IOException {
+    this(context, conf);
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
   }
@@ -341,8 +344,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * @param meta
    *          the cq for the "log" entry in +r/!0
    */
-  public DfsLogger(ServerResources conf, String filename, String meta) throws IOException {
-    this(conf);
+  public DfsLogger(ServerContext context, ServerResources conf, String filename, String meta)
+      throws IOException {
+    this(context, conf);
     this.logPath = filename;
     metaReference = meta;
   }
@@ -458,7 +462,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.LOGGER);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.LOGGER,
+        context);
     logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR
         + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
