@@ -67,8 +67,8 @@ class TableRangeOpWait extends MasterRepo {
     MergeInfo mergeInfo = master.getMergeInfo(tableId);
     log.info("removing merge information " + mergeInfo);
     master.clearMergeState(tableId);
-    Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(master, tableId, tid, true);
+    Utils.unreserveNamespace(master, namespaceId, tid, false);
     return null;
   }
 

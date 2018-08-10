@@ -106,8 +106,8 @@ public class CollectTabletStats {
       columnsTmp = opts.columns.split(",");
     final String columns[] = columnsTmp;
 
-    final VolumeManager fs = VolumeManagerImpl.get();
     ServerContext context = opts.getServerContext();
+    final VolumeManager fs = context.getVolumeManager();
     ServerConfigurationFactory sconf = context.getServerConfFactory();
 
     Table.ID tableId = Tables.getTableId(context, opts.getTableName());
@@ -391,7 +391,7 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
 
-  private static List<FileRef> getTabletFiles(ClientContext context, KeyExtent ke)
+  private static List<FileRef> getTabletFiles(ServerContext context, KeyExtent ke)
       throws IOException {
     return new ArrayList<>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }

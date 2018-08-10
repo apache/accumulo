@@ -185,8 +185,8 @@ class CompactionDriver extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     CompactRange.removeIterators(env, tid, tableId);
-    Utils.getReadLock(tableId, tid).unlock();
-    Utils.getReadLock(namespaceId, tid).unlock();
+    Utils.getReadLock(env, tableId, tid).unlock();
+    Utils.getReadLock(env, namespaceId, tid).unlock();
     return null;
   }
 

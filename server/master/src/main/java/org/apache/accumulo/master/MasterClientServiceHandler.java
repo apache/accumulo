@@ -402,7 +402,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     master.security.canPerformSystemActions(c);
 
     try {
-      SystemPropUtil.removeSystemProperty(property);
+      SystemPropUtil.removeSystemProperty(master.getContext(), property);
       updatePlugins(property);
     } catch (Exception e) {
       Master.log.error("Problem removing config property in zookeeper", e);
@@ -416,7 +416,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     master.security.canPerformSystemActions(c);
 
     try {
-      SystemPropUtil.setSystemProperty(property, value);
+      SystemPropUtil.setSystemProperty(master.getContext(), property, value);
       updatePlugins(property);
     } catch (IllegalArgumentException iae) {
       // throw the exception here so it is not caught and converted to a generic TException
@@ -451,9 +451,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
     try {
       if (value == null) {
-        NamespacePropUtil.removeNamespaceProperty(namespaceId, property);
+        NamespacePropUtil.removeNamespaceProperty(master.getContext(), namespaceId, property);
       } else {
-        NamespacePropUtil.setNamespaceProperty(namespaceId, property, value);
+        NamespacePropUtil.setNamespaceProperty(master.getContext(), namespaceId, property, value);
       }
     } catch (KeeperException.NoNodeException e) {
       // race condition... namespace no longer exists? This call will throw an exception if the
@@ -478,8 +478,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
     try {
       if (value == null || value.isEmpty()) {
-        TablePropUtil.removeTableProperty(tableId, property);
-      } else if (!TablePropUtil.setTableProperty(tableId, property, value)) {
+        TablePropUtil.removeTableProperty(master.getContext(), tableId, property);
+      } else if (!TablePropUtil.setTableProperty(master.getContext(), tableId, property, value)) {
         throw new Exception("Invalid table property.");
       }
     } catch (KeeperException.NoNodeException e) {

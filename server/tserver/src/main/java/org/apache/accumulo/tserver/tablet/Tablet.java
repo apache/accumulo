@@ -274,8 +274,8 @@ public class Tablet implements TabletCommitter {
   FileRef getNextMapFilename(String prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
     checkTabletDir();
-    return new FileRef(location + "/" + prefix + UniqueNameAllocator.getInstance().getNextName()
-        + "." + extension);
+    return new FileRef(
+        location + "/" + prefix + context.getUniqueNameAllocator().getNextName() + "." + extension);
   }
 
   private void checkTabletDir() throws IOException {
@@ -2298,7 +2298,7 @@ public class Tablet implements TabletCommitter {
       KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
       KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
 
-      String lowDirectory = createTabletDirectory(getTabletServer().getFileSystem(),
+      String lowDirectory = createTabletDirectory(context, getTabletServer().getFileSystem(),
           extent.getTableId(), midRow);
 
       // write new tablet information to MetadataTable
@@ -2842,10 +2842,11 @@ public class Tablet implements TabletCommitter {
     return scannedCount;
   }
 
-  private static String createTabletDirectory(VolumeManager fs, Table.ID tableId, Text endRow) {
+  private static String createTabletDirectory(ServerContext context, VolumeManager fs,
+      Table.ID tableId, Text endRow) {
     String lowDirectory;
 
-    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    UniqueNameAllocator namer = context.getUniqueNameAllocator();
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId);
     String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR
         + Path.SEPARATOR;

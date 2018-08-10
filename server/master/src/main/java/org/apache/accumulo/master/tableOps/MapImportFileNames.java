@@ -61,7 +61,7 @@ class MapImportFileNames extends MasterRepo {
 
       FileStatus[] files = fs.listStatus(new Path(tableInfo.exportDir));
 
-      UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+      UniqueNameAllocator namer = environment.getContext().getUniqueNameAllocator();
 
       mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
 

@@ -29,9 +29,11 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class MetadataConstraintsTest {
@@ -61,6 +63,8 @@ public class MetadataConstraintsTest {
     Logger.getLogger(AccumuloConfiguration.class).setLevel(Level.ERROR);
     Mutation m = new Mutation(new Text("0;foo"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("1foo".getBytes()));
+
+    ServerContext context = EasyMock.createMock(ServerContext.class);
 
     MetadataConstraints mc = new MetadataConstraints();
 

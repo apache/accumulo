@@ -84,8 +84,8 @@ public class CompactRange extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT)
-        + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT);
+    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT)
+        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT);
   }
 
   @Override
@@ -176,8 +176,8 @@ public class CompactRange extends MasterRepo {
     try {
       removeIterators(env, tid, tableId);
     } finally {
-      Utils.unreserveNamespace(namespaceId, tid, false);
-      Utils.unreserveTable(tableId, tid, false);
+      Utils.unreserveNamespace(env, namespaceId, tid, false);
+      Utils.unreserveTable(env, tableId, tid, false);
     }
   }
 

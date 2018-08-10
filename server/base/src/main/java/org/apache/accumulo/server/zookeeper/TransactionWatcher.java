@@ -31,8 +31,13 @@ import org.apache.zookeeper.KeeperException;
 public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.TransactionWatcher {
   public static class ZooArbitrator implements Arbitrator {
 
-    private static ServerContext context = ServerContext.getInstance();
-    ZooReader rdr = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+    private ServerContext context;
+    private ZooReader rdr;
+
+    public ZooArbitrator(ServerContext context) {
+      this.context = context;
+      rdr = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+    }
 
     @Override
     public boolean transactionAlive(String type, long tid) throws Exception {
@@ -41,7 +46,8 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
       return rdr.exists(path);
     }
 
-    public static void start(String type, long tid) throws KeeperException, InterruptedException {
+    public static void start(ServerContext context, String type, long tid)
+        throws KeeperException, InterruptedException {
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
       writer.putPersistentData(context.getZooKeeperRoot() + "/" + type, new byte[] {},
           NodeExistsPolicy.OVERWRITE);
@@ -51,13 +57,15 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
           new byte[] {}, NodeExistsPolicy.OVERWRITE);
     }
 
-    public static void stop(String type, long tid) throws KeeperException, InterruptedException {
+    public static void stop(ServerContext context, String type, long tid)
+        throws KeeperException, InterruptedException {
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
     }
 
-    public static void cleanup(String type, long tid) throws KeeperException, InterruptedException {
+    public static void cleanup(ServerContext context, String type, long tid)
+        throws KeeperException, InterruptedException {
       IZooReaderWriter writer = ZooReaderWriter.getInstance();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
@@ -65,7 +73,7 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
           NodeMissingPolicy.SKIP);
     }
 
-    public static Set<Long> allTransactionsAlive(String type)
+    public static Set<Long> allTransactionsAlive(ServerContext context, String type)
         throws KeeperException, InterruptedException {
       final IZooReader reader = ZooReaderWriter.getInstance();
       final Set<Long> result = new HashSet<>();
@@ -89,7 +97,7 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
     }
   }
 
-  public TransactionWatcher() {
-    super(new ZooArbitrator());
+  public TransactionWatcher(ServerContext context) {
+    super(new ZooArbitrator(context));
   }
 }

@@ -136,14 +136,15 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
     // path and zooCache are lazily set the first time this tracker is run
     // this allows the tracker to be constructed and scheduled during log4j initialization without
     // triggering any actual logs from the Accumulo or ZooKeeper code
+    private ServerContext context = null;
     private String path = null;
     private ZooCache zooCache = null;
 
     @Override
     public MonitorLocation get() {
       // lazily set up path and zooCache (see comment in constructor)
-      if (this.zooCache == null) {
-        ServerContext context = ServerContext.getInstance();
+      if (this.context == null) {
+        this.context = ServerContext.getInstance();
         this.path = context.getZooKeeperRoot() + Constants.ZMONITOR_LOG4J_ADDR;
         this.zooCache = context.getZooCache();
       }

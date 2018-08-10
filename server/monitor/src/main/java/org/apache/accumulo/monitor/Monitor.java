@@ -256,7 +256,7 @@ public class Monitor implements HighlyAvailableService {
           public void run() {
             synchronized (Monitor.class) {
               if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
-                final String instanceName = ServerContext.getInstance().getInstanceName();
+                final String instanceName = context.getInstanceName();
                 if (null != instanceName) {
                   cachedInstanceName.set(instanceName);
                 }
@@ -434,16 +434,15 @@ public class Monitor implements HighlyAvailableService {
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerContext context = ServerContext.getInstance();
+    Monitor.context = ServerContext.getInstance();
     context.setupServer(app, Monitor.class.getName(), opts.getAddress());
     try {
       config = context.getServerConfFactory();
-      Monitor.context = context;
       Monitor monitor = new Monitor();
       // Servlets need access to limit requests when the monitor is not active, but Servlets are
       // instantiated via reflection. Expose the service this way instead.
       Monitor.HA_SERVICE_INSTANCE = monitor;
-      monitor.run(context.getHostname());
+      monitor.run();
     } finally {
       context.teardownServer();
     }
@@ -451,13 +450,13 @@ public class Monitor implements HighlyAvailableService {
 
   private static long START_TIME;
 
-  public void run(String hostname) {
+  public void run() {
     Monitor.START_TIME = System.currentTimeMillis();
     int ports[] = config.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
         log.debug("Creating monitor on port {}", port);
-        server = new EmbeddedWebServer(hostname, port);
+        server = new EmbeddedWebServer(context.getHostname(), port);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getViewServlet(), "/*");
@@ -479,7 +478,7 @@ public class Monitor implements HighlyAvailableService {
       throw new RuntimeException(e);
     }
 
-    String advertiseHost = hostname;
+    String advertiseHost = context.getHostname();
     if (advertiseHost.equals("0.0.0.0")) {
       try {
         advertiseHost = InetAddress.getLocalHost().getHostName();

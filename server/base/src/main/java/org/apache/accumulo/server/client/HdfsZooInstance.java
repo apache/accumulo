@@ -59,7 +59,7 @@ import com.google.common.base.Joiner;
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet
  * location.
  *
- * @deprecated since 2.0.0, Use {@link ServerContext#getInstance()} instead
+ * @deprecated since 2.0.0, Use {@link ServerContext} instead
  */
 @Deprecated
 public class HdfsZooInstance implements org.apache.accumulo.core.client.Instance {

@@ -39,7 +39,7 @@ public class ExportTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
+    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(), tid);
   }
 
   @Override
@@ -49,7 +49,7 @@ public class ExportTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
   }
 
   public static final int VERSION = 1;

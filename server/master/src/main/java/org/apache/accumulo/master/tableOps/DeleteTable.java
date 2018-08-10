@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 
 public class DeleteTable extends MasterRepo {
 
@@ -38,20 +37,20 @@ public class DeleteTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
-        + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
+    return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
-    TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
+    env.getTableManager().transitionTableState(tableId, TableState.DELETING);
     env.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId, namespaceId);
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, true);
+    Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 }

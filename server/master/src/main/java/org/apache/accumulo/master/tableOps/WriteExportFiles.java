@@ -84,9 +84,9 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    long reserved = Utils.reserveNamespace(tableInfo.namespaceID, tid, false, true,
+    long reserved = Utils.reserveNamespace(master, tableInfo.namespaceID, tid, false, true,
         TableOperation.EXPORT)
-        + Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+        + Utils.reserveTable(master, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
     if (reserved > 0)
       return reserved;
 
@@ -131,16 +131,16 @@ class WriteExportFiles extends MasterRepo {
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(tableInfo.tableID, tid, false);
-    Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(master, tableInfo.namespaceID, tid, false);
+    Utils.unreserveTable(master, tableInfo.tableID, tid, false);
+    Utils.unreserveHdfsDirectory(master, new Path(tableInfo.exportDir).toString(), tid);
     return null;
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveNamespace(tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(tableInfo.tableID, tid, false);
+    Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, false);
+    Utils.unreserveTable(env, tableInfo.tableID, tid, false);
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,

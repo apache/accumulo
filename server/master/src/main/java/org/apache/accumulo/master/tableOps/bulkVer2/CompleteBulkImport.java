@@ -34,7 +34,7 @@ public class CompleteBulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    ZooArbitrator.stop(Constants.BULK_ARBITRATOR_TYPE, tid);
+    ZooArbitrator.stop(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     return new CleanUpBulkImport(info);
   }
 }

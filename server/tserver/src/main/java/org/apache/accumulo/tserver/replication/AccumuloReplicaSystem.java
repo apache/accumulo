@@ -130,7 +130,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   @Override
-  public void configure(String configuration) {
+  public void configure(ServerContext context, String configuration) {
     requireNonNull(configuration);
 
     // instance_name,zookeepers
@@ -146,8 +146,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
-
-    conf = ServerContext.getInstance().getServerConfFactory().getSystemConfiguration();
+    conf = context.getConfiguration();
 
     try {
       fs = VolumeManagerImpl.get(conf);
@@ -160,8 +159,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   @Override
   public Status replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper) {
-    final AccumuloConfiguration localConf = ServerContext.getInstance().getServerConfFactory()
-        .getSystemConfiguration();
+    final AccumuloConfiguration localConf = conf;
 
     log.debug("Replication RPC timeout is {}",
         localConf.get(Property.REPLICATION_RPC_TIMEOUT.getKey()));

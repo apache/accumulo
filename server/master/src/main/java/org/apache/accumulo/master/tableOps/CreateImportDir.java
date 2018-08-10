@@ -41,7 +41,7 @@ class CreateImportDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
 
     Path exportDir = new Path(tableInfo.exportDir);
     String[] tableDirs = ServerConstants.getTablesDirs();

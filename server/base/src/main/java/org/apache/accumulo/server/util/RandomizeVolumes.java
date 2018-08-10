@@ -44,7 +44,6 @@ import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,15 +54,15 @@ public class RandomizeVolumes {
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
+    ServerContext context = opts.getServerContext();
     Connector c;
     if (opts.getToken() == null) {
-      ServerContext context = opts.getServerContext();
       c = context.getConnector();
     } else {
       c = opts.getConnector();
     }
     try {
-      int status = randomize(c, opts.getTableName());
+      int status = randomize(context, c, opts.getTableName());
       System.exit(status);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
@@ -71,7 +70,7 @@ public class RandomizeVolumes {
     }
   }
 
-  public static int randomize(Connector c, String tableName)
+  public static int randomize(ServerContext context, Connector c, String tableName)
       throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
     final VolumeManager vm = VolumeManagerImpl.get();
     if (vm.getVolumes().size() < 2) {
@@ -84,7 +83,7 @@ public class RandomizeVolumes {
       return 2;
     }
     Table.ID tableId = Table.ID.of(tblStr);
-    TableState tableState = TableManager.getInstance().getTableState(tableId);
+    TableState tableState = context.getTableManager().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
       log.info("Taking {} offline", tableName);
       c.tableOperations().offline(tableName, true);

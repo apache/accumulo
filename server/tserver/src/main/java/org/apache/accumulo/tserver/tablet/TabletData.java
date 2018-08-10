@@ -49,6 +49,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -68,6 +69,7 @@ import org.slf4j.LoggerFactory;
 public class TabletData {
   private static Logger log = LoggerFactory.getLogger(TabletData.class);
 
+  private ServerContext context;
   private String time = null;
   private SortedMap<FileRef,DataFileValue> dataFiles = new TreeMap<>();
   private List<LogEntry> logEntries = new ArrayList<>();
@@ -80,7 +82,9 @@ public class TabletData {
   private String directory = null;
 
   // Read tablet data from metadata tables
-  public TabletData(KeyExtent extent, VolumeManager fs, Iterator<Entry<Key,Value>> entries) {
+  public TabletData(ServerContext context, KeyExtent extent, VolumeManager fs,
+      Iterator<Entry<Key,Value>> entries) {
+    this.context = context;
     final Text family = new Text();
     Text rowName = extent.getMetadataEntry();
     while (entries.hasNext()) {
@@ -132,9 +136,11 @@ public class TabletData {
   }
 
   // Read basic root table metadata from zookeeper
-  public TabletData(VolumeManager fs, ZooReader rdr, AccumuloConfiguration conf)
-      throws IOException {
-    directory = VolumeUtil.switchRootTableVolume(MetadataTableUtil.getRootTabletDir());
+  public TabletData(ServerContext context, VolumeManager fs, ZooReader rdr,
+      AccumuloConfiguration conf) throws IOException {
+    this.context = context;
+    directory = VolumeUtil.switchRootTableVolume(context,
+        MetadataTableUtil.getRootTabletDir(context));
 
     Path location = new Path(directory);
 
@@ -166,7 +172,7 @@ public class TabletData {
     }
 
     try {
-      logEntries = MetadataTableUtil.getLogEntries(null, RootTable.EXTENT);
+      logEntries = MetadataTableUtil.getLogEntries(context, RootTable.EXTENT);
     } catch (Exception ex) {
       throw new RuntimeException("Unable to read tablet log entries", ex);
     }

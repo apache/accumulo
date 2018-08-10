@@ -286,7 +286,7 @@ public class TabletServer implements Runnable {
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
-  private final TransactionWatcher watcher = new TransactionWatcher();
+  private final TransactionWatcher watcher;
   private final ZooCache masterLockCache = new ZooCache();
 
   private final TabletServerLogger logger;
@@ -357,6 +357,7 @@ public class TabletServer implements Runnable {
 
   public TabletServer(ServerContext context) {
     this.context = context;
+    this.watcher = new TransactionWatcher(context);
     this.confFactory = context.getServerConfFactory();
     this.fs = context.getVolumeManager();
     final AccumuloConfiguration aconf = getConfiguration();
@@ -2513,9 +2514,10 @@ public class TabletServer implements Runnable {
             getTableConfiguration(extent));
         TabletData data;
         if (extent.isRootTablet()) {
-          data = new TabletData(fs, ZooReaderWriter.getInstance(), getTableConfiguration(extent));
+          data = new TabletData(context, fs, ZooReaderWriter.getInstance(),
+              getTableConfiguration(extent));
         } else {
-          data = new TabletData(extent, fs, tabletsKeyValues.entrySet().iterator());
+          data = new TabletData(context, extent, fs, tabletsKeyValues.entrySet().iterator());
         }
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);
@@ -2983,9 +2985,9 @@ public class TabletServer implements Runnable {
     }
   }
 
-  private static Pair<Text,KeyExtent> verifyRootTablet(KeyExtent extent, TServerInstance instance)
-      throws DistributedStoreException, AccumuloException {
-    ZooTabletStateStore store = new ZooTabletStateStore();
+  private static Pair<Text,KeyExtent> verifyRootTablet(ServerContext context, KeyExtent extent,
+      TServerInstance instance) throws DistributedStoreException, AccumuloException {
+    ZooTabletStateStore store = new ZooTabletStateStore(context);
     if (!store.iterator().hasNext()) {
       throw new AccumuloException("Illegal state: location is not set in zookeeper");
     }
@@ -2999,7 +3001,7 @@ public class TabletServer implements Runnable {
     }
 
     try {
-      return new Pair<>(new Text(MetadataTableUtil.getRootTabletDir()), null);
+      return new Pair<>(new Text(MetadataTableUtil.getRootTabletDir(context)), null);
     } catch (IOException e) {
       throw new AccumuloException(e);
     }
@@ -3013,7 +3015,7 @@ public class TabletServer implements Runnable {
 
     log.debug("verifying extent {}", extent);
     if (extent.isRootTablet()) {
-      return verifyRootTablet(extent, instance);
+      return verifyRootTablet(context, extent, instance);
     }
     Table.ID tableToVerify = MetadataTable.ID;
     if (extent.isMeta())

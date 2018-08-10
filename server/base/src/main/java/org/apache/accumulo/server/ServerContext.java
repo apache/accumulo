@@ -41,6 +41,8 @@ import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
+import org.apache.accumulo.server.tables.TableManager;
+import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,13 +58,19 @@ public class ServerContext extends ClientContext {
   private static ServerContext serverContextInstance = null;
 
   private final ServerInfo info;
+  private TableManager tableManager;
+  private UniqueNameAllocator nameAllocator;
   private ServerConfigurationFactory serverConfFactory = null;
   private String applicationName = null;
   private String applicationClassName = null;
   private String hostname = null;
   private AuthenticationTokenSecretManager secretManager;
 
-  public ServerContext(ServerInfo info) {
+  private ServerContext() {
+    this(new ServerInfo());
+  }
+
+  private ServerContext(ServerInfo info) {
     super(info, SiteConfiguration.getInstance());
     this.info = info;
   }
@@ -75,13 +83,24 @@ public class ServerContext extends ClientContext {
     this(new ServerInfo(info));
   }
 
-  public ServerContext(ClientContext context) {
-    this(new ServerInfo(context.getClientInfo()));
-  }
-
   synchronized public static ServerContext getInstance() {
     if (serverContextInstance == null) {
-      serverContextInstance = new ServerContext(new ServerInfo());
+      serverContextInstance = new ServerContext();
+    }
+    return serverContextInstance;
+  }
+
+  synchronized public static ServerContext getInstance(ClientInfo info) {
+    if (serverContextInstance == null) {
+      serverContextInstance = new ServerContext(info);
+    }
+    return serverContextInstance;
+  }
+
+  synchronized public static ServerContext getInstance(String instanceName, String zooKeepers,
+      int zooKeepersSessionTimeOut) {
+    if (serverContextInstance == null) {
+      serverContextInstance = new ServerContext(instanceName, zooKeepers, zooKeepersSessionTimeOut);
     }
     return serverContextInstance;
   }
@@ -229,5 +248,19 @@ public class ServerContext extends ClientContext {
   public Connector getConnector(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
     return Connector.builder().usingClientInfo(info).usingToken(principal, token).build();
+  }
+
+  public synchronized TableManager getTableManager() {
+    if (tableManager == null) {
+      tableManager = new TableManager(this);
+    }
+    return tableManager;
+  }
+
+  public synchronized UniqueNameAllocator getUniqueNameAllocator() {
+    if (nameAllocator == null) {
+      nameAllocator = new UniqueNameAllocator(this);
+    }
+    return nameAllocator;
   }
 }

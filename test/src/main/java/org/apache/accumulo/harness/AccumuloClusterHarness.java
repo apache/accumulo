@@ -41,6 +41,7 @@ import org.apache.accumulo.harness.conf.AccumuloClusterConfiguration;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -274,6 +275,10 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public static ClientContext getClientContext() {
     checkState(initialized);
     return new ClientContext(getClientInfo());
+  }
+
+  public static ServerContext getServerContext() {
+    return getCluster().getServerContext();
   }
 
   public static boolean saslEnabled() {

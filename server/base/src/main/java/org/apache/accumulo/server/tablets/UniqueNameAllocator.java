@@ -33,14 +33,16 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
  * This is useful for filenames because it makes caching easy.
  */
 public class UniqueNameAllocator {
+
+  private ServerContext context;
   private long next = 0;
   private long maxAllocated = 0;
   private String nextNamePath;
   private Random rand;
 
-  private UniqueNameAllocator() {
-    nextNamePath = Constants.ZROOT + "/" + ServerContext.getInstance().getInstanceID()
-        + Constants.ZNEXT_FILE;
+  public UniqueNameAllocator(ServerContext context) {
+    this.context = context;
+    nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
     rand = new Random();
   }
 
@@ -71,14 +73,4 @@ public class UniqueNameAllocator {
     return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]),
         UTF_8);
   }
-
-  private static UniqueNameAllocator instance = null;
-
-  public static synchronized UniqueNameAllocator getInstance() {
-    if (instance == null)
-      instance = new UniqueNameAllocator();
-
-    return instance;
-  }
-
 }

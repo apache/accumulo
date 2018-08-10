@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 import org.slf4j.LoggerFactory;
 
 class FinishCreateTable extends MasterRepo {
@@ -39,10 +38,10 @@ class FinishCreateTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
-    TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
 
-    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
-    Utils.unreserveTable(tableInfo.tableId, tid, true);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+    Utils.unreserveTable(env, tableInfo.tableId, tid, true);
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 

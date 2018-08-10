@@ -30,9 +30,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SystemPropUtil {
+
   private static final Logger log = LoggerFactory.getLogger(SystemPropUtil.class);
 
-  public static boolean setSystemProperty(String property, String value)
+  public static boolean setSystemProperty(ServerContext context, String property, String value)
       throws KeeperException, InterruptedException {
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae = new IllegalArgumentException(
@@ -60,17 +61,15 @@ public class SystemPropUtil {
     }
 
     // create the zk node for this property and set it's data to the specified value
-    String zPath = ServerContext.getInstance().getZooKeeperRoot() + Constants.ZCONFIG + "/"
-        + property;
+    String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
 
     return ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
   }
 
-  public static void removeSystemProperty(String property)
+  public static void removeSystemProperty(ServerContext context, String property)
       throws InterruptedException, KeeperException {
-    String zPath = ServerContext.getInstance().getZooKeeperRoot() + Constants.ZCONFIG + "/"
-        + property;
+    String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }
 }

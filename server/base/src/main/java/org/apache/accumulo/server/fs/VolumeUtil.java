@@ -163,11 +163,12 @@ public class VolumeUtil {
     }
   }
 
-  public static String switchRootTableVolume(String location) throws IOException {
+  public static String switchRootTableVolume(ServerContext context, String location)
+      throws IOException {
     String newLocation = switchVolume(location, FileType.TABLE,
         ServerConstants.getVolumeReplacements());
     if (newLocation != null) {
-      MetadataTableUtil.setRootTabletDir(newLocation);
+      MetadataTableUtil.setRootTabletDir(context, newLocation);
       log.info("Volume replaced: {} -> {}", location, newLocation);
       return new Path(newLocation).toString();
     }
@@ -304,7 +305,7 @@ public class VolumeUtil {
 
         // only set the new location in zookeeper after a successful copy
         log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(newDir.toString());
+        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
 
         // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we
         // fail here and this does not happen because the location in
@@ -315,7 +316,7 @@ public class VolumeUtil {
 
       } else {
         log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(newDir.toString());
+        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
       }
 
       return newDir.toString();
