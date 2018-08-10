@@ -280,7 +280,7 @@ public class TabletServerLogger {
           DfsLogger alog = null;
           try {
             log.debug("Creating next WAL");
-            alog = new DfsLogger(conf, syncCounter, flushCounter);
+            alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
             String fileName = alog.getFileName();
             log.debug("Created next WAL " + fileName);

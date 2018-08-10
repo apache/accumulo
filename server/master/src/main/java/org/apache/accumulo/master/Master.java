@@ -282,7 +282,7 @@ public class Master
     if (!zoo.exists(dirZPath)) {
       Path oldPath = fs.getFullPath(FileType.TABLE, "/" + MetadataTable.ID + "/root_tablet");
       if (fs.exists(oldPath)) {
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(RootTable.ID);
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(RootTable.ID, context);
         String newPath = fs.choose(chooserEnv, ServerConstants.getBaseUris())
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + RootTable.ID;
         fs.mkdirs(new Path(newPath));
