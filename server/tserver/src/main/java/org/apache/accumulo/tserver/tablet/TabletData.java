@@ -69,7 +69,6 @@ import org.slf4j.LoggerFactory;
 public class TabletData {
   private static Logger log = LoggerFactory.getLogger(TabletData.class);
 
-  private ServerContext context;
   private String time = null;
   private SortedMap<FileRef,DataFileValue> dataFiles = new TreeMap<>();
   private List<LogEntry> logEntries = new ArrayList<>();
@@ -84,7 +83,6 @@ public class TabletData {
   // Read tablet data from metadata tables
   public TabletData(ServerContext context, KeyExtent extent, VolumeManager fs,
       Iterator<Entry<Key,Value>> entries) {
-    this.context = context;
     final Text family = new Text();
     Text rowName = extent.getMetadataEntry();
     while (entries.hasNext()) {
@@ -138,7 +136,6 @@ public class TabletData {
   // Read basic root table metadata from zookeeper
   public TabletData(ServerContext context, VolumeManager fs, ZooReader rdr,
       AccumuloConfiguration conf) throws IOException {
-    this.context = context;
     directory = VolumeUtil.switchRootTableVolume(context,
         MetadataTableUtil.getRootTabletDir(context));
 

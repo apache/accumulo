@@ -34,14 +34,12 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
  */
 public class UniqueNameAllocator {
 
-  private ServerContext context;
   private long next = 0;
   private long maxAllocated = 0;
   private String nextNamePath;
   private Random rand;
 
   public UniqueNameAllocator(ServerContext context) {
-    this.context = context;
     nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
     rand = new Random();
   }

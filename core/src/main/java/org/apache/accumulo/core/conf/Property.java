@@ -1228,7 +1228,7 @@ public enum Property {
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.")
+        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
         || key.startsWith(REPLICATION_PREFIX.getKey());
   }
