@@ -263,7 +263,7 @@ public class UserImpersonation {
   }
 
   /**
-   * Parses all properties that start with {@link Property#INSTANCE_RPC_SASL_PROXYUSERS}. This
+   * Parses all properties that start with <code>instance.rpc.sasl.impersonation.</code>. This
    * approach was the original configuration method, but does not work with Ambari.
    *
    * @param configProperties

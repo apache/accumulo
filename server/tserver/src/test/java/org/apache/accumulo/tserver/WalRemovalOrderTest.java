@@ -17,7 +17,6 @@
 package org.apache.accumulo.tserver;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -52,7 +51,7 @@ public class WalRemovalOrderTest {
     try {
       return new DfsLogger(conf, filename, null);
     } catch (IOException e) {
-      throw new UncheckedIOException(e);
+      throw new RuntimeException(e);
     }
   }
 
