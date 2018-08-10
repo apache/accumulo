@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -48,7 +49,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MetadataConstraints implements SystemConstraint {
+public class MetadataConstraints implements Constraint {
 
   private ServerContext context = null;
   private ZooCache zooCache = null;
@@ -106,13 +107,8 @@ public class MetadataConstraints implements SystemConstraint {
   }
 
   @Override
-  public List<Short> check(SystemEnvironment env, Mutation mutation) {
-    context = env.getServerContext();
-    return check((Environment) env, mutation);
-  }
-
-  @Override
   public List<Short> check(Environment env, Mutation mutation) {
+    context = ((SystemEnvironment)env).getServerContext();
 
     ArrayList<Short> violations = null;
 

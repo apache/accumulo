@@ -26,7 +26,7 @@ import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.constraints.SystemConstraint.SystemEnvironment;
+import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.apache.accumulo.server.security.SecurityOperation;
 
 public class TservConstraintEnv implements SystemEnvironment {

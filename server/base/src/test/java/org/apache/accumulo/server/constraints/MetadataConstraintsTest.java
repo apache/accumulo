@@ -58,9 +58,8 @@ public class MetadataConstraintsTest {
     }
   }
 
-  private SystemConstraint.SystemEnvironment createEnv() {
-    SystemConstraint.SystemEnvironment env = EasyMock
-        .createMock(SystemConstraint.SystemEnvironment.class);
+  private SystemEnvironment createEnv() {
+    SystemEnvironment env = EasyMock.createMock(SystemEnvironment.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(env.getServerContext()).andReturn(context);
     EasyMock.replay(env);

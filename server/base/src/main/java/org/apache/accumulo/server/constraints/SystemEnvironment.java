@@ -14,22 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.accumulo.server.constraints;
 
-import java.util.List;
-
 import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.server.ServerContext;
 
-public interface SystemConstraint extends Constraint {
+public interface SystemEnvironment extends Constraint.Environment {
 
-  interface SystemEnvironment extends Environment {
-    ServerContext getServerContext();
-  }
+  ServerContext getServerContext();
 
-  default List<Short> check(SystemEnvironment env, Mutation mutation) {
-    return check((Environment) env, mutation);
-  }
 }
