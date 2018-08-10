@@ -84,10 +84,10 @@ public class MetadataBulkLoadFilter extends Filter {
     }
 
     bulkTxStatusCache = new HashMap<>();
-    arbitrator = getArbitrator();
+    arbitrator = getArbitrator(((SystemIteratorEnvironment) env).getServerContext());
   }
 
-  protected Arbitrator getArbitrator() {
-    return new ZooArbitrator(ServerContext.getInstance());
+  protected Arbitrator getArbitrator(ServerContext context) {
+    return new ZooArbitrator(context);
   }
 }

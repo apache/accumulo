@@ -108,7 +108,7 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
-    final ServerContext context = ((SystemEnvironment)env).getServerContext();
+    final ServerContext context = ((SystemEnvironment) env).getServerContext();
 
     ArrayList<Short> violations = null;
 
@@ -231,8 +231,8 @@ public class MetadataConstraints implements Constraint {
             long tid = Long.parseLong(tidString);
 
             try {
-              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)
-                  || !getArbitrator(context).transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
+              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator(context)
+                  .transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
                 violations = addViolation(violations, 8);
               }
             } catch (Exception ex) {

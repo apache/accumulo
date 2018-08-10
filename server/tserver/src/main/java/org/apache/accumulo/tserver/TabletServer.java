@@ -1313,7 +1313,7 @@ public class TabletServer implements Runnable {
           .iterator();
 
       final CompressedIterators compressedIters = new CompressedIterators(symbols);
-      ConditionCheckerContext checkerContext = new ConditionCheckerContext(compressedIters,
+      ConditionCheckerContext checkerContext = new ConditionCheckerContext(context, compressedIters,
           confFactory.getTableConfiguration(cs.tableId));
 
       while (iter.hasNext()) {
