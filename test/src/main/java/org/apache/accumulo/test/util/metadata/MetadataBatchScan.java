@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.performance.metadata;
+package org.apache.accumulo.test.util.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -54,14 +54,14 @@ import com.google.common.collect.Iterators;
  * This little program can be used to write a lot of metadata entries and measure the performance of
  * varying numbers of threads doing metadata lookups using the batch scanner.
  */
-public class MetadataBatchScanTest {
+public class MetadataBatchScan {
 
-  private static final Logger log = LoggerFactory.getLogger(MetadataBatchScanTest.class);
+  private static final Logger log = LoggerFactory.getLogger(MetadataBatchScan.class);
 
   public static void main(String[] args) throws Exception {
 
     ClientOpts opts = new ClientOpts();
-    opts.parseArgs(MetadataBatchScanTest.class.getName(), args);
+    opts.parseArgs(MetadataBatchScan.class.getName(), args);
     final Connector connector = opts.getConnector();
 
     TreeSet<Long> splits = new TreeSet<>();

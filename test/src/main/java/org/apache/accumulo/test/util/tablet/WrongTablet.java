@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util.tablet;
 
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
@@ -30,7 +30,7 @@ import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 
-public class WrongTabletTest {
+public class WrongTablet {
 
   static class Opts extends ClientOpts {
     @Parameter(names = "--location", required = true)
@@ -39,7 +39,7 @@ public class WrongTabletTest {
 
   public static void main(String[] args) {
     final Opts opts = new Opts();
-    opts.parseArgs(WrongTabletTest.class.getName(), args);
+    opts.parseArgs(WrongTablet.class.getName(), args);
 
     final HostAndPort location = HostAndPort.fromString(opts.location);
     final ClientContext context = opts.getClientContext();

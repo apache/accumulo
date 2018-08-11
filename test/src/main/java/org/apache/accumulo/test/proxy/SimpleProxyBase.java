@@ -1172,6 +1172,14 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public void testSystemProperties() throws Exception {
     Map<String,String> cfg = client.getSiteConfiguration(creds);
 
+    // set generic property
+    client.setProperty(creds, "general.custom.test.systemprop", "whistletips");
+    assertEquals(
+        proxyClient.proxy().getSystemConfiguration(creds).get("general.custom.test.systemprop"),
+        "whistletips");
+    client.removeProperty(creds, "general.custom.test.systemprop");
+    assertNull(client.getSystemConfiguration(creds).get("general.custom.test.systemprop"));
+
     // set a property in zookeeper
     client.setProperty(creds, "table.split.threshold", "500M");
 

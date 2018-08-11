@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util.memory;
 
 import java.util.Collections;
 
@@ -26,7 +26,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfiguratio
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.hadoop.io.Text;
 
-class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
+class InMemoryMapMemoryUsageCheck extends MemoryUsageCheck {
 
   private int keyLen;
   private int colFamLen;
@@ -41,7 +41,7 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
   private ColumnVisibility colv;
   private int passes;
 
-  InMemoryMapMemoryUsageTest(int passes, int keyLen, int colFamLen, int colQualLen, int colVisLen,
+  InMemoryMapMemoryUsageCheck(int passes, int keyLen, int colFamLen, int colQualLen, int colVisLen,
       int dataLen) {
     this.keyLen = keyLen;
     this.colFamLen = colFamLen;

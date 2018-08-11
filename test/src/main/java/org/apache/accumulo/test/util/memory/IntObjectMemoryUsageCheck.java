@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util.memory;
 
-class IntObjectMemoryUsageTest extends MemoryUsageTest {
+class IntObjectMemoryUsageCheck extends MemoryUsageCheck {
 
   private int passes;
   private Object data[];
@@ -29,7 +29,7 @@ class IntObjectMemoryUsageTest extends MemoryUsageTest {
     }
   }
 
-  IntObjectMemoryUsageTest(int numPasses) {
+  IntObjectMemoryUsageCheck(int numPasses) {
     this.passes = numPasses;
   }
 

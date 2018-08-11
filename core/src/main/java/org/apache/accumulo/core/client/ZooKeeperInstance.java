@@ -94,7 +94,8 @@ public class ZooKeeperInstance implements Instance {
     this.instanceName = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_NAME);
     if ((instanceId == null) == (instanceName == null))
       throw new IllegalArgumentException(
-          "Expected exactly one of instanceName and instanceId to be set");
+          "Expected exactly one of instanceName and instanceId to be set; "
+              + (instanceName == null ? "neither" : "both") + " were set");
     this.zooKeepers = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST);
     this.zooKeepersSessionTimeOut = (int) ConfigurationTypeHelper
         .getTimeInMillis(clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT));

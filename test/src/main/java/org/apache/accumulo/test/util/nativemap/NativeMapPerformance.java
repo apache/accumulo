@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util.nativemap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
@@ -35,7 +35,7 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
 
-public class NativeMapPerformanceTest {
+public class NativeMapPerformance {
 
   private static final byte ROW_PREFIX[] = {'r'};
   private static final byte COL_PREFIX[] = {'c'};
@@ -188,7 +188,7 @@ public class NativeMapPerformanceTest {
 
     if (args.length != 3) {
       throw new IllegalArgumentException(
-          "Usage : " + NativeMapPerformanceTest.class.getName() + " <map type> <rows> <columns>");
+          "Usage : " + NativeMapPerformance.class.getName() + " <map type> <rows> <columns>");
     }
 
     String mapType = args[0];

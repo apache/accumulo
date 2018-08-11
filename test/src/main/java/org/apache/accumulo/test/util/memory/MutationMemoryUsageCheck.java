@@ -14,61 +14,76 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util.memory;
 
-import java.util.TreeMap;
-
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
-class TextMemoryUsageTest extends MemoryUsageTest {
+class MutationMemoryUsageCheck extends MemoryUsageCheck {
 
   private int keyLen;
   private int colFamLen;
   private int colQualLen;
   private int dataLen;
-  private TreeMap<Text,Value> map;
+
+  private Mutation[] mutations;
+  private Text key;
+  private Text colf;
+  private Text colq;
   private int passes;
 
-  TextMemoryUsageTest(int passes, int keyLen, int colFamLen, int colQualLen, int dataLen) {
+  MutationMemoryUsageCheck(int passes, int keyLen, int colFamLen, int colQualLen, int dataLen) {
     this.keyLen = keyLen;
     this.colFamLen = colFamLen;
     this.colQualLen = colQualLen;
     this.dataLen = dataLen;
     this.passes = passes;
+    mutations = new Mutation[passes];
 
   }
 
   @Override
   void init() {
-    map = new TreeMap<>();
+    key = new Text();
+
+    colf = new Text(String.format("%0" + colFamLen + "d", 0));
+    colq = new Text(String.format("%0" + colQualLen + "d", 0));
+
+    byte data[] = new byte[dataLen];
+    for (int i = 0; i < data.length; i++) {
+      data[i] = (byte) (i % 10 + 65);
+    }
   }
 
   @Override
   public void addEntry(int i) {
-    Text key = new Text(
-        String.format("%0" + keyLen + "d:%0" + colFamLen + "d:%0" + colQualLen + "d", i, 0, 0)
-            .getBytes());
-    //
+    key.set(String.format("%0" + keyLen + "d", i));
+
+    Mutation m = new Mutation(key);
+
     byte data[] = new byte[dataLen];
     for (int j = 0; j < data.length; j++) {
       data[j] = (byte) (j % 10 + 65);
     }
-    Value value = new Value(data);
+    Value idata = new Value(data);
 
-    map.put(key, value);
+    m.put(colf, colq, idata);
 
-  }
-
-  @Override
-  public void clear() {
-    map.clear();
-    map = null;
+    mutations[i] = m;
   }
 
   @Override
   public int getEstimatedBytesPerEntry() {
     return keyLen + colFamLen + colQualLen + dataLen;
+  }
+
+  @Override
+  public void clear() {
+    key = null;
+    colf = null;
+    colq = null;
+    mutations = null;
   }
 
   @Override
@@ -78,7 +93,6 @@ class TextMemoryUsageTest extends MemoryUsageTest {
 
   @Override
   String getName() {
-    return "Text " + keyLen + " " + colFamLen + " " + colQualLen + " " + dataLen;
+    return "Mutation " + keyLen + " " + colFamLen + " " + colQualLen + " " + dataLen;
   }
-
 }

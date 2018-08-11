@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util.nativemap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -33,9 +33,9 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
-public class NativeMapConcurrencyTest {
+public class NativeMapConcurrency {
 
-  private static final Logger log = LoggerFactory.getLogger(NativeMapConcurrencyTest.class);
+  private static final Logger log = LoggerFactory.getLogger(NativeMapConcurrency.class);
 
   private static final byte ROW_PREFIX[] = {'r'};
   private static final byte COL_PREFIX[] = {'c'};
@@ -97,7 +97,7 @@ public class NativeMapConcurrencyTest {
   public static void main(String[] args) {
     Opts opts = new Opts();
     JCommander jc = new JCommander(opts);
-    jc.setProgramName(NativeMapConcurrencyTest.class.getName());
+    jc.setProgramName(NativeMapConcurrency.class.getName());
     jc.parse(args);
     if (opts.help) {
       jc.usage();

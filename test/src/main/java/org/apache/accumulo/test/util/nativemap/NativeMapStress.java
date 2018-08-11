@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util.nativemap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -37,9 +37,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NativeMapStressTest {
+public class NativeMapStress {
 
-  private static final Logger log = LoggerFactory.getLogger(NativeMapStressTest.class);
+  private static final Logger log = LoggerFactory.getLogger(NativeMapStress.class);
 
   public static void main(String[] args) {
     testLotsOfMapDeletes(true);

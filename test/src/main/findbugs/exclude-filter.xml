@@ -48,7 +48,7 @@
     <!-- test classes can force garbage collection -->
     <Or>
       <Class name="org.apache.accumulo.test.performance.scan.CollectTabletStats" />
-      <Class name="org.apache.accumulo.test.MemoryUsageTest" />
+      <Class name="org.apache.accumulo.test.util.memory.MemoryUsageCheck" />
     </Or>
     <Bug code="DM" pattern="DM_GC" />
   </Match>
