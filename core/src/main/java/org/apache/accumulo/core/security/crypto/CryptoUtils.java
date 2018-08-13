@@ -28,8 +28,8 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.NullCipher;
 
-import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,10 +101,7 @@ public class CryptoUtils {
     Objects.requireNonNull(in);
     int len = in.readInt();
     byte[] decryptionParams = new byte[len];
-    int bytesRead = in.read(decryptionParams);
-    if (bytesRead != len) {
-      throw new CryptoService.CryptoException("Incorrect number of bytes read for crypto params.");
-    }
+    IOUtils.readFully(in, decryptionParams);
     return decryptionParams;
   }
 
