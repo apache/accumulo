@@ -40,7 +40,7 @@ public class MetadataConstraintsTest {
 
   static class TestMetadataConstraints extends MetadataConstraints {
     @Override
-    protected Arbitrator getArbitrator() {
+    protected Arbitrator getArbitrator(ServerContext context) {
       return new Arbitrator() {
 
         @Override

@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.constraints.Constraint;
@@ -51,7 +52,6 @@ import org.slf4j.LoggerFactory;
 
 public class MetadataConstraints implements Constraint {
 
-  private ServerContext context = null;
   private ZooCache zooCache = null;
   private String zooRoot = null;
 
@@ -108,7 +108,7 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
-    context = ((SystemEnvironment)env).getServerContext();
+    final ServerContext context = ((SystemEnvironment)env).getServerContext();
 
     ArrayList<Short> violations = null;
 
@@ -232,7 +232,7 @@ public class MetadataConstraints implements Constraint {
 
             try {
               if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)
-                  || !getArbitrator().transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
+                  || !getArbitrator(context).transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
                 violations = addViolation(violations, 8);
               }
             } catch (Exception ex) {
@@ -297,10 +297,8 @@ public class MetadataConstraints implements Constraint {
     return violations;
   }
 
-  protected Arbitrator getArbitrator() {
-    if (context == null) {
-      throw new IllegalStateException("Requested Arbitrator but ServerContext was not set!");
-    }
+  protected Arbitrator getArbitrator(ServerContext context) {
+    Objects.nonNull(context);
     return new ZooArbitrator(context);
   }
 
