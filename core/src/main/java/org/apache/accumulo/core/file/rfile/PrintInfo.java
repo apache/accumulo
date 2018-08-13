@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -30,12 +32,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.security.crypto.CryptoUtils;
+import org.apache.accumulo.core.security.crypto.impl.NoFileEncrypter;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -165,6 +171,8 @@ public class PrintInfo implements KeywordExecutable {
       System.out
           .println("Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
 
+      printCryptoParams(path, fs);
+
       AccumuloConfiguration aconf = SiteConfiguration.getInstance();
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
           aconf, CryptoServiceFactory.getConfigured(aconf));
@@ -251,6 +259,29 @@ public class PrintInfo implements KeywordExecutable {
       // If the output stream has closed, there is no reason to keep going.
       if (System.out.checkError())
         return;
+    }
+  }
+
+  /**
+   * Print the unencrypted parameters that tell the Crypto Service how to decrypt the file. This
+   * information is useful for debugging if and how a file was encrypted.
+   */
+  private void printCryptoParams(Path path, FileSystem fs) {
+    byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
+    try (FSDataInputStream fsDis = fs.open(path)) {
+      long fileLength = fs.getFileStatus(path).getLen();
+      fsDis.seek(fileLength - 16 - Utils.Version.size() - (Long.BYTES));
+      long cryptoParamOffset = fsDis.readLong();
+      fsDis.seek(cryptoParamOffset);
+      byte[] cryptoParams = CryptoUtils.readParams(fsDis);
+      if (!Arrays.equals(noCryptoBytes, cryptoParams)) {
+        System.out.println("Encrypted with Params: "
+            + Key.toPrintableString(cryptoParams, 0, cryptoParams.length, cryptoParams.length));
+      } else {
+        System.out.println("No on disk encryption detected.");
+      }
+    } catch (IOException ioe) {
+      log.error("Error reading crypto params", ioe);
     }
   }
 }
