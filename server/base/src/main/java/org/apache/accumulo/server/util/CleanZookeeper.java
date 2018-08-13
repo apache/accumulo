@@ -56,7 +56,7 @@ public class CleanZookeeper {
       zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
     }
 
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
 
     try {
       for (String child : zk.getChildren(root)) {

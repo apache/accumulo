@@ -3338,7 +3338,7 @@ public class TabletServer implements Runnable {
     final String app = "tserver";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     context.setupServer(app, TabletServer.class.getSimpleName(), opts.getAddress());
     try {
       final TabletServer server = new TabletServer(context);

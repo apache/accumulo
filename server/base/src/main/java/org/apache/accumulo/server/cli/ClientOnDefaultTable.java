@@ -25,9 +25,9 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
 
   public ServerContext getServerContext() {
     if (instance == null) {
-      return ServerContext.getInstance();
+      return new ServerContext();
     }
-    return ServerContext.getInstance(getClientInfo());
+    return new ServerContext(getClientInfo());
   }
 
   public ClientOnDefaultTable(String table) {

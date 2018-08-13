@@ -25,8 +25,8 @@ public class ClientOnRequiredTable extends org.apache.accumulo.core.cli.ClientOn
 
   public ServerContext getServerContext() {
     if (instance == null) {
-      return ServerContext.getInstance();
+      return new ServerContext();
     }
-    return ServerContext.getInstance(getClientInfo());
+    return new ServerContext(getClientInfo());
   }
 }

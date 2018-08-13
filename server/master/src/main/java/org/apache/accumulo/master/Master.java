@@ -1552,7 +1552,7 @@ public class Master
     final String app = "master";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     context.setupServer(app, Master.class.getName(), opts.getAddress());
     try {
       Master master = new Master(context);

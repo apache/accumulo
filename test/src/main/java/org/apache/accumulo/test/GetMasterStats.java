@@ -40,7 +40,7 @@ public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);
