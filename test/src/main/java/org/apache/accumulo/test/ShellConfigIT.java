@@ -103,11 +103,12 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       Assert.fail("Unknown token type");
     }
 
-    assertTrue(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_PREFIX.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_SERVICE.isExperimental());
 
     String configOutput = ts.exec("config");
 
     assertTrue(configOutput.contains(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER));
-    assertFalse(configOutput.contains(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey()));
+    assertFalse(configOutput.contains(Property.INSTANCE_CRYPTO_SERVICE.getKey()));
   }
 }

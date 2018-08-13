@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.security.crypto.streams;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -92,7 +92,7 @@ public class BlockedOutputStream extends OutputStream {
       len -= remaining;
     }
     // And then write the remainder (and this is guaranteed to not fill the buffer, so we won't
-    // flush afteward
+    // flush afterward
     bb.put(b, off, len);
   }
 

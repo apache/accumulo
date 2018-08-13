@@ -57,10 +57,12 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
@@ -80,6 +82,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
   private AccumuloConfiguration tableConf;
+  private CryptoService cryptoService;
 
   static class Opts {
     InputArgs in;
@@ -215,6 +218,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (null == this.dataCache) {
       this.dataCache = new NoopCache();
     }
+    this.cryptoService = CryptoServiceFactory.getConfigured(tableConf);
   }
 
   @Override
@@ -353,8 +357,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        readers.add(new RFile.Reader(new CachableBlockFile.Reader("source-" + i, inputStream,
-            sources[i].getLength(), opts.in.getConf(), dataCache, indexCache, tableConf)));
+        readers.add(new RFile.Reader(
+            new CachableBlockFile.Reader("source-" + i, inputStream, sources[i].getLength(),
+                opts.in.getConf(), dataCache, indexCache, tableConf, cryptoService)));
       }
 
       if (getSamplerConfiguration() != null) {

@@ -17,6 +17,7 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl.Scope;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -25,7 +26,6 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
@@ -33,9 +33,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -46,11 +44,15 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.security.crypto.CryptoModule;
-import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
-import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
-import org.apache.accumulo.core.security.crypto.DefaultCryptoModule;
-import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.security.crypto.CryptoUtils;
+import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
+import org.apache.accumulo.core.security.crypto.streams.NoFlushOutputStream;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileDecrypter;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.util.LoggingRunnable;
@@ -77,8 +79,15 @@ import com.google.common.base.Joiner;
  *
  */
 public class DfsLogger implements Comparable<DfsLogger> {
+  // older versions should no longer be supported in 2.0
   public static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
   public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
+  /**
+   * Simplified encryption technique supported in V4.
+   *
+   * @since 2.0
+   */
+  public static final String LOG_FILE_HEADER_V4 = "--- Log File Header (v4) ---";
 
   private static final Logger log = LoggerFactory.getLogger(DfsLogger.class);
   private static final DatanodeInfo[] EMPTY_PIPELINE = new DatanodeInfo[0];
@@ -353,89 +362,27 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input,
       AccumuloConfiguration conf) throws IOException {
-    DataInputStream decryptingInput = null;
+    DataInputStream decryptingInput;
 
-    byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
+    byte[] magic = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
     byte[] magicBuffer = new byte[magic.length];
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
-        // additional parameters it needs from the underlying stream.
-        String cryptoModuleClassname = input.readUTF();
-        CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoModuleClassname);
+        byte[] params = CryptoUtils.readParams(input);
+        CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
+        CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
 
-        // Create the parameters and set the input stream into those parameters
-        CryptoModuleParameters params = CryptoModuleFactory
-            .createParamsObjectFromAccumuloConfiguration(conf);
-        params.setEncryptedInputStream(input);
-
-        // Create the plaintext input stream from the encrypted one
-        params = cryptoModule.getDecryptingInputStream(params);
-
-        if (params.getPlaintextInputStream() instanceof DataInputStream) {
-          decryptingInput = (DataInputStream) params.getPlaintextInputStream();
-        } else {
-          decryptingInput = new DataInputStream(params.getPlaintextInputStream());
-        }
+        FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
+        log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
+        decryptingInput = cryptoService instanceof NoCryptoService ? input
+            : new DataInputStream(decrypter.decryptStream(input));
       } else {
+        log.error("Unsupported WAL version.");
         input.seek(0);
-        byte[] magicV2 = DfsLogger.LOG_FILE_HEADER_V2.getBytes(UTF_8);
-        byte[] magicBufferV2 = new byte[magicV2.length];
-        input.readFully(magicBufferV2);
-
-        if (Arrays.equals(magicBufferV2, magicV2)) {
-          // Log files from 1.5 dump their options in raw to the logger files. Since we don't know
-          // the class
-          // that needs to read those files, we can make a couple of basic assumptions. Either it's
-          // going to be
-          // the NullCryptoModule (no crypto) or the DefaultCryptoModule.
-
-          // If it's null, we won't have any parameters whatsoever. First, let's attempt to read
-          // parameters
-          Map<String,String> opts = new HashMap<>();
-          int count = input.readInt();
-          for (int i = 0; i < count; i++) {
-            String key = input.readUTF();
-            String value = input.readUTF();
-            opts.put(key, value);
-          }
-
-          if (opts.size() == 0) {
-            // NullCryptoModule, we're done
-            decryptingInput = input;
-          } else {
-
-            // The DefaultCryptoModule will want to read the parameters from the underlying file, so
-            // we will put the file back to that spot.
-            // @formatter:off
-            org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
-              org.apache.accumulo.core.security.crypto.CryptoModuleFactory
-                .getCryptoModule(DefaultCryptoModule.class.getName());
-            // @formatter:on
-
-            CryptoModuleParameters params = CryptoModuleFactory
-                .createParamsObjectFromAccumuloConfiguration(conf);
-
-            // go back to the beginning, but skip over magicV2 already checked earlier
-            input.seek(magicV2.length);
-            params.setEncryptedInputStream(input);
-
-            params = cryptoModule.getDecryptingInputStream(params);
-            if (params.getPlaintextInputStream() instanceof DataInputStream) {
-              decryptingInput = (DataInputStream) params.getPlaintextInputStream();
-            } else {
-              decryptingInput = new DataInputStream(params.getPlaintextInputStream());
-            }
-          }
-
-        } else {
-
-          input.seek(0);
-          decryptingInput = input;
-        }
-
+        decryptingInput = input;
       }
-    } catch (EOFException e) {
+    } catch (Exception e) {
       log.warn("Got EOFException trying to read WAL header information,"
           + " assuming the rest of the file has no data.");
       // A TabletServer might have died before the (complete) header was written
@@ -481,48 +428,19 @@ public class DfsLogger implements Comparable<DfsLogger> {
       sync = logFile.getClass().getMethod("hsync");
       flush = logFile.getClass().getMethod("hflush");
 
-      // Initialize the crypto operations.
-      // @formatter:off
-      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
-        org.apache.accumulo.core.security.crypto.CryptoModuleFactory
-          .getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
-      // @formatter:on
+      // Initialize the log file with a header and its encryption
+      CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf.getConfiguration());
+      logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
-      // Initialize the log file with a header and the crypto params used to set up this log file.
-      logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));
+      log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
+          filename);
+      CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, null);
+      FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
+      byte[] cryptoParams = encrypter.getDecryptionParameters();
+      CryptoUtils.writeParams(cryptoParams, logFile);
 
-      CryptoModuleParameters params = CryptoModuleFactory
-          .createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
-      // Immediately update to the correct cipher. Doing this here keeps the CryptoModule
-      // independent of the writers using it
-      if (params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()) != null
-          && !params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()).equals("")) {
-        params
-            .setCipherSuite(params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()));
-        params.getAllOptions().put(Property.CRYPTO_CIPHER_SUITE.getKey(), params.getCipherSuite());
-      }
-
-      NoFlushOutputStream nfos = new NoFlushOutputStream(logFile);
-      params.setPlaintextOutputStream(nfos);
-
-      // In order to bootstrap the reading of this file later, we have to record the CryptoModule
-      // that was used to encipher it here,
-      // so that that crypto module can re-read its own parameters.
-
-      logFile.writeUTF(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
-
-      params = cryptoModule.getEncryptingOutputStream(params);
-      OutputStream encipheringOutputStream = params.getEncryptedOutputStream();
-
-      // If the module just kicks back our original stream, then just use it, don't wrap it in
-      // another data OutputStream.
-      if (encipheringOutputStream == nfos) {
-        log.debug("No enciphering, using raw output stream");
-        encryptingLogFile = nfos;
-      } else {
-        log.debug("Enciphering found, wrapping in DataOutputStream");
-        encryptingLogFile = new DataOutputStream(encipheringOutputStream);
-      }
+      encryptingLogFile = new DataOutputStream(
+          encrypter.encryptStream(new NoFlushOutputStream(logFile)));
 
       LogFileKey key = new LogFileKey();
       key.event = OPEN;

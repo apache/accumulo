@@ -53,6 +53,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -75,7 +76,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.security.crypto.CryptoTest;
+import org.apache.accumulo.core.security.crypto.impl.AESCryptoService;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -86,7 +90,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -122,6 +128,16 @@ public class RFileTest {
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(
       new File(System.getProperty("user.dir") + "/target"));
+
+  @BeforeClass
+  public static void setupCryptoKeyFile() throws Exception {
+    CryptoTest.setupKeyFile();
+  }
+
+  @AfterClass
+  public static void removeCryptoKeyFile() throws Exception {
+    CryptoTest.cleanupKeyFile();
+  }
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream
       implements Seekable, PositionedReadable {
@@ -233,7 +249,8 @@ public class RFileTest {
     public void openWriter(boolean startDLG, int blockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration);
+      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
+          CryptoServiceFactory.getConfigured(accumuloConfiguration));
 
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
           .newSamplerConfig(accumuloConfiguration);
@@ -295,7 +312,8 @@ public class RFileTest {
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
-          dataCache, indexCache, DefaultConfiguration.getInstance());
+          dataCache, indexCache, accumuloConfiguration,
+          CryptoServiceFactory.getConfigured(accumuloConfiguration));
       reader = new RFile.Reader(_cbr);
       if (cfsi)
         iter = new ColumnFamilySkippingIterator(reader);
@@ -1691,18 +1709,30 @@ public class RFileTest {
 
   @Test(expected = NullPointerException.class)
   public void testMissingUnreleasedVersions() throws Exception {
-    runVersionTest(5);
+    runVersionTest(5, DefaultConfiguration.getInstance());
   }
 
   @Test
   public void testOldVersions() throws Exception {
-    runVersionTest(3);
-    runVersionTest(4);
-    runVersionTest(6);
-    runVersionTest(7);
+    AccumuloConfiguration defaultConfiguration = DefaultConfiguration.getInstance();
+    runVersionTest(3, defaultConfiguration);
+    runVersionTest(4, defaultConfiguration);
+    runVersionTest(6, defaultConfiguration);
+    runVersionTest(7, defaultConfiguration);
   }
 
-  private void runVersionTest(int version) throws IOException {
+  @Test
+  public void testOldVersionsWithCrypto() throws Exception {
+    turnCryptoOnInSiteConfig();
+    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    runVersionTest(3, cryptoOnConf);
+    runVersionTest(4, cryptoOnConf);
+    runVersionTest(6, cryptoOnConf);
+    runVersionTest(7, cryptoOnConf);
+    turnCryptoOffInSiteConfig();
+  }
+
+  private void runVersionTest(int version, AccumuloConfiguration aconf) throws IOException {
     InputStream in = this.getClass().getClassLoader()
         .getResourceAsStream("org/apache/accumulo/core/file/rfile/ver_" + version + ".rf");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1714,9 +1744,8 @@ public class RFileTest {
     byte data[] = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
-    AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length,
-        CachedConfiguration.getInstance(), aconf);
+        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.getConfigured(aconf));
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);
 
@@ -1762,7 +1791,7 @@ public class RFileTest {
     reader.close();
   }
 
-  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
+  public static AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
     ConfigurationCopy result = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);
@@ -1772,15 +1801,33 @@ public class RFileTest {
     return result;
   }
 
+  public void turnCryptoOnInSiteConfig() {
+    SiteConfiguration.clearInstance();
+    SiteConfiguration.getInstance().set(Property.INSTANCE_CRYPTO_SERVICE,
+        AESCryptoService.class.getName());
+    SiteConfiguration.getInstance().set("instance.crypto.opts.kekId", "file:///tmp/testAESFile");
+    SiteConfiguration.getInstance().set("instance.crypto.opts.keyManager", "uri");
+    CryptoServiceFactory.resetInstance();
+  }
+
+  public static void turnCryptoOffInSiteConfig() {
+    SiteConfiguration.getInstance().set(Property.INSTANCE_CRYPTO_SERVICE,
+        NoCryptoService.class.getName());
+    CryptoServiceFactory.resetInstance();
+  }
+
   @Test
   public void testEncRFile1() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test1();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile2() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test2();
     conf = null;
@@ -1788,115 +1835,149 @@ public class RFileTest {
 
   @Test
   public void testEncRFile3() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test3();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile4() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test4();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile5() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test5();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile6() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test6();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile7() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test7();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile8() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test8();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile9() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test9();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile10() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test10();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile11() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test11();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile12() throws Exception {
+    turnCryptoOnInSiteConfig();
+    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test12();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile13() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test13();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile14() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test14();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile16() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test16();
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile17() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test17();
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile18() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test18();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncRFile19() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test19();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testEncryptedRFiles() throws Exception {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test1();
     test2();
@@ -1907,6 +1988,7 @@ public class RFileTest {
     test7();
     test8();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   private Key newKey(int r, int c) {
@@ -2200,10 +2282,12 @@ public class RFileTest {
 
   @Test
   public void testEncSample() throws IOException {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     testSample();
     testSampleLG();
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
@@ -2258,6 +2342,7 @@ public class RFileTest {
 
   @Test
   public void testCryptoDoesntLeakSensitive() throws IOException {
+    turnCryptoOnInSiteConfig();
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     // test an empty file
 
@@ -2275,10 +2360,12 @@ public class RFileTest {
         assertEquals(-1, Bytes.indexOf(rfBytes, toCheck));
       }
     }
+    turnCryptoOffInSiteConfig();
   }
 
   @Test
   public void testRootTabletEncryption() throws Exception {
+    turnCryptoOnInSiteConfig();
 
     // This tests that the normal set of operations used to populate a root tablet
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
@@ -2362,5 +2449,6 @@ public class RFileTest {
     testRfile.closeReader();
 
     conf = null;
+    turnCryptoOffInSiteConfig();
   }
 }

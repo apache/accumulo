@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -15,16 +16,26 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 
 <configuration>
-  
+    <property>
+        <name>instance.crypto.service</name>
+        <value>org.apache.accumulo.core.security.crypto.impl.AESCryptoService</value>
+    </property>
+    <property>
+        <name>instance.crypto.opts.kekId</name>
+        <value>file:///tmp/testAESFile</value>
+    </property>
+    <property>
+        <name>instance.crypto.opts.keyManager</name>
+        <value>uri</value>
+    </property>
+
     <property>
       <name>instance.zookeeper.host</name>
       <value>localhost:2181</value>
       <description>comma separated list of zookeeper servers</description>
     </property>
-
     <property>
       <name>instance.secret</name>
       <value>DEFAULT</value>
@@ -50,84 +61,12 @@
     </property>
     
     <property>
-      <name>trace.password</name>
-      <!-- 
-        change this to the root user's password, and/or change the user below 
-       -->
-      <value>password</value>
-    </property>
-    
-    <property>
-      <name>trace.user</name>
-      <value>root</value>
-    </property>
-    
-    <property>
       <name>tserver.sort.buffer.size</name>
       <value>50M</value>
     </property>
     
     <property>
       <name>tserver.walog.max.size</name>
-      <value>100M</value>
+      <value>512M</value>
     </property>
-    <property>
-      <name>crypto.module.class</name>
-      <value>org.apache.accumulo.core.security.crypto.DefaultCryptoModule</value>
-    </property>
-    <property>
-      <name>crypto.security.provider</name>
-      <value>SunJCE</value>
-    </property>
-    <property>
-      <name>crypto.cipher.suite</name>
-      <value>AES/GCM/NoPadding</value>
-    </property>
-    <property>
-      <name>crypto.wal.cipher.suite</name>
-      <value>AES/CBC/NoPadding</value>
-    </property>
-    <property>
-      <name>crypto.cipher.key.algorithm.name</name>
-      <value>AES</value>
-    </property>
-    <property>
-      <name>crypto.cipher.key.length</name>
-      <value>128</value>
-    </property>
-    <property>
-      <name>crypto.secure.rng</name>
-      <value>SHA1PRNG</value>
-    </property>
-    <property>
-      <name>crypto.secure.rng.provider</name>
-      <value>SUN</value>
-    </property>
-    <property>
-      <name>crypto.security.provider</name>
-      <value>SunJCE</value>
-    </property>
-    <property>
-      <name>crypto.secret.key.encryption.strategy.class</name>
-      <value>org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy</value>
-    </property>
-    <property>
-      <name>instance.dfs.dir</name>
-      <value>target/dfs</value>
-    </property>
-    <property>
-      <name>instance.dfs.uri</name>
-      <value>file:///</value>
-    </property>
-    
-    <property>
-      <name>crypto.default.key.strategy.key.location</name>
-      <value>test.secret.key</value>
-    </property>
-    
-    <property>
-    	<name>crypto.default.key.strategy.cipher.suite</name>
-    	<value>AESWrap/ECB/NoPadding</value>
-    </property>
-
 </configuration>

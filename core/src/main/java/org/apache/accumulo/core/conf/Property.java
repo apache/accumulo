@@ -45,76 +45,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public enum Property {
-  // Crypto-related properties
-  @Experimental
-  CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX,
-      "Properties in this category related to the configuration of both default and custom crypto"
-          + " modules."),
-  @Experimental
-  CRYPTO_MODULE_CLASS("crypto.module.class", "NullCryptoModule", PropertyType.STRING,
-      "Fully qualified class name of the class that implements the CryptoModule"
-          + " interface, to be used in setting up encryption at rest for the WAL and"
-          + " (future) other parts of the code."),
-  @Experimental
-  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING,
-      "Describes the cipher suite to use for rfile encryption. The value must"
-          + " be either NullCipher or in the form of algorithm/mode/padding, e.g."
-          + " AES/CBC/NoPadding"),
-  @Experimental
-  CRYPTO_WAL_CIPHER_SUITE("crypto.wal.cipher.suite", "", PropertyType.STRING,
-      "Describes the cipher suite to use for the write-ahead log. Defaults to"
-          + " 'cyrpto.cipher.suite' and will use that value for WAL encryption unless"
-          + " otherwise specified. Valid suite values include: an empty string,"
-          + " NullCipher, or a string the form of algorithm/mode/padding, e.g."
-          + " AES/CBC/NOPadding"),
-  @Experimental
-  CRYPTO_CIPHER_KEY_ALGORITHM_NAME("crypto.cipher.key.algorithm.name", "NullCipher",
-      PropertyType.STRING,
-      "States the name of the algorithm used for the key for the corresponding"
-          + " cipher suite. The key type must be compatible with the cipher suite."),
-  @Experimental
-  CRYPTO_BLOCK_STREAM_SIZE("crypto.block.stream.size", "1K", PropertyType.BYTES,
-      "The size of the buffer above the cipher stream. Used for reading files"
-          + " and padding walog entries."),
-  @Experimental
-  CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
-      "Specifies the key length *in bits* to use for the symmetric key, "
-          + "should probably be 128 or 256 unless you really know what you're doing"),
-  @Experimental
-  CRYPTO_SECURITY_PROVIDER("crypto.security.provider", "", PropertyType.STRING,
-      "States the security provider to use, and defaults to the system configured provider"),
-  @Experimental
-  CRYPTO_SECURE_RNG("crypto.secure.rng", "SHA1PRNG", PropertyType.STRING,
-      "States the secure random number generator to use, and defaults to the built-in SHA1PRNG"),
-  @Experimental
-  CRYPTO_SECURE_RNG_PROVIDER("crypto.secure.rng.provider", "SUN", PropertyType.STRING,
-      "States the secure random number generator provider to use."),
-  @Experimental
-  CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS("crypto.secret.key.encryption.strategy.class",
-      "NullSecretKeyEncryptionStrategy", PropertyType.STRING,
-      "The class Accumulo should use for its key encryption strategy."),
-  @Experimental
-  CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION("crypto.default.key.strategy.key.location",
-      "/crypto/secret/keyEncryptionKey", PropertyType.ABSOLUTEPATH,
-      "The path relative to the top level instance directory (instance.dfs.dir) where to store"
-          + " the key encryption key within HDFS."),
-  @Experimental
-  CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE("crypto.default.key.strategy.cipher.suite", "NullCipher",
-      PropertyType.STRING,
-      "The cipher suite to use when encrypting session keys with a key"
-          + " encryption keyThis should be set to match the overall encryption"
-          + " algorithm but with ECB mode and no padding unless you really know what"
-          + " you're doing and are sure you won't break internal file formats"),
-  @Experimental
-  CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY(
-      "crypto.override.key.strategy.with.configured.strategy", "false", PropertyType.BOOLEAN,
-      "The default behavior is to record the key encryption strategy with the"
-          + " encrypted file, and continue to use that strategy for the life of that"
-          + " file. Sometimes, you change your strategy and want to use the new"
-          + " strategy, not the old one. (Most commonly, this will be because you have"
-          + " moved key material from one spot to another.) If you want to override"
-          + " the recorded key strategy with the one in the configuration file, set"
-          + " this property to true."),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
@@ -238,6 +168,20 @@ public enum Property {
       PropertyType.STRING,
       "One-line configuration property controlling the network locations "
           + "(hostnames) that are allowed to impersonate other users"),
+  // Crypto-related properties
+  @Experimental
+  INSTANCE_CRYPTO_PREFIX("instance.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption."),
+  @Experimental
+  @Sensitive
+  INSTANCE_CRYPTO_SENSITIVE_PREFIX("instance.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption."),
+  @Experimental
+  INSTANCE_CRYPTO_SERVICE("instance.crypto.service",
+      "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
+      "The class which executes on-disk file encryption. The default does nothing. To enable "
+          + "encryption, replace this classname with an implementation of the"
+          + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -1197,7 +1141,7 @@ public enum Property {
       Property.TSERV_MAJC_MAXCONCURRENT, Property.REPLICATION_WORKER_THREADS,
       Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT, Property.TABLE_CLASSPATH,
       Property.MASTER_METADATA_SUSPENDABLE, Property.TABLE_FAILURES_IGNORE,
-      Property.TABLE_SCAN_MAXMEM);
+      Property.TABLE_SCAN_MAXMEM, Property.INSTANCE_CRYPTO_SERVICE);
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
       Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,

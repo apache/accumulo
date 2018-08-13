@@ -30,6 +30,8 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -58,9 +60,10 @@ public class SplitLarge {
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
+      CryptoService cryptoService = CryptoServiceFactory.getConfigured(aconf);
       Path path = new Path(file);
-      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          aconf);
+      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf,
+          cryptoService);
       try (Reader iter = new RFile.Reader(rdr)) {
 
         if (!file.endsWith(".rf")) {
@@ -71,12 +74,10 @@ public class SplitLarge {
 
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (
-            Writer small = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, aconf),
-                blockSize);
-            Writer large = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, aconf),
-                blockSize)) {
+            Writer small = new RFile.Writer(new BCFile.Writer(fs.create(new Path(smallName)), null,
+                "gz", conf, aconf, cryptoService), blockSize);
+            Writer large = new RFile.Writer(new BCFile.Writer(fs.create(new Path(largeName)), null,
+                "gz", conf, aconf, cryptoService), blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();
 

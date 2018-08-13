@@ -33,6 +33,8 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -48,7 +50,7 @@ public class RFileOperations extends FileOperations {
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
         new Path(options.getFilename()), options.getConfiguration(), options.getFileLenCache(),
         options.getDataCache(), options.getIndexCache(), options.getRateLimiter(),
-        options.getTableConfiguration());
+        options.getTableConfiguration(), options.getCryptoService());
     return new RFile.Reader(_cbr);
   }
 
@@ -128,9 +130,10 @@ public class RFileOperations extends FileOperations {
 
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
+    CryptoService cryptoService = CryptoServiceFactory.getConfigured(acuconf);
 
     BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, acuconf);
+        conf, acuconf, cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

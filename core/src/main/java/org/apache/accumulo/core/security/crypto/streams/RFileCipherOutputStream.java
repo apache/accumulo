@@ -14,7 +14,7 @@
  * see the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.security.crypto;
+package org.apache.accumulo.core.security.crypto.streams;
 
 import java.io.IOException;
 import java.io.OutputStream;
