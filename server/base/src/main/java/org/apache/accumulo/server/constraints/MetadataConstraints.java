@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.constraints.Constraint;
@@ -107,6 +108,7 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
+    final ServerContext context = ((SystemEnvironment)env).getServerContext();
 
     ArrayList<Short> violations = null;
 
@@ -230,7 +232,7 @@ public class MetadataConstraints implements Constraint {
 
             try {
               if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)
-                  || !getArbitrator().transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
+                  || !getArbitrator(context).transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
                 violations = addViolation(violations, 8);
               }
             } catch (Exception ex) {
@@ -264,7 +266,7 @@ public class MetadataConstraints implements Constraint {
           }
 
           if (zooRoot == null) {
-            zooRoot = ServerContext.getInstance().getZooKeeperRoot();
+            zooRoot = context.getZooKeeperRoot();
           }
 
           boolean lockHeld = false;
@@ -295,8 +297,9 @@ public class MetadataConstraints implements Constraint {
     return violations;
   }
 
-  protected Arbitrator getArbitrator() {
-    return new ZooArbitrator(ServerContext.getInstance());
+  protected Arbitrator getArbitrator(ServerContext context) {
+    Objects.nonNull(context);
+    return new ZooArbitrator(context);
   }
 
   @Override
@@ -327,5 +330,4 @@ public class MetadataConstraints implements Constraint {
     if (zooCache != null)
       zooCache.clear();
   }
-
 }
