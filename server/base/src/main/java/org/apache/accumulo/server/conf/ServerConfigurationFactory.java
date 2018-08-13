@@ -97,6 +97,10 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     addInstanceToCaches(instanceID);
   }
 
+  public ServerContext getServerContext() {
+    return context;
+  }
+
   void setZooCacheFactory(ZooCacheFactory zcf) {
     this.zcf = zcf;
   }
