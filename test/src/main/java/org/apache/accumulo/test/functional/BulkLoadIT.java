@@ -43,6 +43,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.LoadPlan;
+import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -204,7 +206,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testBulkFile(boolean offline) throws Exception {
+  private void testBulkFile(boolean offline, boolean usePlan) throws Exception {
     Connector c = getConnector();
     addSplits(tableName, "0333 0666 0999 1333 1666");
 
@@ -237,7 +239,15 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     hashes.get("1666").add(h4);
     hashes.get("null").add(h4);
 
-    c.tableOperations().addFilesTo(tableName).from(dir).load();
+    if (usePlan) {
+      LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(333))
+          .loadFileTo("f2.rf", RangeType.TABLET, row(333), row(999))
+          .loadFileTo("f3.rf", RangeType.DATA, row(1000), row(1499))
+          .loadFileTo("f4.rf", RangeType.DATA, row(1500), row(1999)).build();
+      c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
+    } else {
+      c.tableOperations().addFilesTo(tableName).from(dir).load();
+    }
 
     if (offline)
       c.tableOperations().online(tableName);
@@ -248,12 +258,57 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testBulkFile() throws Exception {
-    testBulkFile(false);
+    testBulkFile(false, false);
   }
 
   @Test
   public void testBulkFileOffline() throws Exception {
-    testBulkFile(true);
+    testBulkFile(true, false);
+  }
+
+  @Test
+  public void testLoadPlan() throws Exception {
+    testBulkFile(false, true);
+  }
+
+  @Test
+  public void testLoadPlanOffline() throws Exception {
+    testBulkFile(true, true);
+  }
+
+  @Test
+  public void testBadLoadPlans() throws Exception {
+    Connector c = getConnector();
+    addSplits(tableName, "0333 0666 0999 1333 1666");
+
+    String dir = getDir("/testBulkFile-");
+
+    writeData(dir + "/f1.", aconf, 0, 333);
+    writeData(dir + "/f2.", aconf, 0, 666);
+
+    // Create a plan with more files than exists in dir
+    LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(333))
+        .loadFileTo("f2.rf", RangeType.TABLET, null, row(666))
+        .loadFileTo("f3.rf", RangeType.TABLET, null, row(666)).build();
+    try {
+      c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
+
+    // Create a plan with less files than exists in dir
+    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(333)).build();
+    try {
+      c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
+
+    // Create a plan with tablet boundary that does not exits
+    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(555))
+        .loadFileTo("f2.rf", RangeType.TABLET, null, row(555)).build();
+    try {
+      c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
+      Assert.fail();
+    } catch (AccumuloException e) {}
   }
 
   private void addSplits(String tableName, String splitString) throws Exception {
@@ -324,6 +379,10 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     }
   }
 
+  private static String row(int r) {
+    return String.format("%04d", r);
+  }
+
   private String writeData(String file, AccumuloConfiguration aconf, int s, int e)
       throws Exception {
     FileSystem fs = getCluster().getFileSystem();
@@ -332,8 +391,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
         .forFile(filename, fs, fs.getConf()).withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {
-        writer.append(new Key(new Text(String.format("%04d", i))),
-            new Value(Integer.toString(i).getBytes(UTF_8)));
+        writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i).getBytes(UTF_8)));
       }
     }
 

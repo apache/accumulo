@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -73,23 +74,9 @@ public class BulkFileIT extends AccumuloClusterHarness {
 
     fs.delete(new Path(dir), true);
 
-    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
-        .forFile(dir + "/f1." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
-    writer1.startDefaultLocalityGroup();
-    writeData(writer1, 0, 333);
-    writer1.close();
-
-    FileSKVWriter writer2 = FileOperations.getInstance().newWriterBuilder()
-        .forFile(dir + "/f2." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
-    writer2.startDefaultLocalityGroup();
-    writeData(writer2, 334, 999);
-    writer2.close();
-
-    FileSKVWriter writer3 = FileOperations.getInstance().newWriterBuilder()
-        .forFile(dir + "/f3." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf).build();
-    writer3.startDefaultLocalityGroup();
-    writeData(writer3, 1000, 1999);
-    writer3.close();
+    writeData(conf, aconf, fs, dir, "f1", 0, 333);
+    writeData(conf, aconf, fs, dir, "f2", 334, 999);
+    writeData(conf, aconf, fs, dir, "f3", 1000, 1999);
 
     c.tableOperations().addFilesTo(tableName).from(dir).load();
 
@@ -97,6 +84,19 @@ public class BulkFileIT extends AccumuloClusterHarness {
 
     verifyData(tableName, 0, 1999);
 
+  }
+
+  private void writeData(Configuration conf, AccumuloConfiguration aconf, FileSystem fs, String dir,
+      String file, int start, int end) throws IOException, Exception {
+    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/" + file + "." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf)
+        .build();
+    writer1.startDefaultLocalityGroup();
+    for (int i = start; i <= end; i++) {
+      writer1.append(new Key(new Text(String.format("%04d", i))),
+          new Value(Integer.toString(i).getBytes(UTF_8)));
+    }
+    writer1.close();
   }
 
   private void verifyData(String table, int s, int e) throws Exception {
@@ -121,13 +121,6 @@ public class BulkFileIT extends AccumuloClusterHarness {
 
       if (iter.hasNext())
         throw new Exception("found more than expected " + iter.next());
-    }
-  }
-
-  private void writeData(FileSKVWriter w, int s, int e) throws Exception {
-    for (int i = s; i <= e; i++) {
-      w.append(new Key(new Text(String.format("%04d", i))),
-          new Value(Integer.toString(i).getBytes(UTF_8)));
     }
   }
 
