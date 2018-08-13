@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -158,6 +157,8 @@ public class PrintInfo implements KeywordExecutable {
     KeyStats dataKeyStats = new KeyStats();
     KeyStats indexKeyStats = new KeyStats();
 
+    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
+
     for (String arg : opts.files) {
       Path path = new Path(arg);
       FileSystem fs;
@@ -173,9 +174,8 @@ public class PrintInfo implements KeywordExecutable {
 
       printCryptoParams(path, fs);
 
-      AccumuloConfiguration aconf = SiteConfiguration.getInstance();
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          aconf, CryptoServiceFactory.getConfigured(aconf));
+          siteConfig, CryptoServiceFactory.getConfigured(siteConfig));
       Reader iter = new RFile.Reader(_rdr);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

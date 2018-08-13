@@ -246,8 +246,7 @@ public class Initialize implements KeywordExecutable {
     if (fsUri.equals(""))
       fsUri = FileSystem.getDefaultUri(conf).toString();
     log.info("Hadoop Filesystem is {}", fsUri);
-    log.info("Accumulo data dirs are {}",
-        Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
+    log.info("Accumulo data dirs are {}", Arrays.asList(VolumeConfiguration.getVolumeUris(sconf)));
     log.info("Zookeeper server is {}", sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need"
         + " to make sure zookeeper is running");
@@ -272,7 +271,7 @@ public class Initialize implements KeywordExecutable {
           + " accumulo-site.xml. Without this accumulo will not operate" + " correctly");
     }
     try {
-      if (isInitialized(fs)) {
+      if (isInitialized(fs, sconf)) {
         printInitializeFailureMessages(sconf);
         return false;
       }
@@ -291,8 +290,7 @@ public class Initialize implements KeywordExecutable {
     String instanceDfsDir = sconf.get(INSTANCE_DFS_DIR);
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
     log.error("FATAL It appears the directories {}",
-        Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
-            + " were previously initialized.");
+        Arrays.asList(VolumeConfiguration.getVolumeUris(sconf)) + " were previously initialized.");
     String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
     String instanceDfsUri = sconf.get(INSTANCE_DFS_URI);
 
@@ -313,8 +311,9 @@ public class Initialize implements KeywordExecutable {
     log.error("FATAL: The current value of {} is |{}|", Property.INSTANCE_VOLUMES, instanceVolumes);
   }
 
-  public boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
-    if (!checkInit(conf, fs, SiteConfiguration.getInstance())) {
+  public boolean doInit(SiteConfiguration siteConfig, Opts opts, Configuration conf,
+      VolumeManager fs) throws IOException {
+    if (!checkInit(conf, fs, siteConfig)) {
       return false;
     }
 
@@ -330,29 +329,28 @@ public class Initialize implements KeywordExecutable {
 
     String rootUser;
     try {
-      rootUser = getRootUserName(opts);
+      rootUser = getRootUserName(siteConfig, opts);
     } catch (Exception e) {
       log.error("FATAL: Failed to obtain user for administrative privileges");
       return false;
     }
 
     // Don't prompt for a password when we're running SASL(Kerberos)
-    final AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
-    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+    if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       opts.rootpass = UUID.randomUUID().toString().getBytes(UTF_8);
     } else {
-      opts.rootpass = getRootPassword(opts, rootUser);
+      opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
     }
 
-    return initialize(opts, instanceNamePath, fs, rootUser);
+    return initialize(siteConfig, opts, instanceNamePath, fs, rootUser);
   }
 
-  private boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs,
-      String rootUser) {
+  private boolean initialize(SiteConfiguration siteConfig, Opts opts, String instanceNamePath,
+      VolumeManager fs, String rootUser) {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
+    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig);
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT);
     final String rootTabletDir = new Path(
         fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
@@ -366,11 +364,11 @@ public class Initialize implements KeywordExecutable {
     }
 
     try {
-      initFileSystem(opts, fs, uuid, rootTabletDir);
+      initFileSystem(siteConfig, fs, uuid, rootTabletDir);
     } catch (Exception e) {
       log.error("FATAL Failed to initialize filesystem", e);
 
-      if (SiteConfiguration.getInstance().get(Property.INSTANCE_VOLUMES).trim().equals("")) {
+      if (siteConfig.get(Property.INSTANCE_VOLUMES).trim().equals("")) {
         Configuration fsConf = CachedConfiguration.getInstance();
 
         final String defaultFsUri = "file:///";
@@ -437,7 +435,7 @@ public class Initialize implements KeywordExecutable {
         log.info("Uploading properties in accumulo-site.xml to Zookeeper."
             + " Properties that cannot be set in Zookeeper will be skipped:");
         Map<String,String> entries = new TreeMap<>();
-        SiteConfiguration.getInstance().getProperties(entries, x -> true, false);
+        siteConfig.getProperties(entries, x -> true, false);
         for (Map.Entry<String,String> entry : entries.entrySet()) {
           String key = entry.getKey();
           String value = entry.getValue();
@@ -480,10 +478,9 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir)
-      throws IOException {
-    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
-    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConf), false);
+  private void initFileSystem(SiteConfiguration siteConfig, VolumeManager fs, UUID uuid,
+      String rootTabletDir) throws IOException {
+    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig), false);
 
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig(Constants.ZROOT + "/" + uuid);
@@ -509,7 +506,7 @@ public class Initialize implements KeywordExecutable {
     String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet = new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir,
         null, null);
-    createMetadataFile(fs, metadataFileName, siteConf, replicationTablet);
+    createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
@@ -517,7 +514,7 @@ public class Initialize implements KeywordExecutable {
     Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint,
         metadataFileName);
     Tablet defaultTablet = new Tablet(MetadataTable.ID, defaultMetadataTabletDir, splitPoint, null);
-    createMetadataFile(fs, rootTabletFileName, siteConf, tablesTablet, defaultTablet);
+    createMetadataFile(fs, rootTabletFileName, siteConfig, tablesTablet, defaultTablet);
   }
 
   private static class Tablet {
@@ -703,11 +700,10 @@ public class Initialize implements KeywordExecutable {
     return instanceNamePath;
   }
 
-  private String getRootUserName(Opts opts) throws IOException {
-    AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    final String keytab = conf.get(Property.GENERAL_KERBEROS_KEYTAB);
+  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) throws IOException {
+    final String keytab = siteConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
     if (keytab.equals(Property.GENERAL_KERBEROS_KEYTAB.getDefaultValue())
-        || !conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        || !siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return DEFAULT_ROOT_USER;
     }
 
@@ -730,15 +726,16 @@ public class Initialize implements KeywordExecutable {
     } while (true);
   }
 
-  private byte[] getRootPassword(Opts opts, String rootUser) throws IOException {
+  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser)
+      throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader()
-          .readLine("Enter initial password for " + rootUser + getInitialPasswordWarning(), '*');
+      rootpass = getConsoleReader().readLine(
+          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig), '*');
       if (rootpass == null)
         System.exit(0);
       confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ",
@@ -761,11 +758,10 @@ public class Initialize implements KeywordExecutable {
    *
    * @return String containing warning portion of console message.
    */
-  private String getInitialPasswordWarning() {
+  private String getInitialPasswordWarning(SiteConfiguration siteConfig) {
     String optionalWarning;
     Property authenticatorProperty = Property.INSTANCE_SECURITY_AUTHENTICATOR;
-    if (SiteConfiguration.getInstance().get(authenticatorProperty)
-        .equals(authenticatorProperty.getDefaultValue()))
+    if (siteConfig.get(authenticatorProperty).equals(authenticatorProperty.getDefaultValue()))
       optionalWarning = ": ";
     else
       optionalWarning = " (this may not be applicable for your security setup): ";
@@ -829,8 +825,9 @@ public class Initialize implements KeywordExecutable {
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
 
-  public static boolean isInitialized(VolumeManager fs) throws IOException {
-    for (String baseDir : VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())) {
+  public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig)
+      throws IOException {
+    for (String baseDir : VolumeConfiguration.getVolumeUris(siteConfig)) {
       if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR))
           || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR)))
         return true;
@@ -839,9 +836,10 @@ public class Initialize implements KeywordExecutable {
     return false;
   }
 
-  private static void addVolumes(VolumeManager fs) throws IOException {
+  private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig)
+      throws IOException {
 
-    String[] volumeURIs = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
+    String[] volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
 
     HashSet<String> initializedDirs = new HashSet<>();
     initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseUris(volumeURIs, true)));
@@ -854,8 +852,7 @@ public class Initialize implements KeywordExecutable {
     Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
-    UUID uuid = UUID
-        .fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
+    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, siteConfig));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(
@@ -924,16 +921,16 @@ public class Initialize implements KeywordExecutable {
 
     try {
       zoo = ZooReaderWriter.getInstance();
-      AccumuloConfiguration acuConf = SiteConfiguration.getInstance();
-      SecurityUtil.serverLogin(acuConf);
-      Configuration conf = CachedConfiguration.getInstance();
+      SiteConfiguration siteConfig = SiteConfiguration.getInstance();
+      SecurityUtil.serverLogin(siteConfig);
+      Configuration hadoopConfig = CachedConfiguration.getInstance();
 
-      VolumeManager fs = VolumeManagerImpl.get(acuConf);
+      VolumeManager fs = VolumeManagerImpl.get(siteConfig);
 
       if (opts.resetSecurity) {
         log.info("Resetting security on accumulo.");
         ServerContext context = new ServerContext();
-        if (isInitialized(fs)) {
+        if (isInitialized(fs, siteConfig)) {
           if (!opts.forceResetSecurity) {
             ConsoleReader c = getConsoleReader();
             String userEnteredName = c.readLine("WARNING: This will remove all"
@@ -944,8 +941,8 @@ public class Initialize implements KeywordExecutable {
             }
           }
 
-          final String rootUser = getRootUserName(opts);
-          opts.rootpass = getRootPassword(opts, rootUser);
+          final String rootUser = getRootUserName(siteConfig, opts);
+          opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
           initSecurity(context, opts, context.getInstanceID(), rootUser);
         } else {
           log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
@@ -953,11 +950,11 @@ public class Initialize implements KeywordExecutable {
       }
 
       if (opts.addVolumes) {
-        addVolumes(fs);
+        addVolumes(fs, siteConfig);
       }
 
       if (!opts.resetSecurity && !opts.addVolumes)
-        if (!doInit(opts, conf, fs))
+        if (!doInit(siteConfig, opts, hadoopConfig, fs))
           System.exit(-1);
     } catch (Exception e) {
       log.error("Fatal exception", e);

@@ -105,15 +105,11 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     this.zcf = zcf;
   }
 
-  private SiteConfiguration siteConfig = null;
   private DefaultConfiguration defaultConfig = null;
   private AccumuloConfiguration systemConfig = null;
 
-  public synchronized SiteConfiguration getSiteConfiguration() {
-    if (siteConfig == null) {
-      siteConfig = SiteConfiguration.getInstance();
-    }
-    return siteConfig;
+  public SiteConfiguration getSiteConfiguration() {
+    return context.getSiteConfiguration();
   }
 
   public synchronized DefaultConfiguration getDefaultConfiguration() {

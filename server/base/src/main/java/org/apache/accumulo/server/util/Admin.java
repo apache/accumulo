@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -207,14 +206,15 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    ServerContext context = opts.getServerContext();
+
+    SiteConfiguration siteConf = context.getSiteConfiguration();
     // Login as the server on secure HDFS
     if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       SecurityUtil.serverLogin(siteConf);
     }
 
     try {
-      ServerContext context = opts.getServerContext();
 
       int rc = 0;
 

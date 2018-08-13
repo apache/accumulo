@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -715,7 +716,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public ServerContext getServerContext() {
-    return new ServerContext(getClientInfo());
+    try {
+      return new ServerContext(config.getAccumuloSiteFile().toURI().toURL());
+    } catch (MalformedURLException e) {
+      throw new IllegalStateException("Failed to create ServerContext", e);
+    }
   }
 
   /**

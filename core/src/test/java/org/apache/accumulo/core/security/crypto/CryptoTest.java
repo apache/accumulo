@@ -106,16 +106,16 @@ public class CryptoTest {
 
   @Before
   public void turnCryptoOnInSiteConfig() {
-    SiteConfiguration.getInstance().set(Property.INSTANCE_CRYPTO_SERVICE,
-        AESCryptoService.class.getName());
-    SiteConfiguration.getInstance().set("instance.crypto.opts.kekId", "file:///tmp/testAESFile");
-    SiteConfiguration.getInstance().set("instance.crypto.opts.keyManager", "uri");
+    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
+    siteConfig.set(Property.INSTANCE_CRYPTO_SERVICE, AESCryptoService.class.getName());
+    siteConfig.set("instance.crypto.opts.kekId", "file:///tmp/testAESFile");
+    siteConfig.set("instance.crypto.opts.keyManager", "uri");
     CryptoServiceFactory.resetInstance();
   }
 
   public static void turnCryptoOffInSiteConfig() {
-    SiteConfiguration.getInstance().set(Property.INSTANCE_CRYPTO_SERVICE,
-        NoCryptoService.class.getName());
+    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
+    siteConfig.set(Property.INSTANCE_CRYPTO_SERVICE, NoCryptoService.class.getName());
     CryptoServiceFactory.resetInstance();
   }
 

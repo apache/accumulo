@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -60,10 +59,6 @@ public class KerberosAuthenticator implements Authenticator {
   private String zkUserPath;
   private final ZooCache zooCache;
   private final UserImpersonation impersonation;
-
-  public KerberosAuthenticator() {
-    this(new ZooCache(), SiteConfiguration.getInstance());
-  }
 
   public KerberosAuthenticator(ZooCache cache, AccumuloConfiguration conf) {
     this.zooCache = cache;

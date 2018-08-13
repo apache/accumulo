@@ -79,6 +79,7 @@ public class ServerConfigurationFactoryTest {
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getInstance()).anyTimes();
   }
 
   @After

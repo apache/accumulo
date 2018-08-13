@@ -20,7 +20,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -66,7 +65,7 @@ public class ZooZap {
       return;
     }
 
-    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    SiteConfiguration siteConf = SiteConfiguration.getInstance();
     // Login as the server on secure HDFS
     if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       SecurityUtil.serverLogin(siteConf);

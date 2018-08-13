@@ -64,9 +64,9 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     if (args.length < 2)
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     if (args[0].equals("bad")) {
-      creds = SystemCredentials.get(badInstanceID);
+      creds = SystemCredentials.get(badInstanceID, context.getSiteConfiguration());
     } else if (args[0].equals("good")) {
-      creds = SystemCredentials.get(context.getInstanceID());
+      creds = SystemCredentials.get(context.getInstanceID(), context.getSiteConfiguration());
     } else if (args[0].equals("bad_password")) {
       creds = new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
     } else {

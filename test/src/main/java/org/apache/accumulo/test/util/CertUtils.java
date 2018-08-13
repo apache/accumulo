@@ -36,22 +36,13 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.Calendar;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
-import java.util.function.Predicate;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.commons.io.FileExistsException;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x500.style.RFC4519Style;
@@ -131,41 +122,11 @@ public class CertUtils {
     @Parameter(names = "--keysize", description = "Key size used by encryption algorithm")
     public int keysize = 2048;
 
-    public AccumuloConfiguration getConfiguration() {
+    public SiteConfiguration getSiteConfiguration() {
       if (siteFile == null) {
         return SiteConfiguration.getInstance();
       } else {
-        return new AccumuloConfiguration() {
-          Configuration xml = new Configuration();
-          {
-            xml.addResource(new Path(siteFile));
-          }
-
-          @Override
-          public Iterator<Entry<String,String>> iterator() {
-            TreeMap<String,String> map = new TreeMap<>();
-            for (Entry<String,String> props : DefaultConfiguration.getInstance())
-              map.put(props.getKey(), props.getValue());
-            for (Entry<String,String> props : xml)
-              map.put(props.getKey(), props.getValue());
-            return map.entrySet().iterator();
-          }
-
-          @Override
-          public String get(Property property) {
-            String value = xml.get(property.getKey());
-            if (value != null)
-              return value;
-            return DefaultConfiguration.getInstance().get(property);
-          }
-
-          @Override
-          public void getProperties(Map<String,String> props, Predicate<String> filter) {
-            for (Entry<String,String> entry : this)
-              if (filter.test(entry.getKey()))
-                props.put(entry.getKey(), entry.getValue());
-          }
-        };
+        return SiteConfiguration.getInstance(new File(siteFile));
       }
     }
   }
@@ -173,12 +134,12 @@ public class CertUtils {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(CertUtils.class.getName(), args);
+
     String operation = opts.operation.get(0);
-
     String keyPassword = opts.keystorePassword;
-    if (keyPassword == null)
-      keyPassword = getDefaultKeyPassword();
-
+    if (keyPassword == null) {
+      keyPassword = opts.getSiteConfiguration().get(Property.INSTANCE_SECRET);
+    }
     String rootKeyPassword = opts.rootKeystorePassword;
     if (rootKeyPassword == null) {
       rootKeyPassword = keyPassword;
@@ -204,10 +165,6 @@ public class CertUtils {
       System.err.println("Unrecognized operation: " + opts.operation);
       System.exit(0);
     }
-  }
-
-  private static String getDefaultKeyPassword() {
-    return SiteConfiguration.getInstance().get(Property.INSTANCE_SECRET);
   }
 
   private String issuerDirString;

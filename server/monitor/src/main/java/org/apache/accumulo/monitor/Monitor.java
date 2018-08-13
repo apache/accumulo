@@ -505,7 +505,7 @@ public class Monitor implements HighlyAvailableService {
       log.warn("Not starting log4j listener as we could not determine address to use");
     }
 
-    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
+    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus(context)), "ZooKeeperStatus").start();
 
     // need to regularly fetch data so plot data is updated
     new Daemon(new LoggingRunnable(log, new Runnable() {

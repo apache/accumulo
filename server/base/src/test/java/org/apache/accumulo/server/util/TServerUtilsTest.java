@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -127,6 +128,7 @@ public class TServerUtilsTest {
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
     expect(context.getInstanceID()).andReturn("11111").anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getInstance()).anyTimes();
     return context;
   }
 
@@ -289,8 +291,6 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ServerContext context = createMockContext();
-    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
     ServerContext ctx = createMock(ServerContext.class);
     expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
     expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration());
@@ -298,7 +298,8 @@ public class TServerUtilsTest {
     expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
     expect(ctx.getSaslParams()).andReturn(null).anyTimes();
     expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
-    replay(ctx, context);
+    expect(ctx.getSiteConfiguration()).andReturn(SiteConfiguration.getInstance()).anyTimes();
+    replay(ctx);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = TraceWrap.service(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);

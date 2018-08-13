@@ -46,6 +46,7 @@ public class TestUpgradePathForWALogs {
   private static final String WALOG_FROM_16 = "/walog-from-16.walog";
   private static File testDir;
 
+  SiteConfiguration siteConfig = SiteConfiguration.getInstance();
   VolumeManager fs;
 
   @BeforeClass
@@ -88,7 +89,7 @@ public class TestUpgradePathForWALogs {
       walogInHDFStream.close();
       walogInHDFStream = null;
 
-      LogSorter logSorter = new LogSorter(null, fs, SiteConfiguration.getInstance());
+      LogSorter logSorter = new LogSorter(null, fs, siteConfig);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
       logProcessor.sort(WALOG_FROM_15,
@@ -124,7 +125,7 @@ public class TestUpgradePathForWALogs {
       walogInHDFStream.close();
       walogInHDFStream = null;
 
-      LogSorter logSorter = new LogSorter(null, fs, SiteConfiguration.getInstance());
+      LogSorter logSorter = new LogSorter(null, fs, siteConfig);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
       logProcessor.sort(walogToTest,

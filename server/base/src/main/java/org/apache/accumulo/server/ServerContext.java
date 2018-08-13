@@ -18,7 +18,9 @@ package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
@@ -65,11 +67,15 @@ public class ServerContext extends ClientContext {
   private AuthenticationTokenSecretManager secretManager;
 
   public ServerContext() {
-    this(new ServerInfo());
+    this(SiteConfiguration.getInstance());
+  }
+
+  public ServerContext(SiteConfiguration siteConfig) {
+    this(new ServerInfo(siteConfig));
   }
 
   private ServerContext(ServerInfo info) {
-    super(info, SiteConfiguration.getInstance());
+    super(info, info.getSiteConfiguration());
     this.info = info;
   }
 
@@ -81,11 +87,19 @@ public class ServerContext extends ClientContext {
     this(new ServerInfo(info));
   }
 
+  public ServerContext(URL accumuloSiteLocation) {
+    this(SiteConfiguration.getInstance(accumuloSiteLocation));
+  }
+
+  public ServerContext(File accumuloSiteFile) {
+    this(SiteConfiguration.getInstance(accumuloSiteFile));
+  }
+
   public void setupServer(String appName, String appClassName, String hostname) {
     applicationName = appName;
     applicationClassName = appClassName;
     this.hostname = hostname;
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
+    SecurityUtil.serverLogin(getSiteConfiguration());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + info.getInstanceID());
     try {
@@ -126,6 +140,10 @@ public class ServerContext extends ClientContext {
       serverConfFactory = new ServerConfigurationFactory(this);
     }
     return serverConfFactory;
+  }
+
+  public SiteConfiguration getSiteConfiguration() {
+    return info.getSiteConfiguration();
   }
 
   @Override
