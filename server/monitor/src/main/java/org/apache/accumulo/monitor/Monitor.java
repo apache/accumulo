@@ -434,7 +434,7 @@ public class Monitor implements HighlyAvailableService {
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    Monitor.context = ServerContext.getInstance();
+    Monitor.context = new ServerContext();
     context.setupServer(app, Monitor.class.getName(), opts.getAddress());
     try {
       config = context.getServerConfFactory();

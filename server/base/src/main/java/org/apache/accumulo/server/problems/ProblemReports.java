@@ -300,7 +300,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String args[]) throws Exception {
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     getInstance(context).printProblems();
   }
 

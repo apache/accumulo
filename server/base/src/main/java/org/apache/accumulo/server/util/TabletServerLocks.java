@@ -41,7 +41,7 @@ public class TabletServerLocks {
 
   public static void main(String[] args) throws Exception {
 
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     Opts opts = new Opts();
     opts.parseArgs(TabletServerLocks.class.getName(), args);

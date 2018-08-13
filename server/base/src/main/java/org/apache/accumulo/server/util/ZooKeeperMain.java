@@ -68,7 +68,7 @@ public class ZooKeeperMain implements KeywordExecutable {
     String baseDir = ServerConstants.getBaseUris()[0];
     System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id"))
         + " to lookup accumulo instance");
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     if (opts.servers == null) {
       opts.servers = context.getZooKeepers();
     }

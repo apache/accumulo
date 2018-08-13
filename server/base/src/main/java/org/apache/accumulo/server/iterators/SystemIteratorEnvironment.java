@@ -14,19 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.cli;
+package org.apache.accumulo.server.iterators;
 
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.server.ServerContext;
 
-public class ClientOnRequiredTable extends org.apache.accumulo.core.cli.ClientOnRequiredTable {
-  {
-    setPrincipal("root");
-  }
+public interface SystemIteratorEnvironment extends IteratorEnvironment {
 
-  public ServerContext getServerContext() {
-    if (instance == null) {
-      return new ServerContext();
-    }
-    return new ServerContext(getClientInfo());
-  }
+  ServerContext getServerContext();
+
 }

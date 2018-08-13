@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.Path;
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    listVolumes(ServerContext.getInstance());
+    listVolumes(new ServerContext());
   }
 
   private static String getTableURI(String rootTabletDir) {

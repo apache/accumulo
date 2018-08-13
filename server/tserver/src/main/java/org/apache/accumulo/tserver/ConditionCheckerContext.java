@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.thrift.TCondition;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
@@ -67,7 +68,8 @@ public class ConditionCheckerContext {
 
   private Map<ByteSequence,MergedIterConfig> mergedIterCache = new HashMap<>();
 
-  ConditionCheckerContext(CompressedIterators compressedIters, TableConfiguration tableConf) {
+  ConditionCheckerContext(ServerContext serverContext, CompressedIterators compressedIters,
+      TableConfiguration tableConf) {
     this.compressedIters = compressedIters;
 
     ParsedIteratorConfig pic = tableConf.getParsedIteratorConfig(IteratorScope.scan);
@@ -78,7 +80,7 @@ public class ConditionCheckerContext {
 
     classCache = new HashMap<>();
 
-    tie = new TabletIteratorEnvironment(IteratorScope.scan, tableConf);
+    tie = new TabletIteratorEnvironment(serverContext, IteratorScope.scan, tableConf);
   }
 
   SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter,

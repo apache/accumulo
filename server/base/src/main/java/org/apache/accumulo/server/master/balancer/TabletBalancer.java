@@ -69,7 +69,7 @@ public abstract class TabletBalancer {
    */
   @Deprecated
   public void init(ServerConfigurationFactory conf) {
-    init(ServerContext.getInstance());
+    init(conf.getServerContext());
   }
 
   /**

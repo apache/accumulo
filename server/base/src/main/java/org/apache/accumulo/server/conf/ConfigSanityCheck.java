@@ -25,7 +25,7 @@ import com.google.auto.service.AutoService;
 public class ConfigSanityCheck implements KeywordExecutable {
 
   public static void main(String[] args) {
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     context.getServerConfFactory().getSystemConfiguration();
   }
 

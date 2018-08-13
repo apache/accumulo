@@ -55,8 +55,6 @@ public class ServerContext extends ClientContext {
 
   private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
 
-  private static ServerContext serverContextInstance = null;
-
   private final ServerInfo info;
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
@@ -66,7 +64,7 @@ public class ServerContext extends ClientContext {
   private String hostname = null;
   private AuthenticationTokenSecretManager secretManager;
 
-  private ServerContext() {
+  public ServerContext() {
     this(new ServerInfo());
   }
 
@@ -81,28 +79,6 @@ public class ServerContext extends ClientContext {
 
   public ServerContext(ClientInfo info) {
     this(new ServerInfo(info));
-  }
-
-  synchronized public static ServerContext getInstance() {
-    if (serverContextInstance == null) {
-      serverContextInstance = new ServerContext();
-    }
-    return serverContextInstance;
-  }
-
-  synchronized public static ServerContext getInstance(ClientInfo info) {
-    if (serverContextInstance == null) {
-      serverContextInstance = new ServerContext(info);
-    }
-    return serverContextInstance;
-  }
-
-  synchronized public static ServerContext getInstance(String instanceName, String zooKeepers,
-      int zooKeepersSessionTimeOut) {
-    if (serverContextInstance == null) {
-      serverContextInstance = new ServerContext(instanceName, zooKeepers, zooKeepersSessionTimeOut);
-    }
-    return serverContextInstance;
   }
 
   public void setupServer(String appName, String appClassName, String hostname) {

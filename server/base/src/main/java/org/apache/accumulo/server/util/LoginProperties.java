@@ -46,7 +46,7 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    ServerContext context = ServerContext.getInstance();
+    ServerContext context = new ServerContext();
     AccumuloConfiguration config = context.getServerConfFactory().getSystemConfiguration();
     Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader()
         .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))

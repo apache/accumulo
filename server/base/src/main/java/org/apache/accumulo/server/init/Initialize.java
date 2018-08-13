@@ -391,7 +391,7 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
 
-    final ServerContext context = ServerContext.getInstance();
+    final ServerContext context = new ServerContext();
 
     // When we're using Kerberos authentication, we need valid credentials to perform
     // initialization. If the user provided some, use them.
@@ -932,7 +932,7 @@ public class Initialize implements KeywordExecutable {
 
       if (opts.resetSecurity) {
         log.info("Resetting security on accumulo.");
-        ServerContext context = ServerContext.getInstance();
+        ServerContext context = new ServerContext();
         if (isInitialized(fs)) {
           if (!opts.forceResetSecurity) {
             ConsoleReader c = getConsoleReader();
