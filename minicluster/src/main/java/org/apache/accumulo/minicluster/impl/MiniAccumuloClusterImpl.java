@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -69,6 +68,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -173,6 +173,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private File zooCfgFile;
   private String dfsUri;
+  private SiteConfiguration siteConfig;
+  private ServerContext context;
   private ClientInfo clientInfo;
 
   public List<LogWriter> getLogWriters() {
@@ -461,6 +463,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
+    SiteConfiguration.clearInstance();
+    siteConfig = SiteConfiguration.create(siteFile);
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
@@ -715,12 +719,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public ServerContext getServerContext() {
-    try {
-      return new ServerContext(config.getAccumuloSiteFile().toURI().toURL());
-    } catch (MalformedURLException e) {
-      throw new IllegalStateException("Failed to create ServerContext", e);
+  public synchronized ServerContext getServerContext() {
+    if (context == null) {
+      context = new ServerContext(siteConfig);
     }
+    return context;
   }
 
   /**

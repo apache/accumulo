@@ -401,7 +401,7 @@ public class TraceServer implements Watcher {
     final String app = "tracer";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(opts.getSiteConfiguration());
     loginTracer(context.getSiteConfiguration());
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     Accumulo.init(context.getVolumeManager(), context.getInstanceID(),

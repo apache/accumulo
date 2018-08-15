@@ -18,9 +18,7 @@ package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
@@ -85,14 +83,6 @@ public class ServerContext extends ClientContext {
 
   public ServerContext(ClientInfo info) {
     this(new ServerInfo(info));
-  }
-
-  public ServerContext(URL accumuloSiteLocation) {
-    this(SiteConfiguration.getInstance(accumuloSiteLocation));
-  }
-
-  public ServerContext(File accumuloSiteFile) {
-    this(SiteConfiguration.getInstance(accumuloSiteFile));
   }
 
   public void setupServer(String appName, String appClassName, String hostname) {

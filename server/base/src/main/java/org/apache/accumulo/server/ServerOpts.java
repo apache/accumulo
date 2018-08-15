@@ -23,12 +23,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.CliConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.IParameterSplitter;
 
 public class ServerOpts extends Help {
+
+  private static final Logger log = LoggerFactory.getLogger(ServerOpts.class);
+
   @Parameter(names = {"-a", "--address"}, description = "address to bind to")
   private String address = null;
 
@@ -54,6 +60,16 @@ public class ServerOpts extends Help {
     return properties;
   }
 
+  private SiteConfiguration siteConfig = null;
+
+  public synchronized SiteConfiguration getSiteConfiguration() {
+    if (siteConfig == null) {
+      siteConfig = SiteConfiguration.create(SiteConfiguration.getAccumuloSiteLocation(),
+          getConfig());
+    }
+    return siteConfig;
+  }
+
   public Map<String,String> getConfig() {
     Map<String,String> config = new HashMap<>();
     for (String prop : getProperties()) {
@@ -76,9 +92,12 @@ public class ServerOpts extends Help {
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
-    CliConfiguration.set(getConfig());
     if (getConfig().size() > 0) {
-      CliConfiguration.print();
+      log.info("The following configuration was set on the command line:");
+      for (Map.Entry<String,String> entry : getConfig().entrySet()) {
+        String key = entry.getKey();
+        log.info(key + " = " + (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
+      }
     }
   }
 }
