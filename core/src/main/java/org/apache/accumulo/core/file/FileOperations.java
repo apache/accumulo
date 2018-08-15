@@ -58,15 +58,15 @@ public abstract class FileOperations {
   // Abstract methods (to be implemented by subclasses)
   //
 
-  protected abstract long getFileSize(FileStuff options) throws IOException;
+  protected abstract long getFileSize(FileOptions options) throws IOException;
 
-  protected abstract FileSKVWriter openWriter(WriterBuilder options) throws IOException;
+  protected abstract FileSKVWriter openWriter(FileOptions options) throws IOException;
 
-  protected abstract FileSKVIterator openIndex(IndexReaderBuilder options) throws IOException;
+  protected abstract FileSKVIterator openIndex(FileOptions options) throws IOException;
 
-  protected abstract FileSKVIterator openScanReader(ScanReaderBuilder options) throws IOException;
+  protected abstract FileSKVIterator openScanReader(FileOptions options) throws IOException;
 
-  protected abstract FileSKVIterator openReader(ReaderBuilder options) throws IOException;
+  protected abstract FileSKVIterator openReader(FileOptions options) throws IOException;
 
   //
   // File operations
@@ -149,37 +149,54 @@ public abstract class FileOperations {
     return new ReaderBuilder();
   }
 
-  /**
-   * Objects common to all FileOperations.
-   */
-  public static class FileStuff {
-    private AccumuloConfiguration tableConfiguration;
-    private String filename;
-    private FileSystem fs;
-    private Configuration fsConf;
-    private RateLimiter rateLimiter;
+  public class FileOptions {
+    // objects used by all
+    public final AccumuloConfiguration tableConfiguration;
+    public final String filename;
+    public final FileSystem fs;
+    public final Configuration fsConf;
+    public final RateLimiter rateLimiter;
+    // writer only objects
+    public final String compression;
+    public final FSDataOutputStream outputStream;
+    public final boolean enableAccumuloStart;
+    // reader only objects
+    public final BlockCache dataCache;
+    public final BlockCache indexCache;
+    public final Cache<String,Long> fileLenCache;
+    public final boolean seekToBeginning;
+    public final CryptoService cryptoService;
+    // scan reader only objects
+    public final Range range;
+    public final Set<ByteSequence> columnFamilies;
+    public final boolean inclusive;
 
-    public FileSystem getFs() {
-      return fs;
-    }
-
-    public FileStuff fs(FileSystem fs) {
-      this.fs = fs;
-      return this;
-    }
-
-    public Configuration getFsConf() {
-      return fsConf;
-    }
-
-    public FileStuff fsConf(Configuration fsConf) {
-      this.fsConf = fsConf;
-      return this;
-    }
-
-    protected FileStuff filename(String filename) {
+    public FileOptions(AccumuloConfiguration tableConfiguration, String filename, FileSystem fs,
+        Configuration fsConf, RateLimiter rateLimiter, String compression,
+        FSDataOutputStream outputStream, boolean enableAccumuloStart, BlockCache dataCache,
+        BlockCache indexCache, Cache<String,Long> fileLenCache, boolean seekToBeginning,
+        CryptoService cryptoService, Range range, Set<ByteSequence> columnFamilies,
+        boolean inclusive) {
+      this.tableConfiguration = tableConfiguration;
       this.filename = filename;
-      return this;
+      this.fs = fs;
+      this.fsConf = fsConf;
+      this.rateLimiter = rateLimiter;
+      this.compression = compression;
+      this.outputStream = outputStream;
+      this.enableAccumuloStart = enableAccumuloStart;
+      this.dataCache = dataCache;
+      this.indexCache = indexCache;
+      this.fileLenCache = fileLenCache;
+      this.seekToBeginning = seekToBeginning;
+      this.cryptoService = cryptoService;
+      this.range = range;
+      this.columnFamilies = columnFamilies;
+      this.inclusive = inclusive;
+    }
+
+    public AccumuloConfiguration getTableConfiguration() {
+      return tableConfiguration;
     }
 
     public String getFilename() {
@@ -190,46 +207,127 @@ public abstract class FileOperations {
       return fs;
     }
 
-    protected FileStuff configuration(Configuration fsConf) {
-      this.fsConf = fsConf;
-      return this;
-    }
-
     public Configuration getConfiguration() {
       return fsConf;
-    }
-
-    public FileStuff tableConfiguration(AccumuloConfiguration tableConfiguration) {
-      this.tableConfiguration = tableConfiguration;
-      return this;
-    }
-
-    public AccumuloConfiguration getTableConfiguration() {
-      return tableConfiguration;
     }
 
     public RateLimiter getRateLimiter() {
       return rateLimiter;
     }
 
-    public FileStuff rateLimiter(RateLimiter rateLimiter) {
+    public String getCompression() {
+      return compression;
+    }
+
+    public FSDataOutputStream getOutputStream() {
+      return outputStream;
+    }
+
+    public boolean isAccumuloStartEnabled() {
+      return enableAccumuloStart;
+    }
+
+    public BlockCache getDataCache() {
+      return dataCache;
+    }
+
+    public BlockCache getIndexCache() {
+      return indexCache;
+    }
+
+    public Cache<String,Long> getFileLenCache() {
+      return fileLenCache;
+    }
+
+    public boolean isSeekToBeginning() {
+      return seekToBeginning;
+    }
+
+    public CryptoService getCryptoService() {
+      return cryptoService;
+    }
+
+    public Range getRange() {
+      return range;
+    }
+
+    public Set<ByteSequence> getColumnFamilies() {
+      return columnFamilies;
+    }
+
+    public boolean isRangeInclusive() {
+      return inclusive;
+    }
+  }
+
+  /**
+   * Helper class extended by both writers and readers.
+   */
+  public class FileHelper {
+    protected AccumuloConfiguration tableConfiguration;
+    protected String filename;
+    protected FileSystem fs;
+    protected Configuration fsConf;
+    protected RateLimiter rateLimiter;
+
+    protected FileHelper fs(FileSystem fs) {
+      Objects.requireNonNull(fs);
+      this.fs = fs;
+      return this;
+    }
+
+    protected FileHelper fsConf(Configuration fsConf) {
+      Objects.requireNonNull(fsConf);
+      this.fsConf = fsConf;
+      return this;
+    }
+
+    protected FileHelper filename(String filename) {
+      Objects.requireNonNull(filename);
+      this.filename = filename;
+      return this;
+    }
+
+    protected FileHelper tableConfiguration(AccumuloConfiguration tableConfiguration) {
+      Objects.requireNonNull(tableConfiguration);
+      this.tableConfiguration = tableConfiguration;
+      return this;
+    }
+
+    protected FileHelper rateLimiter(RateLimiter rateLimiter) {
       this.rateLimiter = rateLimiter;
       return this;
     }
 
-    /** Check for null parameters. */
-    public void validate() {
-      Objects.requireNonNull(getFilename());
-      Objects.requireNonNull(getFileSystem());
-      Objects.requireNonNull(getConfiguration());
-      Objects.requireNonNull(getTableConfiguration());
+    protected FileOptions toWriterBuilderOptions(String compression,
+        FSDataOutputStream outputStream, boolean startEnabled) {
+      return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, compression,
+          outputStream, startEnabled, null, null, null, false, null, null, null, true);
+    }
+
+    protected FileOptions toReaderBuilderOptions(BlockCache dataCache, BlockCache indexCache,
+        Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService) {
+      return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
+          false, dataCache, indexCache, fileLenCache, seekToBeginning, cryptoService, null, null,
+          true);
+    }
+
+    protected FileOptions toIndexReaderBuilderOptions() {
+      return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
+          false, null, null, null, false, null, null, null, true);
+    }
+
+    protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
+        boolean inclusive) {
+      return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
+          false, null, null, null, false, null, range, columnFamilies, inclusive);
     }
   }
 
   /**
    * Operation object for constructing a writer.
    */
-  public class WriterBuilder extends FileStuff implements WriterTableConfiguration {
+  public class WriterBuilder extends FileHelper implements WriterTableConfiguration {
     private String compression;
     private FSDataOutputStream outputStream;
     private boolean enableAccumuloStart = true;
@@ -237,7 +335,7 @@ public abstract class FileOperations {
     public WriterTableConfiguration forOutputStream(String extension,
         FSDataOutputStream outputStream, Configuration fsConf) {
       this.outputStream = outputStream;
-      filename("foo" + extension).configuration(fsConf);
+      filename("foo" + extension).fsConf(fsConf);
       return this;
     }
 
@@ -266,26 +364,8 @@ public abstract class FileOperations {
       return this;
     }
 
-    public boolean isAccumuloStartEnabled() {
-      return enableAccumuloStart;
-    }
-
-    public String getCompression() {
-      return compression;
-    }
-
-    public FSDataOutputStream getOutputStream() {
-      return outputStream;
-    }
-
     public FileSKVWriter build() throws IOException {
-      if (outputStream == null) {
-        validate();
-      } else {
-        Objects.requireNonNull(getConfiguration());
-        Objects.requireNonNull(getTableConfiguration());
-      }
-      return openWriter(this);
+      return openWriter(toWriterBuilderOptions(compression, outputStream, enableAccumuloStart));
     }
   }
 
@@ -296,7 +376,7 @@ public abstract class FileOperations {
   /**
    * Options common to all {@code FileOperations} which perform reads.
    */
-  public class ReaderBuilder extends FileStuff implements ReaderTableConfiguration {
+  public class ReaderBuilder extends FileHelper implements ReaderTableConfiguration {
     private BlockCache dataCache;
     private BlockCache indexCache;
     private Cache<String,Long> fileLenCache;
@@ -352,22 +432,6 @@ public abstract class FileOperations {
       return this;
     }
 
-    public BlockCache getDataCache() {
-      return dataCache;
-    }
-
-    public BlockCache getIndexCache() {
-      return indexCache;
-    }
-
-    public Cache<String,Long> getFileLenCache() {
-      return fileLenCache;
-    }
-
-    public CryptoService getCryptoService() {
-      return cryptoService;
-    }
-
     /**
      * Seek the constructed iterator to the beginning of its domain before returning. Equivalent to
      * {@code seekToBeginning(true)}.
@@ -383,14 +447,20 @@ public abstract class FileOperations {
       return this;
     }
 
-    public boolean isSeekToBeginning() {
-      return seekToBeginning;
-    }
-
     /** Execute the operation, constructing the specified file reader. */
     public FileSKVIterator build() throws IOException {
-      validate();
-      return openReader(this);
+      /**
+       * If the table configuration disallows caching, rewrite the options object to not pass the
+       * caches.
+       */
+      if (!tableConfiguration.getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
+        withIndexCache(null);
+      }
+      if (!tableConfiguration.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
+        withDataCache(null);
+      }
+      return openReader(toReaderBuilderOptions(dataCache, indexCache, fileLenCache, seekToBeginning,
+          cryptoService));
     }
   }
 
@@ -401,7 +471,7 @@ public abstract class FileOperations {
   /**
    * Operation object for opening an index.
    */
-  public class IndexReaderBuilder extends FileStuff implements IndexReaderTableConfiguration {
+  public class IndexReaderBuilder extends FileHelper implements IndexReaderTableConfiguration {
 
     public IndexReaderTableConfiguration forFile(String filename, FileSystem fs,
         Configuration fsConf) {
@@ -415,8 +485,7 @@ public abstract class FileOperations {
     }
 
     public FileSKVIterator build() throws IOException {
-      validate();
-      return openIndex(this);
+      return openIndex(toIndexReaderBuilderOptions());
     }
   }
 
@@ -425,7 +494,7 @@ public abstract class FileOperations {
   }
 
   /** Operation object for opening a scan reader. */
-  public class ScanReaderBuilder extends FileStuff implements ScanReaderTableConfiguration {
+  public class ScanReaderBuilder extends FileHelper implements ScanReaderTableConfiguration {
     private Range range;
     private Set<ByteSequence> columnFamilies;
     private boolean inclusive;
@@ -444,6 +513,8 @@ public abstract class FileOperations {
     /** Set the range over which the constructed iterator will search. */
     public ScanReaderBuilder overRange(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
+      Objects.requireNonNull(range);
+      Objects.requireNonNull(columnFamilies);
       this.range = range;
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
@@ -460,21 +531,13 @@ public abstract class FileOperations {
       return columnFamilies;
     }
 
-    public boolean isRangeInclusive() {
-      return inclusive;
-    }
-
     /** Execute the operation, constructing a scan iterator. */
     public FileSKVIterator build() throws IOException {
-      validate();
-      Objects.requireNonNull(range);
-      Objects.requireNonNull(columnFamilies);
-      return openScanReader(this);
+      return openScanReader(toScanReaderBuilderOptions(range, columnFamilies, inclusive));
     }
   }
 
   public interface ScanReaderTableConfiguration {
     ScanReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration);
   }
-
 }

@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.Path;
 
 class DispatchingFileFactory extends FileOperations {
 
-  private FileOperations findFileFactory(FileStuff options) {
+  private FileOperations findFileFactory(FileOptions options) {
     String file = options.getFilename();
 
     Path p = new Path(file);
@@ -55,27 +55,13 @@ class DispatchingFileFactory extends FileOperations {
     }
   }
 
-  /**
-   * If the table configuration disallows caching, rewrite the options object to not pass the
-   * caches.
-   */
-  private static ReaderBuilder selectivelyDisableCaches(ReaderBuilder input) {
-    if (!input.getTableConfiguration().getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
-      input = input.withIndexCache(null);
-    }
-    if (!input.getTableConfiguration().getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
-      input = input.withDataCache(null);
-    }
-    return input;
-  }
-
   @Override
-  protected long getFileSize(FileStuff options) throws IOException {
+  protected long getFileSize(FileOptions options) throws IOException {
     return findFileFactory(options).getFileSize(options);
   }
 
   @Override
-  protected FileSKVWriter openWriter(WriterBuilder options) throws IOException {
+  protected FileSKVWriter openWriter(FileOptions options) throws IOException {
     FileOperations fileOps = new RFileOperations();
     FileSKVWriter writer = fileOps.openWriter(options);
     if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
@@ -88,13 +74,12 @@ class DispatchingFileFactory extends FileOperations {
   }
 
   @Override
-  protected FileSKVIterator openIndex(IndexReaderBuilder options) throws IOException {
+  protected FileSKVIterator openIndex(FileOptions options) throws IOException {
     return findFileFactory(options).openIndex(options);
   }
 
   @Override
-  protected FileSKVIterator openReader(ReaderBuilder options) throws IOException {
-    options = selectivelyDisableCaches(options);
+  protected FileSKVIterator openReader(FileOptions options) throws IOException {
     FileSKVIterator iter = findFileFactory(options).openReader(options);
     if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
       return new BloomFilterLayer.Reader(iter, options.getTableConfiguration());
@@ -104,7 +89,7 @@ class DispatchingFileFactory extends FileOperations {
   }
 
   @Override
-  protected FileSKVIterator openScanReader(ScanReaderBuilder options) throws IOException {
+  protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
     return findFileFactory(options).openScanReader(options);
   }
 }
