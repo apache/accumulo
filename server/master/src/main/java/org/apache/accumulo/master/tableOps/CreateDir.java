@@ -24,9 +24,13 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CreateDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
+
+  private static final Logger log = LoggerFactory.getLogger(CreateDir.class);
 
   private TableInfo tableInfo;
 
@@ -47,7 +51,10 @@ class CreateDir extends MasterRepo {
     if (tableInfo.initialSplitSize > 0) {
       // read in the splitDir info file and create a directory for each item
       SortedSet<Text> dirInfo = Utils
-          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile));
+          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile), false);
+      for (Text dir : dirInfo) {
+        log.info(">>>> cd: " + dir);
+      }
       createTabletDirectories(master.getFileSystem(), dirInfo);
     }
     return new PopulateMetadata(tableInfo);
@@ -60,7 +67,7 @@ class CreateDir extends MasterRepo {
 
     if (tableInfo.initialSplitSize > 0) {
       SortedSet<Text> dirInfo = Utils
-          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile));
+          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile), false);
       for (Text info : dirInfo) {
         String[] splitInfo = info.toString().split(";");
         String dirname = splitInfo[1];
@@ -73,13 +80,11 @@ class CreateDir extends MasterRepo {
       throws IOException {
 
     for (Text info : dirInfo) {
-      String[] splitInfo = info.toString().split(";");
-      String dirname = splitInfo[1];
-      if (fs.exists(new Path(dirname))) {
-        throw new IllegalStateException("Dir exists when it should not " + dirname);
+      if (fs.exists(new Path(info.toString()))) {
+        throw new IllegalStateException("Dir exists when it should not " + info);
       }
-      if (!fs.mkdirs(new Path(dirname))) {
-        throw new IOException("Failed to create tablet directory : " + dirname);
+      if (!fs.mkdirs(new Path(info.toString()))) {
+        throw new IOException("Failed to create tablet directory : " + info);
       }
     }
   }

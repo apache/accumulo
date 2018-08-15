@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -38,8 +40,12 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Iterables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class PopulateMetadata extends MasterRepo {
+
+  private static final Logger log = LoggerFactory.getLogger(PopulateMetadata.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -63,14 +69,36 @@ class PopulateMetadata extends MasterRepo {
 
     if (tableInfo.initialSplitSize > 0) {
       SortedSet<Text> splits = Utils
-          .getSortedSetFromFile(environment.getInputStream(tableInfo.splitFile));
-      Map<Text,Text> splitDirMap = createSplitDirectoryMap(tableInfo.splitDirsFile, environment);
+          .getSortedSetFromFile(environment.getInputStream(tableInfo.splitFile), true);
+
+      for (Text split : splits) {
+        log.info(">>>> pmd: " + getBytesAsString(TextUtil.getBytes(split), split.getLength()));
+      }
+
+      SortedSet<Text> dirs = Utils.getSortedSetFromFile(environment.getInputStream(tableInfo
+          .splitDirsFile), false);
+      for (Text dir : dirs) {
+        log.info(">>>> pmd: " + dir);
+      }
+
+      Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
+      splitDirMap.forEach((k,v) -> log.info(">>>> pmd: " + k + " : " + v));
+
+
       try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
         writeSplitsToMetadataTable(tableInfo.tableId, splits, splitDirMap, tableInfo.timeType,
             environment.getMasterLock(), bw);
       }
     }
     return new FinishCreateTable(tableInfo);
+  }
+  private String getBytesAsString(byte[] split, int size) {
+    StringBuilder sb = new StringBuilder();
+    for (int ii = 0; ii < size; ii++) {
+      String str = String.format("%02x", split[ii]);
+      sb.append(str);
+    }
+    return sb.toString();
   }
 
   private void writeSplitsToMetadataTable(Table.ID tableId, SortedSet<Text> splits,
@@ -101,7 +129,18 @@ class PopulateMetadata extends MasterRepo {
         environment.getMasterLock());
   }
 
-  private Map<Text,Text> createSplitDirectoryMap(String splitDirMap, Master environment)
+  private Map<Text,Text> createSplitDirectoryMap(SortedSet<Text> splits, SortedSet<Text> dirs)
+      throws IOException {
+    Map<Text,Text> data = new HashMap<>();
+    Iterator<Text> s = splits.iterator();
+    Iterator<Text> d = dirs.iterator();
+    while (s.hasNext() && d.hasNext()) {
+      data.put(s.next(), d.next());
+    }
+    return data;
+  }
+
+  private Map<Text,Text> createSplitDirectoryMap2(String splitDirMap, Master environment)
       throws IOException {
     Map<Text,Text> data = new HashMap<>();
     try (BufferedReader br = new BufferedReader(

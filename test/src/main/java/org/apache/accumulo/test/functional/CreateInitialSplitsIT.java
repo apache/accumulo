@@ -20,10 +20,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -35,9 +37,11 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -118,7 +122,83 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     assertTrue(connector.tableOperations().exists(tableName));
     Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
     verifySplitsMatch(expectedSplits, new TreeSet<Text>(createdSplits));
+  }
 
+  @Test
+  public void nonbinary() throws TableExistsException,
+      AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    tableName = getUniqueNames(1)[0];
+    SortedSet<Text> expectedSplits = new TreeSet<>();
+    expectedSplits.add(new Text("aaaaa"));
+    expectedSplits.add(new Text("ddddd"));
+    expectedSplits.add(new Text("fffff"));
+
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.withSplits(expectedSplits);
+    connector.tableOperations().create(tableName, ntc);
+    assertTrue(connector.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    verifySplitsMatch(expectedSplits, new TreeSet<Text>(createdSplits));
+  }
+
+  @Test
+  public void binary()
+      throws TableExistsException, AccumuloSecurityException, AccumuloException,
+      TableNotFoundException {
+    tableName = getUniqueNames(1)[0];
+    SortedSet<Text> expectedSplits = new TreeSet<>();
+    Random rand = new Random();
+
+//    for(int i = 0 ; i < 5; i++) {
+//      byte[] split = new byte[4];
+//      rand.nextBytes(split);
+//      expectedSplits.add(new Text(split));
+//    }
+
+    byte[] s = {0x41, 0x42, 0x43, 0x44};
+    expectedSplits.add(new Text(s));
+    s[3] = (byte)0x55;
+    s = new byte[]{0x45, 0x46, 0x47, 0x48};
+    expectedSplits.add(new Text(s));
+    s = new byte[]{(byte)0x81, (byte)0x82, (byte)0xA3, (byte)0xA4};
+    expectedSplits.add(new Text(s));
+
+    for (Text split : expectedSplits) {
+      log.info(">>>> ========================");
+      ByteBuffer wrap = ByteBuffer.wrap(new Text(split).getBytes(), 0, new Text(split).getLength());
+      Text text = ByteBufferUtil.toText(wrap);
+      log.info("BB TEXT: " + text);
+      byte[] bytes = ByteBufferUtil.toBytes(wrap);
+      log.info("BB BYTE: " + getBytesAsString(bytes, text.getLength()));
+      log.info("encoded: " + Base64.getEncoder().encodeToString(bytes));
+    }
+
+    //TODO create table using splits
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.withSplits(expectedSplits);
+    connector.tableOperations().create(tableName, ntc);
+    assertTrue(connector.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+
+    //TODO get splits for table and ensure same as splits
+    for (Text created : createdSplits) {
+      log.info(">>>> -----------------------");
+      ByteBuffer wrap = ByteBuffer.wrap(created.getBytes(), 0, created.getLength());
+      Text text = ByteBufferUtil.toText(wrap);
+      log.info("BB TEXT: " + text);
+      byte[] bytes = ByteBufferUtil.toBytes(wrap);
+      log.info("BB BYTE: " + getBytesAsString(bytes, text.getLength()));
+    }
+    verifySplitsMatch(expectedSplits, new TreeSet<Text>(createdSplits));
+  }
+
+  private String getBytesAsString(byte[] split, int size) {
+    StringBuilder sb = new StringBuilder();
+    for (int ii = 0; ii < size; ii++) {
+      String str = String.format("%02x", split[ii]);
+      sb.append(str);
+    }
+    return sb.toString();
   }
 
   @Test
@@ -183,9 +263,11 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     scan.fetchColumn(new Text("srv"), new Text("time"));
     for (Map.Entry<Key,Value> entry : scan) {
       Text row = entry.getKey().getRow();
+      log.info(">>>> row: " + row);
       if (!row.toString().startsWith(id + ";"))
         continue;
       Text partialRow = new Text(row.toString().substring(2));
+      log.info(">>>> partialRow: " + partialRow);
       assertTrue("partialRow not in splits array", expected.contains(partialRow));
     }
   }

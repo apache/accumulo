@@ -56,9 +56,9 @@ class FinishCreateTable extends MasterRepo {
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 
-    if (tableInfo.initialSplitSize > 0) {
-      cleanupSplitFiles(env);
-    }
+//    if (tableInfo.initialSplitSize > 0) {
+//      cleanupSplitFiles(env);
+//    }
     return null;
   }
 

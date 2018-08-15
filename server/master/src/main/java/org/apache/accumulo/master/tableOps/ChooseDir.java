@@ -17,10 +17,13 @@
 package org.apache.accumulo.master.tableOps;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
@@ -31,9 +34,13 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ChooseDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
+
+  private static final Logger log = LoggerFactory.getLogger(ChooseDir.class);
 
   private TableInfo tableInfo;
 
@@ -70,24 +77,42 @@ class ChooseDir extends MasterRepo {
   }
 
   private void createTabletDirectoryFile(Master master, String baseDir) throws IOException {
-    SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo.splitFile));
-    SortedSet<Text> tabletDirectoryInfo = createTabletDirectories(master.getFileSystem(), splits,
-        baseDir);
+    SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo
+        .splitFile), true);
+
+    log.info(">>>> Retrieved " + splits.size() + " from sorted set");
+    for (Text s : splits) {
+      ByteBuffer wrap = ByteBuffer.wrap(s.getBytes(), 0, s.getLength());
+      byte[] bytes = ByteBufferUtil.toBytes(wrap);
+      log.info(">>>> s: " + getBytesAsString(bytes, s.getLength()));
+    }
+
+    SortedSet<Text> tabletDirectoryInfo = createTabletDirectories(master.getFileSystem(),
+        splits.size(), baseDir);
     writeSplitDirInfo(master, tabletDirectoryInfo);
   }
 
-  private SortedSet<Text> createTabletDirectories(VolumeManager fs, SortedSet<Text> splits,
+  private String getBytesAsString(byte[] split, int size) {
+    StringBuilder sb = new StringBuilder();
+    for (int ii = 0; ii < size; ii++) {
+      String str = String.format("%02x", split[ii]);
+      sb.append(str);
+    }
+    return sb.toString();
+  }
+
+  private SortedSet<Text> createTabletDirectories(VolumeManager fs, int num,
       String baseDir) {
     String tabletDir;
 
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
-    SortedSet<Text> splitsAndDirs = new TreeSet<>();
+    SortedSet<Text> splitDirs = new TreeSet<>();
 
-    for (Text split : splits) {
+    for (int i = 0; i < num; i++) {
       tabletDir = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
-      splitsAndDirs.add(new Text(split + ";" + baseDir + "/" + new Path(tabletDir).getName()));
+      splitDirs.add(new Text(baseDir + "/" + new Path(tabletDir).getName()));
     }
-    return splitsAndDirs;
+    return splitDirs;
   }
 
   private void writeSplitDirInfo(Master master, SortedSet<Text> dirs) throws IOException {

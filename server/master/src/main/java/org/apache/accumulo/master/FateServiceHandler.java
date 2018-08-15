@@ -24,6 +24,7 @@ import static org.apache.accumulo.master.util.TableValidators.VALID_NAME;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -731,10 +732,25 @@ class FateServiceHandler implements FateService.Iface {
       final List<ByteBuffer> arguments, final int splitCount, final int splitOffset)
       throws IOException {
     for (int i = splitOffset; i < splitCount + splitOffset; i++) {
-      stream.writeBytes(ByteBufferUtil.toString(arguments.get(i)) + "\n");
+      byte[] bytes = ByteBufferUtil.toBytes(arguments.get(i));
+      log.info(">>>> fsh: " + getBytesAsString(bytes, bytes.length));
+      String encode = Base64.getEncoder().encodeToString(bytes);
+      stream.writeBytes(encode + '\n');
+      log.info(">>>>    : " + encode);
+      //stream.write(ByteBufferUtil.toBytes(arguments.get(i)));
+      //stream.writeBytes("\n");
+      //stream.writeBytes(ByteBufferUtil.toString(arguments.get(i)) + "\n");
+      //ByteBuffer wrap = ByteBuffer.wrap(new Text(s).getBytes(), 0, new Text(s).getLength());
     }
   }
-
+  private String getBytesAsString(byte[] split, int size) {
+    StringBuilder sb = new StringBuilder();
+    for (int ii = 0; ii < size; ii++) {
+      String str = String.format("%02x", split[ii]);
+      sb.append(str);
+    }
+    return sb.toString();
+  }
   /**
    * Get full path to location where initial splits are stored in file system.
    */
