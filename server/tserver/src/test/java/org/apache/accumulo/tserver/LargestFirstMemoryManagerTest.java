@@ -66,7 +66,7 @@ public class LargestFirstMemoryManagerTest {
 
       @Override
       public AccumuloConfiguration getSystemConfiguration() {
-        SiteConfiguration conf = SiteConfiguration.getInstance();
+        SiteConfiguration conf = SiteConfiguration.getTestInstance();
         conf.set(Property.TSERV_MAXMEM, "1g");
         return conf;
       }

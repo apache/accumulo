@@ -46,7 +46,7 @@ public class TestUpgradePathForWALogs {
   private static final String WALOG_FROM_16 = "/walog-from-16.walog";
   private static File testDir;
 
-  SiteConfiguration siteConfig = SiteConfiguration.getInstance();
+  SiteConfiguration siteConfig = SiteConfiguration.getTestInstance();
   VolumeManager fs;
 
   @BeforeClass

@@ -67,7 +67,7 @@ public class SimpleGarbageCollectorTest {
     expect(context.getConfiguration()).andReturn(systemConfig).anyTimes();
     expect(context.getVolumeManager()).andReturn(volMgr).anyTimes();
 
-    credentials = SystemCredentials.get("mock", SiteConfiguration.getInstance());
+    credentials = SystemCredentials.get("mock", SiteConfiguration.getTestInstance());
     expect(context.getPrincipal()).andReturn(credentials.getPrincipal()).anyTimes();
     expect(context.getAuthenticationToken()).andReturn(credentials.getToken()).anyTimes();
     expect(context.getCredentials()).andReturn(credentials).anyTimes();

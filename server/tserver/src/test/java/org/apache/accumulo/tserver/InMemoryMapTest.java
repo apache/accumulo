@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -104,6 +105,7 @@ public class InMemoryMapTest {
   public static void setUp() throws Exception {
     // suppress log messages having to do with not having an instance
     Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
+    SiteConfiguration.getTestInstance();
   }
 
   @Rule

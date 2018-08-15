@@ -33,6 +33,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -97,7 +98,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     try {
       return f.toURI().toURL();
     } catch (MalformedURLException e) {
-      throw new IllegalStateException(e);
+      throw new IllegalArgumentException(e);
     }
   }
 
@@ -131,7 +132,25 @@ public class SiteConfiguration extends AccumuloConfiguration {
     return instance;
   }
 
-  public static URL getAccumuloSiteLocation() {
+  /**
+   * Creates SiteConfiguration even if accumulo-site.xml is not provided on classpath
+   */
+  @VisibleForTesting
+  synchronized public static SiteConfiguration getTestInstance() {
+    if (instance == null) {
+      URL accumuloSiteUrl = null;
+      try {
+        accumuloSiteUrl = getAccumuloSiteLocation();
+      } catch (IllegalArgumentException e) {
+        // ignore this exception during testing
+      }
+      instance = new SiteConfiguration(accumuloSiteUrl);
+      ConfigSanityCheck.validate(instance);
+    }
+    return instance;
+  }
+
+  private static URL getAccumuloSiteLocation() {
     String configFile = System.getProperty("accumulo.configuration", "accumulo-site.xml");
     if (configFile.startsWith("file://")) {
       try {
@@ -140,22 +159,23 @@ public class SiteConfiguration extends AccumuloConfiguration {
           log.info("Found Accumulo configuration at {}", configFile);
           return f.toURI().toURL();
         } else {
-          log.warn("Failed to load Accumulo configuration at " + configFile, new Throwable());
+          throw new IllegalArgumentException(
+              "Failed to load Accumulo configuration at " + configFile);
         }
       } catch (MalformedURLException | URISyntaxException e) {
-        log.warn("Failed to load Accumulo configuration from " + configFile, e);
+        throw new IllegalArgumentException(
+            "Failed to load Accumulo configuration from " + configFile, e);
       }
     } else {
       URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
       if (accumuloConfigUrl == null) {
-        log.warn("Failed to load Accumulo configuration '" + configFile + "' from classpath",
-            new Throwable());
+        throw new IllegalArgumentException(
+            "Failed to load Accumulo configuration '" + configFile + "' from classpath");
       } else {
         log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
         return accumuloConfigUrl;
       }
     }
-    return null;
   }
 
   private Configuration getXmlConfig() {

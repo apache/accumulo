@@ -128,7 +128,8 @@ public class TServerUtilsTest {
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
     expect(context.getInstanceID()).andReturn("11111").anyTimes();
-    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getInstance()).anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getTestInstance())
+        .anyTimes();
     return context;
   }
 
@@ -298,7 +299,7 @@ public class TServerUtilsTest {
     expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
     expect(ctx.getSaslParams()).andReturn(null).anyTimes();
     expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
-    expect(ctx.getSiteConfiguration()).andReturn(SiteConfiguration.getInstance()).anyTimes();
+    expect(ctx.getSiteConfiguration()).andReturn(SiteConfiguration.getTestInstance()).anyTimes();
     replay(ctx);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = TraceWrap.service(clientHandler);

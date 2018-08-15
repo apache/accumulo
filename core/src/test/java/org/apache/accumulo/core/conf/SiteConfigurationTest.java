@@ -81,7 +81,7 @@ public class SiteConfigurationTest {
 
   @Test
   public void testCliConfig() {
-    SiteConfiguration conf = SiteConfiguration.getInstance();
+    SiteConfiguration conf = SiteConfiguration.getTestInstance();
     Assert.assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
     CliConfiguration.set(ImmutableMap.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));

@@ -18,6 +18,7 @@ package org.apache.accumulo.master.metrics;
 
 import java.lang.reflect.Field;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -51,6 +52,7 @@ public class Metrics2ReplicationMetricsTest {
 
   @Test
   public void testAddReplicationQueueTimeMetrics() throws Exception {
+    SiteConfiguration.getTestInstance();
     Master master = EasyMock.createMock(Master.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     MetricsSystem system = EasyMock.createMock(MetricsSystem.class);

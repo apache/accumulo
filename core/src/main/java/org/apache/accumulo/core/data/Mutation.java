@@ -954,8 +954,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Fluent API for putting or deleting to a Mutation that makes it easy use different types
-   * (i.e byte[], CharSequence, etc) when specifying the family, qualifier, value, etc.
+   * Fluent API for putting or deleting to a Mutation that makes it easy use different types (i.e
+   * byte[], CharSequence, etc) when specifying the family, qualifier, value, etc.
    *
    * <p>
    * Methods are optional but must follow this order: family, qualifier, visibility, timestamp.

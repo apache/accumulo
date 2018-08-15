@@ -24,6 +24,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -38,6 +39,7 @@ public class FileOperationsTest {
   @Test
   public void handlesFilenamesWithMoreThanOneDot() throws IOException {
 
+    SiteConfiguration.getTestInstance();
     Boolean caughtException = false;
     FileSKVWriter writer = null;
     String filename = "target/test.file." + RFile.EXTENSION;

@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -57,6 +58,7 @@ public class RFileMetricsTest {
 
   @Before
   public void makeTestRFile() {
+    SiteConfiguration.getTestInstance();
     trf = new TestRFile();
   }
 

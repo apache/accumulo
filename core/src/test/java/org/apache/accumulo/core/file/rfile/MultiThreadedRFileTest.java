@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -211,6 +212,7 @@ public class MultiThreadedRFileTest {
 
   @Test
   public void testMultipleReaders() throws IOException {
+    SiteConfiguration.getTestInstance();
     final List<Throwable> threadExceptions = Collections
         .synchronizedList(new ArrayList<Throwable>());
     Map<String,MutableInt> messages = new HashMap<>();

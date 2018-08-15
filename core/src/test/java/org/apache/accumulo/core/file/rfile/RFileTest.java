@@ -131,6 +131,7 @@ public class RFileTest {
 
   @BeforeClass
   public static void setupCryptoKeyFile() throws Exception {
+    SiteConfiguration.getTestInstance();
     CryptoTest.setupKeyFile();
   }
 
@@ -1803,7 +1804,7 @@ public class RFileTest {
 
   public void turnCryptoOnInSiteConfig() {
     SiteConfiguration.clearInstance();
-    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
+    SiteConfiguration siteConfig = SiteConfiguration.getTestInstance();
     siteConfig.set(Property.INSTANCE_CRYPTO_SERVICE, AESCryptoService.class.getName());
     siteConfig.set("instance.crypto.opts.kekId", "file:///tmp/testAESFile");
     siteConfig.set("instance.crypto.opts.keyManager", "uri");
@@ -1811,7 +1812,7 @@ public class RFileTest {
   }
 
   public static void turnCryptoOffInSiteConfig() {
-    SiteConfiguration.getInstance().set(Property.INSTANCE_CRYPTO_SERVICE,
+    SiteConfiguration.getTestInstance().set(Property.INSTANCE_CRYPTO_SERVICE,
         NoCryptoService.class.getName());
     CryptoServiceFactory.resetInstance();
   }

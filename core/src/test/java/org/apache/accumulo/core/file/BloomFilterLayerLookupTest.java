@@ -28,6 +28,7 @@ import java.util.Random;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -59,6 +60,7 @@ public class BloomFilterLayerLookupTest {
 
   @Test
   public void test() throws IOException {
+    SiteConfiguration.getTestInstance();
     HashSet<Integer> valsSet = new HashSet<>();
     for (int i = 0; i < 100000; i++) {
       valsSet.add(random.nextInt(Integer.MAX_VALUE));

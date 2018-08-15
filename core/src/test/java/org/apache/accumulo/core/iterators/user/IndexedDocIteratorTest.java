@@ -26,6 +26,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -179,6 +180,7 @@ public class IndexedDocIteratorTest extends TestCase {
   @Override
   public void setUp() {
     Logger.getRootLogger().setLevel(Level.ERROR);
+    SiteConfiguration.getTestInstance();
   }
 
   private static final int NUM_ROWS = 5;
