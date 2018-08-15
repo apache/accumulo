@@ -46,7 +46,7 @@ public class RFileOperations extends FileOperations {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
-  private static RFile.Reader getReader(FileReaderOperation<?> options) throws IOException {
+  private static RFile.Reader getReader(ReaderBuilder options) throws IOException {
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
         new Path(options.getFilename()), options.getConfiguration(), options.getFileLenCache(),
         options.getDataCache(), options.getIndexCache(), options.getRateLimiter(),
@@ -54,18 +54,25 @@ public class RFileOperations extends FileOperations {
     return new RFile.Reader(_cbr);
   }
 
+  private static RFile.Reader getReader(FileStuff options) throws IOException {
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
+        new Path(options.getFilename()), options.getConfiguration(), null, null, null,
+        options.getRateLimiter(), options.getTableConfiguration(), null);
+    return new RFile.Reader(_cbr);
+  }
+
   @Override
-  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+  protected long getFileSize(FileStuff options) throws IOException {
     return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
   }
 
   @Override
-  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
+  protected FileSKVIterator openIndex(IndexReaderBuilder options) throws IOException {
     return getReader(options).getIndex();
   }
 
   @Override
-  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
+  protected FileSKVIterator openReader(ReaderBuilder options) throws IOException {
     RFile.Reader reader = getReader(options);
 
     if (options.isSeekToBeginning()) {
@@ -76,14 +83,14 @@ public class RFileOperations extends FileOperations {
   }
 
   @Override
-  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
+  protected FileSKVIterator openScanReader(ScanReaderBuilder options) throws IOException {
     RFile.Reader reader = getReader(options);
     reader.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
     return reader;
   }
 
   @Override
-  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
+  protected FileSKVWriter openWriter(WriterBuilder options) throws IOException {
 
     AccumuloConfiguration acuconf = options.getTableConfiguration();
 
