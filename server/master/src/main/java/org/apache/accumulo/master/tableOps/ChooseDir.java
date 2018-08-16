@@ -17,12 +17,10 @@
 package org.apache.accumulo.master.tableOps;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
@@ -33,13 +31,9 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class ChooseDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
-
-  private static final Logger log = LoggerFactory.getLogger(ChooseDir.class);
 
   private TableInfo tableInfo;
 
@@ -64,7 +58,7 @@ class ChooseDir extends MasterRepo {
     tableInfo.dir = baseDir + Constants.DEFAULT_TABLET_LOCATION;
 
     if (tableInfo.initialSplitSize > 0) {
-      createTabletDirectoryFile(master, baseDir);
+      createTableDirectoriesInfo(master, baseDir);
     }
     return new CreateDir(tableInfo);
   }
@@ -75,28 +69,25 @@ class ChooseDir extends MasterRepo {
     fs.deleteRecursively(new Path(tableInfo.splitDirsFile));
   }
 
-  private void createTabletDirectoryFile(Master master, String baseDir) throws IOException {
+  /**
+   * Create unique table directory names that will be associated with split values. Then write
+   * these to the file system for later use during this FATE operation.
+   */
+  private void createTableDirectoriesInfo(Master master, String baseDir) throws IOException {
     SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo.splitFile),
         true);
-
-    log.info(">>>> Retrieved " + splits.size() + " from sorted set");
-    for (Text s : splits) {
-      ByteBuffer wrap = ByteBuffer.wrap(s.getBytes(), 0, s.getLength());
-      byte[] bytes = ByteBufferUtil.toBytes(wrap);
-      log.info(">>>> s: " + Utils.getBytesAsString(bytes, s.getLength()));
-    }
-
-    SortedSet<Text> tabletDirectoryInfo = createTabletDirectories(master.getFileSystem(),
-        splits.size(), baseDir);
-    writeSplitDirInfo(master, tabletDirectoryInfo);
+    SortedSet<Text> tabletDirectoryInfo = createTableDirectoriesSet(splits.size(), baseDir);
+    writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
   }
 
-  private SortedSet<Text> createTabletDirectories(VolumeManager fs, int num, String baseDir) {
+  /**
+   * Create a set of unique table directories. These will be associated with splits in a
+   * follow-on FATE step.
+   */
+  private SortedSet<Text> createTableDirectoriesSet(int num, String baseDir) {
     String tabletDir;
-
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
     SortedSet<Text> splitDirs = new TreeSet<>();
-
     for (int i = 0; i < num; i++) {
       tabletDir = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
       splitDirs.add(new Text(baseDir + "/" + new Path(tabletDir).getName()));
@@ -104,7 +95,11 @@ class ChooseDir extends MasterRepo {
     return splitDirs;
   }
 
-  private void writeSplitDirInfo(Master master, SortedSet<Text> dirs) throws IOException {
+  /**
+   * Write the SortedSet of Tablet Directory names to the file system for use in the next phase
+   * of the FATE operation.
+   */
+  private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs) throws IOException {
     FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
     if (fs.exists(new Path(tableInfo.splitDirsFile)))
       fs.delete(new Path(tableInfo.splitDirsFile), true);

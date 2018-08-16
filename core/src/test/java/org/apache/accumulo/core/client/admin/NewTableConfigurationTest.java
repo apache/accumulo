@@ -80,6 +80,11 @@ public class NewTableConfigurationTest {
       assertTrue(current.toString().compareTo(nxt.toString()) < 0);
       current = nxt;
     }
+
+    NewTableConfiguration ntc2 = new NewTableConfiguration();
+    Collection<Text> splits = ntc2.getSplits();
+    assertTrue(splits.isEmpty());
+
   }
 
   /**
