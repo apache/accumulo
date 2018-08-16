@@ -46,7 +46,7 @@ public class RFileOperations extends FileOperations {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
-  private static RFile.Reader getReader(FileReaderOperation<?> options) throws IOException {
+  private static RFile.Reader getReader(FileOptions options) throws IOException {
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
         new Path(options.getFilename()), options.getConfiguration(), options.getFileLenCache(),
         options.getDataCache(), options.getIndexCache(), options.getRateLimiter(),
@@ -55,17 +55,17 @@ public class RFileOperations extends FileOperations {
   }
 
   @Override
-  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+  protected long getFileSize(FileOptions options) throws IOException {
     return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
   }
 
   @Override
-  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
+  protected FileSKVIterator openIndex(FileOptions options) throws IOException {
     return getReader(options).getIndex();
   }
 
   @Override
-  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
+  protected FileSKVIterator openReader(FileOptions options) throws IOException {
     RFile.Reader reader = getReader(options);
 
     if (options.isSeekToBeginning()) {
@@ -76,14 +76,14 @@ public class RFileOperations extends FileOperations {
   }
 
   @Override
-  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
+  protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
     RFile.Reader reader = getReader(options);
     reader.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
     return reader;
   }
 
   @Override
-  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
+  protected FileSKVWriter openWriter(FileOptions options) throws IOException {
 
     AccumuloConfiguration acuconf = options.getTableConfiguration();
 

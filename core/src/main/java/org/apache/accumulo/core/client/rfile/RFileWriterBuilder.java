@@ -104,16 +104,12 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       } else {
         fsdo = new FSDataOutputStream(out.getOutputStream(), new FileSystem.Statistics("foo"));
       }
-      return new RFileWriter(
-          fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf())
-              .withTableConfiguration(acuconf).setAccumuloStartEnabled(false).build(),
-          visCacheSize);
+      return new RFileWriter(fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf())
+          .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize);
     } else {
-      return new RFileWriter(
-          fileops.newWriterBuilder()
-              .forFile(out.path.toString(), out.getFileSystem(), out.getConf())
-              .withTableConfiguration(acuconf).setAccumuloStartEnabled(false).build(),
-          visCacheSize);
+      return new RFileWriter(fileops.newWriterBuilder()
+          .forFile(out.path.toString(), out.getFileSystem(), out.getConf())
+          .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize);
     }
   }
 
