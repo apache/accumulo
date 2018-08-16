@@ -28,8 +28,6 @@ import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -196,12 +194,12 @@ public class Utils {
     SortedSet<Text> data = new TreeSet<>();
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
       String line;
-      while((line = br.readLine()) != null) {
-        //line = line.trim();
-        //log.info(">>>> utils.line: " + line);
+      while ((line = br.readLine()) != null) {
+        // line = line.trim();
+        // log.info(">>>> utils.line: " + line);
         if (encoded) {
           byte[] decoded = Base64.getDecoder().decode(line);
-          //log.info(">>>> utils.decoded: " + getBytesAsString(decoded, decoded.length));
+          // log.info(">>>> utils.decoded: " + getBytesAsString(decoded, decoded.length));
           data.add(new Text(decoded));
         } else {
           data.add(new Text(line));

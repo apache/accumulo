@@ -16,16 +16,11 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -40,10 +35,10 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.collect.Iterables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 class PopulateMetadata extends MasterRepo {
 
@@ -74,21 +69,19 @@ class PopulateMetadata extends MasterRepo {
           .getSortedSetFromFile(environment.getInputStream(tableInfo.splitFile), true);
 
       for (Text split : splits) {
-        log.info(">>>> pmd.splits: " + Utils.getBytesAsString(TextUtil.getBytes(split), split
-            .getLength
-            ()));
+        log.info(">>>> pmd.splits: "
+            + Utils.getBytesAsString(TextUtil.getBytes(split), split.getLength()));
       }
 
-      SortedSet<Text> dirs = Utils.getSortedSetFromFile(environment.getInputStream(tableInfo
-          .splitDirsFile), false);
+      SortedSet<Text> dirs = Utils
+          .getSortedSetFromFile(environment.getInputStream(tableInfo.splitDirsFile), false);
       for (Text dir : dirs) {
         log.info(">>>> pmd.dirs: " + dir);
       }
 
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
-      splitDirMap.forEach((k,v) -> log.info(">>>> pmd.map: " + Utils.getBytesAsString(TextUtil
-          .getBytes(k)) + " : " + v));
-
+      splitDirMap.forEach((k, v) -> log
+          .info(">>>> pmd.map: " + Utils.getBytesAsString(TextUtil.getBytes(k)) + " : " + v));
 
       try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
         writeSplitsToMetadataTable(tableInfo.tableId, splits, splitDirMap, tableInfo.timeType,

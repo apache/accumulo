@@ -68,7 +68,7 @@ public class NewTableConfiguration {
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
-  private Map<String,String> iteratorProps = new HashMap<>();
+  private final Map<String,String> iteratorProps = new HashMap<>();
   private SortedSet<Text> splitProps = Collections.emptySortedSet();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
@@ -176,24 +176,13 @@ public class NewTableConfiguration {
   /**
    * Return Collection of split values.
    *
-   * @return this
+   * @return Collection containing splits associated with this NewTableConfiguration object.
    *
    * @since 2.0.0
    */
   public Collection<Text> getSplits() {
     return splitProps;
   }
-
-  /**
-   * Return boolean indicating whether table is to be created with initial splits.
-   *
-   * @return 1 if creating initial splits; 0 otherwise.
-   *
-   * @since 2.0.0
-   */
-  // public SplitMode getCreateInitialSplits() {
-  // return splitCreation;
-  // }
 
   /**
    * Enable building a sample data set on the new table using the given sampler configuration.
@@ -263,7 +252,7 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
     checkArgument(splits != null, "splits set is null");
-    checkArgument(splits.isEmpty() != true, "splits set is empty");
+    checkArgument(!splits.isEmpty(), "splits set is empty");
     this.splitProps = ImmutableSortedSet.copyOf(splits);
     return this;
   }

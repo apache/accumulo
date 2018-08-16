@@ -23,7 +23,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
@@ -77,8 +76,8 @@ class ChooseDir extends MasterRepo {
   }
 
   private void createTabletDirectoryFile(Master master, String baseDir) throws IOException {
-    SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo
-        .splitFile), true);
+    SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo.splitFile),
+        true);
 
     log.info(">>>> Retrieved " + splits.size() + " from sorted set");
     for (Text s : splits) {
@@ -92,8 +91,7 @@ class ChooseDir extends MasterRepo {
     writeSplitDirInfo(master, tabletDirectoryInfo);
   }
 
-  private SortedSet<Text> createTabletDirectories(VolumeManager fs, int num,
-      String baseDir) {
+  private SortedSet<Text> createTabletDirectories(VolumeManager fs, int num, String baseDir) {
     String tabletDir;
 
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
