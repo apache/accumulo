@@ -39,7 +39,6 @@ public class FileOperationsTest {
   @Test
   public void handlesFilenamesWithMoreThanOneDot() throws IOException {
 
-    SiteConfiguration.getTestInstance();
     Boolean caughtException = false;
     FileSKVWriter writer = null;
     String filename = "target/test.file." + RFile.EXTENSION;

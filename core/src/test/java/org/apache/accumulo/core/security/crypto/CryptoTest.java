@@ -86,7 +86,6 @@ public class CryptoTest {
 
   @BeforeClass
   public static void setupKeyFile() throws Exception {
-    SiteConfiguration.getTestInstance();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     String file = "/tmp/testAESFile";
     Path aesPath = new Path(file);

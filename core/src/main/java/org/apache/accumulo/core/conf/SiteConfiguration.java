@@ -100,6 +100,16 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
   }
 
+  synchronized public static SiteConfiguration create() {
+    if (instance != null) {
+      throw new IllegalStateException(
+          "SiteConfiguration.create() was called after SiteConfiguration was already created.");
+    }
+    instance = new SiteConfiguration();
+    ConfigSanityCheck.validate(instance);
+    return instance;
+  }
+
   synchronized public static SiteConfiguration create(URL accumuloSiteUrl,
       Map<String,String> overrides) {
     if (instance != null) {
@@ -126,30 +136,12 @@ public class SiteConfiguration extends AccumuloConfiguration {
   /**
    * Gets an instance of this class. A new instance is only created on the first call.
    *
-   * @throws RuntimeException
-   *           if the configuration is invalid
+   * @throws IllegalArgumentException
+   *           if the configuration is invalid or accumulo-site.xml is not on classpath.
    */
   synchronized public static SiteConfiguration getInstance() {
     if (instance == null) {
       instance = new SiteConfiguration();
-      ConfigSanityCheck.validate(instance);
-    }
-    return instance;
-  }
-
-  /**
-   * Creates SiteConfiguration even if accumulo-site.xml is not provided on classpath
-   */
-  @VisibleForTesting
-  synchronized public static SiteConfiguration getTestInstance() {
-    if (instance == null) {
-      URL accumuloSiteUrl = null;
-      try {
-        accumuloSiteUrl = getAccumuloSiteLocation();
-      } catch (IllegalArgumentException e) {
-        // ignore this exception during testing
-      }
-      instance = new SiteConfiguration(accumuloSiteUrl, Collections.emptyMap());
       ConfigSanityCheck.validate(instance);
     }
     return instance;

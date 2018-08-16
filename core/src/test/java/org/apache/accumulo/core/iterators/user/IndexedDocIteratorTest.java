@@ -180,7 +180,6 @@ public class IndexedDocIteratorTest extends TestCase {
   @Override
   public void setUp() {
     Logger.getRootLogger().setLevel(Level.ERROR);
-    SiteConfiguration.getTestInstance();
   }
 
   private static final int NUM_ROWS = 5;

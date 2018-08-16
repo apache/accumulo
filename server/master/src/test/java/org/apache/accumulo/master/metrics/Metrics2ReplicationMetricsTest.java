@@ -52,7 +52,7 @@ public class Metrics2ReplicationMetricsTest {
 
   @Test
   public void testAddReplicationQueueTimeMetrics() throws Exception {
-    SiteConfiguration.getTestInstance();
+    //SiteConfiguration.getTestInstance();
     Master master = EasyMock.createMock(Master.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     MetricsSystem system = EasyMock.createMock(MetricsSystem.class);

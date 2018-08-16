@@ -105,7 +105,6 @@ public class InMemoryMapTest {
   public static void setUp() throws Exception {
     // suppress log messages having to do with not having an instance
     Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
-    SiteConfiguration.getTestInstance();
   }
 
   @Rule

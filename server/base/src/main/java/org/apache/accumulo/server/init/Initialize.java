@@ -918,10 +918,10 @@ public class Initialize implements KeywordExecutable {
   public void execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
+    SiteConfiguration siteConfig = SiteConfiguration.create();
 
     try {
       zoo = ZooReaderWriter.getInstance();
-      SiteConfiguration siteConfig = SiteConfiguration.getInstance();
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = CachedConfiguration.getInstance();
 

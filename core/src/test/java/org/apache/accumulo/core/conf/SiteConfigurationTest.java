@@ -81,7 +81,7 @@ public class SiteConfigurationTest {
 
   @Test
   public void testConfigOverrides() {
-    SiteConfiguration conf = SiteConfiguration.getTestInstance();
+    SiteConfiguration conf = SiteConfiguration.create();
     Assert.assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
     SiteConfiguration.clearInstance();

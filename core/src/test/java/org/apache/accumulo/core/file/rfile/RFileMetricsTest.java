@@ -58,7 +58,6 @@ public class RFileMetricsTest {
 
   @Before
   public void makeTestRFile() {
-    SiteConfiguration.getTestInstance();
     trf = new TestRFile();
   }
 

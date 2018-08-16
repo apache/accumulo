@@ -31,13 +31,14 @@ import org.junit.Test;
 
 public class MasterReplicationCoordinatorTest {
 
+  static SiteConfiguration siteConfig = SiteConfiguration.create();
+
   @Test
   public void randomServer() {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getTestInstance())
-        .anyTimes();
+    EasyMock.expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
     EasyMock.expect(master.getContext()).andReturn(context);
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
     EasyMock.replay(master, reader);
@@ -52,8 +53,7 @@ public class MasterReplicationCoordinatorTest {
   public void invalidOffset() {
     Master master = EasyMock.createMock(Master.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getTestInstance())
-        .anyTimes();
+    EasyMock.expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     EasyMock.expect(master.getContext()).andReturn(context);
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
@@ -70,8 +70,7 @@ public class MasterReplicationCoordinatorTest {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getTestInstance())
-        .anyTimes();
+    EasyMock.expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn("1234").anyTimes();
     EasyMock.expect(master.getInstanceID()).andReturn("1234").anyTimes();
     EasyMock.expect(master.getContext()).andReturn(context).anyTimes();

@@ -53,6 +53,7 @@ public class SimpleGarbageCollectorTest {
   private Opts opts;
   private SimpleGarbageCollector gc;
   private ConfigurationCopy systemConfig;
+  private static SiteConfiguration siteConfig = SiteConfiguration.create();
 
   @Before
   public void setUp() {
@@ -67,7 +68,7 @@ public class SimpleGarbageCollectorTest {
     expect(context.getConfiguration()).andReturn(systemConfig).anyTimes();
     expect(context.getVolumeManager()).andReturn(volMgr).anyTimes();
 
-    credentials = SystemCredentials.get("mock", SiteConfiguration.getTestInstance());
+    credentials = SystemCredentials.get("mock", siteConfig);
     expect(context.getPrincipal()).andReturn(credentials.getPrincipal()).anyTimes();
     expect(context.getAuthenticationToken()).andReturn(credentials.getToken()).anyTimes();
     expect(context.getCredentials()).andReturn(credentials).anyTimes();

@@ -60,7 +60,6 @@ public class BloomFilterLayerLookupTest {
 
   @Test
   public void test() throws IOException {
-    SiteConfiguration.getTestInstance();
     HashSet<Integer> valsSet = new HashSet<>();
     for (int i = 0; i < 100000; i++) {
       valsSet.add(random.nextInt(Integer.MAX_VALUE));

@@ -38,7 +38,7 @@ public class SystemCredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private SiteConfiguration siteConfig = SiteConfiguration.getTestInstance();
+  private static SiteConfiguration siteConfig = SiteConfiguration.create();
   private String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
       .toString();
 

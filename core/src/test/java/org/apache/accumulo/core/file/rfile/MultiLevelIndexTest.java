@@ -43,7 +43,7 @@ import junit.framework.TestCase;
 public class MultiLevelIndexTest extends TestCase {
 
   public void test1() throws Exception {
-    SiteConfiguration.getTestInstance();
+    //SiteConfiguration.getTestInstance();
 
     runTest(500, 1);
     runTest(500, 10);

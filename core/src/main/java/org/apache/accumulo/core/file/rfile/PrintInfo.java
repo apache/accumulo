@@ -142,6 +142,7 @@ public class PrintInfo implements KeywordExecutable {
       System.err.println("No files were given");
       System.exit(-1);
     }
+    SiteConfiguration siteConfig = SiteConfiguration.create();
 
     Configuration conf = new Configuration();
     for (String confFile : opts.configFiles) {
@@ -157,7 +158,6 @@ public class PrintInfo implements KeywordExecutable {
     KeyStats dataKeyStats = new KeyStats();
     KeyStats indexKeyStats = new KeyStats();
 
-    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
 
     for (String arg : opts.files) {
       Path path = new Path(arg);

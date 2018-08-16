@@ -68,11 +68,6 @@ import com.google.common.collect.ImmutableMap;
 
 public class RFileTest {
 
-  @BeforeClass
-  public static void setup() {
-    SiteConfiguration.getTestInstance();
-  }
-
   // method created to foil findbugs... it was complaining ret val not used when it did not matter
   private void foo(boolean b) {}
 

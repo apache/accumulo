@@ -50,6 +50,7 @@ public class ServerConfigurationFactoryTest {
   // use the same mock ZooCacheFactory and ZooCache for all tests
   private static ZooCacheFactory zcf;
   private static ZooCache zc;
+  private static SiteConfiguration siteConfig = SiteConfiguration.create();
 
   @BeforeClass
   public static void setUpClass() throws Exception {
@@ -79,8 +80,7 @@ public class ServerConfigurationFactoryTest {
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
-    expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.getTestInstance())
-        .anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
   }
 
   @After

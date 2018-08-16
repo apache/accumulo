@@ -212,7 +212,6 @@ public class MultiThreadedRFileTest {
 
   @Test
   public void testMultipleReaders() throws IOException {
-    SiteConfiguration.getTestInstance();
     final List<Throwable> threadExceptions = Collections
         .synchronizedList(new ArrayList<Throwable>());
     Map<String,MutableInt> messages = new HashMap<>();

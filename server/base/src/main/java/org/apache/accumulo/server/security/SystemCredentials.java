@@ -51,7 +51,6 @@ public final class SystemCredentials extends Credentials {
     super(principal, token);
     AS_THRIFT = super.toThrift(instanceID);
   }
-
   public static SystemCredentials get(String instanceID, SiteConfiguration siteConfig) {
     String principal = SYSTEM_PRINCIPAL;
     if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {

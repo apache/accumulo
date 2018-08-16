@@ -124,7 +124,7 @@ public class CertUtils {
 
     public SiteConfiguration getSiteConfiguration() {
       if (siteFile == null) {
-        return SiteConfiguration.getInstance();
+        return SiteConfiguration.create();
       } else {
         return SiteConfiguration.create(new File(siteFile));
       }
