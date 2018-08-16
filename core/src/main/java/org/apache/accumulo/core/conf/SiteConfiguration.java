@@ -104,7 +104,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       Map<String,String> overrides) {
     if (instance != null) {
       throw new IllegalStateException(
-          "SiteConfiguration.create() has been called after SiteConfiguration was already created.");
+          "SiteConfiguration.create() was called after SiteConfiguration was already created.");
     }
     instance = new SiteConfiguration(accumuloSiteUrl, overrides);
     ConfigSanityCheck.validate(instance);
