@@ -74,6 +74,7 @@ import org.apache.accumulo.master.tableOps.RenameNamespace;
 import org.apache.accumulo.master.tableOps.RenameTable;
 import org.apache.accumulo.master.tableOps.TableRangeOp;
 import org.apache.accumulo.master.tableOps.TraceRepo;
+import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -733,24 +734,13 @@ class FateServiceHandler implements FateService.Iface {
       throws IOException {
     for (int i = splitOffset; i < splitCount + splitOffset; i++) {
       byte[] bytes = ByteBufferUtil.toBytes(arguments.get(i));
-      log.info(">>>> fsh: " + getBytesAsString(bytes, bytes.length));
+      log.info(">>>> fsh: " + Utils.getBytesAsString(bytes, bytes.length));
       String encode = Base64.getEncoder().encodeToString(bytes);
       stream.writeBytes(encode + '\n');
       log.info(">>>>    : " + encode);
-      //stream.write(ByteBufferUtil.toBytes(arguments.get(i)));
-      //stream.writeBytes("\n");
-      //stream.writeBytes(ByteBufferUtil.toString(arguments.get(i)) + "\n");
-      //ByteBuffer wrap = ByteBuffer.wrap(new Text(s).getBytes(), 0, new Text(s).getLength());
     }
   }
-  private String getBytesAsString(byte[] split, int size) {
-    StringBuilder sb = new StringBuilder();
-    for (int ii = 0; ii < size; ii++) {
-      String str = String.format("%02x", split[ii]);
-      sb.append(str);
-    }
-    return sb.toString();
-  }
+
   /**
    * Get full path to location where initial splits are stored in file system.
    */

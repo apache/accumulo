@@ -23,7 +23,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -72,17 +74,20 @@ class PopulateMetadata extends MasterRepo {
           .getSortedSetFromFile(environment.getInputStream(tableInfo.splitFile), true);
 
       for (Text split : splits) {
-        log.info(">>>> pmd: " + getBytesAsString(TextUtil.getBytes(split), split.getLength()));
+        log.info(">>>> pmd.splits: " + Utils.getBytesAsString(TextUtil.getBytes(split), split
+            .getLength
+            ()));
       }
 
       SortedSet<Text> dirs = Utils.getSortedSetFromFile(environment.getInputStream(tableInfo
           .splitDirsFile), false);
       for (Text dir : dirs) {
-        log.info(">>>> pmd: " + dir);
+        log.info(">>>> pmd.dirs: " + dir);
       }
 
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
-      splitDirMap.forEach((k,v) -> log.info(">>>> pmd: " + k + " : " + v));
+      splitDirMap.forEach((k,v) -> log.info(">>>> pmd.map: " + Utils.getBytesAsString(TextUtil
+          .getBytes(k)) + " : " + v));
 
 
       try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
@@ -91,14 +96,6 @@ class PopulateMetadata extends MasterRepo {
       }
     }
     return new FinishCreateTable(tableInfo);
-  }
-  private String getBytesAsString(byte[] split, int size) {
-    StringBuilder sb = new StringBuilder();
-    for (int ii = 0; ii < size; ii++) {
-      String str = String.format("%02x", split[ii]);
-      sb.append(str);
-    }
-    return sb.toString();
   }
 
   private void writeSplitsToMetadataTable(Table.ID tableId, SortedSet<Text> splits,
@@ -129,27 +126,12 @@ class PopulateMetadata extends MasterRepo {
         environment.getMasterLock());
   }
 
-  private Map<Text,Text> createSplitDirectoryMap(SortedSet<Text> splits, SortedSet<Text> dirs)
-      throws IOException {
+  private Map<Text,Text> createSplitDirectoryMap(SortedSet<Text> splits, SortedSet<Text> dirs) {
     Map<Text,Text> data = new HashMap<>();
     Iterator<Text> s = splits.iterator();
     Iterator<Text> d = dirs.iterator();
     while (s.hasNext() && d.hasNext()) {
       data.put(s.next(), d.next());
-    }
-    return data;
-  }
-
-  private Map<Text,Text> createSplitDirectoryMap2(String splitDirMap, Master environment)
-      throws IOException {
-    Map<Text,Text> data = new HashMap<>();
-    try (BufferedReader br = new BufferedReader(
-        new InputStreamReader(environment.getInputStream(splitDirMap)))) {
-      String line;
-      while ((line = br.readLine()) != null) {
-        String[] split = line.split(";");
-        data.put(new Text(split[0]), new Text(split[1]));
-      }
     }
     return data;
   }

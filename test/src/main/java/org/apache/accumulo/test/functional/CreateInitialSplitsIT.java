@@ -45,6 +45,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -52,6 +53,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.hdfs.util.ByteArray;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -124,7 +126,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     verifySplitsMatch(expectedSplits, new TreeSet<Text>(createdSplits));
   }
 
-  @Test
+  //@Test
   public void nonbinary() throws TableExistsException,
       AccumuloSecurityException, AccumuloException, TableNotFoundException {
     tableName = getUniqueNames(1)[0];
@@ -142,36 +144,44 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void binary()
+  public void testCreateInitialBinarySplits()
       throws TableExistsException, AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = new TreeSet<>();
     Random rand = new Random();
 
-//    for(int i = 0 ; i < 5; i++) {
-//      byte[] split = new byte[4];
-//      rand.nextBytes(split);
-//      expectedSplits.add(new Text(split));
-//    }
-
-    byte[] s = {0x41, 0x42, 0x43, 0x44};
-    expectedSplits.add(new Text(s));
-    s[3] = (byte)0x55;
-    s = new byte[]{0x45, 0x46, 0x47, 0x48};
-    expectedSplits.add(new Text(s));
-    s = new byte[]{(byte)0x81, (byte)0x82, (byte)0xA3, (byte)0xA4};
-    expectedSplits.add(new Text(s));
-
-    for (Text split : expectedSplits) {
-      log.info(">>>> ========================");
-      ByteBuffer wrap = ByteBuffer.wrap(new Text(split).getBytes(), 0, new Text(split).getLength());
-      Text text = ByteBufferUtil.toText(wrap);
-      log.info("BB TEXT: " + text);
-      byte[] bytes = ByteBufferUtil.toBytes(wrap);
-      log.info("BB BYTE: " + getBytesAsString(bytes, text.getLength()));
-      log.info("encoded: " + Base64.getEncoder().encodeToString(bytes));
+    for(int i = 0 ; i < 1000; i++) {
+      byte[] split = new byte[16];
+      rand.nextBytes(split);
+      expectedSplits.add(new Text(split));
     }
+
+//      byte[][] data = {
+//          {(byte)0x0c, (byte)0x23, (byte)0x1c, (byte)0x43},
+//          {(byte)0x0f, (byte)0x23, (byte)0x5b, (byte)0xb3},
+//          {(byte)0x12, (byte)0xa9, (byte)0x44, (byte)0xea},
+//          {(byte)0x14, (byte)0x28, (byte)0x36, (byte)0xf9},
+//          {(byte)0x75, (byte)0xb1, (byte)0x18, (byte)0x62},
+//          {(byte)0x76, (byte)0x1f, (byte)0xab, (byte)0xa5},
+//          {(byte)0x7d, (byte)0x69, (byte)0x38, (byte)0x57},
+//          {(byte)0x9a, (byte)0x6d, (byte)0x07, (byte)0x7f},
+//          {(byte)0xd5, (byte)0x80, (byte)0xe3, (byte)0x2e},
+//          {(byte)0xee, (byte)0x25, (byte)0x8d, (byte)0x80}
+//      };
+//      for (byte[] b : data) {
+//        expectedSplits.add(new Text(Base64.getEncoder().encodeToString(b)));
+//      }
+
+//    for (Text split : expectedSplits) {
+//      log.info(">>>> ========================");
+//      ByteBuffer wrap = ByteBuffer.wrap(new Text(split).getBytes(), 0, new Text(split).getLength());
+//      Text text = ByteBufferUtil.toText(wrap);
+//      log.info("BB TEXT: " + text);
+//      byte[] bytes = ByteBufferUtil.toBytes(wrap);
+//      log.info("BB BYTE: " + getBytesAsString(bytes, text.getLength()));
+//      log.info("encoded: " + Base64.getEncoder().encodeToString(bytes));
+//    }
 
     //TODO create table using splits
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -181,24 +191,15 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
 
     //TODO get splits for table and ensure same as splits
-    for (Text created : createdSplits) {
-      log.info(">>>> -----------------------");
-      ByteBuffer wrap = ByteBuffer.wrap(created.getBytes(), 0, created.getLength());
-      Text text = ByteBufferUtil.toText(wrap);
-      log.info("BB TEXT: " + text);
-      byte[] bytes = ByteBufferUtil.toBytes(wrap);
-      log.info("BB BYTE: " + getBytesAsString(bytes, text.getLength()));
-    }
-    verifySplitsMatch(expectedSplits, new TreeSet<Text>(createdSplits));
-  }
-
-  private String getBytesAsString(byte[] split, int size) {
-    StringBuilder sb = new StringBuilder();
-    for (int ii = 0; ii < size; ii++) {
-      String str = String.format("%02x", split[ii]);
-      sb.append(str);
-    }
-    return sb.toString();
+//    for (Text created : createdSplits) {
+//      log.info(">>>> -----------------------");
+//      ByteBuffer wrap = ByteBuffer.wrap(created.getBytes(), 0, created.getLength());
+//      Text text = ByteBufferUtil.toText(wrap);
+//      log.info("BB TEXT: " + text);
+//      byte[] bytes = ByteBufferUtil.toBytes(wrap);
+//      log.info("BB BYTE: " + getBytesAsString(bytes, text.getLength()));
+//    }
+    verifySplitsMatch(expectedSplits, new TreeSet<>(createdSplits));
   }
 
   @Test
@@ -234,42 +235,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     verifyTableCreated();
     assertEquals("created splits size does not match expected splits size", expected.size(),
         created.size());
-    Iterator<Text> expectedIterator = expected.iterator();
-    Iterator<Text> createdIterator = created.iterator();
-    Text currentExpected = new Text("");
-    Text currentCreated = new Text("");
-    while (expectedIterator.hasNext() || createdIterator.hasNext()) {
-      Text nextExpected = expectedIterator.next();
-      Text nextCreated = createdIterator.next();
-      assertEquals("expected split value '" + nextExpected + "' does not equal "
-          + "created split value '" + nextCreated + "'", nextExpected, nextCreated);
-      assertTrue("expected splits are not ordered properly",
-          currentExpected.toString().compareTo(nextExpected.toString()) < 0);
-      assertTrue("created splits are not ordered properly",
-          currentCreated.toString().compareTo(nextCreated.toString()) < 0);
-      currentExpected = nextExpected;
-      currentCreated = nextCreated;
-    }
-    verifyMetadata(expected);
-  }
-
-  /**
-   * Verify that the metadata table contains the expected splits.
-   */
-  private void verifyMetadata(SortedSet<Text> expected) throws TableNotFoundException {
-    Map<String,String> tableIdMap = connector.tableOperations().tableIdMap();
-    String id = tableIdMap.get(tableName);
-    Scanner scan = connector.createScanner("accumulo.metadata", Authorizations.EMPTY);
-    scan.fetchColumn(new Text("srv"), new Text("time"));
-    for (Map.Entry<Key,Value> entry : scan) {
-      Text row = entry.getKey().getRow();
-      log.info(">>>> row: " + row);
-      if (!row.toString().startsWith(id + ";"))
-        continue;
-      Text partialRow = new Text(row.toString().substring(2));
-      log.info(">>>> partialRow: " + partialRow);
-      assertTrue("partialRow not in splits array", expected.contains(partialRow));
-    }
+    assertEquals("created splits do not match expected splits", expected, created);
+    
   }
 
   private void verifyTableCreated() {

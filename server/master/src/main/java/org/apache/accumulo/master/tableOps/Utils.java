@@ -197,11 +197,11 @@ public class Utils {
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
       String line;
       while((line = br.readLine()) != null) {
-        line = line.trim();
-        log.info(">>>> utils.line: " + line);
+        //line = line.trim();
+        //log.info(">>>> utils.line: " + line);
         if (encoded) {
           byte[] decoded = Base64.getDecoder().decode(line);
-          log.info(">>>> utils.decoded: " + getBytesAsString(decoded, decoded.length));
+          //log.info(">>>> utils.decoded: " + getBytesAsString(decoded, decoded.length));
           data.add(new Text(decoded));
         } else {
           data.add(new Text(line));
@@ -211,20 +211,16 @@ public class Utils {
     return data;
   }
 
-  private static String getBytesAsString(byte[] split, int size) {
-    StringBuilder sb = new StringBuilder();
+  public static String getBytesAsString(byte[] split) {
+    return getBytesAsString(split, split.length);
+  }
+
+  public static String getBytesAsString(byte[] split, int size) {
+    StringBuilder sb = new StringBuilder("0x");
     for (int ii = 0; ii < size; ii++) {
       String str = String.format("%02x", split[ii]);
       sb.append(str);
     }
     return sb.toString();
-  }
-
-  static SortedSet<Text> getSortedSetFromFile1(FSDataInputStream inputStream) throws IOException {
-    SortedSet<Text> data;
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-      data = br.lines().map(Text::new).collect(Collectors.toCollection(TreeSet::new));
-    }
-    return data;
   }
 }

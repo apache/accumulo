@@ -84,21 +84,12 @@ class ChooseDir extends MasterRepo {
     for (Text s : splits) {
       ByteBuffer wrap = ByteBuffer.wrap(s.getBytes(), 0, s.getLength());
       byte[] bytes = ByteBufferUtil.toBytes(wrap);
-      log.info(">>>> s: " + getBytesAsString(bytes, s.getLength()));
+      log.info(">>>> s: " + Utils.getBytesAsString(bytes, s.getLength()));
     }
 
     SortedSet<Text> tabletDirectoryInfo = createTabletDirectories(master.getFileSystem(),
         splits.size(), baseDir);
     writeSplitDirInfo(master, tabletDirectoryInfo);
-  }
-
-  private String getBytesAsString(byte[] split, int size) {
-    StringBuilder sb = new StringBuilder();
-    for (int ii = 0; ii < size; ii++) {
-      String str = String.format("%02x", split[ii]);
-      sb.append(str);
-    }
-    return sb.toString();
   }
 
   private SortedSet<Text> createTabletDirectories(VolumeManager fs, int num,
