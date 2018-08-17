@@ -19,7 +19,8 @@ package org.apache.accumulo.master.replication;
 import java.util.Collections;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
@@ -31,14 +32,14 @@ import org.junit.Test;
 
 public class MasterReplicationCoordinatorTest {
 
-  static SiteConfiguration siteConfig = SiteConfiguration.create();
+  static AccumuloConfiguration config = DefaultConfiguration.getInstance();
 
   @Test
   public void randomServer() {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
     EasyMock.expect(master.getContext()).andReturn(context);
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
     EasyMock.replay(master, reader);
@@ -53,7 +54,7 @@ public class MasterReplicationCoordinatorTest {
   public void invalidOffset() {
     Master master = EasyMock.createMock(Master.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     EasyMock.expect(master.getContext()).andReturn(context);
     EasyMock.expect(master.getInstanceID()).andReturn("1234");
@@ -70,7 +71,7 @@ public class MasterReplicationCoordinatorTest {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn("1234").anyTimes();
     EasyMock.expect(master.getInstanceID()).andReturn("1234").anyTimes();
     EasyMock.expect(master.getContext()).andReturn(context).anyTimes();

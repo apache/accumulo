@@ -19,6 +19,7 @@ package org.apache.accumulo.master.state;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
@@ -38,8 +39,8 @@ public class SetGoalState {
       System.exit(-1);
     }
 
-    ServerContext context = new ServerContext();
-    SecurityUtil.serverLogin(context.getSiteConfiguration());
+    ServerContext context = new ServerContext(SiteConfiguration.create());
+    SecurityUtil.serverLogin(context.getConfiguration());
     Accumulo.waitForZookeeperAndHdfs(context.getVolumeManager());
     ZooReaderWriter.getInstance().putPersistentData(
         context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),

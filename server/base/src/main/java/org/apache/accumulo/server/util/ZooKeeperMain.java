@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -68,7 +69,7 @@ public class ZooKeeperMain implements KeywordExecutable {
     String baseDir = ServerConstants.getBaseUris()[0];
     System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id"))
         + " to lookup accumulo instance");
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(SiteConfiguration.create());
     if (opts.servers == null) {
       opts.servers = context.getZooKeepers();
     }

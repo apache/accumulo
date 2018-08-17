@@ -80,7 +80,6 @@ public class ServerConfigurationFactoryTest {
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
-    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
   }
 
   @After
@@ -94,7 +93,7 @@ public class ServerConfigurationFactoryTest {
 
   private void ready() {
     replay(context);
-    scf = new ServerConfigurationFactory(context);
+    scf = new ServerConfigurationFactory(context, siteConfig);
     scf.setZooCacheFactory(zcf);
   }
 

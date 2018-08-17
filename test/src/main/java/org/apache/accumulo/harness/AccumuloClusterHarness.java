@@ -136,11 +136,11 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           (StandaloneAccumuloClusterConfiguration) clusterConf;
         // @formatter:on
         StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
-            cluster.getClientInfo(), conf.getTmpDirectory(), conf.getUsers());
+            cluster.getClientInfo(), conf.getTmpDirectory(), conf.getUsers(),
+            conf.getServerAccumuloConfDir());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
-        standaloneCluster.setServerAccumuloConfDir(conf.getServerAccumuloConfDir());
         standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
         standaloneCluster.setServerCmdPrefix(conf.getServerCmdPrefix());
         standaloneCluster.setClientCmdPrefix(conf.getClientCmdPrefix());

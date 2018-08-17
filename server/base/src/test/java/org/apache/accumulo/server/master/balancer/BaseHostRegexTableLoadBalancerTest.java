@@ -42,6 +42,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -90,12 +91,14 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         TestDefaultBalancer.class.getName());
   }
 
+  private static SiteConfiguration siteConfg = SiteConfiguration.create();
+
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
     final ServerContext context;
 
     public TestServerConfigurationFactory(ServerContext context) {
-      super(context);
+      super(context, siteConfg);
       this.context = context;
     }
 

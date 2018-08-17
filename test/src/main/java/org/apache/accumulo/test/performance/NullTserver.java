@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.InitialMultiScan;
@@ -309,7 +310,8 @@ public class NullTserver {
     // modify metadata
     int zkTimeOut = (int) DefaultConfiguration.getInstance()
         .getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    ServerContext context = new ServerContext(opts.iname, opts.keepers, zkTimeOut);
+    SiteConfiguration siteConfig = SiteConfiguration.create();
+    ServerContext context = new ServerContext(siteConfig, opts.iname, opts.keepers, zkTimeOut);
     TransactionWatcher watcher = new TransactionWatcher(context);
     ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);

@@ -50,12 +50,9 @@ public class ServerInfo implements ClientInfo {
   private VolumeManager volumeManager;
   private ZooCache zooCache;
 
-  public ServerInfo(ClientInfo info) {
-    this(info.getInstanceName(), info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-  }
-
-  public ServerInfo(String instanceName, String zooKeepers, int zooKeepersSessionTimeOut) {
-    siteConfig = SiteConfiguration.getInstance();
+  ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
+      int zooKeepersSessionTimeOut) {
+    this.siteConfig = siteConfig;
     this.instanceName = instanceName;
     this.zooKeepers = zooKeepers;
     this.zooKeepersSessionTimeOut = zooKeepersSessionTimeOut;
@@ -77,7 +74,7 @@ public class ServerInfo implements ClientInfo {
     zooKeeperRoot = ZooUtil.getRoot(instanceID);
   }
 
-  public ServerInfo(SiteConfiguration config) {
+  ServerInfo(SiteConfiguration config) {
     siteConfig = config;
     try {
       volumeManager = VolumeManagerImpl.get();

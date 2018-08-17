@@ -402,7 +402,7 @@ public class TraceServer implements Watcher {
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
     ServerContext context = new ServerContext(opts.getSiteConfiguration());
-    loginTracer(context.getSiteConfiguration());
+    loginTracer(context.getConfiguration());
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     Accumulo.init(context.getVolumeManager(), context.getInstanceID(),
         context.getServerConfFactory(), app);

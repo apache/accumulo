@@ -88,11 +88,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   private final ServerContext context;
+  private final SiteConfiguration siteConfig;
   private final String instanceID;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
-  public ServerConfigurationFactory(ServerContext context) {
+  public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
+    this.siteConfig = siteConfig;
     instanceID = context.getInstanceID();
     addInstanceToCaches(instanceID);
   }
@@ -109,7 +111,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private AccumuloConfiguration systemConfig = null;
 
   public SiteConfiguration getSiteConfiguration() {
-    return context.getSiteConfiguration();
+    return siteConfig;
   }
 
   public synchronized DefaultConfiguration getDefaultConfiguration() {

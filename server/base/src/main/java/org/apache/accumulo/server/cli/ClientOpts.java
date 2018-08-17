@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.cli;
 
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 
 public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
@@ -28,10 +29,15 @@ public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
     return new ClientContext(getClientInfo());
   }
 
-  public ServerContext getServerContext() {
-    if (instance == null) {
-      return new ServerContext();
+  private ServerContext context;
+
+  public synchronized ServerContext getServerContext() {
+    if (context == null) {
+      if (instance == null) {
+        context = new ServerContext(SiteConfiguration.create());
+      }
+      context = new ServerContext(SiteConfiguration.create(), getClientInfo());
     }
-    return new ServerContext(getClientInfo());
+    return context;
   }
 }

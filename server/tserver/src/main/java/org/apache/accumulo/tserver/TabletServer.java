@@ -2782,7 +2782,7 @@ public class TabletServer implements Runnable {
   // main loop listens for client requests
   @Override
   public void run() {
-    SecurityUtil.serverLogin(context.getSiteConfiguration());
+    SecurityUtil.serverLogin(context.getConfiguration());
 
     // To make things easier on users/devs, and to avoid creating an upgrade path to 1.7
     // We can just make the zookeeper paths before we try to use.

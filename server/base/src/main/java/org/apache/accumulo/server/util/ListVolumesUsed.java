@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -37,7 +38,7 @@ import org.apache.hadoop.fs.Path;
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    listVolumes(new ServerContext());
+    listVolumes(new ServerContext(SiteConfiguration.create()));
   }
 
   private static String getTableURI(String rootTabletDir) {

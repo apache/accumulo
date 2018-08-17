@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -153,7 +154,8 @@ public class TableLoadBalancerTest {
   public void test() throws Exception {
     final ServerContext context = createMockContext();
     replay(context);
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context) {
+    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context,
+        SiteConfiguration.create()) {
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
