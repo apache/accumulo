@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * This interface is used for the system which will be used for authenticating a user. If the
@@ -30,7 +31,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  */
 public interface Authenticator {
 
-  void initialize(String instanceId, boolean initialize);
+  void initialize(ServerContext context, boolean initialize);
 
   boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
 

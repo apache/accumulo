@@ -98,7 +98,7 @@ public class SecurityOperation {
     Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class,
         ZKAuthenticator.getInstance());
-    toRet.initialize(context.getInstanceID(), initialize);
+    toRet.initialize(context, initialize);
     return toRet;
   }
 

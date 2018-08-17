@@ -30,11 +30,11 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.accumulo.server.security.UserImpersonation;
@@ -56,19 +56,21 @@ public class KerberosAuthenticator implements Authenticator {
       .newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
-  private String zkUserPath;
   private final ZooCache zooCache;
-  private final UserImpersonation impersonation;
+  private ServerContext context;
+  private String zkUserPath;
+  private UserImpersonation impersonation;
 
-  public KerberosAuthenticator(ZooCache cache, AccumuloConfiguration conf) {
-    this.zooCache = cache;
-    this.impersonation = new UserImpersonation(conf);
+  public KerberosAuthenticator() {
+    zooCache = new ZooCache();
   }
 
   @Override
-  public void initialize(String instanceId, boolean initialize) {
-    zkAuthenticator.initialize(instanceId, initialize);
-    zkUserPath = Constants.ZROOT + "/" + instanceId + "/users";
+  public void initialize(ServerContext context, boolean initialize) {
+    this.context = context;
+    impersonation = new UserImpersonation(context.getConfiguration());
+    zkAuthenticator.initialize(context, initialize);
+    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
   }
 
   @Override
