@@ -25,9 +25,9 @@ import java.util.function.Function;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -66,7 +66,7 @@ public class LargestFirstMemoryManagerTest {
 
       @Override
       public AccumuloConfiguration getSystemConfiguration() {
-        SiteConfiguration conf = SiteConfiguration.getInstance();
+        ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
         conf.set(Property.TSERV_MAXMEM, "1g");
         return conf;
       }
