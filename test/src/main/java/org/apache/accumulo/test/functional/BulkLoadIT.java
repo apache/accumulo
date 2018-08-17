@@ -293,14 +293,18 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (IllegalArgumentException e) {
+      // ignore
+    }
 
     // Create a plan with less files than exists in dir
     loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(333)).build();
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (IllegalArgumentException e) {
+      // ignore
+    }
 
     // Create a plan with tablet boundary that does not exits
     loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(555))
@@ -308,7 +312,9 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
       Assert.fail();
-    } catch (AccumuloException e) {}
+    } catch (AccumuloException e) {
+      // ignore
+    }
   }
 
   private void addSplits(String tableName, String splitString) throws Exception {
