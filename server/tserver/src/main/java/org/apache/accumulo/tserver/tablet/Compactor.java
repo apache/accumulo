@@ -201,7 +201,8 @@ public class Compactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
       mfw = fileFactory.newWriterBuilder().forFile(outputFilePathName, ns, ns.getConf())
-          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
+          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter())
+          .withCryptoService(context.getCryptoService()).build();
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -290,7 +291,8 @@ public class Compactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder().forFile(mapFile.path().toString(), fs, fs.getConf())
-            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
+            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
+            .withCryptoService(context.getCryptoService()).build();
 
         readers.add(reader);
 

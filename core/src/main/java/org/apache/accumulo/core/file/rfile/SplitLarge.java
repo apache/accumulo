@@ -60,7 +60,7 @@ public class SplitLarge {
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
-      CryptoService cryptoService = CryptoServiceFactory.getConfigured(aconf);
+      CryptoService cryptoService = CryptoServiceFactory.newInstance(aconf);
       Path path = new Path(file);
       CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf,
           cryptoService);

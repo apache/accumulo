@@ -149,7 +149,7 @@ public class MultiThreadedRFileTest {
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
-          CryptoServiceFactory.getConfigured(accumuloConfiguration));
+          CryptoServiceFactory.newInstance(accumuloConfiguration));
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
           .newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
@@ -183,7 +183,7 @@ public class MultiThreadedRFileTest {
 
       // the caches used to obfuscate the multithreaded issues
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          defaultConf, CryptoServiceFactory.getConfigured(defaultConf));
+          defaultConf, CryptoServiceFactory.newInstance(defaultConf));
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
 

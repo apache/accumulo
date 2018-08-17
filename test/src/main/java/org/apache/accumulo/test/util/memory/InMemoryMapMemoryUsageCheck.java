@@ -23,6 +23,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.test.InMemoryMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.hadoop.io.Text;
 
@@ -55,7 +56,7 @@ class InMemoryMapMemoryUsageCheck extends MemoryUsageCheck {
   @Override
   void init() {
     try {
-      imm = new InMemoryMap(DefaultConfiguration.getInstance());
+      imm = new InMemoryMap(DefaultConfiguration.getInstance(), InMemoryMapIT.getServerContext());
     } catch (LocalityGroupConfigurationError e) {
       throw new RuntimeException(e);
     }

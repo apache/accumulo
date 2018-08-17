@@ -413,7 +413,7 @@ public class TabletServer implements Runnable {
 
     logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walogMaxAge);
-    this.resourceManager = new TabletServerResourceManager(this, fs);
+    this.resourceManager = new TabletServerResourceManager(this, fs, context);
     this.security = AuditedSecurityOperation.getInstance(context);
 
     metricsFactory = new TabletServerMetricsFactory(aconf);
@@ -2078,7 +2078,7 @@ public class TabletServer implements Runnable {
       ServerConfigurationFactory factory = context.getServerConfFactory();
       ExecutorService es = resourceManager.getSummaryPartitionExecutor();
       Future<SummaryCollection> future = new Gatherer(context, request,
-          factory.getTableConfiguration(tableId)).gather(es);
+          factory.getTableConfiguration(tableId), context.getCryptoService()).gather(es);
 
       return startSummaryOperation(credentials, future);
     }
@@ -2096,8 +2096,8 @@ public class TabletServer implements Runnable {
       ServerConfigurationFactory factory = context.getServerConfFactory();
       ExecutorService spe = resourceManager.getSummaryRemoteExecutor();
       Future<SummaryCollection> future = new Gatherer(context, request,
-          factory.getTableConfiguration(Table.ID.of(request.getTableId()))).processPartition(spe,
-              modulus, remainder);
+          factory.getTableConfiguration(Table.ID.of(request.getTableId())),
+          context.getCryptoService()).processPartition(spe, modulus, remainder);
 
       return startSummaryOperation(credentials, future);
     }
@@ -2118,8 +2118,8 @@ public class TabletServer implements Runnable {
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
       FileSystemResolver volMgr = p -> fs.getVolumeByPath(p).getFileSystem();
-      Future<SummaryCollection> future = new Gatherer(context, request, tableCfg)
-          .processFiles(volMgr, files, summaryCache, indexCache, srp);
+      Future<SummaryCollection> future = new Gatherer(context, request, tableCfg,
+          context.getCryptoService()).processFiles(volMgr, files, summaryCache, indexCache, srp);
 
       return startSummaryOperation(credentials, future);
     }
@@ -3339,6 +3339,7 @@ public class TabletServer implements Runnable {
     opts.parseArgs(app, args);
     ServerContext context = new ServerContext(opts.getSiteConfiguration());
     context.setupServer(app, TabletServer.class.getSimpleName(), opts.getAddress());
+    context.setupCrypto();
     try {
       final TabletServer server = new TabletServer(context);
       if (UserGroupInformation.isSecurityEnabled()) {

@@ -57,7 +57,7 @@ public class MultiLevelIndexTest extends TestCase {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", CachedConfiguration.getInstance(),
-        aconf, CryptoServiceFactory.getConfigured(aconf));
+        aconf, CryptoServiceFactory.newInstance(aconf));
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 
@@ -78,7 +78,7 @@ public class MultiLevelIndexTest extends TestCase {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length,
-        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.getConfigured(aconf));
+        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.newInstance(aconf));
 
     Reader reader = new Reader(_cbr, RFile.RINDEX_VER_8);
     CachableBlockFile.CachedBlockRead rootIn = _cbr.getMetaBlock("root");

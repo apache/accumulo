@@ -18,57 +18,18 @@ package org.apache.accumulo.core.security.crypto;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class CryptoServiceFactory {
-  /**
-   * Load and initialize the CryptoService only once, when this class is loaded.
-   */
-  private static CryptoService singleton = init();
 
-  private static CryptoService init() {
-    SiteConfiguration conf = SiteConfiguration.getInstance();
-    String configuredClass = conf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
-    CryptoService newCryptoService = loadCryptoService(configuredClass);
+  /**
+   * Create a new crypto service configured in {@link Property#INSTANCE_CRYPTO_SERVICE}.
+   */
+  public static CryptoService newInstance(AccumuloConfiguration conf) {
+    CryptoService newCryptoService = Property.createInstanceFromPropertyName(conf,
+        Property.INSTANCE_CRYPTO_SERVICE, CryptoService.class, new NoCryptoService());
     newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     return newCryptoService;
-  }
-
-  /**
-   * Get the class configured in {@link Property#INSTANCE_CRYPTO_SERVICE}. This class should have
-   * been loaded and initialized when CryptoServiceFactory is loaded.
-   *
-   * @throws CryptoException
-   *           if class configured differs from the original class loaded
-   */
-  public static CryptoService getConfigured(AccumuloConfiguration conf) {
-    String currentClass = singleton.getClass().getName();
-    String configuredClass = conf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
-    if (!currentClass.equals(configuredClass)) {
-      String msg = String.format("Configured crypto class %s changed since initialization of %s.",
-          configuredClass, currentClass);
-      throw new CryptoService.CryptoException(msg);
-    }
-    return singleton;
-  }
-
-  private static CryptoService loadCryptoService(String className) {
-    try {
-      Class<? extends CryptoService> clazz = AccumuloVFSClassLoader.loadClass(className,
-          CryptoService.class);
-      return clazz.newInstance();
-    } catch (Exception e) {
-      throw new CryptoException(e);
-    }
-  }
-
-  /**
-   * This method is only for testing. Do not use.
-   */
-  public static void resetInstance() {
-    singleton = init();
   }
 }

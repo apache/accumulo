@@ -644,7 +644,7 @@ public final class BCFile {
 
       CryptoEnvironment cryptoEnvironment = null;
       if (cryptoService == null) {
-        cryptoService = CryptoServiceFactory.getConfigured(aconf);
+        cryptoService = CryptoServiceFactory.newInstance(aconf);
       }
 
       // backwards compatibility
@@ -682,7 +682,7 @@ public final class BCFile {
       decryptionParams = CryptoUtils.readParams(dis);
       CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
       if (cryptoService == null) {
-        cryptoService = CryptoServiceFactory.getConfigured(aconf);
+        cryptoService = CryptoServiceFactory.newInstance(aconf);
       }
       this.decrypter = cryptoService.getFileDecrypter(env);
     }

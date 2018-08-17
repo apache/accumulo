@@ -269,6 +269,7 @@ public abstract class FileOperations {
     protected FileSystem fs;
     protected Configuration fsConf;
     protected RateLimiter rateLimiter;
+    protected CryptoService cryptoService;
 
     protected FileHelper fs(FileSystem fs) {
       Objects.requireNonNull(fs);
@@ -299,14 +300,19 @@ public abstract class FileOperations {
       return this;
     }
 
+    protected FileHelper cryptoService(CryptoService cs) {
+      this.cryptoService = cs;
+      return this;
+    }
+
     protected FileOptions toWriterBuilderOptions(String compression,
         FSDataOutputStream outputStream, boolean startEnabled) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, compression,
-          outputStream, startEnabled, null, null, null, false, null, null, null, true);
+          outputStream, startEnabled, null, null, null, false, cryptoService, null, null, true);
     }
 
     protected FileOptions toReaderBuilderOptions(BlockCache dataCache, BlockCache indexCache,
-        Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService) {
+        Cache<String,Long> fileLenCache, boolean seekToBeginning) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
           false, dataCache, indexCache, fileLenCache, seekToBeginning, cryptoService, null, null,
           true);
@@ -314,13 +320,13 @@ public abstract class FileOperations {
 
     protected FileOptions toIndexReaderBuilderOptions() {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
-          false, null, null, null, false, null, null, null, true);
+          false, null, null, null, false, cryptoService, null, null, true);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
-          false, null, null, null, false, null, range, columnFamilies, inclusive);
+          false, null, null, null, false, cryptoService, range, columnFamilies, inclusive);
     }
   }
 
@@ -364,6 +370,11 @@ public abstract class FileOperations {
       return this;
     }
 
+    public WriterBuilder withCryptoService(CryptoService cs) {
+      cryptoService(cs);
+      return this;
+    }
+
     public FileSKVWriter build() throws IOException {
       return openWriter(toWriterBuilderOptions(compression, outputStream, enableAccumuloStart));
     }
@@ -381,7 +392,6 @@ public abstract class FileOperations {
     private BlockCache indexCache;
     private Cache<String,Long> fileLenCache;
     private boolean seekToBeginning = false;
-    private CryptoService cryptoService;
 
     public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf) {
       filename(filename).fs(fs).fsConf(fsConf);
@@ -422,8 +432,8 @@ public abstract class FileOperations {
       return this;
     }
 
-    public ReaderBuilder withCryptoService(CryptoService cryptoService) {
-      this.cryptoService = cryptoService;
+    public ReaderBuilder withCryptoService(CryptoService cs) {
+      cryptoService(cs);
       return this;
     }
 
@@ -459,8 +469,8 @@ public abstract class FileOperations {
       if (!tableConfiguration.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
         withDataCache(null);
       }
-      return openReader(toReaderBuilderOptions(dataCache, indexCache, fileLenCache, seekToBeginning,
-          cryptoService));
+      return openReader(
+          toReaderBuilderOptions(dataCache, indexCache, fileLenCache, seekToBeginning));
     }
   }
 
