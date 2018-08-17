@@ -344,7 +344,8 @@ public class Compactor implements Callable<CompactionStats> {
 
       CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()),
           entriesRead);
-      DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
+      SortedKeyValueIterator<Key,Value> delIter = DeletingIterator.wrap(citr, propogateDeletes,
+          DeletingIterator.getBehavior(acuTableConf));
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
       // if(env.getIteratorScope() )

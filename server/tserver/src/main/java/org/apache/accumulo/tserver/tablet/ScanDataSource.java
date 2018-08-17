@@ -200,7 +200,7 @@ class ScanDataSource implements DataSource {
 
     SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(
         statsIterator, options.getColumnSet(), options.getAuthorizations(),
-        options.getDefaultLabels());
+        options.getDefaultLabels(), tablet.getTableConfiguration());
 
     if (!loadIters) {
       return visFilter;
