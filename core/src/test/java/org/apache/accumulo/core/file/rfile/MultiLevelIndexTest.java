@@ -22,7 +22,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.BufferedWriter;
@@ -43,7 +42,7 @@ import junit.framework.TestCase;
 public class MultiLevelIndexTest extends TestCase {
 
   public void test1() throws Exception {
-    //SiteConfiguration.getTestInstance();
+    // SiteConfiguration.getTestInstance();
 
     runTest(500, 1);
     runTest(500, 10);

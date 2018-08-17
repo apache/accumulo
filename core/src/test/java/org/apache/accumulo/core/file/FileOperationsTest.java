@@ -24,7 +24,6 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;

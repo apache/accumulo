@@ -158,7 +158,6 @@ public class PrintInfo implements KeywordExecutable {
     KeyStats dataKeyStats = new KeyStats();
     KeyStats indexKeyStats = new KeyStats();
 
-
     for (String arg : opts.files) {
       Path path = new Path(arg);
       FileSystem fs;
