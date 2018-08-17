@@ -816,10 +816,11 @@ public enum Property {
       DeletingIterator.Behavior.PROCESS.name().toLowerCase(), PropertyType.STRING,
       "This determines what action to take when a delete marker is seen."
           + " Valid values are `process` and `fail` with `process` being the default.  When set to "
-          + "`process`, deletes will supress data.  When set to `fail`, any deletes seen will cause an"
-          + " exception. The purpose of `fail` is to support tables that never delete data and need "
-          + "fast seeks within the timestamp range of a column. When setting this to fail, also "
-          + "consider configuring the `" + NoDeleteConstraint.class.getName() + "` constraint."),
+          + "`process`, deletes will supress data.  When set to `fail`, any deletes seen will cause"
+          + " an exception. The purpose of `fail` is to support tables that never delete data and"
+          + " need fast seeks within the timestamp range of a column. When setting this to fail, "
+          + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
+          + "constraint."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
