@@ -27,6 +27,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
@@ -811,13 +812,14 @@ public enum Property {
           + "`table.summarizer.<unique id>=<summarizer class name>.` If the summarizer has options"
           + ", then for each option set" + " `table.summarizer.<unique id>.opt.<key>=<value>`."),
   @Experimental
-  TABLE_DELETE_BEHAVIOR("table.delete.behavior", DeletingIterator.Behavior.PROCESS.name(),
-      PropertyType.STRING,
+  TABLE_DELETE_BEHAVIOR("table.delete.behavior",
+      DeletingIterator.Behavior.PROCESS.name().toLowerCase(), PropertyType.STRING,
       "This determines what action to take when a delete marker is seen."
-          + " Valid actions are PROCESS and FAIL with PROCESS being the default.  When set to "
-          + "PROCESS, deletes will supress data.  When set to FAIL, any deletes seen will cause an"
-          + " exception. The purpose of FAIL is to support tables that never delete data and need "
-          + "fast seeks within the timestamp range of a column."),
+          + " Valid values are `process` and `fail` with `process` being the default.  When set to "
+          + "`process`, deletes will supress data.  When set to `fail`, any deletes seen will cause an"
+          + " exception. The purpose of `fail` is to support tables that never delete data and need "
+          + "fast seeks within the timestamp range of a column. When setting this to fail, also "
+          + "consider configuring the `" + NoDeleteConstraint.class.getName() + "` constraint."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(

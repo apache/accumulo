@@ -51,7 +51,7 @@ public class DeleteFailIT extends AccumuloClusterHarness {
 
     try {
       scanner.forEach(e -> {});
-      Assert.fail();
+      Assert.fail("Expected scan to fail because  deletes are present.");
     } catch (RuntimeException e) {}
   }
 }
