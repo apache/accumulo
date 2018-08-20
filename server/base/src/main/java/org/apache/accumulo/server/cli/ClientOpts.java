@@ -35,8 +35,9 @@ public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
     if (context == null) {
       if (instance == null) {
         context = new ServerContext(SiteConfiguration.create());
+      } else {
+        context = new ServerContext(SiteConfiguration.create(), getClientInfo());
       }
-      context = new ServerContext(SiteConfiguration.create(), getClientInfo());
     }
     return context;
   }
