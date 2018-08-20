@@ -78,7 +78,7 @@ public class ClientContext {
 
   private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
     // This insanity exists to make modernizer plugin happy. We are living in the future now.
-    return () -> Suppliers.memoizeWithExpiration(() -> s.get(), 100, TimeUnit.MILLISECONDS).get();
+    return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
   }
 
   public ClientContext(ClientInfo info) {

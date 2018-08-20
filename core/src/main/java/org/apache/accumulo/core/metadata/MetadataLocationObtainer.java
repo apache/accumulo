@@ -178,16 +178,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     final TreeMap<Key,Value> results = new TreeMap<>();
 
-    ResultReceiver rr = new ResultReceiver() {
-
-      @Override
-      public void receive(List<Entry<Key,Value>> entries) {
-        for (Entry<Key,Value> entry : entries) {
-          try {
-            results.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
+    ResultReceiver rr = entries -> {
+      for (Entry<Key,Value> entry : entries) {
+        try {
+          results.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
       }
     };

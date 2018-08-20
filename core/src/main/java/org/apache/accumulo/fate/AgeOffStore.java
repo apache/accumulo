@@ -138,12 +138,7 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   public AgeOffStore(TStore<T> store, long ageOffTime) {
-    this(store, ageOffTime, new TimeSource() {
-      @Override
-      public long currentTimeMillis() {
-        return System.currentTimeMillis();
-      }
-    });
+    this(store, ageOffTime, System::currentTimeMillis);
   }
 
   @Override

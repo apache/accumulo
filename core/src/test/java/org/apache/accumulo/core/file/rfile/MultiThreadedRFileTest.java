@@ -237,18 +237,15 @@ public class MultiThreadedRFileTest {
           TimeUnit.SECONDS, new LinkedBlockingQueue<>(), new NamingThreadFactory(name));
       pool.allowCoreThreadTimeOut(true);
       try {
-        Runnable runnable = new Runnable() {
-          @Override
-          public void run() {
-            try {
-              TestRFile trf = trfBase;
-              synchronized (trfBaseCopy) {
-                trf = trfBaseCopy.deepCopy();
-              }
-              validate(trf);
-            } catch (Throwable t) {
-              threadExceptions.add(t);
+        Runnable runnable = () -> {
+          try {
+            TestRFile trf = trfBase;
+            synchronized (trfBaseCopy) {
+              trf = trfBaseCopy.deepCopy();
             }
+            validate(trf);
+          } catch (Throwable t) {
+            threadExceptions.add(t);
           }
         };
         for (int i = 0; i < maxThreads; i++) {

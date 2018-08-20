@@ -126,7 +126,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       SortedMap<KeyExtent,Bulk.Files> mappings = computeFileToTabletMappings(fs, tableId, srcPath,
           executor, context);
 
-      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), p -> fs.create(p));
+      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 
       List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()),
           ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),

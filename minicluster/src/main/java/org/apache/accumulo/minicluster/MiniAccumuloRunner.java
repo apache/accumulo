@@ -208,29 +208,26 @@ public class MiniAccumuloRunner {
 
     final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(config);
 
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      @Override
-      public void run() {
-        try {
-          accumulo.stop();
-        } catch (IOException e) {
-          log.error("IOException attempting to stop Accumulo.", e);
-          return;
-        } catch (InterruptedException e) {
-          log.error("InterruptedException attempting to stop Accumulo.", e);
-          return;
-        }
-
-        try {
-          FileUtils.deleteDirectory(miniDir);
-        } catch (IOException e) {
-          log.error("IOException attempting to clean up miniDir.", e);
-          return;
-        }
-
-        System.out.println("\nShut down gracefully on " + new Date());
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      try {
+        accumulo.stop();
+      } catch (IOException e) {
+        log.error("IOException attempting to stop Accumulo.", e);
+        return;
+      } catch (InterruptedException e) {
+        log.error("InterruptedException attempting to stop Accumulo.", e);
+        return;
       }
-    });
+
+      try {
+        FileUtils.deleteDirectory(miniDir);
+      } catch (IOException e) {
+        log.error("IOException attempting to clean up miniDir.", e);
+        return;
+      }
+
+      System.out.println("\nShut down gracefully on " + new Date());
+    }));
 
     accumulo.start();
 

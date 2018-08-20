@@ -92,7 +92,7 @@ public class CachableBlockFile {
 
     private long getCachedFileLen() throws IOException {
       try {
-        return fileLenCache.get(cacheId, () -> lengthSupplier.get());
+        return fileLenCache.get(cacheId, lengthSupplier::get);
       } catch (ExecutionException e) {
         throw new IOException("Failed to get " + cacheId + " len from cache ", e);
       }

@@ -64,15 +64,10 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private final ThreadPoolExecutor executor;
   {
     BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(2);
-    ThreadFactory factory = new ThreadFactory() {
-
-      @Override
-      public Thread newThread(Runnable r) {
-        Thread t = new Thread(r);
-        t.setDaemon(true);
-        return t;
-      }
-
+    ThreadFactory factory = r -> {
+      Thread t = new Thread(r);
+      t.setDaemon(true);
+      return t;
     };
     executor = new ThreadPoolExecutor(1, 1, 1, SECONDS, queue, factory);
   }

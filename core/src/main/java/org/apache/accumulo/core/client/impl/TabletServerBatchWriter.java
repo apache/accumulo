@@ -726,18 +726,14 @@ public class TabletServerBatchWriter {
     void queueMutations(final MutationSet mutationsToSend) throws InterruptedException {
       if (null == mutationsToSend)
         return;
-      binningThreadPool.execute(Trace.wrap(new Runnable() {
-
-        @Override
-        public void run() {
-          if (null != mutationsToSend) {
-            try {
-              log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
-                  mutationsToSend.size());
-              addMutations(mutationsToSend);
-            } catch (Exception e) {
-              updateUnknownErrors("Error processing mutation set", e);
-            }
+      binningThreadPool.execute(Trace.wrap(() -> {
+        if (null != mutationsToSend) {
+          try {
+            log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
+                mutationsToSend.size());
+            addMutations(mutationsToSend);
+          } catch (Exception e) {
+            updateUnknownErrors("Error processing mutation set", e);
           }
         }
       }));

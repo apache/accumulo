@@ -1887,9 +1887,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
     HashSet<SummarizerConfiguration> newConfigSet = new HashSet<>(Arrays.asList(newConfigs));
 
-    newConfigSet.removeIf(sc -> currentConfigs.contains(sc));
+    newConfigSet.removeIf(currentConfigs::contains);
 
-    Set<String> newIds = newConfigSet.stream().map(sc -> sc.getPropertyId()).collect(toSet());
+    Set<String> newIds = newConfigSet.stream().map(SummarizerConfiguration::getPropertyId)
+        .collect(toSet());
 
     for (SummarizerConfiguration csc : currentConfigs) {
       if (newIds.contains(csc.getPropertyId())) {

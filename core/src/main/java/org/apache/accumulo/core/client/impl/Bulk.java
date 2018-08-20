@@ -154,7 +154,7 @@ public class Bulk {
     Map<String,FileInfo> files = new HashMap<>();
 
     public Files(Collection<FileInfo> files) {
-      files.forEach(fi -> add(fi));
+      files.forEach(this::add);
     }
 
     public Files() {}

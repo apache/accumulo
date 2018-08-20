@@ -45,6 +45,6 @@ public class IdleRatioScanPrioritizer implements ScanPrioritizer {
     };
 
     return c1.thenComparingLong(si -> si.getLastRunTime().orElse(0))
-        .thenComparingLong(si -> si.getCreationTime());
+        .thenComparingLong(ScanInfo::getCreationTime);
   }
 }

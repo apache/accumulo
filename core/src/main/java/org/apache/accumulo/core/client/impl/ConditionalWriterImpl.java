@@ -399,15 +399,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.durability = config.getDurability();
     this.classLoaderContext = config.getClassLoaderContext();
 
-    Runnable failureHandler = new Runnable() {
-
-      @Override
-      public void run() {
-        List<QCMutation> mutations = new ArrayList<>();
-        failedMutations.drainTo(mutations);
-        if (mutations.size() > 0)
-          queue(mutations);
-      }
+    Runnable failureHandler = () -> {
+      List<QCMutation> mutations = new ArrayList<>();
+      failedMutations.drainTo(mutations);
+      if (mutations.size() > 0)
+        queue(mutations);
     };
 
     failureHandler = new LoggingRunnable(log, failureHandler);
