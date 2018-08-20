@@ -51,14 +51,7 @@ if [ ! -d "$HADOOP_PREFIX" ]; then
 fi
 
 ## Add external Hadoop & Zookeeper dependencies to CLASSPATH.
-CLASSPATH="$(find "$ZOOKEEPER_HOME"/ "$HADOOP_PREFIX"/share/hadoop/{common,common/lib,hdfs,mapreduce,yarn} -maxdepth 1 -name '*.jar' \
-  -and -not -name '*slf4j*' \
-  -and -not -name '*fatjar*' \
-  -and -not -name '*-javadoc*' \
-  -and -not -name '*-sources*.jar' \
-  -and -not -name '*-test*.jar' \
-  -print0 | tr '\0' ':')$CLASSPATH"
-CLASSPATH="${conf}:${lib}/*:${HADOOP_CONF_DIR}:${CLASSPATH}"
+CLASSPATH="${conf}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${HADOOP_PREFIX}/share/hadoop/client/*"
 export CLASSPATH
 
 ##################################################################

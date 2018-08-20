@@ -84,7 +84,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible
     // with
     // what the version they bundle uses.
-    Stopwatch sw = new Stopwatch();
+    Stopwatch sw = Stopwatch.createUnstarted();
 
     Connector conn;
     try {

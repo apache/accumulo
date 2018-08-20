@@ -44,7 +44,7 @@ public class EmbeddedWebServer {
 
     handler = new ServletContextHandler(
         ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
-    handler.getSessionHandler().getSessionManager().getSessionCookieConfig().setHttpOnly(true);
+    handler.getSessionHandler().getSessionCookieConfig().setHttpOnly(true);
     handler.setContextPath("/");
   }
 
