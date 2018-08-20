@@ -100,23 +100,23 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   synchronized public static SiteConfiguration create() {
-    if (instance != null) {
+    if (instance == null) {
+      instance = new SiteConfiguration();
+      ConfigSanityCheck.validate(instance);
+    } else {
       log.warn("SiteConfiguration was previously created! Returning previous instance.");
-      return instance;
     }
-    instance = new SiteConfiguration();
-    ConfigSanityCheck.validate(instance);
     return instance;
   }
 
   synchronized public static SiteConfiguration create(URL accumuloSiteUrl,
       Map<String,String> overrides) {
-    if (instance != null) {
+    if (instance == null) {
+      instance = new SiteConfiguration(accumuloSiteUrl, overrides);
+      ConfigSanityCheck.validate(instance);
+    } else {
       log.warn("SiteConfiguration was previously created! Returning previous instance.");
-      return instance;
     }
-    instance = new SiteConfiguration(accumuloSiteUrl, overrides);
-    ConfigSanityCheck.validate(instance);
     return instance;
   }
 
