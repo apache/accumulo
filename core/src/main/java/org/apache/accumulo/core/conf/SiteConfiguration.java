@@ -101,8 +101,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   synchronized public static SiteConfiguration create() {
     if (instance != null) {
-      throw new IllegalStateException(
-          "SiteConfiguration.create() was called after SiteConfiguration was already created.");
+      log.warn("SiteConfiguration was previously created! Returning previous instance.");
+      return instance;
     }
     instance = new SiteConfiguration();
     ConfigSanityCheck.validate(instance);
@@ -112,8 +112,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   synchronized public static SiteConfiguration create(URL accumuloSiteUrl,
       Map<String,String> overrides) {
     if (instance != null) {
-      throw new IllegalStateException(
-          "SiteConfiguration.create() was called after SiteConfiguration was already created.");
+      log.warn("SiteConfiguration was previously created! Returning previous instance.");
+      return instance;
     }
     instance = new SiteConfiguration(accumuloSiteUrl, overrides);
     ConfigSanityCheck.validate(instance);
