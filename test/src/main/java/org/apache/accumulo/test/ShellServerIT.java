@@ -2432,7 +2432,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-
   /**
    * Use shell to create a table with a supplied file containing splits.
    *
@@ -2498,7 +2497,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       Files.delete(Paths.get(splitsFile));
     }
   }
-
 
   /**
    * Use shell to create a table that used splits from another table.
@@ -2643,7 +2641,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-
   /**
    * Use shell to create a table with a supplied file containing splits.
    *
@@ -2688,7 +2685,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-
   private SortedSet<Text> readSplitsFromFile(final String splitsFile, boolean decode)
       throws IOException {
     SortedSet<Text> splits = new TreeSet<>();
@@ -2703,9 +2699,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return splits;
   }
 
-  private void generateSplitsFile(final String splitsFile, final int numItems,
-      final int len, final boolean binarySplits, final boolean encoded, final boolean sort, final
-      boolean addBlankLine, final boolean repeat) throws IOException {
+  private void generateSplitsFile(final String splitsFile, final int numItems, final int len,
+      final boolean binarySplits, final boolean encoded, final boolean sort,
+      final boolean addBlankLine, final boolean repeat) throws IOException {
 
     java.nio.file.Path splitsPath = java.nio.file.Paths.get(splitsFile);
     int insertAt = (len % 2 == 0) ? len / 2 : (len + 1) / 2;
@@ -2761,8 +2757,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     int desiredLen = len;
     if (len > 32)
       desiredLen = 32;
-    return new Text(String.valueOf(UUID.randomUUID()).replaceAll("-", "")
-        .substring(0, desiredLen - 1));
+    return new Text(
+        String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1));
   }
 
   private static String encode(final Text text, final boolean encode) {

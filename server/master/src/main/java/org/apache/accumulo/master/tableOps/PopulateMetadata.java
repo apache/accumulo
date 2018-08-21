@@ -16,7 +16,12 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import com.google.common.collect.Iterables;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedSet;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -30,11 +35,7 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.SortedSet;
+import com.google.common.collect.Iterables;
 
 class PopulateMetadata extends MasterRepo {
 

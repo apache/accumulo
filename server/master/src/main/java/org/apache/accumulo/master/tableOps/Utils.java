@@ -190,9 +190,9 @@ public class Utils {
   }
 
   /**
-   * Given an input stream and a flag indicating if the file info is base64 encoded or not,
-   * retrieve the data from a file on the file system. It is assumed that the file is textual and
-   * not binary data.
+   * Given an input stream and a flag indicating if the file info is base64 encoded or not, retrieve
+   * the data from a file on the file system. It is assumed that the file is textual and not binary
+   * data.
    */
   static SortedSet<Text> getSortedSetFromFile(FSDataInputStream inputStream, boolean encoded)
       throws IOException {

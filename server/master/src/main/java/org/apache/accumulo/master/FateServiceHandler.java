@@ -16,6 +16,22 @@
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.master.util.TableValidators.NOT_METADATA;
+import static org.apache.accumulo.master.util.TableValidators.NOT_ROOT_ID;
+import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
+import static org.apache.accumulo.master.util.TableValidators.VALID_ID;
+import static org.apache.accumulo.master.util.TableValidators.VALID_NAME;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -67,22 +83,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import static org.apache.accumulo.master.util.TableValidators.NOT_METADATA;
-import static org.apache.accumulo.master.util.TableValidators.NOT_ROOT_ID;
-import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
-import static org.apache.accumulo.master.util.TableValidators.VALID_ID;
-import static org.apache.accumulo.master.util.TableValidators.VALID_NAME;
 
 class FateServiceHandler implements FateService.Iface {
 

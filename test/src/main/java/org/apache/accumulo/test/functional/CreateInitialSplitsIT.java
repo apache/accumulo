@@ -104,8 +104,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
   @Test
   public void testCreateInitialSplitsWithEncodedSplits() throws TableExistsException,
-      AccumuloSecurityException,
-      AccumuloException, TableNotFoundException {
+      AccumuloSecurityException, AccumuloException, TableNotFoundException {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = generateNonBinarySplits(3000, 32, true);
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
@@ -115,7 +114,6 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
   }
-
 
   /**
    * Test that binary split data is handled property.
@@ -185,8 +183,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     return generateNonBinarySplits(numItems, len, false);
   }
 
-  private SortedSet<Text> generateNonBinarySplits(final int numItems, final int len, final
-      boolean useB64) {
+  private SortedSet<Text> generateNonBinarySplits(final int numItems, final int len,
+      final boolean useB64) {
     SortedSet<Text> splits = new TreeSet<>();
     String str;
     for (int i = 0; i < numItems; i++) {
@@ -199,8 +197,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     return generateBinarySplits(numItems, len, false);
   }
 
-  private SortedSet<Text> generateBinarySplits(final int numItems, final int len, final boolean
-      useB64) {
+  private SortedSet<Text> generateBinarySplits(final int numItems, final int len,
+      final boolean useB64) {
     SortedSet<Text> splits = new TreeSet<>();
     Random rand = new Random();
     for (int i = 0; i < numItems; i++) {
@@ -222,7 +220,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     int desiredLen = len;
     if (len > 32)
       desiredLen = 32;
-    return new Text(String.valueOf(UUID.randomUUID()).replaceAll("-", "")
-        .substring(0, desiredLen - 1));
+    return new Text(
+        String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1));
   }
 }

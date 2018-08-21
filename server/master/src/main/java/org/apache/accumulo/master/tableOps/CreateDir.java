@@ -16,14 +16,14 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.IOException;
+import java.util.SortedSet;
+
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-
-import java.io.IOException;
-import java.util.SortedSet;
 
 class CreateDir extends MasterRepo {
   private static final long serialVersionUID = 1L;

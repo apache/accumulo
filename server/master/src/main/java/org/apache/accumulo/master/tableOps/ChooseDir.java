@@ -70,8 +70,8 @@ class ChooseDir extends MasterRepo {
   }
 
   /**
-   * Create unique table directory names that will be associated with split values. Then write
-   * these to the file system for later use during this FATE operation.
+   * Create unique table directory names that will be associated with split values. Then write these
+   * to the file system for later use during this FATE operation.
    */
   private void createTableDirectoriesInfo(Master master, String baseDir) throws IOException {
     SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo.splitFile),
@@ -81,8 +81,8 @@ class ChooseDir extends MasterRepo {
   }
 
   /**
-   * Create a set of unique table directories. These will be associated with splits in a
-   * follow-on FATE step.
+   * Create a set of unique table directories. These will be associated with splits in a follow-on
+   * FATE step.
    */
   private SortedSet<Text> createTableDirectoriesSet(int num, String baseDir) {
     String tabletDir;
@@ -96,10 +96,11 @@ class ChooseDir extends MasterRepo {
   }
 
   /**
-   * Write the SortedSet of Tablet Directory names to the file system for use in the next phase
-   * of the FATE operation.
+   * Write the SortedSet of Tablet Directory names to the file system for use in the next phase of
+   * the FATE operation.
    */
-  private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs) throws IOException {
+  private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
+      throws IOException {
     FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
     if (fs.exists(new Path(tableInfo.splitDirsFile)))
       fs.delete(new Path(tableInfo.splitDirsFile), true);
