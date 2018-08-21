@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
@@ -402,8 +401,8 @@ public class TraceServer implements Watcher {
     final String app = "tracer";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    loginTracer(SiteConfiguration.getInstance());
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(opts.getSiteConfiguration());
+    loginTracer(context.getConfiguration());
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     Accumulo.init(context.getVolumeManager(), context.getInstanceID(),
         context.getServerConfFactory(), app);

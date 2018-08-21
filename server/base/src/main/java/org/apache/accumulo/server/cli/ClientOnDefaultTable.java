@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.cli;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 
 public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnDefaultTable {
@@ -23,11 +24,17 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
     setPrincipal("root");
   }
 
-  public ServerContext getServerContext() {
-    if (instance == null) {
-      return new ServerContext();
+  private ServerContext context;
+
+  public synchronized ServerContext getServerContext() {
+    if (context == null) {
+      if (instance == null) {
+        context = new ServerContext(SiteConfiguration.create());
+      } else {
+        context = new ServerContext(SiteConfiguration.create(), getClientInfo());
+      }
     }
-    return new ServerContext(getClientInfo());
+    return context;
   }
 
   public ClientOnDefaultTable(String table) {

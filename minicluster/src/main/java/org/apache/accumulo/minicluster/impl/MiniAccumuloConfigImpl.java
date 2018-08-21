@@ -573,6 +573,10 @@ public class MiniAccumuloConfigImpl {
     return new File(getConfDir(), "client.conf");
   }
 
+  public File getAccumuloSiteFile() {
+    return new File(getConfDir(), "accumulo-site.xml");
+  }
+
   /**
    * @return location of accumulo-client.properties file for connecting to this mini cluster
    */

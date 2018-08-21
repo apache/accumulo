@@ -85,7 +85,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
@@ -2783,7 +2782,7 @@ public class TabletServer implements Runnable {
   // main loop listens for client requests
   @Override
   public void run() {
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
+    SecurityUtil.serverLogin(context.getConfiguration());
 
     // To make things easier on users/devs, and to avoid creating an upgrade path to 1.7
     // We can just make the zookeeper paths before we try to use.
@@ -3338,7 +3337,7 @@ public class TabletServer implements Runnable {
     final String app = "tserver";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(opts.getSiteConfiguration());
     context.setupServer(app, TabletServer.class.getSimpleName(), opts.getAddress());
     try {
       final TabletServer server = new TabletServer(context);

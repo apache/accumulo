@@ -434,7 +434,7 @@ public class Monitor implements HighlyAvailableService {
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    Monitor.context = new ServerContext();
+    Monitor.context = new ServerContext(opts.getSiteConfiguration());
     context.setupServer(app, Monitor.class.getName(), opts.getAddress());
     try {
       config = context.getServerConfFactory();
@@ -505,7 +505,7 @@ public class Monitor implements HighlyAvailableService {
       log.warn("Not starting log4j listener as we could not determine address to use");
     }
 
-    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
+    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus(context)), "ZooKeeperStatus").start();
 
     // need to regularly fetch data so plot data is updated
     new Daemon(new LoggingRunnable(log, new Runnable() {

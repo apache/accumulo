@@ -33,9 +33,7 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
@@ -83,36 +81,32 @@ public class SecurityOperation {
   public static synchronized SecurityOperation getInstance(ServerContext context,
       boolean initialize) {
     if (instance == null) {
-      String instanceId = context.getInstanceID();
-      instance = new SecurityOperation(context, getAuthorizor(instanceId, initialize),
-          getAuthenticator(instanceId, initialize), getPermHandler(instanceId, initialize));
+      instance = new SecurityOperation(context, getAuthorizor(context, initialize),
+          getAuthenticator(context, initialize), getPermHandler(context, initialize));
     }
     return instance;
   }
 
-  protected static Authorizor getAuthorizor(String instanceId, boolean initialize) {
-    AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    Authorizor toRet = Property.createInstanceFromPropertyName(conf,
+  protected static Authorizor getAuthorizor(ServerContext context, boolean initialize) {
+    Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, ZKAuthorizor.getInstance());
-    toRet.initialize(instanceId, initialize);
+    toRet.initialize(context.getInstanceID(), initialize);
     return toRet;
   }
 
-  protected static Authenticator getAuthenticator(String instanceId, boolean initialize) {
-    AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    Authenticator toRet = Property.createInstanceFromPropertyName(conf,
+  protected static Authenticator getAuthenticator(ServerContext context, boolean initialize) {
+    Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class,
         ZKAuthenticator.getInstance());
-    toRet.initialize(instanceId, initialize);
+    toRet.initialize(context, initialize);
     return toRet;
   }
 
-  protected static PermissionHandler getPermHandler(String instanceId, boolean initialize) {
-    AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    PermissionHandler toRet = Property.createInstanceFromPropertyName(conf,
+  protected static PermissionHandler getPermHandler(ServerContext context, boolean initialize) {
+    PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
         ZKPermHandler.getInstance());
-    toRet.initialize(instanceId, initialize);
+    toRet.initialize(context.getInstanceID(), initialize);
     return toRet;
   }
 

@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
@@ -114,6 +113,7 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException {
     ClientContext context = shellState.getContext();
+    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
     String[] args = cl.getArgs();
     if (args.length <= 0) {
       throw new ParseException("Must provide a command to execute");
@@ -125,7 +125,8 @@ public class FateCommand extends Command {
 
     String path = context.getZooKeeperRoot() + Constants.ZFATE;
     String masterPath = context.getZooKeeperRoot() + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
+    IZooReaderWriter zk = getZooReaderWriter(context, siteConfig,
+        cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
@@ -222,11 +223,11 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
 
-  protected synchronized IZooReaderWriter getZooReaderWriter(ClientContext context, String secret) {
+  protected synchronized IZooReaderWriter getZooReaderWriter(ClientContext context,
+      SiteConfiguration siteConfig, String secret) {
 
     if (secret == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance();
-      secret = conf.get(Property.INSTANCE_SECRET);
+      secret = siteConfig.get(Property.INSTANCE_SECRET);
     }
 
     return new ZooReaderWriter(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),

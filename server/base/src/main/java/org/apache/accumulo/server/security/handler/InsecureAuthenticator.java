@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * This is an Authenticator implementation that doesn't actually do any security. Any principal will
@@ -33,7 +34,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 public class InsecureAuthenticator implements Authenticator {
 
   @Override
-  public void initialize(String instanceId, boolean initialize) {}
+  public void initialize(ServerContext context, boolean initialize) {}
 
   @Override
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {

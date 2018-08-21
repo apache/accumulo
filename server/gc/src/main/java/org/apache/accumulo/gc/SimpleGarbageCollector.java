@@ -141,7 +141,7 @@ public class SimpleGarbageCollector implements Iface {
     final String app = "gc";
     Opts opts = new Opts();
     opts.parseArgs(app, args);
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(opts.getSiteConfiguration());
     context.setupServer(app, SimpleGarbageCollector.class.getName(), opts.getAddress());
     try {
       SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, context);

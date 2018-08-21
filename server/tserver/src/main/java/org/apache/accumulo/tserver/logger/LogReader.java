@@ -75,6 +75,7 @@ public class LogReader {
   public static void main(String[] args) throws IOException {
     Opts opts = new Opts();
     opts.parseArgs(LogReader.class.getName(), args);
+    SiteConfiguration siteConfig = SiteConfiguration.create();
     VolumeManager fs = VolumeManagerImpl.get();
 
     Matcher rowMatcher = null;
@@ -108,7 +109,7 @@ public class LogReader {
           // read log entries from a simple hdfs file
           DFSLoggerInputStreams streams;
           try {
-            streams = DfsLogger.readHeaderAndReturnStream(fsinput, SiteConfiguration.getInstance());
+            streams = DfsLogger.readHeaderAndReturnStream(fsinput, siteConfig);
           } catch (LogHeaderIncompleteException e) {
             log.warn("Could not read header for {} . Ignoring...", path);
             continue;

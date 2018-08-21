@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Writer;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -285,7 +286,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run(new ServerContext());
+    new SplitRecoveryIT().run(new ServerContext(SiteConfiguration.create()));
   }
 
   @Test

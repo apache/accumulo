@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -207,14 +206,15 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    ServerContext context = opts.getServerContext();
+
+    AccumuloConfiguration conf = context.getConfiguration();
     // Login as the server on secure HDFS
-    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(siteConf);
+    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      SecurityUtil.serverLogin(conf);
     }
 
     try {
-      ServerContext context = opts.getServerContext();
 
       int rc = 0;
 

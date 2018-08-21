@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -42,6 +41,7 @@ import org.apache.hadoop.fs.Path;
 
 public class ServerInfo implements ClientInfo {
 
+  private SiteConfiguration siteConfig;
   private String instanceID;
   private String instanceName;
   private String zooKeepers;
@@ -50,11 +50,9 @@ public class ServerInfo implements ClientInfo {
   private VolumeManager volumeManager;
   private ZooCache zooCache;
 
-  public ServerInfo(ClientInfo info) {
-    this(info.getInstanceName(), info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-  }
-
-  public ServerInfo(String instanceName, String zooKeepers, int zooKeepersSessionTimeOut) {
+  ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
+      int zooKeepersSessionTimeOut) {
+    this.siteConfig = siteConfig;
     this.instanceName = instanceName;
     this.zooKeepers = zooKeepers;
     this.zooKeepersSessionTimeOut = zooKeepersSessionTimeOut;
@@ -76,11 +74,8 @@ public class ServerInfo implements ClientInfo {
     zooKeeperRoot = ZooUtil.getRoot(instanceID);
   }
 
-  public ServerInfo() {
-    this(SiteConfiguration.getInstance());
-  }
-
-  public ServerInfo(AccumuloConfiguration config) {
+  ServerInfo(SiteConfiguration config) {
+    siteConfig = config;
     try {
       volumeManager = VolumeManagerImpl.get();
     } catch (IOException e) {
@@ -93,6 +88,10 @@ public class ServerInfo implements ClientInfo {
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(instanceID));
+  }
+
+  public SiteConfiguration getSiteConfiguration() {
+    return siteConfig;
   }
 
   public VolumeManager getVolumeManager() {
@@ -127,12 +126,12 @@ public class ServerInfo implements ClientInfo {
 
   @Override
   public boolean saslEnabled() {
-    return SiteConfiguration.getInstance().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
+    return getSiteConfiguration().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
   }
 
   @Override
   public Properties getProperties() {
-    Properties properties = ClientConfConverter.toProperties(SiteConfiguration.getInstance());
+    Properties properties = ClientConfConverter.toProperties(getSiteConfiguration());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), getZooKeepers());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),
         Integer.toString(getZooKeepersSessionTimeOut()));
@@ -147,6 +146,6 @@ public class ServerInfo implements ClientInfo {
   }
 
   public Credentials getCredentials() {
-    return SystemCredentials.get(getInstanceID());
+    return SystemCredentials.get(getInstanceID(), getSiteConfiguration());
   }
 }

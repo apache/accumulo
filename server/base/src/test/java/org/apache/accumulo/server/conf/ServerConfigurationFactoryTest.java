@@ -50,6 +50,7 @@ public class ServerConfigurationFactoryTest {
   // use the same mock ZooCacheFactory and ZooCache for all tests
   private static ZooCacheFactory zcf;
   private static ZooCache zc;
+  private static SiteConfiguration siteConfig = SiteConfiguration.create();
 
   @BeforeClass
   public static void setUpClass() throws Exception {
@@ -92,7 +93,7 @@ public class ServerConfigurationFactoryTest {
 
   private void ready() {
     replay(context);
-    scf = new ServerConfigurationFactory(context);
+    scf = new ServerConfigurationFactory(context, siteConfig);
     scf.setZooCacheFactory(zcf);
   }
 

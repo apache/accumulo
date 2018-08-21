@@ -30,7 +30,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -53,19 +52,19 @@ public final class SystemCredentials extends Credentials {
     AS_THRIFT = super.toThrift(instanceID);
   }
 
-  public static SystemCredentials get(String instanceID) {
+  public static SystemCredentials get(String instanceID, SiteConfiguration siteConfig) {
     String principal = SYSTEM_PRINCIPAL;
-    AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+    if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       // Use the server's kerberos principal as the Accumulo principal. We could also unwrap the
       // principal server-side, but the principal for SystemCredentials
       // isnt' actually used anywhere, so it really doesn't matter. We can't include the kerberos
       // principal in the SystemToken as it would break equality when
       // different Accumulo servers are using different kerberos principals are their accumulo
       // principal
-      principal = SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+      principal = SecurityUtil
+          .getServerPrincipal(siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     }
-    return new SystemCredentials(instanceID, principal, SystemToken.get(instanceID));
+    return new SystemCredentials(instanceID, principal, SystemToken.get(instanceID, siteConfig));
   }
 
   @Override
@@ -92,7 +91,7 @@ public final class SystemCredentials extends Credentials {
       super(systemPassword);
     }
 
-    private static SystemToken get(String instanceID) {
+    private static SystemToken get(String instanceID, SiteConfiguration siteConfig) {
       byte[] instanceIdBytes = instanceID.getBytes(UTF_8);
       byte[] confChecksum;
       MessageDigest md;
@@ -106,7 +105,7 @@ public final class SystemCredentials extends Credentials {
       md.update(ServerConstants.WIRE_VERSION.toString().getBytes(UTF_8));
       md.update(instanceIdBytes);
 
-      for (Entry<String,String> entry : SiteConfiguration.getInstance()) {
+      for (Entry<String,String> entry : siteConfig) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
           md.update(entry.getKey().getBytes(UTF_8));

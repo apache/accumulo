@@ -35,6 +35,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
@@ -52,6 +53,7 @@ public class SimpleGarbageCollectorTest {
   private Opts opts;
   private SimpleGarbageCollector gc;
   private ConfigurationCopy systemConfig;
+  private static SiteConfiguration siteConfig = SiteConfiguration.create();
 
   @Before
   public void setUp() {
@@ -66,7 +68,7 @@ public class SimpleGarbageCollectorTest {
     expect(context.getConfiguration()).andReturn(systemConfig).anyTimes();
     expect(context.getVolumeManager()).andReturn(volMgr).anyTimes();
 
-    credentials = SystemCredentials.get("mock");
+    credentials = SystemCredentials.get("mock", siteConfig);
     expect(context.getPrincipal()).andReturn(credentials.getPrincipal()).anyTimes();
     expect(context.getAuthenticationToken()).andReturn(credentials.getToken()).anyTimes();
     expect(context.getCredentials()).andReturn(credentials).anyTimes();

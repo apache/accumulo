@@ -23,12 +23,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -52,7 +52,7 @@ public class ListBulkCommand extends Command {
 
     MasterMonitorInfo stats;
     MasterClientService.Iface client = null;
-    ServerContext context = new ServerContext(shellState.getContext().getClientInfo());
+    ClientContext context = shellState.getContext();
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

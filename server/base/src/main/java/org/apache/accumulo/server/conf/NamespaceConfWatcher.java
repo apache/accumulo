@@ -34,13 +34,11 @@ class NamespaceConfWatcher implements Watcher {
   private final ServerContext context;
   private final String namespacesPrefix;
   private final int namespacesPrefixLength;
-  private ServerConfigurationFactory scf;
 
   NamespaceConfWatcher(ServerContext context) {
     this.context = context;
     namespacesPrefix = context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/";
     namespacesPrefixLength = namespacesPrefix.length();
-    scf = new ServerConfigurationFactory(context);
   }
 
   static String toString(WatchedEvent event) {
@@ -81,10 +79,11 @@ class NamespaceConfWatcher implements Watcher {
         if (log.isTraceEnabled())
           log.trace("EventNodeDataChanged " + event.getPath());
         if (key != null)
-          scf.getNamespaceConfiguration(namespaceId).propertyChanged(key);
+          context.getServerConfFactory().getNamespaceConfiguration(namespaceId)
+              .propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        scf.getNamespaceConfiguration(namespaceId).propertiesChanged();
+        context.getServerConfFactory().getNamespaceConfiguration(namespaceId).propertiesChanged();
         break;
       case NodeDeleted:
         if (key == null) {

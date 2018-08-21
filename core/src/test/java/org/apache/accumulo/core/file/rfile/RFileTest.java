@@ -1803,10 +1803,10 @@ public class RFileTest {
 
   public void turnCryptoOnInSiteConfig() {
     SiteConfiguration.clearInstance();
-    SiteConfiguration.getInstance().set(Property.INSTANCE_CRYPTO_SERVICE,
-        AESCryptoService.class.getName());
-    SiteConfiguration.getInstance().set("instance.crypto.opts.kekId", "file:///tmp/testAESFile");
-    SiteConfiguration.getInstance().set("instance.crypto.opts.keyManager", "uri");
+    SiteConfiguration siteConfig = SiteConfiguration.create();
+    siteConfig.set(Property.INSTANCE_CRYPTO_SERVICE, AESCryptoService.class.getName());
+    siteConfig.set("instance.crypto.opts.kekId", "file:///tmp/testAESFile");
+    siteConfig.set("instance.crypto.opts.keyManager", "uri");
     CryptoServiceFactory.resetInstance();
   }
 

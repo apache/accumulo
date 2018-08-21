@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -40,7 +41,7 @@ public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(SiteConfiguration.create());
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

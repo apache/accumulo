@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
@@ -144,7 +145,7 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
     public MonitorLocation get() {
       // lazily set up path and zooCache (see comment in constructor)
       if (this.context == null) {
-        this.context = new ServerContext();
+        this.context = new ServerContext(SiteConfiguration.create());
         this.path = context.getZooKeeperRoot() + Constants.ZMONITOR_LOG4J_ADDR;
         this.zooCache = context.getZooCache();
       }

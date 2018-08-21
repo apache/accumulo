@@ -136,8 +136,7 @@ public class TableConfiguration extends ObservableConfiguration {
    * returns the actual NamespaceConfiguration that corresponds to the current parent namespace.
    */
   public NamespaceConfiguration getNamespaceConfiguration() {
-    return new ServerConfigurationFactory(parent.context)
-        .getNamespaceConfiguration(parent.namespaceId);
+    return context.getServerConfFactory().getNamespaceConfiguration(parent.namespaceId);
   }
 
   /**

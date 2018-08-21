@@ -64,28 +64,30 @@ public class ServerContext extends ClientContext {
   private String hostname = null;
   private AuthenticationTokenSecretManager secretManager;
 
-  public ServerContext() {
-    this(new ServerInfo());
+  public ServerContext(SiteConfiguration siteConfig) {
+    this(new ServerInfo(siteConfig));
+  }
+
+  public ServerContext(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
+      int zooKeepersSessionTimeOut) {
+    this(new ServerInfo(siteConfig, instanceName, zooKeepers, zooKeepersSessionTimeOut));
+  }
+
+  public ServerContext(SiteConfiguration siteConfig, ClientInfo info) {
+    this(new ServerInfo(siteConfig, info.getInstanceName(), info.getZooKeepers(),
+        info.getZooKeepersSessionTimeOut()));
   }
 
   private ServerContext(ServerInfo info) {
-    super(info, SiteConfiguration.getInstance());
+    super(info, info.getSiteConfiguration());
     this.info = info;
-  }
-
-  public ServerContext(String instanceName, String zooKeepers, int zooKeepersSessionTimeOut) {
-    this(new ServerInfo(instanceName, zooKeepers, zooKeepersSessionTimeOut));
-  }
-
-  public ServerContext(ClientInfo info) {
-    this(new ServerInfo(info));
   }
 
   public void setupServer(String appName, String appClassName, String hostname) {
     applicationName = appName;
     applicationClassName = appClassName;
     this.hostname = hostname;
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
+    SecurityUtil.serverLogin(info.getSiteConfiguration());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + info.getInstanceID());
     try {
@@ -123,7 +125,7 @@ public class ServerContext extends ClientContext {
 
   public synchronized ServerConfigurationFactory getServerConfFactory() {
     if (serverConfFactory == null) {
-      serverConfFactory = new ServerConfigurationFactory(this);
+      serverConfFactory = new ServerConfigurationFactory(this, info.getSiteConfiguration());
     }
     return serverConfFactory;
   }

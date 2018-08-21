@@ -38,9 +38,9 @@ public class SetGoalState {
           "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
       System.exit(-1);
     }
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(SiteConfiguration.create());
+    SecurityUtil.serverLogin(context.getConfiguration());
     Accumulo.waitForZookeeperAndHdfs(context.getVolumeManager());
     ZooReaderWriter.getInstance().putPersistentData(
         context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),

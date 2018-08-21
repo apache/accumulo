@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.junit.BeforeClass;
@@ -37,6 +38,7 @@ public class SystemCredentialsTest {
   @Rule
   public TestName test = new TestName();
 
+  private static SiteConfiguration siteConfig = SiteConfiguration.create();
   private String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
       .toString();
 
@@ -71,13 +73,14 @@ public class SystemCredentialsTest {
   public void testSystemToken() {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken",
         SystemToken.class.getName());
-    assertEquals(SystemCredentials.get(instanceId).getToken().getClass(), SystemToken.class);
+    assertEquals(SystemCredentials.get(instanceId, siteConfig).getToken().getClass(),
+        SystemToken.class);
   }
 
   @Test
   public void testSystemCredentials() {
-    Credentials a = SystemCredentials.get(instanceId);
-    Credentials b = SystemCredentials.get(instanceId);
+    Credentials a = SystemCredentials.get(instanceId, siteConfig);
+    Credentials b = SystemCredentials.get(instanceId, siteConfig);
     assertEquals(a, b);
   }
 }

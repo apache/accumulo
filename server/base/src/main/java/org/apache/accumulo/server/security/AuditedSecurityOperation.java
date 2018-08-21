@@ -72,8 +72,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       boolean initialize) {
     if (instance == null) {
       String instanceId = context.getInstanceID();
-      instance = new AuditedSecurityOperation(context, getAuthorizor(instanceId, initialize),
-          getAuthenticator(instanceId, initialize), getPermHandler(instanceId, initialize));
+      instance = new AuditedSecurityOperation(context, getAuthorizor(context, initialize),
+          getAuthenticator(context, initialize), getPermHandler(context, initialize));
     }
     return instance;
   }

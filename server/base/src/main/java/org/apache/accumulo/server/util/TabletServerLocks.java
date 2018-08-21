@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
@@ -41,7 +42,7 @@ public class TabletServerLocks {
 
   public static void main(String[] args) throws Exception {
 
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(SiteConfiguration.create());
     String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     Opts opts = new Opts();
     opts.parseArgs(TabletServerLocks.class.getName(), args);

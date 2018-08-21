@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -58,7 +59,7 @@ public class TServerUtilsTest {
     private ConfigurationCopy conf = null;
 
     public TestServerConfigurationFactory(ServerContext context) {
-      super(context);
+      super(context, SiteConfiguration.create());
       conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
 
@@ -120,6 +121,9 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
+  private static AccumuloConfiguration config = new ConfigurationCopy(
+      DefaultConfiguration.getInstance());
+
   private static ServerContext createMockContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
@@ -127,6 +131,7 @@ public class TServerUtilsTest {
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
     expect(context.getInstanceID()).andReturn("11111").anyTimes();
+    expect(context.getConfiguration()).andReturn(config).anyTimes();
     return context;
   }
 
@@ -289,16 +294,14 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ServerContext context = createMockContext();
-    expect(context.getServerConfFactory()).andReturn(factory).anyTimes();
     ServerContext ctx = createMock(ServerContext.class);
     expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
-    expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration());
+    expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
     expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL);
     expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
     expect(ctx.getSaslParams()).andReturn(null).anyTimes();
     expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
-    replay(ctx, context);
+    replay(ctx);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = TraceWrap.service(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);

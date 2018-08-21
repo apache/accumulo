@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ZooStore;
@@ -77,7 +78,7 @@ public class FateAdmin {
 
     AdminUtil<Master> admin = new AdminUtil<>();
 
-    ServerContext context = new ServerContext();
+    ServerContext context = new ServerContext(SiteConfiguration.create());
     final String zkRoot = context.getZooKeeperRoot();
     String path = zkRoot + Constants.ZFATE;
     String masterPath = zkRoot + Constants.ZMASTER_LOCK;

@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -58,15 +59,16 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
   public static void main(final String[] args)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    ServerContext context = new ServerContext();
+    SiteConfiguration siteConfig = SiteConfiguration.create();
+    ServerContext context = new ServerContext(siteConfig);
     Credentials creds = null;
     String badInstanceID = SystemCredentials.class.getName();
     if (args.length < 2)
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     if (args[0].equals("bad")) {
-      creds = SystemCredentials.get(badInstanceID);
+      creds = SystemCredentials.get(badInstanceID, siteConfig);
     } else if (args[0].equals("good")) {
-      creds = SystemCredentials.get(context.getInstanceID());
+      creds = SystemCredentials.get(context.getInstanceID(), siteConfig);
     } else if (args[0].equals("bad_password")) {
       creds = new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
     } else {

@@ -55,15 +55,26 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
   private static SiteConfiguration instance = null;
 
+  private final Map<String,String> overrides;
   private static Configuration xmlConfig;
   private final Map<String,String> staticConfigs;
 
   private SiteConfiguration() {
+    this(getAccumuloSiteLocation(), Collections.emptyMap());
+  }
+
+  private SiteConfiguration(URL accumuloSiteLocation, Map<String,String> overrides) {
+    this.overrides = overrides;
     /*
      * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop
      * Configuration object
      */
-    final Configuration conf = getXmlConfig();
+    xmlConfig = new Configuration(false);
+    if (accumuloSiteLocation != null) {
+      xmlConfig.addResource(accumuloSiteLocation);
+    }
+
+    final Configuration conf = xmlConfig;
     Map<String,String> temp = new HashMap<>((int) (Math.ceil(conf.size() / 0.75f)), 0.75f);
     for (Entry<String,String> entry : conf) {
       temp.put(entry.getKey(), entry.getValue());
@@ -80,11 +91,52 @@ public class SiteConfiguration extends AccumuloConfiguration {
     staticConfigs = Collections.unmodifiableMap(temp);
   }
 
+  private static URL toURL(File f) {
+    try {
+      return f.toURI().toURL();
+    } catch (MalformedURLException e) {
+      throw new IllegalArgumentException(e);
+    }
+  }
+
+  synchronized public static SiteConfiguration create() {
+    if (instance == null) {
+      instance = new SiteConfiguration();
+      ConfigSanityCheck.validate(instance);
+    } else {
+      log.warn("SiteConfiguration was previously created! Returning previous instance.");
+    }
+    return instance;
+  }
+
+  synchronized public static SiteConfiguration create(URL accumuloSiteUrl,
+      Map<String,String> overrides) {
+    if (instance == null) {
+      instance = new SiteConfiguration(accumuloSiteUrl, overrides);
+      ConfigSanityCheck.validate(instance);
+    } else {
+      log.warn("SiteConfiguration was previously created! Returning previous instance.");
+    }
+    return instance;
+  }
+
+  public static SiteConfiguration create(URL accumuloSiteUrl) {
+    return create(accumuloSiteUrl, Collections.emptyMap());
+  }
+
+  public static SiteConfiguration create(File accumuloSiteFile, Map<String,String> overrides) {
+    return create(toURL(accumuloSiteFile), overrides);
+  }
+
+  public static SiteConfiguration create(File accumuloSiteFile) {
+    return create(toURL(accumuloSiteFile), Collections.emptyMap());
+  }
+
   /**
    * Gets an instance of this class. A new instance is only created on the first call.
    *
-   * @throws RuntimeException
-   *           if the configuration is invalid
+   * @throws IllegalArgumentException
+   *           if the configuration is invalid or accumulo-site.xml is not on classpath.
    */
   synchronized public static SiteConfiguration getInstance() {
     if (instance == null) {
@@ -94,40 +146,45 @@ public class SiteConfiguration extends AccumuloConfiguration {
     return instance;
   }
 
-  synchronized private static Configuration getXmlConfig() {
-    if (xmlConfig == null) {
-      xmlConfig = new Configuration(false);
-      String configFile = System.getProperty("accumulo.configuration", "accumulo-site.xml");
-      if (configFile.startsWith("file://")) {
-        try {
-          File f = new File(new URI(configFile));
-          if (f.exists() && !f.isDirectory()) {
-            xmlConfig.addResource(f.toURI().toURL());
-            log.info("Loaded configuration from filesystem at {}", configFile);
-          } else {
-            log.warn("Failed to load Accumulo configuration from " + configFile, new Throwable());
-          }
-        } catch (MalformedURLException | URISyntaxException e) {
-          log.warn("Failed to load Accumulo configuration from " + configFile, e);
-        }
-      } else {
-        URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
-        if (accumuloConfigUrl == null) {
-          log.warn("Accumulo configuration '" + configFile + "' is not on classpath",
-              new Throwable());
+  public static URL getAccumuloSiteLocation() {
+    String configFile = System.getProperty("accumulo.configuration", "accumulo-site.xml");
+    if (configFile.startsWith("file://")) {
+      try {
+        File f = new File(new URI(configFile));
+        if (f.exists() && !f.isDirectory()) {
+          log.info("Found Accumulo configuration at {}", configFile);
+          return f.toURI().toURL();
         } else {
-          xmlConfig.addResource(accumuloConfigUrl);
-          log.info("Loaded configuration from classpath at {}", accumuloConfigUrl.getFile());
+          throw new IllegalArgumentException(
+              "Failed to load Accumulo configuration at " + configFile);
         }
+      } catch (MalformedURLException | URISyntaxException e) {
+        throw new IllegalArgumentException(
+            "Failed to load Accumulo configuration from " + configFile, e);
       }
+    } else {
+      URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
+      if (accumuloConfigUrl == null) {
+        throw new IllegalArgumentException(
+            "Failed to load Accumulo configuration '" + configFile + "' from classpath");
+      } else {
+        log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
+        return accumuloConfigUrl;
+      }
+    }
+  }
+
+  private Configuration getXmlConfig() {
+    if (xmlConfig == null) {
+      return new Configuration(false);
     }
     return xmlConfig;
   }
 
   @Override
   public String get(Property property) {
-    if (CliConfiguration.get(property) != null) {
-      return CliConfiguration.get(property);
+    if (overrides.containsKey(property.getKey())) {
+      return overrides.get(property.getKey());
     }
 
     String key = property.getKey();
@@ -170,7 +227,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   public boolean isPropertySet(Property prop) {
     Preconditions.checkArgument(!prop.isSensitive(),
         "This method not implemented for sensitive props");
-    return CliConfiguration.get(prop) != null || staticConfigs.containsKey(prop.getKey())
+    return overrides.containsKey(prop.getKey()) || staticConfigs.containsKey(prop.getKey())
         || getXmlConfig().get(prop.getKey()) != null || parent.isPropertySet(prop);
   }
 
@@ -211,7 +268,13 @@ public class SiteConfiguration extends AccumuloConfiguration {
             + " CredentialProvider, falling back to accumulo-site.xml", e);
       }
     }
-    CliConfiguration.getProperties(props, filter);
+    if (overrides != null) {
+      for (Map.Entry<String,String> entry : overrides.entrySet()) {
+        if (filter.test(entry.getKey())) {
+          props.put(entry.getKey(), entry.getValue());
+        }
+      }
+    }
   }
 
   protected Configuration getHadoopConfiguration() {
