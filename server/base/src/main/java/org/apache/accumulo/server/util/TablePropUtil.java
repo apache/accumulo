@@ -31,23 +31,22 @@ public class TablePropUtil {
 
   public static boolean setTableProperty(ServerContext context, Table.ID tableId, String property,
       String value) throws KeeperException, InterruptedException {
-    return setTableProperty(context.getZooKeeperRoot(), tableId, property, value);
+    return setTableProperty(context.getZooReaderWriter(), context.getZooKeeperRoot(), tableId,
+        property, value);
   }
 
-  public static boolean setTableProperty(String zkRoot, Table.ID tableId, String property,
-      String value) throws KeeperException, InterruptedException {
+  public static boolean setTableProperty(ZooReaderWriter zoo, String zkRoot, Table.ID tableId,
+      String property, String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
 
     // create the zk node for per-table properties for this table if it doesn't already exist
     String zkTablePath = getTablePath(zkRoot, tableId);
-    ZooReaderWriter.getInstance().putPersistentData(zkTablePath, new byte[0],
-        NodeExistsPolicy.SKIP);
+    zoo.putPersistentData(zkTablePath, new byte[0], NodeExistsPolicy.SKIP);
 
     // create the zk node for this property and set it's data to the specified value
     String zPath = zkTablePath + "/" + property;
-    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
-        NodeExistsPolicy.OVERWRITE);
+    zoo.putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
     return true;
   }
@@ -61,7 +60,7 @@ public class TablePropUtil {
   public static void removeTableProperty(ServerContext context, Table.ID tableId, String property)
       throws InterruptedException, KeeperException {
     String zPath = getTablePath(context.getZooKeeperRoot(), tableId) + "/" + property;
-    ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
+    context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
   private static String getTablePath(String zkRoot, Table.ID tableId) {

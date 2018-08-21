@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -58,7 +59,7 @@ public class DeleteZooInstance {
     Opts opts = new Opts();
     opts.parseArgs(DeleteZooInstance.class.getName(), args);
 
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    ZooReaderWriter zk = new ZooReaderWriter(new SiteConfiguration());
     // try instance name:
     Set<String> instances = new HashSet<>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
     Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));

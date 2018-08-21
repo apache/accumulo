@@ -100,7 +100,7 @@ public class ZombieTServer {
   public static void main(String[] args) throws Exception {
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
-    ServerContext context = new ServerContext(SiteConfiguration.create());
+    ServerContext context = new ServerContext(new SiteConfiguration());
     TransactionWatcher watcher = new TransactionWatcher(context);
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
@@ -110,10 +110,10 @@ public class ZombieTServer {
 
     String addressString = serverPort.address.toString();
     String zPath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString;
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ZooLock zlock = new ZooLock(zPath);
+    ZooLock zlock = new ZooLock(zoo, zPath);
 
     LockWatcher lw = new LockWatcher() {
       @Override

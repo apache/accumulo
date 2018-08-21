@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -45,9 +44,9 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 
@@ -118,7 +117,7 @@ public class RemoveEntriesForMissingFiles {
     }
   }
 
-  private static int checkTable(ClientContext context, String tableName, Range range, boolean fix)
+  private static int checkTable(ServerContext context, String tableName, Range range, boolean fix)
       throws Exception {
 
     @SuppressWarnings({"rawtypes"})
@@ -128,7 +127,7 @@ public class RemoveEntriesForMissingFiles {
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 
-    VolumeManager fs = VolumeManagerImpl.get();
+    VolumeManager fs = context.getVolumeManager();
     Connector connector = context.getConnector();
     Scanner metadata = connector.createScanner(tableName, Authorizations.EMPTY);
     metadata.setRange(range);
@@ -182,7 +181,7 @@ public class RemoveEntriesForMissingFiles {
     return missing.get();
   }
 
-  static int checkAllTables(ClientContext context, boolean fix) throws Exception {
+  static int checkAllTables(ServerContext context, boolean fix) throws Exception {
     int missing = checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(),
         fix);
 
@@ -192,7 +191,7 @@ public class RemoveEntriesForMissingFiles {
       return missing;
   }
 
-  static int checkTable(ClientContext context, String tableName, boolean fix) throws Exception {
+  static int checkTable(ServerContext context, String tableName, boolean fix) throws Exception {
     if (tableName.equals(RootTable.NAME)) {
       throw new IllegalArgumentException("Can not check root table");
     } else if (tableName.equals(MetadataTable.NAME)) {
@@ -210,7 +209,6 @@ public class RemoveEntriesForMissingFiles {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
 
-    Connector conn = opts.getConnector();
-    checkAllTables(new ClientContext(conn.info()), opts.fix);
+    checkAllTables(opts.getServerContext(), opts.fix);
   }
 }

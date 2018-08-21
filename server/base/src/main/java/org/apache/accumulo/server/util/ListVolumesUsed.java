@@ -32,13 +32,12 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    listVolumes(new ServerContext(SiteConfiguration.create()));
+    listVolumes(new ServerContext(new SiteConfiguration()));
   }
 
   private static String getTableURI(String rootTabletDir) {
@@ -124,7 +123,7 @@ public class ListVolumesUsed {
 
     volumes.clear();
 
-    WalStateManager wals = new WalStateManager(context, ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(context);
     for (Path path : wals.getAllState().keySet()) {
       volumes.add(getLogURI(path.toString()));
     }

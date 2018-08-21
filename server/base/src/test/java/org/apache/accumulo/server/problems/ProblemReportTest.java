@@ -55,9 +55,10 @@ public class ProblemReportTest {
   @Before
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/instance");
-    replay(context);
     zoorw = createMock(ZooReaderWriter.class);
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/instance");
+    expect(context.getZooReaderWriter()).andReturn(zoorw).anyTimes();
+    replay(context);
   }
 
   @Test
@@ -174,7 +175,7 @@ public class ProblemReportTest {
         .andReturn(true);
     replay(zoorw);
 
-    r.saveToZooKeeper(zoorw, context);
+    r.saveToZooKeeper(context);
     verify(zoorw);
   }
 
@@ -189,7 +190,7 @@ public class ProblemReportTest {
         .andReturn(encoded);
     replay(zoorw);
 
-    r = ProblemReport.decodeZooKeeperEntry(node, zoorw, context);
+    r = ProblemReport.decodeZooKeeperEntry(context, node);
     assertEquals(TABLE_ID, r.getTableId());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());

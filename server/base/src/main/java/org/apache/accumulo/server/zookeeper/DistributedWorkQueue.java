@@ -51,7 +51,7 @@ public class DistributedWorkQueue {
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
 
   private ThreadPoolExecutor threadPool;
-  private ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+  private ZooReaderWriter zoo;
   private String path;
   private AccumuloConfiguration config;
   private long timerInitialDelay, timerPeriod;
@@ -169,6 +169,11 @@ public class DistributedWorkQueue {
     this.config = config;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
+    zoo = new ZooReaderWriter(config);
+  }
+
+  public ZooReaderWriter getZooReaderWriter() {
+    return zoo;
   }
 
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)

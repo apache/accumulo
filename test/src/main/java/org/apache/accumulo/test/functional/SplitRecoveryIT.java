@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -80,9 +79,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void run(ServerContext c) throws Exception {
     String zPath = c.getZooKeeperRoot() + "/testLock";
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(zPath);
+    ZooLock zl = new ZooLock(zoo, zPath);
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @Override
@@ -140,7 +139,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
 
-      String tdir = ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId() + "/dir_" + i;
+      String tdir = ServerConstants.getTablesDirs(context.getConfiguration())[0] + "/"
+          + extent.getTableId() + "/dir_" + i;
       MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),
@@ -286,7 +286,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run(new ServerContext(SiteConfiguration.create()));
+    new SplitRecoveryIT().run(new ServerContext(new SiteConfiguration()));
   }
 
   @Test

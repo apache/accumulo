@@ -408,7 +408,7 @@ public class Monitor implements HighlyAvailableService {
     HostAndPort address = null;
     try {
       // Read the gc location from its lock
-      ZooReaderWriter zk = ZooReaderWriter.getInstance();
+      ZooReaderWriter zk = context.getZooReaderWriter();
       String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
       List<String> locks = zk.getChildren(path, null);
       if (locks != null && locks.size() > 0) {
@@ -490,7 +490,7 @@ public class Monitor implements HighlyAvailableService {
 
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
-      ZooReaderWriter.getInstance().putPersistentData(
+      context.getZooReaderWriter().putPersistentData(
           context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to {}", monitorAddress);
@@ -499,8 +499,7 @@ public class Monitor implements HighlyAvailableService {
     }
 
     if (null != advertiseHost) {
-      LogService.startLogListener(Monitor.getContext().getConfiguration(), context.getInstanceID(),
-          advertiseHost);
+      LogService.startLogListener(context, advertiseHost);
     } else {
       log.warn("Not starting log4j listener as we could not determine address to use");
     }
@@ -633,7 +632,7 @@ public class Monitor implements HighlyAvailableService {
     final String monitorLockPath = zRoot + Constants.ZMONITOR_LOCK;
 
     // Ensure that everything is kosher with ZK as this has changed.
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     if (zoo.exists(monitorPath)) {
       byte[] data = zoo.getData(monitorPath, null);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
@@ -661,7 +660,7 @@ public class Monitor implements HighlyAvailableService {
     // Get a ZooLock for the monitor
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
-      monitorLock = new ZooLock(monitorLockPath);
+      monitorLock = new ZooLock(zoo, monitorLockPath);
       monitorLock.lockAsync(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();

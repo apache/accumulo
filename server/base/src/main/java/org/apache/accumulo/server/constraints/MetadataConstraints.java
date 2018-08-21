@@ -262,7 +262,7 @@ public class MetadataConstraints implements Constraint {
         } else if (new ColumnFQ(columnUpdate)
             .equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
           if (zooCache == null) {
-            zooCache = new ZooCache();
+            zooCache = new ZooCache(context);
           }
 
           if (zooRoot == null) {

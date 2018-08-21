@@ -133,7 +133,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     initializeQueuedWork();
 
     if (null == zooCache) {
-      zooCache = new ZooCache();
+      zooCache = new ZooCache(workQueue.getZooReaderWriter());
     }
 
     // Get the maximum number of entries we want to queue work for (or the default)

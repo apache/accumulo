@@ -142,7 +142,7 @@ public class PrintInfo implements KeywordExecutable {
       System.err.println("No files were given");
       System.exit(-1);
     }
-    SiteConfiguration siteConfig = SiteConfiguration.create();
+    SiteConfiguration siteConfig = new SiteConfiguration();
 
     Configuration conf = new Configuration();
     for (String confFile : opts.configFiles) {

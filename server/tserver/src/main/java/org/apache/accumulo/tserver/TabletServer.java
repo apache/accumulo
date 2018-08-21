@@ -167,7 +167,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -286,7 +285,7 @@ public class TabletServer implements Runnable {
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   private final TransactionWatcher watcher;
-  private final ZooCache masterLockCache = new ZooCache();
+  private ZooCache masterLockCache;
 
   private final TabletServerLogger logger;
 
@@ -356,6 +355,7 @@ public class TabletServer implements Runnable {
 
   public TabletServer(ServerContext context) {
     this.context = context;
+    this.masterLockCache = new ZooCache(context);
     this.watcher = new TransactionWatcher(context);
     this.confFactory = context.getServerConfFactory();
     this.fs = context.getVolumeManager();
@@ -426,7 +426,7 @@ public class TabletServer implements Runnable {
         TabletLocator.clearLocators();
       }
     }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
-    walMarker = new WalStateManager(context, ZooReaderWriter.getInstance());
+    walMarker = new WalStateManager(context);
 
     // Create the secret manager
     context.setSecretManager(new AuthenticationTokenSecretManager(context.getInstanceID(),
@@ -435,7 +435,7 @@ public class TabletServer implements Runnable {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
       authKeyWatcher = new ZooAuthenticationKeyWatcher(context.getSecretManager(),
-          ZooReaderWriter.getInstance(),
+          context.getZooReaderWriter(),
           context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
@@ -2513,7 +2513,7 @@ public class TabletServer implements Runnable {
             getTableConfiguration(extent));
         TabletData data;
         if (extent.isRootTablet()) {
-          data = new TabletData(context, fs, ZooReaderWriter.getInstance(),
+          data = new TabletData(context, fs, context.getZooReaderWriter(),
               getTableConfiguration(extent));
         } else {
           data = new TabletData(context, extent, fs, tabletsKeyValues.entrySet().iterator());
@@ -2697,7 +2697,7 @@ public class TabletServer implements Runnable {
       // The replication service is unique to the thrift service for a tserver, not just a host.
       // Advertise the host and port for replication service given the host and port for the
       // tserver.
-      ZooReaderWriter.getInstance().putPersistentData(
+      context.getZooReaderWriter().putPersistentData(
           context.getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress,
           sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
@@ -2713,7 +2713,7 @@ public class TabletServer implements Runnable {
   }
 
   private void announceExistence() {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     try {
       String zPath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/"
           + getClientAddressString();
@@ -2728,7 +2728,7 @@ public class TabletServer implements Runnable {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(zPath);
+      tabletServerLock = new ZooLock(zoo, zPath);
 
       LockWatcher lw = new LockWatcher() {
 
@@ -2787,7 +2787,7 @@ public class TabletServer implements Runnable {
     // To make things easier on users/devs, and to avoid creating an upgrade path to 1.7
     // We can just make the zookeeper paths before we try to use.
     try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(ZooReaderWriter.getInstance(),
+      ZooKeeperInitialization.ensureZooKeeperInitialized(context.getZooReaderWriter(),
           context.getZooKeeperRoot());
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not ensure that ZooKeeper is properly initialized", e);
@@ -2839,7 +2839,7 @@ public class TabletServer implements Runnable {
     bulkFailedCopyQ = new DistributedWorkQueue(
         context.getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
     try {
-      bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(), distWorkQThreadPool);
+      bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(context), distWorkQThreadPool);
     } catch (Exception e1) {
       throw new RuntimeException("Failed to start distributed work queue for copying ", e1);
     }

@@ -28,8 +28,8 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
@@ -44,8 +44,8 @@ public class InitializeTest {
   private Configuration conf;
   private VolumeManager fs;
   private SiteConfiguration sconf;
-  private IZooReaderWriter zooOrig;
-  private IZooReaderWriter zoo;
+  private ZooReaderWriter zooOrig;
+  private ZooReaderWriter zoo;
 
   @SuppressWarnings("deprecation")
   @Before
@@ -56,7 +56,7 @@ public class InitializeTest {
     expect(sconf.get(Property.INSTANCE_VOLUMES)).andReturn("").anyTimes();
     expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar").anyTimes();
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1").anyTimes();
-    zoo = createMock(IZooReaderWriter.class);
+    zoo = createMock(ZooReaderWriter.class);
     zooOrig = Initialize.getZooReaderWriter();
     Initialize.setZooReaderWriter(zoo);
   }

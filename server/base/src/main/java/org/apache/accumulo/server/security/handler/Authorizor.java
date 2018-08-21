@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * This interface is used for the system which will be used for getting a users Authorizations. If
@@ -34,7 +35,7 @@ public interface Authorizor {
   /**
    * Sets up the authorizor for a new instance of Accumulo
    */
-  void initialize(String instanceId, boolean initialize);
+  void initialize(ServerContext context, boolean initialize);
 
   /**
    * Used to validate that the Authorizor, Authenticator, and permission handler can coexist

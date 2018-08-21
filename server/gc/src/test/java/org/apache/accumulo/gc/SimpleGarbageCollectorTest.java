@@ -53,7 +53,7 @@ public class SimpleGarbageCollectorTest {
   private Opts opts;
   private SimpleGarbageCollector gc;
   private ConfigurationCopy systemConfig;
-  private static SiteConfiguration siteConfig = SiteConfiguration.create();
+  private static SiteConfiguration siteConfig = new SiteConfiguration();
 
   @Before
   public void setUp() {

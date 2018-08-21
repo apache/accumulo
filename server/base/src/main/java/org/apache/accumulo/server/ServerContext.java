@@ -45,6 +45,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,7 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
+  private ZooReaderWriter zooReaderWriter;
   private ServerConfigurationFactory serverConfFactory = null;
   private String applicationName = null;
   private String applicationClassName = null;
@@ -84,6 +86,7 @@ public class ServerContext extends ClientContext {
   private ServerContext(ServerInfo info) {
     super(info, info.getSiteConfiguration());
     this.info = info;
+    zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
   }
 
   public void setupServer(String appName, String appClassName, String hostname) {
@@ -94,7 +97,7 @@ public class ServerContext extends ClientContext {
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + info.getInstanceID());
     try {
-      Accumulo.init(getVolumeManager(), getInstanceID(), getServerConfFactory(), applicationName);
+      Accumulo.init(this, applicationName);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -176,6 +179,10 @@ public class ServerContext extends ClientContext {
 
   public VolumeManager getVolumeManager() {
     return info.getVolumeManager();
+  }
+
+  public ZooReaderWriter getZooReaderWriter() {
+    return zooReaderWriter;
   }
 
   /**

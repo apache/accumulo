@@ -59,7 +59,7 @@ public class PrintInfo {
   }
 
   public static void main(String[] args) throws Exception {
-    SiteConfiguration siteConfig = SiteConfiguration.create();
+    SiteConfiguration siteConfig = new SiteConfiguration();
     Configuration conf = new Configuration();
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);

@@ -70,7 +70,6 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -449,9 +448,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
       retry: while (true) {
-        ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
-            conn.info().getZooKeepersSessionTimeOut(), "");
-        WalStateManager wals = new WalStateManager(getClientContext(), zk);
+        WalStateManager wals = new WalStateManager(getServerContext());
         try {
           outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
             for (Path path : paths) {

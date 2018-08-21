@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -58,7 +59,8 @@ public class ChangeSecret {
   }
 
   public static void main(String[] args) throws Exception {
-    VolumeManager fs = VolumeManagerImpl.get();
+    SiteConfiguration siteConfig = new SiteConfiguration();
+    VolumeManager fs = VolumeManagerImpl.get(siteConfig);
     verifyHdfsWritePermission(fs);
 
     Opts opts = new Opts();

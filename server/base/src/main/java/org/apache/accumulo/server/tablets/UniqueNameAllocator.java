@@ -34,12 +34,14 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
  */
 public class UniqueNameAllocator {
 
+  private ServerContext context;
   private long next = 0;
   private long maxAllocated = 0;
   private String nextNamePath;
   private Random rand;
 
   public UniqueNameAllocator(ServerContext context) {
+    this.context = context;
     nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
     rand = new Random();
   }
@@ -50,7 +52,7 @@ public class UniqueNameAllocator {
       final int allocate = 100 + rand.nextInt(100);
 
       try {
-        byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE,
+        byte[] max = context.getZooReaderWriter().mutate(nextNamePath, null, ZooUtil.PRIVATE,
             new ZooReaderWriter.Mutator() {
               @Override
               public byte[] mutate(byte[] currentValue) throws Exception {

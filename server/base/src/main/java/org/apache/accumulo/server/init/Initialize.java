@@ -78,7 +78,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
@@ -132,7 +131,7 @@ public class Initialize implements KeywordExecutable {
   private static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
 
   private static ConsoleReader reader = null;
-  private static IZooReaderWriter zoo = null;
+  private static ZooReaderWriter zoo = null;
 
   private static ConsoleReader getConsoleReader() throws IOException {
     if (reader == null)
@@ -143,11 +142,11 @@ public class Initialize implements KeywordExecutable {
   /**
    * Sets this class's ZooKeeper reader/writer.
    *
-   * @param izoo
+   * @param zooReaderWriter
    *          reader/writer
    */
-  static void setZooReaderWriter(IZooReaderWriter izoo) {
-    zoo = izoo;
+  static void setZooReaderWriter(ZooReaderWriter zooReaderWriter) {
+    zoo = zooReaderWriter;
   }
 
   /**
@@ -155,7 +154,7 @@ public class Initialize implements KeywordExecutable {
    *
    * @return reader/writer
    */
-  static IZooReaderWriter getZooReaderWriter() {
+  static ZooReaderWriter getZooReaderWriter() {
     return zoo;
   }
 
@@ -483,15 +482,15 @@ public class Initialize implements KeywordExecutable {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig), false);
 
     // initialize initial system tables config in zookeeper
-    initSystemTablesConfig(Constants.ZROOT + "/" + uuid);
+    initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid);
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT);
-    String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris())
+    String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
-        + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris())
+    String replicationTableDefaultTabletDir = fs.choose(chooserEnv,
+        ServerConstants.getBaseUris(siteConfig)) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+        + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+    String defaultMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
         + Constants.DEFAULT_TABLET_LOCATION;
 
@@ -609,15 +608,15 @@ public class Initialize implements KeywordExecutable {
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0],
         NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(uuid, Namespace.ID.DEFAULT, Namespace.DEFAULT,
+    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ID.DEFAULT, Namespace.DEFAULT,
         NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(uuid, Namespace.ID.ACCUMULO, Namespace.ACCUMULO,
+    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ID.ACCUMULO, Namespace.ACCUMULO,
         NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(uuid, RootTable.ID, Namespace.ID.ACCUMULO, RootTable.NAME,
-        TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(uuid, MetadataTable.ID, Namespace.ID.ACCUMULO,
+    TableManager.prepareNewTableState(zoo, uuid, RootTable.ID, Namespace.ID.ACCUMULO,
+        RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
+    TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ID.ACCUMULO,
         MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(uuid, ReplicationTable.ID, Namespace.ID.ACCUMULO,
+    TableManager.prepareNewTableState(zoo, uuid, ReplicationTable.ID, Namespace.ID.ACCUMULO,
         ReplicationTable.NAME, TableState.OFFLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
@@ -774,7 +773,8 @@ public class Initialize implements KeywordExecutable {
         rootUser, opts.rootpass);
   }
 
-  public static void initSystemTablesConfig(String zooKeeperRoot) throws IOException {
+  public static void initSystemTablesConfig(ZooReaderWriter zoo, String zooKeeperRoot)
+      throws IOException {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       int max = conf.getInt("dfs.replication.max", 512);
@@ -786,23 +786,23 @@ public class Initialize implements KeywordExecutable {
       if (min > 5)
         setMetadataReplication(min, "min");
       for (Entry<String,String> entry : initialMetadataConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(zooKeeperRoot, RootTable.ID, entry.getKey(),
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, RootTable.ID, entry.getKey(),
             entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
-        if (!TablePropUtil.setTableProperty(zooKeeperRoot, MetadataTable.ID, entry.getKey(),
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, MetadataTable.ID, entry.getKey(),
             entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
       // Only add combiner config to accumulo.metadata table (ACCUMULO-3077)
       for (Entry<String,String> entry : initialMetadataCombinerConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(zooKeeperRoot, MetadataTable.ID, entry.getKey(),
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, MetadataTable.ID, entry.getKey(),
             entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
 
       // add configuration to the replication table
       for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(zooKeeperRoot, ReplicationTable.ID, entry.getKey(),
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, ReplicationTable.ID, entry.getKey(),
             entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
@@ -842,7 +842,8 @@ public class Initialize implements KeywordExecutable {
     String[] volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
 
     HashSet<String> initializedDirs = new HashSet<>();
-    initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseUris(volumeURIs, true)));
+    initializedDirs
+        .addAll(Arrays.asList(ServerConstants.checkBaseUris(siteConfig, volumeURIs, true)));
 
     HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(Arrays.asList(volumeURIs));
@@ -853,7 +854,7 @@ public class Initialize implements KeywordExecutable {
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
     UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, siteConfig));
-    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
+    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig)) {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
@@ -918,10 +919,10 @@ public class Initialize implements KeywordExecutable {
   public void execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
-    SiteConfiguration siteConfig = SiteConfiguration.create();
+    SiteConfiguration siteConfig = new SiteConfiguration();
 
     try {
-      zoo = ZooReaderWriter.getInstance();
+      zoo = new ZooReaderWriter(siteConfig);
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = CachedConfiguration.getInstance();
 

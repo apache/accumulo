@@ -155,7 +155,7 @@ public class TableLoadBalancerTest {
     final ServerContext context = createMockContext();
     replay(context);
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context,
-        SiteConfiguration.create()) {
+        new SiteConfiguration()) {
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration

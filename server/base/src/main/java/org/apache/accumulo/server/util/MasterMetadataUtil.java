@@ -53,11 +53,8 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -163,7 +160,6 @@ public class MasterMetadataUtil {
     try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
 
-      VolumeManager fs = VolumeManagerImpl.get();
       if (!scanner2.iterator().hasNext()) {
         log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
         MetadataTableUtil.rollBackSplit(metadataEntry, KeyExtent.decodePrevEndRow(oper), context,
@@ -186,7 +182,7 @@ public class MasterMetadataUtil {
 
           for (Entry<Key,Value> entry : scanner3) {
             if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-              origDatafileSizes.put(new FileRef(fs, entry.getKey()),
+              origDatafileSizes.put(new FileRef(context.getVolumeManager(), entry.getKey()),
                   new DataFileValue(entry.getValue().get()));
             }
           }
@@ -288,7 +284,7 @@ public class MasterMetadataUtil {
       FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
       Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs,
       TServerInstance lastLocation, long flushId) {
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = context.getZooReaderWriter();
     String root = MetadataTableUtil.getZookeeperLogLocation(context);
     for (String entry : unusedWalLogs) {
       String[] parts = entry.split("/");

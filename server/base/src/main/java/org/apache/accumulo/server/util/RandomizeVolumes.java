@@ -43,7 +43,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +71,7 @@ public class RandomizeVolumes {
 
   public static int randomize(ServerContext context, Connector c, String tableName)
       throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    final VolumeManager vm = VolumeManagerImpl.get();
+    final VolumeManager vm = context.getVolumeManager();
     if (vm.getVolumes().size() < 2) {
       log.error("There are not enough volumes configured");
       return 1;
@@ -114,9 +113,9 @@ public class RandomizeVolumes {
       Mutation m = new Mutation(key.getRow());
 
       VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
-      final String newLocation = vm.choose(chooserEnv, ServerConstants.getBaseUris())
-          + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
-          + directory;
+      final String newLocation = vm.choose(chooserEnv,
+          ServerConstants.getBaseUris(context.getConfiguration())) + Path.SEPARATOR
+          + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(),
           new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {

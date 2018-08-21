@@ -48,7 +48,7 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
 
     public static void start(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      IZooReaderWriter writer = ZooReaderWriter.getInstance();
+      IZooReaderWriter writer = context.getZooReaderWriter();
       writer.putPersistentData(context.getZooKeeperRoot() + "/" + type, new byte[] {},
           NodeExistsPolicy.OVERWRITE);
       writer.putPersistentData(context.getZooKeeperRoot() + "/" + type + "/" + tid, new byte[] {},
@@ -59,14 +59,14 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
 
     public static void stop(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      IZooReaderWriter writer = ZooReaderWriter.getInstance();
+      IZooReaderWriter writer = context.getZooReaderWriter();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
     }
 
     public static void cleanup(ServerContext context, String type, long tid)
         throws KeeperException, InterruptedException {
-      IZooReaderWriter writer = ZooReaderWriter.getInstance();
+      IZooReaderWriter writer = context.getZooReaderWriter();
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid,
           NodeMissingPolicy.SKIP);
       writer.recursiveDelete(context.getZooKeeperRoot() + "/" + type + "/" + tid + "-running",
@@ -75,7 +75,7 @@ public class TransactionWatcher extends org.apache.accumulo.fate.zookeeper.Trans
 
     public static Set<Long> allTransactionsAlive(ServerContext context, String type)
         throws KeeperException, InterruptedException {
-      final IZooReader reader = ZooReaderWriter.getInstance();
+      final IZooReader reader = context.getZooReaderWriter();
       final Set<Long> result = new HashSet<>();
       final String parent = context.getZooKeeperRoot() + "/" + type;
       reader.sync(parent);

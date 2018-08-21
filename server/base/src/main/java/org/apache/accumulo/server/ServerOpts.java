@@ -64,8 +64,7 @@ public class ServerOpts extends Help {
 
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
-      siteConfig = SiteConfiguration.create(SiteConfiguration.getAccumuloSiteLocation(),
-          getConfig());
+      siteConfig = new SiteConfiguration(SiteConfiguration.getAccumuloSiteLocation(), getConfig());
     }
     return siteConfig;
   }

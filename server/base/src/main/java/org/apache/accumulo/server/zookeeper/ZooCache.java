@@ -16,15 +16,20 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.Watcher;
 
 public class ZooCache extends org.apache.accumulo.fate.zookeeper.ZooCache {
-  public ZooCache() {
-    this(null);
+
+  public ZooCache(ServerContext context) {
+    this(context.getZooReaderWriter(), null);
   }
 
-  public ZooCache(Watcher watcher) {
-    super(ZooReaderWriter.getInstance(), watcher);
+  public ZooCache(ZooReaderWriter zoo) {
+    this(zoo, null);
   }
 
+  public ZooCache(ZooReaderWriter zoo, Watcher watcher) {
+    super(zoo, watcher);
+  }
 }

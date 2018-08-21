@@ -68,7 +68,7 @@ public class ReplicationUtil {
   private final ReplicaSystemFactory factory;
 
   public ReplicationUtil(ServerContext context) {
-    this(context, new ZooCache(), new ReplicaSystemFactory());
+    this(context, new ZooCache(context), new ReplicaSystemFactory());
   }
 
   public ReplicationUtil(ServerContext context, ZooCache cache, ReplicaSystemFactory factory) {

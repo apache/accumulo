@@ -150,7 +150,7 @@ public class ProblemReport {
   }
 
   void removeFromZooKeeper(ServerContext context) throws Exception {
-    removeFromZooKeeper(ZooReaderWriter.getInstance(), context);
+    removeFromZooKeeper(context.getZooReaderWriter(), context);
   }
 
   void removeFromZooKeeper(ZooReaderWriter zoorw, ServerContext context)
@@ -159,13 +159,9 @@ public class ProblemReport {
     zoorw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
   }
 
-  void saveToZooKeeper(ServerContext context) throws Exception {
-    saveToZooKeeper(ZooReaderWriter.getInstance(), context);
-  }
-
-  void saveToZooKeeper(ZooReaderWriter zoorw, ServerContext context)
+  void saveToZooKeeper(ServerContext context)
       throws IOException, KeeperException, InterruptedException {
-    zoorw.putPersistentData(getZPath(context.getZooKeeperRoot()), encode(),
+    context.getZooReaderWriter().putPersistentData(getZPath(context.getZooKeeperRoot()), encode(),
         NodeExistsPolicy.OVERWRITE);
   }
 
@@ -182,12 +178,8 @@ public class ProblemReport {
         + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
   }
 
-  static ProblemReport decodeZooKeeperEntry(ServerContext context, String node) throws Exception {
-    return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), context);
-  }
-
-  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw,
-      ServerContext context) throws IOException, KeeperException, InterruptedException {
+  static ProblemReport decodeZooKeeperEntry(ServerContext context, String node)
+      throws IOException, KeeperException, InterruptedException {
     byte bytes[] = Encoding.decodeBase64FileName(node);
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
@@ -198,7 +190,7 @@ public class ProblemReport {
     String resource = dis.readUTF();
 
     String zpath = context.getZooKeeperRoot() + Constants.ZPROBLEMS + "/" + node;
-    byte[] enc = zoorw.getData(zpath, null);
+    byte[] enc = context.getZooReaderWriter().getData(zpath, null);
 
     return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);
 

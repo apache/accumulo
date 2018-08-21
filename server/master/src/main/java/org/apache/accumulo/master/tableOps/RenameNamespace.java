@@ -26,7 +26,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.LoggerFactory;
 
 public class RenameNamespace extends MasterRepo {
@@ -50,7 +49,7 @@ public class RenameNamespace extends MasterRepo {
   @Override
   public Repo<Master> call(long id, Master master) throws Exception {
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = master.getContext().getZooReaderWriter();
 
     Utils.tableNameLock.lock();
     try {

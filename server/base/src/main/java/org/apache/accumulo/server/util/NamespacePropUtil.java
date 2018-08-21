@@ -21,10 +21,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 public class NamespacePropUtil {
@@ -33,16 +33,16 @@ public class NamespacePropUtil {
     if (!isPropertyValid(property, value))
       return false;
 
+    IZooReaderWriter zoo = context.getZooReaderWriter();
+
     // create the zk node for per-namespace properties for this namespace if it doesn't already
     // exist
     String zkNamespacePath = getPath(context, namespaceId);
-    ZooReaderWriter.getInstance().putPersistentData(zkNamespacePath, new byte[0],
-        NodeExistsPolicy.SKIP);
+    zoo.putPersistentData(zkNamespacePath, new byte[0], NodeExistsPolicy.SKIP);
 
     // create the zk node for this property and set it's data to the specified value
     String zPath = zkNamespacePath + "/" + property;
-    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
-        NodeExistsPolicy.OVERWRITE);
+    zoo.putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
     return true;
   }
@@ -56,7 +56,7 @@ public class NamespacePropUtil {
   public static void removeNamespaceProperty(ServerContext context, Namespace.ID namespaceId,
       String property) throws InterruptedException, KeeperException {
     String zPath = getPath(context, namespaceId) + "/" + property;
-    ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
+    context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
   private static String getPath(ServerContext context, Namespace.ID namespaceId) {

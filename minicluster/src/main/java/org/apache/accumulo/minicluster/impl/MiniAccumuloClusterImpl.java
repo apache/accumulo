@@ -463,8 +463,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
-    SiteConfiguration.clearInstance();
-    siteConfig = SiteConfiguration.create(siteFile);
+    siteConfig = new SiteConfiguration(siteFile);
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");

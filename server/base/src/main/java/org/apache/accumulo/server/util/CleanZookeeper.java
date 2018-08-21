@@ -24,7 +24,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,13 +50,13 @@ public class CleanZookeeper {
     Opts opts = new Opts();
     opts.parseArgs(CleanZookeeper.class.getName(), args);
 
+    ServerContext context = new ServerContext(new SiteConfiguration());
+
     String root = Constants.ZROOT;
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = context.getZooReaderWriter();
     if (opts.auth != null) {
       zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
     }
-
-    ServerContext context = new ServerContext(SiteConfiguration.create());
 
     try {
       for (String child : zk.getChildren(root)) {

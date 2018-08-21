@@ -65,7 +65,7 @@ public class ListInstances {
     opts.parseArgs(ListInstances.class.getName(), args);
 
     if (opts.keepers == null) {
-      SiteConfiguration siteConfig = SiteConfiguration.create();
+      SiteConfiguration siteConfig = new SiteConfiguration();
       opts.keepers = siteConfig.get(Property.INSTANCE_ZK_HOST);
     }
 

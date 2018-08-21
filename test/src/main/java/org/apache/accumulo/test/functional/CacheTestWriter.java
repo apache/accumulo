@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -40,7 +41,7 @@ public class CacheTestWriter {
   static final int NUM_DATA = 3;
 
   public static void main(String[] args) throws Exception {
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = new ZooReaderWriter(new SiteConfiguration());
 
     String rootDir = args[0];
     File reportDir = new File(args[1]);

@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -332,11 +331,6 @@ public class VolumeManagerImpl implements VolumeManager {
   public short getDefaultReplication(Path path) {
     Volume v = getVolumeByPath(path);
     return v.getFileSystem().getDefaultReplication(path);
-  }
-
-  public static VolumeManager get() throws IOException {
-    AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    return get(conf);
   }
 
   static private final String DEFAULT = "";

@@ -46,10 +46,10 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -100,15 +100,13 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * Fetch all of the WALs referenced by tablets in the metadata table for this table
    */
   private Set<String> getWalsForTable(String tableName) throws Exception {
-    final ClientContext context = getClientContext();
+    final ServerContext context = getServerContext();
     final Connector conn = context.getConnector();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
-    ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
-        conn.info().getZooKeepersSessionTimeOut(), "");
-    WalStateManager wals = new WalStateManager(context, zk);
+    WalStateManager wals = new WalStateManager(context);
 
     Set<String> result = new HashSet<>();
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {

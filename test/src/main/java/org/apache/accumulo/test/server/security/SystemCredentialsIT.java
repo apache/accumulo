@@ -59,7 +59,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
   public static void main(final String[] args)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    SiteConfiguration siteConfig = SiteConfiguration.create();
+    SiteConfiguration siteConfig = new SiteConfiguration();
     ServerContext context = new ServerContext(siteConfig);
     Credentials creds = null;
     String badInstanceID = SystemCredentials.class.getName();

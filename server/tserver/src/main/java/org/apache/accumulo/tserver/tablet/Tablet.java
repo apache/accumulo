@@ -116,7 +116,6 @@ import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
@@ -1114,7 +1113,7 @@ public class Tablet implements TabletCommitter {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
           + "/" + extent.getTableId() + Constants.ZTABLE_FLUSH_ID;
       return Long
-          .parseLong(new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8));
+          .parseLong(new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8));
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException(e);
     } catch (KeeperException ke) {
@@ -1132,7 +1131,7 @@ public class Tablet implements TabletCommitter {
 
     try {
       return Long
-          .parseLong(new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8));
+          .parseLong(new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -1143,7 +1142,7 @@ public class Tablet implements TabletCommitter {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
           + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_ID;
 
-      String[] tokens = new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8)
+      String[] tokens = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8)
           .split(",");
       long compactID = Long.parseLong(tokens[0]);
 
@@ -2848,8 +2847,8 @@ public class Tablet implements TabletCommitter {
 
     UniqueNameAllocator namer = context.getUniqueNameAllocator();
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
-    String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR
-        + Path.SEPARATOR;
+    String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris(context.getConfiguration()))
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
 
     while (true) {
       try {

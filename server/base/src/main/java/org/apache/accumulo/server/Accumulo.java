@@ -38,10 +38,8 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -106,15 +104,14 @@ public class Accumulo {
     return ServerConstants.getInstanceIdLocation(v);
   }
 
-  public static void init(VolumeManager fs, String instanceID,
-      ServerConfigurationFactory serverConfig, String application) throws IOException {
-    final AccumuloConfiguration conf = serverConfig.getSystemConfiguration();
+  public static void init(ServerContext context, String application) throws IOException {
+    final AccumuloConfiguration conf = context.getConfiguration();
 
     log.info("{} starting", application);
-    log.info("Instance {}", instanceID);
-    int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
+    log.info("Instance {}", context.getInstanceID());
+    int dataVersion = Accumulo.getAccumuloPersistentVersion(context.getVolumeManager());
     log.info("Data Version {}", dataVersion);
-    Accumulo.waitForZookeeperAndHdfs(fs);
+    Accumulo.waitForZookeeperAndHdfs(context);
 
     if (!(canUpgradeFromDataVersion(dataVersion))) {
       throw new RuntimeException("This version of accumulo (" + Constants.VERSION
@@ -193,11 +190,11 @@ public class Accumulo {
     }, 1000, 10 * 60 * 1000);
   }
 
-  public static void waitForZookeeperAndHdfs(VolumeManager fs) {
+  public static void waitForZookeeperAndHdfs(ServerContext context) {
     log.info("Attempting to talk to zookeeper");
     while (true) {
       try {
-        ZooReaderWriter.getInstance().getChildren(Constants.ZROOT);
+        context.getZooReaderWriter().getChildren(Constants.ZROOT);
         break;
       } catch (InterruptedException e) {
         // ignored
@@ -211,7 +208,7 @@ public class Accumulo {
     int unknownHostTries = 3;
     while (true) {
       try {
-        if (fs.isReady())
+        if (context.getVolumeManager().isReady())
           break;
         log.warn("Waiting for the NameNode to leave safemode");
       } catch (IOException ex) {
@@ -264,7 +261,7 @@ public class Accumulo {
   public static void abortIfFateTransactions(ServerContext context) {
     try {
       final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(new ZooStore<>(
-          context.getZooKeeperRoot() + Constants.ZFATE, ZooReaderWriter.getInstance()));
+          context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."

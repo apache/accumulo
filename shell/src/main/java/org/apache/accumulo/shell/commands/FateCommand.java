@@ -113,7 +113,7 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException {
     ClientContext context = shellState.getContext();
-    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
+    SiteConfiguration siteConfig = new SiteConfiguration();
     String[] args = cl.getArgs();
     if (args.length <= 0) {
       throw new ParseException("Must provide a command to execute");

@@ -87,10 +87,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -265,7 +263,7 @@ public class MetadataTableUtil {
       ZooOperation op) {
     while (true) {
       try {
-        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        IZooReaderWriter zoo = context.getZooReaderWriter();
         if (zoo.isLockHeld(zooLock.getLockID())) {
           op.run(zoo);
         }
@@ -297,7 +295,6 @@ public class MetadataTableUtil {
     try (Scanner mdScanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       Text row = extent.getMetadataEntry();
-      VolumeManager fs = VolumeManagerImpl.get();
 
       Key endKey = new Key(row, DataFileColumnFamily.NAME, new Text(""));
       endKey = endKey.followingKey(PartialKey.ROW_COLFAM);
@@ -308,7 +305,7 @@ public class MetadataTableUtil {
         if (!entry.getKey().getRow().equals(row))
           break;
         DataFileValue dfv = new DataFileValue(entry.getValue().get());
-        sizes.put(new FileRef(fs, entry.getKey()), dfv);
+        sizes.put(new FileRef(context.getVolumeManager(), entry.getKey()), dfv);
       }
 
       return sizes;
@@ -368,18 +365,20 @@ public class MetadataTableUtil {
     // TODO could use batch writer,would need to handle failure and retry like update does -
     // ACCUMULO-1294
     for (FileRef pathToRemove : datafilesToDelete) {
-      update(context, createDeleteMutation(tableId, pathToRemove.path().toString()), extent);
+      update(context, createDeleteMutation(context, tableId, pathToRemove.path().toString()),
+          extent);
     }
   }
 
   public static void addDeleteEntry(ServerContext context, Table.ID tableId, String path)
       throws IOException {
-    update(context, createDeleteMutation(tableId, path), new KeyExtent(tableId, null, null));
+    update(context, createDeleteMutation(context, tableId, path),
+        new KeyExtent(tableId, null, null));
   }
 
-  public static Mutation createDeleteMutation(Table.ID tableId, String pathToRemove)
-      throws IOException {
-    Path path = VolumeManagerImpl.get().getFullPath(tableId, pathToRemove);
+  public static Mutation createDeleteMutation(ServerContext context, Table.ID tableId,
+      String pathToRemove) throws IOException {
+    Path path = context.getVolumeManager().getFullPath(tableId, pathToRemove);
     Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.getRowPrefix() + path));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
     return delFlag;
@@ -465,12 +464,12 @@ public class MetadataTableUtil {
           Key key = cell.getKey();
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            FileRef ref = new FileRef(VolumeManagerImpl.get(), key);
-            bw.addMutation(createDeleteMutation(tableId, ref.meta().toString()));
+            FileRef ref = new FileRef(context.getVolumeManager(), key);
+            bw.addMutation(createDeleteMutation(context, tableId, ref.meta().toString()));
           }
 
           if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            bw.addMutation(createDeleteMutation(tableId, cell.getValue().toString()));
+            bw.addMutation(createDeleteMutation(context, tableId, cell.getValue().toString()));
           }
         }
 
@@ -507,7 +506,7 @@ public class MetadataTableUtil {
   }
 
   public static void setRootTabletDir(ServerContext context, String dir) throws IOException {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = context.getZooReaderWriter();
     String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
     try {
       zoo.putPersistentData(zpath, dir.getBytes(UTF_8), -1, NodeExistsPolicy.OVERWRITE);
@@ -520,7 +519,7 @@ public class MetadataTableUtil {
   }
 
   public static String getRootTabletDir(ServerContext context) throws IOException {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = context.getZooReaderWriter();
     String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
     try {
       return new String(zoo.getData(zpath, null), UTF_8);
@@ -538,7 +537,7 @@ public class MetadataTableUtil {
     ArrayList<LogEntry> result = new ArrayList<>();
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
-    VolumeManager fs = VolumeManagerImpl.get();
+    VolumeManager fs = context.getVolumeManager();
     if (extent.isRootTablet()) {
       getRootLogEntries(context, result);
       Path rootDir = new Path(getRootTabletDir(context));
@@ -606,7 +605,7 @@ public class MetadataTableUtil {
 
   static void getRootLogEntries(ServerContext context, final ArrayList<LogEntry> result)
       throws KeeperException, InterruptedException, IOException {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = context.getZooReaderWriter();
     String root = getZookeeperLogLocation(context);
     // there's a little race between getting the children and fetching
     // the data. The log can be removed in between.
@@ -928,8 +927,9 @@ public class MetadataTableUtil {
         Mutation m = new Mutation(k.getRow());
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
         VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
-        String dir = volumeManager.choose(chooserEnv, ServerConstants.getBaseUris())
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + new String(
+        String dir = volumeManager.choose(chooserEnv,
+            ServerConstants.getBaseUris(context.getConfiguration())) + Constants.HDFS_TABLES_DIR
+            + Path.SEPARATOR + tableId + Path.SEPARATOR + new String(
                 FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(UTF_8)));
 
@@ -966,12 +966,12 @@ public class MetadataTableUtil {
     }
   }
 
-  public static List<FileRef> getBulkFilesLoaded(Connector conn, KeyExtent extent, long tid)
-      throws IOException {
+  public static List<FileRef> getBulkFilesLoaded(ServerContext context, Connector conn,
+      KeyExtent extent, long tid) throws IOException {
     List<FileRef> result = new ArrayList<>();
     try (Scanner mscanner = new IsolatedScanner(conn.createScanner(
         extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY))) {
-      VolumeManager fs = VolumeManagerImpl.get();
+      VolumeManager fs = context.getVolumeManager();
       mscanner.setRange(extent.toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : mscanner) {
@@ -992,7 +992,7 @@ public class MetadataTableUtil {
     Text metadataRow = extent.getMetadataEntry();
     Map<Long,List<FileRef>> result = new HashMap<>();
 
-    VolumeManager fs = VolumeManagerImpl.get();
+    VolumeManager fs = context.getVolumeManager();
     try (Scanner scanner = new ScannerImpl(context,
         extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(new Range(metadataRow));
@@ -1038,9 +1038,9 @@ public class MetadataTableUtil {
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ReplicationTable.ID,
         context);
-    String dir = VolumeManagerImpl.get().choose(chooserEnv, ServerConstants.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
-        + Constants.DEFAULT_TABLET_LOCATION;
+    String dir = context.getVolumeManager().choose(chooserEnv,
+        ServerConstants.getBaseUris(context.getConfiguration())) + Constants.HDFS_TABLES_DIR
+        + Path.SEPARATOR + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
 
     Mutation m = new Mutation(new Text(KeyExtent.getMetadataEntry(ReplicationTable.ID, null)));
     m.put(DIRECTORY_COLUMN.getColumnFamily(), DIRECTORY_COLUMN.getColumnQualifier(), 0,

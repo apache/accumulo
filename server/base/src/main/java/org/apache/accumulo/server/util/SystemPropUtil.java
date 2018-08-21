@@ -24,7 +24,6 @@ import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,13 +62,13 @@ public class SystemPropUtil {
     // create the zk node for this property and set it's data to the specified value
     String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
 
-    return ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
+    return context.getZooReaderWriter().putPersistentData(zPath, value.getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
   }
 
   public static void removeSystemProperty(ServerContext context, String property)
       throws InterruptedException, KeeperException {
     String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
-    ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
+    context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }
 }
