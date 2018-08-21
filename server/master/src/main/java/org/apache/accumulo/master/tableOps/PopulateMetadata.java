@@ -16,12 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.SortedSet;
-
+import com.google.common.collect.Iterables;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -29,20 +24,19 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedSet;
 
 class PopulateMetadata extends MasterRepo {
-
-  private static final Logger log = LoggerFactory.getLogger(PopulateMetadata.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -67,22 +61,9 @@ class PopulateMetadata extends MasterRepo {
     if (tableInfo.initialSplitSize > 0) {
       SortedSet<Text> splits = Utils
           .getSortedSetFromFile(environment.getInputStream(tableInfo.splitFile), true);
-
-      for (Text split : splits) {
-        log.info(">>>> pmd.splits: "
-            + Utils.getBytesAsString(TextUtil.getBytes(split), split.getLength()));
-      }
-
       SortedSet<Text> dirs = Utils
           .getSortedSetFromFile(environment.getInputStream(tableInfo.splitDirsFile), false);
-      for (Text dir : dirs) {
-        log.info(">>>> pmd.dirs: " + dir);
-      }
-
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
-      splitDirMap.forEach((k, v) -> log
-          .info(">>>> pmd.map: " + Utils.getBytesAsString(TextUtil.getBytes(k)) + " : " + v));
-
       try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
         writeSplitsToMetadataTable(tableInfo.tableId, splits, splitDirMap, tableInfo.timeType,
             environment.getMasterLock(), bw);
@@ -94,7 +75,6 @@ class PopulateMetadata extends MasterRepo {
   private void writeSplitsToMetadataTable(Table.ID tableId, SortedSet<Text> splits,
       Map<Text,Text> data, char timeType, ZooLock lock, BatchWriter bw)
       throws MutationsRejectedException {
-
     Text prevSplit = null;
     for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
       Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();

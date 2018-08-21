@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Random;
 import java.util.SortedSet;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -100,6 +102,21 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
   }
 
+  @Test
+  public void testCreateInitialSplitsWithEncodedSplits() throws TableExistsException,
+      AccumuloSecurityException,
+      AccumuloException, TableNotFoundException {
+    tableName = getUniqueNames(1)[0];
+    SortedSet<Text> expectedSplits = generateNonBinarySplits(3000, 32, true);
+    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
+    assertFalse(connector.tableOperations().exists(tableName));
+    connector.tableOperations().create(tableName, ntc);
+    assertTrue(connector.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+  }
+
+
   /**
    * Test that binary split data is handled property.
    */
@@ -108,6 +125,19 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, AccumuloException, TableNotFoundException {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = generateBinarySplits(1000, 16);
+    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
+    assertFalse(connector.tableOperations().exists(tableName));
+    connector.tableOperations().create(tableName, ntc);
+    assertTrue(connector.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+  }
+
+  @Test
+  public void testCreateInitialBinarySplitsWithEncodedSplits() throws TableExistsException,
+      AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    tableName = getUniqueNames(1)[0];
+    SortedSet<Text> expectedSplits = generateBinarySplits(1000, 16, true);
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
     assertFalse(connector.tableOperations().exists(tableName));
     connector.tableOperations().create(tableName, ntc);
@@ -152,28 +182,47 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   // }
 
   private SortedSet<Text> generateNonBinarySplits(final int numItems, final int len) {
+    return generateNonBinarySplits(numItems, len, false);
+  }
+
+  private SortedSet<Text> generateNonBinarySplits(final int numItems, final int len, final
+      boolean useB64) {
     SortedSet<Text> splits = new TreeSet<>();
+    String str;
     for (int i = 0; i < numItems; i++) {
-      splits.add(new Text(getRandomString(len)));
+      splits.add(encode(getRandomText(len), useB64));
     }
     return splits;
   }
 
   private SortedSet<Text> generateBinarySplits(final int numItems, final int len) {
+    return generateBinarySplits(numItems, len, false);
+  }
+
+  private SortedSet<Text> generateBinarySplits(final int numItems, final int len, final boolean
+      useB64) {
     SortedSet<Text> splits = new TreeSet<>();
     Random rand = new Random();
     for (int i = 0; i < numItems; i++) {
       byte[] split = new byte[len];
       rand.nextBytes(split);
-      splits.add(new Text(split));
+      splits.add(encode(new Text(split), useB64));
     }
     return splits;
   }
 
-  private String getRandomString(final int len) {
+  private Text encode(final Text text, final boolean encode) {
+    if (text == null) {
+      return null;
+    }
+    return encode ? new Text(Base64.getEncoder().encodeToString(TextUtil.getBytes(text))) : text;
+  }
+
+  private Text getRandomText(final int len) {
     int desiredLen = len;
     if (len > 32)
       desiredLen = 32;
-    return String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1);
+    return new Text(String.valueOf(UUID.randomUUID()).replaceAll("-", "")
+        .substring(0, desiredLen - 1));
   }
 }

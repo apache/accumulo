@@ -189,17 +189,19 @@ public class Utils {
           TableOperationExceptionType.NAMESPACE_EXISTS, null);
   }
 
+  /**
+   * Given an input stream and a flag indicating if the file info is base64 encoded or not,
+   * retrieve the data from a file on the file system. It is assumed that the file is textual and
+   * not binary data.
+   */
   static SortedSet<Text> getSortedSetFromFile(FSDataInputStream inputStream, boolean encoded)
       throws IOException {
     SortedSet<Text> data = new TreeSet<>();
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
       String line;
       while ((line = br.readLine()) != null) {
-        // line = line.trim();
-        // log.info(">>>> utils.line: " + line);
         if (encoded) {
           byte[] decoded = Base64.getDecoder().decode(line);
-          // log.info(">>>> utils.decoded: " + getBytesAsString(decoded, decoded.length));
           data.add(new Text(decoded));
         } else {
           data.add(new Text(line));
@@ -207,18 +209,5 @@ public class Utils {
       }
     }
     return data;
-  }
-
-  public static String getBytesAsString(byte[] split) {
-    return getBytesAsString(split, split.length);
-  }
-
-  public static String getBytesAsString(byte[] split, int size) {
-    StringBuilder sb = new StringBuilder("0x");
-    for (int ii = 0; ii < size; ii++) {
-      String str = String.format("%02x", split[ii]);
-      sb.append(str);
-    }
-    return sb.toString();
   }
 }
