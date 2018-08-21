@@ -2330,15 +2330,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithSplitsFile1()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 1000, 12, false, false, true, false, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> 1");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 1000, 12, false, false, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2349,16 +2352,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithSplitsFile2()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 300, 12, false, false, false, false, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> 2");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 300, 12, false, false, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2369,16 +2374,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithSplitsFile3()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 23, false, true, true, false, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> 3");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 23, false, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2389,16 +2396,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithSplitsFile4()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 31, false, false, true, true, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> 4");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 31, false, false, true, true, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2409,16 +2418,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithSplitsFile5()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 32, false, false, true, false, true);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> 5");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 32, false, false, true, false, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
 
@@ -2430,16 +2441,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithSplitsFile6()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 12, false, false, false, true, true);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> 6");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, false, false, false, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2450,16 +2463,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithSplitsFile7()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 12, false, false, true, true, true);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> 7");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, false, false, true, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2470,7 +2485,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test(expected = org.apache.accumulo.core.client.TableNotFoundException.class)
   public void testCreateTableWithEmptySplitFile()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
     String splitsFile = null;
     try {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
@@ -2527,16 +2541,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithBinarySplitsFile1()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 200, 12, true, true, true, false, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> b1");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 200, 12, true, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2547,16 +2563,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithBinarySplitsFile2()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 300, 12, true, true, false, false, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> b2");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 300, 12, true, true, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2567,16 +2585,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithBinarySplitsFile3()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 23, true, true, true, false, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> b3");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 23, true, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2587,16 +2607,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithBinarySplitsFile4()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 31, true, true, true, true, false);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> b4");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 31, true, true, true, true, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2607,16 +2629,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithBinarySplitsFile5()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 32, true, true, true, false, true);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> b5");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 32, true, true, true, false, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
 
@@ -2628,16 +2652,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithBinarySplitsFile6()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 12, true, true, false, true, true);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> b6");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, true, true, false, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
   /**
@@ -2648,16 +2674,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableWithBinarySplitsFile7()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    // read in the expected splits from the split file.
-    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
-    generateSplitsFile(splitsFile, 100, 12, true, true, true, true, true);
-    SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
-    final String tableName = name.getMethodName() + "_table";
-    ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
-    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    Files.delete(Paths.get(splitsFile));
-    log.info(">>>> b7");
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, true, true, true, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
   }
 
 
