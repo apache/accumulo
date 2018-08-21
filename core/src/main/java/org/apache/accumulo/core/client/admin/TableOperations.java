@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -620,8 +621,8 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  interface ImportSourceOptions {
-    ImportSourceOptions settingLogicalTime();
+  interface ImportFinalOptions {
+    ImportFinalOptions settingLogicalTime();
 
     void load()
         throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
@@ -630,28 +631,41 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  interface ImportExecutorOptions extends ImportSourceOptions {
+  interface ImportDestinationOptions extends ImportFinalOptions {
+
+    /**
+     * Load files in the directory to the row ranges specified in the plan. The plan should contain
+     * at least one entry for every file in the directory.
+     */
+    ImportFinalOptions usingPlan(LoadPlan service);
+
+    // The javadoc below intentionally use a fully qualified class name in the value tag, otherwise
+    // it would not render properly.
     /**
      * Files are examined to determine where to load them. This examination is done in the current
-     * process using multiple threads. If this property is not set, then the client property
-     * {@code bulk.threads} is used to create a thread pool.
+     * process using multiple threads. If this method is not called, then the client property
+     * {@code bulk.threads} is used to create a thread pool. This property defaults to
+     * {@value org.apache.accumulo.core.conf.ClientDefaults#BULK_LOAD_THREADS_DEFAULT}.
      *
      * @param service
      *          Use this executor to run file examination task
      * @return ImportSourceOptions
      */
-    ImportSourceOptions usingExecutor(Executor service);
+    ImportFinalOptions examiningWith(Executor service);
 
+    // The javadoc below intentionally use a fully qualified class name in the value tag, otherwise
+    // it would not render properly.
     /**
      * Files are examined to determine where to load them. This examination is done in the current
-     * process using multiple threads. If this property is not set, then the client property
-     * {@code bulk.threads} is used to create a thread pool.
+     * process using multiple threads. If this method is not called, then the client property
+     * {@code bulk.threads} is used to create a thread pool. This property defaults to
+     * {@value org.apache.accumulo.core.conf.ClientDefaults#BULK_LOAD_THREADS_DEFAULT}.
      *
      * @param numThreads
      *          Create a thread pool with this many thread to run file examination task.
      * @return ImportSourceOptions
      */
-    ImportSourceOptions usingThreads(int numThreads);
+    ImportFinalOptions examiningWith(int numThreads);
   }
 
   /**
@@ -664,7 +678,7 @@ public interface TableOperations {
      *          Load files from this directory
      * @return ImportSourceOptions
      */
-    ImportExecutorOptions from(String directory);
+    ImportDestinationOptions from(String directory);
   }
 
   /**

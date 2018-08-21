@@ -62,6 +62,10 @@ public class CachableBlockFile {
     T get() throws IOException;
   }
 
+  public static String pathToCacheId(Path p) {
+    return p.toString();
+  }
+
   /**
    * Class wraps the BCFile reader.
    */
@@ -325,8 +329,9 @@ public class CachableBlockFile {
         BlockCache data, BlockCache index, RateLimiter readLimiter,
         AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService)
         throws IOException {
-      this(dataFile.toString(), () -> fs.open(dataFile), () -> fs.getFileStatus(dataFile).getLen(),
-          fileLenCache, data, index, readLimiter, conf, accumuloConfiguration, cryptoService);
+      this(pathToCacheId(dataFile), () -> fs.open(dataFile),
+          () -> fs.getFileStatus(dataFile).getLen(), fileLenCache, data, index, readLimiter, conf,
+          accumuloConfiguration, cryptoService);
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(String cacheId,

@@ -124,7 +124,6 @@ public abstract class FileOperations {
    *     .build();
    * </pre>
    */
-  @SuppressWarnings("unchecked")
   public ScanReaderBuilder newScanReaderBuilder() {
     return new ScanReaderBuilder();
   }
@@ -312,9 +311,9 @@ public abstract class FileOperations {
           true);
     }
 
-    protected FileOptions toIndexReaderBuilderOptions() {
+    protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
-          false, null, null, null, false, null, null, null, true);
+          false, null, null, fileLenCache, false, null, null, null, true);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
@@ -344,6 +343,7 @@ public abstract class FileOperations {
       return this;
     }
 
+    @Override
     public WriterBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;
@@ -388,6 +388,7 @@ public abstract class FileOperations {
       return this;
     }
 
+    @Override
     public ReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;
@@ -473,19 +474,27 @@ public abstract class FileOperations {
    */
   public class IndexReaderBuilder extends FileHelper implements IndexReaderTableConfiguration {
 
+    private Cache<String,Long> fileLenCache = null;
+
     public IndexReaderTableConfiguration forFile(String filename, FileSystem fs,
         Configuration fsConf) {
       filename(filename).fs(fs).fsConf(fsConf);
       return this;
     }
 
+    @Override
     public IndexReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;
     }
 
+    public IndexReaderBuilder withFileLenCache(Cache<String,Long> fileLenCache) {
+      this.fileLenCache = fileLenCache;
+      return this;
+    }
+
     public FileSKVIterator build() throws IOException {
-      return openIndex(toIndexReaderBuilderOptions());
+      return openIndex(toIndexReaderBuilderOptions(fileLenCache));
     }
   }
 
@@ -505,6 +514,7 @@ public abstract class FileOperations {
       return this;
     }
 
+    @Override
     public ScanReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;

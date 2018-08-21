@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.groupingBy;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -47,19 +50,26 @@ import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations.ImportExecutorOptions;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportFinalOptions;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceArguments;
-import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceOptions;
+import org.apache.accumulo.core.client.impl.Bulk.FileInfo;
+import org.apache.accumulo.core.client.impl.Bulk.Files;
+import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.LoadPlan;
+import org.apache.accumulo.core.data.LoadPlan.Destination;
+import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -71,8 +81,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Sets;
 
-public class BulkImport implements ImportSourceArguments, ImportExecutorOptions {
+public class BulkImport implements ImportSourceArguments, ImportDestinationOptions {
 
   private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
@@ -84,13 +97,15 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   private final ClientContext context;
   private final String tableName;
 
+  private LoadPlan plan = null;
+
   BulkImport(String tableName, ClientContext context) {
     this.context = context;
     this.tableName = Objects.requireNonNull(tableName);
   }
 
   @Override
-  public ImportSourceOptions settingLogicalTime() {
+  public ImportFinalOptions settingLogicalTime() {
     this.setTime = true;
     return this;
   }
@@ -109,34 +124,20 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
 
     Path srcPath = checkPath(fs, dir);
 
-    Executor executor;
-    ExecutorService service = null;
-
-    if (this.executor != null) {
-      executor = this.executor;
-    } else if (numThreads > 0) {
-      executor = service = Executors.newFixedThreadPool(numThreads);
+    SortedMap<KeyExtent,Bulk.Files> mappings;
+    if (plan == null) {
+      mappings = computeMappingFromFiles(fs, tableId, srcPath);
     } else {
-      String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor = service = Executors
-          .newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
+      mappings = computeMappingFromPlan(fs, tableId, srcPath);
     }
 
-    try {
-      SortedMap<KeyExtent,Bulk.Files> mappings = computeFileToTabletMappings(fs, tableId, srcPath,
-          executor, context);
+    BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), p -> fs.create(p));
 
-      BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), p -> fs.create(p));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()),
+        ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
+        ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
+    doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(), tableName);
 
-      List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()),
-          ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
-          ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-      doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(), tableName);
-    } finally {
-      if (service != null) {
-        service.shutdown();
-      }
-    }
   }
 
   /**
@@ -164,17 +165,20 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       throw new AccumuloException(
           "Bulk import directory " + dir + " does not exist or has bad permissions", fnf);
     }
+
+    // TODO ensure dir does not contain bulk load mapping
+
     return ret;
   }
 
   @Override
-  public ImportSourceOptions usingExecutor(Executor service) {
+  public ImportFinalOptions examiningWith(Executor service) {
     this.executor = Objects.requireNonNull(service);
     return this;
   }
 
   @Override
-  public ImportSourceOptions usingThreads(int numThreads) {
+  public ImportFinalOptions examiningWith(int numThreads) {
     Preconditions.checkArgument(numThreads > 0, "Non positive number of threads given : %s",
         numThreads);
     this.numThreads = numThreads;
@@ -182,7 +186,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   }
 
   @Override
-  public ImportExecutorOptions from(String directory) {
+  public ImportDestinationOptions from(String directory) {
     this.dir = Objects.requireNonNull(directory);
     return this;
   }
@@ -198,7 +202,12 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   }
 
   public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path mapFile,
-      long fileSize, Collection<KeyExtent> extents, FileSystem ns) throws IOException {
+      long fileSize, Collection<KeyExtent> extents, FileSystem ns, Cache<String,Long> fileLenCache)
+      throws IOException {
+
+    if (extents.size() == 1) {
+      return Collections.singletonMap(extents.iterator().next(), fileSize);
+    }
 
     long totalIndexEntries = 0;
     Map<KeyExtent,MLong> counts = new TreeMap<>();
@@ -208,7 +217,8 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     Text row = new Text();
 
     FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder()
-        .forFile(mapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).build();
+        .forFile(mapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
+        .withFileLenCache(fileLenCache).build();
 
     try {
       while (index.hasTop()) {
@@ -249,8 +259,12 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
   }
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
-      KeyExtentCache extentCache, Text startRow, Text endRow, FileSKVIterator reader)
+      KeyExtentCache extentCache, FileSKVIterator reader)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+
+    Text startRow = null;
+    Text endRow = null;
+
     List<KeyExtent> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     Text row = startRow;
@@ -269,8 +283,7 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       result.add(extent);
       row = extent.getEndRow();
       if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
-        row = new Text(row);
-        row.append(byte0, 0, byte0.length);
+        row = nextRow(row);
       } else
         break;
     }
@@ -278,14 +291,156 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     return result;
   }
 
+  private static Text nextRow(Text row) {
+    Text next = new Text(row);
+    next.append(byte0, 0, byte0.length);
+    return next;
+  }
+
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
-      KeyExtentCache extentCache, Path file, FileSystem fs)
+      KeyExtentCache extentCache, Path file, FileSystem fs, Cache<String,Long> fileLenCache)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
         .forFile(file.toString(), fs, fs.getConf())
-        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
-      return findOverlappingTablets(context, extentCache, null, null, reader);
+        .withTableConfiguration(context.getConfiguration()).withFileLenCache(fileLenCache)
+        .seekToBeginning().build()) {
+      return findOverlappingTablets(context, extentCache, reader);
     }
+  }
+
+  private static Map<String,Long> getFileLenMap(FileStatus[] statuses) {
+    HashMap<String,Long> fileLens = new HashMap<>();
+    for (FileStatus status : statuses) {
+      fileLens.put(status.getPath().getName(), status.getLen());
+      status.getLen();
+    }
+
+    return fileLens;
+  }
+
+  private static Cache<String,Long> getPopulatedFileLenCache(Path dir, FileStatus[] statuses) {
+    Map<String,Long> fileLens = getFileLenMap(statuses);
+
+    Map<String,Long> absFileLens = new HashMap<>();
+    fileLens.forEach((k, v) -> {
+      absFileLens.put(CachableBlockFile.pathToCacheId(new Path(dir, k)), v);
+    });
+
+    Cache<String,Long> fileLenCache = CacheBuilder.newBuilder().build();
+
+    fileLenCache.putAll(absFileLens);
+
+    return fileLenCache;
+  }
+
+  private SortedMap<KeyExtent,Files> computeMappingFromPlan(FileSystem fs, ID tableId, Path srcPath)
+      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+
+    Map<String,List<Destination>> fileDestinations = plan.getDestinations().stream()
+        .collect(groupingBy(Destination::getFileName));
+
+    FileStatus[] statuses = fs.listStatus(srcPath,
+        p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING));
+
+    Map<String,Long> fileLens = getFileLenMap(statuses);
+
+    if (!fileDestinations.keySet().equals(fileLens.keySet())) {
+      throw new IllegalArgumentException(
+          "Load plan files differ from directory files, symmetric difference : "
+              + Sets.symmetricDifference(fileDestinations.keySet(), fileLens.keySet()));
+    }
+
+    KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
+
+    // Pre-populate cache by looking up all end rows in sorted order. Doing this in sorted order
+    // leverages read ahead.
+    fileDestinations.values().stream().flatMap(List::stream)
+        .filter(dest -> dest.getRangeType() == RangeType.DATA)
+        .flatMap(dest -> Stream.of(dest.getStartRow(), dest.getEndRow())).filter(row -> row != null)
+        .map(Text::new).sorted().distinct().forEach(row -> {
+          try {
+            extentCache.lookup(row);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
+
+    SortedMap<KeyExtent,Files> mapping = new TreeMap<>();
+
+    for (Entry<String,List<Destination>> entry : fileDestinations.entrySet()) {
+      String fileName = entry.getKey();
+      List<Destination> destinations = entry.getValue();
+      Set<KeyExtent> extents = mapDesitnationsToExtents(tableId, extentCache, destinations);
+
+      long estSize = (long) (fileLens.get(fileName) / (double) extents.size());
+
+      for (KeyExtent keyExtent : extents) {
+        mapping.computeIfAbsent(keyExtent, k -> new Files())
+            .add(new FileInfo(fileName, estSize, 0));
+      }
+    }
+
+    return mergeOverlapping(mapping);
+  }
+
+  private Text toText(byte[] row) {
+    return row == null ? null : new Text(row);
+  }
+
+  private Set<KeyExtent> mapDesitnationsToExtents(Table.ID tableId, KeyExtentCache kec,
+      List<Destination> destinations)
+      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    Set<KeyExtent> extents = new HashSet<>();
+
+    for (Destination dest : destinations) {
+
+      if (dest.getRangeType() == RangeType.TABLET) {
+        extents.add(new KeyExtent(tableId, toText(dest.getEndRow()), toText(dest.getStartRow())));
+      } else if (dest.getRangeType() == RangeType.DATA) {
+        Text startRow = new Text(dest.getStartRow());
+        Text endRow = new Text(dest.getEndRow());
+
+        KeyExtent extent = kec.lookup(startRow);
+
+        extents.add(extent);
+
+        while (!extent.contains(endRow) && extent.getEndRow() != null) {
+          extent = kec.lookup(nextRow(extent.getEndRow()));
+          extents.add(extent);
+        }
+
+      } else {
+        throw new IllegalStateException();
+      }
+    }
+
+    return extents;
+  }
+
+  private SortedMap<KeyExtent,Bulk.Files> computeMappingFromFiles(FileSystem fs, Table.ID tableId,
+      Path dirPath) throws IOException {
+
+    Executor executor;
+    ExecutorService service = null;
+
+    if (this.executor != null) {
+      executor = this.executor;
+    } else if (numThreads > 0) {
+      executor = service = Executors.newFixedThreadPool(numThreads);
+    } else {
+      String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
+      executor = service = Executors
+          .newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
+    }
+
+    try {
+      return computeFileToTabletMappings(fs, tableId, dirPath, executor, context);
+    } finally {
+      if (service != null) {
+        service.shutdown();
+      }
+    }
+
   }
 
   public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
@@ -296,6 +451,10 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
     FileStatus[] files = fs.listStatus(dirPath,
         p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING));
 
+    // we know all of the file lens, so construct a cache and populate it in order to avoid later
+    // trips to the namenode
+    Cache<String,Long> fileLensCache = getPopulatedFileLenCache(dirPath, files);
+
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 
     for (FileStatus fileStatus : files) {
@@ -303,9 +462,9 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
         try {
           long t1 = System.currentTimeMillis();
           List<KeyExtent> extents = findOverlappingTablets(context, extentCache,
-              fileStatus.getPath(), fs);
+              fileStatus.getPath(), fs, fileLensCache);
           Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(),
-              fileStatus.getPath(), fileStatus.getLen(), extents, fs);
+              fileStatus.getPath(), fileStatus.getLen(), extents, fs, fileLensCache);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (KeyExtent ke : extents) {
             pathLocations.put(ke,
@@ -381,4 +540,11 @@ public class BulkImport implements ImportSourceArguments, ImportExecutorOptions 
       throw new AssertionError(e);
     }
   }
+
+  @Override
+  public ImportFinalOptions usingPlan(LoadPlan plan) {
+    this.plan = plan;
+    return this;
+  }
+
 }
