@@ -257,7 +257,7 @@ public class ServerContext extends ClientContext {
     return nameAllocator;
   }
 
-  public synchronized CryptoService getCryptoService() {
+  public CryptoService getCryptoService() {
     if (cryptoService == null) {
       throw new CryptoService.CryptoException("Crypto service not initialized.");
     }
