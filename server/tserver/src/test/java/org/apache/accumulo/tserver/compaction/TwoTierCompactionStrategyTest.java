@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
+import static org.apache.accumulo.tserver.compaction.DefaultCompactionStrategyTest.getServerContext;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +31,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.tserver.InMemoryMapTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,7 +69,8 @@ public class TwoTierCompactionStrategyTest {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
-    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
+    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf,
+        InMemoryMapTest.getServerContext());
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "10M", "f2", "10M", "f3", "10M", "f4",
         "10M", "f5", "100M", "f6", "100M", "f7", "100M", "f8", "100M");
     mcr.setFiles(fileMap);
@@ -85,7 +89,7 @@ public class TwoTierCompactionStrategyTest {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
-    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
+    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf, getServerContext());
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4",
         "2G");
     mcr.setFiles(fileMap);
@@ -116,7 +120,7 @@ public class TwoTierCompactionStrategyTest {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
-    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
+    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf, getServerContext());
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "1G", "f2", "10M", "f3", "10M", "f4",
         "10M", "f5", "10M", "f6", "10M", "f7", "10M");
     Map<FileRef,DataFileValue> filesToCompactMap = createFileMap("f2", "10M", "f3", "10M", "f4",

@@ -57,8 +57,8 @@ import org.apache.accumulo.core.data.thrift.TSummaryRequest;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
@@ -109,6 +109,7 @@ public class Gatherer {
   private Text endRow = null;
   private Range clipRange;
   private Predicate<SummarizerConfiguration> summarySelector;
+  private CryptoService cryptoService;
 
   private TSummaryRequest request;
 
@@ -116,8 +117,8 @@ public class Gatherer {
 
   private Set<SummarizerConfiguration> summaries;
 
-  public Gatherer(ClientContext context, TSummaryRequest request,
-      AccumuloConfiguration tableConfig) {
+  public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
+      CryptoService cryptoService) {
     this.ctx = context;
     this.tableId = Table.ID.of(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
@@ -126,6 +127,7 @@ public class Gatherer {
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
     this.request = request;
+    this.cryptoService = cryptoService;
 
     this.summarizerPattern = request.getSummarizerPattern();
 
@@ -666,9 +668,7 @@ public class Gatherer {
       List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache) {
     Path path = new Path(file);
     Configuration conf = CachedConfiguration.getInstance();
-    return SummaryReader
-        .load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path, summarySelector,
-            summaryCache, indexCache, CryptoServiceFactory.getConfigured(ctx.getConfiguration()))
-        .getSummaries(ranges);
+    return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path,
+        summarySelector, summaryCache, indexCache, cryptoService).getSummaries(ranges);
   }
 }

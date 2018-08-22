@@ -1822,7 +1822,7 @@ public class Tablet implements TabletCommitter {
       BlockCache sc = tabletResources.getTabletServerResourceManager().getSummaryCache();
       BlockCache ic = tabletResources.getTabletServerResourceManager().getIndexCache();
       MajorCompactionRequest request = new MajorCompactionRequest(extent, reason,
-          getTabletServer().getFileSystem(), tableConfiguration, sc, ic);
+          getTabletServer().getFileSystem(), tableConfiguration, sc, ic, context);
       request.setFiles(getDatafileManager().getDatafileSizes());
       strategy.gatherInformation(request);
     }
@@ -1867,7 +1867,7 @@ public class Tablet implements TabletCommitter {
         inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, allFiles.keySet()));
       } else {
         MajorCompactionRequest request = new MajorCompactionRequest(extent, reason,
-            tableConfiguration);
+            tableConfiguration, context);
         request.setFiles(allFiles);
         plan = strategy.getCompactionPlan(request);
         if (plan != null) {
@@ -2688,7 +2688,7 @@ public class Tablet implements TabletCommitter {
       CompactionStrategy strategy = createCompactionStrategy(strategyConfig);
 
       MajorCompactionRequest request = new MajorCompactionRequest(extent,
-          MajorCompactionReason.USER, tableConfiguration);
+          MajorCompactionReason.USER, tableConfiguration, context);
       request.setFiles(getDatafileManager().getDatafileSizes());
 
       try {

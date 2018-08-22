@@ -42,9 +42,12 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class DefaultCompactionStrategyTest {
@@ -57,6 +60,13 @@ public class DefaultCompactionStrategyTest {
     if (secondString != null)
       second = new Key(new Text(secondString));
     return new Pair<>(first, second);
+  }
+
+  public static ServerContext getServerContext() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(context.getCryptoService()).andReturn(new NoCryptoService()).anyTimes();
+    EasyMock.replay(context);
+    return context;
   }
 
   static final Map<String,Pair<Key,Key>> fakeFiles = new HashMap<>();
@@ -154,7 +164,7 @@ public class DefaultCompactionStrategyTest {
 
     TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
         Map<FileRef,DataFileValue> files) {
-      super(extent, reason, dfault);
+      super(extent, reason, dfault, getServerContext());
       setFiles(files);
     }
 

@@ -156,7 +156,7 @@ public class TabletData {
       long maxTime = -1;
       try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(conf).seekToBeginning()
-          .build()) {
+          .withCryptoService(context.getCryptoService()).build()) {
         while (reader.hasTop()) {
           maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
           reader.next();

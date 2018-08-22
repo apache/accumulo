@@ -326,7 +326,8 @@ public class FileManager {
             .forFile(path.toString(), ns, ns.getConf())
             .withTableConfiguration(
                 context.getServerConfFactory().getTableConfiguration(tablet.getTableId()))
-            .withBlockCache(dataCache, indexCache).withFileLenCache(fileLenCache).build();
+            .withBlockCache(dataCache, indexCache).withFileLenCache(fileLenCache)
+            .withCryptoService(context.getCryptoService()).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 

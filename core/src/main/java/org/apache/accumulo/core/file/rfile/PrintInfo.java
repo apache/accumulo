@@ -174,7 +174,7 @@ public class PrintInfo implements KeywordExecutable {
       printCryptoParams(path, fs);
 
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          siteConfig, CryptoServiceFactory.getConfigured(siteConfig));
+          siteConfig, CryptoServiceFactory.newInstance(siteConfig));
       Reader iter = new RFile.Reader(_rdr);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

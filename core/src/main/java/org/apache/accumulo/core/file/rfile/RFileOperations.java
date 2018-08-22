@@ -130,7 +130,13 @@ public class RFileOperations extends FileOperations {
 
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
-    CryptoService cryptoService = CryptoServiceFactory.getConfigured(acuconf);
+
+    // calls to openWriter from the tserver will already have a crypto service initialized
+    // calls from clients will require a new crypto service
+    CryptoService cryptoService = options.cryptoService;
+    if (cryptoService == null) {
+      cryptoService = CryptoServiceFactory.newInstance(acuconf);
+    }
 
     BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
         conf, acuconf, cryptoService);

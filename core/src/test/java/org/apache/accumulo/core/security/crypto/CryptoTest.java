@@ -48,7 +48,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.crypto.impl.AESCryptoService;
@@ -68,7 +67,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -104,26 +102,12 @@ public class CryptoTest {
     fs.delete(aesPath, true);
   }
 
-  @Before
-  public void turnCryptoOnInSiteConfig() {
-    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
-    siteConfig.set(Property.INSTANCE_CRYPTO_SERVICE, AESCryptoService.class.getName());
-    siteConfig.set("instance.crypto.opts.kekId", "file:///tmp/testAESFile");
-    siteConfig.set("instance.crypto.opts.keyManager", "uri");
-    CryptoServiceFactory.resetInstance();
-  }
-
-  public static void turnCryptoOffInSiteConfig() {
-    SiteConfiguration siteConfig = SiteConfiguration.getInstance();
-    siteConfig.set(Property.INSTANCE_CRYPTO_SERVICE, NoCryptoService.class.getName());
-    CryptoServiceFactory.resetInstance();
-  }
-
   @Test
   public void simpleGCMTest() throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
-    CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
+    CryptoService cryptoService = new AESCryptoService();
+    cryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     CryptoEnvironment encEnv = new CryptoEnvironmentImpl(Scope.RFILE, null);
     FileEncrypter encrypter = cryptoService.getFileEncrypter(encEnv);
     byte[] params = encrypter.getDecryptionParameters();
@@ -188,7 +172,6 @@ public class CryptoTest {
   @Test
   public void testNoEncryptionWAL() throws Exception {
     NoCryptoService cs = new NoCryptoService();
-    turnCryptoOffInSiteConfig();
     byte[] encryptedBytes = encrypt(cs, Scope.WAL, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
@@ -203,7 +186,6 @@ public class CryptoTest {
   @Test
   public void testNoEncryptionRFILE() throws Exception {
     NoCryptoService cs = new NoCryptoService();
-    turnCryptoOffInSiteConfig();
     byte[] encryptedBytes = encrypt(cs, Scope.RFILE, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
@@ -247,7 +229,6 @@ public class CryptoTest {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     ArrayList<Key> keys = testData();
 
-    turnCryptoOffInSiteConfig();
     String file = "target/testFile2.rf";
     fs.delete(new Path(file), true);
     try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
@@ -259,8 +240,6 @@ public class CryptoTest {
       }
     }
 
-    turnCryptoOnInSiteConfig();
-    CryptoServiceFactory.resetInstance();
     Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
         .withTableProperties(cryptoOnConf).build();
     ArrayList<Key> keysRead = new ArrayList<>();
@@ -338,13 +317,12 @@ public class CryptoTest {
   private <C extends CryptoService> byte[] encrypt(C cs, Scope scope, String configFile)
       throws Exception {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
+    cs.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(scope, null);
-    FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
+    FileEncrypter encrypter = cs.getFileEncrypter(env);
     byte[] params = encrypter.getDecryptionParameters();
 
     assertNotNull("CryptoService returned null FileEncrypter", encrypter);
-    assertEquals(cryptoService.getClass(), cs.getClass());
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
@@ -367,7 +345,7 @@ public class CryptoTest {
     byte[] params = CryptoUtils.readParams(dataIn);
 
     AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
-    CryptoService cryptoService = CryptoServiceFactory.getConfigured(conf);
+    CryptoService cryptoService = CryptoServiceFactory.newInstance(conf);
     CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
 
     FileDecrypter decrypter = cryptoService.getFileDecrypter(env);

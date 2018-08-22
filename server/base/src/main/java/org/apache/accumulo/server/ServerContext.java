@@ -33,6 +33,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -63,6 +65,7 @@ public class ServerContext extends ClientContext {
   private String applicationClassName = null;
   private String hostname = null;
   private AuthenticationTokenSecretManager secretManager;
+  private CryptoService cryptoService = null;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -102,6 +105,18 @@ public class ServerContext extends ClientContext {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       enforceKerberosLogin();
     }
+  }
+
+  /**
+   * Should only be called by the Tablet server
+   */
+  public synchronized void setupCrypto() throws CryptoService.CryptoException {
+    if (cryptoService != null)
+      throw new CryptoService.CryptoException("Crypto Service " + cryptoService.getClass().getName()
+          + " already exists and cannot be setup again");
+
+    AccumuloConfiguration acuConf = getConfiguration();
+    cryptoService = CryptoServiceFactory.newInstance(acuConf);
   }
 
   public void teardownServer() {
@@ -240,5 +255,12 @@ public class ServerContext extends ClientContext {
       nameAllocator = new UniqueNameAllocator(this);
     }
     return nameAllocator;
+  }
+
+  public CryptoService getCryptoService() {
+    if (cryptoService == null) {
+      throw new CryptoService.CryptoException("Crypto service not initialized.");
+    }
+    return cryptoService;
   }
 }

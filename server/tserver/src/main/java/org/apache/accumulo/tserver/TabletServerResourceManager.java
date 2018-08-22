@@ -64,6 +64,7 @@ import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -130,6 +131,7 @@ public class TabletServerResourceManager {
   private final BlockCache _sCache;
   private final TabletServer tserver;
   private final ServerConfigurationFactory conf;
+  private final ServerContext context;
 
   private ExecutorService addEs(String name, ExecutorService tp) {
     if (threadPools.containsKey(name)) {
@@ -307,9 +309,11 @@ public class TabletServerResourceManager {
     return builder.build();
   }
 
-  public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
+  public TabletServerResourceManager(TabletServer tserver, VolumeManager fs,
+      ServerContext context) {
     this.tserver = tserver;
     this.conf = tserver.getContext().getServerConfFactory();
+    this.context = context;
     final AccumuloConfiguration acuConf = conf.getSystemConfiguration();
 
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
@@ -861,7 +865,8 @@ public class TabletServerResourceManager {
           Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
           new DefaultCompactionStrategy());
       strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, tableConf);
+      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, tableConf,
+          context);
       request.setFiles(tabletFiles);
       try {
         return strategy.shouldCompact(request);

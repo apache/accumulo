@@ -55,6 +55,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -811,7 +812,8 @@ public class RFileTest {
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
     return (Reader) FileOperations.getInstance().newReaderBuilder()
         .forFile(testFile, localFs, localFs.getConf())
-        .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+        .withTableConfiguration(DefaultConfiguration.getInstance())
+        .withCryptoService(new NoCryptoService()).build();
   }
 
   @Test
