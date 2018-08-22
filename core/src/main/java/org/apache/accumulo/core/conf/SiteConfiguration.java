@@ -55,7 +55,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
 
   private final Map<String,String> overrides;
-  private static Configuration xmlConfig;
+  private final Configuration xmlConfig;
   private final Map<String,String> staticConfigs;
 
   public SiteConfiguration() {
