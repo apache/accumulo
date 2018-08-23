@@ -21,6 +21,8 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.beust.jcommander.Parameter;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
@@ -58,14 +60,27 @@ public class PrintInfo {
     }
   }
 
+  static class Opts extends ConfigOpts {
+
+    @Parameter(description = " <file>")
+    String file;
+
+  }
+
   public static void main(String[] args) throws Exception {
-    SiteConfiguration siteConfig = new SiteConfiguration();
+    Opts opts = new Opts();
+    opts.parseArgs("PrintInfo", args);
+    if (opts.file.isEmpty()) {
+      System.err.println("No files were given");
+      System.exit(-1);
+    }
+    SiteConfiguration siteConfig = opts.getSiteConfiguration();
     Configuration conf = new Configuration();
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);
-    Path path = new Path(args[0]);
+    Path path = new Path(opts.file);
     FileSystem fs;
-    if (args[0].contains(":"))
+    if (opts.file.contains(":"))
       fs = path.getFileSystem(conf);
     else
       fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local

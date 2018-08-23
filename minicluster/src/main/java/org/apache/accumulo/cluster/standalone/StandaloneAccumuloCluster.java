@@ -215,4 +215,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public AccumuloConfiguration getSiteConfiguration() {
     return new ConfigurationCopy(siteConfig);
   }
+
+  @Override
+  public String getSitePath() {
+    return new File(serverAccumuloConfDir, "accumulo-site.xml").toString();
+  }
 }

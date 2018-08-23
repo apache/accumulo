@@ -922,7 +922,7 @@ public class Initialize implements KeywordExecutable {
     SiteConfiguration siteConfig = new SiteConfiguration();
 
     try {
-      zoo = new ZooReaderWriter(siteConfig);
+      setZooReaderWriter(new ZooReaderWriter(siteConfig));
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = CachedConfiguration.getInstance();
 

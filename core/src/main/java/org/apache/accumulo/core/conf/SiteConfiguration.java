@@ -59,11 +59,19 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private final Map<String,String> staticConfigs;
 
   public SiteConfiguration() {
-    this(getAccumuloSiteLocation(), Collections.emptyMap());
+    this(getAccumuloSiteLocation());
   }
 
   public SiteConfiguration(File accumuloSiteFile) {
-    this(toURL(accumuloSiteFile), Collections.emptyMap());
+    this(accumuloSiteFile, Collections.emptyMap());
+  }
+
+  public SiteConfiguration(File accumuloSiteFile, Map<String,String> overrides) {
+    this(toURL(accumuloSiteFile), overrides);
+  }
+
+  public SiteConfiguration(URL accumuloSiteLocation) {
+    this(accumuloSiteLocation, Collections.emptyMap());
   }
 
   public SiteConfiguration(URL accumuloSiteLocation, Map<String,String> overrides) {

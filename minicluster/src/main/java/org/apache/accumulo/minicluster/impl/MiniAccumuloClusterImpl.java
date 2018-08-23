@@ -887,4 +887,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return new ConfigurationCopy(
         Iterables.concat(DefaultConfiguration.getInstance(), config.getSiteConfig().entrySet()));
   }
+
+  @Override
+  public String getSitePath() {
+    return new File(config.getConfDir(), "accumulo-site.xml").toString();
+  }
 }
