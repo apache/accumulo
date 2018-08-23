@@ -46,6 +46,7 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.easymock.EasyMock;
@@ -126,6 +127,7 @@ public class TServerUtilsTest {
 
   private static ServerContext createMockContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
+    expect(context.getZooReaderWriter()).andReturn(null);
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
@@ -295,6 +297,7 @@ public class TServerUtilsTest {
 
   private ServerAddress startServer() throws Exception {
     ServerContext ctx = createMock(ServerContext.class);
+    expect(ctx.getZooReaderWriter()).andReturn(null).anyTimes();
     expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
     expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
     expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL);
