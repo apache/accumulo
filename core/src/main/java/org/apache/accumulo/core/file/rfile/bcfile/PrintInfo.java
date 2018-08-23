@@ -21,7 +21,6 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.beust.jcommander.Parameter;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
@@ -30,6 +29,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import com.beust.jcommander.Parameter;
 
 public class PrintInfo {
   public static void printMetaBlockInfo(SiteConfiguration siteConfig, Configuration conf,

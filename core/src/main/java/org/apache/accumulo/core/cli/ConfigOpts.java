@@ -23,19 +23,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.converters.IParameterSplitter;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.converters.IParameterSplitter;
 
 public class ConfigOpts extends Help {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigOpts.class);
 
   @Parameter(names = {"--site", "-site"}, description = "Sets path to accumulo-site.xml. The"
-    + " classpath will be searched if this property is not set")
+      + " classpath will be searched if this property is not set")
   private String sitePath;
 
   public String getSitePath() {
@@ -61,7 +62,8 @@ public class ConfigOpts extends Help {
       if (sitePath != null) {
         siteConfig = new SiteConfiguration(new File(sitePath), getOverrides());
       } else {
-        siteConfig = new SiteConfiguration(SiteConfiguration.getAccumuloSiteLocation(), getOverrides());
+        siteConfig = new SiteConfiguration(SiteConfiguration.getAccumuloSiteLocation(),
+            getOverrides());
       }
     }
     return siteConfig;

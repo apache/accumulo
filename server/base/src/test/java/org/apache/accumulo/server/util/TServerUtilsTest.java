@@ -46,7 +46,6 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.easymock.EasyMock;

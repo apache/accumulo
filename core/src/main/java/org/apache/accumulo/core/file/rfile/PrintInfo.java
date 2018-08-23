@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -184,7 +183,8 @@ public class PrintInfo implements KeywordExecutable {
 
       iter.printInfo(opts.printIndex);
       System.out.println();
-      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[]{"-site", opts.getSitePath(), arg});
+      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo
+          .main(new String[] {"-site", opts.getSitePath(), arg});
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 
