@@ -73,6 +73,7 @@ public class MasterReplicationCoordinatorTest {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(config).anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn("1234").anyTimes();
+    EasyMock.expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
     EasyMock.expect(master.getInstanceID()).andReturn("1234").anyTimes();
     EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
     EasyMock.replay(master, context, reader);
