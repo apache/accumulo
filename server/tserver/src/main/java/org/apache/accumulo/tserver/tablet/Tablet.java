@@ -56,6 +56,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -99,7 +100,6 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -173,9 +173,14 @@ public class Tablet implements TabletCommitter {
   private final TabletResourceManager tabletResources;
   private final DatafileManager datafileManager;
   private final TableConfiguration tableConfiguration;
-  private final String tabletDirectory;
-  private final Path location; // absolute path of this tablets dir
-
+  private String tabletDirectory;
+  private Path location; // absolute path of this tablets dir
+  private long lastVolumeChooserUpdate = 0;
+  private final long volumeChooserUpdateInterval;
+  // @formatter:off
+  public static final String TABLE_VOLUME_CHOOSER_INTERVAL_PROPERTY =
+      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "volume.chooser.update.interval";
+  // @formatter:on
   private final TabletMemory tabletMemory;
 
   private final TabletTime tabletTime;
@@ -320,6 +325,8 @@ public class Tablet implements TabletCommitter {
     this.extent = extent;
     this.configObserver = configObserver;
     this.splitCreationTime = 0;
+
+    this.volumeChooserUpdateInterval = setUpVolumeChooserInterval(tableConfiguration);
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
@@ -352,19 +359,11 @@ public class Tablet implements TabletCommitter {
         this.tableConfiguration);
     TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntries(),
         data.getDataFiles());
+    volumeChooserUpdateInterval = setUpVolumeChooserInterval(tblConf);
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
         fs, extent, tabletPaths, replicationEnabled);
 
-    // deal with relative path for the directory
-    Path locationPath;
-    if (tabletPaths.dir.contains(":")) {
-      locationPath = new Path(tabletPaths.dir);
-    } else {
-      locationPath = tabletServer.getFileSystem().getFullPath(FileType.TABLE,
-          extent.getTableId() + tabletPaths.dir);
-    }
-    this.location = locationPath;
-    this.tabletDirectory = tabletPaths.dir;
+    updateTabletLocation();
     for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
       this.bulkImported.put(entry.getKey(), new CopyOnWriteArrayList<>(entry.getValue()));
     }
@@ -532,8 +531,48 @@ public class Tablet implements TabletCommitter {
     log.debug("TABLET_HIST {} opened", extent);
   }
 
+  private long setUpVolumeChooserInterval(TableConfiguration tblConf) {
+    long generalVolumeChooseSetting = tblConf
+        .getTimeInMillis(Property.VOLUME_CHOOSER_UPDATE_INTERVAL);
+    String tableSpecificSetting = tblConf.get(TABLE_VOLUME_CHOOSER_INTERVAL_PROPERTY);
+    long tableSpecificVolumeChooserSetting = tableSpecificSetting == null ? 0
+        : ConfigurationTypeHelper.getTimeInMillis(tableSpecificSetting);
+    if (tableSpecificVolumeChooserSetting > 0) {
+      return tableSpecificVolumeChooserSetting;
+    } else {
+      return  generalVolumeChooseSetting;
+    }
+  }
+
   public ServerContext getContext() {
     return context;
+  }
+
+  private void updateTabletLocation() {
+    Path locationPath;
+    if (volumeChooserUpdateInterval > 0
+        && (lastVolumeChooserUpdate + volumeChooserUpdateInterval < System.currentTimeMillis())) {
+      VolumeManager fs = this.tabletServer.getFileSystem();
+      UniqueNameAllocator namer = context.getUniqueNameAllocator();
+      VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
+          context);
+
+      Text endRow = extent.getEndRow();
+      String directory = fs.choose(chooserEnv,
+          ServerConstants.getBaseUris(context.getConfiguration())) + Constants.HDFS_TABLES_DIR
+          + Path.SEPARATOR + extent.getTableId().toString() + Path.SEPARATOR;
+      if (endRow == null) {
+        directory += Constants.DEFAULT_TABLET_LOCATION;
+      } else {
+        directory += Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
+      }
+
+      locationPath = new Path(directory);
+
+      this.location = locationPath;
+
+      this.tabletDirectory = locationPath.toString();
+    }
   }
 
   private void removeOldTemporaryFiles() {
@@ -1540,6 +1579,9 @@ public class Tablet implements TabletCommitter {
    * @return location
    */
   public Path getLocation() {
+    if (System.currentTimeMillis() > (lastVolumeChooserUpdate + volumeChooserUpdateInterval)) {
+      updateTabletLocation();
+    }
     return location;
   }
 
