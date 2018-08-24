@@ -50,7 +50,7 @@ public class MasterTime extends TimerTask {
 
   public MasterTime(Master master) throws IOException {
     this.zPath = master.getZooKeeperRoot() + Constants.ZMASTER_TICK;
-    this.zk = ZooReaderWriter.getInstance();
+    this.zk = master.getContext().getZooReaderWriter();
     this.master = master;
 
     try {

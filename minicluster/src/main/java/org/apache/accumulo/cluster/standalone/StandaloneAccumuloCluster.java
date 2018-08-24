@@ -71,7 +71,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.tmp = tmp;
     this.users = users;
     this.serverAccumuloConfDir = serverAccumuloConfDir;
-    siteConfig = SiteConfiguration.create(new File(serverAccumuloConfDir, "accumulo-site.xml"));
+    siteConfig = new SiteConfiguration(new File(serverAccumuloConfDir, "accumulo-site.xml"));
   }
 
   public String getAccumuloHome() {
@@ -214,5 +214,10 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public AccumuloConfiguration getSiteConfiguration() {
     return new ConfigurationCopy(siteConfig);
+  }
+
+  @Override
+  public String getSitePath() {
+    return new File(serverAccumuloConfDir, "accumulo-site.xml").toString();
   }
 }

@@ -170,7 +170,7 @@ class CleanUp extends MasterRepo {
       // delete the map files
       try {
         VolumeManager fs = master.getFileSystem();
-        for (String dir : ServerConstants.getTablesDirs()) {
+        for (String dir : ServerConstants.getTablesDirs(master.getConfiguration())) {
           fs.deleteRecursively(new Path(dir, tableId.canonicalID()));
         }
       } catch (IOException e) {

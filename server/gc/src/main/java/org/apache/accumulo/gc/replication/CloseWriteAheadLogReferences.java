@@ -51,7 +51,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -132,7 +131,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * @return The Set of WALs that are referenced in the metadata table
    */
   protected HashSet<String> getClosedLogs() {
-    WalStateManager wals = new WalStateManager(context, ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(context);
 
     HashSet<String> result = new HashSet<>();
     try {

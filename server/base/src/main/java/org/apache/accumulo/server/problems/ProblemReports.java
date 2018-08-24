@@ -49,7 +49,6 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -196,7 +195,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
       return new Iterator<ProblemReport>() {
 
-        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        IZooReaderWriter zoo = context.getZooReaderWriter();
         private int iter1Count = 0;
         private Iterator<String> iter1;
 
@@ -301,7 +300,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String args[]) throws Exception {
-    ServerContext context = new ServerContext(SiteConfiguration.create());
+    ServerContext context = new ServerContext(new SiteConfiguration());
     getInstance(context).printProblems();
   }
 

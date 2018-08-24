@@ -41,7 +41,7 @@ public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    ServerContext context = new ServerContext(SiteConfiguration.create());
+    ServerContext context = new ServerContext(new SiteConfiguration());
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

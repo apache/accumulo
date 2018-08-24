@@ -50,7 +50,7 @@ public class ServerConfigurationFactoryTest {
   // use the same mock ZooCacheFactory and ZooCache for all tests
   private static ZooCacheFactory zcf;
   private static ZooCache zc;
-  private static SiteConfiguration siteConfig = SiteConfiguration.create();
+  private static SiteConfiguration siteConfig = new SiteConfiguration();
 
   @BeforeClass
   public static void setUpClass() throws Exception {

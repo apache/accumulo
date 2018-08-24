@@ -21,6 +21,7 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
@@ -28,6 +29,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import com.beust.jcommander.Parameter;
 
 public class PrintInfo {
   public static void printMetaBlockInfo(SiteConfiguration siteConfig, Configuration conf,
@@ -58,14 +61,27 @@ public class PrintInfo {
     }
   }
 
+  static class Opts extends ConfigOpts {
+
+    @Parameter(description = " <file>")
+    String file;
+
+  }
+
   public static void main(String[] args) throws Exception {
-    SiteConfiguration siteConfig = SiteConfiguration.create();
+    Opts opts = new Opts();
+    opts.parseArgs("PrintInfo", args);
+    if (opts.file.isEmpty()) {
+      System.err.println("No files were given");
+      System.exit(-1);
+    }
+    SiteConfiguration siteConfig = opts.getSiteConfiguration();
     Configuration conf = new Configuration();
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);
-    Path path = new Path(args[0]);
+    Path path = new Path(opts.file);
     FileSystem fs;
-    if (args[0].contains(":"))
+    if (opts.file.contains(":"))
       fs = path.getFileSystem(conf);
     else
       fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local

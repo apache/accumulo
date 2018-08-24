@@ -22,9 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.master.thrift.DeadServer;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
@@ -32,14 +32,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DeadServerList {
-  private static final Logger log = LoggerFactory.getLogger(DeadServerList.class);
-  private final String path;
 
-  public DeadServerList(String path) {
+  private static final Logger log = LoggerFactory.getLogger(DeadServerList.class);
+
+  private final String path;
+  private final ZooReaderWriter zoo;
+
+  public DeadServerList(ServerContext context, String path) {
     this.path = path;
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    zoo = context.getZooReaderWriter();
     try {
-      zoo.mkdirs(path);
+      context.getZooReaderWriter().mkdirs(path);
     } catch (Exception ex) {
       log.error("Unable to make parent directories of " + path, ex);
     }
@@ -47,7 +50,6 @@ public class DeadServerList {
 
   public List<DeadServer> getList() {
     List<DeadServer> result = new ArrayList<>();
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       List<String> children = zoo.getChildren(path);
       if (children != null) {
@@ -73,7 +75,6 @@ public class DeadServerList {
   }
 
   public void delete(String server) {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       zoo.recursiveDelete(path + "/" + server, NodeMissingPolicy.SKIP);
     } catch (Exception ex) {
@@ -82,7 +83,6 @@ public class DeadServerList {
   }
 
   public void post(String server, String cause) {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       zoo.putPersistentData(path + "/" + server, cause.getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {

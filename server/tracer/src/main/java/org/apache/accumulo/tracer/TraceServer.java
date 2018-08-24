@@ -57,7 +57,6 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
@@ -348,7 +347,7 @@ public class TraceServer implements Watcher {
   }
 
   private void registerInZooKeeper(String name, String root) throws Exception {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
     log.info("Registering tracer {} at {}", name, root);
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
@@ -404,14 +403,13 @@ public class TraceServer implements Watcher {
     ServerContext context = new ServerContext(opts.getSiteConfiguration());
     loginTracer(context.getConfiguration());
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
-    Accumulo.init(context.getVolumeManager(), context.getInstanceID(),
-        context.getServerConfFactory(), app);
+    Accumulo.init(context, app);
     TraceServer server = new TraceServer(context, opts.getAddress());
     try {
       server.run();
     } finally {
       log.info("tracer stopping");
-      ZooReaderWriter.getInstance().getZooKeeper().close();
+      context.getZooReaderWriter().getZooKeeper().close();
     }
   }
 
@@ -427,7 +425,7 @@ public class TraceServer implements Watcher {
     }
     if (event.getPath() != null) {
       try {
-        if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
+        if (context.getZooReaderWriter().exists(event.getPath(), this))
           return;
       } catch (Exception ex) {
         log.error("{}", ex.getMessage(), ex);

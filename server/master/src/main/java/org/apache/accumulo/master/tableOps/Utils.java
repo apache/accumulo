@@ -27,7 +27,6 @@ import java.util.function.Function;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.AbstractId;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Table;
@@ -39,8 +38,8 @@ import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooQueueLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +48,7 @@ public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  static void checkTableDoesNotExist(ClientContext context, String tableName, Table.ID tableId,
+  static void checkTableDoesNotExist(ServerContext context, String tableName, Table.ID tableId,
       TableOperation operation) throws AcceptableThriftTableOperationException {
 
     Table.ID id = Tables.getNameToIdMap(context).get(tableName);
@@ -59,10 +58,10 @@ public class Utils {
           TableOperationExceptionType.EXISTS, null);
   }
 
-  static <T extends AbstractId> T getNextId(String name, ClientContext context,
+  static <T extends AbstractId> T getNextId(String name, ServerContext context,
       Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = context.getZooReaderWriter();
       final String ntp = context.getZooKeeperRoot() + Constants.ZTABLES;
       byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, currentValue -> {
         BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
@@ -84,7 +83,7 @@ public class Utils {
       boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
-        IZooReaderWriter zk = ZooReaderWriter.getInstance();
+        IZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
           throw new AcceptableThriftTableOperationException(tableId.canonicalID(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
@@ -114,7 +113,7 @@ public class Utils {
       boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
       if (mustExist) {
-        IZooReaderWriter zk = ZooReaderWriter.getInstance();
+        IZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(
             env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
           throw new AcceptableThriftTableOperationException(namespaceId.canonicalID(), "", op,
@@ -132,7 +131,7 @@ public class Utils {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = env.getContext().getZooReaderWriter();
 
     if (ZooReservation.attempt(zk, resvPath, String.format("%016x", tid), "")) {
       return 0;
@@ -144,13 +143,14 @@ public class Utils {
       throws KeeperException, InterruptedException {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
-    ZooReservation.release(ZooReaderWriter.getInstance(), resvPath, String.format("%016x", tid));
+    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath,
+        String.format("%016x", tid));
   }
 
-  private static Lock getLock(ClientContext context, AbstractId id, long tid, boolean writeLock)
+  private static Lock getLock(ServerContext context, AbstractId id, long tid, boolean writeLock)
       throws Exception {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
-    ZooQueueLock qlock = new ZooQueueLock(
+    ZooQueueLock qlock = new ZooQueueLock(context.getZooReaderWriter(),
         context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id, false);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {
@@ -167,7 +167,7 @@ public class Utils {
     return Utils.getLock(env.getContext(), tableId, tid, false);
   }
 
-  static void checkNamespaceDoesNotExist(ClientContext context, String namespace,
+  static void checkNamespaceDoesNotExist(ServerContext context, String namespace,
       Namespace.ID namespaceId, TableOperation operation)
       throws AcceptableThriftTableOperationException {
 

@@ -25,7 +25,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 public class SetGoalState {
 
@@ -39,10 +38,10 @@ public class SetGoalState {
       System.exit(-1);
     }
 
-    ServerContext context = new ServerContext(SiteConfiguration.create());
+    ServerContext context = new ServerContext(new SiteConfiguration());
     SecurityUtil.serverLogin(context.getConfiguration());
-    Accumulo.waitForZookeeperAndHdfs(context.getVolumeManager());
-    ZooReaderWriter.getInstance().putPersistentData(
+    Accumulo.waitForZookeeperAndHdfs(context);
+    context.getZooReaderWriter().putPersistentData(
         context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
   }

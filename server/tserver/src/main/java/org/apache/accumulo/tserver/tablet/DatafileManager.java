@@ -49,7 +49,6 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -225,7 +224,8 @@ class DatafileManager {
 
       boolean inTheRightDirectory = false;
       Path parent = tpath.path().getParent().getParent();
-      for (String tablesDir : ServerConstants.getTablesDirs()) {
+      for (String tablesDir : ServerConstants
+          .getTablesDirs(tablet.getContext().getConfiguration())) {
         if (parent.equals(new Path(tablesDir, tablet.getExtent().getTableId().canonicalID()))) {
           inTheRightDirectory = true;
           break;
@@ -346,7 +346,7 @@ class DatafileManager {
   void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile,
       DataFileValue dfv, CommitSession commitSession, long flushId) throws IOException {
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = tablet.getContext().getZooReaderWriter();
     if (tablet.getExtent().isRootTablet()) {
       try {
         if (!zoo.isLockHeld(tablet.getTabletServer().getLock().getLockID())) {
@@ -547,7 +547,7 @@ class DatafileManager {
 
       t1 = System.currentTimeMillis();
 
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = tablet.getContext().getZooReaderWriter();
 
       tablet.incrementDataSourceDeletions();
 

@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Base64;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Level;
@@ -60,7 +61,7 @@ public class DumpZookeeper {
     Logger.getRootLogger().setLevel(Level.WARN);
     PrintStream out = System.out;
     try {
-      zk = ZooReaderWriter.getInstance();
+      zk = new ZooReaderWriter(new SiteConfiguration());
 
       write(out, 0, "<dump root='%s'>", opts.root);
       for (String child : zk.getChildren(opts.root, null))

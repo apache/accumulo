@@ -30,7 +30,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.net.SocketNode;
@@ -83,16 +83,14 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
   /**
    * Place the host:port advertisement for the Monitor's Log4j listener in ZooKeeper
    *
-   * @param conf
-   *          configuration for the instance
-   * @param instanceId
-   *          instanceId for the instance
+   * @param context
+   *          Server context
    * @param hostAddress
    *          Address that monitor process is bound to
    */
-  public static void startLogListener(AccumuloConfiguration conf, String instanceId,
-      String hostAddress) {
+  public static void startLogListener(ServerContext context, String hostAddress) {
     try {
+      AccumuloConfiguration conf = context.getConfiguration();
       SocketServer server = new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT)[0]);
 
       // getLocalPort will return the actual ephemeral port used when '0' was provided.
@@ -100,8 +98,8 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
 
       log.debug("Setting monitor log4j log-forwarding address to: {}", logForwardingAddr);
 
-      final String path = ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_LOG4J_ADDR;
-      final ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_LOG4J_ADDR;
+      final ZooReaderWriter zoo = context.getZooReaderWriter();
 
       // Delete before we try to re-create in case the previous session hasn't yet expired
       try {

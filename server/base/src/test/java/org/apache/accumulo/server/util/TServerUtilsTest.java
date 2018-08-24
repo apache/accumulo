@@ -59,7 +59,7 @@ public class TServerUtilsTest {
     private ConfigurationCopy conf = null;
 
     public TestServerConfigurationFactory(ServerContext context) {
-      super(context, SiteConfiguration.create());
+      super(context, new SiteConfiguration());
       conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
 
@@ -126,6 +126,7 @@ public class TServerUtilsTest {
 
   private static ServerContext createMockContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
+    expect(context.getZooReaderWriter()).andReturn(null);
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
@@ -295,6 +296,7 @@ public class TServerUtilsTest {
 
   private ServerAddress startServer() throws Exception {
     ServerContext ctx = createMock(ServerContext.class);
+    expect(ctx.getZooReaderWriter()).andReturn(null).anyTimes();
     expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
     expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
     expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL);

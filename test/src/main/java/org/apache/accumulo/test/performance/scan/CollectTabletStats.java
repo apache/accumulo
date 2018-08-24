@@ -70,7 +70,6 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -147,7 +146,7 @@ public class CollectTabletStats {
       System.out.println("\t *** Information about tablet " + ke.getUUID() + " *** ");
       System.out.println("\t\t# files in tablet : " + tabletFiles.get(ke).size());
       System.out.println("\t\ttablet location   : " + tabletLocations.get(ke));
-      reportHdfsBlockLocations(tabletFiles.get(ke));
+      reportHdfsBlockLocations(context, tabletFiles.get(ke));
     }
 
     System.out.println("%n*** RUNNING TEST ***%n");
@@ -397,8 +396,9 @@ public class CollectTabletStats {
     return new ArrayList<>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }
 
-  private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {
-    VolumeManager fs = VolumeManagerImpl.get();
+  private static void reportHdfsBlockLocations(ServerContext context, List<FileRef> files)
+      throws Exception {
+    VolumeManager fs = context.getVolumeManager();
 
     System.out.println("\t\tFile block report : ");
     for (FileRef file : files) {

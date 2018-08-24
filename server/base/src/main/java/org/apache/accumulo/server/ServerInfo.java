@@ -56,6 +56,11 @@ public class ServerInfo implements ClientInfo {
     this.instanceName = instanceName;
     this.zooKeepers = zooKeepers;
     this.zooKeepersSessionTimeOut = zooKeepersSessionTimeOut;
+    try {
+      volumeManager = VolumeManagerImpl.get(siteConfig);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
     byte[] iidb = zooCache.get(instanceNamePath);
@@ -77,7 +82,7 @@ public class ServerInfo implements ClientInfo {
   ServerInfo(SiteConfiguration config) {
     siteConfig = config;
     try {
-      volumeManager = VolumeManagerImpl.get();
+      volumeManager = VolumeManagerImpl.get(siteConfig);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }

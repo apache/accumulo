@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
@@ -643,7 +642,7 @@ public class InMemoryMap {
         FileSystem fs = FileSystem.getLocal(conf);
 
         reader = new RFileOperations().newReaderBuilder().forFile(memDumpFile, fs, conf)
-            .withTableConfiguration(SiteConfiguration.getInstance())
+            .withTableConfiguration(context.getConfiguration())
             .withCryptoService(context.getCryptoService()).seekToBeginning().build();
         if (iflag != null)
           reader.setInterruptFlag(iflag);
@@ -808,14 +807,14 @@ public class InMemoryMap {
         Configuration newConf = new Configuration(conf);
         newConf.setInt("io.seqfile.compress.blocksize", 100000);
 
-        AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+        AccumuloConfiguration aconf = context.getConfiguration();
 
         if (getOrCreateSampler() != null) {
-          siteConf = createSampleConfig(siteConf);
+          aconf = createSampleConfig(aconf);
         }
 
         FileSKVWriter out = new RFileOperations().newWriterBuilder().forFile(tmpFile, fs, newConf)
-            .withTableConfiguration(siteConf).withCryptoService(context.getCryptoService()).build();
+            .withTableConfiguration(aconf).withCryptoService(context.getCryptoService()).build();
 
         InterruptibleIterator iter = map.skvIterator(null);
 

@@ -77,6 +77,11 @@ public interface AccumuloCluster {
   AccumuloConfiguration getSiteConfiguration();
 
   /**
+   * Get path to accumulo-site.xml
+   */
+  String getSitePath();
+
+  /**
    * Get an object that can manage a cluster
    *
    * @return Manage the state of the cluster

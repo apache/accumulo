@@ -57,13 +57,13 @@ public class VolumeUtil {
   private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);
   private static final SecureRandom rand = new SecureRandom();
 
-  private static boolean isActiveVolume(Path dir) {
+  private static boolean isActiveVolume(ServerContext context, Path dir) {
 
     // consider relative path as active and take no action
     if (!dir.toString().contains(":"))
       return true;
 
-    for (String tableDir : ServerConstants.getTablesDirs()) {
+    for (String tableDir : ServerConstants.getTablesDirs(context.getConfiguration())) {
       // use Path to normalize tableDir
       if (dir.toString().startsWith(new Path(tableDir).toString()))
         return true;
@@ -166,7 +166,7 @@ public class VolumeUtil {
   public static String switchRootTableVolume(ServerContext context, String location)
       throws IOException {
     String newLocation = switchVolume(location, FileType.TABLE,
-        ServerConstants.getVolumeReplacements());
+        ServerConstants.getVolumeReplacements(context.getConfiguration()));
     if (newLocation != null) {
       MetadataTableUtil.setRootTabletDir(context, newLocation);
       log.info("Volume replaced: {} -> {}", location, newLocation);
@@ -183,7 +183,8 @@ public class VolumeUtil {
   public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
       VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
       throws IOException {
-    List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+    List<Pair<Path,Path>> replacements = ServerConstants
+        .getVolumeReplacements(context.getConfiguration());
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
@@ -265,7 +266,7 @@ public class VolumeUtil {
   private static String decommisionedTabletDir(ServerContext context, ZooLock zooLock,
       VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
     Path dir = new Path(metaDir);
-    if (isActiveVolume(dir))
+    if (isActiveVolume(context, dir))
       return metaDir;
 
     if (!dir.getParent().getParent().getName().equals(ServerConstants.TABLE_DIR)) {
@@ -274,9 +275,10 @@ public class VolumeUtil {
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
         context);
-    Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR
-        + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName() + Path.SEPARATOR
-        + dir.getName());
+    Path newDir = new Path(
+        vm.choose(chooserEnv, ServerConstants.getBaseUris(context.getConfiguration()))
+            + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
+            + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
     if (extent.isRootTablet()) {

@@ -90,7 +90,7 @@ public class SecurityOperation {
   protected static Authorizor getAuthorizor(ServerContext context, boolean initialize) {
     Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, ZKAuthorizor.getInstance());
-    toRet.initialize(context.getInstanceID(), initialize);
+    toRet.initialize(context, initialize);
     return toRet;
   }
 
@@ -106,14 +106,14 @@ public class SecurityOperation {
     PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
         ZKPermHandler.getInstance());
-    toRet.initialize(context.getInstanceID(), initialize);
+    toRet.initialize(context, initialize);
     return toRet;
   }
 
   protected SecurityOperation(ServerContext context) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-    zooCache = new ZooCache();
+    zooCache = new ZooCache(context);
   }
 
   public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,

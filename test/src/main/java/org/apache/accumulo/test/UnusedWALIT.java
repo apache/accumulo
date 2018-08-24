@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -78,7 +78,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     c.tableOperations().create(bigTable);
     c.tableOperations().create(lilTable);
 
-    ClientContext context = getClientContext();
+    ServerContext context = getServerContext();
     zk = new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
 
     // put some data in a log that should be replayed for both tables
@@ -86,11 +86,11 @@ public class UnusedWALIT extends ConfigurableMacBase {
     scanSomeData(c, bigTable, 0, 10, 0, 10);
     writeSomeData(c, lilTable, 0, 1, 0, 1);
     scanSomeData(c, lilTable, 0, 1, 0, 1);
-    assertEquals(2, getWALCount(context, zk));
+    assertEquals(2, getWALCount(context));
 
     // roll the logs by pushing data into bigTable
     writeSomeData(c, bigTable, 0, 3000, 0, 1000);
-    assertEquals(3, getWALCount(context, zk));
+    assertEquals(3, getWALCount(context));
 
     // put some data in the latest log
     writeSomeData(c, lilTable, 1, 10, 0, 10);
@@ -130,8 +130,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
     }
   }
 
-  private int getWALCount(ClientContext context, ZooReaderWriter zk) throws Exception {
-    WalStateManager wals = new WalStateManager(context, zk);
+  private int getWALCount(ServerContext context) throws Exception {
+    WalStateManager wals = new WalStateManager(context);
     int result = 0;
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       result += entry.getValue().size();

@@ -53,17 +53,28 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
-  private static SiteConfiguration instance = null;
 
   private final Map<String,String> overrides;
-  private static Configuration xmlConfig;
+  private final Configuration xmlConfig;
   private final Map<String,String> staticConfigs;
 
-  private SiteConfiguration() {
-    this(getAccumuloSiteLocation(), Collections.emptyMap());
+  public SiteConfiguration() {
+    this(getAccumuloSiteLocation());
   }
 
-  private SiteConfiguration(URL accumuloSiteLocation, Map<String,String> overrides) {
+  public SiteConfiguration(File accumuloSiteFile) {
+    this(accumuloSiteFile, Collections.emptyMap());
+  }
+
+  public SiteConfiguration(File accumuloSiteFile, Map<String,String> overrides) {
+    this(toURL(accumuloSiteFile), overrides);
+  }
+
+  public SiteConfiguration(URL accumuloSiteLocation) {
+    this(accumuloSiteLocation, Collections.emptyMap());
+  }
+
+  public SiteConfiguration(URL accumuloSiteLocation, Map<String,String> overrides) {
     this.overrides = overrides;
     /*
      * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop
@@ -97,53 +108,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
     } catch (MalformedURLException e) {
       throw new IllegalArgumentException(e);
     }
-  }
-
-  synchronized public static SiteConfiguration create() {
-    if (instance == null) {
-      instance = new SiteConfiguration();
-      ConfigSanityCheck.validate(instance);
-    } else {
-      log.warn("SiteConfiguration was previously created! Returning previous instance.");
-    }
-    return instance;
-  }
-
-  synchronized public static SiteConfiguration create(URL accumuloSiteUrl,
-      Map<String,String> overrides) {
-    if (instance == null) {
-      instance = new SiteConfiguration(accumuloSiteUrl, overrides);
-      ConfigSanityCheck.validate(instance);
-    } else {
-      log.warn("SiteConfiguration was previously created! Returning previous instance.");
-    }
-    return instance;
-  }
-
-  public static SiteConfiguration create(URL accumuloSiteUrl) {
-    return create(accumuloSiteUrl, Collections.emptyMap());
-  }
-
-  public static SiteConfiguration create(File accumuloSiteFile, Map<String,String> overrides) {
-    return create(toURL(accumuloSiteFile), overrides);
-  }
-
-  public static SiteConfiguration create(File accumuloSiteFile) {
-    return create(toURL(accumuloSiteFile), Collections.emptyMap());
-  }
-
-  /**
-   * Gets an instance of this class. A new instance is only created on the first call.
-   *
-   * @throws IllegalArgumentException
-   *           if the configuration is invalid or accumulo-site.xml is not on classpath.
-   */
-  synchronized public static SiteConfiguration getInstance() {
-    if (instance == null) {
-      instance = new SiteConfiguration();
-      ConfigSanityCheck.validate(instance);
-    }
-    return instance;
   }
 
   public static URL getAccumuloSiteLocation() {
@@ -290,14 +254,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
 
     return null;
-  }
-
-  /**
-   * Clears the configuration properties in this configuration (but not the parent). This method
-   * supports testing and should not be called.
-   */
-  synchronized public static void clearInstance() {
-    instance = null;
   }
 
   /**

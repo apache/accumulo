@@ -448,6 +448,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
           args.add(entry.getKey().getColumnQualifier().toString());
+          args.add("--site");
+          args.add(getCluster().getSitePath());
           if (ClusterType.STANDALONE == getClusterType() && saslEnabled()) {
             args.add("--config");
             StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;

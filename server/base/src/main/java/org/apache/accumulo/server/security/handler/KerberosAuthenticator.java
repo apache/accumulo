@@ -40,7 +40,6 @@ import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.accumulo.server.security.UserImpersonation;
 import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
 import org.apache.accumulo.server.zookeeper.ZooCache;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,18 +55,15 @@ public class KerberosAuthenticator implements Authenticator {
       .newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
-  private final ZooCache zooCache;
+  private ZooCache zooCache;
   private ServerContext context;
   private String zkUserPath;
   private UserImpersonation impersonation;
 
-  public KerberosAuthenticator() {
-    zooCache = new ZooCache();
-  }
-
   @Override
   public void initialize(ServerContext context, boolean initialize) {
     this.context = context;
+    zooCache = new ZooCache(context);
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context, initialize);
     zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
@@ -81,7 +77,7 @@ public class KerberosAuthenticator implements Authenticator {
   private void createUserNodeInZk(String principal) throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = context.getZooReaderWriter();
       zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
           NodeExistsPolicy.FAIL);
     }
@@ -92,7 +88,7 @@ public class KerberosAuthenticator implements Authenticator {
       throws AccumuloSecurityException, ThriftSecurityException {
     try {
       // remove old settings from zookeeper first, if any
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = context.getZooReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
         if (zoo.exists(zkUserPath)) {

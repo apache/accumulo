@@ -105,7 +105,7 @@ class PopulateMetadataTable extends MasterRepo {
       // hdfs://localhost:8020/path/to/accumulo/tables/...
       final String bulkDir = tableInfo.importDir;
 
-      final String[] tableDirs = ServerConstants.getTablesDirs();
+      final String[] tableDirs = ServerConstants.getTablesDirs(master.getConfiguration());
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {

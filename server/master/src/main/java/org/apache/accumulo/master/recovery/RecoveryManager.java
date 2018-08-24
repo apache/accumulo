@@ -64,11 +64,11 @@ public class RecoveryManager {
   public RecoveryManager(Master master) {
     this.master = master;
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
-    zooCache = new ZooCache();
+    zooCache = new ZooCache(master.getContext());
     try {
-      AccumuloConfiguration aconf = master.getConfiguration();
       List<String> workIDs = new DistributedWorkQueue(
-          master.getZooKeeperRoot() + Constants.ZRECOVERY, aconf).getWorkQueued();
+          master.getZooKeeperRoot() + Constants.ZRECOVERY, master.getConfiguration())
+              .getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -92,14 +92,14 @@ public class RecoveryManager {
     public void run() {
       boolean rescheduled = false;
       try {
-        AccumuloConfiguration aconf = master.getConfiguration();
-        long time = closer.close(aconf, master.getFileSystem(), new Path(source));
+        long time = closer.close(master.getConfiguration(), master.getFileSystem(),
+            new Path(source));
 
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
           rescheduled = true;
         } else {
-          initiateSort(sortId, source, destination, aconf);
+          initiateSort(sortId, source, destination);
         }
       } catch (FileNotFoundException e) {
         log.debug("Unable to initate log sort for " + source + ": " + e);
@@ -116,11 +116,11 @@ public class RecoveryManager {
 
   }
 
-  private void initiateSort(String sortId, String source, final String destination,
-      AccumuloConfiguration aconf) throws KeeperException, InterruptedException, IOException {
+  private void initiateSort(String sortId, String source, final String destination)
+      throws KeeperException, InterruptedException, IOException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(master.getZooKeeperRoot() + Constants.ZRECOVERY, aconf).addWork(sortId,
-        work.getBytes(UTF_8));
+    new DistributedWorkQueue(master.getZooKeeperRoot() + Constants.ZRECOVERY,
+        master.getConfiguration()).addWork(sortId, work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
@@ -138,7 +138,7 @@ public class RecoveryManager {
       for (String walog : logs) {
 
         String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL,
-            ServerConstants.getVolumeReplacements());
+            ServerConstants.getVolumeReplacements(master.getConfiguration()));
         if (switchedWalog != null) {
           // replaces the volume used for sorting, but do not change entry in metadata table. When
           // the tablet loads it will change the metadata table entry. If

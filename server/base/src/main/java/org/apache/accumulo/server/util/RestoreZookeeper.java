@@ -27,6 +27,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -114,6 +115,8 @@ public class RestoreZookeeper {
     Opts opts = new Opts();
     opts.parseArgs(RestoreZookeeper.class.getName(), args);
 
+    ZooReaderWriter zoo = new ZooReaderWriter(new SiteConfiguration());
+
     InputStream in = System.in;
     if (opts.file != null) {
       in = new FileInputStream(opts.file);
@@ -124,7 +127,7 @@ public class RestoreZookeeper {
     // is a simple switch to remove any chance of external entities causing problems.
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     SAXParser parser = factory.newSAXParser();
-    parser.parse(in, new Restore(ZooReaderWriter.getInstance(), opts.overwrite));
+    parser.parse(in, new Restore(zoo, opts.overwrite));
     in.close();
   }
 }

@@ -20,10 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -38,9 +37,15 @@ public class BulkFailedCopyProcessor implements Processor {
 
   private static final Logger log = LoggerFactory.getLogger(BulkFailedCopyProcessor.class);
 
+  private ServerContext context;
+
+  BulkFailedCopyProcessor(ServerContext context) {
+    this.context = context;
+  }
+
   @Override
   public Processor newProcessor() {
-    return new BulkFailedCopyProcessor();
+    return new BulkFailedCopyProcessor(context);
   }
 
   @Override
@@ -52,8 +57,8 @@ public class BulkFailedCopyProcessor implements Processor {
     Path dest = new Path(paths[1]);
     Path tmp = new Path(dest.getParent(), dest.getName() + ".tmp");
 
+    VolumeManager vm = context.getVolumeManager();
     try {
-      VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
       FileSystem origFs = vm.getVolumeByPath(orig).getFileSystem();
       FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
 
@@ -62,7 +67,6 @@ public class BulkFailedCopyProcessor implements Processor {
       log.debug("copied {} to {}", orig, dest);
     } catch (IOException ex) {
       try {
-        VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
         FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
         destFs.create(dest).close();
         log.warn(" marked " + dest + " failed", ex);

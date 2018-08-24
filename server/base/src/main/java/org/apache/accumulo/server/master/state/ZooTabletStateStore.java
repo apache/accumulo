@@ -26,10 +26,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     this.store = store;
   }
 
-  public ZooTabletStateStore(ClientContext context) throws DistributedStoreException {
+  public ZooTabletStateStore(ServerContext context) throws DistributedStoreException {
     try {
       store = new ZooStore(context);
     } catch (IOException ex) {

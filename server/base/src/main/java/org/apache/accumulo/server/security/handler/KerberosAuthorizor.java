@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * Kerberos principals might contains identifiers that are not valid ZNodes ('/'). Base64-encodes
@@ -40,8 +41,8 @@ public class KerberosAuthorizor implements Authorizor {
   }
 
   @Override
-  public void initialize(String instanceId, boolean initialize) {
-    zkAuthorizor.initialize(instanceId, initialize);
+  public void initialize(ServerContext context, boolean initialize) {
+    zkAuthorizor.initialize(context, initialize);
   }
 
   @Override

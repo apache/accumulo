@@ -29,9 +29,9 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
   public synchronized ServerContext getServerContext() {
     if (context == null) {
       if (instance == null) {
-        context = new ServerContext(SiteConfiguration.create());
+        context = new ServerContext(new SiteConfiguration());
       } else {
-        context = new ServerContext(SiteConfiguration.create(), getClientInfo());
+        context = new ServerContext(new SiteConfiguration(), getClientInfo());
       }
     }
     return context;

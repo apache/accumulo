@@ -45,7 +45,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -297,10 +296,10 @@ public class TableDiskUsage {
   }
 
   public static void main(String[] args) throws Exception {
-    VolumeManager fs = VolumeManagerImpl.get();
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
     Connector conn = opts.getConnector();
+    VolumeManager fs = opts.getServerContext().getVolumeManager();
     org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, conn, false);
   }
 

@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -54,7 +54,7 @@ public class PrintInfo implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(PrintInfo.class);
 
-  static class Opts extends Help {
+  static class Opts extends ConfigOpts {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
     @Parameter(names = {"-v", "--vis"}, description = "show visibility metrics")
@@ -142,7 +142,7 @@ public class PrintInfo implements KeywordExecutable {
       System.err.println("No files were given");
       System.exit(-1);
     }
-    SiteConfiguration siteConfig = SiteConfiguration.create();
+    SiteConfiguration siteConfig = opts.getSiteConfiguration();
 
     Configuration conf = new Configuration();
     for (String confFile : opts.configFiles) {
@@ -183,7 +183,8 @@ public class PrintInfo implements KeywordExecutable {
 
       iter.printInfo(opts.printIndex);
       System.out.println();
-      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
+      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo
+          .main(new String[] {"-site", opts.getSitePath(), arg});
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 

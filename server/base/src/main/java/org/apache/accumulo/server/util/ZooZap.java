@@ -65,7 +65,7 @@ public class ZooZap {
       return;
     }
 
-    SiteConfiguration siteConf = SiteConfiguration.create();
+    SiteConfiguration siteConf = new SiteConfiguration();
     // Login as the server on secure HDFS
     if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       SecurityUtil.serverLogin(siteConf);
@@ -74,7 +74,7 @@ public class ZooZap {
     String volDir = VolumeConfiguration.getVolumeUris(siteConf)[0];
     Path instanceDir = new Path(volDir, "instance_id");
     String iid = ZooUtil.getInstanceIDFromHdfs(instanceDir, siteConf);
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
     if (opts.zapMaster) {
       String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
@@ -94,12 +94,11 @@ public class ZooZap {
           message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
 
           if (opts.zapMaster)
-            ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child,
-                NodeMissingPolicy.SKIP);
+            zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
           else {
             String path = tserversPath + "/" + child;
             if (zoo.getChildren(path).size() > 0) {
-              if (!ZooLock.deleteLock(path, "tserver")) {
+              if (!ZooLock.deleteLock(zoo, path, "tserver")) {
                 message("Did not delete " + tserversPath + "/" + child, opts);
               }
             }

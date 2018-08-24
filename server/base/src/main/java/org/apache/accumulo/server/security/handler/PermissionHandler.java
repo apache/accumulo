@@ -25,6 +25,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * This interface is used for the system which will be used for getting a users permissions. If the
@@ -36,7 +37,7 @@ public interface PermissionHandler {
   /**
    * Sets up the permission handler for a new instance of Accumulo
    */
-  void initialize(String instanceId, boolean initialize);
+  void initialize(ServerContext context, boolean initialize);
 
   /**
    * Used to validate that the Authorizor, Authenticator, and permission handler can coexist
