@@ -1330,6 +1330,16 @@
             <goals>
               <goal>check</goal>
             </goals>
+            <configuration>
+	      <!-- findbugs plugin for webapp security bugs -->
+              <plugins>
+                <plugin>
+                  <groupId>com.h3xstream.findsecbugs</groupId>
+                  <artifactId>findsecbugs-plugin</artifactId>
+                  <version>LATEST</version>
+                </plugin>
+              </plugins>
+            </configuration>
           </execution>
         </executions>
       </plugin>
