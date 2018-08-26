@@ -553,13 +553,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
-    try {
-      key.write(encryptingLogFile);
-      value.write(encryptingLogFile);
-      encryptingLogFile.flush();
-    } catch (ClosedChannelException e) {
-      throw new LogClosedException();
-    }
+    key.write(encryptingLogFile);
+    value.write(encryptingLogFile);
+    encryptingLogFile.flush();
   }
 
   public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability)
