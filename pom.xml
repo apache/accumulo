@@ -802,12 +802,20 @@
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
             <maxRank>16</maxRank>
+            <!-- findbugs plugin for webapp security bugs -->
+            <includeFilterFile>${session.executionRootDirectory}/spotbugs-security-include.xml</includeFilterFile>
+            <excludeFilterFile>${session.executionRootDirectory}/spotbugs-security-exclude.xml</excludeFilterFile>
             <jvmArgs>-Dcom.overstock.findbugs.ignore=com.google.common.util.concurrent.RateLimiter,com.google.common.hash.Hasher,com.google.common.hash.HashCode,com.google.common.hash.HashFunction,com.google.common.hash.Hashing,com.google.common.cache.Cache,com.google.common.io.CountingOutputStream,com.google.common.io.ByteStreams,com.google.common.cache.LoadingCache,com.google.common.base.Stopwatch,com.google.common.cache.RemovalNotification,com.google.common.util.concurrent.Uninterruptibles,com.google.common.reflect.ClassPath,com.google.common.reflect.ClassPath$ClassInfo,com.google.common.base.Throwables,com.google.common.collect.Iterators</jvmArgs>
             <plugins>
               <plugin>
                 <groupId>com.overstock.findbugs</groupId>
                 <artifactId>library-detectors</artifactId>
                 <version>1.2.0</version>
+              </plugin>
+              <plugin>
+                <groupId>com.h3xstream.findsecbugs</groupId>
+                <artifactId>findsecbugs-plugin</artifactId>
+                <version>LATEST</version>
               </plugin>
             </plugins>
           </configuration>
@@ -1330,18 +1338,6 @@
             <goals>
               <goal>check</goal>
             </goals>
-            <configuration>
-              <!-- findbugs plugin for webapp security bugs -->
-              <includeFilterFile>${session.executionRootDirectory}/spotbugs-security-include.xml</includeFilterFile>
-              <excludeFilterFile>${session.executionRootDirectory}/spotbugs-security-exclude.xml</excludeFilterFile>
-              <plugins>
-                <plugin>
-                  <groupId>com.h3xstream.findsecbugs</groupId>
-                  <artifactId>findsecbugs-plugin</artifactId>
-                  <version>LATEST</version>
-                </plugin>
-              </plugins>
-            </configuration>
           </execution>
         </executions>
       </plugin>
