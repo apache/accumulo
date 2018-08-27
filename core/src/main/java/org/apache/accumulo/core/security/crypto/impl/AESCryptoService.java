@@ -28,7 +28,6 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -67,6 +66,7 @@ public class AESCryptoService implements CryptoService {
   private String encryptingKeyManager = null;
   // Lets just load keks for reading once
   private static HashMap<String,Key> decryptingKeys = new HashMap<>();
+  private static SecureRandom sr = CryptoUtils.getSha1SecureRandom();
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
@@ -248,21 +248,6 @@ public class AESCryptoService implements CryptoService {
     return (ret);
   }
 
-  private static SecureRandom getSecureRandom(String secureRNG, String secureRNGProvider) {
-    SecureRandom secureRandom = null;
-    try {
-      secureRandom = SecureRandom.getInstance(secureRNG, secureRNGProvider);
-
-      // Immediately seed the generator
-      byte[] throwAway = new byte[16];
-      secureRandom.nextBytes(throwAway);
-
-    } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
-      throw new CryptoException("Unable to generate secure random.", e);
-    }
-    return secureRandom;
-  }
-
   /**
    * This interface lists the methods needed by CryptoModules which are responsible for tracking
    * version and preparing encrypters/decrypters for use.
@@ -307,7 +292,6 @@ public class AESCryptoService implements CryptoService {
     public class AESGCMFileEncrypter implements FileEncrypter {
 
       private byte[] firstInitVector;
-      private SecureRandom sr = getSecureRandom("SHA1PRNG", "SUN");
       private Key fek = KeyManager.generateKey(sr, KEY_LENGTH_IN_BYTES);
       private byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
 
@@ -445,14 +429,13 @@ public class AESCryptoService implements CryptoService {
 
     public class AESCBCFileEncrypter implements FileEncrypter {
 
-      private SecureRandom sr = getSecureRandom("SHA1PRNG", "SUN");
       private Key fek = KeyManager.generateKey(sr, KEY_LENGTH_IN_BYTES);
       private byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
 
       @Override
       public OutputStream encryptStream(OutputStream outputStream) throws CryptoException {
 
-        CryptoUtils.getSha1SecureRandom().nextBytes(initVector);
+        sr.nextBytes(initVector);
         try {
           outputStream.write(initVector);
         } catch (IOException e) {
