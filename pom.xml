@@ -808,11 +808,6 @@
                 <artifactId>library-detectors</artifactId>
                 <version>1.2.0</version>
               </plugin>
-              <plugin>
-                <groupId>com.h3xstream.findsecbugs</groupId>
-                <artifactId>findsecbugs-plugin</artifactId>
-                <version>1.8.0</version>
-              </plugin>
             </plugins>
           </configuration>
         </plugin>
@@ -1389,7 +1384,6 @@
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
         <enforcer.skip>true</enforcer.skip>
-        <spotbugs.skip>true</spotbugs.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
         <maven.plugin.skip>true</maven.plugin.skip>
@@ -1399,6 +1393,7 @@
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
         <sort.skip>true</sort.skip>
+        <spotbugs.skip>true</spotbugs.skip>
         <warbucks.skip>true</warbucks.skip>
       </properties>
     </profile>
@@ -1592,9 +1587,9 @@
       <properties>
         <!-- some properties to make the release build a bit faster -->
         <checkstyle.skip>true</checkstyle.skip>
-        <spotbugs.skip>true</spotbugs.skip>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
+        <spotbugs.skip>true</spotbugs.skip>
       </properties>
     </profile>
     <profile>
