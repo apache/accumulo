@@ -1331,7 +1331,9 @@
               <goal>check</goal>
             </goals>
             <configuration>
-	      <!-- findbugs plugin for webapp security bugs -->
+              <!-- findbugs plugin for webapp security bugs -->
+              <includeFilterFile>${session.executionRootDirectory}/spotbugs-security-include.xml</includeFilterFile>
+              <excludeFilterFile>${session.executionRootDirectory}/spotbugs-security-exclude.xml</excludeFilterFile>
               <plugins>
                 <plugin>
                   <groupId>com.h3xstream.findsecbugs</groupId>
