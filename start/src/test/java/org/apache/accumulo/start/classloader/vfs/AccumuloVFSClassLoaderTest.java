@@ -68,19 +68,10 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);
 
-    File conf = folder1.newFile("accumulo-site.xml");
+    File conf = folder1.newFile("accumulo.properties");
     FileWriter out = new FileWriter(conf);
-    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    out.append("<configuration>\n");
-    out.append("<property>\n");
-    out.append("<name>general.classpaths</name>\n");
-    out.append("<value></value>\n");
-    out.append("</property>\n");
-    out.append("<property>\n");
-    out.append("<name>general.vfs.classpaths</name>\n");
-    out.append("<value></value>\n");
-    out.append("</property>\n");
-    out.append("</configuration>\n");
+    out.append("general.classpaths=\n");
+    out.append("general.vfs.classpaths=\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
@@ -103,19 +94,11 @@ public class AccumuloVFSClassLoaderTest {
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
         folder1.newFile("HelloWorld.jar"));
 
-    File conf = folder1.newFile("accumulo-site.xml");
+    File conf = folder1.newFile("accumulo.properties");
     FileWriter out = new FileWriter(conf);
-    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    out.append("<configuration>\n");
-    out.append("<property>\n");
-    out.append("<name>general.classpaths</name>\n");
-    out.append("<value></value>\n");
-    out.append("</property>\n");
-    out.append("<property>\n");
-    out.append("<name>general.vfs.classpaths</name>\n");
-    out.append("<value>" + new File(folder1.getRoot(), "HelloWorld.jar").toURI() + "</value>\n");
-    out.append("</property>\n");
-    out.append("</configuration>\n");
+    out.append("general.classpaths=\n");
+    out.append(
+        "general.vfs.classpaths=" + new File(folder1.getRoot(), "HelloWorld.jar").toURI() + "\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
@@ -140,19 +123,10 @@ public class AccumuloVFSClassLoaderTest {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);
 
-    File conf = folder1.newFile("accumulo-site.xml");
+    File conf = folder1.newFile("accumulo.properties");
     FileWriter out = new FileWriter(conf);
-    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    out.append("<configuration>\n");
-    out.append("<property>\n");
-    out.append("<name>general.classpaths</name>\n");
-    out.append("<value></value>\n");
-    out.append("</property>\n");
-    out.append("<property>\n");
-    out.append("<name>general.vfs.classpaths</name>\n");
-    out.append("<value></value>\n");
-    out.append("</property>\n");
-    out.append("</configuration>\n");
+    out.append("general.classpaths=\n");
+    out.append("general.vfs.classpaths=\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
@@ -185,19 +159,10 @@ public class AccumuloVFSClassLoaderTest {
         (AccumuloReloadingVFSClassLoader) null);
     String cacheDir = "/some/random/cache/dir";
 
-    File conf = folder1.newFile("accumulo-site.xml");
+    File conf = folder1.newFile("accumulo.properties");
     FileWriter out = new FileWriter(conf);
-    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    out.append("<configuration>\n");
-    out.append("<property>\n");
-    out.append("<name>general.classpaths</name>\n");
-    out.append("<value></value>\n");
-    out.append("</property>\n");
-    out.append("<property>\n");
-    out.append("<name>" + AccumuloVFSClassLoader.VFS_CACHE_DIR + "</name>\n");
-    out.append("<value>" + cacheDir + "</value>\n");
-    out.append("</property>\n");
-    out.append("</configuration>\n");
+    out.append("general.classpaths=\n");
+    out.append(AccumuloVFSClassLoader.VFS_CACHE_DIR + "=" + cacheDir + "\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());

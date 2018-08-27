@@ -112,7 +112,7 @@ public enum Property {
       "A secret unique to a given instance that all servers must know in order"
           + " to communicate with one another. It should be changed prior to the"
           + " initialization of Accumulo. To change it after Accumulo has been"
-          + " initialized, use the ChangeSecret tool and then update accumulo-site.xml"
+          + " initialized, use the ChangeSecret tool and then update accumulo.properties"
           + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
           + " running and you are logged in as the user that controls Accumulo files in"
           + " HDFS. To use the ChangeSecret tool, run the command: ./bin/accumulo"

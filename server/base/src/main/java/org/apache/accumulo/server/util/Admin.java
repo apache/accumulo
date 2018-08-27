@@ -19,7 +19,6 @@ package org.apache.accumulo.server.util;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -59,7 +58,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -415,7 +413,7 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo-site.xml.bak";
+  private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";
   private static final String NS_FILE_SUFFIX = "_ns.cfg";
   private static final String USER_FILE_SUFFIX = "_user.cfg";
   private static final MessageFormat configFormat = new MessageFormat("config -t {0} -s {1}\n");
@@ -460,7 +458,7 @@ public class Admin implements KeywordExecutable {
 
     if (opts.allConfiguration) {
       // print accumulo site
-      printSystemConfiguration(connector, outputDirectory);
+      printSystemConfiguration(outputDirectory);
       // print namespaces
       for (String namespace : connector.namespaceOperations().list()) {
         printNameSpaceConfiguration(connector, namespace, outputDirectory);
@@ -476,7 +474,7 @@ public class Admin implements KeywordExecutable {
       }
     } else {
       if (opts.systemConfiguration) {
-        printSystemConfiguration(connector, outputDirectory);
+        printSystemConfiguration(outputDirectory);
       }
       if (opts.namespaceConfiguration) {
         for (String namespace : connector.namespaceOperations().list()) {
@@ -565,26 +563,28 @@ public class Admin implements KeywordExecutable {
     userWriter.close();
   }
 
-  private void printSystemConfiguration(Connector connector, File outputDirectory)
+  private void printSystemConfiguration(File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException {
-    Configuration conf = new Configuration(false);
+    TreeMap<String,String> conf = new TreeMap<>();
     TreeMap<String,String> site = new TreeMap<>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue) && !systemConfig.containsKey(prop.getKey())) {
-        conf.set(prop.getKey(), prop.getValue());
+        conf.put(prop.getKey(), prop.getValue());
       }
     }
     TreeMap<String,String> system = new TreeMap<>(systemConfig);
     for (Entry<String,String> prop : system.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue)) {
-        conf.set(prop.getKey(), prop.getValue());
+        conf.put(prop.getKey(), prop.getValue());
       }
     }
     File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    try (FileOutputStream fos = new FileOutputStream(siteBackup)) {
-      conf.writeXml(fos);
+    try (FileWriter fw = new FileWriter(siteBackup)) {
+      for (Entry<String,String> prop : conf.entrySet()) {
+        fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
+      }
     }
   }
 

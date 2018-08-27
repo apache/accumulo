@@ -287,7 +287,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     Configuration conf = new Configuration(false);
     conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo.properties"));
 
     File v3f = new File(volDirBase, "v3");
     assertTrue(v3f.mkdir() || v3f.isDirectory());
@@ -295,7 +295,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
     BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo.properties")));
     conf.writeXml(fos);
     fos.close();
 
@@ -332,7 +332,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     Configuration conf = new Configuration(false);
     conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo.properties"));
 
     File v3f = new File(volDirBase, "v3");
     assertTrue(v3f.mkdir() || v3f.isDirectory());
@@ -340,7 +340,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
     BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo.properties")));
     conf.writeXml(fos);
     fos.close();
 
@@ -496,11 +496,11 @@ public class VolumeIT extends ConfigurableMacBase {
 
     Configuration conf = new Configuration(false);
     conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo.properties"));
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
     BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo.properties")));
     conf.writeXml(fos);
     fos.close();
 
@@ -554,12 +554,12 @@ public class VolumeIT extends ConfigurableMacBase {
 
     Configuration conf = new Configuration(false);
     conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo.properties"));
 
     conf.set(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
     conf.set(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(), v1 + " " + v8 + "," + v2 + " " + v9);
     BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo.properties")));
     conf.writeXml(fos);
     fos.close();
 

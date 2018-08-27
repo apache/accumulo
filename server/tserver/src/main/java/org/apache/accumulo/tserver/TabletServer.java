@@ -2723,7 +2723,7 @@ public class TabletServer implements Runnable {
       } catch (KeeperException e) {
         if (KeeperException.Code.NOAUTH == e.code()) {
           log.error("Failed to write to ZooKeeper. Ensure that"
-              + " accumulo-site.xml, specifically instance.secret, is consistent.");
+              + " accumulo.properties, specifically instance.secret, is consistent.");
         }
         throw e;
       }

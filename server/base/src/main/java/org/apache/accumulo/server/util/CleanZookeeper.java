@@ -36,7 +36,7 @@ public class CleanZookeeper {
 
   static class Opts extends Help {
     @Parameter(names = {"--password"},
-        description = "The system secret, if different than instance.secret in accumulo-site.xml",
+        description = "The system secret, if different than instance.secret in accumulo.properties",
         password = true)
     String auth;
   }

@@ -56,8 +56,8 @@ import com.beust.jcommander.Parameter;
  * </pre>
  *
  * All items in the properties file above are optional and a default value will be provided in their
- * absence. Any site configuration properties (typically found in the accumulo-site.xml file) should
- * be prefixed with "site." in the properties file.
+ * absence. Any site configuration properties (typically found in the accumulo.properties file)
+ * should be prefixed with "site." in the properties file.
  *
  * @since 1.6.0
  */
@@ -99,8 +99,8 @@ public class MiniAccumuloRunner {
     System.out.println("#" + EXISTING_ZOO_KEEPERS_PROP + "=localhost:2181");
 
     System.out.println();
-    System.out.println(
-        "# Configuration normally placed in accumulo-site.xml can be added using a site. prefix.");
+    System.out.println("# Configuration normally placed in accumulo.properties can be added using"
+        + " a site.* prefix.");
     System.out.println(
         "# For example the following line will set tserver.compaction.major.concurrent.max");
     System.out.println();

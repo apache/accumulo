@@ -43,8 +43,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -229,13 +229,13 @@ public class MiniAccumuloClusterTest {
   @Test
   public void testRandomPorts() throws Exception {
     File confDir = new File(testDir, "conf");
-    File accumuloSite = new File(confDir, "accumulo-site.xml");
-    Configuration conf = new Configuration(false);
-    conf.addResource(accumuloSite.toURI().toURL());
+    File accumuloProps = new File(confDir, "accumulo.properties");
+    PropertiesConfiguration conf = new PropertiesConfiguration();
+    conf.load(accumuloProps);
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
         Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT, Property.TRACE_PORT,
         Property.GC_PORT}) {
-      String value = conf.get(randomPortProp.getKey());
+      String value = conf.getString(randomPortProp.getKey());
       Assert.assertNotNull("Found no value for " + randomPortProp, value);
       Assert.assertEquals("0", value);
     }

@@ -197,8 +197,8 @@ public class InputTableConfig implements Writable {
    * <p>
    * Reading the offline table will create the scan time iterator stack in the map process. So any
    * iterators that are configured for the table will need to be on the mapper's classpath. The
-   * accumulo-site.xml may need to be on the mapper's classpath if HDFS or the Accumulo directory in
-   * HDFS are non-standard.
+   * accumulo.properties may need to be on the mapper's classpath if HDFS or the Accumulo directory
+   * in HDFS are non-standard.
    *
    * <p>
    * One way to use this feature is to clone a table, take the clone offline, and use the clone as

@@ -17,7 +17,7 @@
 
 package org.apache.accumulo.core.security.crypto;
 
-import static org.apache.accumulo.core.file.rfile.RFileTest.setAndGetAccumuloConfig;
+import static org.apache.accumulo.core.file.rfile.RFileTest.getAccumuloConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -76,8 +76,8 @@ public class CryptoTest {
 
   public static final int MARKER_INT = 0xCADEFEDD;
   public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
-  public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
-  public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
+  public static final String CRYPTO_ON_CONF = "crypto-on-accumulo.properties";
+  public static final String CRYPTO_OFF_CONF = "accumulo.properties";
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
@@ -104,7 +104,7 @@ public class CryptoTest {
 
   @Test
   public void simpleGCMTest() throws Exception {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    AccumuloConfiguration conf = getAccumuloConfig(CRYPTO_ON_CONF);
 
     CryptoService cryptoService = new AESCryptoService();
     cryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
@@ -199,7 +199,7 @@ public class CryptoTest {
 
   @Test
   public void testRFileEncrypted() throws Exception {
-    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     ArrayList<Key> keys = testData();
 
@@ -224,8 +224,8 @@ public class CryptoTest {
   @Test
   // This test is to ensure when Crypto is configured that it can read unencrypted files
   public void testReadNoCryptoWithCryptoConfigured() throws Exception {
-    AccumuloConfiguration cryptoOffConf = setAndGetAccumuloConfig(CRYPTO_OFF_CONF);
-    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    AccumuloConfiguration cryptoOffConf = getAccumuloConfig(CRYPTO_OFF_CONF);
+    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     ArrayList<Key> keys = testData();
 
@@ -316,7 +316,7 @@ public class CryptoTest {
 
   private <C extends CryptoService> byte[] encrypt(C cs, Scope scope, String configFile)
       throws Exception {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
+    AccumuloConfiguration conf = getAccumuloConfig(configFile);
     cs.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(scope, null);
     FileEncrypter encrypter = cs.getFileEncrypter(env);
@@ -344,7 +344,7 @@ public class CryptoTest {
     DataInputStream dataIn = new DataInputStream(in);
     byte[] params = CryptoUtils.readParams(dataIn);
 
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(configFile);
+    AccumuloConfiguration conf = getAccumuloConfig(configFile);
     CryptoService cryptoService = CryptoServiceFactory.newInstance(conf);
     CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
 
