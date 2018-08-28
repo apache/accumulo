@@ -33,13 +33,10 @@ public class TabletIdImpl implements TabletId {
     new Function<org.apache.accumulo.core.data.KeyExtent,TabletId>() {
     @Override
     public TabletId apply(org.apache.accumulo.core.data.KeyExtent input) {
-      // the following if null check is to appease findbugs... grumble grumble spent a good part of
-      // my morning looking into this
+      // Ensure parameter isn't null; see also:
       // http://sourceforge.net/p/findbugs/bugs/1139/
       // https://code.google.com/p/guava-libraries/issues/detail?id=920
-      if (input == null)
-        return null;
-      return new TabletIdImpl(input);
+      return input == null ? null : new TabletIdImpl(input);
     }
   };
   // @formatter:on

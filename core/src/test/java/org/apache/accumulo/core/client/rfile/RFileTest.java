@@ -63,14 +63,11 @@ import com.google.common.collect.ImmutableMap;
 
 public class RFileTest {
 
-  // method created to foil findbugs... it was complaining ret val not used when it did not matter
-  private void foo(boolean b) {}
-
   private String createTmpTestFile() throws IOException {
     File dir = new File(System.getProperty("user.dir") + "/target/rfile-test");
-    foo(dir.mkdirs());
+    assertTrue(dir.mkdirs() || dir.isDirectory());
     File testFile = File.createTempFile("test", ".rf", dir);
-    foo(testFile.delete());
+    assertTrue(testFile.delete() || !testFile.exists());
     return testFile.getAbsolutePath();
   }
 

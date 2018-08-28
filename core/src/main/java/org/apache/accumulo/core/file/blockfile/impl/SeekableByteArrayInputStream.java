@@ -31,8 +31,8 @@ public class SeekableByteArrayInputStream extends InputStream {
   // making this volatile for the following case
   // * thread 1 creates and initalizes byte array
   // * thread 2 reads from bye array
-  // Findbugs complains about this because thread2 may not see any changes to the byte array after
-  // thread 1 set the voltile,
+  // spotbugs complains about this because thread2 may not see any changes to the byte array after
+  // thread 1 set the volatile,
   // however the expectation is that the byte array is static. In the case of it being static,
   // volatile ensures that
   // thread 2 sees all of thread 1 changes before setting the volatile.

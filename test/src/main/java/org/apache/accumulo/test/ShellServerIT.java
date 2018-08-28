@@ -1773,14 +1773,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void scansWithClassLoaderContext() throws Exception {
+  public void scansWithClassLoaderContext() throws IOException {
     try {
       Class.forName(VALUE_REVERSING_ITERATOR);
       fail("ValueReversingIterator already on the classpath");
-    } catch (Exception e) {
-      // Do nothing here, This is success. The following line is here
-      // so that findbugs doesn't have a stroke.
-      assertTrue(true);
+    } catch (ClassNotFoundException e) {
+      // expected; iterator is already on the class path
     }
     ts.exec("createtable t");
     // Assert that the TabletServer does not know anything about our class
@@ -1913,7 +1911,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators"
       + ".ColumnFamilyCounter";
 
-  private void setupRealContextPath() throws Exception {
+  private void setupRealContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
@@ -1923,7 +1921,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fs.copyFromLocalFile(jarPath, dstPath);
   }
 
-  private void setupFakeContextPath() throws Exception {
+  private void setupFakeContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
