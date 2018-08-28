@@ -71,7 +71,6 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static synchronized SecurityOperation getInstance(ServerContext context,
       boolean initialize) {
     if (instance == null) {
-      String instanceId = context.getInstanceID();
       instance = new AuditedSecurityOperation(context, getAuthorizor(context, initialize),
           getAuthenticator(context, initialize), getPermHandler(context, initialize));
     }
