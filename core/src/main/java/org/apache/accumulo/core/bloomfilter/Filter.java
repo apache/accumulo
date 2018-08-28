@@ -126,7 +126,7 @@ public abstract class Filter implements Writable {
   public abstract boolean membershipTest(Key key);
 
   /**
-   * Peforms a logical AND between <i>this</i> filter and a specified filter.
+   * Performs a logical AND between <i>this</i> filter and a specified filter.
    * <p>
    * <b>Invariant</b>: The result is assigned to <i>this</i> filter.
    *
@@ -136,7 +136,7 @@ public abstract class Filter implements Writable {
   public abstract void and(Filter filter);
 
   /**
-   * Peforms a logical OR between <i>this</i> filter and a specified filter.
+   * Performs a logical OR between <i>this</i> filter and a specified filter.
    * <p>
    * <b>Invariant</b>: The result is assigned to <i>this</i> filter.
    *
@@ -146,7 +146,7 @@ public abstract class Filter implements Writable {
   public abstract void or(Filter filter);
 
   /**
-   * Peforms a logical XOR between <i>this</i> filter and a specified filter.
+   * Performs a logical XOR between <i>this</i> filter and a specified filter.
    * <p>
    * <b>Invariant</b>: The result is assigned to <i>this</i> filter.
    *
@@ -188,7 +188,7 @@ public abstract class Filter implements Writable {
       this.nbHash = ver;
       this.hashType = Hash.JENKINS_HASH;
 
-    } else if (ver == VERSION | ver == VERSION + 1) { // Support for directly serialzing the bitset
+    } else if (ver == VERSION | ver == VERSION + 1) { // Support for directly serializing the bitset
       this.nbHash = in.readInt();
       this.hashType = in.readByte();
     } else {

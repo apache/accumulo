@@ -239,7 +239,7 @@ public class FileUtil {
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
-      // skip the prevendrow
+      // skip the prevEndRow
       while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0) {
         mmfi.next();
       }
@@ -333,7 +333,7 @@ public class FileUtil {
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
-      // skip the prevendrow
+      // skip the prevEndRow
       while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0)
         mmfi.next();
 

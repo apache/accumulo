@@ -606,7 +606,7 @@ public class RFileTest {
         .selectSummaries(sc -> sc.equals(sc1)).read();
     checkSummaries(summaries, ImmutableMap.of("A&B", 800L, "A&B&C", 800L), 0);
 
-    // the following test check boundry conditions for start row and end row
+    // the following test check boundary conditions for start row and end row
     summaries = RFile.summaries().from(testFile, testFile2).withFileSystem(localFs)
         .selectSummaries(sc -> sc.equals(sc1)).startRow(rowStr(99)).read();
     checkSummaries(summaries, ImmutableMap.of("A&B", 400L, "A&B&C", 400L), 0);

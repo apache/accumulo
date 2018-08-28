@@ -77,7 +77,7 @@ public abstract class ActiveCompaction {
   public abstract String getTable() throws TableNotFoundException;
 
   /**
-   * @return tablet thats is compacting
+   * @return tablet that's is compacting
    * @since 1.7.0
    */
   public abstract TabletId getTablet();

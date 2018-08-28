@@ -998,7 +998,7 @@ public class TabletServer implements Runnable {
             try {
               flush(us);
             } catch (HoldTimeoutException hte) {
-              // Assumption is that the client has timed out and is gone. If thats not the case,
+              // Assumption is that the client has timed out and is gone. If that's not the case,
               // then removing the session should cause the client to fail
               // in such a way that it retries.
               log.debug("HoldTimeoutException during applyUpdates, removing session");
@@ -1186,7 +1186,7 @@ public class TabletServer implements Runnable {
       try {
         flush(us);
       } catch (HoldTimeoutException e) {
-        // Assumption is that the client has timed out and is gone. If thats not the case throw an
+        // Assumption is that the client has timed out and is gone. If that's not the case throw an
         // exception that will cause it to retry.
         log.debug("HoldTimeoutException during closeUpdate, reporting no such session");
         throw new NoSuchScanIDException();
@@ -1251,7 +1251,7 @@ public class TabletServer implements Runnable {
         try {
           TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
         } catch (HoldTimeoutException hte) {
-          // Major hack. Assumption is that the client has timed out and is gone. If thats not the
+          // Major hack. Assumption is that the client has timed out and is gone. If that's not the
           // case, then throwing the following will let client know there
           // was a failure and it should retry.
           throw new NotServingTabletException(tkeyExtent);
@@ -1535,7 +1535,8 @@ public class TabletServer implements Runnable {
         try {
           TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
         } catch (HoldTimeoutException hte) {
-          // Assumption is that the client has timed out and is gone. If thats not the case throw an
+          // Assumption is that the client has timed out and is gone. If that's not the case throw
+          // an
           // exception that will cause it to retry.
           log.debug("HoldTimeoutException during conditionalUpdate, reporting no such session");
           throw new NoSuchScanIDException();
@@ -1600,7 +1601,7 @@ public class TabletServer implements Runnable {
       try {
         namespaceId = Tables.getNamespaceId(context, tableId);
       } catch (TableNotFoundException ex) {
-        // tableOperationsImpl catches ThriftSeccurityException and checks for missing table
+        // tableOperationsImpl catches ThriftSecurityException and checks for missing table
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.TABLE_DOESNT_EXIST);
       }
@@ -3598,7 +3599,7 @@ public class TabletServer implements Runnable {
   }
 
   /**
-   * Get the RateLimiter for writes during major compations on this tserver. All reads performed
+   * Get the RateLimiter for writes during major compactions on this tserver. All reads performed
    * during major compactions are throttled to conform to this RateLimiter.
    */
   public final RateLimiter getMajorCompactionWriteLimiter() {

@@ -127,7 +127,7 @@ public final class Compression {
 
     LZO(COMPRESSION_LZO) {
       /**
-       * determines if we've checked the codec status. ensures we don't recreate the defualt codec
+       * determines if we've checked the codec status. ensures we don't recreate the default codec
        */
       private final AtomicBoolean checked = new AtomicBoolean(false);
       private static final String defaultClazz = "org.apache.hadoop.io.compress.LzoCodec";
@@ -342,7 +342,7 @@ public final class Compression {
       // Use base type to avoid compile-time dependencies.
       private transient CompressionCodec snappyCodec = null;
       /**
-       * determines if we've checked the codec status. ensures we don't recreate the defualt codec
+       * determines if we've checked the codec status. ensures we don't recreate the default codec
        */
       private final AtomicBoolean checked = new AtomicBoolean(false);
       private static final String defaultClazz = "org.apache.hadoop.io.compress.SnappyCodec";

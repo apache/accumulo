@@ -20,7 +20,7 @@ package org.apache.accumulo.core.client.sample;
 import org.apache.accumulo.core.data.Key;
 
 /**
- * A function that decides which key values are stored in a tables sample. As Accumuo compacts data
+ * A function that decides which key values are stored in a tables sample. As Accumulo compacts data
  * and creates rfiles it uses a Sampler to decided what to store in the rfiles sample section. The
  * class name of the Sampler and the Samplers configuration are stored in each rfile. A scan of a
  * tables sample will only succeed if all rfiles were created with the same sampler and sampler
@@ -56,7 +56,7 @@ public interface Sampler {
   /**
    * @param k
    *          A key that was written to a rfile.
-   * @return True if the key (and its associtated value) should be stored in the rfile's sample.
+   * @return True if the key (and its associated value) should be stored in the rfiles sample.
    *         Return false if it should not be included.
    */
   boolean accept(Key k);

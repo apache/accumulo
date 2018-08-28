@@ -184,7 +184,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
             "Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
       }
 
-      // add a constraint that references a non-existant class
+      // add a constraint that references a non-existent class
       getConnector().tableOperations().setProperty(tableName,
           Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
       sleepUninterruptibly(1, TimeUnit.SECONDS);

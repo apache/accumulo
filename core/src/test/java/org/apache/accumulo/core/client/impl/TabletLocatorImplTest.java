@@ -876,7 +876,7 @@ public class TabletLocatorImplTest {
 
     runTest(tableName, ranges, metaCache, expected);
 
-    // test where start of range is not inclusive and same as tablet endrow
+    // test where start of range is not inclusive and same as tablet endRow
     ranges = nrl(nr("g", false, "m", true));
     expected = createExpectedBinnings("l2",
         nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", true)))
@@ -885,7 +885,7 @@ public class TabletLocatorImplTest {
 
     runTest(tableName, ranges, metaCache, expected);
 
-    // test where start of range is inclusive and same as tablet endrow
+    // test where start of range is inclusive and same as tablet endRow
     ranges = nrl(nr("g", true, "m", true));
     expected = createExpectedBinnings("l1",
         nol(nke("foo", "g", null), nrl(nr("g", true, "m", true))), "l2",

@@ -321,7 +321,7 @@ public class MultiLevelIndex {
 
         CachableBlockFile.CachedBlockRead abr = (CachableBlockFile.CachedBlockRead) in;
         if (abr.isIndexable()) {
-          // this block is cahced, so avoid copy
+          // this block is cached, so avoid copy
           data = abr.getBuffer();
           // use offset data in serialized form and avoid copy
           numOffsets = abr.readInt();

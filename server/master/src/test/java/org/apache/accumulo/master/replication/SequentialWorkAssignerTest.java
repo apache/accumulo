@@ -57,7 +57,7 @@ public class SequentialWorkAssignerTest {
     Map<String,Map<Table.ID,String>> queuedWork = new TreeMap<>();
     Map<Table.ID,String> cluster1Work = new TreeMap<>();
 
-    // Two files for cluster1, one for table '1' and another for table '2' we havce assigned work
+    // Two files for cluster1, one for table '1' and another for table '2' we haven't assigned work
     // for
     cluster1Work.put(Table.ID.of("1"), DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
         new ReplicationTarget("cluster1", "1", Table.ID.of("1"))));

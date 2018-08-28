@@ -210,7 +210,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    *     connector.tableOperations().getSamplerConfiguration(table);
    *   // verify table's sample data is generated in an expected way before using
    *   userCode.verifySamplerConfig(samplerConfig);
-   *   scanner.setSamplerCongiguration(samplerConfig);
+   *   scanner.setSamplerConfiguration(samplerConfig);
    * </code>
    * </pre>
    *

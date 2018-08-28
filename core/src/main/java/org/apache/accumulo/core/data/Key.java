@@ -783,7 +783,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
-   * Writes the column visibvility into the given <code>Text</code>. This method gives users control
+   * Writes the column visibility into the given <code>Text</code>. This method gives users control
    * over allocation of Text objects by copying into the passed in text.
    *
    * @param cv
@@ -912,7 +912,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Compares elements of a key given by a {@link PartialKey}. The corresponding elements (row,
    * column family, column qualifier, column visibility, timestamp, and delete marker) are compared
    * in order until unequal elements are found. The row, column family, column qualifier, and column
-   * visibility are compared lexographically and sorted ascending. The timestamps are compared
+   * visibility are compared lexicographically and sorted ascending. The timestamps are compared
    * numerically and sorted descending so that the most recent data comes first. Lastly, a delete
    * marker of true sorts before a delete marker of false. The result of the first unequal
    * comparison is returned.
@@ -1128,7 +1128,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
     // since sorted data is usually compared in accumulo,
     // the prefixes will normally be the same... so compare
-    // the last two charachters first.. the most likely place
+    // the last two characters first.. the most likely place
     // to have disorder is at end of the strings when the
     // data is sorted... if those are the same compare the rest
     // of the data forward... comparing backwards is slower

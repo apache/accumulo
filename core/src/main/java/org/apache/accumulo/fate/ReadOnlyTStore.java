@@ -108,7 +108,7 @@ public interface ReadOnlyTStore<T> {
   TStatus getStatus(long tid);
 
   /**
-   * Wait for the satus of a transaction to change
+   * Wait for the status of a transaction to change
    *
    * @param tid
    *          transaction id, need not have been reserved.

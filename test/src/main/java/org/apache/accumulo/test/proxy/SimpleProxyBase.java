@@ -2299,7 +2299,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     assertScan(new String[][] {{"00345", "data", "img", "567890"}, {"00345", "meta", "seq", "2"},
         {"00346", "meta", "seq", "1"}}, tableName);
 
-    // test setting timestamp on condition to a non-existant version
+    // test setting timestamp on condition to a nonexistent version
     updates.clear();
 
     updates.put(s2bb("00345"),
@@ -2748,7 +2748,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     assertEquals("System namespace is wrong", client.systemNamespace(), Namespace.ACCUMULO);
     assertEquals("Default namespace is wrong", client.defaultNamespace(), Namespace.DEFAULT);
 
-    // namespace existance and namespace listing
+    // namespace existence and namespace listing
     assertTrue("Namespace created during setup should exist",
         client.namespaceExists(creds, namespaceName));
     assertTrue("Namespace listing should contain namespace created during setup",

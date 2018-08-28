@@ -326,7 +326,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Provides timing information for oline operation.
+   * Provides timing information for online operation.
    */
   private static class OnlineOpTiming {
 

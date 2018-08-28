@@ -901,7 +901,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     // OPTIONAL methods to override:
 
-    // the general version of getname uses reflection to get the class name
+    // the general version of getName uses reflection to get the class name
     // and then cuts off the suffix -Command to get the name of the command
     public String getName() {
       String s = this.getClass().getName();

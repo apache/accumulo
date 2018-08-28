@@ -1024,7 +1024,7 @@ public class Tablet implements TabletCommitter {
   public boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
       // don't bother trying to get flush id if closed... could be closed after this check but that
-      // is ok... just trying to cut down on uneeded log messages....
+      // is ok... just trying to cut down on unneeded log messages....
       return false;
     }
 
@@ -1890,14 +1890,14 @@ public class Tablet implements TabletCommitter {
           return majCStats;
         }
       } else {
-        // If no original files will exist at the end of the compaction, we do not have to propogate
+        // If no original files will exist at the end of the compaction, we do not have to propagate
         // deletes
         Set<FileRef> droppedFiles = new HashSet<>();
         droppedFiles.addAll(inputFiles);
         if (plan != null)
           droppedFiles.addAll(plan.deleteFiles);
         propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
-        log.debug("Major compaction plan: {} propogate deletes : {}", plan, propogateDeletes);
+        log.debug("Major compaction plan: {} propagate deletes : {}", plan, propogateDeletes);
         filesToCompact = new HashMap<>(allFiles);
         filesToCompact.keySet().retainAll(inputFiles);
 
@@ -2397,7 +2397,7 @@ public class Tablet implements TabletCommitter {
         throw new IOException("tablet " + extent + " is closed");
       }
 
-      // TODO check seems uneeded now - ACCUMULO-1291
+      // TODO check seems unneeded now - ACCUMULO-1291
       long lockWait = System.currentTimeMillis() - now;
       if (lockWait > getTabletServer().getConfiguration()
           .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
@@ -2510,10 +2510,10 @@ public class Tablet implements TabletCommitter {
       }
 
       otherLogs = Collections.emptySet();
-      // Intentionally NOT calling rebuildReferenedLogs() here as that could cause GC of in use
-      // walogs(see #539). The clearing of otherLogs is reflected in refererncedLogs when
-      // finishClearingUnusedLogs() calls rebuildReferenedLogs(). See the comments in
-      // rebuildReferenedLogs() for more info.
+      // Intentionally NOT calling rebuildReferencedLogs() here as that could cause GC of in use
+      // walogs(see #539). The clearing of otherLogs is reflected in ReferencedLogs when
+      // finishClearingUnusedLogs() calls rebuildReferencedLogs(). See the comments in
+      // rebuildReferencedLogs() for more info.
 
       if (unusedLogs.size() > 0)
         removingLogs = true;

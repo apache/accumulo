@@ -54,7 +54,7 @@ public class ViewFSUtils {
     Path match = null;
     int matchPrefixLen = 0;
 
-    // find the option with the longest commmon path prefix
+    // find the option with the longest common path prefix
     for (String option : options) {
       Path optionPath = new Path(option);
       if (isViewFS(optionPath, conf)) {
@@ -75,7 +75,7 @@ public class ViewFSUtils {
           match = optionPath;
         } else if (match != null && commonPrefixLen == matchPrefixLen
             && optionPath.depth() < match.depth()) {
-          // take path with less depth when match perfix length is the same
+          // take path with less depth when match prefix length is the same
           match = optionPath;
         }
       }

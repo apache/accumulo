@@ -718,7 +718,7 @@ public class TabletServerBatchWriter {
         updateUnknownErrors(e.getMessage(), e);
       }
 
-      // an error ocurred
+      // an error occurred
       binnedMutations.clear();
 
     }

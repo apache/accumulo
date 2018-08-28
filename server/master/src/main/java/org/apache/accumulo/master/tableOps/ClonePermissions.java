@@ -57,7 +57,7 @@ class ClonePermissions extends MasterRepo {
     }
 
     // setup permissions in zookeeper before table info in zookeeper
-    // this way concurrent users will not get a spurious pemission denied
+    // this way concurrent users will not get a spurious permission denied
     // error
     try {
       return new CloneZookeeper(cloneInfo, environment.getContext());

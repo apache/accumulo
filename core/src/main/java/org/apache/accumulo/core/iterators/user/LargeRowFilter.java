@@ -52,7 +52,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
 
-  /* key into hash map, value refers to the row supression limit (maxColumns) */
+  /* key into hash map, value refers to the row suppression limit (maxColumns) */
   private static final String MAX_COLUMNS = "max_columns";
 
   private SortedKeyValueIterator<Key,Value> source;

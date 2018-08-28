@@ -322,7 +322,7 @@ public class AccumuloConfigurationTest {
         .findFirst().get();
     Assert.assertEquals(6, sec2.maxThreads);
 
-    // ensure new prop overrides deperecated prop
+    // ensure new prop overrides deprecated prop
     tc.set(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "9");
     Assert.assertEquals(9, sec.getCurrentMaxThreads());
     Assert.assertEquals(

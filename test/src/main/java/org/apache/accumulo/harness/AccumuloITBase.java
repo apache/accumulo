@@ -76,7 +76,7 @@ public class AccumuloITBase {
    * failed.
    *
    * Note that this provides a upper bound on test times, even in the presence of Test annotations
-   * with a timeout. That is, the Test annotatation can make the timing tighter but will not be able
+   * with a timeout. That is, the Test annotation can make the timing tighter but will not be able
    * to allow a timeout that takes longer.
    *
    * Defaults to no timeout and can be changed via two mechanisms

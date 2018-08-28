@@ -97,7 +97,7 @@ public class VisibilityEvaluatorTest {
     VisibilityEvaluator ct = new VisibilityEvaluator(auths);
     runQuoteTest(ct);
 
-    // constuct VisibilityEvaluator using another constructor and run test again
+    // construct VisibilityEvaluator using another constructor and run test again
     ct = new VisibilityEvaluator((AuthorizationContainer) auths);
     runQuoteTest(ct);
   }

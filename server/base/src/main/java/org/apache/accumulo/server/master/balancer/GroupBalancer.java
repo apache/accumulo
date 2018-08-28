@@ -186,7 +186,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     // possibly have 2 tablets from a group. Below is an illustration of an ideal balancing of extra
     // tablets. To understand the illustration, the first column
     // shows tserver T1 with 2 tablets from G1, 1 tablet from G2, and two tablets from G3. EE means
-    // empty, put it there so eclipse formating would not mess up
+    // empty, put it there so eclipse formatting would not mess up
     // table.
     //
     // T1 | T2 | T3 | T4 | T5 | T6

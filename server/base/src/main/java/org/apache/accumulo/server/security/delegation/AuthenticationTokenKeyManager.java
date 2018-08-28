@@ -113,7 +113,7 @@ public class AuthenticationTokenKeyManager extends Daemon {
 
         // Try to use the last key instead of creating a new one right away. This will present more
         // expected
-        // functionality if the active master happens to die for some reasonn
+        // functionality if the active master happens to die for some reason
         AuthenticationKey currentKey = secretManager.getCurrentKey();
         if (null != currentKey) {
           log.info("Updating last key update to {} from current secret manager key",

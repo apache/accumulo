@@ -504,7 +504,7 @@ public class VolumeIT extends ConfigurableMacBase {
     conf.writeXml(fos);
     fos.close();
 
-    // start cluster and verify that volume was decommisioned
+    // start cluster and verify that volume was decommissioned
     cluster.start();
 
     Connector conn = cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));

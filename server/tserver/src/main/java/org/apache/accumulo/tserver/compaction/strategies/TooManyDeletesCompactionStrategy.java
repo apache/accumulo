@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * If the delete summarizer was configured on a table that already had files, then those files will
  * have not summary information. This strategy can still proceed in this situation. It will fall
- * back to using Accumulo's estimated entires per file in this case. For the files without summary
+ * back to using Accumulo's estimated entries per file in this case. For the files without summary
  * information the estimated number of deletes will be zero. This fall back method will
  * underestimate deletes which will not lead to false positives, except for the case of bulk
  * imported files. Accumulo estimates that bulk imported files have zero entires. The second option

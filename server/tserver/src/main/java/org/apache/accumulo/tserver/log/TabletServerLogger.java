@@ -127,7 +127,7 @@ public class TabletServerLogger {
     try {
       // does some condition exist that needs the write lock?
       if (code.test()) {
-        // Yes, let go of the readlock
+        // Yes, let go of the readLock
         rwlock.readLock().unlock();
         // Grab the write lock
         rwlock.writeLock().lock();
@@ -138,7 +138,7 @@ public class TabletServerLogger {
             code.withWriteLock();
           }
         } finally {
-          // regain the readlock
+          // regain the readLock
           rwlock.readLock().lock();
           // unlock the write lock
           rwlock.writeLock().unlock();

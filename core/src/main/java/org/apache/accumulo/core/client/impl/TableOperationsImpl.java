@@ -1172,7 +1172,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(dir != null, "dir is null");
     checkArgument(failureDir != null, "failureDir is null");
-    // check for table existance
+    // check for table existence
     Tables.getTableId(context, tableName);
 
     Path dirPath = checkPath(dir, "Bulk", "");

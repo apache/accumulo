@@ -49,7 +49,7 @@ public class MiniAccumuloCluster {
   /**
    *
    * @param dir
-   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in.
+   *          An empty or nonexistent temp directory that Accumulo and Zookeeper can store data in.
    *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
    *          for creating temporary directories.
    * @param rootPassword

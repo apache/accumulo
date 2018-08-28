@@ -25,7 +25,7 @@ public class GuavaRateLimiter implements RateLimiter {
    * Constructor
    *
    * @param initialRate
-   *          Count of permits which should be made available per second. A nonpositive rate is
+   *          Count of permits which should be made available per second. A non-positive rate is
    *          taken to indicate there should be no limitation on rate.
    */
   public GuavaRateLimiter(long initialRate) {
@@ -43,7 +43,7 @@ public class GuavaRateLimiter implements RateLimiter {
    * Change the rate at which permits are made available.
    *
    * @param newRate
-   *          Count of permits which should be made available per second. A nonpositive rate is
+   *          Count of permits which should be made available per second. A non-positive rate is
    *          taken to indicate that there should be no limitation on rate.
    */
   public void setRate(long newRate) {

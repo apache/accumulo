@@ -73,7 +73,7 @@ gitCommit()  { gitCommits -n1 "$@"; }
 gitSubject() { pretty %s "$@"; }
 
 createEmail() {
-  # $1 version (optional); $2 rc seqence num (optional); $3 staging repo num (optional)
+  # $1 version (optional); $2 rc sequence num (optional); $3 staging repo num (optional)
   local ver; [[ -n "$1" ]] && ver=$1 || ver=$(prompter 'version to be released (eg. x.y.z)' '[0-9]+[.][0-9]+[.][0-9]+')
   local rc; [[ -n "$2" ]] && rc=$2 || rc=$(prompter 'release candidate sequence number (eg. 1, 2, etc.)' '[0-9]+')
   local stagingrepo; [[ -n "$3" ]] && stagingrepo=$3 || stagingrepo=$(prompter 'staging repository number from https://repository.apache.org/#stagingRepositories' '[0-9]+')

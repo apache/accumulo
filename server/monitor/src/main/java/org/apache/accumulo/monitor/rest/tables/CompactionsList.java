@@ -30,7 +30,7 @@ public class CompactionsList {
   public CompactionsList() {}
 
   /**
-   * Generate a compation list
+   * Generate a compaction list
    *
    * @param running
    *          Number of running compactions

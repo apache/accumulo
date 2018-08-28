@@ -130,7 +130,7 @@ public class ThriftUtil {
 
   /**
    * Create a Thrift client using the given factory with a pooled transport (if available) using the
-   * address, client context and timeou
+   * address, client context and timeout
    *
    * @param factory
    *          Thrift client factory
@@ -443,7 +443,7 @@ public class ThriftUtil {
 
   /**
    * Lifted from TSSLTransportFactory in Thrift-0.9.1. The method to create a client socket with an
-   * SSLContextFactory object is not visibile to us. Have to use SslConnectionParams instead of
+   * SSLContextFactory object is not visible to us. Have to use SslConnectionParams instead of
    * TSSLTransportParameters because no getters exist on TSSLTransportParameters.
    *
    * @param params
