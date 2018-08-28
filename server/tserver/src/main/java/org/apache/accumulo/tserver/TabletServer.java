@@ -1536,8 +1536,7 @@ public class TabletServer implements Runnable {
           TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
         } catch (HoldTimeoutException hte) {
           // Assumption is that the client has timed out and is gone. If that's not the case throw
-          // an
-          // exception that will cause it to retry.
+          // an exception that will cause it to retry.
           log.debug("HoldTimeoutException during conditionalUpdate, reporting no such session");
           throw new NoSuchScanIDException();
         }

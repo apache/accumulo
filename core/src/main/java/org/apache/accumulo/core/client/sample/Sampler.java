@@ -56,7 +56,7 @@ public interface Sampler {
   /**
    * @param k
    *          A key that was written to a rfile.
-   * @return True if the key (and its associated value) should be stored in the rfiles sample.
+   * @return True if the key (and its associated value) should be stored in the rfile's sample.
    *         Return false if it should not be included.
    */
   boolean accept(Key k);
