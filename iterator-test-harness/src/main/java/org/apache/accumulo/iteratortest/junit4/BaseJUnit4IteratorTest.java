@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * &#064;Parameters
  * public static Object[][] data() {
  *   IteratorTestInput input = createIteratorInput();
- *   IteratorTestOutput expectedOutput = createIteratorOuput();
+ *   IteratorTestOutput expectedOutput = createIteratorOutput();
  *   List&lt;IteratorTestCase&gt; testCases = createTestCases();
  *   return BaseJUnit4IteratorTest.createParameters(input, expectedOutput, testCases);
  * }

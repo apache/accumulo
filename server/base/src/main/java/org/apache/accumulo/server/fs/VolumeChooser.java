@@ -21,7 +21,7 @@ import org.apache.accumulo.core.volume.Volume;
 
 /**
  * Helper used by {@link VolumeManager}s to select from a set of {@link Volume} URIs. N.B.
- * implemenations must be threadsafe. VolumeChooser.equals will be used for internal caching.
+ * implementations must be threadsafe. VolumeChooser.equals will be used for internal caching.
  *
  * <p>
  * Implementations may wish to store configuration in Accumulo's system configuration using the

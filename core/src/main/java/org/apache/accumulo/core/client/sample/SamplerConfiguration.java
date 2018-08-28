@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * This class encapsultes configuration and options needed to setup and use sampling.
+ * This class encapsulates configuration and options needed to setup and use sampling.
  *
  * @since 1.8.0
  */

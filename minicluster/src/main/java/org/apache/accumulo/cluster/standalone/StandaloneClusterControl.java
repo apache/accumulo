@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 /**
- * Use the {@link RemoteShell} to control a standalone (possibly distibuted) Accumulo instance
+ * Use the {@link RemoteShell} to control a standalone (possibly distributed) Accumulo instance
  */
 public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);

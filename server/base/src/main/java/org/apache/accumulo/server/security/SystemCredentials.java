@@ -57,7 +57,7 @@ public final class SystemCredentials extends Credentials {
     if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       // Use the server's kerberos principal as the Accumulo principal. We could also unwrap the
       // principal server-side, but the principal for SystemCredentials
-      // isnt' actually used anywhere, so it really doesn't matter. We can't include the kerberos
+      // isn't actually used anywhere, so it really doesn't matter. We can't include the kerberos
       // principal in the SystemToken as it would break equality when
       // different Accumulo servers are using different kerberos principals are their accumulo
       // principal

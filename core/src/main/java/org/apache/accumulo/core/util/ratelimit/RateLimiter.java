@@ -18,7 +18,7 @@ package org.apache.accumulo.core.util.ratelimit;
 
 public interface RateLimiter {
   /**
-   * Get current QPS of the rate limiter, with a nonpositive rate indicating no limit.
+   * Get current QPS of the rate limiter, with a non-positive rate indicating no limit.
    */
   long getRate();
 

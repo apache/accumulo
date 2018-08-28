@@ -2340,7 +2340,7 @@ public class RFileTest {
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
-    // table tablet's prevrow
+    // table tablet's prevRow
     Key tablePrevRowKey = new Key(tableExtent,
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
@@ -2361,7 +2361,7 @@ public class RFileTest {
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
-    // default's prevrow
+    // default's prevRow
     Key defaultPrevRowKey = new Key(defaultExtent,
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);

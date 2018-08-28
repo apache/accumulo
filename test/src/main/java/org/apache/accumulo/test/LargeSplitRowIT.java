@@ -297,7 +297,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     Assert.assertEquals(10, extra);
     Assert.assertEquals(max, count);
 
-    // Make sure no splits occured in the table
+    // Make sure no splits occurred in the table
     Assert.assertEquals(0, conn.tableOperations().listSplits(tableName).size());
   }
 

@@ -148,7 +148,7 @@ public class Value implements WritableComparable<Object> {
    * @param newData
    *          source of copy, may not be null
    * @param offset
-   *          the offset in newData to start with for valye bytes
+   *          the offset in newData to start with for value bytes
    * @param length
    *          the number of bytes in the value
    * @throws IndexOutOfBoundsException

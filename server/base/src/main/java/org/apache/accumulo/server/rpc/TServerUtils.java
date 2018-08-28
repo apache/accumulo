@@ -261,7 +261,7 @@ public class TServerUtils {
   }
 
   /**
-   * Creates a TTheadPoolServer for normal unsecure operation. Useful for comparing performance
+   * Creates a TThreadPoolServer for normal unsecure operation. Useful for comparing performance
    * against SSL or SASL transports.
    *
    * @param address

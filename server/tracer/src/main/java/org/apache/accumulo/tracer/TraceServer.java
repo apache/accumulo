@@ -174,8 +174,8 @@ public class TraceServer implements Watcher {
           log.debug("discarded span due to rejection of mutation: " + spanMutation, exception);
         }
         /*
-         * XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this
-         * mutation to a writer that has been closed since we retrieved it
+         * XXX this could be e.g. an IllegalArgumentException if we're trying to write this mutation
+         * to a writer that has been closed since we retrieved it
          */
       } catch (RuntimeException exception) {
         log.warn("Unable to write mutation to table; discarding span. set log"

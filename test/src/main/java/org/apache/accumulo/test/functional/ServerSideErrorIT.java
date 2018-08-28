@@ -111,7 +111,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
         entry.getKey();
       }
 
-      // set a non existant iterator, should cause scan to fail on server side
+      // set a nonexistent iterator, should cause scan to fail on server side
       scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
 
       caught = false;

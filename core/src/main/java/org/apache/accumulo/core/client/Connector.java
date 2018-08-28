@@ -527,7 +527,7 @@ public abstract class Connector {
      * @param path
      *          Path to keystore
      * @param password
-     *          Password used to encyrpt key store
+     *          Password used to encrypt key store
      * @param type
      *          Key store type
      * @return this builder

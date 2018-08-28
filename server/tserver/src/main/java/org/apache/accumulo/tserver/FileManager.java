@@ -561,7 +561,7 @@ public class FileManager {
         }
 
         if (sawTimeSet) {
-          // constucting FileRef is expensive so avoid if not needed
+          // constructing FileRef is expensive so avoid if not needed
           DataFileValue value = files.get(new FileRef(filename));
           if (value.isTimeSet()) {
             iter = new TimeSettingIterator(iter, value.getTime());

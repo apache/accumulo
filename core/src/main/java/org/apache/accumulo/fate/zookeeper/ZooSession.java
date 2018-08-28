@@ -107,7 +107,7 @@ public class ZooSession {
       } catch (IOException e) {
         if (e instanceof UnknownHostException) {
           /*
-           * Make sure we wait atleast as long as the JVM TTL for negative DNS responses
+           * Make sure we wait at least as long as the JVM TTL for negative DNS responses
            */
           sleepTime = Math.max(sleepTime,
               (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);

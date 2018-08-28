@@ -477,7 +477,7 @@ public class RFile {
         blockWriter = fileWriter.prepareDataBlock();
       } else if (blockWriter.getRawSize() > blockSize) {
 
-        // Look for a key thats short to put in the index, defining short as average or below.
+        // Look for a key that's short to put in the index, defining short as average or below.
         if (averageKeySize == 0) {
           // use the same average for the search for a below average key for a block
           averageKeySize = keyLenStats.getMean();
@@ -978,7 +978,7 @@ public class RFile {
             && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
           // In the empty space at the end of a block. This can occur when keys are shortened in the
           // index creating index entries that do not exist in the
-          // block. These shortened index entires fall between the last key in a block and first key
+          // block. These shortened index entries fall between the last key in a block and first key
           // in the next block, but may not exist in the data.
           // Just proceed to the next block.
           reseek = false;

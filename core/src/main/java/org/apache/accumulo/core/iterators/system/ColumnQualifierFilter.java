@@ -69,7 +69,7 @@ public class ColumnQualifierFilter extends ServerFilter {
       return true;
 
     HashSet<ByteSequence> cfset = columnsQualifiers.get(key.getColumnQualifierData());
-    // ensure the columm qualifier goes with a paired column family,
+    // ensure the column qualifier goes with a paired column family,
     // it is possible that a column qualifier could occur with a
     // column family it was not paired with
     return cfset != null && cfset.contains(key.getColumnFamilyData());

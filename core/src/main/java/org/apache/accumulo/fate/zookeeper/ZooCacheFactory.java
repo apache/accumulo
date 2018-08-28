@@ -33,7 +33,7 @@ public class ZooCacheFactory {
    * arguments.
    *
    * @param zooKeepers
-   *          comma-seprated list of ZooKeeper host[:port]s
+   *          comma-separated list of ZooKeeper host[:port]s
    * @param sessionTimeout
    *          session timeout
    * @return cache object
@@ -55,7 +55,7 @@ public class ZooCacheFactory {
    * be returned for multiple calls with the same remaining arguments.
    *
    * @param zooKeepers
-   *          comma-seprated list of ZooKeeper host[:port]s
+   *          comma-separated list of ZooKeeper host[:port]s
    * @param sessionTimeout
    *          session timeout
    * @param watcher

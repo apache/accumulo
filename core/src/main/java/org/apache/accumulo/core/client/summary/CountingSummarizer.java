@@ -122,7 +122,7 @@ public abstract class CountingSummarizer<K> implements Summarizer {
 
   /**
    * This is the name of the statistic that tracks how many counter objects were ignored because
-   * they were too long. The maximum lenght is specified by {@link #MAX_COUNTER_LEN_OPT}.
+   * they were too long. The maximum length is specified by {@link #MAX_COUNTER_LEN_OPT}.
    */
   public static final String TOO_LONG_STAT = "tooLong";
 

@@ -100,7 +100,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     bw.close();
 
     conn.tableOperations().flush("table1", null, null, true);
-    // TOOD use constants
+    // TODO use constants
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
 

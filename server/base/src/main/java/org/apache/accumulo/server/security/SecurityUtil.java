@@ -43,7 +43,7 @@ public class SecurityUtil {
 
   /**
    * Performs a Kerberos login using the given Kerberos principal and keytab if they are non-null
-   * and positive length Strings. This method automaticallys spawns a thread to renew the given
+   * and positive length Strings. This method automatically spawns a thread to renew the given
    * ticket upon successful login using {@link Property#GENERAL_KERBEROS_RENEWAL_PERIOD} as the
    * renewal period. This method does nothing if either {@code keyTab} or {@code principal} are null
    * or of zero length.

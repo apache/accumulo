@@ -217,7 +217,7 @@ public class Merge {
 
   protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end)
       throws MergeException {
-    // open up metatadata, walk through the tablets.
+    // open up metadata, walk through the tablets.
     Table.ID tableId;
     Scanner scanner;
     try {

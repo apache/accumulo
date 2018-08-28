@@ -154,12 +154,12 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    *
    * @param job
    *          The Hadoop job instance to be configured
-   * @param sumarizerConfigs
+   * @param summarizerConfigs
    *          summarizer configurations
    * @since 2.0.0
    */
-  public static void setSummarizers(JobConf job, SummarizerConfiguration... sumarizerConfigs) {
-    FileOutputConfigurator.setSummarizers(CLASS, job, sumarizerConfigs);
+  public static void setSummarizers(JobConf job, SummarizerConfiguration... summarizerConfigs) {
+    FileOutputConfigurator.setSummarizers(CLASS, job, summarizerConfigs);
   }
 
   @Override

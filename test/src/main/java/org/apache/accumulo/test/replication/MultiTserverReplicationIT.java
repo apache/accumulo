@@ -79,7 +79,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      // Each tserver should also have equial replicaiton services running internally
+      // Each tserver should also have equal replication services running internally
       Assert.assertEquals("Expected an equal number of replication servicers and tservers",
           tserverHost.size(), replicationServices.size());
     }

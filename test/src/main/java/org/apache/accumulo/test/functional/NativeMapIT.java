@@ -120,7 +120,7 @@ public class NativeMapIT {
       iter = nm.iterator(newKey(i));
       verifyIterator(i, end, valueOffset, iter);
 
-      // lookup nonexistant key that falls after existing key
+      // lookup nonexistent key that falls after existing key
       iter = nm.iterator(newKey(i, 1, 1, 1, 1, false));
       verifyIterator(i + 1, end, valueOffset, iter);
     }

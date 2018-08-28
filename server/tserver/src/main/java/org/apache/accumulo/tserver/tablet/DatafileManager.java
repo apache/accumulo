@@ -389,7 +389,7 @@ class DatafileManager {
     // for scans to finish like major compactions do.... used to wait for scans to finish
     // here, but that was incorrect because a scan could start after waiting but before
     // memory was updated... assuming the file is always in use by scans leads to
-    // one uneeded metadata update when it was not actually in use
+    // one unneeded metadata update when it was not actually in use
     Set<FileRef> filesInUseByScans = Collections.emptySet();
     if (absMergeFile != null)
       filesInUseByScans = Collections.singleton(absMergeFile);

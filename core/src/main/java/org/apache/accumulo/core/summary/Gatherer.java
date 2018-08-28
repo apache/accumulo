@@ -491,7 +491,7 @@ public class Gatherer {
 
   /**
    * This methods reads a subset of file paths into memory and groups them by location. Then it
-   * request sumaries for files from each location/tablet server.
+   * request summaries for files from each location/tablet server.
    */
   public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
       int remainder) {

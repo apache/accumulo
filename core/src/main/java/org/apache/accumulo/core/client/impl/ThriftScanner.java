@@ -97,7 +97,7 @@ public class ThriftScanner {
       TInfo tinfo = Tracer.traceInfo();
       TabletClientService.Client client = ThriftUtil.getTServerClient(parsedServer, context);
       try {
-        // not reading whole rows (or stopping on row boundries) so there is no need to enable
+        // not reading whole rows (or stopping on row boundaries) so there is no need to enable
         // isolation below
         ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
@@ -210,7 +210,7 @@ public class ThriftScanner {
       this.batchTimeOut = batchTimeOut;
 
       if (executionHints == null || executionHints.size() == 0)
-        this.executionHints = null; // avoid thrift serlialization for empty map
+        this.executionHints = null; // avoid thrift serialization for empty map
       else
         this.executionHints = executionHints;
     }

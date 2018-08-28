@@ -81,7 +81,7 @@ public class CompressionTest {
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
 
         Assert.assertNotNull(al + " should have a non-null codec", al.getCodec());
@@ -116,7 +116,7 @@ public class CompressionTest {
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
 
         final CompressionCodec codec = al.getCodec();
@@ -159,7 +159,7 @@ public class CompressionTest {
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
 
         ExecutorService service = Executors.newFixedThreadPool(10);
@@ -195,7 +195,7 @@ public class CompressionTest {
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
 
         ExecutorService service = Executors.newFixedThreadPool(20);

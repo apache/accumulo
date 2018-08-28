@@ -345,7 +345,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
               keys.add(ckes);
             }
           } else {
-            // no null prevend or endrows and no empty string start or end rows
+            // no null prevEnd or endRows and no empty string start or end rows
             if (ckes.getPrevEndRow().compareTo(endRow) < 0
                 && ckes.getEndRow().compareTo(startRow) >= 0) {
               keys.add(ckes);

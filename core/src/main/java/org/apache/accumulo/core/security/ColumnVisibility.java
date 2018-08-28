@@ -207,7 +207,7 @@ public class ColumnVisibility {
   }
 
   /*
-   * Convience method that delegates to normalize with a new NodeComparator constructed using the
+   * Convenience method that delegates to normalize with a new NodeComparator constructed using the
    * supplied expression.
    */
   public static Node normalize(Node root, byte[] expression) {

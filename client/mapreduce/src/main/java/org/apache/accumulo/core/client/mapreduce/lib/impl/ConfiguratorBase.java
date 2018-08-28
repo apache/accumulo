@@ -342,7 +342,7 @@ public class ConfiguratorBase {
    * Creates an Accumulo {@link Connector} based on the configuration
    *
    * @param implementingClass
-   *          class whose name will be used as a prefix for the property configu
+   *          class whose name will be used as a prefix for the property configuration
    * @param conf
    *          Hadoop configuration object
    * @return Accumulo connector

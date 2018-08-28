@@ -72,8 +72,8 @@ public class SharedRateLimiterFactory {
     /**
      * Calculate the current rate for the {@link RateLimiter}.
      *
-     * @return Count of permits which should be provided per second. A nonpositive count is taken to
-     *         indicate that no rate limiting should be performed.
+     * @return Count of permits which should be provided per second. A non-positive count is taken
+     *         to indicate that no rate limiting should be performed.
      */
     long getDesiredRate();
   }
