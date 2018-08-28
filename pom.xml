@@ -122,7 +122,6 @@
     <extraReleaseArguments />
     <failsafe.excludedGroups />
     <failsafe.groups />
-    <findbugs.version>3.0.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <hadoop.version>3.0.2</hadoop.version>
@@ -793,9 +792,9 @@
           </configuration>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>${findbugs.version}</version>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>3.1.3</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -1322,11 +1321,11 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>run-findbugs</id>
+            <id>run-spotbugs</id>
             <goals>
               <goal>check</goal>
             </goals>
@@ -1385,7 +1384,6 @@
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
         <enforcer.skip>true</enforcer.skip>
-        <findbugs.skip>true</findbugs.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
         <maven.plugin.skip>true</maven.plugin.skip>
@@ -1395,6 +1393,7 @@
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
         <sort.skip>true</sort.skip>
+        <spotbugs.skip>true</spotbugs.skip>
         <warbucks.skip>true</warbucks.skip>
       </properties>
     </profile>
@@ -1588,9 +1587,9 @@
       <properties>
         <!-- some properties to make the release build a bit faster -->
         <checkstyle.skip>true</checkstyle.skip>
-        <findbugs.skip>true</findbugs.skip>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
+        <spotbugs.skip>true</spotbugs.skip>
       </properties>
     </profile>
     <profile>
@@ -1697,14 +1696,14 @@
       </build>
     </profile>
     <profile>
-      <id>add-findbugs-excludes</id>
+      <id>add-spotbugs-excludes</id>
       <activation>
         <file>
-          <exists>src/main/findbugs/exclude-filter.xml</exists>
+          <exists>src/main/spotbugs/exclude-filter.xml</exists>
         </file>
       </activation>
       <properties>
-        <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
+        <spotbugs.excludeFilterFile>src/main/spotbugs/exclude-filter.xml</spotbugs.excludeFilterFile>
       </properties>
     </profile>
     <profile>
