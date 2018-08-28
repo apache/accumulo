@@ -124,7 +124,6 @@ public abstract class FileOperations {
    *     .build();
    * </pre>
    */
-  @SuppressWarnings("unchecked")
   public ScanReaderBuilder newScanReaderBuilder() {
     return new ScanReaderBuilder();
   }
@@ -350,6 +349,7 @@ public abstract class FileOperations {
       return this;
     }
 
+    @Override
     public WriterBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;
@@ -398,6 +398,7 @@ public abstract class FileOperations {
       return this;
     }
 
+    @Override
     public ReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;
@@ -489,6 +490,7 @@ public abstract class FileOperations {
       return this;
     }
 
+    @Override
     public IndexReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;
@@ -515,6 +517,7 @@ public abstract class FileOperations {
       return this;
     }
 
+    @Override
     public ScanReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
       return this;

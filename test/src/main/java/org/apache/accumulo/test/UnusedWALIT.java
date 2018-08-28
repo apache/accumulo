@@ -52,7 +52,10 @@ import com.google.common.collect.Iterators;
 // It would be useful to have an IT that will test this situation.
 public class UnusedWALIT extends ConfigurableMacBase {
 
-  private ZooReaderWriter zk;
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 120;
+  }
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -65,7 +68,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.namenode.fs-limits.min-block-size", Long.toString(logSize));
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     // don't want this bad boy cleaning up walog entries
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
@@ -79,7 +82,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     c.tableOperations().create(lilTable);
 
     ServerContext context = getServerContext();
-    zk = new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
+    new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
 
     // put some data in a log that should be replayed for both tables
     writeSomeData(c, bigTable, 0, 10, 0, 10);

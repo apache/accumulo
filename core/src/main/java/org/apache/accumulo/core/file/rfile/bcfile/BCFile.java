@@ -17,8 +17,6 @@
 
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import static org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl.Scope;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -46,6 +44,7 @@ import org.apache.accumulo.core.security.crypto.CryptoUtils;
 import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.security.crypto.impl.NoFileDecrypter;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
@@ -487,10 +486,10 @@ public final class BCFile {
 
         BoundedRangeFileInputStream boundedRangeFileInputStream = new BoundedRangeFileInputStream(
             fsin, this.region.getOffset(), this.region.getCompressedSize());
-        InputStream inputStreamToBeCompressed = boundedRangeFileInputStream;
 
         try {
-          inputStreamToBeCompressed = decrypter.decryptStream(inputStreamToBeCompressed);
+          InputStream inputStreamToBeCompressed = decrypter
+              .decryptStream(boundedRangeFileInputStream);
           this.in = compressAlgo.createDecompressionStream(inputStreamToBeCompressed, decompressor,
               getFSInputBufferSize(conf));
         } catch (IOException e) {
