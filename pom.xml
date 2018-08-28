@@ -806,6 +806,11 @@
                 <artifactId>library-detectors</artifactId>
                 <version>1.2.0</version>
               </plugin>
+              <plugin>
+                <groupId>com.h3xstream.findsecbugs</groupId>
+                <artifactId>findsecbugs-plugin</artifactId>
+                <version>1.8.0</version>
+              </plugin>
             </plugins>
           </configuration>
         </plugin>

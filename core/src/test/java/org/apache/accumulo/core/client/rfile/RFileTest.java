@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -514,7 +515,7 @@ public class RFileTest {
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withIndexCache(1000000).withDataCache(10000000).build();
 
-    Random rand = new Random(5);
+    Random rand = new SecureRandom();
 
     for (int i = 0; i < 100; i++) {
       int r = rand.nextInt(10000);

@@ -105,7 +105,7 @@ public class ProblemsResource {
       ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(Table.ID.of(tableID));
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
-          + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : tableID), e);
+          + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : sanitize(tableID)), e);
     }
   }
 
@@ -165,8 +165,16 @@ public class ProblemsResource {
           ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
-          + (StringUtils.isBlank(tableID) ? "" : tableID), e);
+          + (StringUtils.isBlank(tableID) ? "" : sanitize(tableID)), e);
     }
+  }
+
+  /**
+   * Prevent potential CRLF injection into logs from read in user data.
+   * See https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   */
+  private String sanitize(String msg) {
+    return msg.replaceAll("[\r\n]","");
   }
 
   @GET

@@ -55,38 +55,6 @@ public class CryptoUtils {
     return secureRandom;
   }
 
-  public static Cipher getCipher(String cipherSuite, String securityProvider) {
-    Cipher cipher = null;
-
-    if (cipherSuite.equals("NullCipher")) {
-      cipher = new NullCipher();
-    } else {
-      try {
-        if (securityProvider == null || securityProvider.equals("")) {
-          cipher = Cipher.getInstance(cipherSuite);
-        } else {
-          cipher = Cipher.getInstance(cipherSuite, securityProvider);
-        }
-      } catch (NoSuchAlgorithmException e) {
-        log.error(String.format("Accumulo configuration file contained a cipher"
-            + " suite \"%s\" that was not recognized by any providers", cipherSuite));
-        throw new CryptoException(e);
-      } catch (NoSuchPaddingException e) {
-        log.error(String.format(
-            "Accumulo configuration file contained a"
-                + " cipher, \"%s\" with a padding that was not recognized by any" + " providers",
-            cipherSuite));
-        throw new CryptoException(e);
-      } catch (NoSuchProviderException e) {
-        log.error(String.format(
-            "Accumulo configuration file contained a provider, \"%s\" an unrecognized provider",
-            securityProvider));
-        throw new CryptoException(e);
-      }
-    }
-    return cipher;
-  }
-
   /**
    * Read the decryption parameters from the DataInputStream
    */

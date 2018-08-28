@@ -373,7 +373,7 @@ public class VolumeUtil {
 
   private static String hash(FileSystem fs, Path dir, String name) throws IOException {
     try (FSDataInputStream in = fs.open(new Path(dir, name))) {
-      return DigestUtils.shaHex(in);
+      return DigestUtils.sha256Hex(in);
     }
 
   }

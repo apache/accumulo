@@ -19,6 +19,7 @@ package org.apache.accumulo.test.util.nativemap;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -69,7 +70,7 @@ public class NativeMapPerformance {
     else
       throw new IllegalArgumentException(" map type must be SKIP_LIST, TREE_MAP, or NATIVE_MAP");
 
-    Random rand = new Random(19);
+    Random rand = new SecureRandom();
 
     // puts
     long tps = System.currentTimeMillis();
@@ -115,7 +116,7 @@ public class NativeMapPerformance {
 
     long tie = System.currentTimeMillis();
 
-    rand = new Random(19);
+    rand = new SecureRandom();
     int rowsToLookup[] = new int[numLookups];
     int colsToLookup[] = new int[numLookups];
     for (int i = 0; i < Math.min(numLookups, numRows); i++) {

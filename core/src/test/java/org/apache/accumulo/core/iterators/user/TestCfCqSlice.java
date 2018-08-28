@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -376,7 +377,7 @@ public abstract class TestCfCqSlice {
       skvi.init(parent, options, null);
       skvi.seek(range, EMPTY_CF_SET, false);
 
-      Random random = new Random();
+      Random random = new SecureRandom();
 
       while (skvi.hasTop()) {
         Key k = skvi.getTopKey();

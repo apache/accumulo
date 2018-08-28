@@ -18,6 +18,7 @@ package org.apache.accumulo.server.master.balancer;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -377,7 +378,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
               if (null == outOfBoundsTablets) {
                 continue;
               }
-              Random random = new Random();
+              Random random = new SecureRandom();
               for (TabletStats ts : outOfBoundsTablets) {
                 KeyExtent ke = new KeyExtent(ts.getExtent());
                 if (migrations.contains(ke)) {

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -141,7 +142,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     conn.tableOperations().flush(tablename, null, null, true);
   }
 
-  final static Random r = new Random();
+  final static Random r = new SecureRandom();
 
   private void makeFile(Connector conn, String tablename) throws Exception {
     BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());

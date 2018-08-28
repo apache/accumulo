@@ -41,17 +41,17 @@ public class ParameterValidatorTest {
 
   @Test
   public void testServerRegex() throws Exception {
-    Pattern p = Pattern.compile(ParameterValidator.SERVER_REGEX);
+    Pattern p = Pattern.compile(ParameterValidator.HOSTNAME_PORT_REGEX);
     Assert.assertTrue("Did not match hostname with dots",
-        p.matcher("ab3cd.12d34.3xyz.net").matches());
+        p.matcher("ab3cd.12d34.3xyz.net:12").matches());
     Assert.assertTrue("Did not match hostname with dash",
-        p.matcher("abcd.123.server-foo.com").matches());
+        p.matcher("abcd.123.server-foo.com:56789").matches());
     Assert.assertTrue("Did not match hostname and port",
         p.matcher("abcd.123.server-foo.com:1234").matches());
-    Assert.assertTrue("Did not match all numeric", p.matcher("127.0.0.1").matches());
     Assert.assertTrue("Did not match all numeric and port", p.matcher("127.0.0.1:9999").matches());
     Assert.assertTrue("Did not match all numeric and port", p.matcher("ServerName:9999").matches());
 
+    Assert.assertFalse("Port number required", p.matcher("127.0.0.1").matches());
     Assert.assertFalse(p.matcher("abcd.1234.*.xyz").matches());
     Assert.assertFalse(p.matcher("abcd.1234.;xyz").matches());
     Assert.assertFalse(p.matcher("abcd.12{3}4.xyz").matches());
@@ -59,13 +59,6 @@ public class ParameterValidatorTest {
     Assert.assertFalse(p.matcher("abcd=4.xyz").matches());
     Assert.assertFalse(p.matcher("abcd=\"4.xyz\"").matches());
     Assert.assertFalse(p.matcher("abcd\"4.xyz\"").matches());
-
-    Pattern q = Pattern.compile(ParameterValidator.SERVER_REGEX_BLANK_OK);
-    Assert.assertTrue(q.matcher("abcd:9997").matches());
-    Assert.assertTrue(q.matcher("abcd.123:9997").matches());
-    Assert.assertTrue(q.matcher("abcd.123-xyz:9997").matches());
-    Assert.assertTrue(q.matcher("abcd.123-xyz").matches());
-    Assert.assertTrue(q.matcher("").matches());
   }
 
 }

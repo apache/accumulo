@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -134,7 +135,7 @@ public class IMMLGBenchmark {
 
   private static long write(Connector conn, ArrayList<byte[]> cfset, String table)
       throws TableNotFoundException, MutationsRejectedException {
-    Random rand = new Random();
+    Random rand = new SecureRandom();
 
     byte val[] = new byte[50];
 

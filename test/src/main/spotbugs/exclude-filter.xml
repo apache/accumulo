@@ -16,6 +16,10 @@
 -->
 <FindBugsFilter>
   <Match>
+    <!-- ignore security bugs in tests -->
+    <Bug category="SECURITY" />
+  </Match>
+  <Match>
     <!-- ignore thrift-generated files -->
     <Or>
       <Package name="org.apache.accumulo.test.rpc.thrift" />

@@ -17,6 +17,7 @@
 package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
   private static final Logger log = LoggerFactory.getLogger(IsolatedDeepCopiesTestCase.class);
 
-  private final Random random = new Random();
+  private final Random random = new SecureRandom();
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {

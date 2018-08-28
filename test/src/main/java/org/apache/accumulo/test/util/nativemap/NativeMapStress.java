@@ -18,6 +18,7 @@ package org.apache.accumulo.test.util.nativemap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -69,7 +70,7 @@ public class NativeMapStress {
         public void run() {
           NativeMap nm = new NativeMap();
 
-          Random r = new Random();
+          Random r = new SecureRandom();
 
           OpTimer timer = null;
           AtomicLong nextOpid = new AtomicLong();
@@ -258,7 +259,7 @@ public class NativeMapStress {
       Runnable r = new Runnable() {
         @Override
         public void run() {
-          Random r = new Random();
+          Random r = new SecureRandom();
           int inserts = 0;
 
           for (int i = 0; i < insertsPerThread / 100.0; i++) {

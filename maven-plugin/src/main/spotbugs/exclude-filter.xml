@@ -15,18 +15,15 @@
   limitations under the License.
 -->
 <FindBugsFilter>
-  <Match>
-    <!-- ignore thrift-generated classes -->
-    <Package name="org.apache.accumulo.proxy.thrift" />
-  </Match>
-  <Match>
-    <!-- admin classes can call System.exit -->
-    <Class name="org.apache.accumulo.proxy.Proxy" />
-    <Bug code="DM" pattern="DM_EXIT" />
-  </Match>
-  <Match>
-    <!-- Calling new File on input can be dangerous, but OK here -->
-    <Class name="org.apache.accumulo.proxy.Proxy$PropertiesConverter"/>
-    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
-  </Match>
+    <Match>
+        <!-- new file on user input can be dangerous but OK here -->
+        <Class name="org.apache.accumulo.maven.plugin.StartMojo"/>
+        <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
+    </Match>
+    <Match>
+        <!-- dangerous on untrusted files but OK here -->
+        <Class name="org.apache.accumulo.maven.plugin.HelpMojo"/>
+        <Method name="build" params="" returns="org.w3c.dom.Document"/>
+        <Bug code="XXE" pattern="XXE_DOCUMENT"/>
+    </Match>
 </FindBugsFilter>

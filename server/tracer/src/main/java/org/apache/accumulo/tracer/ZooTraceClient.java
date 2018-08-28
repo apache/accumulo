@@ -18,6 +18,7 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   ZooReader zoo = null;
   String path;
   boolean pathExists = false;
-  final Random random = new Random();
+  final Random random = new SecureRandom();
   final List<String> hosts = new ArrayList<>();
   long retryPause = 5000L;
 

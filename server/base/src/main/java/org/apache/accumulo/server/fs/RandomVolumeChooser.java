@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.server.fs;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 public class RandomVolumeChooser implements VolumeChooser {
-  private final Random random = new Random();
+  private final Random random = new SecureRandom();
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options)

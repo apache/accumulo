@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -70,7 +71,7 @@ public class IndexedDocIteratorTest extends TestCase {
       Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
       Text[] negatedColumns) {
     StringBuilder sb = new StringBuilder();
-    Random r = new Random();
+    Random r = new SecureRandom();
     Value v = new Value(new byte[0]);
     TreeMap<Key,Value> map = new TreeMap<>();
     boolean[] negateMask = new boolean[columnFamilies.length];

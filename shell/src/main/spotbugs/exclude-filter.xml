@@ -20,4 +20,30 @@
     <Class name="org.apache.accumulo.shell.Shell" />
     <Bug code="DM" pattern="DM_EXIT" />
   </Match>
+  <Match>
+    <!-- output to anywhere OK here -->
+    <Class name="org.apache.accumulo.shell.Shell$PrintFile"/>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_OUT"/>
+  </Match>
+  <Match>
+    <!-- new file input stream OK here -->
+    <Class name="org.apache.accumulo.shell.ShellOptionsJC"/>
+    <Method name="getClientProperties" params="" returns="java.util.Properties"/>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
+  </Match>
+  <Match>
+    <!-- new file input stream OK here -->
+    <Or>
+      <Class name="org.apache.accumulo.shell.commands.ExecfileCommand"/>
+      <Class name="org.apache.accumulo.shell.ShellOptionsJC$PasswordConverter$KeyType$2"/>
+      <Class name="org.apache.accumulo.shell.commands.ScriptCommand"/>
+    </Or>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
+  </Match>
+  <Match>
+    <!-- new file input stream OK here -->
+    <Class name="org.apache.accumulo.shell.ShellUtil"/>
+    <Method name="scanFile" params="java.lang.String,boolean" returns="java.util.List"/>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
+  </Match>
 </FindBugsFilter>

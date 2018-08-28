@@ -656,9 +656,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
 
+  /**
+   * Prevent potential CRLF injection into logs from read in user data
+   * See https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   */
+  private String sanitize(String msg) {
+    return msg.replaceAll("[\r\n]","");
+  }
+
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt)
       throws IOException {
-    audit.log(Level.INFO, getDefaultPrompt() + input);
+    audit.log(Level.INFO, sanitize(getDefaultPrompt() + input));
     if (echoPrompt) {
       reader.print(getDefaultPrompt());
       reader.println(input);

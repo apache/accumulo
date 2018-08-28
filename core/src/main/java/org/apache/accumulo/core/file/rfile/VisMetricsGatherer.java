@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -131,15 +132,15 @@ public class VisMetricsGatherer
           + "Percent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
         if (hash) {
-          String md5String = "";
+          String encodedKey = "";
           try {
-            byte[] md5Bytes = MessageDigest.getInstance("MD5")
+            byte[] encodedBytes = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM)
                 .digest(entry.getKey().getBytes(UTF_8));
-            md5String = new String(md5Bytes, UTF_8);
+            encodedKey = new String(encodedBytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
-            out.println("Failed to convert key to MD5 hash: " + e.getMessage());
+            out.println("Failed to convert key to "+Constants.PW_HASH_ALGORITHM+" hash: " + e.getMessage());
           }
-          out.printf("%-20s", md5String.substring(0, 8));
+          out.printf("%-20s", encodedKey.substring(0, 8));
         } else
           out.printf("%-20s", entry.getKey());
         out.print("\t\t" + entry.getValue() + "\t\t\t");

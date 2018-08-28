@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -59,7 +60,7 @@ public class IntersectingIteratorTest {
   private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow,
       Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
       Text[] negatedColumns) {
-    Random r = new Random();
+    Random r = new SecureRandom();
     Value v = new Value(new byte[0]);
     TreeMap<Key,Value> map = new TreeMap<>();
     boolean[] negateMask = new boolean[columnFamilies.length];

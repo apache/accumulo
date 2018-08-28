@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -92,7 +93,7 @@ public class VerifyIngest {
     long t1 = System.currentTimeMillis();
 
     byte randomValue[] = new byte[opts.dataSize];
-    Random random = new Random();
+    Random random = new SecureRandom();
 
     Key endKey = new Key(new Text("row_" + String.format("%010d", opts.rows + opts.startRow)));
 

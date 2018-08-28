@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -48,7 +49,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
     Connector conn = getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
     conn.tableOperations().create(tableName);
     try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
-      Random r = new Random();
+      Random r = new SecureRandom();
       while (bytesWritten < BYTES_TO_WRITE) {
         byte[] rowKey = new byte[32];
         r.nextBytes(rowKey);

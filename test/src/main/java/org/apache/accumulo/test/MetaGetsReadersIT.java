@@ -21,6 +21,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -81,7 +82,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     final String tableName = getUniqueNames(1)[0];
     final Connector c = getConnector();
     c.tableOperations().create(tableName);
-    Random random = new Random();
+    Random random = new SecureRandom();
     BatchWriter bw = c.createBatchWriter(tableName, null);
     for (int i = 0; i < 50000; i++) {
       byte[] row = new byte[100];

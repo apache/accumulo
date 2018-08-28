@@ -18,6 +18,7 @@ package org.apache.accumulo.server.tablets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
@@ -43,7 +44,7 @@ public class UniqueNameAllocator {
   public UniqueNameAllocator(ServerContext context) {
     this.context = context;
     nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
-    rand = new Random();
+    rand = new SecureRandom();
   }
 
   public synchronized String getNextName() {

@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -953,7 +954,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(2, countFiles(cloneId));
 
     // create two large files
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     StringBuilder sb = new StringBuilder("insert b v q ");
     for (int i = 0; i < 10000; i++) {
       sb.append('a' + rand.nextInt(26));

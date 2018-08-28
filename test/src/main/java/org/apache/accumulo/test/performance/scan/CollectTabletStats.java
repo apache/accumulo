@@ -18,6 +18,7 @@ package org.apache.accumulo.test.performance.scan;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -381,7 +382,7 @@ public class CollectTabletStats {
   private static List<KeyExtent> selectRandomTablets(int numThreads, List<KeyExtent> candidates) {
     List<KeyExtent> tabletsToTest = new ArrayList<>();
 
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     for (int i = 0; i < numThreads; i++) {
       int rindex = rand.nextInt(candidates.size());
       tabletsToTest.add(candidates.get(rindex));

@@ -31,6 +31,7 @@ import static org.apache.accumulo.test.functional.BasicSummarizer.MIN_TIMESTAMP_
 import static org.apache.accumulo.test.functional.BasicSummarizer.TOTAL_STAT;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -831,7 +832,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
     c.tableOperations().create(table, ntc);
 
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
     int q = 0;
 
     SortedSet<Text> partitionKeys = new TreeSet<>();

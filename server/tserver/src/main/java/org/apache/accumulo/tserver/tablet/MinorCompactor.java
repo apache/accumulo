@@ -19,6 +19,7 @@ package org.apache.accumulo.tserver.tablet;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
@@ -139,7 +140,7 @@ public class MinorCompactor extends Compactor {
           throw new IllegalStateException(e);
         }
 
-        Random random = new Random();
+        Random random = new SecureRandom();
 
         int sleep = sleepTime + random.nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);

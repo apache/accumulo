@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
+import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -54,7 +55,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
-    Random random = new Random();
+    Random random = new SecureRandom();
     Connector c = getConnector();
     c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
         "" + SMALL_QUEUE_SIZE);

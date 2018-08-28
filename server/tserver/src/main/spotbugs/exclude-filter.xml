@@ -27,4 +27,20 @@
     <Method name="&lt;init&gt;" params="org.apache.accumulo.tserver.TabletServer,org.apache.accumulo.server.fs.VolumeManager,org.apache.accumulo.server.ServerContext" returns="void" />
     <Bug code="DM" pattern="DM_GC" />
   </Match>
+  <Match>
+    <!-- Calling new File on input can be dangerous, but OK here -->
+    <Class name="org.apache.accumulo.tserver.NativeMap" />
+    <Method name="loadNativeLib" params="java.util.List"/>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN" />
+  </Match>
+  <Match>
+    <!-- Calling new File on input can be dangerous, but OK here -->
+    <Class name="org.apache.accumulo.tserver.replication.AccumuloReplicaSystem" />
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN" />
+  </Match>
+  <Match>
+    <!-- Calling new File on input can be dangerous, but OK here -->
+    <Class name="org.apache.accumulo.tserver.log.TestUpgradePathForWALogs" />
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
+  </Match>
 </FindBugsFilter>

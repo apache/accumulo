@@ -27,6 +27,7 @@ import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -460,7 +461,7 @@ public class TabletServer implements Runnable {
   }
 
   private static long jitter(long ms) {
-    Random r = new Random();
+    Random r = new SecureRandom();
     // add a random 10% wait
     return (long) ((1. + (r.nextDouble() / 10)) * ms);
   }

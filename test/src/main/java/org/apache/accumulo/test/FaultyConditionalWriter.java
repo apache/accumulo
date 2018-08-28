@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -40,7 +41,7 @@ public class FaultyConditionalWriter implements ConditionalWriter {
     this.cw = cw;
     this.up = unknownProbability;
     this.wp = writeProbability;
-    this.rand = new Random();
+    this.rand = new SecureRandom();
 
   }
 

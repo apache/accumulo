@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -129,7 +130,7 @@ public class QueryMetadataTable {
 
     ArrayList<Text> rows = new ArrayList<>(rowSet);
 
-    Random r = new Random();
+    Random r = new SecureRandom();
 
     ExecutorService tp = Executors.newFixedThreadPool(opts.numThreads);
 

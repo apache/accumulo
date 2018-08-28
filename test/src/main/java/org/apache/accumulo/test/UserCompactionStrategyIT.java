@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -297,7 +298,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   }
 
   void writeRandomValue(Connector c, String tableName, int size) throws Exception {
-    Random rand = new Random();
+    Random rand = new SecureRandom();
 
     byte data1[] = new byte[size];
     rand.nextBytes(data1);

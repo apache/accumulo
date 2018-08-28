@@ -18,6 +18,7 @@ package org.apache.accumulo.test.util.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -65,7 +66,7 @@ public class MetadataBatchScan {
     final Connector connector = opts.getConnector();
 
     TreeSet<Long> splits = new TreeSet<>();
-    Random r = new Random(42);
+    Random r = new SecureRandom();
 
     while (splits.size() < 99999) {
       splits.add((r.nextLong() & 0x7fffffffffffffffL) % 1000000000000L);

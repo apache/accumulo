@@ -26,4 +26,10 @@
       <Bug code="NM" pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
     </Or>
   </Match>
+  <Match>
+    <!-- Calling new File on input can be dangerous, but OK here -->
+    <Class name="org.apache.accumulo.core.client.mapreduce.lib.partition.RangePartitioner" />
+    <Method name="getCutPoints" />
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN" />
+  </Match>
 </FindBugsFilter>
