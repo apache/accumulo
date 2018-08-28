@@ -37,11 +37,11 @@ public class CryptoUtils {
 
   private static final Logger log = LoggerFactory.getLogger(CryptoUtils.class);
 
-  public static SecureRandom getSha1SecureRandom() {
-    return getSecureRandom("SHA1PRNG", "SUN");
+  public static SecureRandom newSha1SecureRandom() {
+    return newSecureRandom("SHA1PRNG", "SUN");
   }
 
-  private static SecureRandom getSecureRandom(String secureRNG, String secureRNGProvider) {
+  private static SecureRandom newSecureRandom(String secureRNG, String secureRNGProvider) {
     SecureRandom secureRandom = null;
     try {
       secureRandom = SecureRandom.getInstance(secureRNG, secureRNGProvider);

@@ -65,8 +65,8 @@ public class AESCryptoService implements CryptoService {
   private String encryptingKekId = null;
   private String encryptingKeyManager = null;
   // Lets just load keks for reading once
-  private static HashMap<String,Key> decryptingKeys = new HashMap<>();
-  private static SecureRandom sr = CryptoUtils.getSha1SecureRandom();
+  private HashMap<String,Key> decryptingKeys = null;
+  private SecureRandom sr = null;
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
@@ -74,6 +74,8 @@ public class AESCryptoService implements CryptoService {
     String keyMgr = conf.get("instance.crypto.opts.keyManager");
     Objects.requireNonNull(kekId, "Config property instance.crypto.opts.kekId is required.");
     Objects.requireNonNull(keyMgr, "Config property instance.crypto.opts.keyManager is required.");
+    this.sr = CryptoUtils.newSha1SecureRandom();
+    this.decryptingKeys = new HashMap<>();
     switch (keyMgr) {
       case KeyManager.URI:
         this.encryptingKeyManager = keyMgr;
@@ -225,11 +227,11 @@ public class AESCryptoService implements CryptoService {
     return parsed;
   }
 
-  private static Key loadDecryptionKek(ParsedCryptoParameters params) {
+  private Key loadDecryptionKek(ParsedCryptoParameters params) {
     Key ret = null;
     String keyTag = params.getKeyManagerVersion() + "!" + params.getKekId();
-    if (decryptingKeys.get(keyTag) != null) {
-      return (decryptingKeys.get(keyTag));
+    if (this.decryptingKeys.get(keyTag) != null) {
+      return (this.decryptingKeys.get(keyTag));
     }
 
     switch (params.keyManagerVersion) {
@@ -240,7 +242,7 @@ public class AESCryptoService implements CryptoService {
         throw new CryptoException("Unable to load kek: " + params.kekId);
     }
 
-    decryptingKeys.put(keyTag, ret);
+    this.decryptingKeys.put(keyTag, ret);
 
     if (ret == null)
       throw new CryptoException("Unable to load decryption KEK");
@@ -258,7 +260,7 @@ public class AESCryptoService implements CryptoService {
     FileDecrypter getDecrypter(Key fek);
   }
 
-  public static class AESGCMCryptoModule implements CryptoModule {
+  public class AESGCMCryptoModule implements CryptoModule {
     private static final String VERSION = "U+1F43B"; // unicode bear emoji rawr
 
     private final Integer GCM_IV_LENGTH_IN_BYTES = 12;
@@ -292,11 +294,11 @@ public class AESCryptoService implements CryptoService {
     public class AESGCMFileEncrypter implements FileEncrypter {
 
       private byte[] firstInitVector;
-      private Key fek = KeyManager.generateKey(sr, KEY_LENGTH_IN_BYTES);
+      private Key fek;
       private byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
 
       AESGCMFileEncrypter() {
-
+        fek = KeyManager.generateKey(sr, KEY_LENGTH_IN_BYTES);
         sr.nextBytes(initVector);
         firstInitVector = Arrays.copyOf(initVector, initVector.length);
       }
@@ -401,7 +403,7 @@ public class AESCryptoService implements CryptoService {
     }
   }
 
-  public static class AESCBCCryptoModule implements CryptoModule {
+  public class AESCBCCryptoModule implements CryptoModule {
     public static final String VERSION = "U+1f600"; // unicode grinning face emoji
     private final Integer IV_LENGTH_IN_BYTES = 16;
     private final Integer KEY_LENGTH_IN_BYTES = 16;
