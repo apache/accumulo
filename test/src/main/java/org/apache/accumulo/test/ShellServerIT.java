@@ -85,7 +85,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -855,14 +854,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Connector connector = getConnector();
     for (Entry<String,String> entry : connector.tableOperations().getProperties(table)) {
       if (entry.getKey().equals("table.custom.description"))
-        Assert.assertEquals("Initial property was not set correctly", "description",
-            entry.getValue());
+        assertEquals("Initial property was not set correctly", "description", entry.getValue());
 
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertEquals("Initial property was not set correctly", "testProp", entry.getValue());
+        assertEquals("Initial property was not set correctly", "testProp", entry.getValue());
 
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        Assert.assertEquals("Initial property was not set correctly", "10K", entry.getValue());
+        assertEquals("Initial property was not set correctly", "10K", entry.getValue());
 
     }
     ts.exec("deletetable -f " + table);
@@ -1776,14 +1774,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void scansWithClassLoaderContext() throws Exception {
+  public void scansWithClassLoaderContext() throws IOException {
     try {
       Class.forName(VALUE_REVERSING_ITERATOR);
       fail("ValueReversingIterator already on the classpath");
-    } catch (Exception e) {
-      // Do nothing here, This is success. The following line is here
-      // so that findbugs doesn't have a stroke.
-      assertTrue(true);
+    } catch (ClassNotFoundException e) {
+      // expected; iterator is already on the class path
     }
     ts.exec("createtable t");
     // Assert that the TabletServer does not know anything about our class
@@ -1916,7 +1912,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators"
       + ".ColumnFamilyCounter";
 
-  private void setupRealContextPath() throws Exception {
+  private void setupRealContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
@@ -1926,7 +1922,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fs.copyFromLocalFile(jarPath, dstPath);
   }
 
-  private void setupFakeContextPath() throws Exception {
+  private void setupFakeContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
@@ -2005,12 +2001,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private static void assertMatches(String output, String pattern) {
-    Assert.assertTrue("Pattern " + pattern + " did not match output : " + output,
-        output.matches(pattern));
+    assertTrue("Pattern " + pattern + " did not match output : " + output, output.matches(pattern));
   }
 
   private static void assertNotContains(String output, String subsequence) {
-    Assert.assertFalse("Expected '" + subsequence + "' would not occur in output : " + output,
+    assertFalse("Expected '" + subsequence + "' would not occur in output : " + output,
         output.contains(subsequence));
   }
 
@@ -2140,8 +2135,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Map<String,Set<Text>> lMap = connector.tableOperations().getLocalityGroups(table);
     Set<Text> expectedColFams = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
     for (Entry<String,Set<Text>> entry : lMap.entrySet()) {
-      Assert.assertEquals("locg1", entry.getKey());
-      Assert.assertTrue(entry.getValue().containsAll(expectedColFams));
+      assertEquals("locg1", entry.getKey());
+      assertTrue(entry.getValue().containsAll(expectedColFams));
     }
     ts.exec("deletetable -f " + table);
   }
@@ -2157,12 +2152,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg2=colfam1", true);
     Connector connector = getConnector();
     Map<String,Set<Text>> lMap = connector.tableOperations().getLocalityGroups(table);
-    Assert.assertTrue(lMap.keySet().contains("locg1"));
-    Assert.assertTrue(lMap.keySet().contains("locg2"));
+    assertTrue(lMap.keySet().contains("locg1"));
+    assertTrue(lMap.keySet().contains("locg2"));
     Set<Text> expectedColFams1 = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
     Set<Text> expectedColFams2 = new HashSet<>(Arrays.asList(new Text("colfam1")));
-    Assert.assertTrue(lMap.get("locg1").containsAll(expectedColFams1));
-    Assert.assertTrue(lMap.get("locg2").containsAll(expectedColFams2));
+    assertTrue(lMap.get("locg1").containsAll(expectedColFams1));
+    assertTrue(lMap.get("locg2").containsAll(expectedColFams2));
     ts.exec("deletetable -f " + table);
   }
 
@@ -2192,12 +2187,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // the fact that setshelliter extends setiter, which does require a table argument.
     ts.exec("createtable " + tmpTable, true);
     String output = ts.exec("tables");
-    Assert.assertTrue(output.contains(tmpTable));
+    assertTrue(output.contains(tmpTable));
 
     ts.input.set("\n5000\n\n");
     ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
     output = ts.exec("listshelliter");
-    Assert.assertTrue(output.contains("Profile : profile1"));
+    assertTrue(output.contains("Profile : profile1"));
 
     // create table making use of the iterator profile
     ts.exec("createtable " + table + " -i profile1:scan,minc", true);
@@ -2225,17 +2220,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // the fact that setshelliter extends setiter, which does require a table argument.
     ts.exec("createtable " + tmpTable, true);
     String output = ts.exec("tables");
-    Assert.assertTrue(output.contains(tmpTable));
+    assertTrue(output.contains(tmpTable));
 
     ts.input.set("\n5000\n\n");
     ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
     output = ts.exec("listshelliter");
-    Assert.assertTrue(output.contains("Profile : profile1"));
+    assertTrue(output.contains("Profile : profile1"));
 
     ts.input.set("2\n");
     ts.exec("setshelliter -n iter2 -p 11 -pn profile2 -vers", true);
     output = ts.exec("listshelliter");
-    Assert.assertTrue(output.contains("Profile : profile2"));
+    assertTrue(output.contains("Profile : profile2"));
 
     // create table making use of the iterator profiles
     ts.exec("createtable " + table + " -i profile1:scan,minc profile2:all ", true);
@@ -2244,12 +2239,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("sleep 6", true);
     ts.exec("scan", true, "", true);
     output = ts.exec("listiter -t " + table + " -all");
-    Assert.assertTrue(output.contains("Iterator itname, scan scope options"));
-    Assert.assertTrue(output.contains("Iterator itname, minc scope options"));
-    Assert.assertFalse(output.contains("Iterator itname, majc scope options"));
-    Assert.assertTrue(output.contains("Iterator iter2, scan scope options"));
-    Assert.assertTrue(output.contains("Iterator iter2, minc scope options"));
-    Assert.assertTrue(output.contains("Iterator iter2, majc scope options"));
+    assertTrue(output.contains("Iterator itname, scan scope options"));
+    assertTrue(output.contains("Iterator itname, minc scope options"));
+    assertFalse(output.contains("Iterator itname, majc scope options"));
+    assertTrue(output.contains("Iterator iter2, scan scope options"));
+    assertTrue(output.contains("Iterator iter2, minc scope options"));
+    assertTrue(output.contains("Iterator iter2, majc scope options"));
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + tmpTable);
   }
@@ -2260,11 +2255,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = name.getMethodName();
     ts.exec("createtable " + tmpTable, true);
     String output = ts.exec("tables");
-    Assert.assertTrue(output.contains(tmpTable));
+    assertTrue(output.contains(tmpTable));
     ts.input.set("\n5000\n\n");
     ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
     output = ts.exec("listshelliter");
-    Assert.assertTrue(output.contains("Profile : profile1"));
+    assertTrue(output.contains("Profile : profile1"));
     // test various bad argument calls
     ts.exec("createtable " + table + " -i noprofile:scan,minc", false);
     ts.exec("createtable " + table + " -i profile1:scan,minc,all,majc", false);
