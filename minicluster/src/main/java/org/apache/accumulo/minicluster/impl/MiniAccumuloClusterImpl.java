@@ -130,14 +130,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       this.in = new BufferedReader(new InputStreamReader(stream));
       out = new BufferedWriter(new FileWriter(logFile));
 
-      SimpleTimer.getInstance(null).schedule(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            flush();
-          } catch (IOException e) {
-            log.error("Exception while attempting to flush.", e);
-          }
+      SimpleTimer.getInstance(null).schedule(() -> {
+        try {
+          flush();
+        } catch (IOException e) {
+          log.error("Exception while attempting to flush.", e);
         }
       }, 1000, 1000);
     }
@@ -568,18 +565,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             "The Accumulo instance being used is already running. Aborting.");
     } else {
       if (!initialized) {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-          @Override
-          public void run() {
-            try {
-              MiniAccumuloClusterImpl.this.stop();
-            } catch (IOException e) {
-              log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
-            } catch (InterruptedException e) {
-              log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
-            }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+          try {
+            MiniAccumuloClusterImpl.this.stop();
+          } catch (IOException e) {
+            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
+          } catch (InterruptedException e) {
+            log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           }
-        });
+        }));
       }
 
       if (!config.useExistingZooKeepers())

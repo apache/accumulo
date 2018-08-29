@@ -19,7 +19,6 @@ package org.apache.accumulo.fate;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -174,16 +173,11 @@ public class Fate<T> {
    */
   public void startTransactionRunners(int numThreads) {
     final AtomicInteger runnerCount = new AtomicInteger(0);
-    executor = Executors.newFixedThreadPool(numThreads, new ThreadFactory() {
-
-      @Override
-      public Thread newThread(Runnable r) {
-        Thread t = new Thread(new LoggingRunnable(log, r),
-            "Repo runner " + runnerCount.getAndIncrement());
-        t.setDaemon(true);
-        return t;
-      }
-
+    executor = Executors.newFixedThreadPool(numThreads, r -> {
+      Thread t = new Thread(new LoggingRunnable(log, r),
+          "Repo runner " + runnerCount.getAndIncrement());
+      t.setDaemon(true);
+      return t;
     });
     for (int i = 0; i < numThreads; i++) {
       executor.execute(new TransactionRunner());

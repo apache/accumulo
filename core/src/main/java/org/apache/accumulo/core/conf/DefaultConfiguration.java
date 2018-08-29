@@ -29,7 +29,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
 
   private static final Map<String,String> resolvedProps = Arrays.stream(Property.values())
       .filter(p -> p.getType() != PropertyType.PREFIX)
-      .collect(Collectors.toMap(p -> p.getKey(), p -> p.getDefaultValue()));
+      .collect(Collectors.toMap(Property::getKey, Property::getDefaultValue));
 
   private DefaultConfiguration() {}
 

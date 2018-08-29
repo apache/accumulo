@@ -131,23 +131,18 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       ranges = ranges2;
     }
 
-    ResultReceiver rr = new ResultReceiver() {
+    ResultReceiver rr = entries -> {
+      try {
+        resultsQueue.put(entries);
+      } catch (InterruptedException e) {
+        if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
+          log.debug("Failed to add Batch Scan result", e);
+        else
+          log.warn("Failed to add Batch Scan result", e);
+        fatalException = e;
+        throw new RuntimeException(e);
 
-      @Override
-      public void receive(List<Entry<Key,Value>> entries) {
-        try {
-          resultsQueue.put(entries);
-        } catch (InterruptedException e) {
-          if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
-            log.debug("Failed to add Batch Scan result", e);
-          else
-            log.warn("Failed to add Batch Scan result", e);
-          fatalException = e;
-          throw new RuntimeException(e);
-
-        }
       }
-
     };
 
     try {

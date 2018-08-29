@@ -100,6 +100,6 @@ public class HintScanPrioritizer implements ScanPrioritizer {
     Comparator<ScanInfo> cmp = Comparator.comparingInt(si -> getPriority(si, defaultPriority, hpa));
 
     return cmp.thenComparingLong(si -> si.getLastRunTime().orElse(0))
-        .thenComparingLong(si -> si.getCreationTime());
+        .thenComparingLong(ScanInfo::getCreationTime);
   }
 }

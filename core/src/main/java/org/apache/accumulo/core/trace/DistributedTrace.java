@@ -127,12 +127,9 @@ public class DistributedTrace {
       setProperty(conf, TRACE_SERVICE_PROPERTY, service);
     }
     org.apache.htrace.Trace.setProcessId(service);
-    ShutdownHookManager.get().addShutdownHook(new Runnable() {
-      @Override
-      public void run() {
-        Trace.off();
-        closeReceivers();
-      }
+    ShutdownHookManager.get().addShutdownHook(() -> {
+      Trace.off();
+      closeReceivers();
     }, 0);
     loadSpanReceivers(conf);
   }

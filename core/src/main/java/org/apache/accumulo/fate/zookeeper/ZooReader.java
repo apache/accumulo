@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
-import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher;
@@ -239,12 +238,9 @@ public class ZooReader implements IZooReader {
   public void sync(final String path) throws KeeperException, InterruptedException {
     final AtomicInteger rc = new AtomicInteger();
     final CountDownLatch waiter = new CountDownLatch(1);
-    getZooKeeper().sync(path, new VoidCallback() {
-      @Override
-      public void processResult(int code, String arg1, Object arg2) {
-        rc.set(code);
-        waiter.countDown();
-      }
+    getZooKeeper().sync(path, (code, arg1, arg2) -> {
+      rc.set(code);
+      waiter.countDown();
     }, null);
     waiter.await();
     Code code = Code.get(rc.get());

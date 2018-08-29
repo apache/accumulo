@@ -17,7 +17,6 @@
 package org.apache.accumulo.start.classloader;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -172,12 +171,8 @@ public class AccumuloClassLoader {
         urls.add(extDir.toURI().toURL());
       else {
         if (extDir.getParentFile() != null) {
-          File[] extJars = extDir.getParentFile().listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-              return name.matches("^" + extDir.getName());
-            }
-          });
+          File[] extJars = extDir.getParentFile()
+              .listFiles((dir, name) -> name.matches("^" + extDir.getName()));
           if (extJars != null && extJars.length > 0) {
             for (File jar : extJars)
               urls.add(jar.toURI().toURL());

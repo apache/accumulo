@@ -230,28 +230,25 @@ public class Gatherer {
       return Collections.singletonList(map);
     }
 
-    return new Iterable<Map<K,V>>() {
-      @Override
-      public Iterator<Map<K,V>> iterator() {
-        Iterator<Entry<K,V>> esi = map.entrySet().iterator();
+    return () -> {
+      Iterator<Entry<K,V>> esi = map.entrySet().iterator();
 
-        return new Iterator<Map<K,V>>() {
-          @Override
-          public boolean hasNext() {
-            return esi.hasNext();
-          }
+      return new Iterator<Map<K,V>>() {
+        @Override
+        public boolean hasNext() {
+          return esi.hasNext();
+        }
 
-          @Override
-          public Map<K,V> next() {
-            Map<K,V> workingMap = new HashMap<>(max);
-            while (esi.hasNext() && workingMap.size() < max) {
-              Entry<K,V> entry = esi.next();
-              workingMap.put(entry.getKey(), entry.getValue());
-            }
-            return workingMap;
+        @Override
+        public Map<K,V> next() {
+          Map<K,V> workingMap = new HashMap<>(max);
+          while (esi.hasNext() && workingMap.size() < max) {
+            Entry<K,V> entry = esi.next();
+            workingMap.put(entry.getKey(), entry.getValue());
           }
-        };
-      }
+          return workingMap;
+        }
+      };
     };
   }
 
@@ -362,7 +359,7 @@ public class Gatherer {
         Predicate<String> fileSelector = file -> Math
             .abs(Hashing.murmur3_32().hashString(file).asInt()) % modulus == remainder;
         if (previousWork != null) {
-          fileSelector = fileSelector.and(file -> previousWork.failedFiles.contains(file));
+          fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
         Map<String,Map<String,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
@@ -386,7 +383,7 @@ public class Gatherer {
 
         // when all processing is done, check for failed files... and if found starting processing
         // again
-        future.thenRun(() -> updateFuture());
+        future.thenRun(this::updateFuture);
       } catch (Exception e) {
         future = CompletableFuture.completedFuture(new ProcessedFiles());
         // force future to have this exception

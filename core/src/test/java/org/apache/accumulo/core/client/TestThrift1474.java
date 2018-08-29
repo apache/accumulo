@@ -69,12 +69,7 @@ public class TestThrift1474 {
     args.stopTimeoutVal = 10;
     args.stopTimeoutUnit = TimeUnit.MILLISECONDS;
     final TServer server = new TThreadPoolServer(args.processor(processor));
-    Thread thread = new Thread() {
-      @Override
-      public void run() {
-        server.serve();
-      }
-    };
+    Thread thread = new Thread(server::serve);
     thread.start();
     while (!server.isServing()) {
       sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
