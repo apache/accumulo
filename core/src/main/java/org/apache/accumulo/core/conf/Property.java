@@ -118,7 +118,7 @@ public enum Property {
           + " HDFS. To use the ChangeSecret tool, run the command: ./bin/accumulo"
           + " org.apache.accumulo.server.util.ChangeSecret"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
-      "A comma seperated list of dfs uris to use. Files will be stored across"
+      "A comma separated list of dfs uris to use. Files will be stored across"
           + " these filesystems. If this is empty, then instance.dfs.uri will be used."
           + " After adding uris to this list, run 'accumulo init --add-volume' and then"
           + " restart tservers. If entries are removed from this list then tservers"
@@ -131,7 +131,7 @@ public enum Property {
       "Since accumulo stores absolute URIs changing the location of a namenode "
           + "could prevent Accumulo from starting. The property helps deal with "
           + "that situation. Provide a comma separated list of uri replacement "
-          + "pairs here if a namenode location changes. Each pair shold be separated "
+          + "pairs here if a namenode location changes. Each pair should be separated "
           + "with a space. For example, if hdfs://nn1 was replaced with "
           + "hdfs://nnA and hdfs://nn2 was replaced with hdfs://nnB, then set this "
           + "property to 'hdfs://nn1 hdfs://nnA,hdfs://nn2 hdfs://nnB' "
@@ -831,7 +831,7 @@ public enum Property {
       PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
           + " start  with the category prefix, followed by a context name. The value is"
-          + " a comma seperated list of URIs. Supports full regex on filename alone."
+          + " a comma separated list of URIs. Supports full regex on filename alone."
           + " For example, general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar."
           + " You can enable post delegation for a context, which will load classes from the"
           + " context first instead of the parent first. Do this by setting"
