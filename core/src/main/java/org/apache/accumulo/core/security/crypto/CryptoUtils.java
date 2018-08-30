@@ -37,11 +37,11 @@ public class CryptoUtils {
 
   private static final Logger log = LoggerFactory.getLogger(CryptoUtils.class);
 
-  public static SecureRandom getSha1SecureRandom() {
-    return getSecureRandom("SHA1PRNG", "SUN");
+  public static SecureRandom newSha1SecureRandom() {
+    return newSecureRandom("SHA1PRNG", "SUN");
   }
 
-  public static SecureRandom getSecureRandom(String secureRNG, String secureRNGProvider) {
+  private static SecureRandom newSecureRandom(String secureRNG, String secureRNGProvider) {
     SecureRandom secureRandom = null;
     try {
       secureRandom = SecureRandom.getInstance(secureRNG, secureRNGProvider);
@@ -49,15 +49,8 @@ public class CryptoUtils {
       // Immediately seed the generator
       byte[] throwAway = new byte[16];
       secureRandom.nextBytes(throwAway);
-
-    } catch (NoSuchAlgorithmException e) {
-      log.error(String.format("Accumulo configuration file specified a secure"
-          + " random generator \"%s\" that was not found by any provider.", secureRNG));
-      throw new CryptoException(e);
-    } catch (NoSuchProviderException e) {
-      log.error(String.format("Accumulo configuration file specified a secure"
-          + " random provider \"%s\" that does not exist", secureRNGProvider));
-      throw new CryptoException(e);
+    } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+      throw new CryptoException("Unable to generate secure random.", e);
     }
     return secureRandom;
   }
