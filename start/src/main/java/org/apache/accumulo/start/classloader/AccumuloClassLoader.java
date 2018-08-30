@@ -41,7 +41,7 @@ public class AccumuloClassLoader {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClassLoader.class);
 
   static {
-    String configFile = System.getProperty("accumulo.configuration", "accumulo.properties");
+    String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
     if (configFile.startsWith("file://")) {
       try {
         File f = new File(new URI(configFile));

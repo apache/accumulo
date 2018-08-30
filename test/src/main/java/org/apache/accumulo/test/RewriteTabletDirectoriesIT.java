@@ -21,9 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -46,6 +44,7 @@ import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.RandomizeVolumes;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -130,14 +129,10 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
       cluster.stop();
 
       // add the 2nd volume
-      Configuration conf = new Configuration(false);
-      conf.addResource(
-          new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo.properties"));
-      conf.set(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2);
-      BufferedOutputStream fos = new BufferedOutputStream(
-          new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo.properties")));
-      conf.writeXml(fos);
-      fos.close();
+      PropertiesConfiguration conf = new PropertiesConfiguration();
+      conf.load(cluster.getAccumuloPropertiesPath());
+      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2);
+      conf.save(cluster.getAccumuloPropertiesPath());
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());

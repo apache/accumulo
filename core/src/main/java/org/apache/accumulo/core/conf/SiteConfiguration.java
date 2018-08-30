@@ -44,7 +44,7 @@ import com.google.common.base.Preconditions;
  * the -o option) and then from accumulo.properties. This implementation supports defaulting
  * undefined property values to a parent configuration's definitions.
  * <p>
- * The system property "accumulo.configuration" can be used to specify the location of the
+ * The system property "accumulo.properties" can be used to specify the location of the
  * properties file on the classpath or filesystem if the path is prefixed with 'file://'. If the
  * system property is not defined, it defaults to "accumulo.properties" and will look on classpath
  * for file.
@@ -126,7 +126,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
           + "classpath. Since 2.0.0, this file was replaced by 'accumulo.properties'.");
     }
 
-    String configFile = System.getProperty("accumulo.configuration", "accumulo.properties");
+    String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
     if (configFile.startsWith("file://")) {
       try {
         File f = new File(new URI(configFile));
