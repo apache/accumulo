@@ -159,7 +159,7 @@ class FateServiceHandler implements FateService.Iface {
         if (splitCount > 0) {
           int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
           try {
-            splitFile = createSplitFile(opid, arguments, splitCount, SPLIT_OFFSET);
+            splitFile = writeSplitsToFile(opid, arguments, splitCount, SPLIT_OFFSET);
             splitDirsFile = createSplitDirsFile(opid);
           } catch (IOException e) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
@@ -691,37 +691,40 @@ class FateServiceHandler implements FateService.Iface {
   /**
    * Create a file on the file system to hold the splits to be created at table creation.
    */
-  private String createSplitFile(final long opid, final List<ByteBuffer> arguments,
+  private String writeSplitsToFile(final long opid, final List<ByteBuffer> arguments,
       final int splitCount, final int splitOffset) throws IOException {
     String opidStr = String.format("%016x", opid);
-    String splitPath = getSplitPath("/tmp/splits-" + opidStr);
-
-    // Always check for and delete the splits file if it exists to prevent issues in case of
-    // server failure and/or FateServiceHandler retries.
-    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
-    if (fs.exists(new Path(splitPath)))
-      fs.delete(new Path(splitPath), true);
-
-    try (FSDataOutputStream stream = master.getOutputStream(splitPath)) {
+    String splitsPath = getSplitPath("/tmp/splits-" + opidStr);
+    removeAndCreateTempFile(splitsPath);
+    try (FSDataOutputStream stream = master.getOutputStream(splitsPath)) {
       writeSplitsToFileSystem(stream, arguments, splitCount, splitOffset);
     } catch (IOException e) {
       log.error("Error in FateServiceHandler while writing splits for opid: " + opidStr + ": "
           + e.getMessage());
       throw e;
     }
-    return splitPath;
+    return splitsPath;
   }
 
+  /**
+   * Always check for and delete the splits file if it exists to prevent issues in case of
+   * server failure and/or FateServiceHandler retries.
+   */
+  private void removeAndCreateTempFile(String path) throws IOException {
+    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    if (fs.exists(new Path(path)))
+      fs.delete(new Path(path), true);
+    fs.create(new Path(path));
+  }
+
+  /**
+   * Check for and delete the temp file if it exists to prevent issues in case of server failure
+   * and/or FateServiceHandler retries. Then create/recreate the file.
+   */
   private String createSplitDirsFile(final long opid) throws IOException {
     String opidStr = String.format("%016x", opid);
     String splitDirPath = getSplitPath("/tmp/splitDirs-" + opidStr);
-
-    // Always check for and delete the splits file if it exists to prevent issues in case of
-    // server failure and/or FateServiceHandler retries.
-    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
-    if (fs.exists(new Path(splitDirPath)))
-      fs.delete(new Path(splitDirPath), true);
-    fs.create(new Path(splitDirPath));
+    removeAndCreateTempFile(splitDirPath);
     return splitDirPath;
   }
 
@@ -733,9 +736,9 @@ class FateServiceHandler implements FateService.Iface {
       final List<ByteBuffer> arguments, final int splitCount, final int splitOffset)
       throws IOException {
     for (int i = splitOffset; i < splitCount + splitOffset; i++) {
-      byte[] bytes = ByteBufferUtil.toBytes(arguments.get(i));
-      String encode = Base64.getEncoder().encodeToString(bytes);
-      stream.writeBytes(encode + '\n');
+      byte[] splitBytes = ByteBufferUtil.toBytes(arguments.get(i));
+      String encodedSplit = Base64.getEncoder().encodeToString(splitBytes);
+      stream.writeBytes(encodedSplit + '\n');
     }
   }
 
