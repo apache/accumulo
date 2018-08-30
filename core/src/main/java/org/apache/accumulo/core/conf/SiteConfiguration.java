@@ -23,10 +23,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
@@ -93,10 +94,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
     internalConfig.addConfiguration(config);
 
-    Map<String,String> temp = new HashMap<>();
-
-    Iterator<String> iter = internalConfig.getKeys();
-    iter.forEachRemaining(key -> temp.put(key, internalConfig.getString(key)));
+    Map<String,String> temp = StreamSupport
+        .stream(((Iterable<?>) internalConfig::getKeys).spliterator(), false).map(String::valueOf)
+        .collect(Collectors.toMap(Function.identity(), internalConfig::getString));
 
     /*
      * If any of the configs used in hot codepaths are unset here, set a null so that we'll default
@@ -227,12 +227,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
       parent.getProperties(props, filter);
     }
 
-    Iterator<String> iter = getConfiguration().getKeys();
-    iter.forEachRemaining(key -> {
-      if (filter.test(key)) {
-        props.put(key, getConfiguration().getString(key));
-      }
-    });
+    StreamSupport.stream(((Iterable<?>) getConfiguration()::getKeys).spliterator(), false)
+        .map(String::valueOf).filter(filter)
+        .forEach(k -> props.put(k, getConfiguration().getString(k)));
 
     // CredentialProvider should take precedence over site
     org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
