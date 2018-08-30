@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Random;
@@ -40,18 +39,13 @@ import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("SpellCheckingInspection")
 public class CreateInitialSplitsIT extends AccumuloClusterHarness {
-
-  public static final Logger log = LoggerFactory.getLogger(CreateInitialSplitsIT.class);
 
   private Connector connector;
   private String tableName;
@@ -70,9 +64,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   }
 
   @Before
-  public void setupInitialSplits() throws IOException {
+  public void setupInitialSplits() {
     connector = getConnector();
-    FileSystem fs = getCluster().getFileSystem();
   }
 
   /**
@@ -186,7 +179,6 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   private SortedSet<Text> generateNonBinarySplits(final int numItems, final int len,
       final boolean useB64) {
     SortedSet<Text> splits = new TreeSet<>();
-    String str;
     for (int i = 0; i < numItems; i++) {
       splits.add(encode(getRandomText(len), useB64));
     }

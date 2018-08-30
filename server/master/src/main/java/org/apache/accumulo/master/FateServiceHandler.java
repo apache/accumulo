@@ -707,8 +707,8 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   /**
-   * Always check for and delete the splits file if it exists to prevent issues in case of
-   * server failure and/or FateServiceHandler retries.
+   * Always check for and delete the splits file if it exists to prevent issues in case of server
+   * failure and/or FateServiceHandler retries.
    */
   private void removeAndCreateTempFile(String path) throws IOException {
     FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();

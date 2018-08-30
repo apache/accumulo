@@ -28,7 +28,7 @@ import org.apache.hadoop.io.Text;
 class CreateDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   CreateDir(TableInfo ti) {
     this.tableInfo = ti;

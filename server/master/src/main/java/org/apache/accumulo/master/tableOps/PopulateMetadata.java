@@ -41,7 +41,7 @@ class PopulateMetadata extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   PopulateMetadata(TableInfo ti) {
     this.tableInfo = ti;

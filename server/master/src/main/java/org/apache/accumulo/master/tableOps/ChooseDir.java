@@ -35,7 +35,7 @@ import org.apache.hadoop.io.Text;
 class ChooseDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   ChooseDir(TableInfo ti) {
     this.tableInfo = ti;

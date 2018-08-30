@@ -31,7 +31,7 @@ class FinishCreateTable extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   public FinishCreateTable(TableInfo ti) {
     this.tableInfo = ti;
