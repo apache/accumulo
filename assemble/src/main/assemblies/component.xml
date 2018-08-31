@@ -78,7 +78,6 @@
         <include>org.glassfish.hk2:hk2-locator</include>
         <include>org.glassfish.hk2:hk2-utils</include>
         <include>org.glassfish.hk2:osgi-resource-locator</include>
-        <include>org.glassfish.jersey.bundles.repackaged:jersey-guava</include>
         <include>org.glassfish.jersey.containers:jersey-container-jetty-http</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet-core</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet</include>
@@ -89,6 +88,7 @@
         <include>org.glassfish.jersey.ext:jersey-entity-filtering</include>
         <include>org.glassfish.jersey.ext:jersey-mvc-freemarker</include>
         <include>org.glassfish.jersey.ext:jersey-mvc</include>
+        <include>org.glassfish.jersey.inject:jersey-hk2</include>
         <include>org.glassfish.jersey.media:jersey-media-jaxb</include>
         <include>org.glassfish.jersey.media:jersey-media-json-jackson</include>
         <include>org.glassfish.web:javax.el</include>

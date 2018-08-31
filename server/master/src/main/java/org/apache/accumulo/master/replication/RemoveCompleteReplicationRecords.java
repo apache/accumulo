@@ -86,7 +86,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     WorkSection.limit(bs);
     bs.addScanIterator(cfg);
 
-    Stopwatch sw = new Stopwatch();
+    Stopwatch sw = Stopwatch.createUnstarted();
     long recordsRemoved = 0;
     try {
       sw.start();
