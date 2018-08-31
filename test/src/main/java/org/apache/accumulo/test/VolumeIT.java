@@ -20,9 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,6 +69,7 @@ import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -285,19 +284,15 @@ public class VolumeIT extends ConfigurableMacBase {
     Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+    PropertiesConfiguration conf = new PropertiesConfiguration();
+    conf.load(cluster.getAccumuloPropertiesPath());
 
     File v3f = new File(volDirBase, "v3");
     assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
+    conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
+    conf.save(cluster.getAccumuloPropertiesPath());
 
     // initialize volume
     Assert.assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
@@ -330,19 +325,15 @@ public class VolumeIT extends ConfigurableMacBase {
     Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+    PropertiesConfiguration conf = new PropertiesConfiguration();
+    conf.load(cluster.getAccumuloPropertiesPath());
 
     File v3f = new File(volDirBase, "v3");
     assertTrue(v3f.mkdir() || v3f.isDirectory());
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
+    conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
+    conf.save(cluster.getAccumuloPropertiesPath());
 
     // initialize volume
     Assert.assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
@@ -494,15 +485,10 @@ public class VolumeIT extends ConfigurableMacBase {
     Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
-
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
+    PropertiesConfiguration conf = new PropertiesConfiguration();
+    conf.load(cluster.getAccumuloPropertiesPath());
+    conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
+    conf.save(cluster.getAccumuloPropertiesPath());
 
     // start cluster and verify that volume was decommissioned
     cluster.start();
@@ -552,16 +538,12 @@ public class VolumeIT extends ConfigurableMacBase {
     Assert.assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
-
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
-    conf.set(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(), v1 + " " + v8 + "," + v2 + " " + v9);
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
+    PropertiesConfiguration conf = new PropertiesConfiguration();
+    conf.load(cluster.getAccumuloPropertiesPath());
+    conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
+    conf.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
+        v1 + " " + v8 + "," + v2 + " " + v9);
+    conf.save(cluster.getAccumuloPropertiesPath());
 
     // start cluster and verify that volumes were replaced
     cluster.start();

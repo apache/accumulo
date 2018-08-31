@@ -50,6 +50,7 @@ import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.server.conf.ConfigSanityCheck;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.ConvertConfig;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.ZooKeeperMain;
@@ -104,6 +105,7 @@ public class KeywordStartIT {
     expectSet.put("admin", Admin.class);
     expectSet.put("check-server-config", ConfigSanityCheck.class);
     expectSet.put("classpath", Classpath.class);
+    expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("gc", GCExecutable.class);
     expectSet.put("help", Help.class);

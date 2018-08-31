@@ -23,13 +23,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.commons.configuration.CompositeConfiguration;
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,13 +41,13 @@ import com.google.common.base.Preconditions;
 
 /**
  * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using
- * the -o option) and then from an XML file, usually accumulo-site.xml. This implementation supports
- * defaulting undefined property values to a parent configuration's definitions.
+ * the -o option) and then from accumulo.properties. This implementation supports defaulting
+ * undefined property values to a parent configuration's definitions.
  * <p>
- * The system property "accumulo.configuration" can be used to specify the location of the XML
- * configuration file on the classpath or filesystem if the path is prefixed with 'file://'. If the
- * system property is not defined, it defaults to "accumulo-site.xml" and will look on classpath for
- * file.
+ * The system property "accumulo.properties" can be used to specify the location of the
+ * properties file on the classpath or filesystem if the path is prefixed with 'file://'. If the
+ * system property is not defined, it defaults to "accumulo.properties" and will look on classpath
+ * for file.
  * <p>
  * This class is a singleton.
  * <p>
@@ -54,42 +58,46 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
 
+  private CompositeConfiguration internalConfig;
+
   private final Map<String,String> overrides;
-  private final Configuration xmlConfig;
   private final Map<String,String> staticConfigs;
 
   public SiteConfiguration() {
-    this(getAccumuloSiteLocation());
+    this(getAccumuloPropsLocation());
   }
 
-  public SiteConfiguration(File accumuloSiteFile) {
-    this(accumuloSiteFile, Collections.emptyMap());
+  public SiteConfiguration(File accumuloPropsFile) {
+    this(accumuloPropsFile, Collections.emptyMap());
   }
 
-  public SiteConfiguration(File accumuloSiteFile, Map<String,String> overrides) {
-    this(toURL(accumuloSiteFile), overrides);
+  public SiteConfiguration(File accumuloPropsFile, Map<String,String> overrides) {
+    this(toURL(accumuloPropsFile), overrides);
   }
 
-  public SiteConfiguration(URL accumuloSiteLocation) {
-    this(accumuloSiteLocation, Collections.emptyMap());
+  public SiteConfiguration(URL accumuloPropsLocation) {
+    this(accumuloPropsLocation, Collections.emptyMap());
   }
 
-  public SiteConfiguration(URL accumuloSiteLocation, Map<String,String> overrides) {
+  public SiteConfiguration(URL accumuloPropsLocation, Map<String,String> overrides) {
     this.overrides = overrides;
-    /*
-     * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop
-     * Configuration object
-     */
-    xmlConfig = new Configuration(false);
-    if (accumuloSiteLocation != null) {
-      xmlConfig.addResource(accumuloSiteLocation);
-    }
 
-    final Configuration conf = xmlConfig;
-    Map<String,String> temp = new HashMap<>((int) (Math.ceil(conf.size() / 0.75f)), 0.75f);
-    for (Entry<String,String> entry : conf) {
-      temp.put(entry.getKey(), entry.getValue());
+    init();
+    PropertiesConfiguration config = new PropertiesConfiguration();
+    config.setDelimiterParsingDisabled(true);
+    if (accumuloPropsLocation != null) {
+      try {
+        config.load(accumuloPropsLocation.openStream());
+      } catch (IOException | ConfigurationException e) {
+        throw new IllegalArgumentException(e);
+      }
     }
+    internalConfig.addConfiguration(config);
+
+    Map<String,String> temp = StreamSupport
+        .stream(((Iterable<?>) internalConfig::getKeys).spliterator(), false).map(String::valueOf)
+        .collect(Collectors.toMap(Function.identity(), internalConfig::getString));
+
     /*
      * If any of the configs used in hot codepaths are unset here, set a null so that we'll default
      * to the parent config without contending for the Hadoop Configuration object
@@ -110,8 +118,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
   }
 
-  public static URL getAccumuloSiteLocation() {
-    String configFile = System.getProperty("accumulo.configuration", "accumulo-site.xml");
+  public static URL getAccumuloPropsLocation() {
+
+    URL siteUrl = SiteConfiguration.class.getClassLoader().getResource("accumulo-site.xml");
+    if (siteUrl != null) {
+      throw new IllegalArgumentException("Found deprecated config file 'accumulo-site.xml' on "
+          + "classpath. Since 2.0.0, this file was replaced by 'accumulo.properties'.");
+    }
+
+    String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
     if (configFile.startsWith("file://")) {
       try {
         File f = new File(new URI(configFile));
@@ -138,11 +153,17 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
   }
 
-  private Configuration getXmlConfig() {
-    if (xmlConfig == null) {
-      return new Configuration(false);
+  private void init() {
+    internalConfig = new CompositeConfiguration();
+    internalConfig.setThrowExceptionOnMissing(false);
+    internalConfig.setDelimiterParsingDisabled(true);
+  }
+
+  private synchronized Configuration getConfiguration() {
+    if (internalConfig == null) {
+      init();
     }
-    return xmlConfig;
+    return internalConfig;
   }
 
   @Override
@@ -154,7 +175,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     String key = property.getKey();
     // If the property is sensitive, see if CredentialProvider was configured.
     if (property.isSensitive()) {
-      Configuration hadoopConf = getHadoopConfiguration();
+      org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
       if (null != hadoopConf) {
         // Try to find the sensitive value from the CredentialProvider
         try {
@@ -165,7 +186,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
           }
         } catch (IOException e) {
           log.warn("Failed to extract sensitive property (" + key
-              + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+              + ") from Hadoop CredentialProvider, falling back to accumulo.properties", e);
         }
       }
     }
@@ -175,7 +196,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
      * object.
      */
     String value = staticConfigs.containsKey(key) ? staticConfigs.get(key)
-        : getXmlConfig().get(key);
+        : getConfiguration().getString(key);
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
@@ -192,7 +213,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     Preconditions.checkArgument(!prop.isSensitive(),
         "This method not implemented for sensitive props");
     return overrides.containsKey(prop.getKey()) || staticConfigs.containsKey(prop.getKey())
-        || getXmlConfig().get(prop.getKey()) != null || parent.isPropertySet(prop);
+        || getConfiguration().containsKey(prop.getKey()) || parent.isPropertySet(prop);
   }
 
   @Override
@@ -206,12 +227,12 @@ public class SiteConfiguration extends AccumuloConfiguration {
       parent.getProperties(props, filter);
     }
 
-    for (Entry<String,String> entry : getXmlConfig())
-      if (filter.test(entry.getKey()))
-        props.put(entry.getKey(), entry.getValue());
+    StreamSupport.stream(((Iterable<?>) getConfiguration()::getKeys).spliterator(), false)
+        .map(String::valueOf).filter(filter)
+        .forEach(k -> props.put(k, getConfiguration().getString(k)));
 
     // CredentialProvider should take precedence over site
-    Configuration hadoopConf = getHadoopConfiguration();
+    org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
     if (null != hadoopConf) {
       try {
         for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
@@ -229,7 +250,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
         }
       } catch (IOException e) {
         log.warn("Failed to extract sensitive properties from Hadoop"
-            + " CredentialProvider, falling back to accumulo-site.xml", e);
+            + " CredentialProvider, falling back to accumulo.properties", e);
       }
     }
     if (overrides != null) {
@@ -241,14 +262,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
   }
 
-  protected Configuration getHadoopConfiguration() {
+  protected org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
     String credProviderPathsKey = Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey();
-    String credProviderPathsValue = getXmlConfig().get(credProviderPathsKey);
+    String credProviderPathsValue = getConfiguration().getString(credProviderPathsKey);
 
     if (null != credProviderPathsValue) {
       // We have configuration for a CredentialProvider
       // Try to pull the sensitive password from there
-      Configuration conf = new Configuration(CachedConfiguration.getInstance());
+      org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration(
+          CachedConfiguration.getInstance());
       conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPathsValue);
       return conf;
     }
@@ -277,6 +299,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
    *          property value
    */
   public void set(String key, String value) {
-    getXmlConfig().set(key, value);
+    getConfiguration().setProperty(key, value);
   }
 }

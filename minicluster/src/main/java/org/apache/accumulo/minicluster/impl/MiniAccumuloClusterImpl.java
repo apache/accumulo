@@ -350,13 +350,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
-      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo-site", ".xml")
+      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties")
           .toFile();
       Map<String,String> confMap = new HashMap<>();
       confMap.putAll(config.getSiteConfig());
       confMap.putAll(configOverrides);
-      writeConfig(siteFile, confMap.entrySet());
-      jvmOpts.add("-Daccumulo.configuration=" + siteFile.getName());
+      writeConfigProperties(siteFile, confMap);
+      jvmOpts.add("-Daccumulo.properties=" + siteFile.getName());
     }
 
     if (config.isJDWPEnabled()) {
@@ -458,8 +458,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File clientPropsFile = config.getClientPropsFile();
     writeConfigProperties(clientPropsFile, clientProps);
 
-    File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
-    writeConfig(siteFile, config.getSiteConfig().entrySet());
+    File siteFile = new File(config.getConfDir(), "accumulo.properties");
+    writeConfigProperties(siteFile, config.getSiteConfig());
     siteConfig = new SiteConfiguration(siteFile);
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
@@ -524,7 +524,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MiniAccumuloClusterControl control = getClusterControl();
 
     if (config.useExistingInstance()) {
-      Configuration acuConf = config.getAccumuloConfiguration();
+      AccumuloConfiguration acuConf = config.getAccumuloConfiguration();
       Configuration hadoopConf = config.getHadoopConfiguration();
 
       ConfigurationCopy cc = new ConfigurationCopy(acuConf);
@@ -883,7 +883,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public String getSitePath() {
-    return new File(config.getConfDir(), "accumulo-site.xml").toString();
+  public String getAccumuloPropertiesPath() {
+    return new File(config.getConfDir(), "accumulo.properties").toString();
   }
 }

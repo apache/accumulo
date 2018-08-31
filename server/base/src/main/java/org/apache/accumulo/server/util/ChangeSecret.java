@@ -80,7 +80,7 @@ public class ChangeSecret {
       deleteInstance(context, opts.oldPass);
     }
     System.out.println("New instance id is " + newInstanceId);
-    System.out.println("Be sure to put your new secret in accumulo-site.xml");
+    System.out.println("Be sure to put your new secret in accumulo.properties");
   }
 
   interface Visitor {

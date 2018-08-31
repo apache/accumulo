@@ -24,10 +24,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
@@ -90,7 +91,7 @@ public class MiniAccumuloConfigImpl {
 
   // These are only used on top of existing instances
   private Configuration hadoopConf;
-  private Configuration accumuloConf;
+  private SiteConfiguration accumuloConf;
 
   /**
    * @param dir
@@ -282,7 +283,7 @@ public class MiniAccumuloConfigImpl {
    * Calling this method is optional. If not set, it defaults to an empty map.
    *
    * @param siteConfig
-   *          key/values that you normally put in accumulo-site.xml can be put here.
+   *          key/values that you normally put in accumulo.properties can be put here.
    */
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
     if (existingInstance != null && existingInstance)
@@ -573,8 +574,8 @@ public class MiniAccumuloConfigImpl {
     return new File(getConfDir(), "client.conf");
   }
 
-  public File getAccumuloSiteFile() {
-    return new File(getConfDir(), "accumulo-site.xml");
+  public File getAccumuloPropsFile() {
+    return new File(getConfDir(), "accumulo.properties");
   }
 
   /**
@@ -690,8 +691,8 @@ public class MiniAccumuloConfigImpl {
    * Informs MAC that it's running against an existing accumulo instance. It is assumed that it's
    * already initialized and hdfs/zookeeper are already running.
    *
-   * @param accumuloSite
-   *          a File representation of the accumulo-site.xml file for the instance being run
+   * @param accumuloProps
+   *          a File representation of the accumulo.properties file for the instance being run
    * @param hadoopConfDir
    *          a File representation of the hadoop configuration directory containing core-site.xml
    *          and hdfs-site.xml
@@ -703,7 +704,7 @@ public class MiniAccumuloConfigImpl {
    * @throws IOException
    *           when there are issues converting the provided Files to URLs
    */
-  public MiniAccumuloConfigImpl useExistingInstance(File accumuloSite, File hadoopConfDir)
+  public MiniAccumuloConfigImpl useExistingInstance(File accumuloProps, File hadoopConfDir)
       throws IOException {
     if (existingInstance != null && !existingInstance)
       throw new UnsupportedOperationException(
@@ -711,15 +712,14 @@ public class MiniAccumuloConfigImpl {
 
     this.existingInstance = Boolean.TRUE;
 
-    System.setProperty("accumulo.configuration", "accumulo-site.xml");
+    System.setProperty("accumulo.properties", "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
-    accumuloConf = new Configuration(false);
+    accumuloConf = new SiteConfiguration(accumuloProps);
     File coreSite = new File(hadoopConfDir, "core-site.xml");
     File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
 
     try {
-      accumuloConf.addResource(accumuloSite.toURI().toURL());
       hadoopConf.addResource(coreSite.toURI().toURL());
       hadoopConf.addResource(hdfsSite.toURI().toURL());
     } catch (MalformedURLException e1) {
@@ -731,9 +731,6 @@ public class MiniAccumuloConfigImpl {
       siteConfigMap.put(e.getKey(), e.getValue());
     }
     _setSiteConfig(siteConfigMap);
-
-    for (Entry<String,String> entry : DefaultConfiguration.getInstance())
-      accumuloConf.setIfUnset(entry.getKey(), entry.getValue());
 
     return this;
   }
@@ -761,7 +758,7 @@ public class MiniAccumuloConfigImpl {
    *
    * @since 1.6.2
    */
-  public Configuration getAccumuloConfiguration() {
+  public AccumuloConfiguration getAccumuloConfiguration() {
     return accumuloConf;
   }
 

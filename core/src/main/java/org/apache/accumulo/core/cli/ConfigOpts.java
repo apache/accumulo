@@ -35,12 +35,12 @@ public class ConfigOpts extends Help {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigOpts.class);
 
-  @Parameter(names = {"--site", "-site"}, description = "Sets path to accumulo-site.xml. The"
-      + " classpath will be searched if this property is not set")
-  private String sitePath;
+  @Parameter(names = {"-p", "-props", "--props"}, description = "Sets path to accumulo.properties."
+      + "The classpath will be searched if this property is not set")
+  private String propsPath;
 
   public String getSitePath() {
-    return sitePath;
+    return propsPath;
   }
 
   public static class NullSplitter implements IParameterSplitter {
@@ -51,7 +51,7 @@ public class ConfigOpts extends Help {
   }
 
   @Parameter(names = "-o", splitter = NullSplitter.class,
-      description = "Overrides configuration set in accumulo-site.xml (but NOT system-wide config"
+      description = "Overrides configuration set in accumulo.properties (but NOT system-wide config"
           + " set in Zookeeper). Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
 
@@ -59,10 +59,10 @@ public class ConfigOpts extends Help {
 
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
-      if (sitePath != null) {
-        siteConfig = new SiteConfiguration(new File(sitePath), getOverrides());
+      if (propsPath != null) {
+        siteConfig = new SiteConfiguration(new File(propsPath), getOverrides());
       } else {
-        siteConfig = new SiteConfiguration(SiteConfiguration.getAccumuloSiteLocation(),
+        siteConfig = new SiteConfiguration(SiteConfiguration.getAccumuloPropsLocation(),
             getOverrides());
       }
     }

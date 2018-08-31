@@ -109,8 +109,9 @@ public class CertUtils {
         description = "RDN string for issuer, for example: 'c=US,o=My Organization,cn=My Name'")
     String issuerDirString = "o=Apache Accumulo";
 
-    @Parameter(names = "--site-file", description = "Load configuration from the given site file")
-    public String siteFile = null;
+    @Parameter(names = "--accumulo-props",
+        description = "Path to accumulo.properties to load " + "Accumulo configuration from")
+    public String accumuloPropsFile = null;
 
     @Parameter(names = "--signing-algorithm", description = "Algorithm used to sign certificates")
     public String signingAlg = "SHA256WITHRSA";
@@ -123,10 +124,10 @@ public class CertUtils {
     public int keysize = 2048;
 
     public SiteConfiguration getSiteConfiguration() {
-      if (siteFile == null) {
+      if (accumuloPropsFile == null) {
         return new SiteConfiguration();
       } else {
-        return new SiteConfiguration(new File(siteFile));
+        return new SiteConfiguration(new File(accumuloPropsFile));
       }
     }
   }

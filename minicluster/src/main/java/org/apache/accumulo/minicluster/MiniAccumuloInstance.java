@@ -18,10 +18,9 @@ package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.net.MalformedURLException;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 
 /**
  * @since 1.6.0
@@ -41,16 +40,11 @@ public class MiniAccumuloInstance extends org.apache.accumulo.core.client.ZooKee
   }
 
   // Keep this private to avoid bringing it into the public API
-  private static String getZooKeepersFromDir(File directory) throws FileNotFoundException {
+  private static String getZooKeepersFromDir(File directory) {
     if (!directory.isDirectory())
       throw new IllegalArgumentException("Not a directory " + directory.getPath());
-    File configFile = new File(new File(directory, "conf"), "accumulo-site.xml");
-    Configuration conf = new Configuration(false);
-    try {
-      conf.addResource(configFile.toURI().toURL());
-    } catch (MalformedURLException e) {
-      throw new FileNotFoundException("Missing file: " + configFile.getPath());
-    }
-    return conf.get(Property.INSTANCE_ZK_HOST.getKey());
+    File configFile = new File(new File(directory, "conf"), "accumulo.properties");
+    SiteConfiguration conf = new SiteConfiguration(configFile);
+    return conf.get(Property.INSTANCE_ZK_HOST);
   }
 }

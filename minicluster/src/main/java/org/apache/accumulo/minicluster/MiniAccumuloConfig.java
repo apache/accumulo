@@ -76,7 +76,7 @@ public class MiniAccumuloConfig {
    * Calling this method is optional. If not set, it defaults to an empty map.
    *
    * @param siteConfig
-   *          key/values that you normally put in accumulo-site.xml can be put here.
+   *          key/values that you normally put in accumulo.properties can be put here.
    */
   public MiniAccumuloConfig setSiteConfig(Map<String,String> siteConfig) {
     impl.setSiteConfig(siteConfig);

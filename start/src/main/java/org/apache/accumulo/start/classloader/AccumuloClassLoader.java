@@ -28,15 +28,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 public class AccumuloClassLoader {
 
@@ -47,7 +41,7 @@ public class AccumuloClassLoader {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClassLoader.class);
 
   static {
-    String configFile = System.getProperty("accumulo.configuration", "accumulo-site.xml");
+    String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
     if (configFile.startsWith("file://")) {
       try {
         File f = new File(new URI(configFile));
@@ -69,29 +63,6 @@ public class AccumuloClassLoader {
   }
 
   /**
-   * Parses an XML Document for a property node for a &lt;name&gt; with the value propertyName if it
-   * finds one the function return that property's value for its &lt;value&gt; node. If not found
-   * the function will return null.
-   *
-   * @param d
-   *          XMLDocument to search through
-   */
-  private static String getAccumuloProperty(Document d, String propertyName) {
-    NodeList pnodes = d.getElementsByTagName("property");
-    for (int i = pnodes.getLength() - 1; i >= 0; i--) {
-      Element current_property = (Element) pnodes.item(i);
-      Node cname = current_property.getElementsByTagName("name").item(0);
-      if (cname != null && cname.getTextContent().compareTo(propertyName) == 0) {
-        Node cvalue = current_property.getElementsByTagName("value").item(0);
-        if (cvalue != null) {
-          return cvalue.getTextContent();
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
    * Looks for the site configuration file for Accumulo and if it has a property for propertyName
    * return it otherwise returns defaultValue Should throw an exception if the default configuration
    * can not be read;
@@ -110,10 +81,11 @@ public class AccumuloClassLoader {
       return defaultValue;
     }
     try {
-      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-      DocumentBuilder db = dbf.newDocumentBuilder();
-      Document siteDoc = db.parse(accumuloConfigUrl.getFile());
-      String value = getAccumuloProperty(siteDoc, propertyName);
+      PropertiesConfiguration config = new PropertiesConfiguration();
+      config.setDelimiterParsingDisabled(true);
+      config.setThrowExceptionOnMissing(false);
+      config.load(accumuloConfigUrl);
+      String value = config.getString(propertyName);
       if (value != null)
         return value;
       return defaultValue;

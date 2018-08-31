@@ -113,24 +113,12 @@ function gen_monitor_cert() {
   "${JAVA_HOME}/bin/keytool" -import -v -trustcacerts -alias "$ALIAS" -file "$CERTPATH" -keystore "$TRUSTSTOREPATH" -storepass "$STOREPASS" <<< "yes"
 
   echo
-  echo "keystore and truststore generated.  now add the following to accumulo-site.xml:"
+  echo "keystore and truststore generated.  now add the following to accumulo.properties:"
   echo
-  echo "    <property>"
-  echo "      <name>monitor.ssl.keyStore</name>"
-  echo "      <value>$KEYSTOREPATH</value>"
-  echo "    </property>"
-  echo "    <property>"
-  echo "      <name>monitor.ssl.keyStorePassword</name>"
-  echo "      <value>$KEYPASS</value>"
-  echo "    </property>"
-  echo "    <property>"
-  echo "      <name>monitor.ssl.trustStore</name>"
-  echo "      <value>$TRUSTSTOREPATH</value>"
-  echo "    </property>"
-  echo "    <property>"
-  echo "      <name>monitor.ssl.trustStorePassword</name>"
-  echo "      <value>$STOREPASS</value>"
-  echo "    </property>"
+  echo "monitor.ssl.keyStore=$KEYSTOREPATH"
+  echo "monitor.ssl.keyStorePassword=$KEYPASS"
+  echo "monitor.ssl.trustStore=$TRUSTSTOREPATH"
+  echo "monitor.ssl.trustStorePassword=$STOREPASS"
   echo
 }
 
@@ -147,20 +135,16 @@ function load_jars_hdfs() {
   fi
 
   # Find the system context directory in HDFS
-  SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$conf/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; s/,.+$//; s|[^/]+$||; print $ARGV[1]')
+  SYSTEM_CONTEXT_HDFS_DIR=$(grep "general.vfs.classpaths" "$conf/accumulo.properties" | cut -d '=' -f 2)
 
   if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
   then
-    echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file where ##CLASSPATH## is one of the following formats:"
+    echo "Your accumulo.properties file is not set up for the HDFS Classloader. Please add the following to your accumulo.properties file where ##CLASSPATH## is one of the following formats:"
     echo "A single directory: hdfs://host:port/directory/"
     echo "A single directory with a regex: hdfs://host:port/directory/.*.jar"
     echo "Multiple directories: hdfs://host:port/directory/.*.jar,hdfs://host:port/directory2/"
     echo ""
-    echo "<property>"
-    echo "   <name>general.vfs.classpaths</name>"
-    echo "   <value>##CLASSPATH##</value>"
-    echo "   <description>location of the jars for the default (system) context</description>"
-    echo "</property>"
+    echo "general.vfs.classpaths=##CLASSPATH##"
     exit 1
   fi
 

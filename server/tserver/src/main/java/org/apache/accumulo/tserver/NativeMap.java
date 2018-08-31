@@ -98,7 +98,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     if (!isLoaded()) {
       log.error(
           "FATAL! Accumulo native libraries were requested but could not"
-              + " be be loaded. Either set '{}' to false in accumulo-site.xml or make"
+              + " be be loaded. Either set '{}' to false in accumulo.properties or make"
               + " sure native libraries are created in directories set by the JVM"
               + " system property 'accumulo.native.lib.path' in accumulo-env.sh!",
           Property.TSERV_NATIVEMAP_ENABLED);

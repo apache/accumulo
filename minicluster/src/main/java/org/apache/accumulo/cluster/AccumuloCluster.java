@@ -72,14 +72,16 @@ public interface AccumuloCluster {
   ClientInfo getClientInfo();
 
   /**
-   * Get server side config derived from accumulo-site.xml
+   * Get server side config derived from accumulo.properties
    */
   AccumuloConfiguration getSiteConfiguration();
 
   /**
-   * Get path to accumulo-site.xml
+   * Get path to accumulo.properties
+   *
+   * @since 2.0.0
    */
-  String getSitePath();
+  String getAccumuloPropertiesPath();
 
   /**
    * Get an object that can manage a cluster

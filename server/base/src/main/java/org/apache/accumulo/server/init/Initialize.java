@@ -267,7 +267,7 @@ public class Initialize implements KeywordExecutable {
       c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
       c.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
-          + " accumulo-site.xml. Without this accumulo will not operate" + " correctly");
+          + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
     try {
       if (isInitialized(fs, sconf)) {
@@ -381,7 +381,7 @@ public class Initialize implements KeywordExecutable {
                   + " 'fs.default.name') of '{}' was found in the Hadoop configuration",
               defaultFsUri);
           log.error("FATAL: Please ensure that the Hadoop core-site.xml is on"
-              + " the classpath using 'general.classpaths' in accumulo-site.xml");
+              + " the classpath using 'general.classpaths' in accumulo.properties");
         }
       }
 
@@ -392,7 +392,7 @@ public class Initialize implements KeywordExecutable {
 
     // When we're using Kerberos authentication, we need valid credentials to perform
     // initialization. If the user provided some, use them.
-    // If they did not, fall back to the credentials present in accumulo-site.xml that the servers
+    // If they did not, fall back to the credentials present in accumulo.properties that the servers
     // will use themselves.
     try {
       final SiteConfiguration siteConf = context.getServerConfFactory().getSiteConfiguration();
@@ -429,9 +429,9 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
 
-    if (opts.uploadAccumuloSite) {
+    if (opts.uploadAccumuloProps) {
       try {
-        log.info("Uploading properties in accumulo-site.xml to Zookeeper."
+        log.info("Uploading properties in accumulo.properties to Zookeeper."
             + " Properties that cannot be set in Zookeeper will be skipped:");
         Map<String,String> entries = new TreeMap<>();
         siteConfig.getProperties(entries, x -> true, false);
@@ -446,7 +446,7 @@ public class Initialize implements KeywordExecutable {
           }
         }
       } catch (Exception e) {
-        log.error("FATAL: Failed to upload accumulo-site.xml to Zookeeper", e);
+        log.error("FATAL: Failed to upload accumulo.properties to Zookeeper", e);
         return false;
       }
     }
@@ -885,9 +885,9 @@ public class Initialize implements KeywordExecutable {
     @Parameter(names = "--clear-instance-name",
         description = "delete any existing instance name without prompting")
     boolean clearInstanceName = false;
-    @Parameter(names = "--upload-accumulo-site",
-        description = "Uploads properties in accumulo-site.xml to Zookeeper")
-    boolean uploadAccumuloSite = false;
+    @Parameter(names = "--upload-accumulo-props",
+        description = "Uploads properties in accumulo.properties to Zookeeper")
+    boolean uploadAccumuloProps = false;
     @Parameter(names = "--instance-name",
         description = "the instance name, if not provided, will prompt")
     String cliInstanceName;

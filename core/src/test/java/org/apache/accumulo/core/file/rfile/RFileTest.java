@@ -53,6 +53,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -1720,7 +1721,7 @@ public class RFileTest {
 
   @Test
   public void testOldVersionsWithCrypto() throws Exception {
-    AccumuloConfiguration cryptoOnConf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     runVersionTest(3, cryptoOnConf);
     runVersionTest(4, cryptoOnConf);
     runVersionTest(6, cryptoOnConf);
@@ -1786,143 +1787,137 @@ public class RFileTest {
     reader.close();
   }
 
-  public static AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    Configuration conf = new Configuration(false);
-    conf.addResource(cryptoConfSetting);
-    for (Entry<String,String> e : conf) {
-      result.set(e.getKey(), e.getValue());
-    }
-    return result;
+  public static AccumuloConfiguration getAccumuloConfig(String cryptoConfSetting) {
+    return new SiteConfiguration(CryptoTest.class.getClassLoader().getResource(cryptoConfSetting));
   }
 
   @Test
   public void testEncRFile1() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test1();
     conf = null;
   }
 
   @Test
   public void testEncRFile2() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test2();
     conf = null;
   }
 
   @Test
   public void testEncRFile3() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test3();
     conf = null;
   }
 
   @Test
   public void testEncRFile4() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test4();
     conf = null;
   }
 
   @Test
   public void testEncRFile5() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test5();
     conf = null;
   }
 
   @Test
   public void testEncRFile6() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test6();
     conf = null;
   }
 
   @Test
   public void testEncRFile7() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test7();
     conf = null;
   }
 
   @Test
   public void testEncRFile8() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test8();
     conf = null;
   }
 
   @Test
   public void testEncRFile9() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test9();
     conf = null;
   }
 
   @Test
   public void testEncRFile10() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test10();
     conf = null;
   }
 
   @Test
   public void testEncRFile11() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test11();
     conf = null;
   }
 
   @Test
   public void testEncRFile12() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test12();
     conf = null;
   }
 
   @Test
   public void testEncRFile13() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test13();
     conf = null;
   }
 
   @Test
   public void testEncRFile14() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test14();
     conf = null;
   }
 
   @Test
   public void testEncRFile16() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test16();
   }
 
   @Test
   public void testEncRFile17() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test17();
   }
 
   @Test
   public void testEncRFile18() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test18();
     conf = null;
   }
 
   @Test
   public void testEncRFile19() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test19();
     conf = null;
   }
 
   @Test
   public void testEncryptedRFiles() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     test1();
     test2();
     test3();
@@ -2225,7 +2220,7 @@ public class RFileTest {
 
   @Test
   public void testEncSample() throws IOException {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     testSample();
     testSampleLG();
     conf = null;
@@ -2283,7 +2278,7 @@ public class RFileTest {
 
   @Test
   public void testCryptoDoesntLeakSensitive() throws IOException {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     // test an empty file
 
     TestRFile trf = new TestRFile(conf);
@@ -2306,7 +2301,7 @@ public class RFileTest {
   public void testRootTabletEncryption() throws Exception {
 
     // This tests that the normal set of operations used to populate a root tablet
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
 
     // populate the root tablet with info about the default tablet
     // the root tablet contains the key extent and locations of all the

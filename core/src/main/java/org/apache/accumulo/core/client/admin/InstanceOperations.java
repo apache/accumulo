@@ -26,7 +26,7 @@ public interface InstanceOperations {
 
   /**
    * Sets an system property in zookeeper. Tablet servers will pull this setting and override the
-   * equivalent setting in accumulo-site.xml. Changes can be seen using
+   * equivalent setting in accumulo.properties. Changes can be seen using
    * {@link #getSystemConfiguration()}.
    * <p>
    * Only some properties can be changed by this method, an IllegalArgumentException will be thrown
@@ -60,16 +60,16 @@ public interface InstanceOperations {
   /**
    *
    * @return A map of system properties set in zookeeper. If a property is not set in zookeeper,
-   *         then it will return the value set in accumulo-site.xml on some server. If nothing is
-   *         set in an accumulo-site.xml file it will return the default value for each property.
+   *         then it will return the value set in accumulo.properties on some server. If nothing is
+   *         set in an accumulo.properties file it will return the default value for each property.
    */
 
   Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
 
   /**
    *
-   * @return A map of system properties set in accumulo-site.xml on some server. If nothing is set
-   *         in an accumulo-site.xml file it will return the default value for each property.
+   * @return A map of system properties set in accumulo.properties on some server. If nothing is set
+   *         in an accumulo.properties file it will return the default value for each property.
    */
 
   Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
