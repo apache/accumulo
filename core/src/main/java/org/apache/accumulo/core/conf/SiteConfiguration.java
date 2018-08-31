@@ -44,10 +44,10 @@ import com.google.common.base.Preconditions;
  * the -o option) and then from accumulo.properties. This implementation supports defaulting
  * undefined property values to a parent configuration's definitions.
  * <p>
- * The system property "accumulo.properties" can be used to specify the location of the
- * properties file on the classpath or filesystem if the path is prefixed with 'file://'. If the
- * system property is not defined, it defaults to "accumulo.properties" and will look on classpath
- * for file.
+ * The system property "accumulo.properties" can be used to specify the location of the properties
+ * file on the classpath or filesystem if the path is prefixed with 'file://'. If the system
+ * property is not defined, it defaults to "accumulo.properties" and will look on classpath for
+ * file.
  * <p>
  * This class is a singleton.
  * <p>
@@ -95,7 +95,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     internalConfig.addConfiguration(config);
 
     Map<String,String> temp = StreamSupport
-        .stream(((Iterable<?>) internalConfig::getKeys).spliterator(), false).map(String::valueOf)
+        .stream(((Iterable<String>) internalConfig::getKeys).spliterator(), false)
         .collect(Collectors.toMap(Function.identity(), internalConfig::getString));
 
     /*
@@ -227,9 +227,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       parent.getProperties(props, filter);
     }
 
-    StreamSupport.stream(((Iterable<?>) getConfiguration()::getKeys).spliterator(), false)
-        .map(String::valueOf).filter(filter)
-        .forEach(k -> props.put(k, getConfiguration().getString(k)));
+    StreamSupport.stream(((Iterable<String>) getConfiguration()::getKeys).spliterator(), false)
+        .filter(filter).forEach(k -> props.put(k, getConfiguration().getString(k)));
 
     // CredentialProvider should take precedence over site
     org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
