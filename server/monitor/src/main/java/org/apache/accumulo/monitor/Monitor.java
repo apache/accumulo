@@ -557,8 +557,7 @@ public class Monitor implements HighlyAvailableService {
         .register(
             new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName())))
         .register(FreemarkerMvcFeature.class)
-        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates")
-        .property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates");
     return new ServletHolder(new ServletContainer(rc));
   }
 
@@ -566,7 +565,7 @@ public class Monitor implements HighlyAvailableService {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
         .register(
             new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName())))
-        .register(JacksonFeature.class).property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
+        .register(JacksonFeature.class);
     return new ServletHolder(new ServletContainer(rc));
   }
 
