@@ -205,8 +205,4 @@
     <Class name="org.apache.accumulo.core.client.impl.ScannerOptionsTest" />
     <Bug code="NP" pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS" />
   </Match>
-  <Match>
-    <Class name="org.apache.accumulo.core.util.HostAndPort" />
-    <Bug code="NP" pattern="NP_NULL_PARAM_DEREF" />
-  </Match>
 </FindBugsFilter>

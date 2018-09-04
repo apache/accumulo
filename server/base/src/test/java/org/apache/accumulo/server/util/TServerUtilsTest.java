@@ -197,6 +197,7 @@ public class TServerUtilsTest {
     ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
         Integer.toString(port));
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
+      assertNotNull(s);
       startServer();
     }
   }
@@ -211,6 +212,7 @@ public class TServerUtilsTest {
         Integer.toString(port[0]));
     ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
+      assertNotNull(s);
       ServerAddress address = startServer();
       assertNotNull(address);
       server = address.getServer();
@@ -255,6 +257,7 @@ public class TServerUtilsTest {
     ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT,
         portRange);
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
+      assertNotNull(s);
       ServerAddress address = startServer();
       assertNotNull(address);
       server = address.getServer();

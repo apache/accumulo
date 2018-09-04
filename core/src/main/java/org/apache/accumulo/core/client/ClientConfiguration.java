@@ -528,7 +528,6 @@ public class ClientConfiguration {
     return compositeConfig.containsKey(key);
   }
 
-  @SuppressWarnings("unchecked")
   public Iterator<String> getKeys() {
     return compositeConfig.getKeys();
   }

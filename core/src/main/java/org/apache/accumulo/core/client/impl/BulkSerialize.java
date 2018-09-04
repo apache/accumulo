@@ -132,7 +132,7 @@ public class BulkSerialize {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
       reader.close();
     }
 

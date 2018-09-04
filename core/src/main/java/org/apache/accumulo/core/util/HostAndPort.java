@@ -19,8 +19,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
 
-import com.google.common.base.Strings;
-
 /**
  * This class was copied from Guava release 23.0 to replace the older Guava 14 version that had been
  * used in Accumulo. It was annotated as Beta by Google, therefore unstable to use in a core
@@ -144,7 +142,7 @@ public final class HostAndPort implements Serializable {
    *           if nothing meaningful could be parsed.
    */
   public static HostAndPort fromString(String hostPortString) {
-    java.util.Objects.requireNonNull(hostPortString);
+    hostPortString = java.util.Objects.requireNonNull(hostPortString);
     String host;
     String portString = null;
     boolean hasBracketlessColons = false;
@@ -167,7 +165,7 @@ public final class HostAndPort implements Serializable {
     }
 
     int port = NO_PORT;
-    if (!Strings.isNullOrEmpty(portString)) {
+    if (portString != null && !portString.trim().isEmpty()) {
       // Try to parse the whole port string as a number.
       // JDK7 accepts leading plus signs. We don't want to.
       checkArgument(!portString.startsWith("+"), "Unparseable port number: %s", hostPortString);
