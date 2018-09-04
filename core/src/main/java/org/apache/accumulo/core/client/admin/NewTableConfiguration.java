@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -234,8 +233,7 @@ public class NewTableConfiguration {
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
       tmp.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
-    tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
-        groups.keySet().stream().collect(Collectors.joining(",")));
+    tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(), String.join(",", groups.keySet()));
     checkDisjoint(properties, tmp, "locality groups");
     localityProps = tmp;
     return this;

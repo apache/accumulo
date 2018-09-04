@@ -200,12 +200,10 @@ public class Utils {
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
       String line;
       while ((line = br.readLine()) != null) {
-        if (encoded) {
-          byte[] decoded = Base64.getDecoder().decode(line);
-          data.add(new Text(decoded));
-        } else {
+        if (encoded)
+          data.add(new Text(Base64.getDecoder().decode(line)));
+        else
           data.add(new Text(line));
-        }
       }
     }
     return data;

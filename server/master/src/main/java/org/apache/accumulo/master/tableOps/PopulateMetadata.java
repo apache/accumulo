@@ -54,7 +54,6 @@ class PopulateMetadata extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-
     KeyExtent extent = new KeyExtent(tableInfo.tableId, null, null);
     MetadataTableUtil.addTablet(extent, tableInfo.dir, environment, tableInfo.timeType,
         environment.getMasterLock());
@@ -77,15 +76,11 @@ class PopulateMetadata extends MasterRepo {
       Map<Text,Text> data, char timeType, ZooLock lock, BatchWriter bw)
       throws MutationsRejectedException {
     Text prevSplit = null;
+    Value dirValue;
     for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
       Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();
-      if (split == null) {
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-            new Value(tableInfo.dir));
-      } else {
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-            new Value(data.get(split)));
-      }
+      dirValue = (split == null) ? new Value(tableInfo.dir) : new Value(data.get(split));
+      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
           new Value(timeType + "0"));
       MetadataTableUtil.putLockID(lock, mut);
@@ -100,6 +95,9 @@ class PopulateMetadata extends MasterRepo {
         environment.getMasterLock());
   }
 
+  /**
+   * Create a map containing an association between each split directory and a split value.
+   */
   private Map<Text,Text> createSplitDirectoryMap(SortedSet<Text> splits, SortedSet<Text> dirs) {
     Map<Text,Text> data = new HashMap<>();
     Iterator<Text> s = splits.iterator();

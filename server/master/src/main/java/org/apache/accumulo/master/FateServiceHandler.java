@@ -729,8 +729,9 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   /**
-   * Write the split values to a tmp directory with unique name. Splits will be base64 encoded to
-   * ease handling of binary splits.
+   * Write the split values to a tmp directory with unique name. Given that it is not known if
+   * the supplied splits will be textual or binary, all splits will be encoded to enable proper
+   * handling of binary data.
    */
   private void writeSplitsToFileSystem(final FSDataOutputStream stream,
       final List<ByteBuffer> arguments, final int splitCount, final int splitOffset)

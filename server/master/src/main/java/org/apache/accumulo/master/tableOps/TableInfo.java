@@ -35,7 +35,8 @@ class TableInfo implements Serializable {
 
   // Record requested initial state at creation
   TableCreationMode creationMode;
-  // Track initial split related values
+
+  // Track information related to initial split creation
   int initialSplitSize;
   String splitFile;
   String splitDirsFile;

@@ -76,7 +76,7 @@ class ChooseDir extends MasterRepo {
   private void createTableDirectoriesInfo(Master master, String baseDir) throws IOException {
     SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo.splitFile),
         true);
-    SortedSet<Text> tabletDirectoryInfo = createTableDirectoriesSet(splits.size(), baseDir);
+    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(splits.size(), baseDir);
     writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
   }
 
@@ -84,7 +84,7 @@ class ChooseDir extends MasterRepo {
    * Create a set of unique table directories. These will be associated with splits in a follow-on
    * FATE step.
    */
-  private SortedSet<Text> createTableDirectoriesSet(int num, String baseDir) {
+  private SortedSet<Text> createTabletDirectoriesSet(int num, String baseDir) {
     String tabletDir;
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
     SortedSet<Text> splitDirs = new TreeSet<>();

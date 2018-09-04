@@ -68,7 +68,7 @@ public class CreateTableCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, IOException, ClassNotFoundException {
+      TableNotFoundException, IOException {
 
     final String testTableName = cl.getArgs()[0];
     final HashMap<String,String> props = new HashMap<>();
@@ -88,7 +88,7 @@ public class CreateTableCommand extends Command {
     final boolean decode = cl.hasOption(base64Opt.getOpt());
 
     // Prior to 2.0, if splits were provided at table creation the table was created separately
-    // and then the addSplits method was called separately. Starting with 2.0, the splits will be
+    // and then the addSplits method was called. Starting with 2.0, the splits will be
     // stored on the file system and created before the table is brought online.
     if (cl.hasOption(createTableOptSplit.getOpt())) {
       ntc = ntc.withSplits(new TreeSet<>(
@@ -99,7 +99,7 @@ public class CreateTableCommand extends Command {
         throw new TableNotFoundException(null, oldTable, null);
       }
       ntc = ntc.withSplits(
-          new TreeSet<Text>(shellState.getConnector().tableOperations().listSplits(oldTable)));
+          new TreeSet<>(shellState.getConnector().tableOperations().listSplits(oldTable)));
     }
 
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {

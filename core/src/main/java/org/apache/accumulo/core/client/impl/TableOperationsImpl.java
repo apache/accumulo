@@ -237,6 +237,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     args.add(ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));
+    // Send info relating to initial table creation i.e, create online or offline
     args.add(ByteBuffer.wrap(ntc.getTableCreationMode().name().getBytes(UTF_8)));
     // Check for possible initial splits to be added at table creation
     // Always send number of initial splits to be created, even if zero. If greater than zero,
