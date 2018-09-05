@@ -70,11 +70,9 @@ class CreateDir extends MasterRepo {
   private void createTabletDirectories(VolumeManager fs, SortedSet<Text> dirInfo)
       throws IOException {
 
-    for (Text info : dirInfo) {
-      if (fs.exists(new Path(info.toString())))
-        throw new IllegalStateException("Dir exists when it should not: " + info);
-      if (!fs.mkdirs(new Path(info.toString())))
-        throw new IOException("Failed to create tablet directory: " + info);
+    for (Text dir : dirInfo) {
+      if (!fs.mkdirs(new Path(dir.toString())))
+        throw new IOException("Failed to create tablet directory: " + dir);
     }
   }
 }

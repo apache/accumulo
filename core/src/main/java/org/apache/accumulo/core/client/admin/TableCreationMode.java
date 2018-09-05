@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+/**
+ * Creation mode for table creation.
+ *
+ * @since 2.0.0
+ */
 public enum TableCreationMode {
   /*
    * Set if table is to be created in OFFLINE mode.
