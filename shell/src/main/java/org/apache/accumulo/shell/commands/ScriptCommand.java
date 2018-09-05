@@ -205,16 +205,16 @@ public class ScriptCommand extends Command {
                 try {
                   return shellState.getConnector().instanceOperations().getSystemConfiguration();
                 } catch (AccumuloException e) {
-                  throw new RuntimeException(e);
+                  throw new IllegalStateException(e);
                 } catch (AccumuloSecurityException e) {
-                  throw new RuntimeException(e);
+                  throw new IllegalStateException(e);
                 }
               }
             });
       } catch (IllegalStateException e) {
         shellState.printException(e);
+        throw e;
       }
-
       classLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
     } else {
       classLoader = AccumuloVFSClassLoader.getClassLoader();
