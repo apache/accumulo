@@ -37,7 +37,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
-import org.apache.accumulo.core.client.admin.TableCreationMode;
+import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -151,7 +151,7 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CREATE;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
-        TableCreationMode creationMode = TableCreationMode
+        InitialTableState initialTableState = InitialTableState
             .valueOf(ByteBufferUtil.toString(arguments.get(2)));
         int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
         String splitFile = null;
@@ -179,11 +179,10 @@ class FateServiceHandler implements FateService.Iface {
         if (!master.security.canCreateTable(c, tableName, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate
-            .seedTransaction(
-                opid, new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType,
-                    options, splitFile, splitCount, splitDirsFile, creationMode, namespaceId)),
-                autoCleanup);
+        master.fate.seedTransaction(opid,
+            new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
+                splitFile, splitCount, splitDirsFile, initialTableState, namespaceId)),
+            autoCleanup);
 
         break;
       }

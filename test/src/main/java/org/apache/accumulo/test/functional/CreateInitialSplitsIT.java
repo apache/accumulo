@@ -167,6 +167,15 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     assertEquals(splits, new TreeSet<>(createdSplits));
   }
 
+  /**
+   *
+   * Write some data to multiple tablets Verify data Compact table Verify data Delete table.
+   */
+  @Test
+  public void testMultipleOperationsFunctionality() {
+
+  }
+
   // @Test
   // public void testCreateSplitsViaShellCommands() {
   // // See ShellServerIT for IT tests using shell commands.

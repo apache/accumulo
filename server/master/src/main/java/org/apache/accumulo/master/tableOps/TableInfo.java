@@ -19,7 +19,7 @@ package org.apache.accumulo.master.tableOps;
 import java.io.Serializable;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.admin.TableCreationMode;
+import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 
@@ -34,7 +34,7 @@ class TableInfo implements Serializable {
   String user;
 
   // Record requested initial state at creation
-  TableCreationMode creationMode;
+  InitialTableState initialTableState;
 
   // Track information related to initial split creation
   int initialSplitSize;
@@ -43,5 +43,5 @@ class TableInfo implements Serializable {
 
   public Map<String,String> props;
 
-  public String dir = null;
+  public String defaultTabletDir = null;
 }

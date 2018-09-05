@@ -93,8 +93,8 @@ public class NewTableConfigurationTest {
   @Test
   public void testCreateOffline() {
     NewTableConfiguration ntcOffline = new NewTableConfiguration().createOffline();
-    assertTrue(ntcOffline.getTableCreationMode() == TableCreationMode.OFFLINE);
+    assertTrue(ntcOffline.getInitialTableState() == InitialTableState.OFFLINE);
     NewTableConfiguration ntcOnline = new NewTableConfiguration();
-    assertTrue(ntcOnline.getTableCreationMode() == TableCreationMode.ONLINE);
+    assertTrue(ntcOnline.getInitialTableState() == InitialTableState.ONLINE);
   }
 }

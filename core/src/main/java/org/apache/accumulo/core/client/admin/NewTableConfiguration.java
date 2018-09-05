@@ -58,8 +58,8 @@ public class NewTableConfiguration {
   private static final TimeType DEFAULT_TIME_TYPE = TimeType.MILLIS;
   private TimeType timeType = DEFAULT_TIME_TYPE;
 
-  private static final TableCreationMode DEFAULT_CREATION_MODE = TableCreationMode.ONLINE;
-  private TableCreationMode tableCreationMode = DEFAULT_CREATION_MODE;
+  private static final InitialTableState DEFAULT_CREATION_MODE = InitialTableState.ONLINE;
+  private InitialTableState initialTableState = DEFAULT_CREATION_MODE;
 
   private boolean limitVersion = true;
 
@@ -118,7 +118,7 @@ public class NewTableConfiguration {
    * @since 2.0.0
    */
   public NewTableConfiguration createOffline() {
-    this.tableCreationMode = TableCreationMode.OFFLINE;
+    this.initialTableState = InitialTableState.OFFLINE;
     return this;
   }
 
@@ -129,8 +129,8 @@ public class NewTableConfiguration {
    *
    * @since 2.0.0
    */
-  public TableCreationMode getTableCreationMode() {
-    return tableCreationMode;
+  public InitialTableState getInitialTableState() {
+    return initialTableState;
   }
 
   /**

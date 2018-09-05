@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.client.admin.TableCreationMode;
+import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
@@ -33,7 +33,7 @@ public class CreateTable extends MasterRepo {
   private TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
-      String splitFile, int splitCount, String splitDirsFile, TableCreationMode creationMode,
+      String splitFile, int splitCount, String splitDirsFile, InitialTableState initialTableState,
       Namespace.ID namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
@@ -43,7 +43,7 @@ public class CreateTable extends MasterRepo {
     tableInfo.namespaceId = namespaceId;
     tableInfo.splitFile = splitFile;
     tableInfo.initialSplitSize = splitCount;
-    tableInfo.creationMode = creationMode;
+    tableInfo.initialTableState = initialTableState;
     tableInfo.splitDirsFile = splitDirsFile;
   }
 

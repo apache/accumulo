@@ -42,7 +42,7 @@ class CreateDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
-    fs.mkdirs(new Path(tableInfo.dir));
+    fs.mkdirs(new Path(tableInfo.defaultTabletDir));
 
     // read in the splitDir info file and create a directory for each item
     if (tableInfo.initialSplitSize > 0) {
@@ -56,7 +56,7 @@ class CreateDir extends MasterRepo {
   @Override
   public void undo(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
-    fs.deleteRecursively(new Path(tableInfo.dir));
+    fs.deleteRecursively(new Path(tableInfo.defaultTabletDir));
 
     if (tableInfo.initialSplitSize > 0) {
       SortedSet<Text> dirInfo = Utils
