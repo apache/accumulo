@@ -600,11 +600,11 @@ public enum Property {
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
           + " but can be configured on a per-table basis. Setting these properties in"
-          + " the site file will override the default globally for all tables and not"
+          + " accumulo.properties will override the default globally for all tables and not"
           + " any specific table. However, both the default and the global setting can"
           + " be overridden per table using the table operations API or in the shell,"
           + " which sets the overridden value in zookeeper. Restarting accumulo tablet"
-          + " servers after setting these properties in the site file will cause the"
+          + " servers after setting these properties in accumulo.properties will cause the"
           + " global setting to take effect. However, you must use the API or the shell"
           + " to change properties in zookeeper that are set on a table."),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,

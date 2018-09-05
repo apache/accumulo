@@ -63,15 +63,13 @@ public class AccumuloClassLoader {
   }
 
   /**
-   * Looks for the site configuration file for Accumulo and if it has a property for propertyName
-   * return it otherwise returns defaultValue Should throw an exception if the default configuration
-   * can not be read;
+   * Returns value of property in accumulo.properties file, otherwise default value
    *
    * @param propertyName
    *          Name of the property to pull
    * @param defaultValue
    *          Value to default to if not found.
-   * @return site or default class path String
+   * @return value of property or default
    */
   public static String getAccumuloProperty(String propertyName, String defaultValue) {
     if (accumuloConfigUrl == null) {

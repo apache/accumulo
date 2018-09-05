@@ -77,7 +77,7 @@ public class ConvertConfig implements KeywordExecutable {
 
     File xmlFile = new File(opts.xmlPath);
     if (!xmlFile.exists()) {
-      throw new IllegalArgumentException("xml site file does not exist at " + opts.xmlPath);
+      throw new IllegalArgumentException("xml config file does not exist at " + opts.xmlPath);
     }
 
     Path propsPath = Paths.get(opts.propsPath);

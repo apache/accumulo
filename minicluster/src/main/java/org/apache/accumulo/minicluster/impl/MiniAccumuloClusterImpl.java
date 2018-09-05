@@ -204,19 +204,20 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return _exec(clazz, jvmArgs2, args);
   }
 
-  private boolean containsSiteFile(File f) {
+  private boolean containsConfigFile(File f) {
     if (!f.isDirectory()) {
       return false;
     } else {
-      File[] files = f.listFiles(pathname -> pathname.getName().endsWith("site.xml"));
+      File[] files = f.listFiles(pathname -> pathname.getName().endsWith("site.xml")
+          || pathname.getName().equals("accumulo.properties"));
       return files != null && files.length > 0;
     }
   }
 
   private void append(StringBuilder classpathBuilder, URL url) throws URISyntaxException {
     File file = new File(url.toURI());
-    // do not include dirs containing hadoop or accumulo site files
-    if (!containsSiteFile(file))
+    // do not include dirs containing hadoop or accumulo config files
+    if (!containsConfigFile(file))
       classpathBuilder.append(File.pathSeparator).append(file.getAbsolutePath());
   }
 
