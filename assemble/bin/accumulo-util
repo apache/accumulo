@@ -124,13 +124,13 @@ function gen_monitor_cert() {
 
 function load_jars_hdfs() {
 
-  if [ -x "$HADOOP_PREFIX/bin/hadoop" ]; then
-    HADOOP="$HADOOP_PREFIX/bin/hadoop"
+  if [ -x "$HADOOP_HOME/bin/hadoop" ]; then
+    HADOOP="$HADOOP_HOME/bin/hadoop"
   else
     HADOOP=$(which hadoop)
   fi
   if [ ! -x "$HADOOP" ]; then
-    echo "Could not find 'hadoop' command. Please set hadoop on your PATH or set HADOOP_PREFIX"
+    echo "Could not find 'hadoop' command. Please set hadoop on your PATH or set HADOOP_HOME"
     exit 1
   fi
 
@@ -180,13 +180,13 @@ function load_jars_hdfs() {
 }
 
 function hadoop_jar() {
-  if [ -x "$HADOOP_PREFIX/bin/hadoop" ]; then
-    HADOOP="$HADOOP_PREFIX/bin/hadoop"
+  if [ -x "$HADOOP_HOME/bin/hadoop" ]; then
+    HADOOP="$HADOOP_HOME/bin/hadoop"
   else
     HADOOP=$(which hadoop)
   fi
   if [ ! -x "$HADOOP" ]; then
-    echo "Could not find 'hadoop' command. Please set hadoop on your PATH or set HADOOP_PREFIX"
+    echo "Could not find 'hadoop' command. Please set hadoop on your PATH or set HADOOP_HOME"
     exit 1
   fi
   if [ -z "$ZOOKEEPER_HOME" ]; then

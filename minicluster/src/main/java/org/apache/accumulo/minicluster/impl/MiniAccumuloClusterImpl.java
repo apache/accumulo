@@ -313,15 +313,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     builder.environment().put("DYLD_LIBRARY_PATH", ldLibraryPath);
 
     // if we're running under accumulo.start, we forward these env vars
-    String env = System.getenv("HADOOP_PREFIX");
+    String env = System.getenv("HADOOP_HOME");
     if (env != null)
-      builder.environment().put("HADOOP_PREFIX", env);
+      builder.environment().put("HADOOP_HOME", env);
     env = System.getenv("ZOOKEEPER_HOME");
     if (env != null)
       builder.environment().put("ZOOKEEPER_HOME", env);
     builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
-    // hadoop-2.2 puts error messages in the logs if this is not set
-    builder.environment().put("HADOOP_HOME", config.getDir().getAbsolutePath());
     if (config.getHadoopConfDir() != null)
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
 

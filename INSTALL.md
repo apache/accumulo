@@ -62,7 +62,7 @@ monitor, etc). Follow these steps to set it up:
 
 The `accumulo-env.sh` file sets up environment variables needed by Accumulo:
 
-1. Set `HADOOP_PREFIX` and `ZOOKEEPER_HOME` to the location of your Hadoop and Zookeeper
+1. Set `HADOOP_HOME` and `ZOOKEEPER_HOME` to the location of your Hadoop and Zookeeper
    installations. Accumulo will use these locations to find Hadoop and Zookeeper jars and add
    them to your `CLASSPATH` variable. If you you are running a vendor-specific release of
    Hadoop or Zookeeper, you may need to modify how the `CLASSPATH` variable is built in
