@@ -122,11 +122,11 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   /**
-   * Prevent potential CRLF injection into logs from read in user data
-   * See https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   * Prevent potential CRLF injection into logs from read in user data See
+   * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
    */
   private String sanitize(String msg) {
-    return msg.replaceAll("[\r\n]","");
+    return msg.replaceAll("[\r\n]", "");
   }
 
   public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args)
@@ -288,7 +288,8 @@ public class StandaloneClusterControl implements ClusterControl {
     String pid = getPid(server, accumuloHome, hostname);
 
     if (pid.trim().isEmpty()) {
-      log.debug("Found no processes for {} on {}", sanitize(server.prettyPrint()), sanitize(hostname));
+      log.debug("Found no processes for {} on {}", sanitize(server.prettyPrint()),
+          sanitize(hostname));
       return;
     }
 

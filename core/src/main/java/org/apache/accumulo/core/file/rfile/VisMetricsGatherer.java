@@ -138,7 +138,8 @@ public class VisMetricsGatherer
                 .digest(entry.getKey().getBytes(UTF_8));
             encodedKey = new String(encodedBytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
-            out.println("Failed to convert key to "+Constants.PW_HASH_ALGORITHM+" hash: " + e.getMessage());
+            out.println("Failed to convert key to " + Constants.PW_HASH_ALGORITHM + " hash: "
+                + e.getMessage());
           }
           out.printf("%-20s", encodedKey.substring(0, 8));
         } else

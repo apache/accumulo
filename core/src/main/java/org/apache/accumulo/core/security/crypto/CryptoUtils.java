@@ -24,10 +24,6 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Objects;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.NullCipher;
-
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;

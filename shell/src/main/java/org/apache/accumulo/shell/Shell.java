@@ -657,11 +657,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   /**
-   * Prevent potential CRLF injection into logs from read in user data
-   * See https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   * Prevent potential CRLF injection into logs from read in user data See
+   * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
    */
   private String sanitize(String msg) {
-    return msg.replaceAll("[\r\n]","");
+    return msg.replaceAll("[\r\n]", "");
   }
 
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt)
