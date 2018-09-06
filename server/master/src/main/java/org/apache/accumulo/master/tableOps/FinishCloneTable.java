@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 import org.slf4j.LoggerFactory;
 
 class FinishCloneTable extends MasterRepo {
@@ -44,13 +43,13 @@ class FinishCloneTable extends MasterRepo {
     // may never create files.. therefore there is no need to consume namenode space w/ directories
     // that are not used... tablet will create directories as needed
 
-    TableManager.getInstance().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
+    environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
 
-    Utils.unreserveNamespace(cloneInfo.srcNamespaceId, tid, false);
+    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
-      Utils.unreserveNamespace(cloneInfo.namespaceId, tid, false);
-    Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
-    Utils.unreserveTable(cloneInfo.tableId, tid, true);
+      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
+    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
+    Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
 
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName,
         cloneInfo.srcTableId);

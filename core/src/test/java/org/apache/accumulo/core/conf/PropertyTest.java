@@ -110,7 +110,7 @@ public class PropertyTest {
 
     // ignores duplicates because ConfigurationCopy already de-duplicates
     Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector = Collectors
-        .toMap(e -> e.getKey(), e -> e.getValue(), (a, b) -> a, TreeMap::new);
+        .toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
     Predicate<Entry<String,String>> sensitiveNames = e -> e.getKey()
         .equals(Property.INSTANCE_SECRET.getKey()) || e.getKey().toLowerCase().contains("password")

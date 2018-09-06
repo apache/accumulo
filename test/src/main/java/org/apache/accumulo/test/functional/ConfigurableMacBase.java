@@ -40,6 +40,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.io.FileUtils;
@@ -153,7 +154,6 @@ public class ConfigurableMacBase extends AccumuloITBase {
     String nativePathInDevTree = NativeMapIT.nativeMapLocation().getAbsolutePath();
     String nativePathInMapReduce = new File(System.getProperty("user.dir")).toString();
     cfg.setNativeLibPaths(nativePathInDevTree, nativePathInMapReduce);
-    cfg.setProperty(Property.GC_FILE_ARCHIVE, Boolean.TRUE.toString());
     Configuration coreSite = new Configuration(false);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     configure(cfg, coreSite);
@@ -201,12 +201,16 @@ public class ConfigurableMacBase extends AccumuloITBase {
         .usingPassword("root", ROOT_PASSWORD).info();
   }
 
+  protected ServerContext getServerContext() {
+    return getCluster().getServerContext();
+  }
+
   protected Process exec(Class<?> clazz, String... args) throws IOException {
     return getCluster().exec(clazz, args);
   }
 
   protected String getMonitor()
       throws KeeperException, InterruptedException, AccumuloSecurityException, AccumuloException {
-    return MonitorUtil.getLocation(getConnector().getInstance());
+    return MonitorUtil.getLocation(getClientContext());
   }
 }

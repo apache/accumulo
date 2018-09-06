@@ -19,7 +19,6 @@ package org.apache.accumulo.server.util;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -37,7 +36,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -46,7 +44,6 @@ import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -55,16 +52,12 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,17 +204,15 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    ServerContext context = opts.getServerContext();
+
+    AccumuloConfiguration conf = context.getConfiguration();
     // Login as the server on secure HDFS
-    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(siteConf);
+    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      SecurityUtil.serverLogin(conf);
     }
 
-    Instance instance = opts.getInstance();
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
-
     try {
-      ClientContext context = new AccumuloServerContext(instance, confFactory);
 
       int rc = 0;
 
@@ -253,7 +244,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context.getConnector(), randomizeVolumesOpts.tableName);
+        rc = RandomizeVolumes.randomize(context, context.getConnector(),
+            randomizeVolumesOpts.tableName);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
@@ -373,10 +365,8 @@ public class Admin implements KeywordExecutable {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
-    final Instance instance = context.getInstance();
-    final String zTServerRoot = getTServersZkPath(instance);
-    final ZooCache zc = new ZooCacheFactory().getZooCache(context.getZooKeepers(),
-        context.getZooKeepersSessionTimeOut());
+    final String zTServerRoot = getTServersZkPath(context);
+    final ZooCache zc = context.getZooCache();
     for (String server : servers) {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
@@ -392,14 +382,13 @@ public class Admin implements KeywordExecutable {
   /**
    * Get the parent ZNode for tservers for the given instance
    *
-   * @param instance
-   *          The Instance
+   * @param context
+   *          ClientContext
    * @return The tservers znode for the instance
    */
-  static String getTServersZkPath(Instance instance) {
-    requireNonNull(instance);
-    final String instanceRoot = ZooUtil.getRoot(instance);
-    return instanceRoot + Constants.ZTSERVERS;
+  static String getTServersZkPath(ClientContext context) {
+    requireNonNull(context);
+    return context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
   /**
@@ -424,7 +413,7 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo-site.xml.bak";
+  private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";
   private static final String NS_FILE_SUFFIX = "_ns.cfg";
   private static final String USER_FILE_SUFFIX = "_user.cfg";
   private static final MessageFormat configFormat = new MessageFormat("config -t {0} -s {1}\n");
@@ -469,7 +458,7 @@ public class Admin implements KeywordExecutable {
 
     if (opts.allConfiguration) {
       // print accumulo site
-      printSystemConfiguration(connector, outputDirectory);
+      printSystemConfiguration(outputDirectory);
       // print namespaces
       for (String namespace : connector.namespaceOperations().list()) {
         printNameSpaceConfiguration(connector, namespace, outputDirectory);
@@ -485,7 +474,7 @@ public class Admin implements KeywordExecutable {
       }
     } else {
       if (opts.systemConfiguration) {
-        printSystemConfiguration(connector, outputDirectory);
+        printSystemConfiguration(outputDirectory);
       }
       if (opts.namespaceConfiguration) {
         for (String namespace : connector.namespaceOperations().list()) {
@@ -574,26 +563,28 @@ public class Admin implements KeywordExecutable {
     userWriter.close();
   }
 
-  private void printSystemConfiguration(Connector connector, File outputDirectory)
+  private void printSystemConfiguration(File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException {
-    Configuration conf = new Configuration(false);
+    TreeMap<String,String> conf = new TreeMap<>();
     TreeMap<String,String> site = new TreeMap<>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue) && !systemConfig.containsKey(prop.getKey())) {
-        conf.set(prop.getKey(), prop.getValue());
+        conf.put(prop.getKey(), prop.getValue());
       }
     }
     TreeMap<String,String> system = new TreeMap<>(systemConfig);
     for (Entry<String,String> prop : system.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue)) {
-        conf.set(prop.getKey(), prop.getValue());
+        conf.put(prop.getKey(), prop.getValue());
       }
     }
     File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    try (FileOutputStream fos = new FileOutputStream(siteBackup)) {
-      conf.writeXml(fos);
+    try (FileWriter fw = new FileWriter(siteBackup)) {
+      for (Entry<String,String> prop : conf.entrySet()) {
+        fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
+      }
     }
   }
 

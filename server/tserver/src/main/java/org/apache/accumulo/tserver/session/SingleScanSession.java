@@ -43,8 +43,9 @@ public class SingleScanSession extends ScanSession {
 
   public SingleScanSession(TCredentials credentials, KeyExtent extent, HashSet<Column> columnSet,
       List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, Authorizations authorizations,
-      long readaheadThreshold, long batchTimeOut, String context) {
-    super(credentials, columnSet, ssiList, ssio, authorizations);
+      long readaheadThreshold, long batchTimeOut, String context,
+      Map<String,String> executionHints) {
+    super(credentials, columnSet, ssiList, ssio, authorizations, executionHints);
     this.extent = extent;
     this.readaheadThreshold = readaheadThreshold;
     this.batchTimeOut = batchTimeOut;

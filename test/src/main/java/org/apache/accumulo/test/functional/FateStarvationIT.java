@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -58,7 +59,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
     c.tableOperations().flush(tableName, null, null, true);
 
     List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
-    Random rand = new Random();
+    Random rand = new SecureRandom();
 
     for (int i = 0; i < 100; i++) {
       int idx1 = rand.nextInt(splits.size() - 1);
@@ -69,7 +70,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
 
     c.tableOperations().offline(tableName);
 
-    FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
+    FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
   }
 
 }

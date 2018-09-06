@@ -22,41 +22,33 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.junit.Before;
 import org.junit.Test;
 
 public class RootTabletLocatorTest {
-  private Instance instance;
+  private ClientContext context;
   private TabletServerLockChecker lockChecker;
-  private ZooCacheFactory zcf;
   private ZooCache zc;
   private RootTabletLocator rtl;
 
   @Before
   public void setUp() {
-    instance = createMock(Instance.class);
-    expect(instance.getInstanceID()).andReturn("iid").anyTimes();
-    expect(instance.getZooKeepers()).andReturn("zk1").anyTimes();
-    expect(instance.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
-    replay(instance);
-    lockChecker = createMock(TabletServerLockChecker.class);
-    zcf = createMock(ZooCacheFactory.class);
+    context = createMock(ClientContext.class);
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/iid").anyTimes();
     zc = createMock(ZooCache.class);
-    rtl = new RootTabletLocator(lockChecker, zcf);
+    expect(context.getZooCache()).andReturn(zc).anyTimes();
+    replay(context);
+    lockChecker = createMock(TabletServerLockChecker.class);
+    rtl = new RootTabletLocator(lockChecker);
   }
 
   @Test
   public void testInvalidateCache_Server() {
-    expect(zcf.getZooCache("zk1", 30000)).andReturn(zc);
-    replay(zcf);
-    zc.clear(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/server");
+    zc.clear(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/server");
     replay(zc);
-    rtl.invalidateCache(instance, "server");
+    rtl.invalidateCache(context, "server");
     verify(zc);
   }
 }

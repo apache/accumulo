@@ -29,8 +29,6 @@ import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -40,7 +38,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
@@ -50,7 +47,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -158,31 +154,24 @@ class CleanUp extends MasterRepo {
       // If the master lock passed to deleteTable, it is possible that the delete mutations will be
       // dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTableUtil.deleteTable(tableId, refCount != 0, master, null);
+      MetadataTableUtil.deleteTable(tableId, refCount != 0, master.getContext(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }
 
     // remove any problem reports the table may have
     try {
-      ProblemReports.getInstance(master).deleteProblemReports(tableId);
+      ProblemReports.getInstance(master.getContext()).deleteProblemReports(tableId);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableId, e);
     }
 
     if (refCount == 0) {
-      final AccumuloConfiguration conf = master.getConfiguration();
-      boolean archiveFiles = conf.getBoolean(Property.GC_FILE_ARCHIVE);
-
       // delete the map files
       try {
         VolumeManager fs = master.getFileSystem();
-        for (String dir : ServerConstants.getTablesDirs()) {
-          if (archiveFiles) {
-            archiveFile(fs, dir, tableId);
-          } else {
-            fs.deleteRecursively(new Path(dir, tableId.canonicalID()));
-          }
+        for (String dir : ServerConstants.getTablesDirs(master.getConfiguration())) {
+          fs.deleteRecursively(new Path(dir, tableId.canonicalID()));
         }
       } catch (IOException e) {
         log.error("Unable to remove deleted table directory", e);
@@ -198,65 +187,26 @@ class CleanUp extends MasterRepo {
 
     // remove table from zookeeper
     try {
-      TableManager.getInstance().removeTable(tableId);
-      Tables.clearCache(master.getInstance());
+      master.getTableManager().removeTable(tableId);
+      Tables.clearCache(master.getContext());
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);
     }
 
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance(master).deleteTable(master.rpcCreds(), tableId,
-          namespaceId);
+      AuditedSecurityOperation.getInstance(master.getContext())
+          .deleteTable(master.getContext().rpcCreds(), tableId, namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(master, tableId, tid, true);
+    Utils.unreserveNamespace(master, namespaceId, tid, false);
 
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 
     return null;
-  }
-
-  protected void archiveFile(VolumeManager fs, String dir, Table.ID tableId) throws IOException {
-    Path tableDirectory = new Path(dir, tableId.canonicalID());
-    Volume v = fs.getVolumeByPath(tableDirectory);
-    String basePath = v.getBasePath();
-
-    // Path component of URI
-    String tableDirPath = tableDirectory.toUri().getPath();
-
-    // Just the suffix of the path (after the Volume's base path)
-    String tableDirSuffix = tableDirPath.substring(basePath.length());
-
-    // Remove a leading path separator char because Path will treat the "child" as an absolute path
-    // with it
-    if (Path.SEPARATOR_CHAR == tableDirSuffix.charAt(0)) {
-      if (tableDirSuffix.length() > 1) {
-        tableDirSuffix = tableDirSuffix.substring(1);
-      } else {
-        tableDirSuffix = "";
-      }
-    }
-
-    // Get the file archive directory on this volume
-    final Path fileArchiveDir = new Path(basePath, ServerConstants.FILE_ARCHIVE_DIR);
-
-    // Make sure it exists just to be safe
-    fs.mkdirs(fileArchiveDir);
-
-    // The destination to archive this table to
-    final Path destTableDir = new Path(fileArchiveDir, tableDirSuffix);
-
-    log.debug("Archiving " + tableDirectory + " to " + tableDirectory);
-
-    if (fs.exists(destTableDir)) {
-      merge(fs, tableDirectory, destTableDir);
-    } else {
-      fs.rename(tableDirectory, destTableDir);
-    }
   }
 
   protected void merge(VolumeManager fs, Path src, Path dest) throws IOException {

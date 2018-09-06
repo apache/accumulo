@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Random;
+import java.security.SecureRandom;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
@@ -105,7 +105,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     }
 
     cluster = harness.create(SharedMiniClusterBase.class.getName(),
-        System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token,
+        System.currentTimeMillis() + "_" + new SecureRandom().nextInt(Short.MAX_VALUE), token,
         miniClusterCallback, krb);
     cluster.start();
 

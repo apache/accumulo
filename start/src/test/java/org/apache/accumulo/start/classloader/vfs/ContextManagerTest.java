@@ -20,7 +20,6 @@ import java.io.File;
 import java.util.HashSet;
 
 import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
-import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextsConfig;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -83,23 +82,15 @@ public class ContextManagerTest {
   @Test
   public void differentContexts() throws Exception {
 
-    ContextManager cm = new ContextManager(vfs, new ReloadingClassLoader() {
-      @Override
-      public ClassLoader getClassLoader() {
-        return ClassLoader.getSystemClassLoader();
-      }
-    });
+    ContextManager cm = new ContextManager(vfs, ClassLoader::getSystemClassLoader);
 
-    cm.setContextConfig(new ContextsConfig() {
-      @Override
-      public ContextConfig getContextConfig(String context) {
-        if (context.equals("CX1")) {
-          return new ContextConfig(uri1, true);
-        } else if (context.equals("CX2")) {
-          return new ContextConfig(uri2, true);
-        }
-        return null;
+    cm.setContextConfig(context -> {
+      if (context.equals("CX1")) {
+        return new ContextConfig(uri1, true);
+      } else if (context.equals("CX2")) {
+        return new ContextConfig(uri2, true);
       }
+      return null;
     });
 
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
@@ -133,23 +124,15 @@ public class ContextManagerTest {
 
     Class<?> pclass = parent.loadClass("test.HelloWorld");
 
-    ContextManager cm = new ContextManager(vfs, new ReloadingClassLoader() {
-      @Override
-      public ClassLoader getClassLoader() {
-        return parent;
-      }
-    });
+    ContextManager cm = new ContextManager(vfs, () -> parent);
 
-    cm.setContextConfig(new ContextsConfig() {
-      @Override
-      public ContextConfig getContextConfig(String context) {
-        if (context.equals("CX1")) {
-          return new ContextConfig(uri2.toString(), true);
-        } else if (context.equals("CX2")) {
-          return new ContextConfig(uri2.toString(), false);
-        }
-        return null;
+    cm.setContextConfig(context -> {
+      if (context.equals("CX1")) {
+        return new ContextConfig(uri2.toString(), true);
+      } else if (context.equals("CX2")) {
+        return new ContextConfig(uri2.toString(), false);
       }
+      return null;
     });
 
     Assert.assertSame(cm.getClassLoader("CX1").loadClass("test.HelloWorld"), pclass);

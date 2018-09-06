@@ -20,9 +20,8 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -30,19 +29,15 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
-    listVolumes(new AccumuloServerContext(instance, new ServerConfigurationFactory(instance)));
+    listVolumes(new ServerContext(new SiteConfiguration()));
   }
 
   private static String getTableURI(String rootTabletDir) {
@@ -63,13 +58,13 @@ public class ListVolumesUsed {
     volumes.add(getLogURI(logEntry.filename));
   }
 
-  private static void listZookeeper() throws Exception {
+  private static void listZookeeper(ServerContext context) throws Exception {
     System.out.println("Listing volumes referenced in zookeeper");
     TreeSet<String> volumes = new TreeSet<>();
 
-    volumes.add(getTableURI(MetadataTableUtil.getRootTabletDir()));
+    volumes.add(getTableURI(MetadataTableUtil.getRootTabletDir(context)));
     ArrayList<LogEntry> result = new ArrayList<>();
-    MetadataTableUtil.getRootLogEntries(result);
+    MetadataTableUtil.getRootLogEntries(context, result);
     for (LogEntry logEntry : result) {
       getLogURIs(volumes, logEntry);
     }
@@ -79,7 +74,7 @@ public class ListVolumesUsed {
 
   }
 
-  private static void listTable(String name, ClientContext context) throws Exception {
+  private static void listTable(String name, ServerContext context) throws Exception {
 
     System.out.println("Listing volumes referenced in " + name + " tablets section");
 
@@ -128,7 +123,7 @@ public class ListVolumesUsed {
 
     volumes.clear();
 
-    WalStateManager wals = new WalStateManager(context, ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(context);
     for (Path path : wals.getAllState().keySet()) {
       volumes.add(getLogURI(path.toString()));
     }
@@ -139,8 +134,8 @@ public class ListVolumesUsed {
       System.out.println("\tVolume : " + volume);
   }
 
-  public static void listVolumes(ClientContext context) throws Exception {
-    listZookeeper();
+  public static void listVolumes(ServerContext context) throws Exception {
+    listZookeeper(context);
     System.out.println();
     listTable(RootTable.NAME, context);
     System.out.println();

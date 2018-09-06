@@ -18,12 +18,12 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -83,7 +83,7 @@ public class FileUtil {
     Path result = null;
     while (result == null) {
       result = new Path(tabletDirectory + Path.SEPARATOR + "tmp/idxReduce_"
-          + String.format("%09d", new Random().nextInt(Integer.MAX_VALUE)));
+          + String.format("%09d", new SecureRandom().nextInt(Integer.MAX_VALUE)));
       try {
         fs.getFileStatus(result);
         result = null;
@@ -239,7 +239,7 @@ public class FileUtil {
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
-      // skip the prevendrow
+      // skip the prevEndRow
       while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0) {
         mmfi.next();
       }
@@ -333,7 +333,7 @@ public class FileUtil {
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
-      // skip the prevendrow
+      // skip the prevEndRow
       while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0)
         mmfi.next();
 

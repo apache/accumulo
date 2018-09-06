@@ -18,6 +18,7 @@ package org.apache.accumulo.server.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +52,7 @@ public class DistributedWorkQueue {
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
 
   private ThreadPoolExecutor threadPool;
-  private ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+  private ZooReaderWriter zoo;
   private String path;
   private AccumuloConfiguration config;
   private long timerInitialDelay, timerPeriod;
@@ -65,7 +66,7 @@ public class DistributedWorkQueue {
     if (numTask.get() >= threadPool.getCorePoolSize())
       return;
 
-    Random random = new Random();
+    Random random = new SecureRandom();
     Collections.shuffle(children, random);
     try {
       for (final String child : children) {
@@ -160,7 +161,7 @@ public class DistributedWorkQueue {
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config) {
     // Preserve the old delay and period
-    this(path, config, new Random().nextInt(60 * 1000), 60 * 1000);
+    this(path, config, new SecureRandom().nextInt(60 * 1000), 60 * 1000);
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, long timerInitialDelay,
@@ -169,6 +170,11 @@ public class DistributedWorkQueue {
     this.config = config;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
+    zoo = new ZooReaderWriter(config);
+  }
+
+  public ZooReaderWriter getZooReaderWriter() {
+    return zoo;
   }
 
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)

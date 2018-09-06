@@ -29,6 +29,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -42,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -55,9 +55,9 @@ import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterControl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -96,7 +96,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     MiniAccumuloClusterImpl mac = getCluster();
     MiniAccumuloClusterControl control = mac.getClusterControl();
     control.stop(GARBAGE_COLLECTOR);
-    ClientContext context = getClientContext();
+    ServerContext context = getServerContext();
     Connector c = context.getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
@@ -168,7 +168,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   }
 
   private void writeSomeData(Connector conn, String tableName, int row, int col) throws Exception {
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     BatchWriter bw = conn.createBatchWriter(tableName, null);
     byte[] rowData = new byte[10];
     byte[] cq = new byte[10];
@@ -223,7 +223,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   private final int TIMES_TO_COUNT = 20;
   private final int PAUSE_BETWEEN_COUNTS = 100;
 
-  private Map<String,Boolean> getWALsAndAssertCount(ClientContext c, int expectedCount)
+  private Map<String,Boolean> getWALsAndAssertCount(ServerContext c, int expectedCount)
       throws Exception {
     // see https://issues.apache.org/jira/browse/ACCUMULO-4110. Sometimes this test counts the logs
     // before
@@ -261,11 +261,9 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     return waitLonger;
   }
 
-  private Map<String,Boolean> _getWals(ClientContext c) throws Exception {
+  private Map<String,Boolean> _getWals(ServerContext c) throws Exception {
     Map<String,Boolean> result = new HashMap<>();
-    ZooReaderWriter zk = new ZooReaderWriter(c.getClientInfo().getZooKeepers(),
-        c.getClientInfo().getZooKeepersSessionTimeOut(), "");
-    WalStateManager wals = new WalStateManager(c, zk);
+    WalStateManager wals = new WalStateManager(c);
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       // WALs are in use if they are not unreferenced
       result.put(entry.getKey().toString(), entry.getValue() != WalState.UNREFERENCED);

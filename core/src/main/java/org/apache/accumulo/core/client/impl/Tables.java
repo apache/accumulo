@@ -26,13 +26,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 
@@ -67,21 +65,21 @@ public class Tables {
   }
 
   /**
-   * Return the cached ZooCache for provided instance. ZooCache is initially created with a watcher
+   * Return the cached ZooCache for provided context. ZooCache is initially created with a watcher
    * that will clear the TableMap cache for that instance when WatchedEvent occurs.
    */
-  private static ZooCache getZooCache(final Instance instance) {
+  private static ZooCache getZooCache(final ClientContext context) {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
     }
 
-    final String uuid = instance.getInstanceID();
+    final String uuid = context.getInstanceID();
 
     try {
       return instanceToZooCache.get(uuid, () -> {
-        final String zks = instance.getZooKeepers();
-        final int timeOut = instance.getZooKeepersSessionTimeOut();
+        final String zks = context.getZooKeepers();
+        final int timeOut = context.getZooKeepersSessionTimeOut();
         return new ZooCacheFactory().getZooCache(zks, timeOut,
             watchedEvent -> instanceToMapCache.invalidate(uuid));
       });
@@ -99,11 +97,11 @@ public class Tables {
     if (tableId == null) {
       // maybe the table exist, but the cache was not updated yet... so try to clear the cache and
       // check again
-      clearCache(context.getInstance());
+      clearCache(context);
       tableId = getNameToIdMap(context).get(tableName);
       if (tableId == null) {
         String namespace = qualify(tableName).getFirst();
-        if (Namespaces.getNameToIdMap(context.getInstance()).containsKey(namespace))
+        if (Namespaces.getNameToIdMap(context).containsKey(namespace))
           throw new TableNotFoundException(null, tableName, null);
         else
           throw new NamespaceNotFoundException(null, namespace, null);
@@ -114,26 +112,17 @@ public class Tables {
 
   public static String getTableName(ClientContext context, Table.ID tableId)
       throws TableNotFoundException {
-    return getTableName(context.getInstance(), tableId);
-  }
-
-  public static String getTableName(Instance instance, Table.ID tableId)
-      throws TableNotFoundException {
-    String tableName = getIdToNameMap(instance).get(tableId);
+    String tableName = getIdToNameMap(context).get(tableId);
     if (tableName == null)
       throw new TableNotFoundException(tableId.canonicalID(), null, null);
     return tableName;
   }
 
   public static String getTableOfflineMsg(ClientContext context, Table.ID tableId) {
-    return getTableOfflineMsg(context.getInstance(), tableId);
-  }
-
-  public static String getTableOfflineMsg(Instance instance, Table.ID tableId) {
     if (tableId == null)
       return "Table <unknown table> is offline";
     try {
-      String tableName = Tables.getTableName(instance, tableId);
+      String tableName = Tables.getTableName(context, tableId);
       return "Table " + tableName + " (" + tableId.canonicalID() + ") is offline";
     } catch (TableNotFoundException e) {
       return "Table <unknown table> (" + tableId.canonicalID() + ") is offline";
@@ -141,27 +130,23 @@ public class Tables {
   }
 
   public static Map<String,Table.ID> getNameToIdMap(ClientContext context) {
-    return getTableMap(context.getInstance()).getNameToIdMap();
+    return getTableMap(context).getNameToIdMap();
   }
 
   public static Map<Table.ID,String> getIdToNameMap(ClientContext context) {
-    return getIdToNameMap(context.getInstance());
-  }
-
-  public static Map<Table.ID,String> getIdToNameMap(Instance instance) {
-    return getTableMap(instance).getIdtoNameMap();
+    return getTableMap(context).getIdtoNameMap();
   }
 
   /**
    * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared
-   * manually by calling {@link #clearCache(Instance)} or automatically cleared by ZooCache watcher
-   * created in {@link #getZooCache(Instance)}. See ACCUMULO-4778.
+   * manually by calling {@link #clearCache(ClientContext)} or automatically cleared by ZooCache
+   * watcher created in {@link #getZooCache(ClientContext)}. See ACCUMULO-4778.
    */
-  private static TableMap getTableMap(final Instance instance) {
+  private static TableMap getTableMap(final ClientContext context) {
     TableMap map;
     try {
-      map = instanceToMapCache.get(instance.getInstanceID(),
-          () -> new TableMap(instance, getZooCache(instance)));
+      map = instanceToMapCache.get(context.getInstanceID(),
+          () -> new TableMap(context, getZooCache(context)));
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
     }
@@ -169,47 +154,35 @@ public class Tables {
   }
 
   public static boolean exists(ClientContext context, Table.ID tableId) {
-    return exists(context.getInstance(), tableId);
-  }
-
-  public static boolean exists(Instance instance, Table.ID tableId) {
-    ZooCache zc = getZooCache(instance);
-    List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
+    ZooCache zc = getZooCache(context);
+    List<String> tableIds = zc.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
     return tableIds.contains(tableId.canonicalID());
   }
 
   public static void clearCache(ClientContext context) {
-    clearCache(context.getInstance());
-  }
-
-  public static void clearCache(Instance instance) {
-    getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-    getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
-    instanceToMapCache.invalidate(instance.getInstanceID());
+    getZooCache(context).clear(context.getZooKeeperRoot() + Constants.ZTABLES);
+    getZooCache(context).clear(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
+    instanceToMapCache.invalidate(context.getInstanceID());
   }
 
   /**
    * Clears the zoo cache from instance/root/{PATH}
    *
-   * @param instance
-   *          The Accumulo Instance
+   * @param context
+   *          The Accumulo client context
    * @param zooPath
    *          A zookeeper path
    */
-  public static void clearCacheByPath(Instance instance, final String zooPath) {
+  public static void clearCacheByPath(ClientContext context, final String zooPath) {
     String thePath = zooPath.startsWith("/") ? zooPath : "/" + zooPath;
-    getZooCache(instance).clear(ZooUtil.getRoot(instance) + thePath);
-    instanceToMapCache.invalidate(instance.getInstanceID());
+    getZooCache(context).clear(context.getZooKeeperRoot() + thePath);
+    instanceToMapCache.invalidate(context.getInstanceID());
   }
 
   public static String getPrintableTableInfoFromId(ClientContext context, Table.ID tableId) {
-    return getPrintableTableInfoFromId(context.getInstance(), tableId);
-  }
-
-  public static String getPrintableTableInfoFromId(Instance instance, Table.ID tableId) {
     String tableName = null;
     try {
-      tableName = getTableName(instance, tableId);
+      tableName = getTableName(context, tableId);
     } catch (TableNotFoundException e) {
       // handled in the string formatting
     }
@@ -229,41 +202,32 @@ public class Tables {
   }
 
   public static TableState getTableState(ClientContext context, Table.ID tableId) {
-    return getTableState(context.getInstance(), tableId);
-  }
-
-  public static TableState getTableState(Instance instance, Table.ID tableId) {
-    return getTableState(instance, tableId, false);
-  }
-
-  public static TableState getTableState(ClientContext context, Table.ID tableId,
-      boolean clearCachedState) {
-    return getTableState(context.getInstance(), tableId, clearCachedState);
+    return getTableState(context, tableId, false);
   }
 
   /**
    * Get the current state of the table using the tableid. The boolean clearCache, if true will
    * clear the table state in zookeeper before fetching the state. Added with ACCUMULO-4574.
    *
-   * @param instance
-   *          the Accumulo instance.
+   * @param context
+   *          the Accumulo client context
    * @param tableId
    *          the table id
    * @param clearCachedState
    *          if true clear the table state in zookeeper before checking status
    * @return the table state.
    */
-  public static TableState getTableState(Instance instance, Table.ID tableId,
+  public static TableState getTableState(ClientContext context, Table.ID tableId,
       boolean clearCachedState) {
 
-    String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId.canonicalID()
+    String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId.canonicalID()
         + Constants.ZTABLE_STATE;
 
     if (clearCachedState) {
-      Tables.clearCacheByPath(instance, statePath);
+      Tables.clearCacheByPath(context, statePath);
     }
 
-    ZooCache zc = getZooCache(instance);
+    ZooCache zc = getZooCache(context);
     byte[] state = zc.get(statePath);
     if (state == null)
       return TableState.UNKNOWN;
@@ -300,30 +264,25 @@ public class Tables {
     return new Pair<>(defaultNamespace, tableName);
   }
 
-  public static Namespace.ID getNamespaceId(ClientContext context, Table.ID tableId)
-      throws TableNotFoundException {
-    return getNamespaceId(context.getInstance(), tableId);
-  }
-
   /**
    * Returns the namespace id for a given table ID.
    *
-   * @param instance
-   *          The Accumulo Instance
+   * @param context
+   *          The Accumulo client context
    * @param tableId
    *          The tableId
    * @return The namespace id which this table resides in.
    * @throws IllegalArgumentException
    *           if the table doesn't exist in ZooKeeper
    */
-  public static Namespace.ID getNamespaceId(Instance instance, Table.ID tableId)
+  public static Namespace.ID getNamespaceId(ClientContext context, Table.ID tableId)
       throws TableNotFoundException {
-    checkArgument(instance != null, "instance is null");
+    checkArgument(context != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
 
-    ZooCache zc = getZooCache(instance);
-    byte[] n = zc.get(
-        ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
+    ZooCache zc = getZooCache(context);
+    byte[] n = zc.get(context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
+        + Constants.ZTABLE_NAMESPACE);
 
     // We might get null out of ZooCache if this tableID doesn't exist
     if (null == n) {

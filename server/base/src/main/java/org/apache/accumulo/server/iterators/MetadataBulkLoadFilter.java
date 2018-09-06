@@ -29,6 +29,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,10 +84,10 @@ public class MetadataBulkLoadFilter extends Filter {
     }
 
     bulkTxStatusCache = new HashMap<>();
-    arbitrator = getArbitrator();
+    arbitrator = getArbitrator(((SystemIteratorEnvironment) env).getServerContext());
   }
 
-  protected Arbitrator getArbitrator() {
-    return new ZooArbitrator();
+  protected Arbitrator getArbitrator(ServerContext context) {
+    return new ZooArbitrator(context);
   }
 }

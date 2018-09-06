@@ -307,7 +307,7 @@ public class AccumuloVFSClassLoader {
 
   public static String getClassPath(boolean debug) {
     StringBuilder cp = new StringBuilder();
-    printClassPath(s -> cp.append(s), debug);
+    printClassPath(cp::append, debug);
     return cp.toString();
   }
 
@@ -401,14 +401,11 @@ public class AccumuloVFSClassLoader {
   public static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
       getClassLoader();
-      contextManager = new ContextManager(generateVfs(), new ReloadingClassLoader() {
-        @Override
-        public ClassLoader getClassLoader() {
-          try {
-            return AccumuloVFSClassLoader.getClassLoader();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
+      contextManager = new ContextManager(generateVfs(), () -> {
+        try {
+          return getClassLoader();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
       });
     }

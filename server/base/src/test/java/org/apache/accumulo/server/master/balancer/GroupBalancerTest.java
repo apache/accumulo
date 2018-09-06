@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.server.master.balancer;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -327,7 +328,7 @@ public class GroupBalancerTest {
   @Test
   public void bigTest() {
     TabletServers tservers = new TabletServers();
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= 241; t++) {
@@ -346,7 +347,7 @@ public class GroupBalancerTest {
   @Test
   public void bigTest2() {
     TabletServers tservers = new TabletServers();
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= rand.nextInt(1000); t++) {

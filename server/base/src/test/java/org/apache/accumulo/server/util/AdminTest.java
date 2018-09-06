@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.easymock.EasyMock;
@@ -32,17 +32,17 @@ public class AdminTest {
 
   @Test
   public void testZooKeeperTserverPath() {
-    Instance instance = EasyMock.createMock(Instance.class);
+    ClientContext context = EasyMock.createMock(ClientContext.class);
     String instanceId = UUID.randomUUID().toString();
 
-    EasyMock.expect(instance.getInstanceID()).andReturn(instanceId);
+    EasyMock.expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/" + instanceId);
 
-    EasyMock.replay(instance);
+    EasyMock.replay(context);
 
     assertEquals(Constants.ZROOT + "/" + instanceId + Constants.ZTSERVERS,
-        Admin.getTServersZkPath(instance));
+        Admin.getTServersZkPath(context));
 
-    EasyMock.verify(instance);
+    EasyMock.verify(context);
   }
 
   @Test

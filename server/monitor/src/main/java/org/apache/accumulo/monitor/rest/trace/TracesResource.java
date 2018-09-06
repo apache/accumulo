@@ -56,7 +56,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tracer.SpanTree;
 import org.apache.accumulo.tracer.SpanTreeVisitor;
@@ -359,7 +358,7 @@ public class TracesResource {
   private Scanner getScanner(String table, String principal, AuthenticationToken at)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      Connector conn = HdfsZooInstance.getInstance().getConnector(principal, at);
+      Connector conn = Monitor.getContext().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {
         return null;
       }

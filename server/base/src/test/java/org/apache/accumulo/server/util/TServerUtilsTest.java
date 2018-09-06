@@ -29,79 +29,37 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Processor;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
+import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TServerSocket;
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Test;
 
 public class TServerUtilsTest {
 
-  protected static class TestInstance implements Instance {
-
-    @Override
-    public String getRootTabletLocation() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<String> getMasterLocations() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getInstanceID() {
-      return "1111";
-    }
-
-    @Override
-    public String getInstanceName() {
-      return "test";
-    }
-
-    @Override
-    public String getZooKeepers() {
-      return "";
-    }
-
-    @Override
-    public int getZooKeepersSessionTimeOut() {
-      return 30;
-    }
-
-    @Override
-    public Connector getConnector(String principal, AuthenticationToken token)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-  }
-
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
     private ConfigurationCopy conf = null;
 
-    public TestServerConfigurationFactory(Instance instance) {
-      super(instance);
+    public TestServerConfigurationFactory(ServerContext context) {
+      super(context, new SiteConfiguration());
       conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
 
@@ -163,9 +121,29 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
-  private static final TestInstance instance = new TestInstance();
+  private static AccumuloConfiguration config = new ConfigurationCopy(
+      DefaultConfiguration.getInstance());
+
+  private static ServerContext createMockContext() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    expect(context.getZooReaderWriter()).andReturn(null);
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(context.getZooKeepers()).andReturn("").anyTimes();
+    expect(context.getInstanceName()).andReturn("instance").anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
+    expect(context.getInstanceID()).andReturn("11111").anyTimes();
+    expect(context.getConfiguration()).andReturn(config).anyTimes();
+    return context;
+  }
+
+  private static ServerContext createReplayMockInfo() {
+    ServerContext context = createMockContext();
+    replay(context);
+    return context;
+  }
+
   private static final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
-      instance);
+      createReplayMockInfo());
 
   @After
   public void resetProperty() {
@@ -286,7 +264,6 @@ public class TServerUtilsTest {
       if (null != server) {
         TServerUtils.stopTServer(server);
       }
-
     }
   }
 
@@ -318,7 +295,15 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    AccumuloServerContext ctx = new AccumuloServerContext(instance, factory);
+    ServerContext ctx = createMock(ServerContext.class);
+    expect(ctx.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(ctx.getInstanceID()).andReturn("instance").anyTimes();
+    expect(ctx.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
+    expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL);
+    expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
+    expect(ctx.getSaslParams()).andReturn(null).anyTimes();
+    expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
+    replay(ctx);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = TraceWrap.service(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);

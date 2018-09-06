@@ -300,7 +300,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
 
     if (reduceOnFullCompactionOnly && isMajorCompaction && !env.isFullMajorCompaction()) {
-      // adjust configuration so that no columns are combined for a partial maror compaction
+      // adjust configuration so that no columns are combined for a partial major compaction
       combineAllColumns = false;
       combiners = new ColumnSet();
     }

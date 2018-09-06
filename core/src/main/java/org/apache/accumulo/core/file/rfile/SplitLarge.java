@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -30,6 +31,8 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -46,6 +49,8 @@ public class SplitLarge {
     @Parameter(names = "-m",
         description = "the maximum size of the key/value pair to shunt to the small file")
     long maxSize = 10 * 1024 * 1024;
+    @Parameter(names = "-crypto", description = "the class to perform encryption/decryption")
+    String cryptoClass = Property.INSTANCE_CRYPTO_SERVICE.getDefaultValue();
     @Parameter(description = "<file.rf> { <file.rf> ... }")
     List<String> files = new ArrayList<>();
   }
@@ -58,9 +63,11 @@ public class SplitLarge {
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
+      CryptoService cryptoService = ConfigurationTypeHelper.getClassInstance(null, opts.cryptoClass,
+          CryptoService.class, new NoCryptoService());
       Path path = new Path(file);
-      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          aconf);
+      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf,
+          cryptoService);
       try (Reader iter = new RFile.Reader(rdr)) {
 
         if (!file.endsWith(".rf")) {
@@ -71,12 +78,10 @@ public class SplitLarge {
 
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (
-            Writer small = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, aconf),
-                blockSize);
-            Writer large = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, aconf),
-                blockSize)) {
+            Writer small = new RFile.Writer(new BCFile.Writer(fs.create(new Path(smallName)), null,
+                "gz", conf, aconf, cryptoService), blockSize);
+            Writer large = new RFile.Writer(new BCFile.Writer(fs.create(new Path(largeName)), null,
+                "gz", conf, aconf, cryptoService), blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();
 

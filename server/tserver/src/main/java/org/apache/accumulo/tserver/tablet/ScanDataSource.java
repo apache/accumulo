@@ -191,16 +191,16 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(IteratorScope.scan,
-        tablet.getTableConfiguration(), fileManager, files, options.getAuthorizations(),
-        samplerConfig);
+    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(
+        tablet.getTabletServer().getContext(), IteratorScope.scan, tablet.getTableConfiguration(),
+        fileManager, files, options.getAuthorizations(), samplerConfig);
 
     statsIterator = new StatsIterator(multiIter, TabletServer.seekCount,
         tablet.getScannedCounter());
 
     SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(
         statsIterator, options.getColumnSet(), options.getAuthorizations(),
-        options.getDefaultLabels());
+        options.getDefaultLabels(), tablet.getTableConfiguration());
 
     if (!loadIters) {
       return visFilter;

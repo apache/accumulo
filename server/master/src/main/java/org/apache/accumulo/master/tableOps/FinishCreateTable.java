@@ -51,8 +51,8 @@ class FinishCreateTable extends MasterRepo {
       TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     }
 
-    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
-    Utils.unreserveTable(tableInfo.tableId, tid, true);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+    Utils.unreserveTable(env, tableInfo.tableId, tid, true);
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 

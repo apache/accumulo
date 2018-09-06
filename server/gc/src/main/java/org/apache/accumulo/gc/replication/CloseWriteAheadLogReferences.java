@@ -45,13 +45,12 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -74,9 +73,9 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
-  public CloseWriteAheadLogReferences(AccumuloServerContext context) {
+  public CloseWriteAheadLogReferences(ServerContext context) {
     this.context = context;
   }
 
@@ -85,7 +84,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible
     // with
     // what the version they bundle uses.
-    Stopwatch sw = new Stopwatch();
+    Stopwatch sw = Stopwatch.createUnstarted();
 
     Connector conn;
     try {
@@ -132,7 +131,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * @return The Set of WALs that are referenced in the metadata table
    */
   protected HashSet<String> getClosedLogs() {
-    WalStateManager wals = new WalStateManager(context, ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(context);
 
     HashSet<String> result = new HashSet<>();
     try {

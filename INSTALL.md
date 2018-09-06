@@ -42,10 +42,10 @@ For convenience, consider adding `accumulo-X.Y.Z/bin/` to your shell's path.
 Accumulo requires running [Zookeeper] and [HDFS] instances which should be set up
 before configuring Accumulo.
 
-The primary configuration files for Accumulo are `accumulo-site.xml`, `accumulo-env.sh`,
+The primary configuration files for Accumulo are `accumulo.properties`, `accumulo-env.sh`,
 and `accumulo-client.properties` which are located in the `conf/` directory.
 
-The `accumulo-site.xml` file configures Accumulo server processes (i.e tablet server, master,
+The `accumulo.properties` file configures Accumulo server processes (i.e tablet server, master,
 monitor, etc). Follow these steps to set it up:
 
 1. Run `accumulo-util build-native` to build native code.  If this command fails, disable
@@ -62,7 +62,7 @@ monitor, etc). Follow these steps to set it up:
 
 The `accumulo-env.sh` file sets up environment variables needed by Accumulo:
 
-1. Set `HADOOP_PREFIX` and `ZOOKEEPER_HOME` to the location of your Hadoop and Zookeeper
+1. Set `HADOOP_HOME` and `ZOOKEEPER_HOME` to the location of your Hadoop and Zookeeper
    installations. Accumulo will use these locations to find Hadoop and Zookeeper jars and add
    them to your `CLASSPATH` variable. If you you are running a vendor-specific release of
    Hadoop or Zookeeper, you may need to modify how the `CLASSPATH` variable is built in

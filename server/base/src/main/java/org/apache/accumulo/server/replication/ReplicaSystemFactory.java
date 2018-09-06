@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,7 @@ public class ReplicaSystemFactory {
    *          {@link ReplicaSystem} implementation class name
    * @return A {@link ReplicaSystem} object from the given name
    */
-  public ReplicaSystem get(String value) {
+  public ReplicaSystem get(ServerContext context, String value) {
     final Entry<String,String> entry = parseReplicaSystemConfiguration(value);
 
     try {
@@ -42,7 +43,7 @@ public class ReplicaSystemFactory {
       if (ReplicaSystem.class.isAssignableFrom(clz)) {
         Object o = clz.newInstance();
         ReplicaSystem rs = (ReplicaSystem) o;
-        rs.configure(entry.getValue());
+        rs.configure(context, entry.getValue());
         return rs;
       }
 

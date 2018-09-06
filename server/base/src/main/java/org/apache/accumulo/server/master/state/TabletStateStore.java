@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -81,29 +81,29 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
   abstract public void unsuspend(Collection<TabletLocationState> tablets)
       throws DistributedStoreException;
 
-  public static void unassign(AccumuloServerContext context, TabletLocationState tls,
+  public static void unassign(ServerContext context, TabletLocationState tls,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls),
         logsForDeadServers);
   }
 
-  public static void suspend(AccumuloServerContext context, TabletLocationState tls,
+  public static void suspend(ServerContext context, TabletLocationState tls,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
         logsForDeadServers, suspensionTimestamp);
   }
 
-  public static void setLocation(AccumuloServerContext context, Assignment assignment)
+  public static void setLocation(ServerContext context, Assignment assignment)
       throws DistributedStoreException {
     getStoreForTablet(assignment.tablet, context)
         .setLocations(Collections.singletonList(assignment));
   }
 
-  protected static TabletStateStore getStoreForTablet(KeyExtent extent,
-      AccumuloServerContext context) throws DistributedStoreException {
+  protected static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context)
+      throws DistributedStoreException {
     if (extent.isRootTablet()) {
-      return new ZooTabletStateStore();
+      return new ZooTabletStateStore(context);
     } else if (extent.isMeta()) {
       return new RootTabletStateStore(context);
     } else {

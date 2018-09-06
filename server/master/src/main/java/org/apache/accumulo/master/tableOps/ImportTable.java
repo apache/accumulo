@@ -25,7 +25,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
@@ -55,8 +54,9 @@ public class ImportTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid)
-        + Utils.reserveNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.IMPORT);
+    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(), tid)
+        + Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+            TableOperation.IMPORT);
   }
 
   @Override
@@ -71,8 +71,7 @@ public class ImportTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      Instance instance = env.getInstance();
-      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, instance, Table.ID::of);
+      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, env.getContext(), Table.ID::of);
       return new ImportSetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();
@@ -121,7 +120,7 @@ public class ImportTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
-    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
   }
 }

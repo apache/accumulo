@@ -18,13 +18,11 @@ package org.apache.accumulo.master.tableOps;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TablePropUtil;
 
 class PopulateZookeeper extends MasterRepo {
@@ -39,7 +37,8 @@ class PopulateZookeeper extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(tableInfo.tableId, tid, true, false, TableOperation.CREATE);
+    return Utils.reserveTable(environment, tableInfo.tableId, tid, true, false,
+        TableOperation.CREATE);
   }
 
   @Override
@@ -49,18 +48,17 @@ class PopulateZookeeper extends MasterRepo {
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Instance instance = master.getInstance();
-
-      Utils.checkTableDoesNotExist(master, tableInfo.tableName, tableInfo.tableId,
+      Utils.checkTableDoesNotExist(master.getContext(), tableInfo.tableName, tableInfo.tableId,
           TableOperation.CREATE);
 
-      TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.namespaceId,
+      master.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId,
           tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : tableInfo.props.entrySet())
-        TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue());
+        TablePropUtil.setTableProperty(master.getContext(), tableInfo.tableId, entry.getKey(),
+            entry.getValue());
 
-      Tables.clearCache(instance);
+      Tables.clearCache(master.getContext());
       return new ChooseDir(tableInfo);
     } finally {
       Utils.tableNameLock.unlock();
@@ -70,10 +68,9 @@ class PopulateZookeeper extends MasterRepo {
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-    Instance instance = master.getInstance();
-    TableManager.getInstance().removeTable(tableInfo.tableId);
-    Utils.unreserveTable(tableInfo.tableId, tid, true);
-    Tables.clearCache(instance);
+    master.getTableManager().removeTable(tableInfo.tableId);
+    Utils.unreserveTable(master, tableInfo.tableId, tid, true);
+    Tables.clearCache(master.getContext());
   }
 
 }

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.file.streams;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -30,7 +31,7 @@ public class RateLimitedOutputStreamTest {
 
   @Test
   public void permitsAreProperlyAcquired() throws Exception {
-    Random randGen = new Random();
+    Random randGen = new SecureRandom();
     MockRateLimiter rateLimiter = new MockRateLimiter();
     long bytesWritten = 0;
     try (RateLimitedOutputStream os = new RateLimitedOutputStream(new NullOutputStream(),

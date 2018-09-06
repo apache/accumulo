@@ -28,7 +28,6 @@ import java.util.WeakHashMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -73,7 +72,7 @@ public abstract class TabletLocator {
   /**
    * Invalidate all metadata entries that point to server
    */
-  public abstract void invalidateCache(Instance instance, String server);
+  public abstract void invalidateCache(ClientContext context, String server);
 
   private static class LocatorKey {
     String instanceId;
@@ -112,20 +111,19 @@ public abstract class TabletLocator {
   }
 
   public static synchronized TabletLocator getLocator(ClientContext context, Table.ID tableId) {
-    Instance instance = context.getInstance();
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer();
 
       if (RootTable.ID.equals(tableId)) {
-        tl = new RootTabletLocator(new ZookeeperLockChecker(instance));
+        tl = new RootTabletLocator(new ZookeeperLockChecker(context));
       } else if (MetadataTable.ID.equals(tableId)) {
         tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-            new ZookeeperLockChecker(instance));
+            new ZookeeperLockChecker(context));
       } else {
         tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-            new ZookeeperLockChecker(instance));
+            new ZookeeperLockChecker(context));
       }
       locators.put(key, tl);
     }

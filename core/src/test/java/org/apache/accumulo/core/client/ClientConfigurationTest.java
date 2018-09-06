@@ -83,7 +83,7 @@ public class ClientConfigurationTest {
     assertEquals(clientConf.toString(),
         ClientConfiguration.getClientConfPath(clientConf.toString()));
 
-    // Something that doesn't exist should return itself (specifially, it shouldn't error)
+    // Something that doesn't exist should return itself (specifically, it shouldn't error)
     final File missing = new File("foobarbaz12332112");
     assertEquals(missing.toString(), ClientConfiguration.getClientConfPath(missing.toString()));
 

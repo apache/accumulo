@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -34,18 +36,21 @@ public class DeletingIterator extends ServerWrappingIterator {
   private boolean propogateDeletes;
   private Key workKey = new Key();
 
+  public enum Behavior {
+    PROCESS, FAIL
+  }
+
   @Override
   public DeletingIterator deepCopy(IteratorEnvironment env) {
     return new DeletingIterator(this, env);
   }
 
-  public DeletingIterator(DeletingIterator other, IteratorEnvironment env) {
+  private DeletingIterator(DeletingIterator other, IteratorEnvironment env) {
     super(other.source.deepCopy(env));
     propogateDeletes = other.propogateDeletes;
   }
 
-  public DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes)
-      throws IOException {
+  private DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes) {
     super(iterator);
     this.propogateDeletes = propogateDeletes;
   }
@@ -104,5 +109,31 @@ public class DeletingIterator extends ServerWrappingIterator {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) {
     throw new UnsupportedOperationException();
+  }
+
+  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source,
+      boolean propogateDeletes, Behavior behavior) {
+    switch (behavior) {
+      case PROCESS:
+        return new DeletingIterator(source, propogateDeletes);
+      case FAIL:
+        return new ServerWrappingIterator(source) {
+          @Override
+          public Key getTopKey() {
+            Key top = source.getTopKey();
+            if (top.isDeleted()) {
+              throw new IllegalStateException("Saw unexpected delete " + top);
+            }
+            return top;
+          }
+        };
+      default:
+        throw new IllegalArgumentException("Unknown behavior " + behavior);
+    }
+  }
+
+  public static Behavior getBehavior(AccumuloConfiguration conf) {
+    return DeletingIterator.Behavior
+        .valueOf(conf.get(Property.TABLE_DELETE_BEHAVIOR).toUpperCase());
   }
 }

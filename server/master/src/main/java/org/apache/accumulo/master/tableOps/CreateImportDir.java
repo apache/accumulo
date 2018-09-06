@@ -41,10 +41,10 @@ class CreateImportDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
 
     Path exportDir = new Path(tableInfo.exportDir);
-    String[] tableDirs = ServerConstants.getTablesDirs();
+    String[] tableDirs = ServerConstants.getTablesDirs(master.getConfiguration());
 
     log.info("Looking for matching filesystem for " + exportDir + " from options "
         + Arrays.toString(tableDirs));

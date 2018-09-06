@@ -96,7 +96,7 @@ public class DataoutputHasher implements DataOutput {
 
   @Override
   public void writeChars(String s) throws IOException {
-    hasher.putString(s);
+    hasher.putString(s, StandardCharsets.UTF_8);
 
   }
 

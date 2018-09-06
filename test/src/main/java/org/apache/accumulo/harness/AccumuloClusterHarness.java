@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -40,6 +41,7 @@ import org.apache.accumulo.harness.conf.AccumuloClusterConfiguration;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -134,11 +136,11 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           (StandaloneAccumuloClusterConfiguration) clusterConf;
         // @formatter:on
         StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
-            cluster.getClientInfo(), conf.getTmpDirectory(), conf.getUsers());
+            cluster.getClientInfo(), conf.getTmpDirectory(), conf.getUsers(),
+            conf.getServerAccumuloConfDir());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
-        standaloneCluster.setServerAccumuloConfDir(conf.getServerAccumuloConfDir());
         standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
         standaloneCluster.setServerCmdPrefix(conf.getServerCmdPrefix());
         standaloneCluster.setClientCmdPrefix(conf.getClientCmdPrefix());
@@ -268,6 +270,15 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public static ClientInfo getClientInfo() {
     checkState(initialized);
     return getCluster().getClientInfo();
+  }
+
+  public static ClientContext getClientContext() {
+    checkState(initialized);
+    return new ClientContext(getClientInfo());
+  }
+
+  public static ServerContext getServerContext() {
+    return getCluster().getServerContext();
   }
 
   public static boolean saslEnabled() {

@@ -30,18 +30,16 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.accumulo.server.security.UserImpersonation;
 import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
 import org.apache.accumulo.server.zookeeper.ZooCache;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,23 +55,18 @@ public class KerberosAuthenticator implements Authenticator {
       .newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
+  private ZooCache zooCache;
+  private ServerContext context;
   private String zkUserPath;
-  private final ZooCache zooCache;
-  private final UserImpersonation impersonation;
-
-  public KerberosAuthenticator() {
-    this(new ZooCache(), SiteConfiguration.getInstance());
-  }
-
-  public KerberosAuthenticator(ZooCache cache, AccumuloConfiguration conf) {
-    this.zooCache = cache;
-    this.impersonation = new UserImpersonation(conf);
-  }
+  private UserImpersonation impersonation;
 
   @Override
-  public void initialize(String instanceId, boolean initialize) {
-    zkAuthenticator.initialize(instanceId, initialize);
-    zkUserPath = Constants.ZROOT + "/" + instanceId + "/users";
+  public void initialize(ServerContext context, boolean initialize) {
+    this.context = context;
+    zooCache = new ZooCache(context);
+    impersonation = new UserImpersonation(context.getConfiguration());
+    zkAuthenticator.initialize(context, initialize);
+    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
   }
 
   @Override
@@ -84,7 +77,7 @@ public class KerberosAuthenticator implements Authenticator {
   private void createUserNodeInZk(String principal) throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = context.getZooReaderWriter();
       zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
           NodeExistsPolicy.FAIL);
     }
@@ -95,7 +88,7 @@ public class KerberosAuthenticator implements Authenticator {
       throws AccumuloSecurityException, ThriftSecurityException {
     try {
       // remove old settings from zookeeper first, if any
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = context.getZooReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
         if (zoo.exists(zkUserPath)) {

@@ -16,13 +16,10 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -35,11 +32,8 @@ public class TableOperationsImplTest {
   @Test
   public void waitForStoreTransitionScannerConfiguredCorrectly() throws Exception {
     final String tableName = "metadata";
-    Instance instance = EasyMock.createMock(Instance.class);
-    Credentials credentials = EasyMock.createMock(Credentials.class);
+    ClientContext context = EasyMock.createMock(ClientContext.class);
 
-    ClientContext context = new ClientContext(new ClientInfoImpl(new Properties(), null), instance,
-        credentials, null);
     TableOperationsImpl topsImpl = new TableOperationsImpl(context);
 
     Connector connector = EasyMock.createMock(Connector.class);
@@ -47,15 +41,7 @@ public class TableOperationsImplTest {
 
     Range range = new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange();
 
-    String user = "root";
-    PasswordToken token = new PasswordToken("password");
-
-    // Credentials expectations
-    EasyMock.expect(credentials.getPrincipal()).andReturn(user);
-    EasyMock.expect(credentials.getToken()).andReturn(token);
-
-    // Create the connector and scanner
-    EasyMock.expect(instance.getConnector(user, token)).andReturn(connector);
+    EasyMock.expect(context.getConnector()).andReturn(connector);
     EasyMock.expect(connector.createScanner(tableName, Authorizations.EMPTY)).andReturn(scanner);
 
     // Fetch the columns on the scanner
@@ -79,11 +65,11 @@ public class TableOperationsImplTest {
     EasyMock.expect(scanner.getBatchSize()).andReturn(1000);
     EasyMock.expect(scanner.getReadaheadThreshold()).andReturn(100L);
 
-    EasyMock.replay(instance, credentials, connector, scanner);
+    EasyMock.replay(context, connector, scanner);
 
     topsImpl.createMetadataScanner(tableName, range);
 
-    EasyMock.verify(instance, credentials, connector, scanner);
+    EasyMock.verify(context, connector, scanner);
   }
 
 }

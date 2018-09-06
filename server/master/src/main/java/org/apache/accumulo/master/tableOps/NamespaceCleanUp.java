@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.tables.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,20 +47,21 @@ class NamespaceCleanUp extends MasterRepo {
 
     // remove from zookeeper
     try {
-      TableManager.getInstance().removeNamespace(namespaceId);
+      master.getTableManager().removeNamespace(namespaceId);
     } catch (Exception e) {
       log.error("Failed to find namespace in zookeeper", e);
     }
-    Tables.clearCache(master.getInstance());
+    Tables.clearCache(master.getContext());
 
     // remove any permissions associated with this namespace
     try {
-      AuditedSecurityOperation.getInstance(master).deleteNamespace(master.rpcCreds(), namespaceId);
+      AuditedSecurityOperation.getInstance(master.getContext())
+          .deleteNamespace(master.getContext().rpcCreds(), namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveNamespace(namespaceId, id, true);
+    Utils.unreserveNamespace(master, namespaceId, id, true);
 
     log.debug("Deleted namespace " + namespaceId);
 

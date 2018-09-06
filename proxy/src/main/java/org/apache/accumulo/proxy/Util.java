@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
@@ -27,7 +28,7 @@ import org.apache.accumulo.proxy.thrift.Key;
 
 public class Util {
 
-  private static Random random = new Random(0);
+  private static Random random = new SecureRandom();
 
   public static String randString(int numbytes) {
     return new BigInteger(numbytes * 5, random).toString(32);

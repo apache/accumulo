@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -99,7 +100,7 @@ public class ConcurrentKeyExtentCacheTest {
 
   @Test
   public void testExactEndRows() {
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
     TestCache tc = new TestCache();
     rand.ints(10000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
@@ -116,7 +117,7 @@ public class ConcurrentKeyExtentCacheTest {
   public void testRandom() throws Exception {
     TestCache tc = new TestCache();
 
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
     rand.ints(10000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
     Assert.assertEquals(256, tc.updates.get());

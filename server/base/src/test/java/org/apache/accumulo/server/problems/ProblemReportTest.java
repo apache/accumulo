@@ -32,12 +32,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
@@ -48,17 +48,17 @@ public class ProblemReportTest {
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 
-  private Instance instance;
+  private ServerContext context;
   private ZooReaderWriter zoorw;
   private ProblemReport r;
 
   @Before
   public void setUp() throws Exception {
-    instance = createMock(Instance.class);
-    expect(instance.getInstanceID()).andReturn("instance");
-    replay(instance);
-
+    context = createMock(ServerContext.class);
     zoorw = createMock(ZooReaderWriter.class);
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/instance");
+    expect(context.getZooReaderWriter()).andReturn(zoorw).anyTimes();
+    replay(context);
   }
 
   @Test
@@ -159,7 +159,7 @@ public class ProblemReportTest {
     zoorw.recursiveDelete(path, NodeMissingPolicy.SKIP);
     replay(zoorw);
 
-    r.removeFromZooKeeper(zoorw, instance);
+    r.removeFromZooKeeper(zoorw, context);
     verify(zoorw);
   }
 
@@ -175,7 +175,7 @@ public class ProblemReportTest {
         .andReturn(true);
     replay(zoorw);
 
-    r.saveToZooKeeper(zoorw, instance);
+    r.saveToZooKeeper(context);
     verify(zoorw);
   }
 
@@ -190,7 +190,7 @@ public class ProblemReportTest {
         .andReturn(encoded);
     replay(zoorw);
 
-    r = ProblemReport.decodeZooKeeperEntry(node, zoorw, instance);
+    r = ProblemReport.decodeZooKeeperEntry(context, node);
     assertEquals(TABLE_ID, r.getTableId());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());

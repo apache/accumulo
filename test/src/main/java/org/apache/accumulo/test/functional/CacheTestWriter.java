@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
@@ -30,6 +31,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -40,7 +42,7 @@ public class CacheTestWriter {
   static final int NUM_DATA = 3;
 
   public static void main(String[] args) throws Exception {
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = new ZooReaderWriter(new SiteConfiguration());
 
     String rootDir = args[0];
     File reportDir = new File(args[1]);
@@ -60,7 +62,7 @@ public class CacheTestWriter {
 
     ArrayList<String> children = new ArrayList<>();
 
-    Random r = new Random();
+    Random r = new SecureRandom();
 
     while (count++ < numVerifications) {
 

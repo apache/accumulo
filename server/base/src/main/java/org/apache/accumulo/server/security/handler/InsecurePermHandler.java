@@ -24,6 +24,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * This is a Permission Handler implementation that doesn't actually do any security. Use at your
@@ -32,7 +33,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 public class InsecurePermHandler implements PermissionHandler {
 
   @Override
-  public void initialize(String instanceId, boolean initialize) {}
+  public void initialize(ServerContext context, boolean initialize) {}
 
   @Override
   public boolean validSecurityHandlers(Authenticator authent, Authorizor author) {

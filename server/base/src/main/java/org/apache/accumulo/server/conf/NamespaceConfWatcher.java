@@ -17,9 +17,8 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
@@ -32,16 +31,14 @@ class NamespaceConfWatcher implements Watcher {
   }
 
   private static final Logger log = Logger.getLogger(NamespaceConfWatcher.class);
-  private final Instance instance;
+  private final ServerContext context;
   private final String namespacesPrefix;
   private final int namespacesPrefixLength;
-  private ServerConfigurationFactory scf;
 
-  NamespaceConfWatcher(Instance instance) {
-    this.instance = instance;
-    namespacesPrefix = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/";
+  NamespaceConfWatcher(ServerContext context) {
+    this.context = context;
+    namespacesPrefix = context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/";
     namespacesPrefixLength = namespacesPrefix.length();
-    scf = new ServerConfigurationFactory(instance);
   }
 
   static String toString(WatchedEvent event) {
@@ -82,14 +79,15 @@ class NamespaceConfWatcher implements Watcher {
         if (log.isTraceEnabled())
           log.trace("EventNodeDataChanged " + event.getPath());
         if (key != null)
-          scf.getNamespaceConfiguration(namespaceId).propertyChanged(key);
+          context.getServerConfFactory().getNamespaceConfiguration(namespaceId)
+              .propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        scf.getNamespaceConfiguration(namespaceId).propertiesChanged();
+        context.getServerConfFactory().getNamespaceConfiguration(namespaceId).propertiesChanged();
         break;
       case NodeDeleted:
         if (key == null) {
-          ServerConfigurationFactory.removeCachedNamespaceConfiguration(instance.getInstanceID(),
+          ServerConfigurationFactory.removeCachedNamespaceConfiguration(context.getInstanceID(),
               namespaceId);
         }
         break;

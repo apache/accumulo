@@ -25,9 +25,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,6 +35,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -53,7 +52,10 @@ import com.google.common.collect.Iterators;
 // It would be useful to have an IT that will test this situation.
 public class UnusedWALIT extends ConfigurableMacBase {
 
-  private ZooReaderWriter zk;
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 120;
+  }
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -66,7 +68,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.namenode.fs-limits.min-block-size", Long.toString(logSize));
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     // don't want this bad boy cleaning up walog entries
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
@@ -79,20 +81,19 @@ public class UnusedWALIT extends ConfigurableMacBase {
     c.tableOperations().create(bigTable);
     c.tableOperations().create(lilTable);
 
-    ClientContext context = getClientContext();
-    Instance i = c.getInstance();
-    zk = new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
+    ServerContext context = getServerContext();
+    new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
 
     // put some data in a log that should be replayed for both tables
     writeSomeData(c, bigTable, 0, 10, 0, 10);
     scanSomeData(c, bigTable, 0, 10, 0, 10);
     writeSomeData(c, lilTable, 0, 1, 0, 1);
     scanSomeData(c, lilTable, 0, 1, 0, 1);
-    assertEquals(2, getWALCount(context, zk));
+    assertEquals(2, getWALCount(context));
 
     // roll the logs by pushing data into bigTable
     writeSomeData(c, bigTable, 0, 3000, 0, 1000);
-    assertEquals(3, getWALCount(context, zk));
+    assertEquals(3, getWALCount(context));
 
     // put some data in the latest log
     writeSomeData(c, lilTable, 1, 10, 0, 10);
@@ -132,8 +133,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
     }
   }
 
-  private int getWALCount(ClientContext context, ZooReaderWriter zk) throws Exception {
-    WalStateManager wals = new WalStateManager(context, zk);
+  private int getWALCount(ServerContext context) throws Exception {
+    WalStateManager wals = new WalStateManager(context);
     int result = 0;
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       result += entry.getValue().size();

@@ -105,7 +105,7 @@ class PopulateMetadataTable extends MasterRepo {
       // hdfs://localhost:8020/path/to/accumulo/tables/...
       final String bulkDir = tableInfo.importDir;
 
-      final String[] tableDirs = ServerConstants.getTablesDirs();
+      final String[] tableDirs = ServerConstants.getTablesDirs(master.getConfiguration());
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
@@ -218,7 +218,8 @@ class PopulateMetadataTable extends MasterRepo {
    */
   protected String getClonedTabletDir(Master master, String[] tableDirs, String tabletDir) {
     // We can try to spread out the tablet dirs across all volumes
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId,
+        master.getContext());
     String tableDir = master.getFileSystem().choose(chooserEnv, tableDirs);
 
     // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
@@ -227,7 +228,7 @@ class PopulateMetadataTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment,
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment.getContext(),
         environment.getMasterLock());
   }
 }

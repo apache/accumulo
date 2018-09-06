@@ -20,8 +20,7 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
-import org.apache.accumulo.core.security.crypto.CryptoModule;
-import org.apache.accumulo.core.security.crypto.SecretKeyEncryptionStrategy;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +33,6 @@ public class ConfigSanityCheck {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigSanityCheck.class);
   private static final String PREFIX = "BAD CONFIG ";
-  private static final String NULL_CIPHER = "NullCipher";
-  private static final String NULL_CRYPTO_MODULE = "NullCryptoModule";
-  private static final String NULL_SECRET_KEY_CRYPT_STRATEGY = "NullSecretKeyEncryptionStrategy";
   @SuppressWarnings("deprecation")
   private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
   @SuppressWarnings("deprecation")
@@ -56,10 +52,6 @@ public class ConfigSanityCheck {
   public static void validate(Iterable<Entry<String,String>> entries) {
     String instanceZkTimeoutValue = null;
     boolean usingVolumes = false;
-    String cipherSuite = NULL_CIPHER;
-    String keyAlgorithm = NULL_CIPHER;
-    String secretKeyEncryptionStrategy = NULL_SECRET_KEY_CRYPT_STRATEGY;
-    String cryptoModule = NULL_CRYPTO_MODULE;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -91,30 +83,9 @@ public class ConfigSanityCheck {
             + " must be greater than 0 and less than " + Integer.MAX_VALUE + " but was: " + bsize);
       }
 
-      if (key.equals(Property.CRYPTO_CIPHER_SUITE.getKey())) {
-        cipherSuite = Objects.requireNonNull(value);
-        Preconditions.checkArgument(
-            cipherSuite.equals(NULL_CIPHER) || cipherSuite.split("/").length == 3,
-            "Cipher suite must be NullCipher or in the form algorithm/mode/padding. Suite: "
-                + cipherSuite + " is invalid.");
-      }
-
-      if (key.equals(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey())) {
-        keyAlgorithm = Objects.requireNonNull(value);
-      }
-
-      if (key.equals(Property.CRYPTO_MODULE_CLASS.getKey())) {
-        cryptoModule = Objects.requireNonNull(value);
-        if (!cryptoModule.equals(NULL_CRYPTO_MODULE)) {
-          verifyValidClassName(key, cryptoModule, CryptoModule.class);
-        }
-
-      }
-      if (key.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey())) {
-        secretKeyEncryptionStrategy = Objects.requireNonNull(value);
-        if (!secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_CRYPT_STRATEGY)) {
-          verifyValidClassName(key, secretKeyEncryptionStrategy, SecretKeyEncryptionStrategy.class);
-        }
+      if (key.equals(Property.INSTANCE_CRYPTO_SERVICE.getKey())) {
+        String cryptoStrategy = Objects.requireNonNull(value);
+        verifyValidClassName(key, cryptoStrategy, CryptoService.class);
       }
     }
 
@@ -126,19 +97,6 @@ public class ConfigSanityCheck {
     if (!usingVolumes) {
       log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI,
           INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
-    }
-
-    if ((cipherSuite.equals(NULL_CIPHER) || keyAlgorithm.equals(NULL_CIPHER))
-        && !cipherSuite.equals(keyAlgorithm)) {
-      fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " and "
-          + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME + " must both be configured.");
-    }
-
-    if (cryptoModule.equals(NULL_CRYPTO_MODULE)
-        ^ secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_CRYPT_STRATEGY)) {
-      fatal(Property.CRYPTO_MODULE_CLASS.getKey() + " and "
-          + Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()
-          + " must both be configured.");
     }
   }
 

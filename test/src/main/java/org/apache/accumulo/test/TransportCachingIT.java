@@ -22,10 +22,9 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ThriftTransportKey;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -50,21 +48,24 @@ public class TransportCachingIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TransportCachingIT.class);
 
   @Test
-  public void testCachedTransport() {
-    Connector conn = getConnector();
-    Instance instance = conn.getInstance();
-    ClientContext context = new ClientContext(getClientInfo());
+  public void testCachedTransport() throws InterruptedException {
+    ClientContext context = getClientContext();
     long rpcTimeout = ConfigurationTypeHelper
         .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
-    // create list of servers
-    ArrayList<ThriftTransportKey> servers = new ArrayList<>();
+    ZooCache zc = context.getZooCache();
+    final String zkRoot = context.getZooKeeperRoot();
 
-    // add tservers
-    ZooCache zc = new ZooCacheFactory().getZooCache(conn.info().getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
-    for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
-      String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
+    // wait until Zookeeper is populated
+    List<String> children = zc.getChildren(zkRoot + Constants.ZTSERVERS);
+    while (children.isEmpty()) {
+      Thread.sleep(100);
+      children = zc.getChildren(zkRoot + Constants.ZTSERVERS);
+    }
+
+    ArrayList<ThriftTransportKey> servers = new ArrayList<>();
+    for (String tserver : children) {
+      String path = zkRoot + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null) {
         String strData = new String(data, UTF_8);

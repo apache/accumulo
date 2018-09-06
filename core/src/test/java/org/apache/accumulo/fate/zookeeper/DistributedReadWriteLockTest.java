@@ -100,29 +100,26 @@ public class DistributedReadWriteLockTest {
     Thread[] threads = new Thread[2];
     for (int i = 0; i < threads.length; i++) {
       final int which = i;
-      threads[i] = new Thread() {
-        @Override
-        public void run() {
-          if (which % 2 == 0) {
-            final Lock wl = locker.writeLock();
-            wl.lock();
-            try {
-              data.write();
-            } finally {
-              wl.unlock();
-            }
-          } else {
-            final Lock rl = locker.readLock();
-            rl.lock();
+      threads[i] = new Thread(() -> {
+        if (which % 2 == 0) {
+          final Lock wl = locker.writeLock();
+          wl.lock();
+          try {
+            data.write();
+          } finally {
+            wl.unlock();
+          }
+        } else {
+          final Lock rl = locker.readLock();
+          rl.lock();
+          data.read();
+          try {
             data.read();
-            try {
-              data.read();
-            } finally {
-              rl.unlock();
-            }
+          } finally {
+            rl.unlock();
           }
         }
-      };
+      });
     }
     for (Thread t : threads) {
       t.start();

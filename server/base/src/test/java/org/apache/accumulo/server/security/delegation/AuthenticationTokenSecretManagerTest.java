@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.security.delegation;
 
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -38,12 +37,10 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.KeyGenerator;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -68,30 +65,21 @@ public class AuthenticationTokenSecretManagerTest {
     keyGen.init(KEY_LENGTH);
   }
 
-  private Instance instance;
   private String instanceId;
   private DelegationTokenConfig cfg;
 
   @Before
-  public void setupMocks() {
-    instance = createMock(Instance.class);
+  public void setup() {
     instanceId = UUID.randomUUID().toString();
     cfg = new DelegationTokenConfig();
-    expect(instance.getInstanceID()).andReturn(instanceId).anyTimes();
-    replay(instance);
-  }
-
-  @After
-  public void verifyMocks() {
-    verify(instance);
   }
 
   @Test
   public void testAddKey() {
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a single key
     AuthenticationKey authKey = new AuthenticationKey(1, 0, tokenLifetime, keyGen.generateKey());
@@ -117,8 +105,8 @@ public class AuthenticationTokenSecretManagerTest {
   public void testRemoveKey() {
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a single key
     AuthenticationKey authKey = new AuthenticationKey(1, 0, tokenLifetime, keyGen.generateKey());
@@ -141,8 +129,8 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -185,8 +173,8 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 minute
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -228,8 +216,8 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 500ms lifetime
     long tokenLifetime = 500;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -256,8 +244,8 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -284,8 +272,8 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     long tokenLifetime = 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a current key
     AuthenticationKey authKey1 = new AuthenticationKey(1, then, then + tokenLifetime,
@@ -322,8 +310,8 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 10s lifetime
     long tokenLifetime = 10 * 1000L;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Make 2 keys, and add only one. The second has double the expiration of the first
     AuthenticationKey authKey1 = new AuthenticationKey(1, then, then + tokenLifetime,
@@ -372,8 +360,8 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 hr
     long tokenLifetime = 60 * 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -408,8 +396,8 @@ public class AuthenticationTokenSecretManagerTest {
 
     // 1 hr
     long tokenLifetime = 60 * 60 * 1000;
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(instance,
-        tokenLifetime);
+    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
+        instanceId, tokenLifetime);
 
     // Add a current key
     secretManager

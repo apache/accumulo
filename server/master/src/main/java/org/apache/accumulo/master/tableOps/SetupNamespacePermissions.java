@@ -37,10 +37,10 @@ class SetupNamespacePermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all namespace permissions to the creator
-    SecurityOperation security = AuditedSecurityOperation.getInstance(env);
+    SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     for (NamespacePermission permission : NamespacePermission.values()) {
       try {
-        security.grantNamespacePermission(env.rpcCreds(), namespaceInfo.user,
+        security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,
             namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);

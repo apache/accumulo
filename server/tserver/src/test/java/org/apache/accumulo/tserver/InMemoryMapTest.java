@@ -55,14 +55,16 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -105,7 +107,15 @@ public class InMemoryMapTest {
   public static void setUp() throws Exception {
     // suppress log messages having to do with not having an instance
     Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
-    Logger.getLogger(HdfsZooInstance.class).setLevel(Level.OFF);
+  }
+
+  public static ServerContext getServerContext() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(context.getCryptoService()).andReturn(new NoCryptoService()).anyTimes();
+    EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
+        .anyTimes();
+    EasyMock.replay(context);
+    return context;
   }
 
   @Rule
@@ -178,7 +188,7 @@ public class InMemoryMapTest {
     ConfigurationCopy config = new ConfigurationCopy(DefaultConfiguration.getInstance());
     config.set(Property.TSERV_NATIVEMAP_ENABLED, "" + useNative);
     config.set(Property.TSERV_MEMDUMP_DIR, memDumpDir);
-    return new InMemoryMap(config);
+    return new InMemoryMap(config, getServerContext());
   }
 
   @Test
@@ -551,7 +561,7 @@ public class InMemoryMapTest {
         LocalityGroupUtil.encodeColumnFamilies(toTextSet("cf3", "cf4")));
     config.set(Property.TABLE_LOCALITY_GROUPS.getKey(), "lg1,lg2");
 
-    InMemoryMap imm = new InMemoryMap(config);
+    InMemoryMap imm = new InMemoryMap(config, getServerContext());
 
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "x", 2, "1");
@@ -588,8 +598,8 @@ public class InMemoryMapTest {
 
     seekLocalityGroups(iter1);
     seekLocalityGroups(dc1);
-    // TODO uncomment following when ACCUMULO-1628 is fixed
-    // seekLocalityGroups(iter1.deepCopy(null));
+    // tests ACCUMULO-1628
+    seekLocalityGroups(iter1.deepCopy(null));
   }
 
   @Test
@@ -614,7 +624,7 @@ public class InMemoryMapTest {
 
     for (ConfigurationCopy config : Arrays.asList(config1, config2)) {
 
-      InMemoryMap imm = new InMemoryMap(config);
+      InMemoryMap imm = new InMemoryMap(config, getServerContext());
 
       TreeMap<Key,Value> expectedSample = new TreeMap<>();
       TreeMap<Key,Value> expectedAll = new TreeMap<>();
@@ -700,7 +710,7 @@ public class InMemoryMapTest {
       config1.set(entry.getKey(), entry.getValue());
     }
 
-    InMemoryMap imm = new InMemoryMap(config1);
+    InMemoryMap imm = new InMemoryMap(config1, getServerContext());
 
     TreeMap<Key,Value> expectedSample = new TreeMap<>();
     TreeMap<Key,Value> expectedAll = new TreeMap<>();
@@ -760,7 +770,7 @@ public class InMemoryMapTest {
       config1.set(entry.getKey(), entry.getValue());
     }
 
-    InMemoryMap imm = new InMemoryMap(config1);
+    InMemoryMap imm = new InMemoryMap(config1, getServerContext());
 
     mutate(imm, "r", "cf:cq", 5, "b");
 
@@ -805,7 +815,7 @@ public class InMemoryMapTest {
       config1.set(entry.getKey(), entry.getValue());
     }
 
-    InMemoryMap imm = new InMemoryMap(config1);
+    InMemoryMap imm = new InMemoryMap(config1, getServerContext());
 
     // change sampler config after creating in mem map.
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(

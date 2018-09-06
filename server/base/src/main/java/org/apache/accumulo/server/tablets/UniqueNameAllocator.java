@@ -18,12 +18,13 @@ package org.apache.accumulo.server.tablets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 /**
@@ -33,15 +34,17 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
  * This is useful for filenames because it makes caching easy.
  */
 public class UniqueNameAllocator {
+
+  private ServerContext context;
   private long next = 0;
   private long maxAllocated = 0;
   private String nextNamePath;
   private Random rand;
 
-  private UniqueNameAllocator() {
-    nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
-        + Constants.ZNEXT_FILE;
-    rand = new Random();
+  public UniqueNameAllocator(ServerContext context) {
+    this.context = context;
+    nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
+    rand = new SecureRandom();
   }
 
   public synchronized String getNextName() {
@@ -50,7 +53,7 @@ public class UniqueNameAllocator {
       final int allocate = 100 + rand.nextInt(100);
 
       try {
-        byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE,
+        byte[] max = context.getZooReaderWriter().mutate(nextNamePath, null, ZooUtil.PRIVATE,
             new ZooReaderWriter.Mutator() {
               @Override
               public byte[] mutate(byte[] currentValue) throws Exception {
@@ -71,14 +74,4 @@ public class UniqueNameAllocator {
     return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]),
         UTF_8);
   }
-
-  private static UniqueNameAllocator instance = null;
-
-  public static synchronized UniqueNameAllocator getInstance() {
-    if (instance == null)
-      instance = new UniqueNameAllocator();
-
-    return instance;
-  }
-
 }

@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.commons.lang.mutable.MutableInt;
@@ -147,7 +149,8 @@ public class MultiThreadedRFileTest {
       FileSystem fs = FileSystem.newInstance(conf);
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration);
+      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
+          CryptoServiceFactory.newInstance(accumuloConfiguration));
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
           .newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
@@ -177,10 +180,11 @@ public class MultiThreadedRFileTest {
     public void openReader() throws IOException {
       FileSystem fs = FileSystem.newInstance(conf);
       Path path = new Path("file://" + rfile);
+      AccumuloConfiguration defaultConf = DefaultConfiguration.getInstance();
 
       // the caches used to obfuscate the multithreaded issues
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          DefaultConfiguration.getInstance());
+          defaultConf, CryptoServiceFactory.newInstance(defaultConf));
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
 
@@ -234,18 +238,15 @@ public class MultiThreadedRFileTest {
           TimeUnit.SECONDS, new LinkedBlockingQueue<>(), new NamingThreadFactory(name));
       pool.allowCoreThreadTimeOut(true);
       try {
-        Runnable runnable = new Runnable() {
-          @Override
-          public void run() {
-            try {
-              TestRFile trf = trfBase;
-              synchronized (trfBaseCopy) {
-                trf = trfBaseCopy.deepCopy();
-              }
-              validate(trf);
-            } catch (Throwable t) {
-              threadExceptions.add(t);
+        Runnable runnable = () -> {
+          try {
+            TestRFile trf = trfBase;
+            synchronized (trfBaseCopy) {
+              trf = trfBaseCopy.deepCopy();
             }
+            validate(trf);
+          } catch (Throwable t) {
+            threadExceptions.add(t);
           }
         };
         for (int i = 0; i < maxThreads; i++) {
@@ -287,7 +288,7 @@ public class MultiThreadedRFileTest {
   }
 
   private void validate(TestRFile trf) throws IOException {
-    Random random = new Random();
+    Random random = new SecureRandom();
     for (int iteration = 0; iteration < 10; iteration++) {
       int part = random.nextInt(4);
 

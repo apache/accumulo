@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.Tables;
-
 public class TableOfflineException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
@@ -28,7 +25,7 @@ public class TableOfflineException extends RuntimeException {
    */
   @Deprecated
   public TableOfflineException(Instance instance, String tableId) {
-    super(Tables.getTableOfflineMsg(instance, Table.ID.of(tableId)));
+    super("Table with ID (" + tableId + ") is offline");
   }
 
   public TableOfflineException(String msg) {

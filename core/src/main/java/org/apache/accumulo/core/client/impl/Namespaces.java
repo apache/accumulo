@@ -27,12 +27,9 @@ import java.util.TreeMap;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.util.Validator;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,15 +76,9 @@ public class Namespaces {
     }
   };
 
-  private static ZooCache getZooCache(Instance instance) {
-    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
-  }
-
   public static boolean exists(ClientContext context, Namespace.ID namespaceId) {
-    ZooCache zc = getZooCache(context.getInstance());
-    List<String> namespaceIds = zc
-        .getChildren(ZooUtil.getRoot(context.getInstance()) + Constants.ZNAMESPACES);
+    ZooCache zc = context.getZooCache();
+    List<String> namespaceIds = zc.getChildren(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
     return namespaceIds.contains(namespaceId.canonicalID());
   }
 
@@ -103,7 +94,7 @@ public class Namespaces {
 
   public static List<String> getTableNames(ClientContext context, Namespace.ID namespaceId)
       throws NamespaceNotFoundException {
-    String namespace = getNamespaceName(context.getInstance(), namespaceId);
+    String namespace = getNamespaceName(context, namespaceId);
     List<String> names = new LinkedList<>();
     for (String name : Tables.getNameToIdMap(context).keySet())
       if (namespace.equals(Tables.qualify(name).getFirst()))
@@ -115,12 +106,13 @@ public class Namespaces {
    * Gets all the namespaces from ZK. The first arg (t) the BiConsumer accepts is the ID and the
    * second (u) is the namespaceName.
    */
-  private static void getAllNamespaces(Instance instance, BiConsumer<String,String> biConsumer) {
-    final ZooCache zc = getZooCache(instance);
-    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
+  private static void getAllNamespaces(ClientContext context,
+      BiConsumer<String,String> biConsumer) {
+    final ZooCache zc = context.getZooCache();
+    List<String> namespaceIds = zc.getChildren(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
     for (String id : namespaceIds) {
-      byte[] path = zc.get(
-          ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
+      byte[] path = zc.get(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + id
+          + Constants.ZNAMESPACE_NAME);
       if (path != null) {
         biConsumer.accept(id, new String(path, UTF_8));
       }
@@ -132,16 +124,16 @@ public class Namespaces {
    */
   public static SortedMap<Namespace.ID,String> getIdToNameMap(ClientContext context) {
     SortedMap<Namespace.ID,String> idMap = new TreeMap<>();
-    getAllNamespaces(context.getInstance(), (id, name) -> idMap.put(Namespace.ID.of(id), name));
+    getAllNamespaces(context, (id, name) -> idMap.put(Namespace.ID.of(id), name));
     return idMap;
   }
 
   /**
    * Return sorted map with key = namespaceName, value = ID
    */
-  public static SortedMap<String,Namespace.ID> getNameToIdMap(Instance instance) {
+  public static SortedMap<String,Namespace.ID> getNameToIdMap(ClientContext context) {
     SortedMap<String,Namespace.ID> nameMap = new TreeMap<>();
-    getAllNamespaces(instance, (id, name) -> nameMap.put(name, Namespace.ID.of(id)));
+    getAllNamespaces(context, (id, name) -> nameMap.put(name, Namespace.ID.of(id)));
     return nameMap;
   }
 
@@ -151,7 +143,7 @@ public class Namespaces {
   public static Namespace.ID getNamespaceId(ClientContext context, String namespaceName)
       throws NamespaceNotFoundException {
     final ArrayList<Namespace.ID> singleId = new ArrayList<>(1);
-    getAllNamespaces(context.getInstance(), (id, name) -> {
+    getAllNamespaces(context, (id, name) -> {
       if (name.equals(namespaceName))
         singleId.add(Namespace.ID.of(id));
     });
@@ -187,14 +179,9 @@ public class Namespaces {
    */
   public static String getNamespaceName(ClientContext context, Namespace.ID namespaceId)
       throws NamespaceNotFoundException {
-    return getNamespaceName(context.getInstance(), namespaceId);
-  }
-
-  public static String getNamespaceName(Instance instance, Namespace.ID namespaceId)
-      throws NamespaceNotFoundException {
     String name;
-    ZooCache zc = getZooCache(instance);
-    byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/"
+    ZooCache zc = context.getZooCache();
+    byte[] path = zc.get(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/"
         + namespaceId.canonicalID() + Constants.ZNAMESPACE_NAME);
     if (path != null)
       name = new String(path, UTF_8);

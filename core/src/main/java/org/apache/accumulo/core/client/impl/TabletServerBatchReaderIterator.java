@@ -131,23 +131,18 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       ranges = ranges2;
     }
 
-    ResultReceiver rr = new ResultReceiver() {
+    ResultReceiver rr = entries -> {
+      try {
+        resultsQueue.put(entries);
+      } catch (InterruptedException e) {
+        if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
+          log.debug("Failed to add Batch Scan result", e);
+        else
+          log.warn("Failed to add Batch Scan result", e);
+        fatalException = e;
+        throw new RuntimeException(e);
 
-      @Override
-      public void receive(List<Entry<Key,Value>> entries) {
-        try {
-          resultsQueue.put(entries);
-        } catch (InterruptedException e) {
-          if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
-            log.debug("Failed to add Batch Scan result", e);
-          else
-            log.warn("Failed to add Batch Scan result", e);
-          fatalException = e;
-          throw new RuntimeException(e);
-
-        }
       }
-
     };
 
     try {
@@ -376,7 +371,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             failures.putAll(unscanned);
           }
 
-          locator.invalidateCache(context.getInstance(), tsLocation);
+          locator.invalidateCache(context, tsLocation);
         }
         log.debug("IOException thrown", e);
       } catch (AccumuloSecurityException e) {
@@ -674,12 +669,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested,
             Translators.KET, new Translator.ListTranslator<>(Translators.RT));
+
+        Map<String,String> execHints = options.executionHints.size() == 0 ? null
+            : options.executionHints;
+
         InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(),
             thriftTabletRanges, Translator.translate(columns, Translators.CT),
             options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-            options.batchTimeOut, options.classLoaderContext);
+            options.batchTimeOut, options.classLoaderContext, execHints);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 

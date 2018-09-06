@@ -21,28 +21,32 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 public class TablePropUtil {
-  public static boolean setTableProperty(Table.ID tableId, String property, String value)
-      throws KeeperException, InterruptedException {
+
+  public static boolean setTableProperty(ServerContext context, Table.ID tableId, String property,
+      String value) throws KeeperException, InterruptedException {
+    return setTableProperty(context.getZooReaderWriter(), context.getZooKeeperRoot(), tableId,
+        property, value);
+  }
+
+  public static boolean setTableProperty(ZooReaderWriter zoo, String zkRoot, Table.ID tableId,
+      String property, String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
 
     // create the zk node for per-table properties for this table if it doesn't already exist
-    String zkTablePath = getTablePath(tableId);
-    ZooReaderWriter.getInstance().putPersistentData(zkTablePath, new byte[0],
-        NodeExistsPolicy.SKIP);
+    String zkTablePath = getTablePath(zkRoot, tableId);
+    zoo.putPersistentData(zkTablePath, new byte[0], NodeExistsPolicy.SKIP);
 
     // create the zk node for this property and set it's data to the specified value
     String zPath = zkTablePath + "/" + property;
-    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
-        NodeExistsPolicy.OVERWRITE);
+    zoo.putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
     return true;
   }
@@ -53,14 +57,13 @@ public class TablePropUtil {
         && Property.isValidTablePropertyKey(property);
   }
 
-  public static void removeTableProperty(Table.ID tableId, String property)
+  public static void removeTableProperty(ServerContext context, Table.ID tableId, String property)
       throws InterruptedException, KeeperException {
-    String zPath = getTablePath(tableId) + "/" + property;
-    ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
+    String zPath = getTablePath(context.getZooKeeperRoot(), tableId) + "/" + property;
+    context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
-  private static String getTablePath(Table.ID tableId) {
-    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/"
-        + tableId.canonicalID() + Constants.ZTABLE_CONF;
+  private static String getTablePath(String zkRoot, Table.ID tableId) {
+    return zkRoot + Constants.ZTABLES + "/" + tableId.canonicalID() + Constants.ZTABLE_CONF;
   }
 }

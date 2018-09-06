@@ -33,13 +33,16 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.Path;
 
-public class TabletIteratorEnvironment implements IteratorEnvironment {
+public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
+  private final ServerContext context;
   private final ScanFileManager trm;
   private final IteratorScope scope;
   private final boolean fullMajorCompaction;
@@ -52,10 +55,12 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
 
-  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
+  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
+      AccumuloConfiguration config) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
+    this.context = context;
     this.scope = scope;
     this.trm = null;
     this.config = config;
@@ -65,13 +70,14 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.topLevelIterators = new ArrayList<>();
   }
 
-  private TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
-      ScanFileManager trm, Map<FileRef,DataFileValue> files, Authorizations authorizations,
-      SamplerConfigurationImpl samplerConfig,
+  private TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
+      AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
+      Authorizations authorizations, SamplerConfigurationImpl samplerConfig,
       ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
+    this.context = context;
     this.scope = scope;
     this.trm = trm;
     this.config = config;
@@ -88,18 +94,19 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.topLevelIterators = topLevelIterators;
   }
 
-  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config,
-      ScanFileManager trm, Map<FileRef,DataFileValue> files, Authorizations authorizations,
-      SamplerConfigurationImpl samplerConfig) {
-    this(scope, config, trm, files, authorizations, samplerConfig, new ArrayList<>());
+  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
+      AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
+      Authorizations authorizations, SamplerConfigurationImpl samplerConfig) {
+    this(context, scope, config, trm, files, authorizations, samplerConfig, new ArrayList<>());
   }
 
-  public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC,
+  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, boolean fullMajC,
       AccumuloConfiguration config, MajorCompactionReason reason) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
 
+    this.context = context;
     this.scope = scope;
     this.trm = null;
     this.config = config;
@@ -192,7 +199,12 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
       throw new SampleNotPresentException();
     }
 
-    return new TabletIteratorEnvironment(scope, config, trm, files, authorizations, sci,
+    return new TabletIteratorEnvironment(context, scope, config, trm, files, authorizations, sci,
         topLevelIterators);
+  }
+
+  @Override
+  public ServerContext getServerContext() {
+    return context;
   }
 }

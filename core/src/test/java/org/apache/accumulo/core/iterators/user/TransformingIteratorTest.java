@@ -192,7 +192,7 @@ public class TransformingIteratorTest {
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class, false);
     checkExpected(new TreeMap<>());
 
-    // ensure illegal vis is supressed when evaluations is done
+    // ensure illegal vis is suppressed when evaluations is done
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class);
     checkExpected(new TreeMap<>());
   }
@@ -339,8 +339,8 @@ public class TransformingIteratorTest {
 
   @Test
   public void testCompactionDoesntFilterVisibilities() throws Exception {
-    // In scan mode, this should return nothing since it produces visibilites
-    // the user can't see. In compaction mode, however, the visibilites
+    // In scan mode, this should return nothing since it produces visibilities
+    // the user can't see. In compaction mode, however, the visibilities
     // should still show up.
     setUpTransformIterator(BadVisCompactionKeyTransformingIterator.class);
 

@@ -21,6 +21,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -136,7 +137,7 @@ class LoadFiles extends MasterRepo {
 
       // Use the threadpool to assign files one-at-a-time to the server
       final List<String> loaded = Collections.synchronizedList(new ArrayList<>());
-      final Random random = new Random();
+      final Random random = new SecureRandom();
       final TServerInstance[] servers;
       String prop = conf.get(Property.MASTER_BULK_TSERVER_REGEX);
       if (null == prop || "".equals(prop)) {
@@ -168,11 +169,12 @@ class LoadFiles extends MasterRepo {
               long timeInMillis = master.getConfiguration()
                   .getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getLocation();
-              client = ThriftUtil.getTServerClient(server, master, timeInMillis);
+              client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid,
-                  tableId.canonicalID(), attempt1, errorDir, setTime);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(),
+                  master.getContext().rpcCreds(), tid, tableId.canonicalID(), attempt1, errorDir,
+                  setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
               } else {

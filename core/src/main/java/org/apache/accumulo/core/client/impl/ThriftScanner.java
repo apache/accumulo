@@ -17,12 +17,14 @@
 package org.apache.accumulo.core.client.impl;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -76,6 +78,7 @@ public class ThriftScanner {
 
   public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<>(
       TabletType.class);
+  private static Random secureRandom = new SecureRandom();
 
   static {
     for (TabletType ttype : TabletType.values()) {
@@ -97,11 +100,12 @@ public class ThriftScanner {
       TInfo tinfo = Tracer.traceInfo();
       TabletClientService.Client client = ThriftUtil.getTServerClient(parsedServer, context);
       try {
-        // not reading whole rows (or stopping on row boundries) so there is no need to enable
+        // not reading whole rows (or stopping on row boundaries) so there is no need to enable
         // isolation below
         ScanState scanState = new ScanState(context, extent.getTableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
-            Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext);
+            Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
+            null);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
@@ -109,7 +113,8 @@ public class ThriftScanner {
             scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
-            scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext);
+            scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
+            scanState.executionHints);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
 
@@ -167,13 +172,14 @@ public class ThriftScanner {
     Map<String,Map<String,String>> serverSideIteratorOptions;
 
     SamplerConfiguration samplerConfig;
+    Map<String,String> executionHints;
 
     public ScanState(ClientContext context, Table.ID tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
         Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated,
         long readaheadThreshold, SamplerConfiguration samplerConfig, long batchTimeOut,
-        String classLoaderContext) {
+        String classLoaderContext, Map<String,String> executionHints) {
       this.context = context;
       this.authorizations = authorizations;
       this.classLoaderContext = classLoaderContext;
@@ -205,6 +211,11 @@ public class ThriftScanner {
       this.samplerConfig = samplerConfig;
 
       this.batchTimeOut = batchTimeOut;
+
+      if (executionHints == null || executionHints.size() == 0)
+        this.executionHints = null; // avoid thrift serialization for empty map
+      else
+        this.executionHints = executionHints;
     }
   }
 
@@ -217,7 +228,7 @@ public class ThriftScanner {
   static long pause(long millis, long maxSleep) throws InterruptedException {
     Thread.sleep(millis);
     // wait 2 * last time, with +-10% random jitter
-    return (long) (Math.min(millis * 2, maxSleep) * (.9 + Math.random() / 5));
+    return (long) (Math.min(millis * 2, maxSleep) * (.9 + secureRandom.nextDouble() / 5));
   }
 
   public static List<KeyValue> scan(ClientContext context, ScanState scanState, int timeOut)
@@ -374,8 +385,8 @@ public class ThriftScanner {
 
           sleepMillis = pause(sleepMillis, maxSleepTime);
         } catch (TException e) {
-          TabletLocator.getLocator(context, scanState.tableId)
-              .invalidateCache(context.getInstance(), loc.tablet_location);
+          TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
+              loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
               + " " + loc;
           if (!error.equals(lastError))
@@ -455,7 +466,7 @@ public class ThriftScanner {
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold,
             SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-            scanState.classLoaderContext);
+            scanState.classLoaderContext, scanState.executionHints);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 

@@ -49,7 +49,6 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -142,7 +141,7 @@ class DatafileManager {
 
     if (filesToDelete.size() > 0) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getTabletServer(),
+      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());
     }
   }
@@ -164,7 +163,7 @@ class DatafileManager {
 
     if (filesToDelete.size() > 0) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getTabletServer(),
+      MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
           tablet.getTabletServer().getLock());
     }
   }
@@ -225,7 +224,8 @@ class DatafileManager {
 
       boolean inTheRightDirectory = false;
       Path parent = tpath.path().getParent().getParent();
-      for (String tablesDir : ServerConstants.getTablesDirs()) {
+      for (String tablesDir : ServerConstants
+          .getTablesDirs(tablet.getContext().getConfiguration())) {
         if (parent.equals(new Path(tablesDir, tablet.getExtent().getTableId().canonicalID()))) {
           inTheRightDirectory = true;
           break;
@@ -346,7 +346,7 @@ class DatafileManager {
   void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile,
       DataFileValue dfv, CommitSession commitSession, long flushId) throws IOException {
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = tablet.getContext().getZooReaderWriter();
     if (tablet.getExtent().isRootTablet()) {
       try {
         if (!zoo.isLockHeld(tablet.getTabletServer().getLock().getLockID())) {
@@ -389,7 +389,7 @@ class DatafileManager {
     // for scans to finish like major compactions do.... used to wait for scans to finish
     // here, but that was incorrect because a scan could start after waiting but before
     // memory was updated... assuming the file is always in use by scans leads to
-    // one uneeded metadata update when it was not actually in use
+    // one unneeded metadata update when it was not actually in use
     Set<FileRef> filesInUseByScans = Collections.emptySet();
     if (absMergeFile != null)
       filesInUseByScans = Collections.singleton(absMergeFile);
@@ -398,7 +398,7 @@ class DatafileManager {
     // this metadata write does not go up... it goes sideways or to itself
     if (absMergeFile != null)
       MetadataTableUtil.addDeleteEntries(tablet.getExtent(), Collections.singleton(absMergeFile),
-          tablet.getTabletServer());
+          tablet.getContext());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
     boolean replicate = ReplicationConfigurationUtil.isEnabled(tablet.getExtent(),
@@ -442,7 +442,7 @@ class DatafileManager {
               logFileOnly);
         }
         for (String logFile : logFileOnly) {
-          ReplicationTableUtil.updateFiles(tablet.getTabletServer(), tablet.getExtent(), logFile,
+          ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
               StatusUtil.openWithUnknownLength());
         }
       }
@@ -547,7 +547,7 @@ class DatafileManager {
 
       t1 = System.currentTimeMillis();
 
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = tablet.getContext().getZooReaderWriter();
 
       tablet.incrementDataSourceDeletions();
 
@@ -606,7 +606,7 @@ class DatafileManager {
       Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
       if (filesInUseByScans.size() > 0)
         log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
-      MasterMetadataUtil.replaceDatafiles(tablet.getTabletServer(), extent, oldDatafiles,
+      MasterMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
           filesInUseByScans, newDatafile, compactionId, dfv,
           tablet.getTabletServer().getClientAddressString(), lastLocation,
           tablet.getTabletServer().getLock());

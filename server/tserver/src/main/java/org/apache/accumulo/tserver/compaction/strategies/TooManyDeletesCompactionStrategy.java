@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * If the delete summarizer was configured on a table that already had files, then those files will
  * have not summary information. This strategy can still proceed in this situation. It will fall
- * back to using Accumulo's estimated entires per file in this case. For the files without summary
+ * back to using Accumulo's estimated entries per file in this case. For the files without summary
  * information the estimated number of deletes will be zero. This fall back method will
  * underestimate deletes which will not lead to false positives, except for the case of bulk
  * imported files. Accumulo estimates that bulk imported files have zero entires. The second option
@@ -124,7 +124,8 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
     // check if delete summarizer is configured for table
     if (configuredSummarizers.stream().map(sc -> sc.getClassName())
         .anyMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
-      // This is called before gatherInformation, so need to always queue for compaction until info
+      // This is called before gatherInformation, so need to always queue for compaction until
+      // context
       // can be gathered. Also its not safe to request summary
       // information here as its a blocking operation. Blocking operations are not allowed in
       // shouldCompact.

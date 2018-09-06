@@ -101,7 +101,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     // Make a fake WAL with no data in it for our real table
     FSDataOutputStream out = fs.create(new Path(tserverWal.getAbsolutePath()));
 
-    out.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8));
+    out.write(DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
     DataOutputStream dos = new DataOutputStream(out);
     dos.writeUTF("NullCryptoModule");

@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -25,7 +26,8 @@ import com.google.auto.service.AutoService;
 public class ConfigSanityCheck implements KeywordExecutable {
 
   public static void main(String[] args) {
-    new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getSystemConfiguration();
+    ServerContext context = new ServerContext(new SiteConfiguration());
+    context.getServerConfFactory().getSystemConfiguration();
   }
 
   @Override

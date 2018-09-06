@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.core.summary;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
@@ -108,6 +110,7 @@ public class Gatherer {
   private Text endRow = null;
   private Range clipRange;
   private Predicate<SummarizerConfiguration> summarySelector;
+  private CryptoService cryptoService;
 
   private TSummaryRequest request;
 
@@ -115,8 +118,8 @@ public class Gatherer {
 
   private Set<SummarizerConfiguration> summaries;
 
-  public Gatherer(ClientContext context, TSummaryRequest request,
-      AccumuloConfiguration tableConfig) {
+  public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
+      CryptoService cryptoService) {
     this.ctx = context;
     this.tableId = Table.ID.of(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
@@ -125,6 +128,7 @@ public class Gatherer {
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
     this.request = request;
+    this.cryptoService = cryptoService;
 
     this.summarizerPattern = request.getSummarizerPattern();
 
@@ -204,7 +208,8 @@ public class Gatherer {
 
         // When no location, the approach below will consistently choose the same tserver for the
         // same file (as long as the set of tservers is stable).
-        int idx = Math.abs(Hashing.murmur3_32().hashString(entry.getKey()).asInt())
+        int idx = Math
+            .abs(Hashing.murmur3_32().hashString(entry.getKey(), StandardCharsets.UTF_8).asInt())
             % tservers.size();
         location = tservers.get(idx);
       }
@@ -227,28 +232,25 @@ public class Gatherer {
       return Collections.singletonList(map);
     }
 
-    return new Iterable<Map<K,V>>() {
-      @Override
-      public Iterator<Map<K,V>> iterator() {
-        Iterator<Entry<K,V>> esi = map.entrySet().iterator();
+    return () -> {
+      Iterator<Entry<K,V>> esi = map.entrySet().iterator();
 
-        return new Iterator<Map<K,V>>() {
-          @Override
-          public boolean hasNext() {
-            return esi.hasNext();
-          }
+      return new Iterator<Map<K,V>>() {
+        @Override
+        public boolean hasNext() {
+          return esi.hasNext();
+        }
 
-          @Override
-          public Map<K,V> next() {
-            Map<K,V> workingMap = new HashMap<>(max);
-            while (esi.hasNext() && workingMap.size() < max) {
-              Entry<K,V> entry = esi.next();
-              workingMap.put(entry.getKey(), entry.getValue());
-            }
-            return workingMap;
+        @Override
+        public Map<K,V> next() {
+          Map<K,V> workingMap = new HashMap<>(max);
+          while (esi.hasNext() && workingMap.size() < max) {
+            Entry<K,V> entry = esi.next();
+            workingMap.put(entry.getKey(), entry.getValue());
           }
-        };
-      }
+          return workingMap;
+        }
+      };
     };
   }
 
@@ -357,9 +359,10 @@ public class Gatherer {
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
         Predicate<String> fileSelector = file -> Math
-            .abs(Hashing.murmur3_32().hashString(file).asInt()) % modulus == remainder;
+            .abs(Hashing.murmur3_32().hashString(file, StandardCharsets.UTF_8).asInt())
+            % modulus == remainder;
         if (previousWork != null) {
-          fileSelector = fileSelector.and(file -> previousWork.failedFiles.contains(file));
+          fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
         Map<String,Map<String,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
@@ -383,7 +386,7 @@ public class Gatherer {
 
         // when all processing is done, check for failed files... and if found starting processing
         // again
-        future.thenRun(() -> updateFuture());
+        future.thenRun(this::updateFuture);
       } catch (Exception e) {
         future = CompletableFuture.completedFuture(new ProcessedFiles());
         // force future to have this exception
@@ -488,7 +491,7 @@ public class Gatherer {
 
   /**
    * This methods reads a subset of file paths into memory and groups them by location. Then it
-   * request sumaries for files from each location/tablet server.
+   * request summaries for files from each location/tablet server.
    */
   public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
       int remainder) {
@@ -666,6 +669,6 @@ public class Gatherer {
     Path path = new Path(file);
     Configuration conf = CachedConfiguration.getInstance();
     return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path,
-        summarySelector, summaryCache, indexCache).getSummaries(ranges);
+        summarySelector, summaryCache, indexCache, cryptoService).getSummaries(ranges);
   }
 }

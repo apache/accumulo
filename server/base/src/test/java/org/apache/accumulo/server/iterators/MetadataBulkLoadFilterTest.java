@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -32,7 +31,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -53,7 +54,7 @@ public class MetadataBulkLoadFilterTest {
 
   static class TestMetadataBulkLoadFilter extends MetadataBulkLoadFilter {
     @Override
-    protected Arbitrator getArbitrator() {
+    protected Arbitrator getArbitrator(ServerContext context) {
       return new TestArbitrator();
     }
   }
@@ -99,20 +100,14 @@ public class MetadataBulkLoadFilterTest {
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file9", "8");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileA", "2");
 
+    SystemIteratorEnvironment env = EasyMock.createMock(SystemIteratorEnvironment.class);
+    EasyMock.expect(env.getServerContext()).andReturn(null);
+    EasyMock.expect(env.isFullMajorCompaction()).andReturn(false);
+    EasyMock.expect(env.getIteratorScope()).andReturn(IteratorScope.majc);
+    EasyMock.replay(env);
+
     TestMetadataBulkLoadFilter iter = new TestMetadataBulkLoadFilter();
-    iter.init(new SortedMapIterator(tm1), new HashMap<>(), new BaseIteratorEnvironment() {
-
-      @Override
-      public boolean isFullMajorCompaction() {
-        return false;
-      }
-
-      @Override
-      public IteratorScope getIteratorScope() {
-        return IteratorScope.majc;
-      }
-    });
-
+    iter.init(new SortedMapIterator(tm1), new HashMap<>(), env);
     iter.seek(new Range(), new ArrayList<>(), false);
 
     TreeMap<Key,Value> actual = new TreeMap<>();

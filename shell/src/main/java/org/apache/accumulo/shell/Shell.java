@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -423,10 +422,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return connector;
   }
 
-  public Instance getInstance() {
-    return connector.getInstance();
-  }
-
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException,
       FileSystemException {
@@ -661,9 +656,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
 
+  /**
+   * Prevent potential CRLF injection into logs from read in user data See
+   * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   */
+  private String sanitize(String msg) {
+    return msg.replaceAll("[\r\n]", "");
+  }
+
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt)
       throws IOException {
-    audit.log(Level.INFO, getDefaultPrompt() + input);
+    audit.log(Level.INFO, sanitize(getDefaultPrompt() + input));
     if (echoPrompt) {
       reader.print(getDefaultPrompt());
       reader.println(input);
@@ -906,7 +909,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     // OPTIONAL methods to override:
 
-    // the general version of getname uses reflection to get the class name
+    // the general version of getName uses reflection to get the class name
     // and then cuts off the suffix -Command to get the name of the command
     public String getName() {
       String s = this.getClass().getName();

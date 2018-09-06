@@ -19,6 +19,7 @@ package org.apache.accumulo.master.replication;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
@@ -29,7 +30,6 @@ import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorErrorCode;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorException;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -51,21 +51,23 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   private final SecurityOperation security;
 
   public MasterReplicationCoordinator(Master master) {
-    this(master, new ZooReader(master.getZooKeepers(), master.getZooKeepersSessionTimeOut()));
+    this(master, new ZooReader(master.getContext().getZooKeepers(),
+        master.getContext().getZooKeepersSessionTimeOut()));
   }
 
   protected MasterReplicationCoordinator(Master master, ZooReader reader) {
     this.master = master;
-    this.rand = new Random(358923462L);
+    this.rand = new SecureRandom();
+    this.rand.setSeed(358923462L);
     this.reader = reader;
-    this.security = SecurityOperation.getInstance(master, false);
+    this.security = SecurityOperation.getInstance(master.getContext(), false);
   }
 
   @Override
   public String getServicerAddress(String remoteTableId, TCredentials creds)
       throws ReplicationCoordinatorException, TException {
     try {
-      security.authenticateUser(master.rpcCreds(), creds);
+      security.authenticateUser(master.getContext().rpcCreds(), creds);
     } catch (ThriftSecurityException e) {
       log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(),
           remoteTableId);
@@ -83,8 +85,9 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
     String replServiceAddr;
     try {
-      replServiceAddr = new String(reader.getData(ZooUtil.getRoot(master.getInstanceID())
-          + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(), null), UTF_8);
+      replServiceAddr = new String(reader.getData(
+          master.getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(),
+          null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
       throw new ReplicationCoordinatorException(

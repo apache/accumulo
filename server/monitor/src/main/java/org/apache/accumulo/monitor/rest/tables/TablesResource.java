@@ -79,7 +79,7 @@ public class TablesResource {
         tableStats.put(Table.ID.of(te.getKey()), te.getValue());
 
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
-    TableManager tableManager = TableManager.getInstance();
+    TableManager tableManager = Monitor.getContext().getTableManager();
 
     // Add tables to the list
     for (Map.Entry<String,Table.ID> entry : Tables.getNameToIdMap(Monitor.getContext())

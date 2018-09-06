@@ -21,17 +21,20 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.zookeeper.KeeperException;
 
 public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLock {
 
-  public ZooQueueLock(String path, boolean ephemeral) throws KeeperException, InterruptedException {
-    super(ZooReaderWriter.getInstance(), path, ephemeral);
+  public ZooQueueLock(ZooReaderWriter zoo, String path, boolean ephemeral)
+      throws KeeperException, InterruptedException {
+    super(zoo, path, ephemeral);
   }
 
   public static void main(String args[]) throws InterruptedException, KeeperException {
-    ZooQueueLock lock = new ZooQueueLock("/lock", true);
+    ZooReaderWriter zoo = new ZooReaderWriter(new SiteConfiguration());
+    ZooQueueLock lock = new ZooQueueLock(zoo, "/lock", true);
     DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes(UTF_8));
     DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock,
         "wlocker".getBytes(UTF_8));

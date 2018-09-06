@@ -27,9 +27,9 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
@@ -93,13 +93,13 @@ public class WalStateManager {
 
   private volatile boolean checkedExistance = false;
 
-  public WalStateManager(ClientContext context, ZooReaderWriter zoo) {
+  public WalStateManager(ServerContext context) {
     this.context = context;
-    this.zoo = zoo;
+    this.zoo = context.getZooReaderWriter();
   }
 
   private String root() throws WalMarkerException {
-    String root = ZooUtil.getRoot(context.getInstanceID()) + ZWALS;
+    String root = context.getZooKeeperRoot() + ZWALS;
 
     try {
       if (!checkedExistance && !zoo.exists(root)) {

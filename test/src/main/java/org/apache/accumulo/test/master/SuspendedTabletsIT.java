@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -68,7 +69,7 @@ import com.google.common.collect.SetMultimap;
 
 public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(SuspendedTabletsIT.class);
-  private static final Random RANDOM = new Random();
+  private static final Random RANDOM = new SecureRandom();
   private static ExecutorService THREAD_POOL;
 
   public static final int TSERVERS = 5;
@@ -161,7 +162,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
    *          callback which shuts down some tablet servers.
    */
   private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
-    ClientContext ctx = new ClientContext(getClientInfo());
+    ClientContext ctx = getClientContext();
 
     String tableName = getUniqueNames(1)[0];
 

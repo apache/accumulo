@@ -221,7 +221,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
   }
 
   public void test5() throws Exception {
-    // esnure switchNow() works w/ deepCopy()
+    // ensure switchNow() works w/ deepCopy()
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq2", 5, "v2");

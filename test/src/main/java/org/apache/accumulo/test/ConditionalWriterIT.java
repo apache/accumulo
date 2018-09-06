@@ -22,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -859,7 +860,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     ArrayList<byte[]> rows = new ArrayList<>(num);
     ArrayList<ConditionalMutation> cml = new ArrayList<>(num);
 
-    Random r = new Random();
+    Random r = new SecureRandom();
     byte[] e = new byte[0];
 
     for (int i = 0; i < num; i++) {
@@ -934,7 +935,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     ColumnVisibility cvaob = new ColumnVisibility("A|B");
     ColumnVisibility cvaab = new ColumnVisibility("A&B");
 
-    switch ((new Random()).nextInt(3)) {
+    switch ((new SecureRandom()).nextInt(3)) {
       case 1:
         conn.tableOperations().addSplits(tableName, nss("6"));
         break;
@@ -1151,7 +1152,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     public void run() {
       try (Scanner scanner = new IsolatedScanner(
           conn.createScanner(tableName, Authorizations.EMPTY))) {
-        Random rand = new Random();
+        Random rand = new SecureRandom();
 
         for (int i = 0; i < 20; i++) {
           int numRows = rand.nextInt(10) + 1;
@@ -1197,7 +1198,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     conn.tableOperations().create(tableName);
 
-    Random rand = new Random();
+    Random rand = new SecureRandom();
 
     switch (rand.nextInt(3)) {
       case 1:

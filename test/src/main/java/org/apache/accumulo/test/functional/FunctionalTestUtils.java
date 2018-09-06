@@ -36,8 +36,8 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -47,7 +47,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.fate.ZooStore;
@@ -189,22 +188,22 @@ public class FunctionalTestUtils {
     return result;
   }
 
-  public static void assertNoDanglingFateLocks(Instance instance, AccumuloCluster cluster) {
-    FateStatus fateStatus = getFateStatus(instance, cluster);
+  public static void assertNoDanglingFateLocks(ClientContext context, AccumuloCluster cluster) {
+    FateStatus fateStatus = getFateStatus(context, cluster);
     Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
         fateStatus.getDanglingHeldLocks().size());
     Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
         fateStatus.getDanglingWaitingLocks().size());
   }
 
-  private static FateStatus getFateStatus(Instance instance, AccumuloCluster cluster) {
+  private static FateStatus getFateStatus(ClientContext context, AccumuloCluster cluster) {
     try {
       AdminUtil<String> admin = new AdminUtil<>(false);
       String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-      return admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null,
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(context.getZooKeepers(),
+          context.getZooKeepersSessionTimeOut(), secret);
+      ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
+      return admin.getStatus(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, null,
           null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);

@@ -29,6 +29,8 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to
  * a single local directory. This class makes it easy to test code against a real Accumulo instance.
@@ -47,7 +49,7 @@ public class MiniAccumuloCluster {
   /**
    *
    * @param dir
-   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in.
+   *          An empty or nonexistent temp directory that Accumulo and Zookeeper can store data in.
    *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
    *          for creating temporary directories.
    * @param rootPassword
@@ -135,5 +137,19 @@ public class MiniAccumuloCluster {
    */
   public ClientInfo getClientInfo() {
     return impl.getClientInfo();
+  }
+
+  /**
+   * Construct a {@link ClientInfo} using a {@link MiniAccumuloCluster} directory
+   *
+   * @param directory
+   *          MiniAccumuloCluster directory
+   * @return {@link ClientInfo} for that directory
+   * @since 2.0.0
+   */
+  public static ClientInfo getClientInfo(File directory) {
+    File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");
+    Preconditions.checkArgument(clientProps.exists());
+    return Connector.builder().usingProperties(clientProps.getAbsolutePath()).info();
   }
 }

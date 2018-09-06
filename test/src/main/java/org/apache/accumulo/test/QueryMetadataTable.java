@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -30,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -39,7 +39,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,15 +48,15 @@ import com.beust.jcommander.Parameter;
 public class QueryMetadataTable {
   private static final Logger log = LoggerFactory.getLogger(QueryMetadataTable.class);
 
-  private static String principal;
-  private static AuthenticationToken token;
-
   static String location;
 
   static class MDTQuery implements Runnable {
+
+    private Connector conn;
     private Text row;
 
-    MDTQuery(Text row) {
+    MDTQuery(Connector conn, Text row) {
+      this.conn = conn;
       this.row = row;
     }
 
@@ -67,8 +66,7 @@ public class QueryMetadataTable {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
 
-        Connector connector = HdfsZooInstance.getInstance().getConnector(principal, token);
-        mdScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        mdScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         Text row = extent.getMetadataEntry();
 
         mdScanner.setRange(new Range(row));
@@ -80,12 +78,6 @@ public class QueryMetadataTable {
 
       } catch (TableNotFoundException e) {
         log.error("Table '" + MetadataTable.NAME + "' not found.", e);
-        throw new RuntimeException(e);
-      } catch (AccumuloException e) {
-        log.error("AccumuloException encountered.", e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
-        log.error("AccumuloSecurityException encountered.", e);
         throw new RuntimeException(e);
       } finally {
         if (mdScanner != null) {
@@ -138,7 +130,7 @@ public class QueryMetadataTable {
 
     ArrayList<Text> rows = new ArrayList<>(rowSet);
 
-    Random r = new Random();
+    Random r = new SecureRandom();
 
     ExecutorService tp = Executors.newFixedThreadPool(opts.numThreads);
 
@@ -146,7 +138,7 @@ public class QueryMetadataTable {
 
     for (int i = 0; i < opts.numQueries; i++) {
       int index = r.nextInt(rows.size());
-      MDTQuery mdtq = new MDTQuery(rows.get(index));
+      MDTQuery mdtq = new MDTQuery(connector, rows.get(index));
       tp.submit(mdtq);
     }
 

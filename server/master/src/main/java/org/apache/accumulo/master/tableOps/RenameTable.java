@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -29,12 +28,10 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.LoggerFactory;
 
 public class RenameTable extends MasterRepo {
@@ -47,8 +44,8 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME)
-        + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.RENAME)
+        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.RENAME);
   }
 
   public RenameTable(Namespace.ID namespaceId, Table.ID tableId, String oldTableName,
@@ -61,27 +58,27 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    Instance instance = master.getInstance();
     Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
     // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".")
-        && !namespaceId.equals(Namespaces.getNamespaceId(master, qualifiedNewTableName.getFirst())))
+    if (newTableName.contains(".") && !namespaceId
+        .equals(Namespaces.getNamespaceId(master.getContext(), qualifiedNewTableName.getFirst())))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = master.getContext().getZooReaderWriter();
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkTableDoesNotExist(master, newTableName, tableId, TableOperation.RENAME);
+      Utils.checkTableDoesNotExist(master.getContext(), newTableName, tableId,
+          TableOperation.RENAME);
 
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZTABLES + "/" + tableId
+      final String tap = master.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
           + Constants.ZTABLE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
@@ -98,11 +95,11 @@ public class RenameTable extends MasterRepo {
           return newName.getBytes(UTF_8);
         }
       });
-      Tables.clearCache(master);
+      Tables.clearCache(master.getContext());
     } finally {
       Utils.tableNameLock.unlock();
-      Utils.unreserveTable(tableId, tid, true);
-      Utils.unreserveNamespace(namespaceId, tid, false);
+      Utils.unreserveTable(master, tableId, tid, true);
+      Utils.unreserveNamespace(master, namespaceId, tid, false);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -113,8 +110,8 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, true);
+    Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 
 }

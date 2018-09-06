@@ -21,19 +21,18 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SystemPropUtil {
+
   private static final Logger log = LoggerFactory.getLogger(SystemPropUtil.class);
 
-  public static boolean setSystemProperty(String property, String value)
+  public static boolean setSystemProperty(ServerContext context, String property, String value)
       throws KeeperException, InterruptedException {
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae = new IllegalArgumentException(
@@ -61,17 +60,15 @@ public class SystemPropUtil {
     }
 
     // create the zk node for this property and set it's data to the specified value
-    String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/"
-        + property;
+    String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
 
-    return ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8),
+    return context.getZooReaderWriter().putPersistentData(zPath, value.getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);
   }
 
-  public static void removeSystemProperty(String property)
+  public static void removeSystemProperty(ServerContext context, String property)
       throws InterruptedException, KeeperException {
-    String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/"
-        + property;
-    ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
+    String zPath = context.getZooKeeperRoot() + Constants.ZCONFIG + "/" + property;
+    context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.FAIL);
   }
 }

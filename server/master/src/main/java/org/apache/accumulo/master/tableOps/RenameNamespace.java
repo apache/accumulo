@@ -22,12 +22,10 @@ import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.LoggerFactory;
 
 public class RenameNamespace extends MasterRepo {
@@ -39,7 +37,7 @@ public class RenameNamespace extends MasterRepo {
 
   @Override
   public long isReady(long id, Master environment) throws Exception {
-    return Utils.reserveNamespace(namespaceId, id, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.RENAME);
   }
 
   public RenameNamespace(Namespace.ID namespaceId, String oldName, String newName) {
@@ -51,14 +49,15 @@ public class RenameNamespace extends MasterRepo {
   @Override
   public Repo<Master> call(long id, Master master) throws Exception {
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = master.getContext().getZooReaderWriter();
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkNamespaceDoesNotExist(master, newName, namespaceId, TableOperation.RENAME);
+      Utils.checkNamespaceDoesNotExist(master.getContext(), newName, namespaceId,
+          TableOperation.RENAME);
 
-      final String tap = ZooUtil.getRoot(master.getInstanceID()) + Constants.ZNAMESPACES + "/"
-          + namespaceId + Constants.ZNAMESPACE_NAME;
+      final String tap = master.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
+          + Constants.ZNAMESPACE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
         @Override
@@ -73,10 +72,10 @@ public class RenameNamespace extends MasterRepo {
           return newName.getBytes();
         }
       });
-      Tables.clearCache(master);
+      Tables.clearCache(master.getContext());
     } finally {
       Utils.tableNameLock.unlock();
-      Utils.unreserveNamespace(namespaceId, id, true);
+      Utils.unreserveNamespace(master, namespaceId, id, true);
     }
 
     LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId,
@@ -87,7 +86,7 @@ public class RenameNamespace extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveNamespace(namespaceId, tid, true);
+    Utils.unreserveNamespace(env, namespaceId, tid, true);
   }
 
 }

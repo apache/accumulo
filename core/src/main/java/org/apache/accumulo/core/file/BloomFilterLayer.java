@@ -24,12 +24,12 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -219,74 +219,70 @@ public class BloomFilterLayer {
 
       final String context = acuconf.get(Property.TABLE_CLASSPATH);
 
-      loadTask = new Runnable() {
-        @Override
-        public void run() {
+      loadTask = () -> {
+        // no need to load the bloom filter if the map file is closed
+        if (closed)
+          return;
+        String ClassName = null;
+        DataInputStream in = null;
 
-          // no need to load the bloom filter if the map file is closed
+        try {
+          in = reader.getMetaStore(BLOOM_FILE_NAME);
+          DynamicBloomFilter tmpBloomFilter = new DynamicBloomFilter();
+
+          // check for closed again after open but before reading the bloom filter in
           if (closed)
             return;
-          String ClassName = null;
-          DataInputStream in = null;
 
-          try {
-            in = reader.getMetaStore(BLOOM_FILE_NAME);
-            DynamicBloomFilter tmpBloomFilter = new DynamicBloomFilter();
+          /**
+           * Load classname for keyFunctor
+           */
+          ClassName = in.readUTF();
 
-            // check for closed again after open but before reading the bloom filter in
-            if (closed)
-              return;
+          Class<? extends KeyFunctor> clazz;
+          if (context != null && !context.equals(""))
+            clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, ClassName,
+                KeyFunctor.class);
+          else
+            clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
+          transformer = clazz.newInstance();
 
-            /**
-             * Load classname for keyFunctor
-             */
-            ClassName = in.readUTF();
+          /**
+           * read in bloom filter
+           */
 
-            Class<? extends KeyFunctor> clazz;
-            if (context != null && !context.equals(""))
-              clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, ClassName,
-                  KeyFunctor.class);
-            else
-              clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
-            transformer = clazz.newInstance();
+          tmpBloomFilter.readFields(in);
+          // only set the bloom filter after it is fully constructed
+          bloomFilter = tmpBloomFilter;
+        } catch (NoSuchMetaStoreException nsme) {
+          // file does not have a bloom filter, ignore it
+        } catch (IOException ioe) {
+          if (!closed)
+            LOG.warn("Can't open BloomFilter", ioe);
+          else
+            LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
 
-            /**
-             * read in bloom filter
-             */
-
-            tmpBloomFilter.readFields(in);
-            // only set the bloom filter after it is fully constructed
-            bloomFilter = tmpBloomFilter;
-          } catch (NoSuchMetaStoreException nsme) {
-            // file does not have a bloom filter, ignore it
-          } catch (IOException ioe) {
-            if (!closed)
-              LOG.warn("Can't open BloomFilter", ioe);
-            else
-              LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
-
-            bloomFilter = null;
-          } catch (ClassNotFoundException e) {
-            LOG.error("Failed to find KeyFunctor in config: " + ClassName, e);
-            bloomFilter = null;
-          } catch (InstantiationException e) {
-            LOG.error("Could not instantiate KeyFunctor: " + ClassName, e);
-            bloomFilter = null;
-          } catch (IllegalAccessException e) {
-            LOG.error("Illegal acess exception", e);
-            bloomFilter = null;
-          } catch (RuntimeException rte) {
-            if (!closed)
-              throw rte;
-            else
-              LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
-          } finally {
-            if (in != null) {
-              try {
-                in.close();
-              } catch (IOException e) {
-                LOG.warn("Failed to close ", e);
-              }
+          bloomFilter = null;
+        } catch (ClassNotFoundException e) {
+          LOG.error("Failed to find KeyFunctor in config: " + sanitize(ClassName), e);
+          bloomFilter = null;
+        } catch (InstantiationException e) {
+          LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
+          bloomFilter = null;
+        } catch (IllegalAccessException e) {
+          LOG.error("Illegal acess exception", e);
+          bloomFilter = null;
+        } catch (RuntimeException rte) {
+          if (!closed)
+            throw rte;
+          else
+            LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
+        } finally {
+          if (in != null) {
+            try {
+              in.close();
+            } catch (IOException e) {
+              LOG.warn("Failed to close ", e);
             }
           }
         }
@@ -294,6 +290,14 @@ public class BloomFilterLayer {
 
       initiateLoad(maxLoadThreads);
 
+    }
+
+    /**
+     * Prevent potential CRLF injection into logs from read in user data See
+     * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+     */
+    private String sanitize(String msg) {
+      return msg.replaceAll("[\r\n]", "");
     }
 
     private synchronized void initiateLoad(int maxLoadThreads) {
@@ -449,7 +453,7 @@ public class BloomFilterLayer {
   public static void main(String[] args) throws IOException {
     PrintStream out = System.out;
 
-    Random r = new Random();
+    SecureRandom r = new SecureRandom();
 
     HashSet<Integer> valsSet = new HashSet<>();
 

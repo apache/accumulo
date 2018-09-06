@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.tserver.compaction.strategies;
 
+import static org.apache.accumulo.tserver.compaction.DefaultCompactionStrategyTest.getServerContext;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +41,8 @@ public class ConfigurableCompactionStrategyTest {
   @Test
   public void testOutputOptions() throws Exception {
     MajorCompactionRequest mcr = new MajorCompactionRequest(
-        new KeyExtent(Table.ID.of("1"), null, null), MajorCompactionReason.USER, null);
+        new KeyExtent(Table.ID.of("1"), null, null), MajorCompactionReason.USER, null,
+        getServerContext());
 
     Map<FileRef,DataFileValue> files = new HashMap<>();
     files.put(new FileRef("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"),

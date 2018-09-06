@@ -568,7 +568,7 @@ public class TabletServerBatchWriter {
         af.put(new TabletIdImpl(entry.getKey()), codes);
       }
 
-      throw new MutationsRejectedException(context.getInstance(), cvsList, af, serverSideErrors,
+      throw new MutationsRejectedException(context.getClientInfo(), cvsList, af, serverSideErrors,
           unknownErrors, lastUnknownError);
     }
   }
@@ -718,7 +718,7 @@ public class TabletServerBatchWriter {
         updateUnknownErrors(e.getMessage(), e);
       }
 
-      // an error ocurred
+      // an error occurred
       binnedMutations.clear();
 
     }
@@ -726,18 +726,14 @@ public class TabletServerBatchWriter {
     void queueMutations(final MutationSet mutationsToSend) throws InterruptedException {
       if (null == mutationsToSend)
         return;
-      binningThreadPool.execute(Trace.wrap(new Runnable() {
-
-        @Override
-        public void run() {
-          if (null != mutationsToSend) {
-            try {
-              log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
-                  mutationsToSend.size());
-              addMutations(mutationsToSend);
-            } catch (Exception e) {
-              updateUnknownErrors("Error processing mutation set", e);
-            }
+      binningThreadPool.execute(Trace.wrap(() -> {
+        if (null != mutationsToSend) {
+          try {
+            log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
+                mutationsToSend.size());
+            addMutations(mutationsToSend);
+          } catch (Exception e) {
+            updateUnknownErrors("Error processing mutation set", e);
           }
         }
       }));
@@ -900,7 +896,7 @@ public class TabletServerBatchWriter {
             tables.add(ke.getTableId());
 
           for (Table.ID table : tables)
-            getLocator(table).invalidateCache(context.getInstance(), location);
+            getLocator(table).invalidateCache(context, location);
 
           failedMutations.add(location, tsm);
         } finally {

@@ -87,10 +87,8 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -148,7 +146,7 @@ abstract class TabletGroupWatcher extends Daemon {
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
 
-    WalStateManager wals = new WalStateManager(master, ZooReaderWriter.getInstance());
+    WalStateManager wals = new WalStateManager(master.getContext());
 
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
@@ -205,7 +203,7 @@ abstract class TabletGroupWatcher extends Daemon {
           }
           Master.log.debug("{} location State: {}", store.name(), tls);
           // ignore entries for tables that do not exist in zookeeper
-          if (TableManager.getInstance().getTableState(tls.extent.getTableId()) == null)
+          if (master.getTableManager().getTableState(tls.extent.getTableId()) == null)
             continue;
 
           if (Master.log.isTraceEnabled())
@@ -415,7 +413,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
   private void cancelOfflineTableMigrations(TabletLocationState tls) {
     TServerInstance dest = this.master.migrations.get(tls.extent);
-    TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId());
+    TableState tableState = master.getTableManager().getTableState(tls.extent.getTableId());
     if (dest != null && tableState == TableState.OFFLINE) {
       this.master.migrations.remove(tls.extent);
     }
@@ -620,7 +618,7 @@ abstract class TabletGroupWatcher extends Daemon {
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           datafiles.add(new FileRef(this.master.fs, key));
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, master);
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
           }
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
@@ -641,12 +639,12 @@ abstract class TabletGroupWatcher extends Daemon {
                 Path.SEPARATOR + extent.getTableId() + path)));
           }
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, master);
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
             datafiles.clear();
           }
         }
       }
-      MetadataTableUtil.addDeleteEntries(extent, datafiles, master);
+      MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
       BatchWriter bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       try {
         deleteTablets(info, deleteRange, bw, conn);
@@ -670,13 +668,14 @@ abstract class TabletGroupWatcher extends Daemon {
       } else {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to {}", extent.getPrevEndRow());
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId());
-        String tdir = master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris())
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.getTableId()
-            + Constants.DEFAULT_TABLET_LOCATION;
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
+            master.getContext());
+        String tdir = master.getFileSystem().choose(chooserEnv,
+            ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR
+            + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(
-            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master,
-            timeType, this.master.masterLock);
+            new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,
+            master.getContext(), timeType, this.master.masterLock);
       }
     } catch (RuntimeException | IOException | TableNotFoundException
         | AccumuloSecurityException ex) {
@@ -729,8 +728,8 @@ abstract class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          bw.addMutation(MetadataTableUtil.createDeleteMutation(range.getTableId(),
-              entry.getValue().toString()));
+          bw.addMutation(MetadataTableUtil.createDeleteMutation(master.getContext(),
+              range.getTableId(), entry.getValue().toString()));
         }
       }
 

@@ -25,7 +25,7 @@ import java.lang.annotation.RetentionPolicy;
  * be interpolated with system properties.
  *
  * Interpolated items need to be careful, as JVM properties could be updates and we may want that
- * propogated when those changes occur. Currently only VFS_CLASSLOADER_CACHE_DIR, which isn't ZK
+ * propagated when those changes occur. Currently only VFS_CLASSLOADER_CACHE_DIR, which isn't ZK
  * mutable, is interpolated, so this shouldn't be an issue as java.io.tmpdir also shouldn't be
  * changing.
  */

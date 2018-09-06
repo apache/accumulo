@@ -43,6 +43,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -82,14 +83,14 @@ public class PrepBulkImport extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master master) throws Exception {
-    if (!Utils.getReadLock(bulkInfo.tableId, tid).tryLock())
+    if (!Utils.getReadLock(master, bulkInfo.tableId, tid).tryLock())
       return 100;
 
     if (master.onlineTabletServers().size() == 0)
       return 500;
-    Tables.clearCache(master);
+    Tables.clearCache(master.getContext());
 
-    return Utils.reserveHdfsDirectory(bulkInfo.sourceDir, tid);
+    return Utils.reserveHdfsDirectory(master, bulkInfo.sourceDir, tid);
   }
 
   @VisibleForTesting
@@ -162,7 +163,7 @@ public class PrepBulkImport extends MasterRepo {
       Iterators.transform(lmi, entry -> entry.getKey());
 
       TabletIterFactory tabletIterFactory = startRow -> {
-        return MetadataScanner.builder().from(master).scanMetadataTable()
+        return MetadataScanner.builder().from(master.getContext()).scanMetadataTable()
             .overRange(bulkInfo.tableId, startRow, null).checkConsistency().fetchPrev().build()
             .stream().map(TabletMetadata::getExtent).iterator();
       };
@@ -177,14 +178,14 @@ public class PrepBulkImport extends MasterRepo {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(master);
 
-    bulkInfo.tableState = Tables.getTableState(master.getInstance(), bulkInfo.tableId);
+    bulkInfo.tableState = Tables.getTableState(master.getContext(), bulkInfo.tableId);
 
     VolumeManager fs = master.getFileSystem();
-    final UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    final UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);
     FileStatus[] files = fs.listStatus(sourceDir);
 
-    Path bulkDir = createNewBulkDir(fs, bulkInfo.tableId);
+    Path bulkDir = createNewBulkDir(master.getContext(), fs, bulkInfo.tableId);
     Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
@@ -220,9 +221,10 @@ public class PrepBulkImport extends MasterRepo {
     return new BulkImportMove(bulkInfo);
   }
 
-  private Path createNewBulkDir(VolumeManager fs, Table.ID tableId) throws IOException {
+  private Path createNewBulkDir(ServerContext context, VolumeManager fs, Table.ID tableId)
+      throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(bulkInfo.sourceDir),
-        ServerConstants.getTablesDirs());
+        ServerConstants.getTablesDirs(context.getConfiguration()));
     if (tempPath == null)
       throw new IOException(bulkInfo.sourceDir + " is not in a volume configured for Accumulo");
 
@@ -232,7 +234,7 @@ public class PrepBulkImport extends MasterRepo {
     Path directory = new Path(tableDir + "/" + tableId);
     fs.mkdirs(directory);
 
-    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    UniqueNameAllocator namer = context.getUniqueNameAllocator();
     while (true) {
       Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
       if (fs.mkdirs(newBulkDir))
@@ -246,9 +248,9 @@ public class PrepBulkImport extends MasterRepo {
   @Override
   public void undo(long tid, Master environment) throws Exception {
     // unreserve sourceDir/error directories
-    Utils.unreserveHdfsDirectory(bulkInfo.sourceDir, tid);
-    Utils.getReadLock(bulkInfo.tableId, tid).unlock();
-    TransactionWatcher.ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
+    Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, tid);
+    Utils.getReadLock(environment, bulkInfo.tableId, tid).unlock();
+    TransactionWatcher.ZooArbitrator.cleanup(environment.getContext(),
+        Constants.BULK_ARBITRATOR_TYPE, tid);
   }
-
 }

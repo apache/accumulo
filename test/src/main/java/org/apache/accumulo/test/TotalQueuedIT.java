@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
+import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -33,8 +34,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
-    Random random = new Random();
+    Random random = new SecureRandom();
     Connector c = getConnector();
     c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
         "" + SMALL_QUEUE_SIZE);
@@ -123,8 +123,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   private long getSyncs() throws Exception {
     Connector c = getConnector();
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(c.getInstance());
-    AccumuloServerContext context = new AccumuloServerContext(c.getInstance(), confFactory);
+    ServerContext context = getServerContext();
     for (String address : c.instanceOperations().getTabletServers()) {
       TabletClientService.Client client = ThriftUtil
           .getTServerClient(HostAndPort.fromString(address), context);
@@ -133,5 +132,4 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     }
     return 0;
   }
-
 }

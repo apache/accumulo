@@ -24,9 +24,9 @@ import org.apache.hadoop.fs.Path;
  * Volume implementation which represents a Volume for which we have a FileSystem but no base path
  * because it is not configured via {@link Property#INSTANCE_VOLUMES}
  *
- * This is useful to handle volumes that have been removed from accumulo-site.xml but references to
- * these volumes have not been updated. This Volume should never be used to create new files, only
- * to read existing files.
+ * This is useful to handle volumes that have been removed from accumulo.properties but references
+ * to these volumes have not been updated. This Volume should never be used to create new files,
+ * only to read existing files.
  */
 public class NonConfiguredVolume implements Volume {
   private FileSystem fs;
@@ -43,25 +43,25 @@ public class NonConfiguredVolume implements Volume {
   @Override
   public String getBasePath() {
     throw new UnsupportedOperationException(
-        "No base path known because this Volume isn't configured in accumulo-site.xml");
+        "No base path known because this Volume isn't configured in accumulo.properties");
   }
 
   @Override
   public Path prefixChild(Path p) {
     throw new UnsupportedOperationException(
-        "Cannot prefix path because this Volume isn't configured in accumulo-site.xml");
+        "Cannot prefix path because this Volume isn't configured in accumulo.properties");
   }
 
   @Override
   public Path prefixChild(String p) {
     throw new UnsupportedOperationException(
-        "Cannot prefix path because this Volume isn't configured in accumulo-site.xml");
+        "Cannot prefix path because this Volume isn't configured in accumulo.properties");
   }
 
   @Override
   public boolean isValidPath(Path p) {
     throw new UnsupportedOperationException("Cannot determine if path is valid"
-        + " because this Volume isn't configured in accumulo-site.xml");
+        + " because this Volume isn't configured in accumulo.properties");
   }
 
   @Override

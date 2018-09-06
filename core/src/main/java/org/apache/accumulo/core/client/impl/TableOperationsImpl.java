@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -581,7 +582,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(address.toString(), tae);
         } catch (TTransportException e) {
-          tabLocator.invalidateCache(context.getInstance(), tl.tablet_location);
+          tabLocator.invalidateCache(context, tl.tablet_location);
           continue;
         } catch (ThriftSecurityException e) {
           Tables.clearCache(context);
@@ -599,7 +600,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           tabLocator.invalidateCache(tl.tablet_extent);
           continue;
         } catch (TException e) {
-          tabLocator.invalidateCache(context.getInstance(), tl.tablet_location);
+          tabLocator.invalidateCache(context, tl.tablet_location);
           continue;
         }
 
@@ -1090,7 +1091,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (maxSplits == 1)
       return Collections.singleton(range);
 
-    Random random = new Random();
+    Random random = new SecureRandom();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     Table.ID tableId = Tables.getTableId(context, tableName);
     TabletLocator tl = TabletLocator.getLocator(context, tableId);
@@ -1185,7 +1186,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(dir != null, "dir is null");
     checkArgument(failureDir != null, "failureDir is null");
-    // check for table existance
+    // check for table existence
     Tables.getTableId(context, tableName);
 
     Path dirPath = checkPath(dir, "Bulk", "");
@@ -1524,7 +1525,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
           LoggerFactory.getLogger(this.getClass()).info(
               "Imported table sets '{}' to '{}'.  Ensure this class is on Accumulo classpath.",
-              entry.getKey(), entry.getValue());
+              sanitize(entry.getKey()), sanitize(entry.getValue()));
         }
       }
 
@@ -1547,6 +1548,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AssertionError(e);
     }
 
+  }
+
+  /**
+   * Prevent potential CRLF injection into logs from read in user data See
+   * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   */
+  private String sanitize(String msg) {
+    return msg.replaceAll("[\r\n]", "");
   }
 
   @Override
@@ -1900,9 +1909,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
     HashSet<SummarizerConfiguration> newConfigSet = new HashSet<>(Arrays.asList(newConfigs));
 
-    newConfigSet.removeIf(sc -> currentConfigs.contains(sc));
+    newConfigSet.removeIf(currentConfigs::contains);
 
-    Set<String> newIds = newConfigSet.stream().map(sc -> sc.getPropertyId()).collect(toSet());
+    Set<String> newIds = newConfigSet.stream().map(SummarizerConfiguration::getPropertyId)
+        .collect(toSet());
 
     for (SummarizerConfiguration csc : currentConfigs) {
       if (newIds.contains(csc.getPropertyId())) {

@@ -26,7 +26,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 public class CancelCompactions extends MasterRepo {
 
@@ -41,18 +40,18 @@ public class CancelCompactions extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
-        + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
+    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
+        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    String zCompactID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-    String zCancelID = Constants.ZROOT + "/" + environment.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    String zCompactID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
+        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zCancelID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
     byte[] currentValue = zoo.getData(zCompactID, null);
 
@@ -77,7 +76,7 @@ public class CancelCompactions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveTable(tableId, tid, false);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, false);
+    Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 }

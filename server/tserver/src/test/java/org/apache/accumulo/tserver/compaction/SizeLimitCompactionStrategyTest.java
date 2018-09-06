@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
+import static org.apache.accumulo.tserver.compaction.DefaultCompactionStrategyTest.getServerContext;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,7 +57,7 @@ public class SizeLimitCompactionStrategyTest {
 
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
     MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL,
-        DefaultConfiguration.getInstance());
+        DefaultConfiguration.getInstance(), getServerContext());
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G"));
 

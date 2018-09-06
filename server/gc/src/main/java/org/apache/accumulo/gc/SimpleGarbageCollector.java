@@ -38,15 +38,14 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -67,7 +66,6 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
@@ -78,29 +76,20 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
-import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.FileStatus;
@@ -118,7 +107,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 // Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
-public class SimpleGarbageCollector extends AccumuloServerContext implements Iface {
+public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
 
   /**
@@ -140,46 +129,32 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
+  private ServerContext context;
   private VolumeManager fs;
-  private Opts opts = new Opts();
+  private Opts opts;
   private ZooLock lock;
 
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(),
       new GcCycleStats());
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     final String app = "gc";
     Opts opts = new Opts();
     opts.parseArgs(app, args);
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-    Instance instance = HdfsZooInstance.getInstance();
-    ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + instance.getInstanceID());
-    final VolumeManager fs = VolumeManagerImpl.get();
-    MetricsSystemHelper.configure(SimpleGarbageCollector.class.getSimpleName());
-    Accumulo.init(fs, instance, conf, app);
-    SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, instance, fs, conf);
-
-    DistributedTrace.enable(opts.getAddress(), app, conf.getSystemConfiguration());
+    ServerContext context = new ServerContext(opts.getSiteConfiguration());
+    context.setupServer(app, SimpleGarbageCollector.class.getName(), opts.getAddress());
     try {
+      SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, context);
       gc.run();
     } finally {
-      DistributedTrace.disable();
+      context.teardownServer();
     }
   }
 
-  /**
-   * Creates a new garbage collector.
-   *
-   * @param opts
-   *          options
-   */
-  public SimpleGarbageCollector(Opts opts, Instance instance, VolumeManager fs,
-      ServerConfigurationFactory confFactory) {
-    super(instance, confFactory);
+  public SimpleGarbageCollector(Opts opts, ServerContext context) {
+    this.context = context;
     this.opts = opts;
-    this.fs = fs;
+    this.fs = context.getVolumeManager();
 
     long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
     log.info("start delay: {} milliseconds", getStartDelay());
@@ -189,6 +164,18 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("memory threshold: {} of bytes", CANDIDATE_MEMORY_PERCENTAGE,
         Runtime.getRuntime().maxMemory());
     log.info("delete threads: {}", getNumDeleteThreads());
+  }
+
+  ServerContext getContext() {
+    return context;
+  }
+
+  AccumuloConfiguration getConfiguration() {
+    return context.getConfiguration();
+  }
+
+  Connector getConnector() throws AccumuloSecurityException, AccumuloException {
+    return context.getConnector();
   }
 
   /**
@@ -232,15 +219,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    */
   int getNumDeleteThreads() {
     return getConfiguration().getCount(Property.GC_DELETE_THREADS);
-  }
-
-  /**
-   * Should files be archived (as opposed to preserved in trash)
-   *
-   * @return True if files should be archived, false otherwise
-   */
-  boolean shouldArchiveFiles() {
-    return getConfiguration().getBoolean(Property.GC_FILE_ARCHIVE);
   }
 
   private class GCEnv implements GarbageCollectionEnvironment {
@@ -317,7 +295,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     @Override
     public Set<Table.ID> getTableIDs() {
-      return Tables.getIdToNameMap(SimpleGarbageCollector.this).keySet();
+      return Tables.getIdToNameMap(context).keySet();
     }
 
     @Override
@@ -372,7 +350,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(),
           new NamingThreadFactory("deleting"));
 
-      final List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+      final List<Pair<Path,Path>> replacements = ServerConstants
+          .getVolumeReplacements(getConfiguration());
 
       for (final String delete : confirmedDeletes.values()) {
 
@@ -401,7 +380,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
               log.debug("Deleting {}", fullPath);
 
-              if (archiveOrMoveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
+              if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
                 // delete succeeded, still want to delete
                 removeFlag = true;
                 synchronized (SimpleGarbageCollector.this) {
@@ -424,8 +403,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 if (parts.length > 2) {
                   Table.ID tableId = Table.ID.of(parts[1]);
                   String tabletDir = parts[2];
-                  TableManager.getInstance().updateTableStateCache(tableId);
-                  TableState tableState = TableManager.getInstance().getTableState(tableId);
+                  context.getTableManager().updateTableStateCache(tableId);
+                  TableState tableState = context.getTableManager().getTableState(tableId);
                   if (tableState != null && tableState != TableState.DELETING) {
                     // clone directories don't always exist
                     if (!tabletDir.startsWith(Constants.CLONE_PREFIX))
@@ -473,7 +452,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     public void deleteTableDirIfEmpty(Table.ID tableID) throws IOException {
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
-      for (String dir : ServerConstants.getTablesDirs()) {
+      for (String dir : ServerConstants.getTablesDirs(context.getConfiguration())) {
         FileStatus[] tabletDirs = null;
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
@@ -484,7 +463,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         if (tabletDirs.length == 0) {
           Path p = new Path(dir + "/" + tableID);
           log.debug("Removing table dir {}", p);
-          if (!archiveOrMoveToTrash(p))
+          if (!moveToTrash(p))
             fs.delete(p);
         }
       }
@@ -585,7 +564,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       // before running GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
       Span replSpan = Trace.start("replicationClose");
       try {
-        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(this);
+        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(context);
         closeWals.run();
       } catch (Exception e) {
         log.error("Error trying to close write-ahead logs for replication table", e);
@@ -596,7 +575,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs,
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(context, fs,
             isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
@@ -637,74 +616,18 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    * @throws IOException
    *           if the volume manager encountered a problem
    */
-  boolean archiveOrMoveToTrash(Path path) throws IOException {
-    if (shouldArchiveFiles()) {
-      return archiveFile(path);
-    } else {
-      if (!isUsingTrash())
-        return false;
-      try {
-        return fs.moveToTrash(path);
-      } catch (FileNotFoundException ex) {
-        return false;
-      }
-    }
-  }
-
-  /**
-   * Move a file, that would otherwise be deleted, to the archive directory for files
-   *
-   * @param fileToArchive
-   *          Path to file that is to be archived
-   * @return True if the file was successfully moved to the file archive directory, false otherwise
-   */
-  boolean archiveFile(Path fileToArchive) throws IOException {
-    // Figure out what the base path this volume uses on this FileSystem
-    Volume sourceVolume = fs.getVolumeByPath(fileToArchive);
-    String sourceVolumeBasePath = sourceVolume.getBasePath();
-
-    log.debug("Base path for volume: {}", sourceVolumeBasePath);
-
-    // Get the path for the file we want to archive
-    String sourcePathBasePath = fileToArchive.toUri().getPath();
-
-    // Strip off the common base path for the file to archive
-    String relativeVolumePath = sourcePathBasePath.substring(sourceVolumeBasePath.length());
-    if (Path.SEPARATOR_CHAR == relativeVolumePath.charAt(0)) {
-      if (relativeVolumePath.length() > 1) {
-        relativeVolumePath = relativeVolumePath.substring(1);
-      } else {
-        relativeVolumePath = "";
-      }
-    }
-
-    log.debug("Computed relative path for file to archive: {}", relativeVolumePath);
-
-    // The file archive path on this volume (we can't archive this file to a different volume)
-    Path archivePath = new Path(sourceVolumeBasePath, ServerConstants.FILE_ARCHIVE_DIR);
-
-    log.debug("File archive path: {}", archivePath);
-
-    fs.mkdirs(archivePath);
-
-    // Preserve the path beneath the Volume's base directory (e.g. tables/1/A_0000001.rf)
-    Path fileArchivePath = new Path(archivePath, relativeVolumePath);
-
-    log.debug("Create full path of {} from {} and {}", fileArchivePath, archivePath,
-        relativeVolumePath);
-
-    // Make sure that it doesn't already exist, something is wrong.
-    if (fs.exists(fileArchivePath)) {
-      log.warn("Tried to archive file, but it already exists: {}", fileArchivePath);
+  boolean moveToTrash(Path path) throws IOException {
+    if (!isUsingTrash())
+      return false;
+    try {
+      return fs.moveToTrash(path);
+    } catch (FileNotFoundException ex) {
       return false;
     }
-
-    log.debug("Moving {} to {}", fileToArchive, fileArchivePath);
-    return fs.rename(fileToArchive, fileArchivePath);
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    String path = ZooUtil.getRoot(getInstance()) + Constants.ZGC_LOCK;
+    String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
@@ -727,7 +650,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     };
 
     while (true) {
-      lock = new ZooLock(path);
+      lock = new ZooLock(context.getZooReaderWriter(), path);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");
@@ -741,7 +664,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   private HostAndPort startStatsService() throws UnknownHostException {
     Iface rpcProxy = TraceWrap.service(this);
     final Processor<Iface> processor;
-    if (ThriftServerType.SASL == getThriftServerType()) {
+    if (ThriftServerType.SASL == context.getThriftServerType()) {
       Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
       processor = new Processor<>(tcProxy);
     } else {
@@ -751,10 +674,11 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server = TServerUtils.startTServer(getConfiguration(), getThriftServerType(),
-          processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
+      ServerAddress server = TServerUtils.startTServer(getConfiguration(),
+          context.getThriftServerType(), processor, this.getClass().getSimpleName(),
+          "GC Monitor Service", 2,
           getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
-          maxMessageSize, getServerSslParams(), getSaslParams(), 0, addresses);
+          maxMessageSize, context.getServerSslParams(), context.getSaslParams(), 0, addresses);
       log.debug("Starting garbage collector listening on " + server.address);
       return server.address;
     } catch (Exception ex) {

@@ -127,7 +127,7 @@ public class TabletServerLogger {
     try {
       // does some condition exist that needs the write lock?
       if (code.test()) {
-        // Yes, let go of the readlock
+        // Yes, let go of the readLock
         rwlock.readLock().unlock();
         // Grab the write lock
         rwlock.writeLock().lock();
@@ -138,7 +138,7 @@ public class TabletServerLogger {
             code.withWriteLock();
           }
         } finally {
-          // regain the readlock
+          // regain the readLock
           rwlock.readLock().lock();
           // unlock the write lock
           rwlock.writeLock().unlock();
@@ -280,7 +280,7 @@ public class TabletServerLogger {
           DfsLogger alog = null;
           try {
             log.debug("Creating next WAL");
-            alog = new DfsLogger(conf, syncCounter, flushCounter);
+            alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
             String fileName = alog.getFileName();
             log.debug("Created next WAL " + fileName);
@@ -407,7 +407,7 @@ public class TabletServerLogger {
                 log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
                     + copy.getFileName());
                 // Got some new WALs, note this in the metadata table
-                ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(),
+                ReplicationTableUtil.updateFiles(tserver.getContext(), commitSession.getExtent(),
                     copy.getFileName(), status);
               }
             }

@@ -35,7 +35,6 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
@@ -84,16 +83,16 @@ public class CompactRange extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT)
-        + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT);
+    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT)
+        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT);
   }
 
   @Override
   public Repo<Master> call(final long tid, Master env) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + env.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = env.getContext().getZooReaderWriter();
     byte[] cid;
     try {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {
@@ -143,10 +142,10 @@ public class CompactRange extends MasterRepo {
 
   static void removeIterators(Master environment, final long txid, Table.ID tableId)
       throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + environment.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zTablePath = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
+        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override
@@ -176,8 +175,8 @@ public class CompactRange extends MasterRepo {
     try {
       removeIterators(env, tid, tableId);
     } finally {
-      Utils.unreserveNamespace(namespaceId, tid, false);
-      Utils.unreserveTable(tableId, tid, false);
+      Utils.unreserveNamespace(env, namespaceId, tid, false);
+      Utils.unreserveTable(env, tableId, tid, false);
     }
   }
 

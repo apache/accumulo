@@ -44,7 +44,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -57,6 +56,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -64,6 +64,7 @@ import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -130,6 +131,7 @@ public class TabletServerResourceManager {
   private final BlockCache _sCache;
   private final TabletServer tserver;
   private final ServerConfigurationFactory conf;
+  private final ServerContext context;
 
   private ExecutorService addEs(String name, ExecutorService tp) {
     if (threadPools.containsKey(name)) {
@@ -199,7 +201,7 @@ public class TabletServerResourceManager {
       if (factory == null) {
         queue = new LinkedBlockingQueue<>();
       } else {
-        Comparator<ScanInfo> comparator = factory.createComparator(sec.prioritizerOpts);
+        Comparator<ScanInfo> comparator = factory.createComparator(() -> sec.prioritizerOpts);
 
         // function to extract scan scan session from runnable
         Function<Runnable,ScanInfo> extractor = r -> ((ScanSession.ScanMeasurer) ((TraceRunnable) r)
@@ -233,7 +235,7 @@ public class TabletServerResourceManager {
         new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
   }
 
-  protected Map<String,ExecutorService> createScanExecutors(Instance instance,
+  protected Map<String,ExecutorService> createScanExecutors(
       Collection<ScanExecutorConfig> scanExecCfg, Map<String,Queue<?>> scanExecQueues) {
     Builder<String,ExecutorService> builder = ImmutableMap.builder();
 
@@ -307,9 +309,11 @@ public class TabletServerResourceManager {
     return builder.build();
   }
 
-  public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
+  public TabletServerResourceManager(TabletServer tserver, VolumeManager fs,
+      ServerContext context) {
     this.tserver = tserver;
-    this.conf = tserver.getServerConfigurationFactory();
+    this.conf = tserver.getContext().getServerConfFactory();
+    this.context = context;
     final AccumuloConfiguration acuConf = conf.getSystemConfiguration();
 
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
@@ -395,7 +399,7 @@ public class TabletServerResourceManager {
 
     Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
     Map<String,Queue<?>> scanExecQueues = new HashMap<>();
-    scanExecutors = createScanExecutors(tserver.getInstance(), scanExecCfg, scanExecQueues);
+    scanExecutors = createScanExecutors(scanExecCfg, scanExecQueues);
     scanExecutorChoices = createScanExecutorChoices(scanExecCfg, scanExecQueues);
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
@@ -403,11 +407,12 @@ public class TabletServerResourceManager {
     Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
         .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
-    fileManager = new FileManager(tserver, fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
+    fileManager = new FileManager(tserver.getContext(), fs, maxOpenFiles, fileLenCache, _dCache,
+        _iCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
         MemoryManager.class, new LargestFirstMemoryManager());
-    memoryManager.init(tserver.getServerConfigurationFactory());
+    memoryManager.init(tserver.getContext().getServerConfFactory());
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 
@@ -860,7 +865,8 @@ public class TabletServerResourceManager {
           Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
           new DefaultCompactionStrategy());
       strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, tableConf);
+      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, tableConf,
+          context);
       request.setFiles(tabletFiles);
       try {
         return strategy.shouldCompact(request);
@@ -937,7 +943,17 @@ public class TabletServerResourceManager {
     } else if (tablet.isMeta()) {
       scanExecutors.get("meta").execute(task);
     } else {
-      String scanExecutorName = dispatcher.dispatch(scanInfo, scanExecutorChoices);
+      String scanExecutorName = dispatcher.dispatch(new DispatchParmaters() {
+        @Override
+        public ScanInfo getScanInfo() {
+          return scanInfo;
+        }
+
+        @Override
+        public Map<String,ScanExecutor> getScanExecutors() {
+          return scanExecutorChoices;
+        }
+      });
       ExecutorService executor = scanExecutors.get(scanExecutorName);
       if (executor == null) {
         log.warn(

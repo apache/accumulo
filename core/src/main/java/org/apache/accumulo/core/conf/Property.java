@@ -27,8 +27,10 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -45,76 +47,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public enum Property {
-  // Crypto-related properties
-  @Experimental
-  CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX,
-      "Properties in this category related to the configuration of both default and custom crypto"
-          + " modules."),
-  @Experimental
-  CRYPTO_MODULE_CLASS("crypto.module.class", "NullCryptoModule", PropertyType.STRING,
-      "Fully qualified class name of the class that implements the CryptoModule"
-          + " interface, to be used in setting up encryption at rest for the WAL and"
-          + " (future) other parts of the code."),
-  @Experimental
-  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING,
-      "Describes the cipher suite to use for rfile encryption. The value must"
-          + " be either NullCipher or in the form of algorithm/mode/padding, e.g."
-          + " AES/CBC/NoPadding"),
-  @Experimental
-  CRYPTO_WAL_CIPHER_SUITE("crypto.wal.cipher.suite", "", PropertyType.STRING,
-      "Describes the cipher suite to use for the write-ahead log. Defaults to"
-          + " 'cyrpto.cipher.suite' and will use that value for WAL encryption unless"
-          + " otherwise specified. Valid suite values include: an empty string,"
-          + " NullCipher, or a string the form of algorithm/mode/padding, e.g."
-          + " AES/CBC/NOPadding"),
-  @Experimental
-  CRYPTO_CIPHER_KEY_ALGORITHM_NAME("crypto.cipher.key.algorithm.name", "NullCipher",
-      PropertyType.STRING,
-      "States the name of the algorithm used for the key for the corresponding"
-          + " cipher suite. The key type must be compatible with the cipher suite."),
-  @Experimental
-  CRYPTO_BLOCK_STREAM_SIZE("crypto.block.stream.size", "1K", PropertyType.BYTES,
-      "The size of the buffer above the cipher stream. Used for reading files"
-          + " and padding walog entries."),
-  @Experimental
-  CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
-      "Specifies the key length *in bits* to use for the symmetric key, "
-          + "should probably be 128 or 256 unless you really know what you're doing"),
-  @Experimental
-  CRYPTO_SECURITY_PROVIDER("crypto.security.provider", "", PropertyType.STRING,
-      "States the security provider to use, and defaults to the system configured provider"),
-  @Experimental
-  CRYPTO_SECURE_RNG("crypto.secure.rng", "SHA1PRNG", PropertyType.STRING,
-      "States the secure random number generator to use, and defaults to the built-in SHA1PRNG"),
-  @Experimental
-  CRYPTO_SECURE_RNG_PROVIDER("crypto.secure.rng.provider", "SUN", PropertyType.STRING,
-      "States the secure random number generator provider to use."),
-  @Experimental
-  CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS("crypto.secret.key.encryption.strategy.class",
-      "NullSecretKeyEncryptionStrategy", PropertyType.STRING,
-      "The class Accumulo should use for its key encryption strategy."),
-  @Experimental
-  CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION("crypto.default.key.strategy.key.location",
-      "/crypto/secret/keyEncryptionKey", PropertyType.ABSOLUTEPATH,
-      "The path relative to the top level instance directory (instance.dfs.dir) where to store"
-          + " the key encryption key within HDFS."),
-  @Experimental
-  CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE("crypto.default.key.strategy.cipher.suite", "NullCipher",
-      PropertyType.STRING,
-      "The cipher suite to use when encrypting session keys with a key"
-          + " encryption keyThis should be set to match the overall encryption"
-          + " algorithm but with ECB mode and no padding unless you really know what"
-          + " you're doing and are sure you won't break internal file formats"),
-  @Experimental
-  CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY(
-      "crypto.override.key.strategy.with.configured.strategy", "false", PropertyType.BOOLEAN,
-      "The default behavior is to record the key encryption strategy with the"
-          + " encrypted file, and continue to use that strategy for the life of that"
-          + " file. Sometimes, you change your strategy and want to use the new"
-          + " strategy, not the old one. (Most commonly, this will be because you have"
-          + " moved key material from one spot to another.) If you want to override"
-          + " the recorded key strategy with the one in the configuration file, set"
-          + " this property to true."),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
@@ -180,13 +112,13 @@ public enum Property {
       "A secret unique to a given instance that all servers must know in order"
           + " to communicate with one another. It should be changed prior to the"
           + " initialization of Accumulo. To change it after Accumulo has been"
-          + " initialized, use the ChangeSecret tool and then update accumulo-site.xml"
+          + " initialized, use the ChangeSecret tool and then update accumulo.properties"
           + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
           + " running and you are logged in as the user that controls Accumulo files in"
           + " HDFS. To use the ChangeSecret tool, run the command: ./bin/accumulo"
           + " org.apache.accumulo.server.util.ChangeSecret"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
-      "A comma seperated list of dfs uris to use. Files will be stored across"
+      "A comma separated list of dfs uris to use. Files will be stored across"
           + " these filesystems. If this is empty, then instance.dfs.uri will be used."
           + " After adding uris to this list, run 'accumulo init --add-volume' and then"
           + " restart tservers. If entries are removed from this list then tservers"
@@ -199,7 +131,7 @@ public enum Property {
       "Since accumulo stores absolute URIs changing the location of a namenode "
           + "could prevent Accumulo from starting. The property helps deal with "
           + "that situation. Provide a comma separated list of uri replacement "
-          + "pairs here if a namenode location changes. Each pair shold be separated "
+          + "pairs here if a namenode location changes. Each pair should be separated "
           + "with a space. For example, if hdfs://nn1 was replaced with "
           + "hdfs://nnA and hdfs://nn2 was replaced with hdfs://nnB, then set this "
           + "property to 'hdfs://nn1 hdfs://nnA,hdfs://nn2 hdfs://nnB' "
@@ -238,6 +170,20 @@ public enum Property {
       PropertyType.STRING,
       "One-line configuration property controlling the network locations "
           + "(hostnames) that are allowed to impersonate other users"),
+  // Crypto-related properties
+  @Experimental
+  INSTANCE_CRYPTO_PREFIX("instance.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption."),
+  @Experimental
+  @Sensitive
+  INSTANCE_CRYPTO_SENSITIVE_PREFIX("instance.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption."),
+  @Experimental
+  INSTANCE_CRYPTO_SERVICE("instance.crypto.service",
+      "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
+      "The class which executes on-disk file encryption. The default does nothing. To enable "
+          + "encryption, replace this classname with an implementation of the"
+          + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -582,8 +528,6 @@ public enum Property {
       "The number of threads used to delete RFiles and write-ahead logs"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured."),
-  GC_FILE_ARCHIVE("gc.file.archive", "false", PropertyType.BOOLEAN,
-      "Archive any files/directories instead of moving to the HDFS trash or deleting."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace"),
 
@@ -656,11 +600,11 @@ public enum Property {
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
           + " but can be configured on a per-table basis. Setting these properties in"
-          + " the site file will override the default globally for all tables and not"
+          + " accumulo.properties will override the default globally for all tables and not"
           + " any specific table. However, both the default and the global setting can"
           + " be overridden per table using the table operations API or in the shell,"
           + " which sets the overridden value in zookeeper. Restarting accumulo tablet"
-          + " servers after setting these properties in the site file will cause the"
+          + " servers after setting these properties in accumulo.properties will cause the"
           + " global setting to take effect. However, you must use the API or the shell"
           + " to change properties in zookeeper that are set on a table."),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
@@ -876,7 +820,7 @@ public enum Property {
       PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
           + " start  with the category prefix, followed by a context name. The value is"
-          + " a comma seperated list of URIs. Supports full regex on filename alone."
+          + " a comma separated list of URIs. Supports full regex on filename alone."
           + " For example, general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar."
           + " You can enable post delegation for a context, which will load classes from the"
           + " context first instead of the parent first. Do this by setting"
@@ -941,9 +885,7 @@ public enum Property {
       "The sampling percentage to use for replication traces"),
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
-          + " the attempt. See replication.work.attempts."),
-
-  ;
+          + " the attempt. See replication.work.attempts.");
 
   private String key;
   private String defaultValue;
@@ -1198,7 +1140,7 @@ public enum Property {
       Property.TSERV_MAJC_MAXCONCURRENT, Property.REPLICATION_WORKER_THREADS,
       Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT, Property.TABLE_CLASSPATH,
       Property.MASTER_METADATA_SUSPENDABLE, Property.TABLE_FAILURES_IGNORE,
-      Property.TABLE_SCAN_MAXMEM);
+      Property.TABLE_SCAN_MAXMEM, Property.INSTANCE_CRYPTO_SERVICE, Property.TABLE_DELETE_BEHAVIOR);
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
       Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
@@ -1229,7 +1171,7 @@ public enum Property {
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.")
+        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
         || key.startsWith(REPLICATION_PREFIX.getKey());
   }

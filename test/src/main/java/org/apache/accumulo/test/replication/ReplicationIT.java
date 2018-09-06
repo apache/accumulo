@@ -41,14 +41,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -81,6 +79,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -90,7 +89,6 @@ import org.apache.accumulo.server.replication.StatusFormatter;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -142,7 +140,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private Multimap<String,Table.ID> getLogs(ClientContext context) throws Exception {
+  private Multimap<String,Table.ID> getLogs(ServerContext context) throws Exception {
     // Map of server to tableId
     Connector conn = context.getConnector();
     Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
@@ -157,9 +155,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
       // Map of logs to tableId
       Multimap<String,Table.ID> logs = HashMultimap.create();
-      ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
-          conn.info().getZooKeepersSessionTimeOut(), "");
-      WalStateManager wals = new WalStateManager(context, zk);
+      WalStateManager wals = new WalStateManager(context);
       for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
         for (UUID id : entry.getValue()) {
           Pair<WalState,Path> state = wals.state(entry.getKey(), id);
@@ -172,7 +168,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     }
   }
 
-  private Multimap<String,Table.ID> getAllLogs(ClientContext context) throws Exception {
+  private Multimap<String,Table.ID> getAllLogs(ServerContext context) throws Exception {
     Multimap<String,Table.ID> logs = getLogs(context);
     try (Scanner scanner = context.getConnector().createScanner(ReplicationTable.NAME,
         Authorizations.EMPTY)) {
@@ -343,11 +339,8 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     Set<String> wals = new HashSet<>();
     attempts = 5;
-    Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(conn.info().getZooKeepers(),
-        conn.info().getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
-      WalStateManager markers = new WalStateManager(getClientContext(), zk);
+      WalStateManager markers = new WalStateManager(getServerContext());
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {
         wals.add(entry.getKey().toString());
       }
@@ -532,7 +525,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void replicationEntriesPrecludeWalDeletion() throws Exception {
-    final ClientContext context = getClientContext();
+    final ServerContext context = getServerContext();
     final Connector conn = getConnector();
     String table1 = "table1", table2 = "table2", table3 = "table3";
     final Multimap<String,Table.ID> logs = HashMultimap.create();
@@ -1104,7 +1097,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   public void replicationRecordsAreClosedAfterGarbageCollection() throws Exception {
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
-    final ClientContext context = getClientContext();
+    final ServerContext context = getServerContext();
     final Connector conn = getConnector();
 
     ReplicationTable.setOnline(conn);

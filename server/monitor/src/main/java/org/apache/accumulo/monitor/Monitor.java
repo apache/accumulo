@@ -40,11 +40,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -54,31 +52,23 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -91,7 +81,6 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.mvc.MvcFeature;
 import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
 import org.glassfish.jersey.servlet.ServletContainer;
@@ -174,7 +163,7 @@ public class Monitor implements HighlyAvailableService {
   private static GCStatus gcStatus;
 
   private static ServerConfigurationFactory config;
-  private static AccumuloServerContext context;
+  private static ServerContext context;
 
   private static EmbeddedWebServer server;
 
@@ -266,7 +255,7 @@ public class Monitor implements HighlyAvailableService {
           public void run() {
             synchronized (Monitor.class) {
               if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
-                final String instanceName = HdfsZooInstance.getInstance().getInstanceName();
+                final String instanceName = context.getInstanceName();
                 if (null != instanceName) {
                   cachedInstanceName.set(instanceName);
                 }
@@ -418,8 +407,8 @@ public class Monitor implements HighlyAvailableService {
     HostAndPort address = null;
     try {
       // Read the gc location from its lock
-      ZooReaderWriter zk = ZooReaderWriter.getInstance();
-      String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZGC_LOCK;
+      ZooReaderWriter zk = context.getZooReaderWriter();
+      String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
       List<String> locks = zk.getChildren(path, null);
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
@@ -440,42 +429,33 @@ public class Monitor implements HighlyAvailableService {
   }
 
   public static void main(String[] args) throws Exception {
+
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    String hostname = opts.getAddress();
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-
-    VolumeManager fs = VolumeManagerImpl.get();
-    Instance instance = HdfsZooInstance.getInstance();
-    config = new ServerConfigurationFactory(instance);
-    context = new AccumuloServerContext(instance, config);
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + context.getInstanceID());
-    MetricsSystemHelper.configure(Monitor.class.getSimpleName());
-    Accumulo.init(fs, instance, config, app);
-    Monitor monitor = new Monitor();
-    // Servlets need access to limit requests when the monitor is not active, but Servlets are
-    // instantiated
-    // via reflection. Expose the service this way instead.
-    Monitor.HA_SERVICE_INSTANCE = monitor;
-    DistributedTrace.enable(hostname, app, config.getSystemConfiguration());
+    Monitor.context = new ServerContext(opts.getSiteConfiguration());
+    context.setupServer(app, Monitor.class.getName(), opts.getAddress());
     try {
-      monitor.run(hostname);
+      config = context.getServerConfFactory();
+      Monitor monitor = new Monitor();
+      // Servlets need access to limit requests when the monitor is not active, but Servlets are
+      // instantiated via reflection. Expose the service this way instead.
+      Monitor.HA_SERVICE_INSTANCE = monitor;
+      monitor.run();
     } finally {
-      DistributedTrace.disable();
+      context.teardownServer();
     }
   }
 
   private static long START_TIME;
 
-  public void run(String hostname) {
+  public void run() {
     Monitor.START_TIME = System.currentTimeMillis();
     int ports[] = config.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
         log.debug("Creating monitor on port {}", port);
-        server = new EmbeddedWebServer(hostname, port);
+        server = new EmbeddedWebServer(context.getHostname(), port);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getViewServlet(), "/*");
@@ -497,7 +477,7 @@ public class Monitor implements HighlyAvailableService {
       throw new RuntimeException(e);
     }
 
-    String advertiseHost = hostname;
+    String advertiseHost = context.getHostname();
     if (advertiseHost.equals("0.0.0.0")) {
       try {
         advertiseHost = InetAddress.getLocalHost().getHostName();
@@ -509,22 +489,21 @@ public class Monitor implements HighlyAvailableService {
 
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
-      ZooReaderWriter.getInstance().putPersistentData(
-          ZooUtil.getRoot(context.getInstanceID()) + Constants.ZMONITOR_HTTP_ADDR,
-          monitorAddress.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
+          NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }
 
     if (null != advertiseHost) {
-      LogService.startLogListener(Monitor.getContext().getConfiguration(), context.getInstanceID(),
-          advertiseHost);
+      LogService.startLogListener(context, advertiseHost);
     } else {
       log.warn("Not starting log4j listener as we could not determine address to use");
     }
 
-    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
+    new Daemon(new LoggingRunnable(log, new ZooKeeperStatus(context)), "ZooKeeperStatus").start();
 
     // need to regularly fetch data so plot data is updated
     new Daemon(new LoggingRunnable(log, new Runnable() {
@@ -577,8 +556,7 @@ public class Monitor implements HighlyAvailableService {
         .register(
             new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName())))
         .register(FreemarkerMvcFeature.class)
-        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates")
-        .property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates");
     return new ServletHolder(new ServletContainer(rc));
   }
 
@@ -586,7 +564,7 @@ public class Monitor implements HighlyAvailableService {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
         .register(
             new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName())))
-        .register(JacksonFeature.class).property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
+        .register(JacksonFeature.class);
     return new ServletHolder(new ServletContainer(rc));
   }
 
@@ -647,12 +625,12 @@ public class Monitor implements HighlyAvailableService {
    * Get the monitor lock in ZooKeeper
    */
   private void getMonitorLock() throws KeeperException, InterruptedException {
-    final String zRoot = ZooUtil.getRoot(context.getInstanceID());
+    final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
     final String monitorLockPath = zRoot + Constants.ZMONITOR_LOCK;
 
     // Ensure that everything is kosher with ZK as this has changed.
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     if (zoo.exists(monitorPath)) {
       byte[] data = zoo.getData(monitorPath, null);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
@@ -680,7 +658,7 @@ public class Monitor implements HighlyAvailableService {
     // Get a ZooLock for the monitor
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
-      monitorLock = new ZooLock(monitorLockPath);
+      monitorLock = new ZooLock(zoo, monitorLockPath);
       monitorLock.lockAsync(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();
@@ -859,7 +837,7 @@ public class Monitor implements HighlyAvailableService {
     return new ArrayList<>(dataCacheHitRateOverTime);
   }
 
-  public static AccumuloServerContext getContext() {
+  public static ServerContext getContext() {
     return context;
   }
 

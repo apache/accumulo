@@ -20,22 +20,25 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.apache.accumulo.server.security.SecurityOperation;
 
-public class TservConstraintEnv implements Environment {
+public class TservConstraintEnv implements SystemEnvironment {
 
+  private final ServerContext context;
   private final TCredentials credentials;
   private final SecurityOperation security;
   private Authorizations auths;
   private KeyExtent ke;
 
-  TservConstraintEnv(SecurityOperation secOp, TCredentials credentials) {
+  TservConstraintEnv(ServerContext context, SecurityOperation secOp, TCredentials credentials) {
+    this.context = context;
     this.security = secOp;
     this.credentials = credentials;
   }
@@ -79,5 +82,10 @@ public class TservConstraintEnv implements Environment {
         }
       }
     };
+  }
+
+  @Override
+  public ServerContext getServerContext() {
+    return context;
   }
 }

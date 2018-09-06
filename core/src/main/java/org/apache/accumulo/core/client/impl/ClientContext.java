@@ -17,24 +17,33 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Suppliers;
 
@@ -49,8 +58,12 @@ import com.google.common.base.Suppliers;
  */
 public class ClientContext {
 
+  private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
+
   private ClientInfo info;
-  private Instance inst;
+  private String instanceId = null;
+  private final ZooCache zooCache;
+
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private AccumuloConfiguration serverConf;
@@ -65,61 +78,73 @@ public class ClientContext {
 
   private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
     // This insanity exists to make modernizer plugin happy. We are living in the future now.
-    return () -> Suppliers.memoizeWithExpiration(() -> s.get(), 100, TimeUnit.MILLISECONDS).get();
+    return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
   }
 
   public ClientContext(ClientInfo info) {
-    this(info, ClientInfoFactory.getInstance(info), ClientInfoFactory.getCredentials(info),
-        ClientConfConverter.toAccumuloConf(info.getProperties()));
+    this(info, ClientConfConverter.toAccumuloConf(info.getProperties()));
   }
 
-  /**
-   * Instantiate a client context from an existing {@link AccumuloConfiguration}. This is primarily
-   * intended for subclasses and testing.
-   */
-  public ClientContext(Instance instance, Credentials credentials,
-      AccumuloConfiguration serverConf) {
-    this(null, instance, credentials, serverConf);
-  }
-
-  public ClientContext(ClientInfo info, Instance instance, Credentials credentials,
-      AccumuloConfiguration serverConf) {
+  public ClientContext(ClientInfo info, AccumuloConfiguration serverConf) {
     this.info = info;
-    inst = instance;
-    creds = credentials;
+    zooCache = new ZooCacheFactory().getZooCache(info.getZooKeepers(),
+        info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
-    saslSupplier = () -> {
-      // Use the clientProps if we have it
-      if (info != null) {
-        if (!ClientProperty.SASL_ENABLED.getBoolean(info.getProperties())) {
-          return null;
-        }
-        return new SaslConnectionParams(info.getProperties(), getCredentials().getToken());
-      }
-      AccumuloConfiguration conf = getConfiguration();
-      if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-        return null;
-      }
-      return new SaslConnectionParams(conf, getCredentials().getToken());
-    };
-
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
-    saslSupplier = memoizeWithExpiration(saslSupplier);
+    saslSupplier = memoizeWithExpiration(
+        () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
   }
 
   /**
    * Retrieve the instance used to construct this context
+   *
+   * @deprecated since 2.0.0
    */
-  public Instance getInstance() {
-    return inst;
+  @Deprecated
+  public org.apache.accumulo.core.client.Instance getDeprecatedInstance() {
+    final ClientContext context = this;
+    return new org.apache.accumulo.core.client.Instance() {
+      @Override
+      public String getRootTabletLocation() {
+        return context.getRootTabletLocation();
+      }
+
+      @Override
+      public List<String> getMasterLocations() {
+        return context.getMasterLocations();
+      }
+
+      @Override
+      public String getInstanceID() {
+        return context.getInstanceID();
+      }
+
+      @Override
+      public String getInstanceName() {
+        return context.getInstanceName();
+      }
+
+      @Override
+      public String getZooKeepers() {
+        return context.getZooKeepers();
+      }
+
+      @Override
+      public int getZooKeepersSessionTimeOut() {
+        return context.getZooKeepersSessionTimeOut();
+      }
+
+      @Override
+      public Connector getConnector(String principal, AuthenticationToken token)
+          throws AccumuloException, AccumuloSecurityException {
+        return context.getConnector().changeUser(principal, token);
+      }
+    };
   }
 
   public ClientInfo getClientInfo() {
-    if (info == null) {
-      info = new ClientInfoImpl(ClientConfConverter.toProperties(serverConf, inst, creds));
-    }
     return info;
   }
 
@@ -127,7 +152,22 @@ public class ClientContext {
    * Retrieve the credentials used to construct this context
    */
   public synchronized Credentials getCredentials() {
+    if (creds == null) {
+      creds = new Credentials(info.getPrincipal(), info.getAuthenticationToken());
+    }
     return creds;
+  }
+
+  public String getPrincipal() {
+    return getCredentials().getPrincipal();
+  }
+
+  public AuthenticationToken getAuthenticationToken() {
+    return getCredentials().getToken();
+  }
+
+  public Properties getProperties() {
+    return info.getProperties();
   }
 
   /**
@@ -171,16 +211,9 @@ public class ClientContext {
   /**
    * Retrieve a connector
    */
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    // avoid making more connectors than necessary
+  public synchronized Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (conn == null) {
-      if (getInstance() instanceof ZooKeeperInstance) {
-        // reuse existing context
-        conn = new ConnectorImpl(this);
-      } else {
-        Credentials c = getCredentials();
-        conn = getInstance().getConnector(c.getPrincipal(), c.getToken());
-      }
+      conn = new ConnectorImpl(this);
     }
     return conn;
   }
@@ -201,7 +234,7 @@ public class ClientContext {
     }
 
     if (rpcCreds == null) {
-      rpcCreds = getCredentials().toThrift(getInstance());
+      rpcCreds = getCredentials().toThrift(getInstanceID());
     }
 
     return rpcCreds;
@@ -213,7 +246,30 @@ public class ClientContext {
    * @return location in "hostname:port" form
    */
   public String getRootTabletLocation() {
-    return inst.getRootTabletLocation();
+    String zRootLocPath = getZooKeeperRoot() + RootTable.ZROOT_TABLET_LOCATION;
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up root tablet location in zookeeper.",
+          Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
+    byte[] loc = zooCache.get(zRootLocPath);
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
+    if (loc == null) {
+      return null;
+    }
+
+    return new String(loc, UTF_8).split("\\|")[0];
   }
 
   /**
@@ -222,7 +278,29 @@ public class ClientContext {
    * @return a list of locations in "hostname:port" form
    */
   public List<String> getMasterLocations() {
-    return inst.getMasterLocations();
+    String masterLocPath = getZooKeeperRoot() + Constants.ZMASTER_LOCK;
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
+    byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
+    if (loc == null) {
+      return Collections.emptyList();
+    }
+
+    return Collections.singletonList(new String(loc, UTF_8));
   }
 
   /**
@@ -231,7 +309,32 @@ public class ClientContext {
    * @return a UUID
    */
   public String getInstanceID() {
-    return inst.getInstanceID();
+    final String instanceName = info.getInstanceName();
+    if (instanceId == null) {
+      // want the instance id to be stable for the life of this instance object,
+      // so only get it once
+      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+      byte[] iidb = zooCache.get(instanceNamePath);
+      if (iidb == null) {
+        throw new RuntimeException(
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      }
+      instanceId = new String(iidb, UTF_8);
+    }
+
+    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
+      if (instanceName == null)
+        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
+      throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
+          + instanceName + " does not exist in zookeeper");
+    }
+
+    return instanceId;
+  }
+
+  public String getZooKeeperRoot() {
+    return ZooUtil.getRoot(getInstanceID());
   }
 
   /**
@@ -240,7 +343,7 @@ public class ClientContext {
    * @return current instance name
    */
   public String getInstanceName() {
-    return inst.getInstanceName();
+    return info.getInstanceName();
   }
 
   /**
@@ -249,7 +352,7 @@ public class ClientContext {
    * @return the zookeeper servers this instance is using in "hostname:port" form
    */
   public String getZooKeepers() {
-    return inst.getZooKeepers();
+    return info.getZooKeepers();
   }
 
   /**
@@ -258,6 +361,10 @@ public class ClientContext {
    * @return the configured timeout to connect to zookeeper
    */
   public int getZooKeepersSessionTimeOut() {
-    return inst.getZooKeepersSessionTimeOut();
+    return info.getZooKeepersSessionTimeOut();
+  }
+
+  public ZooCache getZooCache() {
+    return zooCache;
   }
 }

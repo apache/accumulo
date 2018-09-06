@@ -54,7 +54,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -99,7 +98,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    aconf = new ServerConfigurationFactory(c.getInstance()).getSystemConfiguration();
+    aconf = getCluster().getServerContext().getConfiguration();
     fs = getCluster().getFileSystem();
     rootPath = cluster.getTemporaryPath().toString();
   }

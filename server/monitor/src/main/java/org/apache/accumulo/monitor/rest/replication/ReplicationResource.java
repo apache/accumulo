@@ -93,7 +93,7 @@ public class ReplicationResource {
         String peerName = property.getKey().substring(definedPeersPrefix.length());
         ReplicaSystem replica;
         try {
-          replica = replicaSystemFactory.get(property.getValue());
+          replica = replicaSystemFactory.get(Monitor.getContext(), property.getValue());
         } catch (Exception e) {
           log.warn("Could not instantiate ReplicaSystem for {} with configuration {}",
               property.getKey(), property.getValue(), e);

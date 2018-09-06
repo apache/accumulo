@@ -18,6 +18,7 @@ package org.apache.accumulo.test.performance.scan;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,10 +36,8 @@ import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -59,18 +58,19 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
+import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -107,12 +107,9 @@ public class CollectTabletStats {
       columnsTmp = opts.columns.split(",");
     final String columns[] = columnsTmp;
 
-    final VolumeManager fs = VolumeManagerImpl.get();
-
-    Instance instance = opts.getInstance();
-    final ServerConfigurationFactory sconf = new ServerConfigurationFactory(instance);
-    Credentials creds = new Credentials(opts.getPrincipal(), opts.getToken());
-    ClientContext context = new ClientContext(instance, creds, sconf.getSystemConfiguration());
+    ServerContext context = opts.getServerContext();
+    final VolumeManager fs = context.getVolumeManager();
+    ServerConfigurationFactory sconf = context.getServerConfFactory();
 
     Table.ID tableId = Tables.getTableId(context, opts.getTableName());
     if (tableId == null) {
@@ -150,7 +147,7 @@ public class CollectTabletStats {
       System.out.println("\t *** Information about tablet " + ke.getUUID() + " *** ");
       System.out.println("\t\t# files in tablet : " + tabletFiles.get(ke).size());
       System.out.println("\t\ttablet location   : " + tabletLocations.get(ke));
-      reportHdfsBlockLocations(tabletFiles.get(ke));
+      reportHdfsBlockLocations(context, tabletFiles.get(ke));
     }
 
     System.out.println("%n*** RUNNING TEST ***%n");
@@ -385,7 +382,7 @@ public class CollectTabletStats {
   private static List<KeyExtent> selectRandomTablets(int numThreads, List<KeyExtent> candidates) {
     List<KeyExtent> tabletsToTest = new ArrayList<>();
 
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     for (int i = 0; i < numThreads; i++) {
       int rindex = rand.nextInt(candidates.size());
       tabletsToTest.add(candidates.get(rindex));
@@ -395,13 +392,14 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
 
-  private static List<FileRef> getTabletFiles(ClientContext context, KeyExtent ke)
+  private static List<FileRef> getTabletFiles(ServerContext context, KeyExtent ke)
       throws IOException {
     return new ArrayList<>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }
 
-  private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {
-    VolumeManager fs = VolumeManagerImpl.get();
+  private static void reportHdfsBlockLocations(ServerContext context, List<FileRef> files)
+      throws Exception {
+    VolumeManager fs = context.getVolumeManager();
 
     System.out.println("\t\tFile block report : ");
     for (FileRef file : files) {
@@ -443,7 +441,8 @@ public class CollectTabletStats {
     iters.add(smi);
 
     MultiIterator multiIter = new MultiIterator(iters, ke);
-    DeletingIterator delIter = new DeletingIterator(multiIter, false);
+    SortedKeyValueIterator<Key,Value> delIter = DeletingIterator.wrap(multiIter, false,
+        Behavior.PROCESS);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
     SortedKeyValueIterator<Key,Value> colFilter = ColumnQualifierFilter.wrap(cfsi, columnSet);
     SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(colFilter, authorizations,

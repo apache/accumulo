@@ -30,9 +30,9 @@
 ## Accumulo logs directory. Referenced by logger config.
 export ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
 ## Hadoop installation
-export HADOOP_PREFIX="${HADOOP_PREFIX:-/path/to/hadoop}"
+export HADOOP_HOME="${HADOOP_HOME:-/path/to/hadoop}"
 ## Hadoop configuration
-export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_PREFIX}/etc/hadoop}"
+export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_HOME}/etc/hadoop}"
 ## Zookeeper installation
 export ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 
@@ -45,20 +45,13 @@ if [ ! -d "$ZOOKEEPER_HOME" ]; then
   echo "ZOOKEEPER_HOME=$ZOOKEEPER_HOME is not set to a valid directory in accumulo-env.sh"
   exit 1
 fi
-if [ ! -d "$HADOOP_PREFIX" ]; then
-  echo "HADOOP_PREFIX=$HADOOP_PREFIX is not set to a valid directory in accumulo-env.sh"
+if [ ! -d "$HADOOP_HOME" ]; then
+  echo "HADOOP_HOME=$HADOOP_HOME is not set to a valid directory in accumulo-env.sh"
   exit 1
 fi
 
 ## Add external Hadoop & Zookeeper dependencies to CLASSPATH.
-CLASSPATH="$(find "$ZOOKEEPER_HOME"/ "$HADOOP_PREFIX"/share/hadoop/{common,common/lib,hdfs,mapreduce,yarn} -maxdepth 1 -name '*.jar' \
-  -and -not -name '*slf4j*' \
-  -and -not -name '*fatjar*' \
-  -and -not -name '*-javadoc*' \
-  -and -not -name '*-sources*.jar' \
-  -and -not -name '*-test*.jar' \
-  -print0 | tr '\0' ':')$CLASSPATH"
-CLASSPATH="${conf}:${lib}/*:${HADOOP_CONF_DIR}:${CLASSPATH}"
+CLASSPATH="${conf}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${HADOOP_HOME}/share/hadoop/client/*"
 export CLASSPATH
 
 ##################################################################
@@ -114,8 +107,8 @@ export JAVA_OPTS
 export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}
 ## Add Hadoop native libraries to shared library paths given operating system
 case "$(uname)" in
-  Darwin) export DYLD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${DYLD_LIBRARY_PATH}" ;;
-  *)      export LD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${LD_LIBRARY_PATH}" ;;
+  Darwin) export DYLD_LIBRARY_PATH="${HADOOP_HOME}/lib/native:${DYLD_LIBRARY_PATH}" ;;
+  *)      export LD_LIBRARY_PATH="${HADOOP_HOME}/lib/native:${LD_LIBRARY_PATH}" ;;
 esac
 
 ###############################################

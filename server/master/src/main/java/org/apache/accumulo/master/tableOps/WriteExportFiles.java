@@ -54,8 +54,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -84,15 +84,15 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    long reserved = Utils.reserveNamespace(tableInfo.namespaceID, tid, false, true,
+    long reserved = Utils.reserveNamespace(master, tableInfo.namespaceID, tid, false, true,
         TableOperation.EXPORT)
-        + Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+        + Utils.reserveTable(master, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
     if (reserved > 0)
       return reserved;
 
     Connector conn = master.getConnector();
 
-    checkOffline(master);
+    checkOffline(master.getContext());
 
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetadataRange());
@@ -124,26 +124,26 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      exportTable(master.getFileSystem(), master, tableInfo.tableName, tableInfo.tableID,
-          tableInfo.exportDir);
+      exportTable(master.getFileSystem(), master.getContext(), tableInfo.tableName,
+          tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(tableInfo.tableID, tid, false);
-    Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(master, tableInfo.namespaceID, tid, false);
+    Utils.unreserveTable(master, tableInfo.tableID, tid, false);
+    Utils.unreserveHdfsDirectory(master, new Path(tableInfo.exportDir).toString(), tid);
     return null;
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveNamespace(tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(tableInfo.tableID, tid, false);
+    Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, false);
+    Utils.unreserveTable(env, tableInfo.tableID, tid, false);
   }
 
-  public static void exportTable(VolumeManager fs, AccumuloServerContext context, String tableName,
+  public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
       Table.ID tableID, String exportDir) throws Exception {
 
     fs.mkdirs(new Path(exportDir));
@@ -209,7 +209,7 @@ class WriteExportFiles extends MasterRepo {
     }
   }
 
-  private static Map<String,String> exportMetadata(VolumeManager fs, AccumuloServerContext context,
+  private static Map<String,String> exportMetadata(VolumeManager fs, ServerContext context,
       Table.ID tableID, ZipOutputStream zipOut, DataOutputStream dataOut)
       throws IOException, TableNotFoundException, AccumuloException, AccumuloSecurityException {
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_METADATA_FILE));
@@ -251,8 +251,8 @@ class WriteExportFiles extends MasterRepo {
     return uniqueFiles;
   }
 
-  private static void exportConfig(AccumuloServerContext context, Table.ID tableID,
-      ZipOutputStream zipOut, DataOutputStream dataOut)
+  private static void exportConfig(ServerContext context, Table.ID tableID, ZipOutputStream zipOut,
+      DataOutputStream dataOut)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
     Connector conn = context.getConnector();
 
@@ -260,8 +260,7 @@ class WriteExportFiles extends MasterRepo {
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();
     Map<String,String> systemConfig = conn.instanceOperations().getSystemConfiguration();
 
-    TableConfiguration tableConfig = context.getServerConfigurationFactory()
-        .getTableConfiguration(tableID);
+    TableConfiguration tableConfig = context.getServerConfFactory().getTableConfiguration(tableID);
 
     OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8);
 

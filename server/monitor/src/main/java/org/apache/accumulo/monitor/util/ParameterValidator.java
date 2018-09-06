@@ -26,15 +26,8 @@ public interface ParameterValidator {
   String ALPHA_NUM_REGEX_TABLE_ID = "[!+]?\\w+";
   String ALPHA_NUM_REGEX_BLANK_OK = "\\w*";
 
-  String RESOURCE_REGEX = "(\\w|:)+";
-
-  // asterisk or - or blank or a namespace name
-  String NAMESPACE_REGEX = "[*-]?|\\w+";
-
-  // asterisk or blank or a comma-separated list of - or namespace names (optional trailing comma)
-  String NAMESPACE_LIST_REGEX = "[*]?|([-]|\\w+)(,([-]|\\w+))*,?";
+  String RESOURCE_REGEX = "(?:\\w|:)+";
 
   // host name and port
-  String SERVER_REGEX = "(\\w+[.-]*\\w*)+(:[0-9]{1,5})*";
-  String SERVER_REGEX_BLANK_OK = "(" + SERVER_REGEX + ")*";
+  String HOSTNAME_PORT_REGEX = "[a-zA-Z0-9.-]+:[0-9]{2,5}";
 }

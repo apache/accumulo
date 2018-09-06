@@ -74,7 +74,7 @@ public class BalanceFasterIT extends ConfigurableMacBase {
     conn.tableOperations().addSplits(tableName, splits);
     // give a short wait for balancing
     sleepUninterruptibly(10, TimeUnit.SECONDS);
-    // find out where the tabets are
+    // find out where the tablets are
     Iterator<Integer> i;
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

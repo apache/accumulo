@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -29,21 +30,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -55,6 +51,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -168,14 +165,14 @@ public class TabletLocatorImplTest {
     return createLocators(tservers, "tserver1", "tserver2", table, data);
   }
 
-  private TestInstance testInstance;
   private ClientContext context;
 
   @Before
   public void setUp() {
-    testInstance = new TestInstance("instance1", "tserver1");
-    context = new ClientContext(new ClientInfoImpl(new Properties(), null), testInstance,
-        new Credentials("test", null), null);
+    context = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver1").anyTimes();
+    EasyMock.expect(context.getInstanceID()).andReturn("instance1").anyTimes();
+    replay(context);
   }
 
   private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache,
@@ -404,57 +401,6 @@ public class TabletLocatorImplTest {
     runTest(mc, nke("0", null, "s"), nkes(nke("0", "g", null), nke("0", "r", "g")));
   }
 
-  static class TestInstance implements Instance {
-
-    private final String iid;
-    private String rtl;
-
-    public TestInstance(String iid, String rtl) {
-      this.iid = iid;
-      this.rtl = rtl;
-    }
-
-    @Override
-    public String getInstanceID() {
-      return iid;
-    }
-
-    @Override
-    public String getInstanceName() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<String> getMasterLocations() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getRootTabletLocation() {
-      return rtl;
-    }
-
-    @Override
-    public String getZooKeepers() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int getZooKeepersSessionTimeOut() {
-      throw new UnsupportedOperationException();
-    }
-
-    public void setRootTabletLocation(String rtl) {
-      this.rtl = rtl;
-    }
-
-    @Override
-    public Connector getConnector(String principal, AuthenticationToken token)
-        throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-  }
-
   static class TServers {
     private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
   }
@@ -477,7 +423,7 @@ public class TabletLocatorImplTest {
       Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.tablet_location);
 
       if (tablets == null) {
-        parent.invalidateCache(context.getInstance(), src.tablet_location);
+        parent.invalidateCache(context, src.tablet_location);
         return null;
       }
 
@@ -508,7 +454,7 @@ public class TabletLocatorImplTest {
       Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(tserver);
 
       if (tablets == null) {
-        parent.invalidateCache(context.getInstance(), tserver);
+        parent.invalidateCache(context, tserver);
         return list;
       }
 
@@ -574,7 +520,7 @@ public class TabletLocatorImplTest {
     }
 
     @Override
-    public void invalidateCache(Instance instance, String server) {}
+    public void invalidateCache(ClientContext context, String server) {}
 
   }
 
@@ -730,7 +676,7 @@ public class TabletLocatorImplTest {
 
     // simulate a server failure
     setLocation(tservers, "tserver2", MTE, tab1e21, "tserver9");
-    tab1TabletCache.invalidateCache(context.getInstance(), "tserver8");
+    tab1TabletCache.invalidateCache(context, "tserver8");
     locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver9");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4");
@@ -738,15 +684,21 @@ public class TabletLocatorImplTest {
     // simulate all servers failing
     deleteServer(tservers, "tserver1");
     deleteServer(tservers, "tserver2");
-    tab1TabletCache.invalidateCache(context.getInstance(), "tserver4");
-    tab1TabletCache.invalidateCache(context.getInstance(), "tserver6");
-    tab1TabletCache.invalidateCache(context.getInstance(), "tserver9");
+    tab1TabletCache.invalidateCache(context, "tserver4");
+    tab1TabletCache.invalidateCache(context, "tserver6");
+    tab1TabletCache.invalidateCache(context, "tserver9");
 
     locateTabletTest(tab1TabletCache, "r1", null, null);
     locateTabletTest(tab1TabletCache, "h", null, null);
     locateTabletTest(tab1TabletCache, "a", null, null);
 
-    testInstance.setRootTabletLocation("tserver4");
+    EasyMock.verify(context);
+
+    context = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(context.getInstanceID()).andReturn("instance1").anyTimes();
+    EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver4").anyTimes();
+    replay(context);
+
     setLocation(tservers, "tserver4", RTE, MTE, "tserver5");
     setLocation(tservers, "tserver5", MTE, tab1e1, "tserver1");
     setLocation(tservers, "tserver5", MTE, tab1e21, "tserver2");
@@ -777,7 +729,7 @@ public class TabletLocatorImplTest {
 
     // simulate metadata and regular server down and the reassigned
     deleteServer(tservers, "tserver5");
-    tab1TabletCache.invalidateCache(context.getInstance(), "tserver7");
+    tab1TabletCache.invalidateCache(context, "tserver7");
     locateTabletTest(tab1TabletCache, "a", null, null);
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
@@ -789,7 +741,7 @@ public class TabletLocatorImplTest {
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
-    tab1TabletCache.invalidateCache(context.getInstance(), "tserver7");
+    tab1TabletCache.invalidateCache(context, "tserver7");
     setLocation(tservers, "tserver10", mte1, tab1e1, "tserver2");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver2");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
@@ -924,7 +876,7 @@ public class TabletLocatorImplTest {
 
     runTest(tableName, ranges, metaCache, expected);
 
-    // test where start of range is not inclusive and same as tablet endrow
+    // test where start of range is not inclusive and same as tablet endRow
     ranges = nrl(nr("g", false, "m", true));
     expected = createExpectedBinnings("l2",
         nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", true)))
@@ -933,7 +885,7 @@ public class TabletLocatorImplTest {
 
     runTest(tableName, ranges, metaCache, expected);
 
-    // test where start of range is inclusive and same as tablet endrow
+    // test where start of range is inclusive and same as tablet endRow
     ranges = nrl(nr("g", true, "m", true));
     expected = createExpectedBinnings("l1",
         nol(nke("foo", "g", null), nrl(nr("g", true, "m", true))), "l2",

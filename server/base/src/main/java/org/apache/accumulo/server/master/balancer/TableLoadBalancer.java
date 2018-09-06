@@ -35,7 +35,6 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +48,7 @@ public class TableLoadBalancer extends TabletBalancer {
   private TabletBalancer constructNewBalancerForTable(String clazzName, Table.ID tableId)
       throws Exception {
     String context = null;
-    context = this.context.getServerConfigurationFactory().getTableConfiguration(tableId)
+    context = this.context.getServerConfFactory().getTableConfiguration(tableId)
         .get(Property.TABLE_CLASSPATH);
     Class<? extends TabletBalancer> clazz;
     if (context != null && !context.equals(""))
@@ -62,11 +61,11 @@ public class TableLoadBalancer extends TabletBalancer {
   }
 
   protected String getLoadBalancerClassNameForTable(Table.ID table) {
-    TableState tableState = TableManager.getInstance().getTableState(table);
+    TableState tableState = context.getTableManager().getTableState(table);
     if (tableState == null)
       return null;
     if (tableState.equals(TableState.ONLINE))
-      return this.context.getServerConfigurationFactory().getTableConfiguration(table)
+      return this.context.getServerConfFactory().getTableConfiguration(table)
           .get(Property.TABLE_LOAD_BALANCER);
     return null;
   }

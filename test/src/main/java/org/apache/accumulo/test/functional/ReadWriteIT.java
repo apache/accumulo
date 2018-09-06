@@ -140,7 +140,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     verify(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
     String monitorLocation = null;
     while (null == monitorLocation) {
-      monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
+      monitorLocation = MonitorUtil.getLocation(getClientContext());
       if (null == monitorLocation) {
         log.debug("Could not fetch monitor HTTP address from zookeeper");
         Thread.sleep(2000);
@@ -149,16 +149,16 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     String scheme = "http://";
     if (getCluster() instanceof StandaloneAccumuloCluster) {
       StandaloneAccumuloCluster standaloneCluster = (StandaloneAccumuloCluster) getCluster();
-      File accumuloSite = new File(standaloneCluster.getServerAccumuloConfDir(),
-          "accumulo-site.xml");
-      if (accumuloSite.isFile()) {
+      File accumuloProps = new File(standaloneCluster.getServerAccumuloConfDir(),
+          "accumulo.properties");
+      if (accumuloProps.isFile()) {
         Configuration conf = new Configuration(false);
-        conf.addResource(new Path(accumuloSite.toURI()));
+        conf.addResource(new Path(accumuloProps.toURI()));
         String monitorSslKeystore = conf.get(Property.MONITOR_SSL_KEYSTORE.getKey());
         if (null != monitorSslKeystore) {
           log.info(
               "Setting scheme to HTTPS since monitor ssl keystore configuration was observed in {}",
-              accumuloSite);
+              accumuloProps);
           scheme = "https://";
           SSLContext ctx = SSLContext.getInstance("SSL");
           TrustManager[] tm = {new TestTrustManager()};
@@ -169,7 +169,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         }
       } else {
         log.info("{} is not a normal file, not checking for monitor running with SSL",
-            accumuloSite);
+            accumuloProps);
       }
     }
     URL url = new URL(scheme + monitorLocation);
@@ -448,6 +448,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
           args.add(entry.getKey().getColumnQualifier().toString());
+          args.add("--props");
+          args.add(getCluster().getAccumuloPropertiesPath());
           if (ClusterType.STANDALONE == getClusterType() && saslEnabled()) {
             args.add("--config");
             StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;

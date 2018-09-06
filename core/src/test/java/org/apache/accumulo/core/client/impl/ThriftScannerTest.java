@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 /**
- * Test calss for {@link ThriftScanner}.
+ * Test calls for {@link ThriftScanner}.
  */
 public class ThriftScannerTest {
 

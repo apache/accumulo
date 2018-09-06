@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.test.functional;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -102,7 +103,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         // expected
       }
 
-      FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
     }
 
     es.shutdown();
@@ -249,7 +250,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         // expected
       }
 
-      FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
     }
 
     es.shutdown();
@@ -258,7 +259,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   private void writeData(Connector c, String table)
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      Random rand = new Random();
+      Random rand = new SecureRandom();
       for (int i = 0; i < 1000; i++) {
         Mutation m = new Mutation(String.format("%09x", rand.nextInt(100000 * 1000)));
         m.put("m", "order", "" + i);

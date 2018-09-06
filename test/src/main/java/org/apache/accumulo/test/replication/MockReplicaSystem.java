@@ -21,6 +21,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -85,7 +86,7 @@ public class MockReplicaSystem implements ReplicaSystem {
   }
 
   @Override
-  public void configure(String configuration) {
+  public void configure(ServerContext context, String configuration) {
     if (StringUtils.isBlank(configuration)) {
       log.debug("No configuration, using default sleep of {}", sleep);
       return;

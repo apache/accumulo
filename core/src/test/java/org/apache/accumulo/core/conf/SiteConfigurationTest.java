@@ -45,7 +45,7 @@ public class SiteConfigurationTest {
 
   @Test
   public void testOnlySensitivePropertiesExtractedFromCredentialProvider()
-      throws SecurityException, NoSuchMethodException {
+      throws SecurityException {
     if (!isCredentialProviderAvailable) {
       return;
     }
@@ -80,11 +80,16 @@ public class SiteConfigurationTest {
   }
 
   @Test
-  public void testCliConfig() {
-    SiteConfiguration conf = SiteConfiguration.getInstance();
+  public void testConfigOverrides() {
+    SiteConfiguration conf = new SiteConfiguration();
     Assert.assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
-    CliConfiguration.set(ImmutableMap.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));
+    conf = new SiteConfiguration((URL) null,
+        ImmutableMap.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));
     Assert.assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
+
+    Map<String,String> results = new HashMap<>();
+    conf.getProperties(results, p -> p.startsWith("instance"));
+    Assert.assertEquals("myhost:2181", results.get(Property.INSTANCE_ZK_HOST.getKey()));
   }
 }

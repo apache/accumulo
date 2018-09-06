@@ -76,8 +76,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    TreeSet<String> namespaces = new TreeSet<>(
-        Namespaces.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> namespaces = new TreeSet<>(Namespaces.getNameToIdMap(context).keySet());
 
     if (timer != null) {
       timer.stop();
@@ -212,7 +211,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public Map<String,String> namespaceIdMap() {
-    return Namespaces.getNameToIdMap(context.getInstance()).entrySet().stream()
+    return Namespaces.getNameToIdMap(context).entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().canonicalID(), (v1, v2) -> {
           throw new RuntimeException(String.format("Duplicate key for values %s and %s", v1, v2));
         }, TreeMap::new));

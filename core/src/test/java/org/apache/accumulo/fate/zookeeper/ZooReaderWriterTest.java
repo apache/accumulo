@@ -101,12 +101,7 @@ public class ZooReaderWriterTest {
     final String path = "/foo";
     final byte[] value = {0};
     final List<ACL> acls = Collections.emptyList();
-    Mutator mutator = new Mutator() {
-      @Override
-      public byte[] mutate(byte[] currentValue) throws Exception {
-        return new byte[] {1};
-      }
-    };
+    Mutator mutator = currentValue -> new byte[] {1};
 
     zk.create(path, value, acls, CreateMode.PERSISTENT);
     EasyMock.expectLastCall().andThrow(new SessionExpiredException()).once();
@@ -124,12 +119,7 @@ public class ZooReaderWriterTest {
     final byte[] value = {0};
     final List<ACL> acls = Collections.emptyList();
     final byte[] mutatedBytes = {1};
-    Mutator mutator = new Mutator() {
-      @Override
-      public byte[] mutate(byte[] currentValue) throws Exception {
-        return mutatedBytes;
-      }
-    };
+    Mutator mutator = currentValue -> mutatedBytes;
 
     Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
         Stat.class);
@@ -162,12 +152,7 @@ public class ZooReaderWriterTest {
     final byte[] value = {0};
     final List<ACL> acls = Collections.emptyList();
     final byte[] mutatedBytes = {1};
-    Mutator mutator = new Mutator() {
-      @Override
-      public byte[] mutate(byte[] currentValue) throws Exception {
-        return mutatedBytes;
-      }
-    };
+    Mutator mutator = currentValue -> mutatedBytes;
 
     Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
         Stat.class);

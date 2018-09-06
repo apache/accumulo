@@ -46,8 +46,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -59,7 +59,6 @@ import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -73,7 +72,7 @@ import com.google.common.collect.Iterators;
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
   private final VolumeManager fs;
   private final boolean useTrash;
   private final LiveTServerSet liveServers;
@@ -90,8 +89,8 @@ public class GarbageCollectWriteAheadLogs {
    * @param useTrash
    *          true to move files to trash rather than delete them
    */
-  GarbageCollectWriteAheadLogs(final AccumuloServerContext context, VolumeManager fs,
-      boolean useTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(final ServerContext context, VolumeManager fs, boolean useTrash)
+      throws IOException {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
@@ -104,7 +103,7 @@ public class GarbageCollectWriteAheadLogs {
       }
     });
     liveServers.startListeningForTabletServerChanges();
-    this.walMarker = new WalStateManager(context, ZooReaderWriter.getInstance());
+    this.walMarker = new WalStateManager(context);
     this.store = new Iterable<TabletLocationState>() {
       @Override
       public Iterator<TabletLocationState> iterator() {
@@ -127,7 +126,7 @@ public class GarbageCollectWriteAheadLogs {
    *          a started LiveTServerSet instance
    */
   @VisibleForTesting
-  GarbageCollectWriteAheadLogs(AccumuloServerContext context, VolumeManager fs, boolean useTrash,
+  GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
       LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletLocationState> store)
       throws IOException {
     this.context = context;
@@ -417,7 +416,7 @@ public class GarbageCollectWriteAheadLogs {
   protected Map<UUID,Path> getSortedWALogs() throws IOException {
     Map<UUID,Path> result = new HashMap<>();
 
-    for (String dir : ServerConstants.getRecoveryDirs()) {
+    for (String dir : ServerConstants.getRecoveryDirs(context.getConfiguration())) {
       Path recoveryDir = new Path(dir);
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {

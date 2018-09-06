@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
@@ -48,6 +47,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.MasterClientServiceHandler;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
@@ -62,13 +62,11 @@ import org.slf4j.LoggerFactory;
 public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
-  private Instance inst;
   private Connector conn;
 
   @Before
   public void configureInstance() throws Exception {
     conn = getConnector();
-    inst = conn.getInstance();
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
@@ -83,8 +81,9 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
    */
   private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
+    ServerContext serverContext = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(master.getConnector()).andReturn(conn).anyTimes();
-    EasyMock.expect(master.getInstance()).andReturn(inst).anyTimes();
+    EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 
     final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {
@@ -99,7 +98,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       }
     };
 
-    ClientContext context = new ClientContext(getClientInfo());
+    ClientContext context = getClientContext();
     return new ReplicationOperationsImpl(context) {
       @Override
       protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,

@@ -21,9 +21,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Range;
@@ -32,9 +30,8 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
@@ -43,7 +40,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
-import org.apache.accumulo.server.tables.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,13 +49,11 @@ public class FindOfflineTablets {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    Instance instance = opts.getInstance();
-    AccumuloServerContext context = new AccumuloServerContext(instance,
-        new ServerConfigurationFactory(opts.getInstance()));
+    ServerContext context = opts.getServerContext();
     findOffline(context, null);
   }
 
-  static int findOffline(ClientContext context, String tableName)
+  static int findOffline(ServerContext context, String tableName)
       throws AccumuloException, TableNotFoundException {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
@@ -79,7 +73,7 @@ public class FindOfflineTablets {
 
     Iterator<TabletLocationState> zooScanner;
     try {
-      zooScanner = new ZooTabletStateStore().iterator();
+      zooScanner = new ZooTabletStateStore(context).iterator();
     } catch (DistributedStoreException e) {
       throw new AccumuloException(e);
     }
@@ -87,7 +81,7 @@ public class FindOfflineTablets {
     int offline = 0;
 
     System.out.println("Scanning zookeeper");
-    if ((offline = checkTablets(zooScanner, tservers)) > 0)
+    if ((offline = checkTablets(context, zooScanner, tservers)) > 0)
       return offline;
 
     if (RootTable.NAME.equals(tableName))
@@ -96,7 +90,7 @@ public class FindOfflineTablets {
     System.out.println("Scanning " + RootTable.NAME);
     Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
         MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
-    if ((offline = checkTablets(rootScanner, tservers)) > 0)
+    if ((offline = checkTablets(context, rootScanner, tservers)) > 0)
       return offline;
 
     if (MetadataTable.NAME.equals(tableName))
@@ -112,17 +106,18 @@ public class FindOfflineTablets {
 
     try (MetaDataTableScanner metaScanner = new MetaDataTableScanner(context, range,
         MetadataTable.NAME)) {
-      return checkTablets(metaScanner, tservers);
+      return checkTablets(context, metaScanner, tservers);
     }
   }
 
-  private static int checkTablets(Iterator<TabletLocationState> scanner, LiveTServerSet tservers) {
+  private static int checkTablets(ServerContext context, Iterator<TabletLocationState> scanner,
+      LiveTServerSet tservers) {
     int offline = 0;
 
     while (scanner.hasNext() && !System.out.checkError()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state != TabletState.HOSTED && TableManager.getInstance()
+      if (state != null && state != TabletState.HOSTED && context.getTableManager()
           .getTableState(locationState.extent.getTableId()) != TableState.OFFLINE) {
         System.out
             .println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());

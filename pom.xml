@@ -113,7 +113,7 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.59</bouncycastle.version>
+    <bouncycastle.version>1.60</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>2.12.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -122,19 +122,18 @@
     <extraReleaseArguments />
     <failsafe.excludedGroups />
     <failsafe.groups />
-    <findbugs.version>3.0.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <hadoop.version>3.0.2</hadoop.version>
-    <hk2.version>2.4.0-b27</hk2.version>
+    <hk2.version>2.5.0-b62</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>4.3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <jackson.version>2.9.6</jackson.version>
     <javax.el.version>2.2.4</javax.el.version>
-    <jersey.version>2.25.1</jersey.version>
-    <jetty.version>9.3.21.v20170918</jetty.version>
+    <jersey.version>2.27</jersey.version>
+    <jetty.version>9.4.11.v20180605</jetty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.plugin-version>3.2.5</maven.plugin-version>
@@ -153,7 +152,7 @@
     <thrift.version>0.11.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.4.10</zookeeper.version>
+    <zookeeper.version>3.4.13</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -165,7 +164,7 @@
       <dependency>
         <groupId>com.fasterxml</groupId>
         <artifactId>classmate</artifactId>
-        <version>1.0.0</version>
+        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
@@ -200,7 +199,7 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>2.3.3</version>
+        <version>2.6.2</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
@@ -210,14 +209,12 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.7</version>
+        <version>2.8.5</version>
       </dependency>
-      <!-- Hadoop-2.4.0 MiniDFSCluster uses classes dropped in Guava 15 -->
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <!-- Hadoop-2.4.0 MiniDFSCluster uses classes from <Guava-15.0; fixed in 2.6.0 and later -->
-        <version>14.0.1</version>
+        <version>26.0-jre</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -227,12 +224,12 @@
       <dependency>
         <groupId>commons-cli</groupId>
         <artifactId>commons-cli</artifactId>
-        <version>1.2</version>
+        <version>1.4</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.4</version>
+        <version>1.11</version>
       </dependency>
       <dependency>
         <groupId>commons-collections</groupId>
@@ -242,22 +239,22 @@
       <dependency>
         <groupId>commons-configuration</groupId>
         <artifactId>commons-configuration</artifactId>
-        <version>1.6</version>
+        <version>1.10</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.4</version>
+        <version>2.6</version>
       </dependency>
       <dependency>
         <groupId>commons-lang</groupId>
         <artifactId>commons-lang</artifactId>
-        <version>2.4</version>
+        <version>2.6</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
-        <version>1.1.1</version>
+        <version>1.2</version>
       </dependency>
       <dependency>
         <groupId>javax.annotation</groupId>
@@ -282,7 +279,7 @@
       <dependency>
         <groupId>javax.ws.rs</groupId>
         <artifactId>javax.ws.rs-api</artifactId>
-        <version>2.0.1</version>
+        <version>2.1</version>
       </dependency>
       <dependency>
         <groupId>javax.ws.rs</groupId>
@@ -601,7 +598,7 @@
       <dependency>
         <groupId>org.freemarker</groupId>
         <artifactId>freemarker</artifactId>
-        <version>2.3.23</version>
+        <version>2.3.28</version>
       </dependency>
       <dependency>
         <groupId>org.glassfish.hk2</groupId>
@@ -632,11 +629,6 @@
         <groupId>org.glassfish.hk2.external</groupId>
         <artifactId>javax.inject</artifactId>
         <version>${hk2.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.glassfish.jersey.bundles.repackaged</groupId>
-        <artifactId>jersey-guava</artifactId>
-        <version>${jersey.version}</version>
       </dependency>
       <dependency>
         <groupId>org.glassfish.jersey.containers</groupId>
@@ -686,6 +678,11 @@
       <dependency>
         <groupId>org.glassfish.jersey.ext</groupId>
         <artifactId>jersey-mvc-freemarker</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.inject</groupId>
+        <artifactId>jersey-hk2</artifactId>
         <version>${jersey.version}</version>
       </dependency>
       <dependency>
@@ -793,9 +790,9 @@
           </configuration>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>${findbugs.version}</version>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>3.1.3</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -803,7 +800,7 @@
             <includeTests>true</includeTests>
             <maxRank>16</maxRank>
             <jvmArgs>-Dcom.overstock.findbugs.ignore=com.google.common.util.concurrent.RateLimiter,com.google.common.hash.Hasher,com.google.common.hash.HashCode,com.google.common.hash.HashFunction,com.google.common.hash.Hashing,com.google.common.cache.Cache,com.google.common.io.CountingOutputStream,com.google.common.io.ByteStreams,com.google.common.cache.LoadingCache,com.google.common.base.Stopwatch,com.google.common.cache.RemovalNotification,com.google.common.util.concurrent.Uninterruptibles,com.google.common.reflect.ClassPath,com.google.common.reflect.ClassPath$ClassInfo,com.google.common.base.Throwables,com.google.common.collect.Iterators</jvmArgs>
-            <plugins>
+            <plugins combine.children="append">
               <plugin>
                 <groupId>com.overstock.findbugs</groupId>
                 <artifactId>library-detectors</artifactId>
@@ -1098,6 +1095,7 @@
                 <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.containers:jersey-container-jetty-http:jar:${jersey.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.ext:jersey-bean-validation:jar:${jersey.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.inject:jersey-hk2:jar:${jersey.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:${jersey.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:${powermock.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:${slf4j.version}</unusedDeclaredDependency>
@@ -1322,11 +1320,11 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>run-findbugs</id>
+            <id>run-spotbugs</id>
             <goals>
               <goal>check</goal>
             </goals>
@@ -1385,7 +1383,6 @@
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
         <enforcer.skip>true</enforcer.skip>
-        <findbugs.skip>true</findbugs.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
         <maven.plugin.skip>true</maven.plugin.skip>
@@ -1395,6 +1392,7 @@
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
         <sort.skip>true</sort.skip>
+        <spotbugs.skip>true</spotbugs.skip>
         <warbucks.skip>true</warbucks.skip>
       </properties>
     </profile>
@@ -1588,9 +1586,9 @@
       <properties>
         <!-- some properties to make the release build a bit faster -->
         <checkstyle.skip>true</checkstyle.skip>
-        <findbugs.skip>true</findbugs.skip>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
+        <spotbugs.skip>true</spotbugs.skip>
       </properties>
     </profile>
     <profile>
@@ -1697,14 +1695,14 @@
       </build>
     </profile>
     <profile>
-      <id>add-findbugs-excludes</id>
+      <id>add-spotbugs-excludes</id>
       <activation>
         <file>
-          <exists>src/main/findbugs/exclude-filter.xml</exists>
+          <exists>src/main/spotbugs/exclude-filter.xml</exists>
         </file>
       </activation>
       <properties>
-        <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
+        <spotbugs.excludeFilterFile>src/main/spotbugs/exclude-filter.xml</spotbugs.excludeFilterFile>
       </properties>
     </profile>
     <profile>
@@ -1737,6 +1735,26 @@
                 <version>2.8</version>
               </dependency>
             </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>sec-bugs</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <configuration>
+              <plugins>
+                <plugin>
+                  <groupId>com.h3xstream.findsecbugs</groupId>
+                  <artifactId>findsecbugs-plugin</artifactId>
+                  <version>1.8.0</version>
+                </plugin>
+              </plugins>
+            </configuration>
           </plugin>
         </plugins>
       </build>

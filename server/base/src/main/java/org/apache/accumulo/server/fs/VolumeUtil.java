@@ -32,8 +32,8 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -57,13 +57,13 @@ public class VolumeUtil {
   private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);
   private static final SecureRandom rand = new SecureRandom();
 
-  private static boolean isActiveVolume(Path dir) {
+  private static boolean isActiveVolume(ServerContext context, Path dir) {
 
     // consider relative path as active and take no action
     if (!dir.toString().contains(":"))
       return true;
 
-    for (String tableDir : ServerConstants.getTablesDirs()) {
+    for (String tableDir : ServerConstants.getTablesDirs(context.getConfiguration())) {
       // use Path to normalize tableDir
       if (dir.toString().startsWith(new Path(tableDir).toString()))
         return true;
@@ -163,11 +163,12 @@ public class VolumeUtil {
     }
   }
 
-  public static String switchRootTableVolume(String location) throws IOException {
+  public static String switchRootTableVolume(ServerContext context, String location)
+      throws IOException {
     String newLocation = switchVolume(location, FileType.TABLE,
-        ServerConstants.getVolumeReplacements());
+        ServerConstants.getVolumeReplacements(context.getConfiguration()));
     if (newLocation != null) {
-      MetadataTableUtil.setRootTabletDir(newLocation);
+      MetadataTableUtil.setRootTabletDir(context, newLocation);
       log.info("Volume replaced: {} -> {}", location, newLocation);
       return new Path(newLocation).toString();
     }
@@ -179,10 +180,11 @@ public class VolumeUtil {
    * configured in instance.volumes.replacements. Second, if a tablet dir is no longer configured
    * for use it chooses a new tablet directory.
    */
-  public static TabletFiles updateTabletVolumes(AccumuloServerContext context, ZooLock zooLock,
+  public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
       VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
       throws IOException {
-    List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+    List<Pair<Path,Path>> replacements = ServerConstants
+        .getVolumeReplacements(context.getConfiguration());
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
@@ -261,20 +263,22 @@ public class VolumeUtil {
     return ret;
   }
 
-  private static String decommisionedTabletDir(AccumuloServerContext context, ZooLock zooLock,
+  private static String decommisionedTabletDir(ServerContext context, ZooLock zooLock,
       VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
     Path dir = new Path(metaDir);
-    if (isActiveVolume(dir))
+    if (isActiveVolume(context, dir))
       return metaDir;
 
     if (!dir.getParent().getParent().getName().equals(ServerConstants.TABLE_DIR)) {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId());
-    Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR
-        + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName() + Path.SEPARATOR
-        + dir.getName());
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
+        context);
+    Path newDir = new Path(
+        vm.choose(chooserEnv, ServerConstants.getBaseUris(context.getConfiguration()))
+            + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
+            + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
     if (extent.isRootTablet()) {
@@ -304,7 +308,7 @@ public class VolumeUtil {
 
         // only set the new location in zookeeper after a successful copy
         log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(newDir.toString());
+        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
 
         // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we
         // fail here and this does not happen because the location in
@@ -315,7 +319,7 @@ public class VolumeUtil {
 
       } else {
         log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(newDir.toString());
+        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
       }
 
       return newDir.toString();
@@ -369,7 +373,7 @@ public class VolumeUtil {
 
   private static String hash(FileSystem fs, Path dir, String name) throws IOException {
     try (FSDataInputStream in = fs.open(new Path(dir, name))) {
-      return DigestUtils.shaHex(in);
+      return DigestUtils.sha256Hex(in);
     }
 
   }

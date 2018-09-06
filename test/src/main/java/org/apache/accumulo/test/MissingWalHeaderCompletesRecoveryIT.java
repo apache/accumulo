@@ -177,8 +177,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
     // Write half of the header
     FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
-    wal.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8), 0,
-        DfsLogger.LOG_FILE_HEADER_V3.length() / 2);
+    wal.write(DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8), 0,
+        DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
     wal.close();
 
     Assert.assertTrue("root user did not have write permission to metadata table",

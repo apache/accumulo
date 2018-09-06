@@ -56,7 +56,10 @@ import org.slf4j.LoggerFactory;
  *
  * If you do not know the instance names then run accumulo
  * org.apache.accumulo.server.util.ListInstances on an accumulo server.
+ *
+ * @deprecated since 2.0.0, Use {@link Connector#builder()} instead
  */
+@Deprecated
 public class ZooKeeperInstance implements Instance {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperInstance.class);
@@ -70,7 +73,6 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
-  @SuppressWarnings("deprecation")
   private ClientConfiguration clientConf;
 
   /**
@@ -81,12 +83,10 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an
    *          optional port, of the format host:port.
    */
-  @SuppressWarnings("deprecation")
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
-  @SuppressWarnings("deprecation")
   ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
     this.clientConf = config;
@@ -94,7 +94,8 @@ public class ZooKeeperInstance implements Instance {
     this.instanceName = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_NAME);
     if ((instanceId == null) == (instanceName == null))
       throw new IllegalArgumentException(
-          "Expected exactly one of instanceName and instanceId to be set");
+          "Expected exactly one of instanceName and instanceId to be set; "
+              + (instanceName == null ? "neither" : "both") + " were set");
     this.zooKeepers = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST);
     this.zooKeepersSessionTimeOut = (int) ConfigurationTypeHelper
         .getTimeInMillis(clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT));
@@ -145,7 +146,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public List<String> getMasterLocations() {
-    String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
+    String masterLocPath = ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_LOCK;
 
     OpTimer timer = null;
 
@@ -172,7 +173,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public String getRootTabletLocation() {
-    String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
+    String zRootLocPath = ZooUtil.getRoot(getInstanceID()) + RootTable.ZROOT_TABLET_LOCATION;
 
     OpTimer timer = null;
 

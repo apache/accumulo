@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -64,7 +65,7 @@ public class ThriftUtil {
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 
-  private static final Random SASL_BACKOFF_RAND = new Random();
+  private static final Random SASL_BACKOFF_RAND = new SecureRandom();
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
@@ -130,7 +131,7 @@ public class ThriftUtil {
 
   /**
    * Create a Thrift client using the given factory with a pooled transport (if available) using the
-   * address, client context and timeou
+   * address, client context and timeout
    *
    * @param factory
    *          Thrift client factory
@@ -443,7 +444,7 @@ public class ThriftUtil {
 
   /**
    * Lifted from TSSLTransportFactory in Thrift-0.9.1. The method to create a client socket with an
-   * SSLContextFactory object is not visibile to us. Have to use SslConnectionParams instead of
+   * SSLContextFactory object is not visible to us. Have to use SslConnectionParams instead of
    * TSSLTransportParameters because no getters exist on TSSLTransportParameters.
    *
    * @param params

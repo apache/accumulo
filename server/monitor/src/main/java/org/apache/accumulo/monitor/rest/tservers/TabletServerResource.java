@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.SERVER_REGEX;
+import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
 import java.lang.management.ManagementFactory;
 import java.security.MessageDigest;
@@ -41,7 +41,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
@@ -53,7 +52,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.master.MasterResource;
 import org.apache.accumulo.server.master.state.DeadServerList;
@@ -103,9 +101,9 @@ public class TabletServerResource {
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
   public void clearDeadServer(
-      @QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
-    DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
+      @QueryParam("server") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
+    DeadServerList obit = new DeadServerList(Monitor.getContext(),
+        Monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }
 
@@ -150,7 +148,7 @@ public class TabletServerResource {
   @Path("{address}")
   @GET
   public TabletServerSummary getTserverDetails(
-      @PathParam("address") @NotNull @Pattern(regexp = SERVER_REGEX) String tserverAddress)
+      @PathParam("address") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String tserverAddress)
       throws Exception {
 
     boolean tserverExists = false;
@@ -233,7 +231,7 @@ public class TabletServerResource {
   }
 
   private static final int concurrentScans = Monitor.getContext().getConfiguration()
-      .getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+      .getScanExecutors().stream().mapToInt(sec -> sec.maxThreads).sum();
 
   /**
    * Generates the server stats
@@ -318,7 +316,7 @@ public class TabletServerResource {
 
       KeyExtent extent = new KeyExtent(info.extent);
       Table.ID tableId = extent.getTableId();
-      MessageDigest digester = MessageDigest.getInstance("MD5");
+      MessageDigest digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
       }

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Generates addiotional information for the selected trace
+ * Generates additional information for the selected trace
  *
  * @since 2.0.0
  */

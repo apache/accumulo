@@ -398,7 +398,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       connMaster.tableOperations().setProperty(masterTable2,
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
-      // Wait for zookeeper updates (configuration) to propogate
+      // Wait for zookeeper updates (configuration) to propagate
       sleepUninterruptibly(3, TimeUnit.SECONDS);
 
       // Write some data to table1

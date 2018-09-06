@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
@@ -214,7 +215,7 @@ public class TestIngest {
     byte[][] bytevals = generateValues(opts.dataSize);
 
     byte randomValue[] = new byte[opts.dataSize];
-    Random random = new Random();
+    Random random = new SecureRandom();
 
     long bytesWritten = 0;
 

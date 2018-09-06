@@ -19,8 +19,7 @@ package org.apache.accumulo.core.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -28,15 +27,17 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import com.google.common.annotations.VisibleForTesting;
 
 public class MonitorUtil {
-  public static String getLocation(Instance instance) throws KeeperException, InterruptedException {
-    return getLocation(new ZooReader(instance.getZooKeepers(), 30000), instance);
+
+  public static String getLocation(ClientContext context)
+      throws KeeperException, InterruptedException {
+    return getLocation(new ZooReader(context.getZooKeepers(), 30000), context);
   }
 
   @VisibleForTesting
-  static String getLocation(ZooReader zr, Instance instance)
+  static String getLocation(ZooReader zr, ClientContext context)
       throws KeeperException, InterruptedException {
     try {
-      byte[] loc = zr.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, null);
+      byte[] loc = zr.getData(context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR, null);
       return loc == null ? null : new String(loc, UTF_8);
     } catch (NoNodeException e) {
       // If there's no node advertising the monitor, there's no monitor.

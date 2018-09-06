@@ -19,7 +19,6 @@ package org.apache.accumulo.server.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +28,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ObservableConfiguration;
@@ -38,9 +36,9 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +53,7 @@ public class TableConfiguration extends ObservableConfiguration {
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
   private ZooCachePropertyAccessor propCacheAccessor = null;
-  private final Instance instance;
+  private final ServerContext context;
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
@@ -63,8 +61,9 @@ public class TableConfiguration extends ObservableConfiguration {
 
   private EnumMap<IteratorScope,AtomicReference<ParsedIteratorConfig>> iteratorConfig;
 
-  public TableConfiguration(Instance instance, Table.ID tableId, NamespaceConfiguration parent) {
-    this.instance = requireNonNull(instance);
+  public TableConfiguration(ServerContext context, Table.ID tableId,
+      NamespaceConfiguration parent) {
+    this.context = requireNonNull(context);
     this.tableId = requireNonNull(tableId);
     this.parent = requireNonNull(parent);
 
@@ -81,11 +80,11 @@ public class TableConfiguration extends ObservableConfiguration {
   private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
     if (propCacheAccessor == null) {
       synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(instance.getInstanceID(), tableId.canonicalID());
+        PropCacheKey key = new PropCacheKey(context.getInstanceID(), tableId.canonicalID());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
-          propCache = zcf.getZooCache(instance.getZooKeepers(),
-              instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
+          propCache = zcf.getZooCache(context.getZooKeepers(),
+              context.getZooKeepersSessionTimeOut(), new TableConfWatcher(context));
           propCaches.put(key, propCache);
         }
         propCacheAccessor = new ZooCachePropertyAccessor(propCache);
@@ -116,8 +115,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_CONF;
+    return context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
   }
 
   @Override
@@ -138,8 +136,7 @@ public class TableConfiguration extends ObservableConfiguration {
    * returns the actual NamespaceConfiguration that corresponds to the current parent namespace.
    */
   public NamespaceConfiguration getNamespaceConfiguration() {
-    return new ServerConfigurationFactory(parent.inst)
-        .getNamespaceConfiguration(parent.namespaceId);
+    return context.getServerConfFactory().getNamespaceConfiguration(parent.namespaceId);
   }
 
   /**
@@ -238,13 +235,15 @@ public class TableConfiguration extends ObservableConfiguration {
       ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(this,
           Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
 
-      Map<String,String> opts = new HashMap<>();
+      Builder<String,String> builder = ImmutableMap.builder();
       getAllPropertiesWithPrefix(Property.TABLE_SCAN_DISPATCHER_OPTS).forEach((k, v) -> {
         String optKey = k.substring(Property.TABLE_SCAN_DISPATCHER_OPTS.getKey().length());
-        opts.put(optKey, v);
+        builder.put(optKey, v);
       });
 
-      newDispatcher.init(Collections.unmodifiableMap(opts));
+      Map<String,String> opts = builder.build();
+
+      newDispatcher.init(() -> opts);
 
       TablesScanDispatcher newRef = new TablesScanDispatcher(newDispatcher, count);
       scanDispatcherRef.compareAndSet(currRef, newRef);

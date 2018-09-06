@@ -28,8 +28,8 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
@@ -44,15 +44,19 @@ public class InitializeTest {
   private Configuration conf;
   private VolumeManager fs;
   private SiteConfiguration sconf;
-  private IZooReaderWriter zooOrig;
-  private IZooReaderWriter zoo;
+  private ZooReaderWriter zooOrig;
+  private ZooReaderWriter zoo;
 
+  @SuppressWarnings("deprecation")
   @Before
   public void setUp() throws Exception {
     conf = createMock(Configuration.class);
     fs = createMock(VolumeManager.class);
     sconf = createMock(SiteConfiguration.class);
-    zoo = createMock(IZooReaderWriter.class);
+    expect(sconf.get(Property.INSTANCE_VOLUMES)).andReturn("").anyTimes();
+    expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar").anyTimes();
+    expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1").anyTimes();
+    zoo = createMock(ZooReaderWriter.class);
     zooOrig = Initialize.getZooReaderWriter();
     Initialize.setZooReaderWriter(zoo);
   }
@@ -62,19 +66,23 @@ public class InitializeTest {
     Initialize.setZooReaderWriter(zooOrig);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testIsInitialized_HasInstanceId() throws Exception {
+    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
-    replay(fs);
-    assertTrue(Initialize.isInitialized(fs));
+    replay(fs, sconf);
+    assertTrue(Initialize.isInitialized(fs, sconf));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testIsInitialized_HasDataVersion() throws Exception {
+    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expect(fs.exists(anyObject(Path.class))).andReturn(false);
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
-    replay(fs);
-    assertTrue(Initialize.isInitialized(fs));
+    replay(fs, sconf);
+    assertTrue(Initialize.isInitialized(fs, sconf));
   }
 
   @SuppressWarnings("deprecation")
@@ -82,7 +90,6 @@ public class InitializeTest {
   public void testCheckInit_NoZK() throws Exception {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expectLastCall().anyTimes();
-    expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     replay(sconf);
     expect(zoo.exists("/")).andReturn(false);
     replay(zoo);
@@ -93,11 +100,7 @@ public class InitializeTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_AlreadyInit() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
-    expectLastCall().anyTimes();
-    expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar");
-    expect(sconf.get(Property.INSTANCE_VOLUMES)).andReturn("");
-    expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo").anyTimes();
     expect(sconf.get(Property.INSTANCE_SECRET))
         .andReturn(Property.INSTANCE_SECRET.getDefaultValue());
     replay(sconf);
@@ -114,10 +117,8 @@ public class InitializeTest {
   @Ignore
   @Test
   public void testCheckInit_AlreadyInit_DefaultUri() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("");
-    expectLastCall().anyTimes();
+    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("").anyTimes();
     expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar");
-    expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(sconf.get(Property.INSTANCE_SECRET))
         .andReturn(Property.INSTANCE_SECRET.getDefaultValue());
     replay(sconf);
@@ -135,7 +136,6 @@ public class InitializeTest {
   public void testCheckInit_FSException() throws Exception {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expectLastCall().anyTimes();
-    expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(sconf.get(Property.INSTANCE_SECRET))
         .andReturn(Property.INSTANCE_SECRET.getDefaultValue());
     replay(sconf);
@@ -150,11 +150,9 @@ public class InitializeTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_OK() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
-    expectLastCall().anyTimes();
-    expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo").anyTimes();
     expect(sconf.get(Property.INSTANCE_SECRET))
-        .andReturn(Property.INSTANCE_SECRET.getDefaultValue());
+        .andReturn(Property.INSTANCE_SECRET.getDefaultValue()).anyTimes();
     replay(sconf);
     expect(zoo.exists("/")).andReturn(true);
     replay(zoo);

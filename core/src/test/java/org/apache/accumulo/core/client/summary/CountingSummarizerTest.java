@@ -75,7 +75,7 @@ public class CountingSummarizerTest {
     }
 
     HashMap<String,Long> stats = new HashMap<>();
-    collector.summarize((k, v) -> stats.put(k, v));
+    collector.summarize(stats::put);
 
     CounterSummary csum = new CounterSummary(stats);
     Assert.assertEquals(expected, csum.getCounters());
@@ -104,7 +104,7 @@ public class CountingSummarizerTest {
     collector.accept(dk, new Value(""));
 
     HashMap<String,Long> stats = new HashMap<>();
-    collector.summarize((k, v) -> stats.put(k, v));
+    collector.summarize(stats::put);
 
     String p = COUNTER_STAT_PREFIX;
 

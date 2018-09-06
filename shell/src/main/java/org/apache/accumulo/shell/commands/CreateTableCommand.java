@@ -47,7 +47,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 
 public class CreateTableCommand extends Command {
@@ -71,7 +70,6 @@ public class CreateTableCommand extends Command {
       TableNotFoundException, IOException {
 
     final String testTableName = cl.getArgs()[0];
-    final HashMap<String,String> props = new HashMap<>();
     NewTableConfiguration ntc = new NewTableConfiguration();
 
     if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
@@ -114,13 +112,7 @@ public class CreateTableCommand extends Command {
       timeType = TimeType.LOGICAL;
     }
 
-    if (cl.hasOption(createTableOptInitProp.getOpt())) {
-      String[] keyVals = StringUtils.split(cl.getOptionValue(createTableOptInitProp.getOpt()), ',');
-      for (String keyVal : keyVals) {
-        String[] sa = StringUtils.split(keyVal, '=');
-        props.put(sa[0], sa[1]);
-      }
-    }
+    Map<String,String> props = ShellUtil.parseMapOpt(cl, createTableOptInitProp);
 
     // Set iterator if supplied
     if (cl.hasOption(createTableOptIteratorProps.getOpt())) {

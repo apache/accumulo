@@ -44,6 +44,7 @@ import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
@@ -63,10 +64,11 @@ public class MajorCompactionRequest implements Cloneable {
   final private BlockCache indexCache;
   final private BlockCache summaryCache;
   private Map<FileRef,DataFileValue> files;
+  final private ServerContext context;
 
   public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
       VolumeManager manager, AccumuloConfiguration tabletConfig, BlockCache summaryCache,
-      BlockCache indexCache) {
+      BlockCache indexCache, ServerContext context) {
     this.extent = extent;
     this.reason = reason;
     this.volumeManager = manager;
@@ -74,16 +76,17 @@ public class MajorCompactionRequest implements Cloneable {
     this.files = Collections.emptyMap();
     this.summaryCache = summaryCache;
     this.indexCache = indexCache;
+    this.context = context;
   }
 
   public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
-      AccumuloConfiguration tabletConfig) {
-    this(extent, reason, null, tabletConfig, null, null);
+      AccumuloConfiguration tabletConfig, ServerContext context) {
+    this(extent, reason, null, tabletConfig, null, null, context);
   }
 
   public MajorCompactionRequest(MajorCompactionRequest mcr) {
     this(mcr.extent, mcr.reason, mcr.volumeManager, mcr.tableConfig, mcr.summaryCache,
-        mcr.indexCache);
+        mcr.indexCache, mcr.context);
     // know this is already unmodifiable, no need to wrap again
     this.files = mcr.files;
   }
@@ -150,8 +153,9 @@ public class MajorCompactionRequest implements Cloneable {
     for (FileRef file : files) {
       FileSystem fs = volumeManager.getVolumeByPath(file.path()).getFileSystem();
       Configuration conf = CachedConfiguration.getInstance();
-      SummaryCollection fsc = SummaryReader.load(fs, conf, tableConfig, factory, file.path(),
-          summarySelector, summaryCache, indexCache)
+      SummaryCollection fsc = SummaryReader
+          .load(fs, conf, tableConfig, factory, file.path(), summarySelector, summaryCache,
+              indexCache, context.getCryptoService())
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }

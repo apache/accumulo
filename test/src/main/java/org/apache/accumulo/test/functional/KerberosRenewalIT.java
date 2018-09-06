@@ -141,7 +141,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
     }
   }
 
-  // Intentially setting the Test annotation timeout. We do not want to scale the timeout.
+  // Intentionally setting the Test annotation timeout. We do not want to scale the timeout.
   @Test(timeout = TEST_DURATION)
   public void testReadAndWriteThroughTicketLifetime() throws Exception {
     // Attempt to use Accumulo for a duration of time that exceeds the Kerberos ticket lifetime.

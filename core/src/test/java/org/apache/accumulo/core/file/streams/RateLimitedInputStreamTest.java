@@ -18,6 +18,7 @@ package org.apache.accumulo.core.file.streams;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.hadoop.fs.Seekable;
@@ -28,7 +29,7 @@ public class RateLimitedInputStreamTest {
 
   @Test
   public void permitsAreProperlyAcquired() throws Exception {
-    Random randGen = new Random();
+    Random randGen = new SecureRandom();
     MockRateLimiter rateLimiter = new MockRateLimiter();
     long bytesRetrieved = 0;
     try (InputStream is = new RateLimitedInputStream(new RandomInputStream(), rateLimiter)) {
@@ -43,7 +44,7 @@ public class RateLimitedInputStreamTest {
   }
 
   private static class RandomInputStream extends InputStream implements Seekable {
-    private final Random r = new Random();
+    private final Random r = new SecureRandom();
 
     @Override
     public int read() throws IOException {

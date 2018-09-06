@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -77,9 +76,9 @@ public class PerTableVolumeChooser implements VolumeChooser {
             ChooserScope.INIT, RandomVolumeChooser.class.getName());
         return randomChooser;
       case TABLE:
-        return getVolumeChooserForTable(env, loadConfFactory());
+        return getVolumeChooserForTable(env, loadConfFactory(env));
       default:
-        return getVolumeChooserForScope(env, loadConfFactory());
+        return getVolumeChooserForScope(env, loadConfFactory(env));
     }
   }
 
@@ -181,12 +180,12 @@ public class PerTableVolumeChooser implements VolumeChooser {
   }
 
   // visible (not private) for testing
-  ServerConfigurationFactory loadConfFactory() {
+  ServerConfigurationFactory loadConfFactory(VolumeChooserEnvironment env) {
     // This local variable is an intentional component of the single-check idiom.
     ServerConfigurationFactory localConf = lazyConfFactory;
     if (localConf == null) {
       // If we're under contention when first getting here we'll throw away some initializations.
-      localConf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
+      localConf = env.getServerContext().getServerConfFactory();
       lazyConfFactory = localConf;
     }
     return localConf;

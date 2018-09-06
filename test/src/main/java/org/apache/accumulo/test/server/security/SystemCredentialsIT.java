@@ -18,24 +18,22 @@ package org.apache.accumulo.test.server.security;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.junit.Test;
@@ -61,100 +59,24 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
   public static void main(final String[] args)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    SiteConfiguration siteConfig = new SiteConfiguration();
+    ServerContext context = new ServerContext(siteConfig);
     Credentials creds = null;
+    String badInstanceID = SystemCredentials.class.getName();
     if (args.length < 2)
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     if (args[0].equals("bad")) {
-      Instance inst = new Instance() {
-
-        @Override
-        public int getZooKeepersSessionTimeOut() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getZooKeepers() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getRootTabletLocation() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<String> getMasterLocations() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getInstanceName() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getInstanceID() {
-          return SystemCredentials.class.getName();
-        }
-
-        @Override
-        public Connector getConnector(String principal, AuthenticationToken token)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-      };
-      creds = SystemCredentials.get(inst);
+      creds = SystemCredentials.get(badInstanceID, siteConfig);
     } else if (args[0].equals("good")) {
-      creds = SystemCredentials.get(HdfsZooInstance.getInstance());
+      creds = SystemCredentials.get(context.getInstanceID(), siteConfig);
     } else if (args[0].equals("bad_password")) {
-      Instance inst = new Instance() {
-
-        @Override
-        public int getZooKeepersSessionTimeOut() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getZooKeepers() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getRootTabletLocation() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<String> getMasterLocations() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getInstanceName() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String getInstanceID() {
-          return SystemCredentials.class.getName();
-        }
-
-        @Override
-        public Connector getConnector(String principal, AuthenticationToken token)
-            throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-      };
-      creds = new SystemCredentials(inst, "!SYSTEM", new PasswordToken("fake"));
+      creds = new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
     } else {
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     }
-    Instance instance = HdfsZooInstance.getInstance();
     Connector conn;
     try {
-      conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+      conn = context.getConnector(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloSecurityException e) {
       e.printStackTrace(System.err);
       System.exit(BAD_PASSWD_FAIL_CODE);

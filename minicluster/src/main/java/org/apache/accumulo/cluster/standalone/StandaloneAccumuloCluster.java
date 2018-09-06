@@ -18,6 +18,7 @@ package org.apache.accumulo.cluster.standalone;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,17 +34,16 @@ import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 /**
  * AccumuloCluster implementation to connect to an existing deployment of Accumulo
@@ -62,11 +62,16 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private List<ClusterUser> users;
   private String clientCmdPrefix;
   private String serverCmdPrefix;
+  private SiteConfiguration siteConfig;
+  private ServerContext context;
 
-  public StandaloneAccumuloCluster(ClientInfo info, Path tmp, List<ClusterUser> users) {
+  public StandaloneAccumuloCluster(ClientInfo info, Path tmp, List<ClusterUser> users,
+      String serverAccumuloConfDir) {
     this.info = info;
     this.tmp = tmp;
     this.users = users;
+    this.serverAccumuloConfDir = serverAccumuloConfDir;
+    siteConfig = new SiteConfiguration(new File(serverAccumuloConfDir, "accumulo.properties"));
   }
 
   public String getAccumuloHome() {
@@ -87,10 +92,6 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   public String getServerAccumuloConfDir() {
     return serverAccumuloConfDir;
-  }
-
-  public void setServerAccumuloConfDir(String accumuloConfDir) {
-    this.serverAccumuloConfDir = accumuloConfDir;
   }
 
   public void setServerCmdPrefix(String serverCmdPrefix) {
@@ -123,6 +124,14 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public String getZooKeepers() {
     return info.getZooKeepers();
+  }
+
+  @Override
+  public synchronized ServerContext getServerContext() {
+    if (context == null) {
+      context = new ServerContext(siteConfig, getClientInfo());
+    }
+    return context;
   }
 
   @Override
@@ -204,9 +213,11 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public AccumuloConfiguration getSiteConfiguration() {
-    Configuration conf = new Configuration(false);
-    Path accumuloSite = new Path(serverAccumuloConfDir, "accumulo-site.xml");
-    conf.addResource(accumuloSite);
-    return new ConfigurationCopy(Iterables.concat(DefaultConfiguration.getInstance(), conf));
+    return new ConfigurationCopy(siteConfig);
+  }
+
+  @Override
+  public String getAccumuloPropertiesPath() {
+    return new File(serverAccumuloConfDir, "accumulo.properties").toString();
   }
 }

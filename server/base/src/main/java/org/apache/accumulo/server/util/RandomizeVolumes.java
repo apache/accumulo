@@ -23,12 +23,10 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -40,13 +38,11 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,17 +53,15 @@ public class RandomizeVolumes {
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
+    ServerContext context = opts.getServerContext();
     Connector c;
     if (opts.getToken() == null) {
-      Instance instance = opts.getInstance();
-      AccumuloServerContext context = new AccumuloServerContext(instance,
-          new ServerConfigurationFactory(instance));
       c = context.getConnector();
     } else {
       c = opts.getConnector();
     }
     try {
-      int status = randomize(c, opts.getTableName());
+      int status = randomize(context, c, opts.getTableName());
       System.exit(status);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
@@ -75,9 +69,9 @@ public class RandomizeVolumes {
     }
   }
 
-  public static int randomize(Connector c, String tableName)
+  public static int randomize(ServerContext context, Connector c, String tableName)
       throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    final VolumeManager vm = VolumeManagerImpl.get();
+    final VolumeManager vm = context.getVolumeManager();
     if (vm.getVolumes().size() < 2) {
       log.error("There are not enough volumes configured");
       return 1;
@@ -88,7 +82,7 @@ public class RandomizeVolumes {
       return 2;
     }
     Table.ID tableId = Table.ID.of(tblStr);
-    TableState tableState = TableManager.getInstance().getTableState(tableId);
+    TableState tableState = context.getTableManager().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
       log.info("Taking {} offline", tableName);
       c.tableOperations().offline(tableName, true);
@@ -118,10 +112,10 @@ public class RandomizeVolumes {
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
 
-      VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId);
-      final String newLocation = vm.choose(chooserEnv, ServerConstants.getBaseUris())
-          + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
-          + directory;
+      VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
+      final String newLocation = vm.choose(chooserEnv,
+          ServerConstants.getBaseUris(context.getConfiguration())) + Path.SEPARATOR
+          + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(),
           new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {

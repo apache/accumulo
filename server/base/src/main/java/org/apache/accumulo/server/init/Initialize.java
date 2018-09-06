@@ -38,7 +38,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -79,14 +78,11 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -135,7 +131,7 @@ public class Initialize implements KeywordExecutable {
   private static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
 
   private static ConsoleReader reader = null;
-  private static IZooReaderWriter zoo = null;
+  private static ZooReaderWriter zoo = null;
 
   private static ConsoleReader getConsoleReader() throws IOException {
     if (reader == null)
@@ -146,11 +142,11 @@ public class Initialize implements KeywordExecutable {
   /**
    * Sets this class's ZooKeeper reader/writer.
    *
-   * @param izoo
+   * @param zooReaderWriter
    *          reader/writer
    */
-  static void setZooReaderWriter(IZooReaderWriter izoo) {
-    zoo = izoo;
+  static void setZooReaderWriter(ZooReaderWriter zooReaderWriter) {
+    zoo = zooReaderWriter;
   }
 
   /**
@@ -158,7 +154,7 @@ public class Initialize implements KeywordExecutable {
    *
    * @return reader/writer
    */
-  static IZooReaderWriter getZooReaderWriter() {
+  static ZooReaderWriter getZooReaderWriter() {
     return zoo;
   }
 
@@ -249,8 +245,7 @@ public class Initialize implements KeywordExecutable {
     if (fsUri.equals(""))
       fsUri = FileSystem.getDefaultUri(conf).toString();
     log.info("Hadoop Filesystem is {}", fsUri);
-    log.info("Accumulo data dirs are {}",
-        Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
+    log.info("Accumulo data dirs are {}", Arrays.asList(VolumeConfiguration.getVolumeUris(sconf)));
     log.info("Zookeeper server is {}", sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need"
         + " to make sure zookeeper is running");
@@ -272,10 +267,10 @@ public class Initialize implements KeywordExecutable {
       c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
       c.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
-          + " accumulo-site.xml. Without this accumulo will not operate" + " correctly");
+          + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
     try {
-      if (isInitialized(fs)) {
+      if (isInitialized(fs, sconf)) {
         printInitializeFailureMessages(sconf);
         return false;
       }
@@ -294,8 +289,7 @@ public class Initialize implements KeywordExecutable {
     String instanceDfsDir = sconf.get(INSTANCE_DFS_DIR);
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
     log.error("FATAL It appears the directories {}",
-        Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
-            + " were previously initialized.");
+        Arrays.asList(VolumeConfiguration.getVolumeUris(sconf)) + " were previously initialized.");
     String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
     String instanceDfsUri = sconf.get(INSTANCE_DFS_URI);
 
@@ -316,8 +310,9 @@ public class Initialize implements KeywordExecutable {
     log.error("FATAL: The current value of {} is |{}|", Property.INSTANCE_VOLUMES, instanceVolumes);
   }
 
-  public boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
-    if (!checkInit(conf, fs, SiteConfiguration.getInstance())) {
+  public boolean doInit(SiteConfiguration siteConfig, Opts opts, Configuration conf,
+      VolumeManager fs) throws IOException {
+    if (!checkInit(conf, fs, siteConfig)) {
       return false;
     }
 
@@ -333,29 +328,28 @@ public class Initialize implements KeywordExecutable {
 
     String rootUser;
     try {
-      rootUser = getRootUserName(opts);
+      rootUser = getRootUserName(siteConfig, opts);
     } catch (Exception e) {
       log.error("FATAL: Failed to obtain user for administrative privileges");
       return false;
     }
 
     // Don't prompt for a password when we're running SASL(Kerberos)
-    final AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
-    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+    if (siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       opts.rootpass = UUID.randomUUID().toString().getBytes(UTF_8);
     } else {
-      opts.rootpass = getRootPassword(opts, rootUser);
+      opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
     }
 
-    return initialize(opts, instanceNamePath, fs, rootUser);
+    return initialize(siteConfig, opts, instanceNamePath, fs, rootUser);
   }
 
-  private boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs,
-      String rootUser) {
+  private boolean initialize(SiteConfiguration siteConfig, Opts opts, String instanceNamePath,
+      VolumeManager fs, String rootUser) {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
+    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig);
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT);
     final String rootTabletDir = new Path(
         fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
@@ -369,11 +363,11 @@ public class Initialize implements KeywordExecutable {
     }
 
     try {
-      initFileSystem(opts, fs, uuid, rootTabletDir);
+      initFileSystem(siteConfig, fs, uuid, rootTabletDir);
     } catch (Exception e) {
       log.error("FATAL Failed to initialize filesystem", e);
 
-      if (SiteConfiguration.getInstance().get(Property.INSTANCE_VOLUMES).trim().equals("")) {
+      if (siteConfig.get(Property.INSTANCE_VOLUMES).trim().equals("")) {
         Configuration fsConf = CachedConfiguration.getInstance();
 
         final String defaultFsUri = "file:///";
@@ -387,22 +381,21 @@ public class Initialize implements KeywordExecutable {
                   + " 'fs.default.name') of '{}' was found in the Hadoop configuration",
               defaultFsUri);
           log.error("FATAL: Please ensure that the Hadoop core-site.xml is on"
-              + " the classpath using 'general.classpaths' in accumulo-site.xml");
+              + " the classpath using 'general.classpaths' in accumulo.properties");
         }
       }
 
       return false;
     }
 
-    final Instance instance = HdfsZooInstance.getInstance();
-    final ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
+    final ServerContext context = new ServerContext(siteConfig);
 
     // When we're using Kerberos authentication, we need valid credentials to perform
     // initialization. If the user provided some, use them.
-    // If they did not, fall back to the credentials present in accumulo-site.xml that the servers
+    // If they did not, fall back to the credentials present in accumulo.properties that the servers
     // will use themselves.
     try {
-      final SiteConfiguration siteConf = confFactory.getSiteConfiguration();
+      final SiteConfiguration siteConf = context.getServerConfFactory().getSiteConfiguration();
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         // We don't have any valid creds to talk to HDFS
@@ -430,31 +423,30 @@ public class Initialize implements KeywordExecutable {
     }
 
     try {
-      AccumuloServerContext context = new AccumuloServerContext(instance, confFactory);
       initSecurity(context, opts, uuid.toString(), rootUser);
     } catch (Exception e) {
       log.error("FATAL: Failed to initialize security", e);
       return false;
     }
 
-    if (opts.uploadAccumuloSite) {
+    if (opts.uploadAccumuloProps) {
       try {
-        log.info("Uploading properties in accumulo-site.xml to Zookeeper."
+        log.info("Uploading properties in accumulo.properties to Zookeeper."
             + " Properties that cannot be set in Zookeeper will be skipped:");
         Map<String,String> entries = new TreeMap<>();
-        SiteConfiguration.getInstance().getProperties(entries, x -> true, false);
+        siteConfig.getProperties(entries, x -> true, false);
         for (Map.Entry<String,String> entry : entries.entrySet()) {
           String key = entry.getKey();
           String value = entry.getValue();
           if (Property.isValidZooPropertyKey(key)) {
-            SystemPropUtil.setSystemProperty(key, value);
+            SystemPropUtil.setSystemProperty(context, key, value);
             log.info("Uploaded - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
           } else {
             log.info("Skipped - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
           }
         }
       } catch (Exception e) {
-        log.error("FATAL: Failed to upload accumulo-site.xml to Zookeeper", e);
+        log.error("FATAL: Failed to upload accumulo.properties to Zookeeper", e);
         return false;
       }
     }
@@ -485,20 +477,20 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir)
-      throws IOException {
-    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
+  private void initFileSystem(SiteConfiguration siteConfig, VolumeManager fs, UUID uuid,
+      String rootTabletDir) throws IOException {
+    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig), false);
 
     // initialize initial system tables config in zookeeper
-    initSystemTablesConfig();
+    initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid);
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT);
-    String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris())
+    String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
-        + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris())
+    String replicationTableDefaultTabletDir = fs.choose(chooserEnv,
+        ServerConstants.getBaseUris(siteConfig)) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+        + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+    String defaultMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
         + Constants.DEFAULT_TABLET_LOCATION;
 
@@ -513,7 +505,7 @@ public class Initialize implements KeywordExecutable {
     String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet = new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir,
         null, null);
-    createMetadataFile(fs, metadataFileName, replicationTablet);
+    createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
@@ -521,7 +513,7 @@ public class Initialize implements KeywordExecutable {
     Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint,
         metadataFileName);
     Tablet defaultTablet = new Tablet(MetadataTable.ID, defaultMetadataTabletDir, splitPoint, null);
-    createMetadataFile(fs, rootTabletFileName, tablesTablet, defaultTablet);
+    createMetadataFile(fs, rootTabletFileName, siteConfig, tablesTablet, defaultTablet);
   }
 
   private static class Tablet {
@@ -540,7 +532,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void createMetadataFile(VolumeManager volmanager, String fileName,
-      Tablet... tablets) throws IOException {
+      AccumuloConfiguration conf, Tablet... tablets) throws IOException {
     // sort file contents in memory, then play back to the file
     TreeMap<Key,Value> sorted = new TreeMap<>();
     for (Tablet tablet : tablets) {
@@ -548,8 +540,7 @@ public class Initialize implements KeywordExecutable {
     }
     FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fileName, fs, fs.getConf())
-        .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+        .forFile(fileName, fs, fs.getConf()).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Entry<Key,Value> entry : sorted.entrySet()) {
@@ -617,15 +608,15 @@ public class Initialize implements KeywordExecutable {
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0],
         NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(uuid, Namespace.ID.DEFAULT, Namespace.DEFAULT,
+    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ID.DEFAULT, Namespace.DEFAULT,
         NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(uuid, Namespace.ID.ACCUMULO, Namespace.ACCUMULO,
+    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ID.ACCUMULO, Namespace.ACCUMULO,
         NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(uuid, RootTable.ID, Namespace.ID.ACCUMULO, RootTable.NAME,
-        TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(uuid, MetadataTable.ID, Namespace.ID.ACCUMULO,
+    TableManager.prepareNewTableState(zoo, uuid, RootTable.ID, Namespace.ID.ACCUMULO,
+        RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
+    TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ID.ACCUMULO,
         MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(uuid, ReplicationTable.ID, Namespace.ID.ACCUMULO,
+    TableManager.prepareNewTableState(zoo, uuid, ReplicationTable.ID, Namespace.ID.ACCUMULO,
         ReplicationTable.NAME, TableState.OFFLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
@@ -708,11 +699,10 @@ public class Initialize implements KeywordExecutable {
     return instanceNamePath;
   }
 
-  private String getRootUserName(Opts opts) throws IOException {
-    AccumuloConfiguration conf = SiteConfiguration.getInstance();
-    final String keytab = conf.get(Property.GENERAL_KERBEROS_KEYTAB);
+  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) throws IOException {
+    final String keytab = siteConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
     if (keytab.equals(Property.GENERAL_KERBEROS_KEYTAB.getDefaultValue())
-        || !conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        || !siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return DEFAULT_ROOT_USER;
     }
 
@@ -735,15 +725,16 @@ public class Initialize implements KeywordExecutable {
     } while (true);
   }
 
-  private byte[] getRootPassword(Opts opts, String rootUser) throws IOException {
+  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser)
+      throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader()
-          .readLine("Enter initial password for " + rootUser + getInitialPasswordWarning(), '*');
+      rootpass = getConsoleReader().readLine(
+          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig), '*');
       if (rootpass == null)
         System.exit(0);
       confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ",
@@ -766,24 +757,24 @@ public class Initialize implements KeywordExecutable {
    *
    * @return String containing warning portion of console message.
    */
-  private String getInitialPasswordWarning() {
+  private String getInitialPasswordWarning(SiteConfiguration siteConfig) {
     String optionalWarning;
     Property authenticatorProperty = Property.INSTANCE_SECURITY_AUTHENTICATOR;
-    if (SiteConfiguration.getInstance().get(authenticatorProperty)
-        .equals(authenticatorProperty.getDefaultValue()))
+    if (siteConfig.get(authenticatorProperty).equals(authenticatorProperty.getDefaultValue()))
       optionalWarning = ": ";
     else
       optionalWarning = " (this may not be applicable for your security setup): ";
     return optionalWarning;
   }
 
-  private static void initSecurity(AccumuloServerContext context, Opts opts, String iid,
-      String rootUser) throws AccumuloSecurityException, ThriftSecurityException, IOException {
+  private static void initSecurity(ServerContext context, Opts opts, String iid, String rootUser)
+      throws AccumuloSecurityException, ThriftSecurityException, IOException {
     AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(),
         rootUser, opts.rootpass);
   }
 
-  public static void initSystemTablesConfig() throws IOException {
+  public static void initSystemTablesConfig(ZooReaderWriter zoo, String zooKeeperRoot)
+      throws IOException {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       int max = conf.getInt("dfs.replication.max", 512);
@@ -795,20 +786,24 @@ public class Initialize implements KeywordExecutable {
       if (min > 5)
         setMetadataReplication(min, "min");
       for (Entry<String,String> entry : initialMetadataConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(RootTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, RootTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
-        if (!TablePropUtil.setTableProperty(MetadataTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, MetadataTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
       // Only add combiner config to accumulo.metadata table (ACCUMULO-3077)
       for (Entry<String,String> entry : initialMetadataCombinerConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(MetadataTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, MetadataTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
 
       // add configuration to the replication table
       for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(ReplicationTable.ID, entry.getKey(), entry.getValue()))
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, ReplicationTable.ID, entry.getKey(),
+            entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
     } catch (Exception e) {
@@ -830,8 +825,9 @@ public class Initialize implements KeywordExecutable {
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
 
-  public static boolean isInitialized(VolumeManager fs) throws IOException {
-    for (String baseDir : VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())) {
+  public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig)
+      throws IOException {
+    for (String baseDir : VolumeConfiguration.getVolumeUris(siteConfig)) {
       if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR))
           || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR)))
         return true;
@@ -840,12 +836,14 @@ public class Initialize implements KeywordExecutable {
     return false;
   }
 
-  private static void addVolumes(VolumeManager fs) throws IOException {
+  private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig)
+      throws IOException {
 
-    String[] volumeURIs = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
+    String[] volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
 
     HashSet<String> initializedDirs = new HashSet<>();
-    initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseUris(volumeURIs, true)));
+    initializedDirs
+        .addAll(Arrays.asList(ServerConstants.checkBaseUris(siteConfig, volumeURIs, true)));
 
     HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(Arrays.asList(volumeURIs));
@@ -855,9 +853,8 @@ public class Initialize implements KeywordExecutable {
     Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
-    UUID uuid = UUID
-        .fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
-    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
+    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, siteConfig));
+    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig)) {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
@@ -888,9 +885,9 @@ public class Initialize implements KeywordExecutable {
     @Parameter(names = "--clear-instance-name",
         description = "delete any existing instance name without prompting")
     boolean clearInstanceName = false;
-    @Parameter(names = "--upload-accumulo-site",
-        description = "Uploads properties in accumulo-site.xml to Zookeeper")
-    boolean uploadAccumuloSite = false;
+    @Parameter(names = "--upload-accumulo-props",
+        description = "Uploads properties in accumulo.properties to Zookeeper")
+    boolean uploadAccumuloProps = false;
     @Parameter(names = "--instance-name",
         description = "the instance name, if not provided, will prompt")
     String cliInstanceName;
@@ -922,45 +919,43 @@ public class Initialize implements KeywordExecutable {
   public void execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
+    SiteConfiguration siteConfig = new SiteConfiguration();
 
     try {
-      zoo = ZooReaderWriter.getInstance();
-      AccumuloConfiguration acuConf = SiteConfiguration.getInstance();
-      SecurityUtil.serverLogin(acuConf);
-      Configuration conf = CachedConfiguration.getInstance();
+      setZooReaderWriter(new ZooReaderWriter(siteConfig));
+      SecurityUtil.serverLogin(siteConfig);
+      Configuration hadoopConfig = CachedConfiguration.getInstance();
 
-      VolumeManager fs = VolumeManagerImpl.get(acuConf);
+      VolumeManager fs = VolumeManagerImpl.get(siteConfig);
 
       if (opts.resetSecurity) {
         log.info("Resetting security on accumulo.");
-        Instance instance = HdfsZooInstance.getInstance();
-        AccumuloServerContext context = new AccumuloServerContext(instance,
-            new ServerConfigurationFactory(instance));
-        if (isInitialized(fs)) {
+        ServerContext context = new ServerContext(siteConfig);
+        if (isInitialized(fs, siteConfig)) {
           if (!opts.forceResetSecurity) {
             ConsoleReader c = getConsoleReader();
             String userEnteredName = c.readLine("WARNING: This will remove all"
                 + " users from Accumulo! If you wish to proceed enter the instance" + " name: ");
-            if (userEnteredName != null && !instance.getInstanceName().equals(userEnteredName)) {
+            if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
               log.error("Aborted reset security: Instance name did not match current instance.");
               return;
             }
           }
 
-          final String rootUser = getRootUserName(opts);
-          opts.rootpass = getRootPassword(opts, rootUser);
-          initSecurity(context, opts, HdfsZooInstance.getInstance().getInstanceID(), rootUser);
+          final String rootUser = getRootUserName(siteConfig, opts);
+          opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
+          initSecurity(context, opts, context.getInstanceID(), rootUser);
         } else {
           log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
         }
       }
 
       if (opts.addVolumes) {
-        addVolumes(fs);
+        addVolumes(fs, siteConfig);
       }
 
       if (!opts.resetSecurity && !opts.addVolumes)
-        if (!doInit(opts, conf, fs))
+        if (!doInit(siteConfig, opts, hadoopConfig, fs))
           System.exit(-1);
     } catch (Exception e) {
       log.error("Fatal exception", e);

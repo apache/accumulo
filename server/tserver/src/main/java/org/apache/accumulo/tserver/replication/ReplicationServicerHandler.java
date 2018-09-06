@@ -54,12 +54,13 @@ public class ReplicationServicerHandler implements Iface {
       throws RemoteReplicationException, TException {
     Table.ID tableId = Table.ID.of(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
-    tabletServer.getSecurityOperation().authenticateUser(tabletServer.rpcCreds(), tcreds);
+    tabletServer.getSecurityOperation().authenticateUser(tabletServer.getContext().rpcCreds(),
+        tcreds);
 
     String tableName;
 
     try {
-      tableName = Tables.getTableName(tabletServer, tableId);
+      tableName = Tables.getTableName(tabletServer.getContext(), tableId);
     } catch (TableNotFoundException e) {
       log.error("Could not find table with id {}", tableId);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,
@@ -105,11 +106,11 @@ public class ReplicationServicerHandler implements Iface {
 
     long entriesReplicated;
     try {
-      entriesReplicated = replayer.replicateLog(tabletServer, tableName, data);
+      entriesReplicated = replayer.replicateLog(tabletServer.getContext(), tableName, data);
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Could not get connection", e);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE,
-          "Cannot get connector as " + tabletServer.getCredentials().getPrincipal());
+          "Cannot get connector as " + tabletServer.getContext().getCredentials().getPrincipal());
     }
 
     log.debug("Replicated {} mutations to {}", entriesReplicated, tableName);

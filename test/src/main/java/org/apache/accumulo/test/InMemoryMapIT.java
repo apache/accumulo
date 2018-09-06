@@ -41,12 +41,15 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -95,8 +98,15 @@ public class InMemoryMapIT {
       fail("Missing the native library from " + nativeMapLocation.getAbsolutePath()
           + "\nYou need to build the libaccumulo binary first. "
           + "\nTry running 'mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo"
-          + " -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip'");
+          + " -DfailIfNoTests=false -Dspotbugs.skip -Dcheckstyle.skip'");
     }
+  }
+
+  public static ServerContext getServerContext() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(context.getCryptoService()).andReturn(new NoCryptoService()).anyTimes();
+    EasyMock.replay(context);
+    return context;
   }
 
   @Test
@@ -233,12 +243,15 @@ public class InMemoryMapIT {
       localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
           tempFolder.newFolder().getAbsolutePath());
 
-      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig));
-      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig));
+      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig), getServerContext());
+      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig),
+          getServerContext());
       localityGroupMap = new InMemoryMap(
-          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)));
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)),
+          getServerContext());
       localityGroupMapWithNative = new InMemoryMap(
-          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)));
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)),
+          getServerContext());
     } catch (Exception e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());

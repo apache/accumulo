@@ -38,7 +38,7 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
   @Override
   public long isReady(long id, Master environment) throws Exception {
-    return Utils.reserveNamespace(namespaceInfo.namespaceId, id, true, false,
+    return Utils.reserveNamespace(environment, namespaceInfo.namespaceId, id, true, false,
         TableOperation.CREATE);
   }
 
@@ -47,17 +47,18 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkNamespaceDoesNotExist(master, namespaceInfo.namespaceName,
+      Utils.checkNamespaceDoesNotExist(master.getContext(), namespaceInfo.namespaceName,
           namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.prepareNewNamespaceState(master.getInstanceID(), namespaceInfo.namespaceId,
-          namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
+      TableManager.prepareNewNamespaceState(master.getContext().getZooReaderWriter(),
+          master.getInstanceID(), namespaceInfo.namespaceId, namespaceInfo.namespaceName,
+          NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : namespaceInfo.props.entrySet())
-        NamespacePropUtil.setNamespaceProperty(namespaceInfo.namespaceId, entry.getKey(),
-            entry.getValue());
+        NamespacePropUtil.setNamespaceProperty(master.getContext(), namespaceInfo.namespaceId,
+            entry.getKey(), entry.getValue());
 
-      Tables.clearCache(master);
+      Tables.clearCache(master.getContext());
 
       return new FinishCreateNamespace(namespaceInfo);
     } finally {
@@ -67,9 +68,9 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-    TableManager.getInstance().removeNamespace(namespaceInfo.namespaceId);
-    Tables.clearCache(master.getInstance());
-    Utils.unreserveNamespace(namespaceInfo.namespaceId, tid, true);
+    master.getTableManager().removeNamespace(namespaceInfo.namespaceId);
+    Tables.clearCache(master.getContext());
+    Utils.unreserveNamespace(master, namespaceInfo.namespaceId, tid, true);
   }
 
 }

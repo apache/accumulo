@@ -361,7 +361,7 @@ public class ZooLock implements Watcher {
    * indicates if the lock was acquired in the past.... helps discriminate between the case where
    * the lock was never held, or held and lost....
    *
-   * @return true if the lock was aquired, otherwise false.
+   * @return true if the lock was acquired, otherwise false.
    */
   public synchronized boolean wasLockAcquired() {
     return lockWasAcquired;

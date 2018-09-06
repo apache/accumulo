@@ -72,12 +72,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
-          @Override
-          public ClassLoader getClassLoader() {
-            return ClassLoader.getSystemClassLoader();
-          }
-        }, true);
+        ClassLoader::getSystemClassLoader, true);
 
     VFSClassLoader cl = (VFSClassLoader) arvcl.getClassLoader();
 
@@ -93,12 +88,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
-          @Override
-          public ClassLoader getClassLoader() {
-            return ClassLoader.getSystemClassLoader();
-          }
-        }, 1000, true);
+        ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
@@ -144,12 +134,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
-          @Override
-          public ClassLoader getClassLoader() {
-            return ClassLoader.getSystemClassLoader();
-          }
-        }, 1000, true);
+        ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
@@ -202,13 +187,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
-
-          @Override
-          public ClassLoader getClassLoader() {
-            return ClassLoader.getSystemClassLoader();
-          }
-        }, 1000, true);
+        ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
@@ -250,12 +229,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
-        new ReloadingClassLoader() {
-          @Override
-          public ClassLoader getClassLoader() {
-            return ClassLoader.getSystemClassLoader();
-          }
-        }, 1000, true);
+        ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);

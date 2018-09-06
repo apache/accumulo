@@ -18,14 +18,12 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +36,7 @@ public class CleanZookeeper {
 
   static class Opts extends Help {
     @Parameter(names = {"--password"},
-        description = "The system secret, if different than instance.secret in accumulo-site.xml",
+        description = "The system secret, if different than instance.secret in accumulo.properties",
         password = true)
     String auth;
   }
@@ -47,15 +45,15 @@ public class CleanZookeeper {
    * @param args
    *          must contain one element: the address of a zookeeper node a second parameter provides
    *          an additional authentication value
-   * @throws IOException
-   *           error connecting to accumulo or zookeeper
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(CleanZookeeper.class.getName(), args);
 
+    ServerContext context = new ServerContext(new SiteConfiguration());
+
     String root = Constants.ZROOT;
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = context.getZooReaderWriter();
     if (opts.auth != null) {
       zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
     }
@@ -66,8 +64,7 @@ public class CleanZookeeper {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES)) {
             String instanceNamePath = root + Constants.ZINSTANCES + "/" + instanceName;
             byte[] id = zk.getData(instanceNamePath, null);
-            if (id != null
-                && !new String(id, UTF_8).equals(HdfsZooInstance.getInstance().getInstanceID())) {
+            if (id != null && !new String(id, UTF_8).equals(context.getInstanceID())) {
               try {
                 zk.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
               } catch (KeeperException.NoAuthException ex) {
@@ -75,7 +72,7 @@ public class CleanZookeeper {
               }
             }
           }
-        } else if (!child.equals(HdfsZooInstance.getInstance().getInstanceID())) {
+        } else if (!child.equals(context.getInstanceID())) {
           String path = root + "/" + child;
           try {
             zk.recursiveDelete(path, NodeMissingPolicy.SKIP);

@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
@@ -71,6 +70,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfiguratio
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PreAllocatedArray;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -85,6 +85,7 @@ public class InMemoryMap {
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMap.class);
 
+  private ServerContext context;
   private volatile String memDumpFile = null;
   private final String memDumpDir;
   private final String mapType;
@@ -131,7 +132,8 @@ public class InMemoryMap {
     return pair.getSecond();
   }
 
-  public InMemoryMap(AccumuloConfiguration config) throws LocalityGroupConfigurationError {
+  public InMemoryMap(AccumuloConfiguration config, ServerContext serverContext)
+      throws LocalityGroupConfigurationError {
 
     boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
 
@@ -139,6 +141,7 @@ public class InMemoryMap {
     this.lggroups = LocalityGroupUtil.getLocalityGroups(config);
 
     this.config = config;
+    this.context = serverContext;
 
     SimpleMap allMap;
     SimpleMap sampleMap;
@@ -639,7 +642,8 @@ public class InMemoryMap {
         FileSystem fs = FileSystem.getLocal(conf);
 
         reader = new RFileOperations().newReaderBuilder().forFile(memDumpFile, fs, conf)
-            .withTableConfiguration(SiteConfiguration.getInstance()).seekToBeginning().build();
+            .withTableConfiguration(context.getConfiguration())
+            .withCryptoService(context.getCryptoService()).seekToBeginning().build();
         if (iflag != null)
           reader.setInterruptFlag(iflag);
 
@@ -803,14 +807,14 @@ public class InMemoryMap {
         Configuration newConf = new Configuration(conf);
         newConf.setInt("io.seqfile.compress.blocksize", 100000);
 
-        AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+        AccumuloConfiguration aconf = context.getConfiguration();
 
         if (getOrCreateSampler() != null) {
-          siteConf = createSampleConfig(siteConf);
+          aconf = createSampleConfig(aconf);
         }
 
         FileSKVWriter out = new RFileOperations().newWriterBuilder().forFile(tmpFile, fs, newConf)
-            .withTableConfiguration(siteConf).build();
+            .withTableConfiguration(aconf).withCryptoService(context.getCryptoService()).build();
 
         InterruptibleIterator iter = map.skvIterator(null);
 
@@ -885,5 +889,9 @@ public class InMemoryMap {
           MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).getKVCount()));
       iter.next();
     }
+  }
+
+  public ServerContext getContext() {
+    return context;
   }
 }

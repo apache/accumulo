@@ -68,6 +68,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -81,6 +82,7 @@ import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
@@ -128,14 +130,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       this.in = new BufferedReader(new InputStreamReader(stream));
       out = new BufferedWriter(new FileWriter(logFile));
 
-      SimpleTimer.getInstance(null).schedule(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            flush();
-          } catch (IOException e) {
-            log.error("Exception while attempting to flush.", e);
-          }
+      SimpleTimer.getInstance(null).schedule(() -> {
+        try {
+          flush();
+        } catch (IOException e) {
+          log.error("Exception while attempting to flush.", e);
         }
       }, 1000, 1000);
     }
@@ -171,6 +170,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private File zooCfgFile;
   private String dfsUri;
+  private SiteConfiguration siteConfig;
+  private ServerContext context;
   private ClientInfo clientInfo;
 
   public List<LogWriter> getLogWriters() {
@@ -203,19 +204,20 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return _exec(clazz, jvmArgs2, args);
   }
 
-  private boolean containsSiteFile(File f) {
+  private boolean containsConfigFile(File f) {
     if (!f.isDirectory()) {
       return false;
     } else {
-      File[] files = f.listFiles(pathname -> pathname.getName().endsWith("site.xml"));
+      File[] files = f.listFiles(pathname -> pathname.getName().endsWith("site.xml")
+          || pathname.getName().equals("accumulo.properties"));
       return files != null && files.length > 0;
     }
   }
 
   private void append(StringBuilder classpathBuilder, URL url) throws URISyntaxException {
     File file = new File(url.toURI());
-    // do not include dirs containing hadoop or accumulo site files
-    if (!containsSiteFile(file))
+    // do not include dirs containing hadoop or accumulo config files
+    if (!containsConfigFile(file))
       classpathBuilder.append(File.pathSeparator).append(file.getAbsolutePath());
   }
 
@@ -312,15 +314,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     builder.environment().put("DYLD_LIBRARY_PATH", ldLibraryPath);
 
     // if we're running under accumulo.start, we forward these env vars
-    String env = System.getenv("HADOOP_PREFIX");
+    String env = System.getenv("HADOOP_HOME");
     if (env != null)
-      builder.environment().put("HADOOP_PREFIX", env);
+      builder.environment().put("HADOOP_HOME", env);
     env = System.getenv("ZOOKEEPER_HOME");
     if (env != null)
       builder.environment().put("ZOOKEEPER_HOME", env);
     builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
-    // hadoop-2.2 puts error messages in the logs if this is not set
-    builder.environment().put("HADOOP_HOME", config.getDir().getAbsolutePath());
     if (config.getHadoopConfDir() != null)
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
 
@@ -349,13 +349,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
-      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo-site", ".xml")
+      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties")
           .toFile();
       Map<String,String> confMap = new HashMap<>();
       confMap.putAll(config.getSiteConfig());
       confMap.putAll(configOverrides);
-      writeConfig(siteFile, confMap.entrySet());
-      jvmOpts.add("-Daccumulo.configuration=" + siteFile.getName());
+      writeConfigProperties(siteFile, confMap);
+      jvmOpts.add("-Daccumulo.properties=" + siteFile.getName());
     }
 
     if (config.isJDWPEnabled()) {
@@ -369,7 +369,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   /**
    *
    * @param dir
-   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in.
+   *          An empty or nonexistent temp directory that Accumulo and Zookeeper can store data in.
    *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
    *          for creating temporary directories.
    * @param rootPassword
@@ -457,8 +457,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File clientPropsFile = config.getClientPropsFile();
     writeConfigProperties(clientPropsFile, clientProps);
 
-    File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
-    writeConfig(siteFile, config.getSiteConfig().entrySet());
+    File siteFile = new File(config.getConfDir(), "accumulo.properties");
+    writeConfigProperties(siteFile, config.getSiteConfig());
+    siteConfig = new SiteConfiguration(siteFile);
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
@@ -522,7 +523,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MiniAccumuloClusterControl control = getClusterControl();
 
     if (config.useExistingInstance()) {
-      Configuration acuConf = config.getAccumuloConfiguration();
+      AccumuloConfiguration acuConf = config.getAccumuloConfiguration();
       Configuration hadoopConf = config.getHadoopConfiguration();
 
       ConfigurationCopy cc = new ConfigurationCopy(acuConf);
@@ -563,18 +564,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             "The Accumulo instance being used is already running. Aborting.");
     } else {
       if (!initialized) {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-          @Override
-          public void run() {
-            try {
-              MiniAccumuloClusterImpl.this.stop();
-            } catch (IOException e) {
-              log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
-            } catch (InterruptedException e) {
-              log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
-            }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+          try {
+            MiniAccumuloClusterImpl.this.stop();
+          } catch (IOException e) {
+            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
+          } catch (InterruptedException e) {
+            log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           }
-        });
+        }));
       }
 
       if (!config.useExistingZooKeepers())
@@ -710,6 +708,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public String getZooKeepers() {
     return config.getZooKeepers();
+  }
+
+  @Override
+  public synchronized ServerContext getServerContext() {
+    if (context == null) {
+      context = new ServerContext(siteConfig);
+    }
+    return context;
   }
 
   /**
@@ -873,5 +879,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public AccumuloConfiguration getSiteConfiguration() {
     return new ConfigurationCopy(
         Iterables.concat(DefaultConfiguration.getInstance(), config.getSiteConfig().entrySet()));
+  }
+
+  @Override
+  public String getAccumuloPropertiesPath() {
+    return new File(config.getConfDir(), "accumulo.properties").toString();
   }
 }

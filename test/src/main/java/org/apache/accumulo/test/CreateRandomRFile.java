@@ -17,6 +17,7 @@
 package org.apache.accumulo.test;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -35,7 +36,8 @@ public class CreateRandomRFile {
   private static String file;
 
   public static byte[] createValue(long rowid, int dataSize) {
-    Random r = new Random(rowid);
+    Random r = new SecureRandom();
+    r.setSeed(rowid);
     byte value[] = new byte[dataSize];
 
     r.nextBytes(value);
@@ -57,7 +59,7 @@ public class CreateRandomRFile {
     num = Integer.parseInt(args[1]);
     long rands[] = new long[num];
 
-    Random r = new Random();
+    Random r = new SecureRandom();
 
     for (int i = 0; i < rands.length; i++) {
       rands[i] = (r.nextLong() & 0x7fffffffffffffffL) % 10000000000L;

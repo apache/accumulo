@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -46,23 +45,18 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
@@ -89,7 +83,7 @@ public class TraceServer implements Watcher {
 
   final private static Logger log = LoggerFactory.getLogger(TraceServer.class);
   final private ServerConfigurationFactory serverConfiguration;
-  final private AccumuloServerContext context;
+  final private ServerContext context;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
@@ -180,8 +174,8 @@ public class TraceServer implements Watcher {
           log.debug("discarded span due to rejection of mutation: " + spanMutation, exception);
         }
         /*
-         * XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this
-         * mutation to a writer that has been closed since we retrieved it
+         * XXX this could be e.g. an IllegalArgumentException if we're trying to write this mutation
+         * to a writer that has been closed since we retrieved it
          */
       } catch (RuntimeException exception) {
         log.warn("Unable to write mutation to table; discarding span. set log"
@@ -192,9 +186,9 @@ public class TraceServer implements Watcher {
 
   }
 
-  public TraceServer(AccumuloServerContext context, String hostname) throws Exception {
+  public TraceServer(ServerContext context, String hostname) throws Exception {
     this.context = context;
-    this.serverConfiguration = context.getServerConfigurationFactory();
+    this.serverConfiguration = context.getServerConfFactory();
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
@@ -353,7 +347,7 @@ public class TraceServer implements Watcher {
   }
 
   private void registerInZooKeeper(String name, String root) throws Exception {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
     log.info("Registering tracer {} at {}", name, root);
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
@@ -406,20 +400,16 @@ public class TraceServer implements Watcher {
     final String app = "tracer";
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
-    loginTracer(SiteConfiguration.getInstance());
-    Instance instance = HdfsZooInstance.getInstance();
-    ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
-    VolumeManager fs = VolumeManagerImpl.get();
+    ServerContext context = new ServerContext(opts.getSiteConfiguration());
+    loginTracer(context.getConfiguration());
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
-    Accumulo.init(fs, instance, conf, app);
-    String hostname = opts.getAddress();
-    AccumuloServerContext context = new AccumuloServerContext(instance, conf);
-    TraceServer server = new TraceServer(context, hostname);
+    Accumulo.init(context, app);
+    TraceServer server = new TraceServer(context, opts.getAddress());
     try {
       server.run();
     } finally {
       log.info("tracer stopping");
-      ZooReaderWriter.getInstance().getZooKeeper().close();
+      context.getZooReaderWriter().getZooKeeper().close();
     }
   }
 
@@ -435,7 +425,7 @@ public class TraceServer implements Watcher {
     }
     if (event.getPath() != null) {
       try {
-        if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
+        if (context.getZooReaderWriter().exists(event.getPath(), this))
           return;
       } catch (Exception ex) {
         log.error("{}", ex.getMessage(), ex);

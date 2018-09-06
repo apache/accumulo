@@ -29,16 +29,18 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class MetadataConstraintsTest {
 
   static class TestMetadataConstraints extends MetadataConstraints {
     @Override
-    protected Arbitrator getArbitrator() {
+    protected Arbitrator getArbitrator(ServerContext context) {
       return new Arbitrator() {
 
         @Override
@@ -56,6 +58,14 @@ public class MetadataConstraintsTest {
     }
   }
 
+  private SystemEnvironment createEnv() {
+    SystemEnvironment env = EasyMock.createMock(SystemEnvironment.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(env.getServerContext()).andReturn(context);
+    EasyMock.replay(env);
+    return env;
+  }
+
   @Test
   public void testCheck() {
     Logger.getLogger(AccumuloConfiguration.class).setLevel(Level.ERROR);
@@ -64,7 +74,7 @@ public class MetadataConstraintsTest {
 
     MetadataConstraints mc = new MetadataConstraints();
 
-    List<Short> violations = mc.check(null, m);
+    List<Short> violations = mc.check(createEnv(), m);
 
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -73,7 +83,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0:foo"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("1poo".getBytes()));
 
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
 
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -82,7 +92,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     m.put(new Text("bad_column_name"), new Text(""), new Value("e".getBytes()));
 
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
 
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -91,7 +101,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("!!<"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("1poo".getBytes()));
 
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
 
     assertNotNull(violations);
     assertEquals(2, violations.size());
@@ -101,7 +111,7 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("".getBytes()));
 
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
 
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -110,21 +120,21 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));
 
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
 
     assertNull(violations);
 
     m = new Mutation(new Text("!0<"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));
 
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
 
     assertNull(violations);
 
     m = new Mutation(new Text("!1<"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar".getBytes()));
 
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
 
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -144,7 +154,7 @@ public class MetadataConstraintsTest {
         new Value("12345".getBytes()));
     m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 8), violations.get(0));
@@ -155,7 +165,7 @@ public class MetadataConstraintsTest {
         new Value("9".getBytes()));
     m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 8), violations.get(0));
@@ -166,14 +176,14 @@ public class MetadataConstraintsTest {
         new Value("5".getBytes()));
     m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // active txid w/o file
     m = new Mutation(new Text("0;foo"));
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"),
         new Value("5".getBytes()));
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 8), violations.get(0));
@@ -188,7 +198,7 @@ public class MetadataConstraintsTest {
         new Value("7".getBytes()));
     m.put(DataFileColumnFamily.NAME, new Text("/someFile2"),
         new DataFileValue(1, 1).encodeAsValue());
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 8), violations.get(0));
@@ -203,7 +213,7 @@ public class MetadataConstraintsTest {
         new Value("5".getBytes()));
     m.put(DataFileColumnFamily.NAME, new Text("/someFile2"),
         new DataFileValue(1, 1).encodeAsValue());
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // two loaded w/ one active txid and one file
@@ -214,7 +224,7 @@ public class MetadataConstraintsTest {
         new DataFileValue(1, 1).encodeAsValue());
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile2"),
         new Value("5".getBytes()));
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 8), violations.get(0));
@@ -224,7 +234,7 @@ public class MetadataConstraintsTest {
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"),
         new Value("5".getBytes()));
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1".getBytes()));
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // inactive txid, mutation that looks like split
@@ -232,7 +242,7 @@ public class MetadataConstraintsTest {
     m.put(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"),
         new Value("12345".getBytes()));
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1".getBytes()));
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // active txid, mutation that looks like a load
@@ -241,7 +251,7 @@ public class MetadataConstraintsTest {
         new Value("5".getBytes()));
     m.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("789"),
         new Value("127.0.0.1:9997".getBytes()));
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // inactive txid, mutation that looks like a load
@@ -250,13 +260,13 @@ public class MetadataConstraintsTest {
         new Value("12345".getBytes()));
     m.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("789"),
         new Value("127.0.0.1:9997".getBytes()));
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // deleting a load flag
     m = new Mutation(new Text("0;foo"));
     m.putDelete(TabletsSection.BulkFileColumnFamily.NAME, new Text("/someFile"));
-    violations = mc.check(null, m);
+    violations = mc.check(createEnv(), m);
     assertNull(violations);
 
   }

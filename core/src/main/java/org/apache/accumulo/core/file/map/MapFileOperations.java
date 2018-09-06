@@ -138,7 +138,7 @@ public class MapFileOperations extends FileOperations {
   }
 
   @Override
-  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
+  protected FileSKVIterator openReader(FileOptions options) throws IOException {
     FileSKVIterator iter = new RangeIterator(new MapFileIterator(options.getTableConfiguration(),
         options.getFileSystem(), options.getFilename(), options.getConfiguration()));
     if (options.isSeekToBeginning()) {
@@ -148,24 +148,24 @@ public class MapFileOperations extends FileOperations {
   }
 
   @Override
-  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
+  protected FileSKVWriter openWriter(FileOptions options) throws IOException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
+  protected FileSKVIterator openIndex(FileOptions options) throws IOException {
     return new SequenceFileIterator(MapFileUtil.openIndex(options.getConfiguration(),
         options.getFileSystem(), new Path(options.getFilename())), false);
   }
 
   @Override
-  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+  protected long getFileSize(FileOptions options) throws IOException {
     return options.getFileSystem()
         .getFileStatus(new Path(options.getFilename() + "/" + MapFile.DATA_FILE_NAME)).getLen();
   }
 
   @Override
-  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
+  protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
     MapFileIterator mfIter = new MapFileIterator(options.getTableConfiguration(),
         options.getFileSystem(), options.getFilename(), options.getConfiguration());
 

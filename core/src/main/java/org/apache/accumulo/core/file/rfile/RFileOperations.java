@@ -33,6 +33,8 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -44,26 +46,26 @@ public class RFileOperations extends FileOperations {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
-  private static RFile.Reader getReader(FileReaderOperation<?> options) throws IOException {
+  private static RFile.Reader getReader(FileOptions options) throws IOException {
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
         new Path(options.getFilename()), options.getConfiguration(), options.getFileLenCache(),
         options.getDataCache(), options.getIndexCache(), options.getRateLimiter(),
-        options.getTableConfiguration());
+        options.getTableConfiguration(), options.getCryptoService());
     return new RFile.Reader(_cbr);
   }
 
   @Override
-  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+  protected long getFileSize(FileOptions options) throws IOException {
     return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
   }
 
   @Override
-  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
+  protected FileSKVIterator openIndex(FileOptions options) throws IOException {
     return getReader(options).getIndex();
   }
 
   @Override
-  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
+  protected FileSKVIterator openReader(FileOptions options) throws IOException {
     RFile.Reader reader = getReader(options);
 
     if (options.isSeekToBeginning()) {
@@ -74,14 +76,14 @@ public class RFileOperations extends FileOperations {
   }
 
   @Override
-  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
+  protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
     RFile.Reader reader = getReader(options);
     reader.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
     return reader;
   }
 
   @Override
-  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
+  protected FileSKVWriter openWriter(FileOptions options) throws IOException {
 
     AccumuloConfiguration acuconf = options.getTableConfiguration();
 
@@ -129,8 +131,15 @@ public class RFileOperations extends FileOperations {
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
 
+    // calls to openWriter from the tserver will already have a crypto service initialized
+    // calls from clients will require a new crypto service
+    CryptoService cryptoService = options.cryptoService;
+    if (cryptoService == null) {
+      cryptoService = CryptoServiceFactory.newInstance(acuconf);
+    }
+
     BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, acuconf);
+        conf, acuconf, cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

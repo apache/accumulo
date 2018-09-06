@@ -22,8 +22,8 @@ import static org.junit.Assert.assertNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerInfo;
@@ -42,7 +42,7 @@ public class LiveTServerSetTest {
         new TServerInstance(HostAndPort.fromParts("localhost", 1234), "5555"), mockConn);
     servers.put("server1", server1);
 
-    LiveTServerSet tservers = new LiveTServerSet(EasyMock.createMock(ClientContext.class),
+    LiveTServerSet tservers = new LiveTServerSet(EasyMock.createMock(ServerContext.class),
         EasyMock.createMock(Listener.class));
 
     assertEquals(server1.instance, tservers.find(servers, "localhost:1234"));

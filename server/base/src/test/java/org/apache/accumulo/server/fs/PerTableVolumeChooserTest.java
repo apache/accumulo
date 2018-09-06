@@ -51,12 +51,12 @@ public class PerTableVolumeChooserTest {
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
-  public void before() throws Exception {
+  public void before() {
     confFactory = createStrictMock(ServerConfigurationFactory.class);
 
     chooser = new PerTableVolumeChooser() {
       @Override
-      ServerConfigurationFactory loadConfFactory() {
+      ServerConfigurationFactory loadConfFactory(VolumeChooserEnvironment env) {
         return confFactory;
       }
 

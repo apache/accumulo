@@ -46,8 +46,8 @@ public class TableRangeOp extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.MERGE)
-        + Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
+    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.MERGE)
+        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.MERGE);
   }
 
   public TableRangeOp(MergeInfo.Operation op, Namespace.ID namespaceId, Table.ID tableId,
@@ -95,8 +95,8 @@ public class TableRangeOp extends MasterRepo {
     if (mergeInfo.getState() != MergeState.NONE)
       log.info("removing merge information {}", mergeInfo);
     env.clearMergeState(tableId);
-    Utils.unreserveNamespace(namespaceId, tid, false);
-    Utils.unreserveTable(tableId, tid, true);
+    Utils.unreserveNamespace(env, namespaceId, tid, false);
+    Utils.unreserveTable(env, tableId, tid, true);
   }
 
 }

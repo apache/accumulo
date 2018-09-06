@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -47,6 +48,11 @@ public interface AccumuloCluster {
   String getZooKeepers();
 
   /**
+   * @return ServerContext
+   */
+  ServerContext getServerContext();
+
+  /**
    * Utility method to get a connector to the cluster.
    */
   Connector getConnector(String user, AuthenticationToken token)
@@ -66,9 +72,16 @@ public interface AccumuloCluster {
   ClientInfo getClientInfo();
 
   /**
-   * Get server side config derived from accumulo-site.xml
+   * Get server side config derived from accumulo.properties
    */
   AccumuloConfiguration getSiteConfiguration();
+
+  /**
+   * Get path to accumulo.properties
+   *
+   * @since 2.0.0
+   */
+  String getAccumuloPropertiesPath();
 
   /**
    * Get an object that can manage a cluster

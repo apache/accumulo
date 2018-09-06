@@ -20,6 +20,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -297,8 +297,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
+   * @deprecated since 2.0.0, use {@link #getClientInfo(JobContext)} instead
    */
-  protected static Instance getInstance(JobContext context) {
+  @Deprecated
+  protected static org.apache.accumulo.core.client.Instance getInstance(JobContext context) {
     return InputConfigurator.getInstance(CLASS, context.getConfiguration());
   }
 
@@ -595,6 +597,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         scannerBase.setSamplerConfiguration(samplerConfig);
       }
 
+      Map<String,String> executionHints = split.getExecutionHints();
+      if (executionHints == null || executionHints.isEmpty()) {
+        executionHints = tableConfig.getExecutionHints();
+      }
+
+      if (executionHints != null) {
+        scannerBase.setExecutionHints(executionHints);
+      }
+
       scannerIterator = scannerBase.iterator();
       numKeysRead = 0;
     }
@@ -661,7 +672,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     Level logLevel = getLogLevel(context);
     log.setLevel(logLevel);
     validateOptions(context);
-    Random random = new Random();
+    Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(context);
     for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {

@@ -34,8 +34,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
@@ -66,7 +64,7 @@ public class ConfiguratorBase {
   protected static final Logger log = Logger.getLogger(ConfiguratorBase.class);
 
   /**
-   * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
+   * Specifies that connection info was configured
    *
    * @since 1.6.0
    */
@@ -299,7 +297,7 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configures a {@link ZooKeeperInstance} for this job.
+   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -323,7 +321,8 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Initializes an Accumulo {@link Instance} based on the configuration.
+   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
+   * configuration.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -331,8 +330,11 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
    * @since 1.6.0
+   * @deprecated since 2.0.0, replaced by {@link #getClientInfo(Class, Configuration)}
    */
-  public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
+  @Deprecated
+  public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
+      Configuration conf) {
     return getConnector(implementingClass, conf).getInstance();
   }
 
@@ -340,7 +342,7 @@ public class ConfiguratorBase {
    * Creates an Accumulo {@link Connector} based on the configuration
    *
    * @param implementingClass
-   *          class whose name will be used as a prefix for the property configu
+   *          class whose name will be used as a prefix for the property configuration
    * @param conf
    *          Hadoop configuration object
    * @return Accumulo connector

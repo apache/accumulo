@@ -23,7 +23,6 @@ import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -107,7 +106,7 @@ public class SyncingTabletLocator extends TabletLocator {
   }
 
   @Override
-  public void invalidateCache(Instance instance, String server) {
-    syncLocator().invalidateCache(instance, server);
+  public void invalidateCache(ClientContext context, String server) {
+    syncLocator().invalidateCache(context, server);
   }
 }

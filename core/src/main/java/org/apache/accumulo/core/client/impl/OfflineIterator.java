@@ -383,7 +383,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     defaultSecurityLabel = cv.getExpression();
 
     SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter,
-        new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel);
+        new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel, acuTableConf);
 
     return iterEnv.getTopLevelIterator(
         IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf,

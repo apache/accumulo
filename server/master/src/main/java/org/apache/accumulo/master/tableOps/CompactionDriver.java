@@ -47,7 +47,6 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;
@@ -74,10 +73,10 @@ class CompactionDriver extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    String zCancelID = Constants.ZROOT + "/" + master.getInstance().getInstanceID()
-        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    String zCancelID = Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = master.getContext().getZooReaderWriter();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID, null))) >= compactId) {
       // compaction was canceled
@@ -144,12 +143,13 @@ class CompactionDriver extends MasterRepo {
 
     long scanTime = System.currentTimeMillis() - t1;
 
-    Tables.clearCache(master);
-    if (tabletCount == 0 && !Tables.exists(master, tableId))
+    Tables.clearCache(master.getContext());
+    if (tabletCount == 0 && !Tables.exists(master.getContext(), tableId))
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 
-    if (serversToFlush.size() == 0 && Tables.getTableState(master, tableId) == TableState.OFFLINE)
+    if (serversToFlush.size() == 0
+        && Tables.getTableState(master.getContext(), tableId) == TableState.OFFLINE)
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
 
@@ -184,8 +184,8 @@ class CompactionDriver extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     CompactRange.removeIterators(env, tid, tableId);
-    Utils.getReadLock(tableId, tid).unlock();
-    Utils.getReadLock(namespaceId, tid).unlock();
+    Utils.getReadLock(env, tableId, tid).unlock();
+    Utils.getReadLock(env, namespaceId, tid).unlock();
     return null;
   }
 

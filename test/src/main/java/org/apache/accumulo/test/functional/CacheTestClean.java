@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -30,7 +31,8 @@ public class CacheTestClean {
     String rootDir = args[0];
     File reportDir = new File(args[1]);
 
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    SiteConfiguration siteConfig = new SiteConfiguration();
+    IZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
 
     if (zoo.exists(rootDir)) {
       zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);

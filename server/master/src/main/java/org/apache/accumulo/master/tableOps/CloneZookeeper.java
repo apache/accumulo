@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 
 class CloneZookeeper extends MasterRepo {
 
@@ -43,8 +42,10 @@ class CloneZookeeper extends MasterRepo {
   public long isReady(long tid, Master environment) throws Exception {
     long val = 0;
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
-      val += Utils.reserveNamespace(cloneInfo.namespaceId, tid, false, true, TableOperation.CLONE);
-    val += Utils.reserveTable(cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
+      val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, tid, false, true,
+          TableOperation.CLONE);
+    val += Utils.reserveTable(environment, cloneInfo.tableId, tid, true, false,
+        TableOperation.CLONE);
     return val;
   }
 
@@ -54,13 +55,13 @@ class CloneZookeeper extends MasterRepo {
     try {
       // write tableName & tableId to zookeeper
 
-      Utils.checkTableDoesNotExist(environment, cloneInfo.tableName, cloneInfo.tableId,
+      Utils.checkTableDoesNotExist(environment.getContext(), cloneInfo.tableName, cloneInfo.tableId,
           TableOperation.CLONE);
 
-      TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
+      environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
-      Tables.clearCache(environment.getInstance());
+      Tables.clearCache(environment.getContext());
 
       return new CloneMetadata(cloneInfo);
     } finally {
@@ -70,11 +71,11 @@ class CloneZookeeper extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    TableManager.getInstance().removeTable(cloneInfo.tableId);
+    environment.getTableManager().removeTable(cloneInfo.tableId);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
-      Utils.unreserveNamespace(cloneInfo.namespaceId, tid, false);
-    Utils.unreserveTable(cloneInfo.tableId, tid, true);
-    Tables.clearCache(environment.getInstance());
+      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
+    Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
+    Tables.clearCache(environment.getContext());
   }
 
 }

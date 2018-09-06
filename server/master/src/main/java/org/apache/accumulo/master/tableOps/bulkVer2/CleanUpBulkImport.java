@@ -47,16 +47,16 @@ public class CleanUpBulkImport extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug("removing the bulkDir processing flag file in " + info.bulkDir);
     Path bulkDir = new Path(info.bulkDir);
-    MetadataTableUtil.removeBulkLoadInProgressFlag(master,
+    MetadataTableUtil.removeBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    MetadataTableUtil.addDeleteEntry(master, info.tableId, bulkDir.toString());
+    MetadataTableUtil.addDeleteEntry(master.getContext(), info.tableId, bulkDir.toString());
     if (info.tableState == TableState.ONLINE) {
       log.debug("removing the metadata table markers for loaded files");
       Connector conn = master.getConnector();
       MetadataTableUtil.removeBulkLoadEntries(conn, info.tableId, tid);
     }
-    Utils.unreserveHdfsDirectory(info.sourceDir, tid);
-    Utils.getReadLock(info.tableId, tid).unlock();
+    Utils.unreserveHdfsDirectory(master, info.sourceDir, tid);
+    Utils.getReadLock(master, info.tableId, tid).unlock();
     // delete json renames and mapping files
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
@@ -69,7 +69,7 @@ public class CleanUpBulkImport extends MasterRepo {
 
     log.debug("completing bulkDir import transaction " + tid);
     if (info.tableState == TableState.ONLINE) {
-      ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
+      ZooArbitrator.cleanup(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     }
     return null;
   }

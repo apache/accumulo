@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.core.file.rfile;
 
+import java.security.SecureRandom;
 import java.util.Random;
 import java.util.function.IntSupplier;
 
@@ -59,7 +60,7 @@ public class RolllingStatsTest {
 
   private static class StatTester {
 
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
     private DescriptiveStatistics ds;
     private RollingStats rs;
     private RollingStats rsp;
@@ -92,7 +93,7 @@ public class RolllingStatsTest {
   public void testFewSizes() {
     StatTester st = new StatTester(1019);
     int[] keySizes = {103, 113, 123, 2345};
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
     for (int i = 0; i < 10000; i++) {
       st.addValue(keySizes[rand.nextInt(keySizes.length)]);
     }
@@ -118,7 +119,7 @@ public class RolllingStatsTest {
 
       StatTester st = new StatTester(windowSize);
 
-      Random rand = new Random();
+      Random rand = new SecureRandom();
 
       for (int i = 0; i < 1000; i++) {
         int v = 200 + rand.nextInt(50);
@@ -173,7 +174,7 @@ public class RolllingStatsTest {
   @Test
   public void testSpikes() {
 
-    Random rand = new Random();
+    Random rand = new SecureRandom();
 
     StatTester st = new StatTester(3017);
 

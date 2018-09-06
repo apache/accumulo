@@ -53,7 +53,7 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -111,7 +111,7 @@ public class Compactor implements Callable<CompactionStats> {
   // a unique id to identify a compactor
   private final long compactorID = nextCompactorID.getAndIncrement();
   protected volatile Thread thread;
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
   public long getCompactorID() {
     return compactorID;
@@ -145,7 +145,7 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(AccumuloServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
+  public Compactor(ServerContext context, Tablet tablet, Map<FileRef,DataFileValue> files,
       InMemoryMap imm, FileRef outputFile, boolean propogateDeletes, CompactionEnv env,
       List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
     this.context = context;
@@ -201,7 +201,8 @@ public class Compactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
       mfw = fileFactory.newWriterBuilder().forFile(outputFilePathName, ns, ns.getConf())
-          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
+          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter())
+          .withCryptoService(context.getCryptoService()).build();
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -290,7 +291,8 @@ public class Compactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder().forFile(mapFile.path().toString(), fs, fs.getConf())
-            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
+            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
+            .withCryptoService(context.getCryptoService()).build();
 
         readers.add(reader);
 
@@ -344,17 +346,18 @@ public class Compactor implements Callable<CompactionStats> {
 
       CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()),
           entriesRead);
-      DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
+      SortedKeyValueIterator<Key,Value> delIter = DeletingIterator.wrap(citr, propogateDeletes,
+          DeletingIterator.getBehavior(acuTableConf));
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
       // if(env.getIteratorScope() )
 
       TabletIteratorEnvironment iterEnv;
       if (env.getIteratorScope() == IteratorScope.majc)
-        iterEnv = new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes, acuTableConf,
-            getMajorCompactionReason());
+        iterEnv = new TabletIteratorEnvironment(context, IteratorScope.majc, !propogateDeletes,
+            acuTableConf, getMajorCompactionReason());
       else if (env.getIteratorScope() == IteratorScope.minc)
-        iterEnv = new TabletIteratorEnvironment(IteratorScope.minc, acuTableConf);
+        iterEnv = new TabletIteratorEnvironment(context, IteratorScope.minc, acuTableConf);
       else
         throw new IllegalArgumentException();
 

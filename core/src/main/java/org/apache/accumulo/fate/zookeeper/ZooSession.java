@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +53,8 @@ public class ZooSession {
   }
 
   private static Map<String,ZooSessionInfo> sessions = new HashMap<>();
+
+  private static final SecureRandom secureRandom = new SecureRandom();
 
   private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
     return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":"
@@ -107,7 +110,7 @@ public class ZooSession {
       } catch (IOException e) {
         if (e instanceof UnknownHostException) {
           /*
-           * Make sure we wait atleast as long as the JVM TTL for negative DNS responses
+           * Make sure we wait at least as long as the JVM TTL for negative DNS responses
            */
           sleepTime = Math.max(sleepTime,
               (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);
@@ -138,7 +141,7 @@ public class ZooSession {
         }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
-          sleepTime = sleepTime + (long) (sleepTime * Math.random());
+          sleepTime = sleepTime + (long) (sleepTime * secureRandom.nextDouble());
       }
     }
 

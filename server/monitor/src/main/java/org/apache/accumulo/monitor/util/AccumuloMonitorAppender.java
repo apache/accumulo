@@ -27,14 +27,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.net.SocketAppender;
@@ -139,17 +137,17 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
     // path and zooCache are lazily set the first time this tracker is run
     // this allows the tracker to be constructed and scheduled during log4j initialization without
     // triggering any actual logs from the Accumulo or ZooKeeper code
+    private ServerContext context = null;
     private String path = null;
     private ZooCache zooCache = null;
 
     @Override
     public MonitorLocation get() {
       // lazily set up path and zooCache (see comment in constructor)
-      if (this.zooCache == null) {
-        Instance instance = HdfsZooInstance.getInstance();
-        this.path = ZooUtil.getRoot(instance) + Constants.ZMONITOR_LOG4J_ADDR;
-        this.zooCache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
-            instance.getZooKeepersSessionTimeOut());
+      if (this.context == null) {
+        this.context = new ServerContext(new SiteConfiguration());
+        this.path = context.getZooKeeperRoot() + Constants.ZMONITOR_LOG4J_ADDR;
+        this.zooCache = context.getZooCache();
       }
 
       // get the current location from the cache and update if necessary

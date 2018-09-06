@@ -100,7 +100,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     bw.close();
 
     conn.tableOperations().flush("table1", null, null, true);
-    // TOOD use constants
+    // TODO use constants
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
 
@@ -135,7 +135,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
 
     MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
     macConfig2.useExistingInstance(
-        new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
+        new File(getCluster().getConfig().getConfDir(), "accumulo.properties"), hadoopConfDir);
 
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
@@ -176,10 +176,10 @@ public class ExistingMacIT extends ConfigurableMacBase {
 
     MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
     macConfig2.useExistingInstance(
-        new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
+        new File(getCluster().getConfig().getConfDir(), "accumulo.properties"), hadoopConfDir);
 
     System.out
-        .println("conf " + new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"));
+        .println("conf " + new File(getCluster().getConfig().getConfDir(), "accumulo.properties"));
 
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     try {

@@ -31,6 +31,7 @@ import static org.apache.accumulo.test.functional.BasicSummarizer.MIN_TIMESTAMP_
 import static org.apache.accumulo.test.functional.BasicSummarizer.TOTAL_STAT;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -336,7 +337,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
         MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    // retrieve a non-existant summary
+    // retrieve a nonexistent summary
     SummarizerConfiguration sc3 = SummarizerConfiguration.builder(KeySizeSummarizer.class.getName())
         .addOption("maxLen", "256").build();
     summaries = c.tableOperations().summaries(table).withConfiguration(sc3).retrieve();
@@ -433,8 +434,8 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   /**
-   * A compaction strategy that intitiates a compaction when {@code foo} occurs more than
-   * {@code bar} in the data. The {@link FooCounter} summary data is used to make the determination.
+   * A compaction strategy that initiates a compaction when {@code foo} occurs more than {@code bar}
+   * in the data. The {@link FooCounter} summary data is used to make the determination.
    */
   public static class FooCS extends CompactionStrategy {
 
@@ -831,7 +832,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
     c.tableOperations().create(table, ntc);
 
-    Random rand = new Random(42);
+    Random rand = new SecureRandom();
     int q = 0;
 
     SortedSet<Text> partitionKeys = new TreeSet<>();

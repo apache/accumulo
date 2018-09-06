@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -40,14 +39,13 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -68,7 +66,7 @@ public class LiveTServerSet implements Watcher {
   private static final Logger log = LoggerFactory.getLogger(LiveTServerSet.class);
 
   private final Listener cback;
-  private final ClientContext context;
+  private final ServerContext context;
   private ZooCache zooCache;
 
   public class TServerConnection {
@@ -79,8 +77,7 @@ public class LiveTServerSet implements Watcher {
     }
 
     private String lockString(ZooLock mlock) {
-      return mlock.getLockID()
-          .serialize(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZMASTER_LOCK);
+      return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMASTER_LOCK);
     }
 
     private void loadTablet(TabletClientService.Client client, ZooLock lock, KeyExtent extent)
@@ -243,14 +240,14 @@ public class LiveTServerSet implements Watcher {
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private Map<String,Long> locklessServers = new HashMap<>();
 
-  public LiveTServerSet(ClientContext context, Listener cback) {
+  public LiveTServerSet(ServerContext context, Listener cback) {
     this.cback = cback;
     this.context = context;
   }
 
   public synchronized ZooCache getZooCache() {
     if (zooCache == null)
-      zooCache = new ZooCache(this);
+      zooCache = new ZooCache(context.getZooReaderWriter(), this);
     return zooCache;
   }
 
@@ -269,7 +266,7 @@ public class LiveTServerSet implements Watcher {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
 
-      final String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
+      final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
       HashSet<String> all = new HashSet<>(current.keySet());
       all.addAll(getZooCache().getChildren(path));
@@ -290,7 +287,7 @@ public class LiveTServerSet implements Watcher {
 
   private void deleteServerNode(String serverNode) throws InterruptedException, KeeperException {
     try {
-      ZooReaderWriter.getInstance().delete(serverNode, -1);
+      context.getZooReaderWriter().delete(serverNode, -1);
     } catch (NotEmptyException | NoNodeException ex) {
       // race condition: tserver created the lock after our last check; we'll see it at the next
       // check
@@ -364,7 +361,7 @@ public class LiveTServerSet implements Watcher {
           final Set<TServerInstance> updates = new HashSet<>();
           final Set<TServerInstance> doomed = new HashSet<>();
 
-          final String path = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS;
+          final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
           try {
             checkServer(updates, doomed, path, server);
@@ -437,9 +434,9 @@ public class LiveTServerSet implements Watcher {
     currentInstances.remove(server);
 
     log.info("Removing zookeeper lock for {}", server);
-    String fullpath = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS + "/" + zPath;
+    String fullpath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + zPath;
     try {
-      ZooReaderWriter.getInstance().recursiveDelete(fullpath, SKIP);
+      context.getZooReaderWriter().recursiveDelete(fullpath, SKIP);
     } catch (Exception e) {
       String msg = "error removing tablet server lock";
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility

@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -160,7 +161,7 @@ public class TestBinaryRows {
     } else if (opts.mode.equals("randomLookups")) {
       int numLookups = 1000;
 
-      Random r = new Random();
+      Random r = new SecureRandom();
 
       long t1 = System.currentTimeMillis();
 

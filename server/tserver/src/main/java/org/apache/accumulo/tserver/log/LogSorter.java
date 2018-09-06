@@ -35,7 +35,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -232,7 +231,7 @@ public class LogSorter {
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
       throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
-    new DistributedWorkQueue(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZRECOVERY, conf)
+    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, conf)
         .startProcessing(new LogProcessor(), this.threadPool);
   }
 

@@ -145,7 +145,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
         log.trace("{} lookup failed", src.tablet_extent.getTableId(), e);
-      parent.invalidateCache(context.getInstance(), src.tablet_location);
+      parent.invalidateCache(context, src.tablet_location);
     }
 
     return null;
@@ -178,16 +178,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     final TreeMap<Key,Value> results = new TreeMap<>();
 
-    ResultReceiver rr = new ResultReceiver() {
-
-      @Override
-      public void receive(List<Entry<Key,Value>> entries) {
-        for (Entry<Key,Value> entry : entries) {
-          try {
-            results.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
+    ResultReceiver rr = entries -> {
+      for (Entry<Key,Value> entry : entries) {
+        try {
+          results.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
       }
     };
@@ -210,7 +206,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     } catch (IOException e) {
       log.trace("lookupTablets failed server={}", tserver, e);
-      parent.invalidateCache(context.getInstance(), tserver);
+      parent.invalidateCache(context, tserver);
     } catch (AccumuloServerException e) {
       log.trace("lookupTablets failed server={}", tserver, e);
       throw e;

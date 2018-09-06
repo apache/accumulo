@@ -22,14 +22,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -51,22 +51,22 @@ public class LargestFirstMemoryManagerTest {
   private static final long QGIG = ONE_GIG / 4;
   private static final long ONE_MINUTE = 60 * 1000;
 
-  private Instance inst;
+  private ServerContext context;
 
   @Before
-  public void mockInstance() {
-    inst = EasyMock.createMock(Instance.class);
+  public void mockServerInfo() {
+    context = EasyMock.createMock(ServerContext.class);
   }
 
   @Test
   public void test() throws Exception {
     LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
     ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
+      ServerConfigurationFactory delegate = context.getServerConfFactory();
 
       @Override
       public AccumuloConfiguration getSystemConfiguration() {
-        SiteConfiguration conf = SiteConfiguration.getInstance();
+        ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
         conf.set(Property.TSERV_MAXMEM, "1g");
         return conf;
       }
@@ -200,7 +200,7 @@ public class LargestFirstMemoryManagerTest {
       new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
     // @formatter:on
     ServerConfiguration config = new ServerConfiguration() {
-      ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
+      ServerConfigurationFactory delegate = context.getServerConfFactory();
 
       @Override
       public AccumuloConfiguration getSystemConfiguration() {
@@ -243,7 +243,7 @@ public class LargestFirstMemoryManagerTest {
     }
 
     @Override
-    protected boolean tableExists(Instance instance, Table.ID tableId) {
+    protected boolean tableExists(Table.ID tableId) {
       return true;
     }
   }
@@ -259,7 +259,7 @@ public class LargestFirstMemoryManagerTest {
     }
 
     @Override
-    protected boolean tableExists(Instance instance, Table.ID tableId) {
+    protected boolean tableExists(Table.ID tableId) {
       return existenceCheck.apply(tableId);
     }
   }

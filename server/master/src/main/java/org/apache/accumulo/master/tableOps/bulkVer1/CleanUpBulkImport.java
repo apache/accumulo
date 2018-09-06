@@ -53,18 +53,18 @@ public class CleanUpBulkImport extends MasterRepo {
     master.updateBulkImportStatus(source, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
-    MetadataTableUtil.removeBulkLoadInProgressFlag(master,
+    MetadataTableUtil.removeBulkLoadInProgressFlag(master.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    MetadataTableUtil.addDeleteEntry(master, tableId, bulkDir.toString());
+    MetadataTableUtil.addDeleteEntry(master.getContext(), tableId, bulkDir.toString());
     log.debug("removing the metadata table markers for loaded files");
     Connector conn = master.getConnector();
     MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
-    Utils.unreserveHdfsDirectory(source, tid);
-    Utils.unreserveHdfsDirectory(error, tid);
-    Utils.getReadLock(tableId, tid).unlock();
+    Utils.unreserveHdfsDirectory(master, source, tid);
+    Utils.unreserveHdfsDirectory(master, error, tid);
+    Utils.getReadLock(master, tableId, tid).unlock();
     log.debug("completing bulkDir import transaction " + tid);
-    ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
+    ZooArbitrator.cleanup(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     master.removeBulkImportStatus(source);
     return null;
   }

@@ -43,7 +43,7 @@ public class Scanner {
   /**
    * A fair semaphore of one is used since explicitly know the access pattern will be one thread to
    * read and another to call close if the session becomes idle. Since we're explicitly preventing
-   * re-entrance, we're currently using a Sempahore. If at any point we decide read needs to be
+   * re-entrance, we're currently using a Semaphore. If at any point we decide read needs to be
    * re-entrant, we can switch to a Reentrant lock.
    */
   private Semaphore scannerSemaphore;

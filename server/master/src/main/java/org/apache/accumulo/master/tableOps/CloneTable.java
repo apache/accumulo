@@ -43,9 +43,10 @@ public class CloneTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    long val = Utils.reserveNamespace(cloneInfo.srcNamespaceId, tid, false, true,
+    long val = Utils.reserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false, true,
         TableOperation.CLONE);
-    val += Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
+    val += Utils.reserveTable(environment, cloneInfo.srcTableId, tid, false, true,
+        TableOperation.CLONE);
     return val;
   }
 
@@ -54,7 +55,7 @@ public class CloneTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      cloneInfo.tableId = Utils.getNextId(cloneInfo.tableName, environment.getInstance(),
+      cloneInfo.tableId = Utils.getNextId(cloneInfo.tableName, environment.getContext(),
           Table.ID::of);
       return new ClonePermissions(cloneInfo);
     } finally {
@@ -64,8 +65,8 @@ public class CloneTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    Utils.unreserveNamespace(cloneInfo.srcNamespaceId, tid, false);
-    Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
+    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
+    Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
   }
 
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -71,8 +72,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     Connector c = getConnector();
     final String readAhead = c.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey());
-    c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "1");
+        .get(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey());
+    c.instanceOperations().setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "1");
     try {
       Thread.sleep(1000);
       final String[] tables = getUniqueNames(4);
@@ -160,7 +161,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         }
       }
     } finally {
-      c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(),
+      c.instanceOperations().setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(),
           readAhead);
     }
   }
@@ -176,7 +177,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
 
   private long query(Connector c, String table, int depth, long start, long end, int num, int step)
       throws Exception {
-    Random r = new Random(42);
+    Random r = new SecureRandom();
 
     HashSet<Long> expected = new HashSet<>();
     List<Range> ranges = new ArrayList<>(num);

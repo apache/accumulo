@@ -39,7 +39,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.master.state.MergeStats;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -105,7 +105,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloServerContext context = EasyMock.createMock(AccumuloServerContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     Connector connector = getConnector();
     EasyMock.expect(context.getConnector()).andReturn(connector).anyTimes();
     EasyMock.replay(context);

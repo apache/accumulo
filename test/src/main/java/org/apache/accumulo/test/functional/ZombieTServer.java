@@ -19,13 +19,14 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
@@ -35,13 +36,10 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -65,7 +63,7 @@ public class ZombieTServer {
 
     boolean halted = false;
 
-    ThriftClientHandler(AccumuloServerContext context, TransactionWatcher watcher) {
+    ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
       super(context, watcher);
     }
 
@@ -101,13 +99,11 @@ public class ZombieTServer {
   private static final Logger log = LoggerFactory.getLogger(ZombieTServer.class);
 
   public static void main(String[] args) throws Exception {
-    Random random = new Random(System.currentTimeMillis() % 1000);
+    Random random = new SecureRandom();
+    random.setSeed(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
-    Instance instance = HdfsZooInstance.getInstance();
-    AccumuloServerContext context = new AccumuloServerContext(instance,
-        new ServerConfigurationFactory(instance));
-
-    TransactionWatcher watcher = new TransactionWatcher();
+    ServerContext context = new ServerContext(new SiteConfiguration());
+    TransactionWatcher watcher = new TransactionWatcher(context);
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
     ServerAddress serverPort = TServerUtils.startTServer(context.getConfiguration(),
@@ -115,12 +111,11 @@ public class ZombieTServer {
         10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
-    String zPath = ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS + "/"
-        + addressString;
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    String zPath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString;
+    ZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ZooLock zlock = new ZooLock(zPath);
+    ZooLock zlock = new ZooLock(zoo, zPath);
 
     LockWatcher lw = new LockWatcher() {
       @Override

@@ -32,10 +32,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -45,14 +45,10 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -74,9 +70,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
   private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS,
       new LinkedBlockingQueue<>(500), new NamingThreadFactory("acu-problem-reporter"));
 
-  private final AccumuloServerContext context;
+  private final ServerContext context;
 
-  public ProblemReports(AccumuloServerContext context) {
+  public ProblemReports(ServerContext context) {
     this.context = context;
   }
 
@@ -101,7 +97,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         try {
           if (isMeta(pr.getTableId())) {
             // file report in zookeeper
-            pr.saveToZooKeeper();
+            pr.saveToZooKeeper(context);
           } else {
             // file report in metadata table
             pr.saveToMetadataTable(context);
@@ -140,7 +136,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         try {
           if (isMeta(pr.getTableId())) {
             // file report in zookeeper
-            pr.removeFromZooKeeper();
+            pr.removeFromZooKeeper(context);
           } else {
             // file report in metadata table
             pr.removeFromMetadataTable(context);
@@ -167,7 +163,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     if (isMeta(table)) {
       Iterator<ProblemReport> pri = iterator(table);
       while (pri.hasNext()) {
-        pri.next().removeFromZooKeeper();
+        pri.next().removeFromZooKeeper(context);
       }
       return;
     }
@@ -199,7 +195,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
       return new Iterator<ProblemReport>() {
 
-        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        IZooReaderWriter zoo = context.getZooReaderWriter();
         private int iter1Count = 0;
         private Iterator<String> iter1;
 
@@ -208,8 +204,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             try {
               List<String> children;
               if (table == null || isMeta(table)) {
-                children = zoo
-                    .getChildren(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZPROBLEMS);
+                children = zoo.getChildren(context.getZooKeeperRoot() + Constants.ZPROBLEMS);
               } else {
                 children = Collections.emptyList();
               }
@@ -266,7 +261,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           try {
             if (getIter1().hasNext()) {
               iter1Count++;
-              return ProblemReport.decodeZooKeeperEntry(getIter1().next());
+              return ProblemReport.decodeZooKeeperEntry(context, getIter1().next());
             }
 
             if (getIter2().hasNext()) {
@@ -296,7 +291,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     return iterator(null);
   }
 
-  public static synchronized ProblemReports getInstance(AccumuloServerContext context) {
+  public static synchronized ProblemReports getInstance(ServerContext context) {
     if (instance == null) {
       instance = new ProblemReports(context);
     }
@@ -305,9 +300,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String args[]) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
-    getInstance(new AccumuloServerContext(instance, new ServerConfigurationFactory(instance)))
-        .printProblems();
+    ServerContext context = new ServerContext(new SiteConfiguration());
+    getInstance(context).printProblems();
   }
 
   public Map<Table.ID,Map<ProblemType,Integer>> summarize() {

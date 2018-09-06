@@ -21,13 +21,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooCache;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,18 +33,17 @@ public class ZooStore implements DistributedStore {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
 
-  String basePath;
+  private ServerContext context;
+  private String basePath;
+  private ZooCache cache;
 
-  ZooCache cache = new ZooCache();
-
-  public ZooStore(String basePath) throws IOException {
-    if (basePath.endsWith("/"))
-      basePath = basePath.substring(0, basePath.length() - 1);
-    this.basePath = basePath;
-  }
-
-  public ZooStore() throws IOException {
-    this(ZooUtil.getRoot(HdfsZooInstance.getInstance().getInstanceID()));
+  public ZooStore(ServerContext context) throws IOException {
+    this.context = context;
+    cache = new ZooCache(context);
+    String zkRoot = context.getZooKeeperRoot();
+    if (zkRoot.endsWith("/"))
+      zkRoot = zkRoot.substring(0, zkRoot.length() - 1);
+    this.basePath = zkRoot;
   }
 
   @Override
@@ -75,7 +72,7 @@ public class ZooStore implements DistributedStore {
   public void put(String path, byte[] bs) throws DistributedStoreException {
     try {
       path = relative(path);
-      ZooReaderWriter.getInstance().putPersistentData(path, bs, NodeExistsPolicy.OVERWRITE);
+      context.getZooReaderWriter().putPersistentData(path, bs, NodeExistsPolicy.OVERWRITE);
       cache.clear();
       log.debug("Wrote {} to {}", new String(bs, UTF_8), path);
     } catch (Exception ex) {
@@ -88,7 +85,7 @@ public class ZooStore implements DistributedStore {
     try {
       log.debug("Removing {}", path);
       path = relative(path);
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = context.getZooReaderWriter();
       if (zoo.exists(path))
         zoo.recursiveDelete(path, NodeMissingPolicy.SKIP);
       cache.clear();

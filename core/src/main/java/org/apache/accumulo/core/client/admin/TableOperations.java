@@ -365,7 +365,7 @@ public interface TableOperations {
    *
    * <p>
    * Only one compact call at a time can pass iterators and/or a compaction strategy. If two threads
-   * call compaction with iterators and/or a copmaction strategy, then one will fail.
+   * call compaction with iterators and/or a compaction strategy, then one will fail.
    *
    * @param tableName
    *          the table to compact

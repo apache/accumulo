@@ -22,10 +22,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 
 public class ShellUtil {
 
@@ -54,5 +61,21 @@ public class ShellUtil {
       }
     }
     return result;
+  }
+
+  public static Map<String,String> parseMapOpt(CommandLine cl, Option opt) {
+    if (cl.hasOption(opt.getLongOpt())) {
+      Builder<String,String> builder = ImmutableMap.builder();
+      String[] keyVals = cl.getOptionValue(opt.getLongOpt()).split(",");
+      for (String keyVal : keyVals) {
+        String[] sa = keyVal.split("=");
+        builder.put(sa[0], sa[1]);
+      }
+
+      return builder.build();
+    } else {
+      return Collections.emptyMap();
+    }
+
   }
 }

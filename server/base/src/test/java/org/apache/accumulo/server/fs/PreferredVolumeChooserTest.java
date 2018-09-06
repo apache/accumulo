@@ -52,12 +52,12 @@ public class PreferredVolumeChooserTest {
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
-  public void before() throws Exception {
+  public void before() {
     confFactory = createStrictMock(ServerConfigurationFactory.class);
 
     chooser = new PreferredVolumeChooser() {
       @Override
-      ServerConfigurationFactory loadConfFactory() {
+      ServerConfigurationFactory loadConfFactory(VolumeChooserEnvironment env) {
         return confFactory;
       }
     };

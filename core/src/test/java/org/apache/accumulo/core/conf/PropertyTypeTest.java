@@ -68,7 +68,7 @@ public class PropertyTypeTest {
   public void testFullCoverage() {
     // This test checks the remainder of the methods in this class to ensure each property type has
     // a corresponding test
-    Stream<String> types = Arrays.stream(PropertyType.values()).map(v -> v.name());
+    Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum::name);
 
     List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(m -> m.getName())
         .filter(m -> m.startsWith("testType")).map(m -> m.substring(8))

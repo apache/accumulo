@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.constraints.Constraint;
@@ -41,7 +42,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -107,6 +108,7 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
+    final ServerContext context = ((SystemEnvironment) env).getServerContext();
 
     ArrayList<Short> violations = null;
 
@@ -229,8 +231,8 @@ public class MetadataConstraints implements Constraint {
             long tid = Long.parseLong(tidString);
 
             try {
-              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)
-                  || !getArbitrator().transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
+              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator(context)
+                  .transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
                 violations = addViolation(violations, 8);
               }
             } catch (Exception ex) {
@@ -260,11 +262,11 @@ public class MetadataConstraints implements Constraint {
         } else if (new ColumnFQ(columnUpdate)
             .equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
           if (zooCache == null) {
-            zooCache = new ZooCache();
+            zooCache = new ZooCache(context);
           }
 
           if (zooRoot == null) {
-            zooRoot = ZooUtil.getRoot(HdfsZooInstance.getInstance());
+            zooRoot = context.getZooKeeperRoot();
           }
 
           boolean lockHeld = false;
@@ -280,7 +282,6 @@ public class MetadataConstraints implements Constraint {
             violations = addViolation(violations, 7);
           }
         }
-
       }
     }
 
@@ -296,8 +297,9 @@ public class MetadataConstraints implements Constraint {
     return violations;
   }
 
-  protected Arbitrator getArbitrator() {
-    return new ZooArbitrator();
+  protected Arbitrator getArbitrator(ServerContext context) {
+    Objects.nonNull(context);
+    return new ZooArbitrator(context);
   }
 
   @Override
@@ -328,5 +330,4 @@ public class MetadataConstraints implements Constraint {
     if (zooCache != null)
       zooCache.clear();
   }
-
 }

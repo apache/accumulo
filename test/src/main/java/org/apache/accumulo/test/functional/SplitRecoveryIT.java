@@ -31,11 +31,11 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Writer;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -47,15 +47,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -81,13 +77,11 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         prevEndRow == null ? null : new Text(prevEndRow));
   }
 
-  private void run() throws Exception {
-    Instance inst = HdfsZooInstance.getInstance();
-    AccumuloServerContext c = new AccumuloServerContext(inst, new ServerConfigurationFactory(inst));
-    String zPath = ZooUtil.getRoot(inst) + "/testLock";
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+  private void run(ServerContext c) throws Exception {
+    String zPath = c.getZooKeeperRoot() + "/testLock";
+    ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(zPath);
+    ZooLock zl = new ZooLock(zoo, zPath);
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @Override
@@ -135,7 +129,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         nke("foob", null, "r"));
   }
 
-  private void runSplitRecoveryTest(AccumuloServerContext context, int failPoint, String mr,
+  private void runSplitRecoveryTest(ServerContext context, int failPoint, String mr,
       int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
 
     Text midRow = new Text(mr);
@@ -145,7 +139,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
 
-      String tdir = ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId() + "/dir_" + i;
+      String tdir = ServerConstants.getTablesDirs(context.getConfiguration())[0] + "/"
+          + extent.getTableId() + "/dir_" + i;
       MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),
@@ -155,7 +150,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         splitMapFiles = mapFiles;
       }
       int tid = 0;
-      TransactionWatcher.ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
+      TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
       MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles, "L0", context, zl);
     }
 
@@ -168,9 +163,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         "localhost:1234", failPoint, zl);
   }
 
-  private void splitPartiallyAndRecover(AccumuloServerContext context, KeyExtent extent,
-      KeyExtent high, KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles,
-      Text midRow, String location, int steps, ZooLock zl) throws Exception {
+  private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
+      KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles, Text midRow,
+      String location, int steps, ZooLock zl) throws Exception {
 
     SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
@@ -221,8 +216,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  private void ensureTabletHasNoUnexpectedMetadataEntries(AccumuloServerContext context,
-      KeyExtent extent, SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
+  private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
+      SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetadataRange());
 
@@ -291,7 +286,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run();
+    new SplitRecoveryIT().run(new ServerContext(new SiteConfiguration()));
   }
 
   @Test

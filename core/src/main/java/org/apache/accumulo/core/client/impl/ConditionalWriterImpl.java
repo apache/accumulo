@@ -78,9 +78,7 @@ import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections.map.LRUMap;
@@ -401,15 +399,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.durability = config.getDurability();
     this.classLoaderContext = config.getClassLoaderContext();
 
-    Runnable failureHandler = new Runnable() {
-
-      @Override
-      public void run() {
-        List<QCMutation> mutations = new ArrayList<>();
-        failedMutations.drainTo(mutations);
-        if (mutations.size() > 0)
-          queue(mutations);
-      }
+    Runnable failureHandler = () -> {
+      List<QCMutation> mutations = new ArrayList<>();
+      failedMutations.drainTo(mutations);
+      if (mutations.size() > 0)
+        queue(mutations);
     };
 
     failureHandler = new LoggingRunnable(log, failureHandler);
@@ -631,12 +625,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
           Tables.getPrintableTableInfoFromId(context, tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TTransportException e) {
-      locator.invalidateCache(context.getInstance(), location.toString());
+      locator.invalidateCache(context, location.toString());
       invalidateSession(location, mutations, cmidToCm, sessionId);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
     } catch (TException e) {
-      locator.invalidateCache(context.getInstance(), location.toString());
+      locator.invalidateCache(context, location.toString());
       invalidateSession(location, mutations, cmidToCm, sessionId);
     } catch (Exception e) {
       queueException(location, cmidToCm, e);
@@ -690,17 +684,14 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     long startTime = System.currentTimeMillis();
 
-    LockID lid = new LockID(ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS,
-        sessionId.lockId);
+    LockID lid = new LockID(context.getZooKeeperRoot() + Constants.ZTSERVERS, sessionId.lockId);
 
-    ZooCacheFactory zcf = new ZooCacheFactory();
     while (true) {
-      if (!ZooLock.isLockHeld(
-          zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut()), lid)) {
+      if (!ZooLock.isLockHeld(context.getZooCache(), lid)) {
         // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
         // invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
-        locator.invalidateCache(context.getInstance(), location.toString());
+        locator.invalidateCache(context, location.toString());
         return;
       }
 
@@ -713,7 +704,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(location.toString(), tae);
       } catch (TException e) {
-        locator.invalidateCache(context.getInstance(), location.toString());
+        locator.invalidateCache(context, location.toString());
       }
 
       if ((System.currentTimeMillis() - startTime) + sleepTime > timeout)
