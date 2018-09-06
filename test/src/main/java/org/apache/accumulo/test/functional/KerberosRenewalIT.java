@@ -22,11 +22,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -155,7 +155,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
         rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+    AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
     log.info("Created connector as {}", rootUser.getPrincipal());
     assertEquals(rootUser.getPrincipal(), conn.whoami());
 
@@ -180,7 +180,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
    * that the system user exists (since the master does an RPC to the tserver which will create the
    * system user if it doesn't already exist).
    */
-  private void createReadWriteDrop(Connector conn) throws TableNotFoundException,
+  private void createReadWriteDrop(AccumuloClient conn) throws TableNotFoundException,
       AccumuloSecurityException, AccumuloException, TableExistsException {
     final String table = testName.getMethodName() + "_table";
     conn.tableOperations().create(table);

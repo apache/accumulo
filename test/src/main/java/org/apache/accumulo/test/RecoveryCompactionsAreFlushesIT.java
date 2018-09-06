@@ -21,9 +21,9 @@ import static org.junit.Assert.assertFalse;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -61,7 +61,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // create a table
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
     c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "3");

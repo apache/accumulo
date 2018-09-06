@@ -42,7 +42,7 @@ public class ListScansCommand extends Command {
 
     List<String> tservers;
 
-    final InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
+    final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 

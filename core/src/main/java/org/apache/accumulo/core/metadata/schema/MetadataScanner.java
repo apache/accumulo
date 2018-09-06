@@ -29,9 +29,9 @@ import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -60,7 +60,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
   public interface SourceOptions {
     TableOptions from(ClientContext ctx);
 
-    TableOptions from(Connector conn);
+    TableOptions from(AccumuloClient conn);
   }
 
   public interface TableOptions {
@@ -147,7 +147,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
-    private Connector conn;
+    private AccumuloClient conn;
     private String table = MetadataTable.NAME;
     private Range range;
     private EnumSet<FetchedColumns> fetchedCols = EnumSet.noneOf(FetchedColumns.class);
@@ -265,7 +265,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public TableOptions from(Connector conn) {
+    public TableOptions from(AccumuloClient conn) {
       this.conn = conn;
       return this;
     }

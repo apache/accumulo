@@ -20,9 +20,9 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
@@ -38,7 +38,7 @@ public class WorkDriver extends Daemon {
   private static final Logger log = LoggerFactory.getLogger(WorkDriver.class);
 
   private Master master;
-  private Connector conn;
+  private AccumuloClient conn;
   private AccumuloConfiguration conf;
 
   private WorkAssigner assigner;
@@ -76,11 +76,11 @@ public class WorkDriver extends Daemon {
   /*
    * Getters/setters for testing purposes
    */
-  protected Connector getConnector() {
+  protected AccumuloClient getConnector() {
     return conn;
   }
 
-  protected void setConnector(Connector conn) {
+  protected void setConnector(AccumuloClient conn) {
     this.conn = conn;
   }
 

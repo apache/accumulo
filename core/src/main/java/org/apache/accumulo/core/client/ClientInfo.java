@@ -22,7 +22,7 @@ import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 /**
- * Accumulo client information. Can be built using {@link Connector#builder()}
+ * Accumulo client information. Can be built using {@link AccumuloClient#builder()}
  *
  * @since 2.0.0
  */

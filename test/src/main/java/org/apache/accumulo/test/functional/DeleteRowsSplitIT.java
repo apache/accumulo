@@ -28,9 +28,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -67,7 +67,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
 
     // Eliminate whole tablets
     for (int test = 0; test < 10; test++) {
@@ -137,7 +137,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
   }
 
-  private void fillTable(Connector conn, String table) throws Exception {
+  private void fillTable(AccumuloClient conn, String table) throws Exception {
     BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
     for (String row : ROWS) {
       Mutation m = new Mutation(row);

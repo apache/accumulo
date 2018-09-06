@@ -18,8 +18,8 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -44,7 +44,7 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
 
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
-    final Connector conn = this.getConnector();
+    final AccumuloClient conn = this.getClient();
     // Yes, there's a tabletserver
     assertEquals(1, conn.instanceOperations().getTabletServers().size());
     final String tableName = getUniqueNames(1)[0];

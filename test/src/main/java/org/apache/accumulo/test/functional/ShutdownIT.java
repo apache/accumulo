@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
@@ -73,7 +73,7 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void shutdownDuringDeleteTable() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     for (int i = 0; i < 10; i++) {
       c.tableOperations().create("table" + i);
     }
@@ -103,10 +103,10 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void adminStop() throws Exception {
-    runAdminStopTest(getConnector(), cluster);
+    runAdminStopTest(getClient(), cluster);
   }
 
-  static void runAdminStopTest(Connector c, MiniAccumuloClusterImpl cluster)
+  static void runAdminStopTest(AccumuloClient c, MiniAccumuloClusterImpl cluster)
       throws InterruptedException, IOException {
     String confPath = cluster.getConfig().getClientPropsFile().getAbsolutePath();
     int x = cluster.exec(TestIngest.class, "--config-file", confPath, "--createTable").waitFor();

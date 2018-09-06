@@ -20,9 +20,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -40,11 +40,11 @@ public class DeleteAuthsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException {
-    final Connector connector = shellState.getConnector();
-    final String user = cl.getOptionValue(userOpt.getOpt(), connector.whoami());
+    final AccumuloClient accumuloClient = shellState.getAccumuloClient();
+    final String user = cl.getOptionValue(userOpt.getOpt(), accumuloClient.whoami());
     final String scanOpts = cl.getOptionValue(scanOptAuths.getOpt());
 
-    final Authorizations auths = connector.securityOperations().getUserAuthorizations(user);
+    final Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
     final StringBuilder userAuths = new StringBuilder();
     final String[] toBeRemovedAuths = scanOpts.split(",");
     final Set<String> toBeRemovedSet = new HashSet<>();
@@ -59,10 +59,10 @@ public class DeleteAuthsCommand extends Command {
       }
     }
     if (userAuths.length() > 0) {
-      connector.securityOperations().changeUserAuthorizations(user,
+      accumuloClient.securityOperations().changeUserAuthorizations(user,
           ScanCommand.parseAuthorizations(userAuths.substring(0, userAuths.length() - 1)));
     } else {
-      connector.securityOperations().changeUserAuthorizations(user, new Authorizations());
+      accumuloClient.securityOperations().changeUserAuthorizations(user, new Authorizations());
     }
 
     Shell.log.debug("Changed record-level authorizations for user " + user);

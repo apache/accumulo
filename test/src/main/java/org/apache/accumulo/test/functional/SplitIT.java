@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.impl.Table;
@@ -75,7 +75,7 @@ public class SplitIT extends AccumuloClusterHarness {
   public void alterConfig() throws Exception {
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
 
-    InstanceOperations iops = getConnector().instanceOperations();
+    InstanceOperations iops = getAccumuloClient().instanceOperations();
     Map<String,String> config = iops.getSystemConfiguration();
     tservMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
     tservMajcDelay = config.get(Property.TSERV_MAJC_DELAY.getKey());
@@ -106,14 +106,15 @@ public class SplitIT extends AccumuloClusterHarness {
   public void resetConfig() throws Exception {
     if (null != tservMaxMem) {
       log.info("Resetting {}={}", Property.TSERV_MAXMEM.getKey(), tservMaxMem);
-      getConnector().instanceOperations().setProperty(Property.TSERV_MAXMEM.getKey(), tservMaxMem);
+      getAccumuloClient().instanceOperations().setProperty(Property.TSERV_MAXMEM.getKey(),
+          tservMaxMem);
       tservMaxMem = null;
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
     if (null != tservMajcDelay) {
       log.info("Resetting {}={}", Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
-      getConnector().instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(),
+      getAccumuloClient().instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(),
           tservMajcDelay);
       tservMajcDelay = null;
     }
@@ -121,7 +122,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Test
   public void tabletShouldSplit() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String table = getUniqueNames(1)[0];
     c.tableOperations().create(table);
     c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
@@ -175,7 +176,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Test
   public void interleaveSplit() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
@@ -195,7 +196,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Test
   public void deleteSplit() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");

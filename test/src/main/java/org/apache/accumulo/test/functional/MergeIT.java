@@ -26,8 +26,8 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -56,7 +56,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void merge() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
@@ -74,7 +74,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void mergeSize() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().addSplits(tableName,
@@ -111,7 +111,7 @@ public class MergeIT extends AccumuloClusterHarness {
   @Test
   public void mergeTest() throws Exception {
     int tc = 0;
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
 
@@ -145,8 +145,8 @@ public class MergeIT extends AccumuloClusterHarness {
 
   }
 
-  private void runMergeTest(Connector c, String table, String[] splits, String[] expectedSplits,
-      String[] inserts, String[] start, String[] end) throws Exception {
+  private void runMergeTest(AccumuloClient c, String table, String[] splits,
+      String[] expectedSplits, String[] inserts, String[] start, String[] end) throws Exception {
     int count = 0;
 
     for (String s : start) {
@@ -156,8 +156,8 @@ public class MergeIT extends AccumuloClusterHarness {
     }
   }
 
-  private void runMergeTest(Connector conn, String table, String[] splits, String[] expectedSplits,
-      String[] inserts, String start, String end) throws Exception {
+  private void runMergeTest(AccumuloClient conn, String table, String[] splits,
+      String[] expectedSplits, String[] inserts, String start, String end) throws Exception {
     System.out.println(
         "Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 

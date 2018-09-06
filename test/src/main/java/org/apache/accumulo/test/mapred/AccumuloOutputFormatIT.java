@@ -29,10 +29,10 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
@@ -69,9 +69,9 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   // Prevent regression of ACCUMULO-3709.
   @Test
   public void testMapred() throws Exception {
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
     // create a table and put some data in it
-    connector.tableOperations().create(testName.getMethodName());
+    accumuloClient.tableOperations().create(testName.getMethodName());
 
     JobConf job = new JobConf();
     BatchWriterConfig batchConfig = new BatchWriterConfig();
@@ -100,7 +100,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       // we don't want the exception to come from write
     }
 
-    connector.securityOperations().revokeTablePermission("root", testName.getMethodName(),
+    accumuloClient.securityOperations().revokeTablePermission("root", testName.getMethodName(),
         TablePermission.WRITE);
 
     try {
@@ -167,7 +167,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ClientInfo info = Connector.builder().forInstance(instanceName, zooKeepers)
+      ClientInfo info = AccumuloClient.builder().forInstance(instanceName, zooKeepers)
           .usingPassword(user, pass).info();
 
       AccumuloInputFormat.setClientInfo(job, info);
@@ -200,7 +200,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Test
   public void testMR() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String instanceName = getCluster().getInstanceName();
     String table1 = instanceName + "_t1";
     String table2 = instanceName + "_t2";

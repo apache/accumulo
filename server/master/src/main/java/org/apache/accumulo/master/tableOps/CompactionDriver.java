@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -85,7 +85,7 @@ class CompactionDriver extends MasterRepo {
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
-    Connector conn = master.getConnector();
+    AccumuloClient conn = master.getConnector();
 
     Scanner scanner;
 

@@ -69,11 +69,11 @@ public class DeleteNamespaceCommand extends Command {
     resetContext = tables.contains(currentTable);
 
     if (force)
-      for (String table : shellState.getConnector().tableOperations().list())
+      for (String table : shellState.getAccumuloClient().tableOperations().list())
         if (table.startsWith(namespace + "."))
-          shellState.getConnector().tableOperations().delete(table);
+          shellState.getAccumuloClient().tableOperations().delete(table);
 
-    shellState.getConnector().namespaceOperations().delete(namespace);
+    shellState.getAccumuloClient().namespaceOperations().delete(namespace);
     if (resetContext) {
       shellState.setTableName("");
     }

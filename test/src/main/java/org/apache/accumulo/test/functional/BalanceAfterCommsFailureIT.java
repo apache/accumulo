@@ -28,7 +28,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
@@ -63,7 +63,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Connector c = this.getConnector();
+    AccumuloClient c = this.getClient();
     c.tableOperations().create("test");
     Collection<ProcessReference> tservers = getCluster().getProcesses()
         .get(ServerType.TABLET_SERVER);
@@ -100,7 +100,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     checkBalance(c);
   }
 
-  private void checkBalance(Connector c) throws Exception {
+  private void checkBalance(AccumuloClient c) throws Exception {
     ClientContext context = getClientContext();
 
     MasterMonitorInfo stats = null;

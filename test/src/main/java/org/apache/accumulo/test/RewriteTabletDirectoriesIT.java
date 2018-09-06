@@ -27,9 +27,9 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -80,7 +80,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
     final String tableName = getUniqueNames(1)[0];
@@ -137,7 +137,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
       cluster.start();
-      c = getConnector();
+      c = getClient();
 
       // change the directory entries
       assertEquals(0, cluster.exec(Admin.class, "randomizeVolumes", "-t", tableName).waitFor());

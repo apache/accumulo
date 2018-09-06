@@ -27,10 +27,10 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
@@ -63,7 +63,7 @@ public class MetadataBatchScan {
 
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MetadataBatchScan.class.getName(), args);
-    final Connector connector = opts.getConnector();
+    final AccumuloClient accumuloClient = opts.getConnector();
 
     TreeSet<Long> splits = new TreeSet<>();
     Random r = new SecureRandom();
@@ -89,7 +89,8 @@ public class MetadataBatchScan {
 
     if (args[0].equals("write")) {
 
-      BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
+          new BatchWriterConfig());
 
       for (KeyExtent extent : extents) {
         Mutation mut = extent.getPrevRowUpdateMutation();
@@ -100,7 +101,8 @@ public class MetadataBatchScan {
 
       bw.close();
     } else if (args[0].equals("writeFiles")) {
-      BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
+          new BatchWriterConfig());
 
       for (KeyExtent extent : extents) {
 
@@ -143,7 +145,7 @@ public class MetadataBatchScan {
           @Override
           public void run() {
             try {
-              System.out.println(runScanTest(connector, numLoop, ranges));
+              System.out.println(runScanTest(accumuloClient, numLoop, ranges));
             } catch (Exception e) {
               log.error("Exception while running scan test.", e);
             }
@@ -171,12 +173,12 @@ public class MetadataBatchScan {
 
   }
 
-  private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges)
-      throws Exception {
+  private static ScanStats runScanTest(AccumuloClient accumuloClient, int numLoop,
+      List<Range> ranges) throws Exception {
     ScanStats stats = new ScanStats();
 
-    try (BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
-        1)) {
+    try (BatchScanner bs = accumuloClient.createBatchScanner(MetadataTable.NAME,
+        Authorizations.EMPTY, 1)) {
       bs.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(bs);
 

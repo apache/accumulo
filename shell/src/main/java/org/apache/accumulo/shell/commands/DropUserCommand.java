@@ -37,7 +37,7 @@ public class DropUserCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getArgs()[0];
-    if (shellState.getConnector().whoami().equals(user)) {
+    if (shellState.getAccumuloClient().whoami().equals(user)) {
       throw new BadArgumentException("You cannot delete yourself", fullCommand,
           fullCommand.indexOf(user));
     }
@@ -56,7 +56,7 @@ public class DropUserCommand extends Command {
         operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       }
       if (operate) {
-        shellState.getConnector().securityOperations().dropLocalUser(user);
+        shellState.getAccumuloClient().securityOperations().dropLocalUser(user);
         Shell.log.debug("Deleted user " + user);
       }
     } catch (IOException e) {

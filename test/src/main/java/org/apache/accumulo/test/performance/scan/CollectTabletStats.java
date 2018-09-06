@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
@@ -215,7 +215,7 @@ public class CollectTabletStats {
 
       ArrayList<Test> tests = new ArrayList<>();
 
-      final Connector conn = opts.getConnector();
+      final AccumuloClient conn = opts.getConnector();
 
       for (final KeyExtent ke : tabletsToTest) {
         Test test = new Test(ke) {
@@ -233,7 +233,7 @@ public class CollectTabletStats {
     }
 
     for (final KeyExtent ke : tabletsToTest) {
-      final Connector conn = opts.getConnector();
+      final AccumuloClient conn = opts.getConnector();
 
       threadPool.submit(new Runnable() {
         @Override
@@ -522,8 +522,8 @@ public class CollectTabletStats {
 
   }
 
-  private static int scanTablet(Connector conn, String table, Authorizations auths, int batchSize,
-      Text prevEndRow, Text endRow, String[] columns) throws Exception {
+  private static int scanTablet(AccumuloClient conn, String table, Authorizations auths,
+      int batchSize, Text prevEndRow, Text endRow, String[] columns) throws Exception {
 
     try (Scanner scanner = conn.createScanner(table, auths)) {
       scanner.setBatchSize(batchSize);
@@ -543,7 +543,7 @@ public class CollectTabletStats {
     }
   }
 
-  private static void calcTabletStats(Connector conn, String table, Authorizations auths,
+  private static void calcTabletStats(AccumuloClient conn, String table, Authorizations auths,
       int batchSize, KeyExtent ke, String[] columns) throws Exception {
 
     // long t1 = System.currentTimeMillis();

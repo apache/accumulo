@@ -20,12 +20,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -58,7 +58,7 @@ public class ReplicationTable {
   public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME,
       STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
 
-  public static Scanner getScanner(Connector conn) throws ReplicationTableOfflineException {
+  public static Scanner getScanner(AccumuloClient conn) throws ReplicationTableOfflineException {
     try {
       return conn.createScanner(NAME, Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
@@ -68,7 +68,8 @@ public class ReplicationTable {
     }
   }
 
-  public static BatchWriter getBatchWriter(Connector conn) throws ReplicationTableOfflineException {
+  public static BatchWriter getBatchWriter(AccumuloClient conn)
+      throws ReplicationTableOfflineException {
     try {
       return conn.createBatchWriter(NAME, new BatchWriterConfig());
     } catch (TableNotFoundException e) {
@@ -78,7 +79,7 @@ public class ReplicationTable {
     }
   }
 
-  public static BatchScanner getBatchScanner(Connector conn, int queryThreads)
+  public static BatchScanner getBatchScanner(AccumuloClient conn, int queryThreads)
       throws ReplicationTableOfflineException {
     try {
       return conn.createBatchScanner(NAME, Authorizations.EMPTY, queryThreads);
@@ -89,11 +90,12 @@ public class ReplicationTable {
     }
   }
 
-  public static boolean isOnline(Connector conn) {
+  public static boolean isOnline(AccumuloClient conn) {
     return TableState.ONLINE == Tables.getTableState(new ClientContext(conn.info()), ID);
   }
 
-  public static void setOnline(Connector conn) throws AccumuloSecurityException, AccumuloException {
+  public static void setOnline(AccumuloClient conn)
+      throws AccumuloSecurityException, AccumuloException {
     try {
       log.info("Bringing replication table online");
       conn.tableOperations().online(NAME, true);

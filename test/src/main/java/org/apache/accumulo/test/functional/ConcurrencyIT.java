@@ -23,11 +23,11 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -53,7 +53,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     int count = 0;
     Scanner scanner = null;
 
-    ScanTask(Connector conn, String tableName, long time) throws Exception {
+    ScanTask(AccumuloClient conn, String tableName, long time) throws Exception {
       try {
         scanner = conn.createScanner(tableName, Authorizations.EMPTY);
         IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
@@ -98,11 +98,11 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
   // @formatter:on
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     runTest(c, getUniqueNames(1)[0]);
   }
 
-  static void runTest(Connector c, String tableName)
+  static void runTest(AccumuloClient c, String tableName)
       throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, MutationsRejectedException, Exception, InterruptedException {
     c.tableOperations().create(tableName);

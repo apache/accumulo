@@ -33,9 +33,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -71,7 +71,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table1 = tableNames[0];
     String table2 = tableNames[1];
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     c.tableOperations().create(table1);
 
@@ -116,7 +116,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
   }
 
-  private void checkData(String table2, Connector c) throws TableNotFoundException {
+  private void checkData(String table2, AccumuloClient c) throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table2, Authorizations.EMPTY)) {
 
       HashMap<String,String> expected = new HashMap<>();
@@ -135,7 +135,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
-  private void checkMetadata(String table, Connector conn) throws Exception {
+  private void checkMetadata(String table, AccumuloClient conn) throws Exception {
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -179,7 +179,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
-  private BatchWriter writeData(String table1, Connector c)
+  private BatchWriter writeData(String table1, AccumuloClient c)
       throws TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
 
@@ -205,7 +205,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table2 = tableNames[1];
     String table3 = tableNames[2];
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     AccumuloCluster cluster = getCluster();
     Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
@@ -266,7 +266,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
   @Test
   public void testCloneWithSplits() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     List<Mutation> mutations = new ArrayList<>();
     TreeSet<Text> splits = new TreeSet<>();

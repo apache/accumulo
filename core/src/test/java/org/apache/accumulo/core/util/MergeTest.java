@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.util.Merge.Size;
@@ -54,8 +54,8 @@ public class MergeTest {
     protected void message(String format, Object... args) {}
 
     @Override
-    protected Iterator<Size> getSizeIterator(Connector conn, String tablename, final Text start,
-        final Text end) throws MergeException {
+    protected Iterator<Size> getSizeIterator(AccumuloClient conn, String tablename,
+        final Text start, final Text end) throws MergeException {
       final Iterator<Size> impl = tablets.iterator();
       return new Iterator<Size>() {
         Size next = skip();
@@ -98,7 +98,7 @@ public class MergeTest {
     }
 
     @Override
-    protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge)
+    protected void merge(AccumuloClient conn, String table, List<Size> sizes, int numToMerge)
         throws MergeException {
       List<Size> merge = new ArrayList<>();
       for (int i = 0; i < numToMerge; i++) {

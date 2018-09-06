@@ -58,7 +58,7 @@ public class DUCommand extends Command {
 
     // Add any patterns
     if (cl.hasOption(optTablePattern.getOpt())) {
-      for (String table : shellState.getConnector().tableOperations().list()) {
+      for (String table : shellState.getAccumuloClient().tableOperations().list()) {
         if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
           tables.add(table);
         }
@@ -72,7 +72,7 @@ public class DUCommand extends Command {
 
     // sanity check...make sure the user-specified tables exist
     for (String tableName : tables) {
-      if (!shellState.getConnector().tableOperations().exists(tableName)) {
+      if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(tableName, tableName,
             "specified table that doesn't exist");
       }
@@ -80,7 +80,8 @@ public class DUCommand extends Command {
 
     try {
       String valueFormat = prettyPrint ? "%9s" : "%,24d";
-      for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tables)) {
+      for (DiskUsage usage : shellState.getAccumuloClient().tableOperations()
+          .getDiskUsage(tables)) {
         Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
         shellState.getReader()
             .println(String.format(valueFormat + " %s", value, usage.getTables()));

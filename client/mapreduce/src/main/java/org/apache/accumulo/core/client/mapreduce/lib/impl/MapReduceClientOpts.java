@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
@@ -60,7 +60,7 @@ public class MapReduceClientOpts extends ClientOpts {
         log.info("Obtaining delegation token for {}", newPrincipal);
 
         setPrincipal(newPrincipal);
-        Connector conn = Connector.builder().usingClientInfo(getClientInfo())
+        AccumuloClient conn = AccumuloClient.builder().usingClientInfo(getClientInfo())
             .usingToken(newPrincipal, krbToken).build();
 
         // Do the explicit check to see if the user has the permission to get a delegation token

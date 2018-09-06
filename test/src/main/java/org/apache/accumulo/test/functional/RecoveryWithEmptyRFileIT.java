@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -69,17 +69,17 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   public void replaceMissingRFile() throws Exception {
     log.info("Ingest some data, verify it was stored properly, replace an"
         + " underlying rfile with an empty one and verify we can scan.");
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
     String tableName = getUniqueNames(1)[0];
-    ReadWriteIT.ingest(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
-    ReadWriteIT.verify(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+    ReadWriteIT.ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+    ReadWriteIT.verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
 
-    connector.tableOperations().flush(tableName, null, null, true);
-    connector.tableOperations().offline(tableName, true);
+    accumuloClient.tableOperations().flush(tableName, null, null, true);
+    accumuloClient.tableOperations().offline(tableName, true);
 
     log.debug("Replacing rfile(s) with empty");
-    try (Scanner meta = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      String tableId = connector.tableOperations().tableIdMap().get(tableName);
+    try (Scanner meta = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
       meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
       meta.fetchColumnFamily(DataFileColumnFamily.NAME);
       boolean foundFile = false;
@@ -95,11 +95,11 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
     }
 
     log.trace("invalidate cached file handles by issuing a compaction");
-    connector.tableOperations().online(tableName, true);
-    connector.tableOperations().compact(tableName, null, null, false, true);
+    accumuloClient.tableOperations().online(tableName, true);
+    accumuloClient.tableOperations().compact(tableName, null, null, false, true);
 
     log.debug("make sure we can still scan");
-    try (Scanner scan = connector.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scan = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       scan.setRange(new Range());
       long cells = 0L;
       for (Entry<Key,Value> entry : scan) {

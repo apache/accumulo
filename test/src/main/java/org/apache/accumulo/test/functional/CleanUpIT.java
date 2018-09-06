@@ -68,9 +68,9 @@ public class CleanUpIT extends SharedMiniClusterBase {
   public void run() throws Exception {
 
     String tableName = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(tableName);
+    getClient().tableOperations().create(tableName);
 
-    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = getClient().createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "cq1", 1, "5");
@@ -79,7 +79,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
 
     bw.flush();
 
-    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations())) {
+    try (Scanner scanner = getClient().createScanner(tableName, new Authorizations())) {
 
       int count = 0;
       for (Entry<Key,Value> entry : scanner) {

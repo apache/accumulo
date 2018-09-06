@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -67,7 +68,7 @@ public class ClientContext {
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private AccumuloConfiguration serverConf;
-  protected Connector conn;
+  protected AccumuloClient conn;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -139,7 +140,7 @@ public class ClientContext {
       @Override
       public Connector getConnector(String principal, AuthenticationToken token)
           throws AccumuloException, AccumuloSecurityException {
-        return context.getConnector().changeUser(principal, token);
+        return Connector.from(context.getConnector().changeUser(principal, token));
       }
     };
   }
@@ -211,9 +212,10 @@ public class ClientContext {
   /**
    * Retrieve a connector
    */
-  public synchronized Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+  public synchronized AccumuloClient getConnector()
+      throws AccumuloException, AccumuloSecurityException {
     if (conn == null) {
-      conn = new ConnectorImpl(this);
+      conn = new AccumuloClientImpl(this);
     }
     return conn;
   }

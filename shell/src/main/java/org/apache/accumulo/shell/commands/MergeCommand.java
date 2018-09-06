@@ -62,7 +62,7 @@ public class MergeCommand extends Command {
         return 0;
     }
     if (size < 0) {
-      shellState.getConnector().tableOperations().merge(tableName, startRow, endRow);
+      shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);
     } else {
       final boolean finalVerbose = verbose;
       final Merge merge = new Merge() {
@@ -77,7 +77,7 @@ public class MergeCommand extends Command {
           }
         }
       };
-      merge.mergomatic(shellState.getConnector(), tableName, startRow, endRow, size, force);
+      merge.mergomatic(shellState.getAccumuloClient(), tableName, startRow, endRow, size, force);
     }
     return 0;
   }

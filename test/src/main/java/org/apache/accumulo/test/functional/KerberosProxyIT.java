@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -540,7 +540,7 @@ public class KerberosProxyIT extends AccumuloITBase {
 
     // Create a table and user, grant permission to our user to read that table.
     rootUgi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      Connector conn = mac.getConnector(rootUgi.getUserName(), new KerberosToken());
+      AccumuloClient conn = mac.getAccumuloClient(rootUgi.getUserName(), new KerberosToken());
       conn.tableOperations().create(tableName);
       conn.securityOperations().createLocalUser(userWithoutCredentials1,
           new PasswordToken("ignored"));
@@ -553,7 +553,7 @@ public class KerberosProxyIT extends AccumuloITBase {
       return null;
     });
     realUgi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      Connector conn = mac.getConnector(proxyPrincipal, new KerberosToken());
+      AccumuloClient conn = mac.getAccumuloClient(proxyPrincipal, new KerberosToken());
       try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
         s.iterator().hasNext();
         fail("Expected to see an exception");
@@ -568,7 +568,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     });
     // Allowed to be proxied and has read permission
     proxyUser1.doAs((PrivilegedExceptionAction<Void>) () -> {
-      Connector conn = mac.getConnector(userWithoutCredentials1,
+      AccumuloClient conn = mac.getAccumuloClient(userWithoutCredentials1,
           new KerberosToken(userWithoutCredentials1));
       Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
       assertFalse(s.iterator().hasNext());
@@ -576,7 +576,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     });
     // Allowed to be proxied but does not have read permission
     proxyUser2.doAs((PrivilegedExceptionAction<Void>) () -> {
-      Connector conn = mac.getConnector(userWithoutCredentials2,
+      AccumuloClient conn = mac.getAccumuloClient(userWithoutCredentials2,
           new KerberosToken(userWithoutCredentials3));
       try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
         s.iterator().hasNext();
@@ -593,7 +593,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     // Has read permission but is not allowed to be proxied
     proxyUser3.doAs((PrivilegedExceptionAction<Void>) () -> {
       try {
-        mac.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
+        mac.getAccumuloClient(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
         fail("Should not be able to create a Connector as this user cannot be proxied");
       } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
         // Expected, this user cannot be proxied

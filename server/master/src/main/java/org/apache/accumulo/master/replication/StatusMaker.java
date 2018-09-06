@@ -19,11 +19,11 @@ package org.apache.accumulo.master.replication;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -58,13 +58,13 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class StatusMaker {
   private static final Logger log = LoggerFactory.getLogger(StatusMaker.class);
 
-  private final Connector conn;
+  private final AccumuloClient conn;
   private final VolumeManager fs;
 
   private BatchWriter replicationWriter, metadataWriter;
   private String sourceTableName = MetadataTable.NAME;
 
-  public StatusMaker(Connector conn, VolumeManager fs) {
+  public StatusMaker(AccumuloClient conn, VolumeManager fs) {
     this.conn = conn;
     this.fs = fs;
   }

@@ -27,9 +27,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
@@ -73,7 +73,7 @@ public class VerifyTabletAssignments {
     Opts opts = new Opts();
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
 
-    Connector conn = opts.getConnector();
+    AccumuloClient conn = opts.getConnector();
     ClientContext context = new ClientContext(conn.info());
     for (String table : conn.tableOperations().list())
       checkTable(context, opts, table, null);

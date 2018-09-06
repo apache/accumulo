@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.replication;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
 /**
@@ -32,7 +32,7 @@ public interface WorkAssigner {
   /**
    * Configure the WorkAssigner implementation
    */
-  void configure(AccumuloConfiguration conf, Connector conn);
+  void configure(AccumuloConfiguration conf, AccumuloClient conn);
 
   /**
    * Assign work for replication

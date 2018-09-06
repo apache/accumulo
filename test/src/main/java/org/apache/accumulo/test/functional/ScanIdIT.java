@@ -38,11 +38,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -109,7 +109,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
   public void testScanId() throws Exception {
 
     final String tableName = getUniqueNames(1)[0];
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     conn.tableOperations().create(tableName);
 
     addSplits(conn, tableName);
@@ -193,15 +193,15 @@ public class ScanIdIT extends AccumuloClusterHarness {
    */
   private static class ScannerThread implements Runnable {
 
-    private final Connector connector;
+    private final AccumuloClient accumuloClient;
     private Scanner scanner = null;
     private final int workerIndex;
     private final String tablename;
     private final CountDownLatch latch;
 
-    public ScannerThread(final Connector connector, final int workerIndex, final String tablename,
-        final CountDownLatch latch) {
-      this.connector = connector;
+    public ScannerThread(final AccumuloClient accumuloClient, final int workerIndex,
+        final String tablename, final CountDownLatch latch) {
+      this.accumuloClient = accumuloClient;
       this.workerIndex = workerIndex;
       this.tablename = tablename;
       this.latch = latch;
@@ -227,7 +227,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       try {
 
-        scanner = connector.createScanner(tablename, new Authorizations());
+        scanner = accumuloClient.createScanner(tablename, new Authorizations());
 
         // Never start readahead
         scanner.setReadaheadThreshold(Long.MAX_VALUE);
@@ -287,7 +287,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * @param conn
    *          Accumulo connector Accumulo connector to test cluster or MAC instance.
    */
-  private void addSplits(final Connector conn, final String tableName) {
+  private void addSplits(final AccumuloClient conn, final String tableName) {
 
     SortedSet<Text> splits = createSplits();
 
@@ -334,14 +334,14 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * check that the count value for fam1 increases if a scanner reads multiple value, but this is
    * secondary consideration for this test, that is included for completeness.
    *
-   * @param connector
+   * @param accumuloClient
    *          Accumulo connector Accumulo connector to test cluster or MAC instance.
    */
-  private void generateSampleData(Connector connector, final String tablename) {
+  private void generateSampleData(AccumuloClient accumuloClient, final String tablename) {
 
     try {
 
-      BatchWriter bw = connector.createBatchWriter(tablename, new BatchWriterConfig());
+      BatchWriter bw = accumuloClient.createBatchWriter(tablename, new BatchWriterConfig());
 
       ColumnVisibility vis = new ColumnVisibility("public");
 
@@ -373,10 +373,10 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * data is read and we do not read all of the data - the test stops once each scanner reports a
    * scan id.
    *
-   * @param connector
+   * @param accumuloClient
    *          Accumulo connector Accumulo connector to test cluster or MAC instance.
    */
-  private void attachSlowIterator(Connector connector, final String tablename) {
+  private void attachSlowIterator(AccumuloClient accumuloClient, final String tablename) {
     try {
 
       IteratorSetting slowIter = new IteratorSetting(50, "slowIter",
@@ -384,7 +384,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       slowIter.addOption("sleepTime", "200");
       slowIter.addOption("seekSleepTime", "200");
 
-      connector.tableOperations().attachIterator(tablename, slowIter,
+      accumuloClient.tableOperations().attachIterator(tablename, slowIter,
           EnumSet.of(IteratorUtil.IteratorScope.scan));
 
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException ex) {

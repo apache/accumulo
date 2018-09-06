@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -104,7 +104,8 @@ public class MergeStats {
       this.unassigned++;
   }
 
-  public MergeState nextMergeState(Connector connector, CurrentState master) throws Exception {
+  public MergeState nextMergeState(AccumuloClient accumuloClient, CurrentState master)
+      throws Exception {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
       return state;
@@ -156,7 +157,7 @@ public class MergeStats {
         log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
             info.getExtent());
         if (unassigned == total && chopped == needsToBeChopped) {
-          if (verifyMergeConsistency(connector, master))
+          if (verifyMergeConsistency(accumuloClient, master))
             state = MergeState.MERGING;
           else
             log.info("Merge consistency check failed {}", info.getExtent());
@@ -184,12 +185,12 @@ public class MergeStats {
     return state;
   }
 
-  private boolean verifyMergeConsistency(Connector connector, CurrentState master)
+  private boolean verifyMergeConsistency(AccumuloClient accumuloClient, CurrentState master)
       throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
     KeyExtent extent = info.getExtent();
-    Scanner scanner = connector.createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME,
-        Authorizations.EMPTY);
+    Scanner scanner = accumuloClient
+        .createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     Text start = extent.getPrevEndRow();
     if (start == null) {
@@ -260,7 +261,7 @@ public class MergeStats {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
 
-    Connector conn = opts.getConnector();
+    AccumuloClient conn = opts.getConnector();
     Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
     ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
     for (Entry<String,String> entry : tableIdMap.entrySet()) {

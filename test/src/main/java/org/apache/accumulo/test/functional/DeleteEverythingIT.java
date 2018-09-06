@@ -23,9 +23,9 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -62,7 +62,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     majcDelay = c.instanceOperations().getSystemConfiguration()
         .get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
@@ -74,22 +74,22 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @After
   public void resetMajcDelay() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
   }
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
     m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.flush();
 
-    getConnector().tableOperations().flush(tableName, null, null, true);
+    getAccumuloClient().tableOperations().flush(tableName, null, null, true);
 
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
 
@@ -98,14 +98,14 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
       scanner.setRange(new Range());
       int count = Iterators.size(scanner.iterator());
       assertEquals("count == " + count, 0, count);
-      getConnector().tableOperations().flush(tableName, null, null, true);
+      getAccumuloClient().tableOperations().flush(tableName, null, null, true);
 
-      getConnector().tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(),
-          "1.0");
+      getAccumuloClient().tableOperations().setProperty(tableName,
+          Property.TABLE_MAJC_RATIO.getKey(), "1.0");
       sleepUninterruptibly(4, TimeUnit.SECONDS);
 
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);

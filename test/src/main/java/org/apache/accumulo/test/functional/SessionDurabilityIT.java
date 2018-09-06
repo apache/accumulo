@@ -19,12 +19,12 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Condition;
@@ -51,7 +51,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void nondurableTableHasDurableWrites() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String tableName = getUniqueNames(1)[0];
     // table default has no durability
     c.tableOperations().create(tableName);
@@ -68,7 +68,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void durableTableLosesNonDurableWrites() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String tableName = getUniqueNames(1)[0];
     // table default is durable writes
     c.tableOperations().create(tableName);
@@ -83,11 +83,11 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
   }
 
   private int count(String tableName) throws Exception {
-    return Iterators.size(getConnector().createScanner(tableName, Authorizations.EMPTY).iterator());
+    return Iterators.size(getClient().createScanner(tableName, Authorizations.EMPTY).iterator());
   }
 
   private void writeSome(String tableName, int n, BatchWriterConfig cfg) throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     BatchWriter bw = c.createBatchWriter(tableName, cfg);
     for (int i = 0; i < n; i++) {
       Mutation m = new Mutation(i + "");
@@ -99,7 +99,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String tableName = getUniqueNames(1)[0];
     // table default is durable writes
     c.tableOperations().create(tableName);
@@ -117,7 +117,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability2() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String tableName = getUniqueNames(1)[0];
     // table default is durable writes
     c.tableOperations().create(tableName);
@@ -135,7 +135,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   private void conditionWriteSome(String tableName, int n, ConditionalWriterConfig cfg)
       throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     ConditionalWriter cw = c.createConditionalWriter(tableName, cfg);
     for (int i = 0; i < n; i++) {
       ConditionalMutation m = new ConditionalMutation(i + "", new Condition("", ""));

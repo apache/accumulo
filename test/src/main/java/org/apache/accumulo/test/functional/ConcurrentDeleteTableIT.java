@@ -33,11 +33,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -52,7 +52,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     String[] tables = getUniqueNames(2);
 
     TreeSet<Text> splits = createSplits();
@@ -149,7 +149,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   @Test
   public void testConcurrentFateOpsWithDelete() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     String[] tables = getUniqueNames(2);
 
     TreeSet<Text> splits = createSplits();
@@ -258,7 +258,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
     es.shutdown();
   }
 
-  private void writeData(Connector c, String table)
+  private void writeData(AccumuloClient c, String table)
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
       Random rand = new SecureRandom();

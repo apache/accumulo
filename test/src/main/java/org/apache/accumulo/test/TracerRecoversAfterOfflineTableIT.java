@@ -21,8 +21,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -55,7 +55,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     Process tracer = null;
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     if (!conn.tableOperations().exists("trace")) {
       MiniAccumuloClusterImpl mac = cluster;
       tracer = mac.exec(TraceServer.class);

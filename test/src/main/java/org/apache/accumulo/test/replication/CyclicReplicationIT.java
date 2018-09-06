@@ -30,9 +30,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -213,8 +213,9 @@ public class CyclicReplicationIT {
     }
 
     try {
-      Connector connMaster1 = master1Cluster.getConnector("root", new PasswordToken(password)),
-          connMaster2 = master2Cluster.getConnector("root", new PasswordToken(password));
+      AccumuloClient connMaster1 = master1Cluster.getAccumuloClient("root",
+          new PasswordToken(password)),
+          connMaster2 = master2Cluster.getAccumuloClient("root", new PasswordToken(password));
 
       String master1UserName = "master1", master1Password = "foo";
       String master2UserName = "master2", master2Password = "bar";

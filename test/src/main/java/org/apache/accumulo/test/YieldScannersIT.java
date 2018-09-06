@@ -22,10 +22,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -62,7 +62,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
   public void testScan() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     conn.tableOperations().create(tableName);
     final BatchWriter writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
@@ -116,7 +116,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
   public void testBatchScan() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     conn.tableOperations().create(tableName);
     final BatchWriter writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {

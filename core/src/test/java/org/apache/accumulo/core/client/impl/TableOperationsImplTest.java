@@ -18,7 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -36,13 +36,14 @@ public class TableOperationsImplTest {
 
     TableOperationsImpl topsImpl = new TableOperationsImpl(context);
 
-    Connector connector = EasyMock.createMock(Connector.class);
+    AccumuloClient accumuloClient = EasyMock.createMock(AccumuloClient.class);
     Scanner scanner = EasyMock.createMock(Scanner.class);
 
     Range range = new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange();
 
-    EasyMock.expect(context.getConnector()).andReturn(connector);
-    EasyMock.expect(connector.createScanner(tableName, Authorizations.EMPTY)).andReturn(scanner);
+    EasyMock.expect(context.getConnector()).andReturn(accumuloClient);
+    EasyMock.expect(accumuloClient.createScanner(tableName, Authorizations.EMPTY))
+        .andReturn(scanner);
 
     // Fetch the columns on the scanner
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME);
@@ -65,11 +66,11 @@ public class TableOperationsImplTest {
     EasyMock.expect(scanner.getBatchSize()).andReturn(1000);
     EasyMock.expect(scanner.getReadaheadThreshold()).andReturn(100L);
 
-    EasyMock.replay(context, connector, scanner);
+    EasyMock.replay(context, accumuloClient, scanner);
 
     topsImpl.createMetadataScanner(tableName, range);
 
-    EasyMock.verify(context, connector, scanner);
+    EasyMock.verify(context, accumuloClient, scanner);
   }
 
 }

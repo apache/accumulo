@@ -28,8 +28,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
@@ -151,7 +151,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
   private KeyExtent currentExtent;
-  private Connector conn;
+  private AccumuloClient conn;
   private Table.ID tableId;
   private Authorizations authorizations;
   private ClientContext context;

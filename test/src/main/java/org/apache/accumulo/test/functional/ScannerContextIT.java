@@ -26,10 +26,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -88,7 +88,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
     try {
-      Connector c = getConnector();
+      AccumuloClient c = getAccumuloClient();
       // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
@@ -138,7 +138,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void testScanContextOverridesTableContext() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
     try {
-      Connector c = getConnector();
+      AccumuloClient c = getAccumuloClient();
       // Create two contexts FOO and ScanContextIT. The FOO context will point to a classpath
       // that contains nothing. The ScanContextIT context will point to the test iterators jar
       String tableContext = "FOO";
@@ -195,7 +195,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void testOneScannerDoesntInterfereWithAnother() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
     try {
-      Connector c = getConnector();
+      AccumuloClient c = getAccumuloClient();
       // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
@@ -242,7 +242,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void testClearContext() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
     try {
-      Connector c = getConnector();
+      AccumuloClient c = getAccumuloClient();
       // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
@@ -285,7 +285,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     }
   }
 
-  private void scanCheck(Connector c, String tableName, IteratorSetting cfg, String context,
+  private void scanCheck(AccumuloClient c, String tableName, IteratorSetting cfg, String context,
       String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
       if (null != context) {
@@ -304,7 +304,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     }
   }
 
-  private void batchCheck(Connector c, String tableName, IteratorSetting cfg, String context,
+  private void batchCheck(AccumuloClient c, String tableName, IteratorSetting cfg, String context,
       String expected) throws Exception {
     try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));

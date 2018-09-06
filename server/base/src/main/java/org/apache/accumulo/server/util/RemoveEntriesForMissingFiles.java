@@ -27,10 +27,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -128,8 +128,8 @@ public class RemoveEntriesForMissingFiles {
     System.out.printf("Scanning : %s %s\n", tableName, range);
 
     VolumeManager fs = context.getVolumeManager();
-    Connector connector = context.getConnector();
-    Scanner metadata = connector.createScanner(tableName, Authorizations.EMPTY);
+    AccumuloClient accumuloClient = context.getConnector();
+    Scanner metadata = accumuloClient.createScanner(tableName, Authorizations.EMPTY);
     metadata.setRange(range);
     metadata.fetchColumnFamily(DataFileColumnFamily.NAME);
     int count = 0;
@@ -138,7 +138,7 @@ public class RemoveEntriesForMissingFiles {
     BatchWriter writer = null;
 
     if (fix)
-      writer = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      writer = accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     for (Entry<Key,Value> entry : metadata) {
       if (exceptionRef.get() != null)

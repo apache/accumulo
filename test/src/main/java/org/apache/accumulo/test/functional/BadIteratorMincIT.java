@@ -23,9 +23,9 @@ import static org.junit.Assert.assertEquals;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Mutation;
@@ -47,7 +47,7 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);

@@ -54,7 +54,7 @@ public class SetGroupsCommand extends Command {
       groups.put(group, colFams);
     }
 
-    shellState.getConnector().tableOperations().setLocalityGroups(tableName, groups);
+    shellState.getAccumuloClient().tableOperations().setLocalityGroups(tableName, groups);
 
     return 0;
   }

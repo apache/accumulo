@@ -35,11 +35,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -67,7 +67,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String[] tableNames = getUniqueNames(2);
     String bwft = tableNames[0];
     c.tableOperations().create(bwft);
@@ -80,9 +80,9 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private void runLatencyTest(String tableName) throws Exception {
     // should automatically flush after 2 seconds
     try (
-        BatchWriter bw = getConnector().createBatchWriter(tableName,
+        BatchWriter bw = getAccumuloClient().createBatchWriter(tableName,
             new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
-        Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+        Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
       m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
@@ -108,8 +108,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   private void runFlushTest(String tableName) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, MutationsRejectedException, Exception {
-    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
       Random r = new SecureRandom();
 
       for (int i = 0; i < 4; i++) {
@@ -182,7 +182,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   @Test
   public void runMultiThreadedBinningTest() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String[] tableNames = getUniqueNames(1);
     String tableName = tableNames[0];
     c.tableOperations().create(tableName);
@@ -218,7 +218,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     cfg.setMaxLatency(10, TimeUnit.SECONDS);
     cfg.setMaxMemory(1 * 1024 * 1024);
     cfg.setMaxWriteThreads(NUM_THREADS);
-    final BatchWriter bw = getConnector().createBatchWriter(tableName, cfg);
+    final BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, cfg);
 
     for (int k = 0; k < NUM_THREADS; k++) {
       final int idx = k;
@@ -237,7 +237,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     threads.shutdown();
     threads.awaitTermination(3, TimeUnit.MINUTES);
     bw.close();
-    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
       for (Entry<Key,Value> e : scanner) {
         Mutation m = new Mutation(e.getKey().getRow());
         m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(), e.getValue());

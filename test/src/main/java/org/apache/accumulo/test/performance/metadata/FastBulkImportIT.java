@@ -22,7 +22,7 @@ import static org.junit.Assume.assumeFalse;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -68,7 +68,7 @@ public class FastBulkImportIT extends ConfigurableMacBase {
   public void test() throws Exception {
     log.info("Creating table");
     final String tableName = getUniqueNames(1)[0];
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     c.tableOperations().create(tableName);
     log.info("Adding splits");
     SortedSet<Text> splits = new TreeSet<>();

@@ -25,11 +25,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -50,7 +50,7 @@ import com.google.common.collect.Maps;
 
 public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
-  private Connector connector;
+  private AccumuloClient accumuloClient;
   private MultiTableBatchWriter mtbw;
 
   @Override
@@ -60,7 +60,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
   @Before
   public void setUpArgs() throws AccumuloException, AccumuloSecurityException {
-    connector = getConnector();
+    accumuloClient = getAccumuloClient();
     mtbw = getMultiTableBatchWriter();
   }
 
@@ -76,7 +76,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       final String[] names = getUniqueNames(2);
       final String table1 = names[0], table2 = names[1];
 
-      TableOperations tops = connector.tableOperations();
+      TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
 
       BatchWriter bw1 = mtbw.getBatchWriter(table1);
@@ -108,7 +108,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       Map<Entry<String,String>,String> actual = new HashMap<>();
 
-      try (Scanner s = connector.createScanner(table1, new Authorizations())) {
+      try (Scanner s = accumuloClient.createScanner(table1, new Authorizations())) {
         s.setRange(new Range());
         for (Entry<Key,Value> entry : s) {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
@@ -117,7 +117,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         assertEquals("Differing results for " + table1, table1Expectations, actual);
       }
 
-      try (Scanner s = connector.createScanner(table2, new Authorizations())) {
+      try (Scanner s = accumuloClient.createScanner(table2, new Authorizations())) {
         s.setRange(new Range());
         actual = new HashMap<>();
         for (Entry<Key,Value> entry : s) {
@@ -142,7 +142,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       final String table1 = names[0], table2 = names[1];
       final String newTable1 = names[2], newTable2 = names[3];
 
-      TableOperations tops = connector.tableOperations();
+      TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
@@ -174,7 +174,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       expectations.put(Maps.immutableEntry("bar", "col2"), "val2");
 
       for (String table : Arrays.asList(newTable1, newTable2)) {
-        try (Scanner s = connector.createScanner(table, new Authorizations())) {
+        try (Scanner s = accumuloClient.createScanner(table, new Authorizations())) {
           s.setRange(new Range());
           Map<Entry<String,String>,String> actual = new HashMap<>();
           for (Entry<Key,Value> entry : s) {
@@ -199,7 +199,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       final String table1 = names[0], table2 = names[1];
       final String newTable1 = names[2], newTable2 = names[3];
 
-      TableOperations tops = connector.tableOperations();
+      TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
@@ -251,7 +251,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       expectations.put(Maps.immutableEntry("bar", "col2"), "val2");
 
       for (String table : Arrays.asList(newTable1, newTable2)) {
-        try (Scanner s = connector.createScanner(table, new Authorizations())) {
+        try (Scanner s = accumuloClient.createScanner(table, new Authorizations())) {
           s.setRange(new Range());
           Map<Entry<String,String>,String> actual = new HashMap<>();
           for (Entry<Key,Value> entry : s) {
@@ -277,7 +277,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       final String table1 = names[0], table2 = names[1];
       final String newTable1 = names[2], newTable2 = names[3];
 
-      TableOperations tops = connector.tableOperations();
+      TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
@@ -320,7 +320,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       final String[] names = getUniqueNames(2);
       final String table1 = names[0], table2 = names[1];
 
-      TableOperations tops = connector.tableOperations();
+      TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
@@ -371,7 +371,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       final String[] names = getUniqueNames(2);
       final String table1 = names[0], table2 = names[1];
 
-      TableOperations tops = connector.tableOperations();
+      TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 

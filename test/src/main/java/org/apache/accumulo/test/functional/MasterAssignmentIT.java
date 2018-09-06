@@ -22,9 +22,9 @@ import static org.junit.Assert.assertNull;
 
 import java.io.FileNotFoundException;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
@@ -46,7 +46,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = super.getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
@@ -88,7 +88,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
     assertEquals(online.current, online.last);
   }
 
-  private TabletLocationState getTabletLocationState(Connector c, String tableId)
+  private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId)
       throws FileNotFoundException, ConfigurationException {
     ClientContext context = getClientContext();
     try (MetaDataTableScanner s = new MetaDataTableScanner(context,

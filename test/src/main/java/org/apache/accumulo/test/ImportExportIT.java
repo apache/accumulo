@@ -29,9 +29,9 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -68,7 +68,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   @Test
   public void testExportImportThenScan() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     String[] tableNames = getUniqueNames(2);
     String srcTable = tableNames[0], destTable = tableNames[1];
@@ -176,7 +176,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
     verifyTableEquality(conn, srcTable, destTable);
   }
 
-  private void verifyTableEquality(Connector conn, String srcTable, String destTable)
+  private void verifyTableEquality(AccumuloClient conn, String srcTable, String destTable)
       throws Exception {
     Iterator<Entry<Key,Value>> src = conn.createScanner(srcTable, Authorizations.EMPTY).iterator(),
         dest = conn.createScanner(destTable, Authorizations.EMPTY).iterator();

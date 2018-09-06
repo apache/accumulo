@@ -29,9 +29,9 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -64,7 +64,7 @@ import com.google.common.collect.Iterables;
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   private WrappedCloseWriteAheadLogReferences refs;
-  private Connector conn;
+  private AccumuloClient conn;
 
   private static class WrappedCloseWriteAheadLogReferences extends CloseWriteAheadLogReferences {
     public WrappedCloseWriteAheadLogReferences(ServerContext context) {
@@ -72,14 +72,14 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }
 
     @Override
-    protected long updateReplicationEntries(Connector conn, Set<String> closedWals) {
+    protected long updateReplicationEntries(AccumuloClient conn, Set<String> closedWals) {
       return super.updateReplicationEntries(conn, closedWals);
     }
   }
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,

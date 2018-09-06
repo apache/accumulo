@@ -18,9 +18,9 @@ package org.apache.accumulo.test.functional;
 
 import java.util.EnumSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -51,7 +51,7 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting setting = new IteratorSetting(100, SlowIterator.class);

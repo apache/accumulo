@@ -20,8 +20,8 @@ import static org.junit.Assert.fail;
 
 import java.util.Collections;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -35,7 +35,7 @@ public class DeleteFailIT extends AccumuloClusterHarness {
 
   @Test
   public void testFail() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
     ntc.setProperties(

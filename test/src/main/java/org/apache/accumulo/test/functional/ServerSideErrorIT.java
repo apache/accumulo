@@ -22,10 +22,10 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -48,7 +48,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);

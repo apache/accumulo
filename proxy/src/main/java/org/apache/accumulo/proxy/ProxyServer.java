@@ -37,6 +37,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -45,7 +46,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
@@ -221,11 +221,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
 
   @SuppressWarnings("deprecation")
-  protected Connector getConnector(ByteBuffer login) throws Exception {
+  protected AccumuloClient getConnector(ByteBuffer login) throws Exception {
     String[] pair = ByteBufferUtil.toString(login).split(",", 2);
     if (instance.getInstanceID().equals(pair[0])) {
       Credentials creds = Credentials.deserialize(pair[1]);
-      return instance.getConnector(creds.getPrincipal(), creds.getToken());
+      return (AccumuloClient) instance.getConnector(creds.getPrincipal(), creds.getToken());
     } else {
       throw new org.apache.accumulo.core.client.AccumuloSecurityException(pair[0],
           org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.INVALID_INSTANCEID);
@@ -543,17 +543,17 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      Connector connector = getConnector(login);
+      AccumuloClient accumuloClient = getConnector(login);
       Text startText = ByteBufferUtil.toText(startRow);
       Text endText = ByteBufferUtil.toText(endRow);
       Authorizations auth;
       if (auths != null) {
         auth = getAuthorizations(auths);
       } else {
-        auth = connector.securityOperations().getUserAuthorizations(connector.whoami());
+        auth = accumuloClient.securityOperations().getUserAuthorizations(accumuloClient.whoami());
       }
-      Text max = connector.tableOperations().getMaxRow(tableName, auth, startText, startInclusive,
-          endText, endInclusive);
+      Text max = accumuloClient.tableOperations().getMaxRow(tableName, auth, startText,
+          startInclusive, endText, endInclusive);
       return TextUtil.getByteBuffer(max);
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -1167,15 +1167,15 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      Connector connector = getConnector(login);
+      AccumuloClient accumuloClient = getConnector(login);
 
       Authorizations auth;
       if (opts != null && opts.isSetAuthorizations()) {
         auth = getAuthorizations(opts.authorizations);
       } else {
-        auth = connector.securityOperations().getUserAuthorizations(connector.whoami());
+        auth = accumuloClient.securityOperations().getUserAuthorizations(accumuloClient.whoami());
       }
-      Scanner scanner = connector.createScanner(tableName, auth);
+      Scanner scanner = accumuloClient.createScanner(tableName, auth);
 
       if (opts != null) {
         if (opts.iterators != null) {
@@ -1221,19 +1221,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      Connector connector = getConnector(login);
+      AccumuloClient accumuloClient = getConnector(login);
 
       int threads = 10;
       Authorizations auth;
       if (opts != null && opts.isSetAuthorizations()) {
         auth = getAuthorizations(opts.authorizations);
       } else {
-        auth = connector.securityOperations().getUserAuthorizations(connector.whoami());
+        auth = accumuloClient.securityOperations().getUserAuthorizations(accumuloClient.whoami());
       }
       if (opts != null && opts.threads > 0)
         threads = opts.threads;
 
-      BatchScanner scanner = connector.createBatchScanner(tableName, auth, threads);
+      BatchScanner scanner = accumuloClient.createBatchScanner(tableName, auth, threads);
 
       if (opts != null) {
         if (opts.iterators != null) {

@@ -22,9 +22,9 @@ import static org.junit.Assert.assertFalse;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -42,7 +42,7 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
 
   @Test
   public void testEquality() throws Exception {
-    Connector conn = this.getConnector();
+    AccumuloClient conn = this.getAccumuloClient();
     final BatchWriterConfig config = new BatchWriterConfig();
 
     final String[] tables = getUniqueNames(2);

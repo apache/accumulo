@@ -22,9 +22,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -77,7 +77,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
     String bigTable = tableNames[0];
     String lilTable = tableNames[1];
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     c.tableOperations().create(bigTable);
     c.tableOperations().create(lilTable);
 
@@ -111,8 +111,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
     scanSomeData(c, lilTable, 1, 10, 0, 10);
   }
 
-  private void scanSomeData(Connector c, String table, int startRow, int rowCount, int startCol,
-      int colCount) throws Exception {
+  private void scanSomeData(AccumuloClient c, String table, int startRow, int rowCount,
+      int startCol, int colCount) throws Exception {
     try (Scanner s = c.createScanner(table, Authorizations.EMPTY)) {
       s.setRange(
           new Range(Integer.toHexString(startRow), Integer.toHexString(startRow + rowCount)));
@@ -142,8 +142,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
     return result;
   }
 
-  private void writeSomeData(Connector conn, String table, int startRow, int rowCount, int startCol,
-      int colCount) throws Exception {
+  private void writeSomeData(AccumuloClient conn, String table, int startRow, int rowCount,
+      int startCol, int colCount) throws Exception {
     BatchWriterConfig config = new BatchWriterConfig();
     config.setMaxMemory(10 * 1024 * 1024);
     BatchWriter bw = conn.createBatchWriter(table, config);

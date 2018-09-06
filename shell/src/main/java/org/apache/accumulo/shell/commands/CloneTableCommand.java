@@ -58,7 +58,7 @@ public class CloneTableCommand extends Command {
       flush = false;
     }
 
-    shellState.getConnector().tableOperations().clone(cl.getArgs()[0], cl.getArgs()[1], flush,
+    shellState.getAccumuloClient().tableOperations().clone(cl.getArgs()[0], cl.getArgs()[1], flush,
         props, exclude);
     return 0;
   }

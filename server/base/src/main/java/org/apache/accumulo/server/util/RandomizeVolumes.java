@@ -23,10 +23,10 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -54,7 +54,7 @@ public class RandomizeVolumes {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     ServerContext context = opts.getServerContext();
-    Connector c;
+    AccumuloClient c;
     if (opts.getToken() == null) {
       c = context.getConnector();
     } else {
@@ -69,7 +69,7 @@ public class RandomizeVolumes {
     }
   }
 
-  public static int randomize(ServerContext context, Connector c, String tableName)
+  public static int randomize(ServerContext context, AccumuloClient c, String tableName)
       throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
     final VolumeManager vm = context.getVolumeManager();
     if (vm.getVolumes().size() < 2) {

@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -68,7 +68,7 @@ public class DurabilityIT extends ConfigurableMacBase {
 
   private String[] init() throws Exception {
     String[] tableNames = getUniqueNames(4);
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     TableOperations tableOps = c.tableOperations();
     createTable(tableNames[0]);
     createTable(tableNames[1]);
@@ -82,20 +82,20 @@ public class DurabilityIT extends ConfigurableMacBase {
   }
 
   private void cleanup(String[] tableNames) throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     for (String tableName : tableNames) {
       c.tableOperations().delete(tableName);
     }
   }
 
   private void createTable(String tableName) throws Exception {
-    TableOperations tableOps = getConnector().tableOperations();
+    TableOperations tableOps = getClient().tableOperations();
     tableOps.create(tableName);
   }
 
   @Test(timeout = 2 * 60 * 1000)
   public void testWriteSpeed() throws Exception {
-    TableOperations tableOps = getConnector().tableOperations();
+    TableOperations tableOps = getClient().tableOperations();
     String tableNames[] = init();
     // write some gunk, delete the table to keep that table from messing with the performance
     // numbers of successive calls
@@ -161,7 +161,7 @@ public class DurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 4 * 60 * 1000)
   public void testIncreaseDurability() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
@@ -185,7 +185,7 @@ public class DurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 4 * 60 * 1000)
   public void testMetaDurability() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String tableName = getUniqueNames(1)[0];
     c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
     Map<String,String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
@@ -198,7 +198,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   }
 
   private long readSome(String table) throws Exception {
-    return Iterators.size(getConnector().createScanner(table, Authorizations.EMPTY).iterator());
+    return Iterators.size(getClient().createScanner(table, Authorizations.EMPTY).iterator());
   }
 
   private void restartTServer() throws Exception {
@@ -213,7 +213,7 @@ public class DurabilityIT extends ConfigurableMacBase {
     long[] attempts = new long[iterations];
     for (int attempt = 0; attempt < iterations; attempt++) {
       long now = System.currentTimeMillis();
-      Connector c = getConnector();
+      AccumuloClient c = getClient();
       BatchWriter bw = c.createBatchWriter(table, null);
       for (int i = 1; i < count + 1; i++) {
         Mutation m = new Mutation("" + i);

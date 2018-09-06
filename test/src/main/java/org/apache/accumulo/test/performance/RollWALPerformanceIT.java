@@ -22,7 +22,7 @@ import static org.junit.Assume.assumeFalse;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -62,7 +62,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
   }
 
   private long ingest() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     final String tableName = getUniqueNames(1)[0];
 
     log.info("Creating the table");
@@ -109,7 +109,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     // get time with a small WAL, which will cause many WAL roll-overs
     long avg1 = getAverage();
     // use a bigger WAL max size to eliminate WAL roll-overs
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     c.instanceOperations().setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1G");
     c.tableOperations().flush(MetadataTable.NAME, null, null, true);
     c.tableOperations().flush(RootTable.NAME, null, null, true);

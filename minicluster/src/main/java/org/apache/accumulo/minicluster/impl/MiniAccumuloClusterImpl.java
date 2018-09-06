@@ -54,6 +54,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
@@ -774,7 +775,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public Connector getConnector(String user, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return Connector.builder().usingClientInfo(getClientInfo()).usingToken(user, token).build();
+    return Connector.from(
+        AccumuloClient.builder().usingClientInfo(getClientInfo()).usingToken(user, token).build());
+  }
+
+  @Override
+  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
+    return AccumuloClient.builder().usingClientInfo(getClientInfo()).usingToken(user, token)
+        .build();
   }
 
   @SuppressWarnings("deprecation")
@@ -787,7 +796,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public ClientInfo getClientInfo() {
     if (clientInfo == null) {
-      clientInfo = Connector.builder()
+      clientInfo = AccumuloClient.builder()
           .usingProperties(config.getClientPropsFile().getAbsolutePath()).info();
     }
     return clientInfo;

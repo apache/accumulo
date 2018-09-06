@@ -25,11 +25,11 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -62,10 +62,10 @@ public class MapReduceIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    runTest(getConnector(), getCluster());
+    runTest(getClient(), getCluster());
   }
 
-  static void runTest(Connector c, MiniAccumuloClusterImpl cluster) throws AccumuloException,
+  static void runTest(AccumuloClient c, MiniAccumuloClusterImpl cluster) throws AccumuloException,
       AccumuloSecurityException, TableExistsException, TableNotFoundException,
       MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {
     c.tableOperations().create(tablename);

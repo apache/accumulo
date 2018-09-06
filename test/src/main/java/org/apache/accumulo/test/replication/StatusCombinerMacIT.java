@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Table;
@@ -70,7 +70,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Test
   public void testCombinerSetOnMetadata() throws Exception {
-    TableOperations tops = getConnector().tableOperations();
+    TableOperations tops = getClient().tableOperations();
     Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(MetadataTable.NAME);
 
     assertTrue(iterators.containsKey(ReplicationTableUtil.COMBINER_NAME));
@@ -96,7 +96,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     ClusterUser user = getAdminUser();
 
     ReplicationTable.setOnline(conn);

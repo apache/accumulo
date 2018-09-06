@@ -42,7 +42,7 @@ public class MaxRowCommand extends ScanCommand {
     final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
 
     try {
-      final Text max = shellState.getConnector().tableOperations().getMaxRow(tableName, auths,
+      final Text max = shellState.getAccumuloClient().tableOperations().getMaxRow(tableName, auths,
           startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
       if (max != null) {
         shellState.getReader().println(max.toString());

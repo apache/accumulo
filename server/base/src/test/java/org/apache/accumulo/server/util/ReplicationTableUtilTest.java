@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -134,7 +134,7 @@ public class ReplicationTableUtilTest {
 
   @Test
   public void setsCombinerOnMetadataCorrectly() throws Exception {
-    Connector conn = createMock(Connector.class);
+    AccumuloClient conn = createMock(AccumuloClient.class);
     TableOperations tops = createMock(TableOperations.class);
 
     String myMetadataTable = "mymetadata";

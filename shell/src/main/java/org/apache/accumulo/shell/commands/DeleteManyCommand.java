@@ -45,7 +45,7 @@ public class DeleteManyCommand extends ScanCommand {
     // handle first argument, if present, the authorizations list to
     // scan with
     final Authorizations auths = getAuths(cl, shellState);
-    final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+    final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
 
     scanner.addScanIterator(
         new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
@@ -62,7 +62,7 @@ public class DeleteManyCommand extends ScanCommand {
     fetchColumns(cl, scanner, interpeter);
 
     // output / delete the records
-    final BatchWriter writer = shellState.getConnector().createBatchWriter(tableName,
+    final BatchWriter writer = shellState.getAccumuloClient().createBatchWriter(tableName,
         new BatchWriterConfig().setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     FormatterConfig config = new FormatterConfig();
     config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));

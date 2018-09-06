@@ -19,7 +19,7 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -52,7 +52,7 @@ public class CleanUpBulkImport extends MasterRepo {
     MetadataTableUtil.addDeleteEntry(master.getContext(), info.tableId, bulkDir.toString());
     if (info.tableState == TableState.ONLINE) {
       log.debug("removing the metadata table markers for loaded files");
-      Connector conn = master.getConnector();
+      AccumuloClient conn = master.getConnector();
       MetadataTableUtil.removeBulkLoadEntries(conn, info.tableId, tid);
     }
     Utils.unreserveHdfsDirectory(master, info.sourceDir, tid);

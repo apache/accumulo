@@ -73,7 +73,7 @@ public class ScanCommand extends Command {
       ScannerBase scanner)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     if (getUseSample(cl)) {
-      SamplerConfiguration samplerConfig = shellState.getConnector().tableOperations()
+      SamplerConfiguration samplerConfig = shellState.getAccumuloClient().tableOperations()
           .getSamplerConfiguration(tableName);
       if (samplerConfig == null) {
         throw new SampleNotPresentException(
@@ -100,7 +100,7 @@ public class ScanCommand extends Command {
       // handle first argument, if present, the authorizations list to
       // scan with
       final Authorizations auths = getAuths(cl, shellState);
-      final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+      final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
       if (null != classLoaderContext) {
         scanner.setClassLoaderContext(classLoaderContext);
       }
@@ -156,7 +156,7 @@ public class ScanCommand extends Command {
   static void ensureTserversCanLoadIterator(final Shell shellState, String tableName,
       String classname) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       ShellCommandException {
-    if (!shellState.getConnector().tableOperations().testClassLoad(tableName, classname,
+    if (!shellState.getAccumuloClient().tableOperations().testClassLoad(tableName, classname,
         SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
           "Servers are unable to load " + classname + " as type "
@@ -301,8 +301,8 @@ public class ScanCommand extends Command {
 
   protected Authorizations getAuths(final CommandLine cl, final Shell shellState)
       throws AccumuloSecurityException, AccumuloException {
-    final String user = shellState.getConnector().whoami();
-    Authorizations auths = shellState.getConnector().securityOperations()
+    final String user = shellState.getAccumuloClient().whoami();
+    Authorizations auths = shellState.getAccumuloClient().securityOperations()
         .getUserAuthorizations(user);
     if (cl.hasOption(scanOptAuths.getOpt())) {
       auths = ScanCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));

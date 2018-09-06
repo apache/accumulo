@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -152,7 +152,7 @@ public class GarbageCollectWriteAheadLogsTest {
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
     Scanner rscanner = EasyMock.createMock(Scanner.class);
 
@@ -198,7 +198,7 @@ public class GarbageCollectWriteAheadLogsTest {
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
     Scanner rscanner = EasyMock.createMock(Scanner.class);
 
@@ -239,7 +239,7 @@ public class GarbageCollectWriteAheadLogsTest {
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
     Scanner rscanner = EasyMock.createMock(Scanner.class);
     String row = MetadataSchema.ReplicationSection.getRowPrefix() + path;

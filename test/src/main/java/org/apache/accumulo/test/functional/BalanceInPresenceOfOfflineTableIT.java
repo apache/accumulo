@@ -27,9 +27,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -84,12 +84,12 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private String UNUSED_TABLE, TEST_TABLE;
 
-  private Connector connector;
+  private AccumuloClient accumuloClient;
 
   @Before
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     // Need at least two tservers
     Assume.assumeTrue("Not enough tservers to run test",
         conn.instanceOperations().getTabletServers().size() >= 2);
@@ -105,16 +105,16 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     TEST_TABLE = names[1];
 
     // load into a table we won't use
-    connector = getConnector();
-    connector.tableOperations().create(UNUSED_TABLE);
-    connector.tableOperations().addSplits(UNUSED_TABLE, splits);
+    accumuloClient = getAccumuloClient();
+    accumuloClient.tableOperations().create(UNUSED_TABLE);
+    accumuloClient.tableOperations().addSplits(UNUSED_TABLE, splits);
     // mark the table offline before it can rebalance.
-    connector.tableOperations().offline(UNUSED_TABLE);
+    accumuloClient.tableOperations().offline(UNUSED_TABLE);
 
     // actual test table
-    connector.tableOperations().create(TEST_TABLE);
-    connector.tableOperations().setProperty(TEST_TABLE, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-        "10K");
+    accumuloClient.tableOperations().create(TEST_TABLE);
+    accumuloClient.tableOperations().setProperty(TEST_TABLE,
+        Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
   }
 
   @Test
@@ -129,10 +129,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     vopts.setClientInfo(getClientInfo());
     vopts.rows = opts.rows = 200000;
     opts.setTableName(TEST_TABLE);
-    TestIngest.ingest(connector, opts, new BatchWriterOpts());
-    connector.tableOperations().flush(TEST_TABLE, null, null, true);
+    TestIngest.ingest(accumuloClient, opts, new BatchWriterOpts());
+    accumuloClient.tableOperations().flush(TEST_TABLE, null, null, true);
     vopts.setTableName(TEST_TABLE);
-    VerifyIngest.verifyIngest(connector, vopts, new ScannerOpts());
+    VerifyIngest.verifyIngest(accumuloClient, vopts, new ScannerOpts());
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
@@ -152,7 +152,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         try {
           client = MasterClient.getConnectionWithRetry(getClientContext());
           stats = client.getMasterStats(Tracer.traceInfo(),
-              creds.toThrift(getConnector().getInstanceID()));
+              creds.toThrift(getAccumuloClient().getInstanceID()));
           break;
         } catch (ThriftSecurityException exception) {
           throw new AccumuloSecurityException(exception);

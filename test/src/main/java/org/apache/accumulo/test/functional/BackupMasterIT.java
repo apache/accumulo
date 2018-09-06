@@ -44,7 +44,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter writer = new ZooReaderWriterFactory()
           .getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
-      String root = "/accumulo/" + getConnector().getInstanceID();
+      String root = "/accumulo/" + getClient().getInstanceID();
       List<String> children = Collections.emptyList();
       // wait for 2 lock entries
       do {
@@ -63,7 +63,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
       // kill the master by removing its lock
       writer.recursiveDelete(lockPath, NodeMissingPolicy.FAIL);
       // ensure the backup becomes the master
-      getConnector().tableOperations().create(getUniqueNames(1)[0]);
+      getClient().tableOperations().create(getUniqueNames(1)[0]);
     } finally {
       backup.destroy();
     }

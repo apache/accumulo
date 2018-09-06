@@ -21,8 +21,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -31,8 +31,8 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 /**
  * A wrapper for internal use. This class carries the instance, principal, and authentication token
  * for use in the public API, in a non-serialized form. This is important, so that the
- * authentication token carried in a {@link Connector} can be destroyed, invalidating future RPC
- * operations from that {@link Connector}.
+ * authentication token carried in a {@link AccumuloClient} can be destroyed, invalidating future
+ * RPC operations from that {@link AccumuloClient}.
  * <p>
  * See ACCUMULO-1312
  *

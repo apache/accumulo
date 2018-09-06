@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
@@ -26,7 +26,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 
   @Test(expected = AccumuloException.class)
   public void testNoFiles() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     // Should throw an error as this property can't be changed in ZooKeeper
     conn.instanceOperations().setProperty(Property.GENERAL_RPC_TIMEOUT.getKey(), "60s");
   }

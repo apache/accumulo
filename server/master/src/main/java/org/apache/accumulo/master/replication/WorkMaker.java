@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
@@ -57,11 +57,11 @@ public class WorkMaker {
   private static final Logger log = LoggerFactory.getLogger(WorkMaker.class);
 
   private final ServerContext context;
-  private Connector conn;
+  private AccumuloClient conn;
 
   private BatchWriter writer;
 
-  public WorkMaker(ServerContext context, Connector conn) {
+  public WorkMaker(ServerContext context, AccumuloClient conn) {
     this.context = context;
     this.conn = conn;
   }

@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -46,13 +46,13 @@ import org.junit.Test;
 
 public class UnorderedWorkAssignerTest {
 
-  private Connector conn;
+  private AccumuloClient conn;
   private UnorderedWorkAssigner assigner;
 
   @Before
   public void init() throws Exception {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    conn = createMock(Connector.class);
+    conn = createMock(AccumuloClient.class);
     assigner = new UnorderedWorkAssigner(conf, conn);
   }
 

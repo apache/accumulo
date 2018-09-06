@@ -30,11 +30,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -73,13 +73,13 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   private static final int NUM_ROWS = 1000;
   private static final long SLOW_SCAN_SLEEP_MS = 100L;
 
-  private Connector connector;
+  private AccumuloClient accumuloClient;
   private ClientContext context;
 
   @Before
   public void setup() {
-    connector = getConnector();
-    context = new ClientContext(connector.info());
+    accumuloClient = getAccumuloClient();
+    context = new ClientContext(accumuloClient.info());
   }
 
   @Override
@@ -121,7 +121,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     // verify that offline then online functions as expected.
 
-    connector.tableOperations().offline(tableName, true);
+    accumuloClient.tableOperations().offline(tableName, true);
     assertEquals("verify table is offline", TableState.OFFLINE, getTableState(tableName));
 
     onlineOp = new OnLineCallable(tableName);
@@ -161,7 +161,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
         blockUntilCompactionRunning(tableName));
 
     // test complete, cancel compaction and move on.
-    connector.tableOperations().cancelCompaction(tableName);
+    accumuloClient.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
     log.debug("Time for unblocked online {} ms",
@@ -185,7 +185,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     int runningCompactions = 0;
 
-    List<String> tservers = connector.instanceOperations().getTabletServers();
+    List<String> tservers = accumuloClient.instanceOperations().getTabletServers();
 
     /*
      * wait for compaction to start - The compaction will acquire a fate transaction lock that used
@@ -196,7 +196,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       try {
 
         for (String tserver : tservers) {
-          runningCompactions += connector.instanceOperations().getActiveCompactions(tserver).size();
+          runningCompactions += accumuloClient.instanceOperations().getActiveCompactions(tserver)
+              .size();
           log.trace("tserver {}, running compactions {}", tservers, runningCompactions);
         }
 
@@ -235,12 +236,13 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          connector.info().getZooKeepers(), connector.info().getZooKeepersSessionTimeOut(), secret);
+          accumuloClient.info().getZooKeepers(),
+          accumuloClient.info().getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(
-          ZooUtil.getRoot(connector.getInstanceID()) + Constants.ZFATE, zk);
+          ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZFATE, zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(connector.getInstanceID()) + Constants.ZTABLE_LOCKS + "/" + tableId, null,
-          null);
+          ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZTABLE_LOCKS + "/" + tableId,
+          null, null);
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
@@ -289,8 +291,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
     try {
 
       // create table.
-      connector.tableOperations().create(tableName);
-      BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+      accumuloClient.tableOperations().create(tableName);
+      BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
 
       // populate
       for (int i = 0; i < NUM_ROWS; i++) {
@@ -303,7 +305,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       long startTimestamp = System.nanoTime();
 
-      try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         int count = 0;
         for (Map.Entry<Key,Value> elt : scanner) {
           String expected = String.format("%05d", count);
@@ -376,7 +378,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       log.trace("Setting {} online", tableName);
 
-      connector.tableOperations().online(tableName, true);
+      accumuloClient.tableOperations().online(tableName, true);
       // stop timing
       status.setComplete();
 
@@ -421,7 +423,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
         log.trace("Start compaction");
 
-        connector.tableOperations().compact(tableName, new Text("0"), new Text("z"),
+        accumuloClient.tableOperations().compact(tableName, new Text("0"), new Text("z"),
             compactIterators, true, true);
 
         log.trace("Compaction wait is complete");
@@ -435,7 +437,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
         // validate expected data created and exists in table.
 
-        try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+        try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
 
           int count = 0;
           for (Map.Entry<Key,Value> elt : scanner) {

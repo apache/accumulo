@@ -26,7 +26,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
@@ -114,7 +114,7 @@ class CopyFailed extends MasterRepo {
      */
 
     // determine which failed files were loaded
-    Connector conn = master.getConnector();
+    AccumuloClient conn = master.getConnector();
     try (Scanner mscanner = new IsolatedScanner(
         conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());

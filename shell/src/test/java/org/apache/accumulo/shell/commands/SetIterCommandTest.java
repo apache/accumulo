@@ -21,7 +21,7 @@ import java.io.Writer;
 import java.lang.reflect.Field;
 import java.util.EnumSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -48,7 +48,7 @@ public class SetIterCommandTest {
 
   @Test
   public void addColumnAgeOffFilter() throws Exception {
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
@@ -98,21 +98,21 @@ public class SetIterCommandTest {
     // Shell asking for another unnamed option; we pass in an empty string to signal that we are
     // done adding options
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("");
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
 
     // Table exists
     EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
     EasyMock.expect(tableOperations.exists("foo")).andReturn(true);
 
     // Testing class load
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
     EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
     EasyMock.expect(tableOperations.testClassLoad("foo",
         "org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
         SortedKeyValueIterator.class.getName())).andReturn(true);
 
     // Attach iterator
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
     EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
     tableOperations.attachIterator(EasyMock.eq("foo"), EasyMock.anyObject(IteratorSetting.class),
         EasyMock.eq(EnumSet.allOf(IteratorScope.class)));

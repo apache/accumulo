@@ -29,9 +29,9 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -88,7 +88,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
@@ -114,7 +114,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     fs.delete(jarPath, true);
   }
 
-  private void scanCheck(Connector c, String tableName, String expected) throws Exception {
+  private void scanCheck(AccumuloClient c, String tableName, String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
       Iterator<Entry<Key,Value>> iterator = bs.iterator();
       assertTrue(iterator.hasNext());

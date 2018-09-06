@@ -26,11 +26,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -52,13 +52,13 @@ import com.google.common.collect.Lists;
 public class BatchWriterReplicationReplayerTest {
 
   private ClientContext context;
-  private Connector conn;
+  private AccumuloClient conn;
   private AccumuloConfiguration conf;
   private BatchWriter bw;
 
   @Before
   public void setUpContext() throws AccumuloException, AccumuloSecurityException {
-    conn = createMock(Connector.class);
+    conn = createMock(AccumuloClient.class);
     conf = createMock(AccumuloConfiguration.class);
     bw = createMock(BatchWriter.class);
     context = createMock(ClientContext.class);

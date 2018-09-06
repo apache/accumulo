@@ -60,7 +60,7 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
       final String className) throws AccumuloException, AccumuloSecurityException {
     super.setPlugin(cl, shellState, tableName, className);
     if (cl.hasOption(interpeterOption.getOpt())) {
-      shellState.getConnector().tableOperations().setProperty(tableName,
+      shellState.getAccumuloClient().tableOperations().setProperty(tableName,
           Property.TABLE_INTERPRETER_CLASS.toString(), className);
     }
   }
@@ -70,7 +70,7 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
       throws AccumuloException, AccumuloSecurityException {
     super.removePlugin(cl, shellState, tableName);
     if (cl.hasOption(interpeterOption.getOpt())) {
-      shellState.getConnector().tableOperations().removeProperty(tableName,
+      shellState.getAccumuloClient().tableOperations().removeProperty(tableName,
           Property.TABLE_INTERPRETER_CLASS.toString());
     }
   }

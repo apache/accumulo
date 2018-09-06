@@ -40,13 +40,13 @@ public class DeleteIterCommand extends Command {
     final String name = cl.getOptionValue(nameOpt.getOpt());
 
     if (namespaces) {
-      if (!shellState.getConnector().namespaceOperations()
+      if (!shellState.getAccumuloClient().namespaceOperations()
           .listIterators(OptUtil.getNamespaceOpt(cl, shellState)).containsKey(name)) {
         Shell.log.warn("no iterators found that match your criteria");
         return 0;
       }
     } else if (tables) {
-      if (!shellState.getConnector().tableOperations()
+      if (!shellState.getAccumuloClient().tableOperations()
           .listIterators(OptUtil.getTableOpt(cl, shellState)).containsKey(name)) {
         Shell.log.warn("no iterators found that match your criteria");
         return 0;
@@ -70,10 +70,10 @@ public class DeleteIterCommand extends Command {
     }
 
     if (namespaces) {
-      shellState.getConnector().namespaceOperations()
+      shellState.getAccumuloClient().namespaceOperations()
           .removeIterator(OptUtil.getNamespaceOpt(cl, shellState), name, scopes);
     } else if (tables) {
-      shellState.getConnector().tableOperations()
+      shellState.getAccumuloClient().tableOperations()
           .removeIterator(OptUtil.getTableOpt(cl, shellState), name, scopes);
     } else {
       throw new IllegalArgumentException("No table or namespace specified");

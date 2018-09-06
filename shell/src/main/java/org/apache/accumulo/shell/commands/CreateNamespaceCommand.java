@@ -48,21 +48,21 @@ public class CreateNamespaceCommand extends Command {
 
     String namespace = cl.getArgs()[0];
 
-    shellState.getConnector().namespaceOperations().create(namespace);
+    shellState.getAccumuloClient().namespaceOperations().create(namespace);
 
     // Copy options if flag was set
     Iterable<Entry<String,String>> configuration = null;
     if (cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
       String copy = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
-      if (shellState.getConnector().namespaceOperations().exists(namespace)) {
-        configuration = shellState.getConnector().namespaceOperations().getProperties(copy);
+      if (shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
+        configuration = shellState.getAccumuloClient().namespaceOperations().getProperties(copy);
       }
     }
     if (configuration != null) {
       for (Entry<String,String> entry : configuration) {
         if (Property.isValidTablePropertyKey(entry.getKey())) {
-          shellState.getConnector().namespaceOperations().setProperty(namespace, entry.getKey(),
-              entry.getValue());
+          shellState.getAccumuloClient().namespaceOperations().setProperty(namespace,
+              entry.getKey(), entry.getValue());
         }
       }
     }

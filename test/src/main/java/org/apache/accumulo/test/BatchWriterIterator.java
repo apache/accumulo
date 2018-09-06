@@ -24,9 +24,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -90,19 +90,20 @@ public class BatchWriterIterator extends WrappingIterator {
   private BatchWriter batchWriter;
   private boolean firstWrite = true;
   private Value topValue = null;
-  private Connector connector;
+  private AccumuloClient accumuloClient;
 
   public static final String SUCCESS_STRING = "success";
   public static final Value SUCCESS_VALUE = new Value(SUCCESS_STRING.getBytes());
 
   public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite,
       long batchWriterTimeout, long batchWriterMaxMemory, int numEntriesToWrite, String tableName,
-      Connector connector, AuthenticationToken token, boolean clearCacheAfterFirstWrite,
+      AccumuloClient accumuloClient, AuthenticationToken token, boolean clearCacheAfterFirstWrite,
       boolean splitAfterFirstWrite) {
     return iteratorSetting(priority, sleepAfterFirstWrite, batchWriterTimeout, batchWriterMaxMemory,
-        numEntriesToWrite, tableName, connector.info().getZooKeepers(),
-        connector.info().getInstanceName(), connector.info().getZooKeepersSessionTimeOut(),
-        connector.whoami(), token, clearCacheAfterFirstWrite, splitAfterFirstWrite);
+        numEntriesToWrite, tableName, accumuloClient.info().getZooKeepers(),
+        accumuloClient.info().getInstanceName(),
+        accumuloClient.info().getZooKeepersSessionTimeOut(), accumuloClient.whoami(), token,
+        clearCacheAfterFirstWrite, splitAfterFirstWrite);
   }
 
   public static IteratorSetting iteratorSetting(int priority, int sleepAfterFirstWrite,
@@ -165,7 +166,7 @@ public class BatchWriterIterator extends WrappingIterator {
 
   private void initBatchWriter() {
     try {
-      connector = Connector.builder().forInstance(instanceName, zookeeperHost)
+      accumuloClient = AccumuloClient.builder().forInstance(instanceName, zookeeperHost)
           .usingToken(username, auth).withZkTimeout(zookeeperTimeout).build();
     } catch (Exception e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);
@@ -177,7 +178,7 @@ public class BatchWriterIterator extends WrappingIterator {
     bwc.setTimeout(batchWriterTimeout, TimeUnit.SECONDS);
 
     try {
-      batchWriter = connector.createBatchWriter(tableName, bwc);
+      batchWriter = accumuloClient.createBatchWriter(tableName, bwc);
     } catch (TableNotFoundException e) {
       log.error(tableName + " does not exist in instance " + instanceName, e);
       throw new RuntimeException(e);
@@ -206,7 +207,7 @@ public class BatchWriterIterator extends WrappingIterator {
           if (splitAfterFirstWrite) {
             SortedSet<Text> splits = new TreeSet<>();
             splits.add(new Text(row));
-            connector.tableOperations().addSplits(tableName, splits);
+            accumuloClient.tableOperations().addSplits(tableName, splits);
           }
           if (sleepAfterFirstWrite > 0)
             try {

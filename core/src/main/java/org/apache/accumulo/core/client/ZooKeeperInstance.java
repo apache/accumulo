@@ -26,10 +26,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientInfoImpl;
-import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  * If you do not know the instance names then run accumulo
  * org.apache.accumulo.server.util.ListInstances on an accumulo server.
  *
- * @deprecated since 2.0.0, Use {@link Connector#builder()} instead
+ * @deprecated since 2.0.0, Use {@link AccumuloClient#builder()} instead
  */
 @Deprecated
 public class ZooKeeperInstance implements Instance {
@@ -112,7 +112,7 @@ public class ZooKeeperInstance implements Instance {
    *          {@link ClientConfiguration} which extends Configuration with convenience methods
    *          specific to Accumulo.
    * @since 1.9.0
-   * @deprecated since 2.0.0; use {@link Connector#builder()} instead
+   * @deprecated since 2.0.0; use {@link AccumuloClient#builder()} instead
    */
   @Deprecated
   public ZooKeeperInstance(ClientConfiguration config) {
@@ -224,7 +224,7 @@ public class ZooKeeperInstance implements Instance {
     Properties properties = ClientConfConverter.toProperties(clientConf);
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
-    return new ConnectorImpl(new ClientContext(new ClientInfoImpl(properties, token)));
+    return new AccumuloClientImpl(new ClientContext(new ClientInfoImpl(properties, token)));
   }
 
   @Override

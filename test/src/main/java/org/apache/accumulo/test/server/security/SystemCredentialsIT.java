@@ -20,9 +20,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -74,7 +74,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     } else {
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     }
-    Connector conn;
+    AccumuloClient conn;
     try {
       conn = context.getConnector(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloSecurityException e) {

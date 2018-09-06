@@ -22,9 +22,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.summary.Summary;
@@ -52,7 +52,7 @@ public class SummariesCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    Connector conn = shellState.getConnector();
+    AccumuloClient conn = shellState.getAccumuloClient();
     SummaryRetriever retriever = conn.tableOperations().summaries(tableName)
         .withMatchingConfiguration(selectionRegex);
     if (startRow != null) {

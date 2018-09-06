@@ -22,10 +22,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -97,7 +97,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
   }
 
-  private static void update(Connector c, Mutation m)
+  private static void update(AccumuloClient c, Mutation m)
       throws TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     bw.addMutation(m);
@@ -107,12 +107,12 @@ public class MergeStateIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    Connector connector = getConnector();
-    EasyMock.expect(context.getConnector()).andReturn(connector).anyTimes();
+    AccumuloClient accumuloClient = getClient();
+    EasyMock.expect(context.getConnector()).andReturn(accumuloClient).anyTimes();
     EasyMock.replay(context);
-    connector.securityOperations().grantTablePermission(connector.whoami(), MetadataTable.NAME,
-        TablePermission.WRITE);
-    BatchWriter bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
+        MetadataTable.NAME, TablePermission.WRITE);
+    BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     // Create a fake METADATA table with these splits
     String splits[] = {"a", "e", "j", "o", "t", "z"};
@@ -154,43 +154,46 @@ public class MergeStateIT extends ConfigurableMacBase {
     TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
     TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
         KeyExtent.encodePrevEndRow(new Text("o")));
-    update(connector, m);
+    update(accumuloClient, m);
 
     // do the state check
     MergeStats stats = scan(state, metaDataStateStore);
-    MergeState newState = stats.nextMergeState(connector, state);
+    MergeState newState = stats.nextMergeState(accumuloClient, state);
     assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
 
     // unassign the tablets
-    BatchDeleter deleter = connector.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY,
-        1000, new BatchWriterConfig());
+    BatchDeleter deleter = accumuloClient.createBatchDeleter(MetadataTable.NAME,
+        Authorizations.EMPTY, 1000, new BatchWriterConfig());
     deleter.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     deleter.setRanges(Collections.singletonList(new Range()));
     deleter.delete();
 
     // now we should be ready to merge but, we have inconsistent metadata
     stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.WAITING_FOR_OFFLINE,
+        stats.nextMergeState(accumuloClient, state));
 
     // finish the split
     KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
     m = tablet.getPrevRowUpdateMutation();
     TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
-    update(connector, m);
+    update(accumuloClient, m);
     metaDataStateStore
         .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
 
     // onos... there's a new tablet online
     stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.WAITING_FOR_CHOPPED,
+        stats.nextMergeState(accumuloClient, state));
 
     // chop it
     m = tablet.getPrevRowUpdateMutation();
     ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
-    update(connector, m);
+    update(accumuloClient, m);
 
     stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.WAITING_FOR_OFFLINE,
+        stats.nextMergeState(accumuloClient, state));
 
     // take it offline
     m = tablet.getPrevRowUpdateMutation();
@@ -202,7 +205,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     // now we can split
     stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.MERGING, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.MERGING, stats.nextMergeState(accumuloClient, state));
 
   }
 

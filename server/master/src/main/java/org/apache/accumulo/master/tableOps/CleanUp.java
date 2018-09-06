@@ -21,8 +21,8 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -121,7 +121,7 @@ class CleanUp extends MasterRepo {
 
     try {
       // look for other tables that references this table's files
-      Connector conn = master.getConnector();
+      AccumuloClient conn = master.getConnector();
       try (BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
         Range allTables = MetadataSchema.TabletsSection.getRange();
         Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);

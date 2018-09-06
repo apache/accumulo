@@ -40,8 +40,8 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -96,7 +96,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     MiniAccumuloClusterControl control = mac.getClusterControl();
     control.stop(GARBAGE_COLLECTOR);
     ServerContext context = getServerContext();
-    Connector c = context.getConnector();
+    AccumuloClient c = context.getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     writeSomeData(c, tableName, 1, 1);
@@ -159,14 +159,15 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));
   }
 
-  private void verifySomeData(Connector c, String tableName, int expected) throws Exception {
+  private void verifySomeData(AccumuloClient c, String tableName, int expected) throws Exception {
     try (Scanner scan = c.createScanner(tableName, EMPTY)) {
       int result = Iterators.size(scan.iterator());
       assertEquals(expected, result);
     }
   }
 
-  private void writeSomeData(Connector conn, String tableName, int row, int col) throws Exception {
+  private void writeSomeData(AccumuloClient conn, String tableName, int row, int col)
+      throws Exception {
     Random rand = new SecureRandom();
     BatchWriter bw = conn.createBatchWriter(tableName, null);
     byte[] rowData = new byte[10];
@@ -189,7 +190,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     bw.close();
   }
 
-  private Map<KeyExtent,List<String>> getRecoveryMarkers(Connector c) throws Exception {
+  private Map<KeyExtent,List<String>> getRecoveryMarkers(AccumuloClient c) throws Exception {
     Map<KeyExtent,List<String>> result = new HashMap<>();
     try (Scanner root = c.createScanner(RootTable.NAME, EMPTY);
         Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {

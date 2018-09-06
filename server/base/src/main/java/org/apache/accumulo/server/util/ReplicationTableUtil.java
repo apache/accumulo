@@ -25,9 +25,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -84,7 +84,7 @@ public class ReplicationTableUtil {
   synchronized static Writer getWriter(ClientContext context) {
     Writer replicationTable = writers.get(context.getCredentials());
     if (replicationTable == null) {
-      Connector conn;
+      AccumuloClient conn;
       try {
         conn = context.getConnector();
       } catch (AccumuloException | AccumuloSecurityException e) {
@@ -99,7 +99,7 @@ public class ReplicationTableUtil {
     return replicationTable;
   }
 
-  public synchronized static void configureMetadataTable(Connector conn, String tableName) {
+  public synchronized static void configureMetadataTable(AccumuloClient conn, String tableName) {
     TableOperations tops = conn.tableOperations();
     Map<String,EnumSet<IteratorScope>> iterators = null;
     try {

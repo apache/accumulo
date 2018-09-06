@@ -33,11 +33,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -174,7 +174,7 @@ public class SimpleGarbageCollector implements Iface {
     return context.getConfiguration();
   }
 
-  Connector getConnector() throws AccumuloSecurityException, AccumuloException {
+  AccumuloClient getConnector() throws AccumuloSecurityException, AccumuloException {
     return context.getConnector();
   }
 
@@ -314,7 +314,7 @@ public class SimpleGarbageCollector implements Iface {
         return;
       }
 
-      Connector c = getConnector();
+      AccumuloClient c = getConnector();
       BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
 
       // when deleting a dir and all files in that dir, only need to delete the dir
@@ -482,7 +482,7 @@ public class SimpleGarbageCollector implements Iface {
     @Override
     public Iterator<Entry<String,Status>> getReplicationNeededIterator()
         throws AccumuloException, AccumuloSecurityException {
-      Connector conn = getConnector();
+      AccumuloClient conn = getConnector();
       try {
         Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
@@ -588,9 +588,9 @@ public class SimpleGarbageCollector implements Iface {
 
       // we just made a lot of metadata changes: flush them out
       try {
-        Connector connector = getConnector();
-        connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-        connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
+        AccumuloClient accumuloClient = getConnector();
+        accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+        accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {
         log.warn("{}", e.getMessage(), e);
       }

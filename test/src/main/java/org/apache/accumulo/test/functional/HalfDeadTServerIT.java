@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.minicluster.ServerType;
@@ -115,7 +115,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     if (!makeDiskFailureLibrary())
       return null;
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     assertEquals(1, c.instanceOperations().getTabletServers().size());
 
     // create our own tablet server with the special test library

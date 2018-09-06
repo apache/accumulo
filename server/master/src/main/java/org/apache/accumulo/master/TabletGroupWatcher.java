@@ -35,11 +35,11 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -598,7 +598,7 @@ abstract class TabletGroupWatcher extends Daemon {
       Master.log.debug("Found following tablet {}", followingTablet);
     }
     try {
-      Connector conn = this.master.getConnector();
+      AccumuloClient conn = this.master.getConnector();
       Text start = extent.getPrevEndRow();
       if (start == null) {
         start = new Text();
@@ -704,7 +704,7 @@ abstract class TabletGroupWatcher extends Daemon {
     BatchWriter bw = null;
     try {
       long fileCount = 0;
-      Connector conn = this.master.getConnector();
+      AccumuloClient conn = this.master.getConnector();
       // Make file entries in highest tablet
       bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       Scanner scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
@@ -786,7 +786,7 @@ abstract class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, Connector conn)
+  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, AccumuloClient conn)
       throws TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     Mutation m;
@@ -820,7 +820,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
   private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
     try {
-      Connector conn = this.master.getConnector();
+      AccumuloClient conn = this.master.getConnector();
       Scanner scanner = conn.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
           Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);

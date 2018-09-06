@@ -47,7 +47,7 @@ public class ListCompactionsCommand extends Command {
     List<String> tservers;
     String filterText = null;
 
-    final InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
+    final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 

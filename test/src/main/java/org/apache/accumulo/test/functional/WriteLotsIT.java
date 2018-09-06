@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -38,7 +38,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
 
   @Test
   public void writeLots() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     final AtomicReference<Exception> ref = new AtomicReference<>();

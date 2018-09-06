@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -45,8 +45,8 @@ public class LocalityCheck {
     opts.parseArgs(LocalityCheck.class.getName(), args);
 
     VolumeManager fs = opts.getServerContext().getVolumeManager();
-    Connector connector = opts.getConnector();
-    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    AccumuloClient accumuloClient = opts.getConnector();
+    Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     scanner.setRange(MetadataSchema.TabletsSection.getRange());

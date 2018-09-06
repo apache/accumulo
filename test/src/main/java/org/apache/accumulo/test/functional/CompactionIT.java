@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -73,7 +73,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     if (ClusterType.STANDALONE == getClusterType()) {
-      InstanceOperations iops = getConnector().instanceOperations();
+      InstanceOperations iops = getAccumuloClient().instanceOperations();
       Map<String,String> config = iops.getSystemConfiguration();
       majcThreadMaxOpen = config.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
       majcDelay = config.get(Property.TSERV_MAJC_DELAY.getKey());
@@ -92,7 +92,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   public void resetConfig() throws Exception {
     // We set the values..
     if (null != majcThreadMaxOpen) {
-      InstanceOperations iops = getConnector().instanceOperations();
+      InstanceOperations iops = getAccumuloClient().instanceOperations();
 
       iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
@@ -105,7 +105,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
@@ -165,7 +165,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
-  private int countFiles(Connector c) throws Exception {
+  private int countFiles(AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.TabletColumnFamily.NAME));
       s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME));

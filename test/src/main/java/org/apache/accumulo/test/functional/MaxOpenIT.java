@@ -23,8 +23,8 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -63,7 +63,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    InstanceOperations iops = getConnector().instanceOperations();
+    InstanceOperations iops = getAccumuloClient().instanceOperations();
     Map<String,String> sysConfig = iops.getSystemConfiguration();
     scanMaxOpenFiles = sysConfig.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
     majcConcurrent = sysConfig.get(Property.TSERV_MAJC_MAXCONCURRENT.getKey());
@@ -72,7 +72,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @After
   public void restoreConfig() throws Exception {
-    InstanceOperations iops = getConnector().instanceOperations();
+    InstanceOperations iops = getAccumuloClient().instanceOperations();
     if (null != scanMaxOpenFiles) {
       iops.setProperty(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), scanMaxOpenFiles);
     }
@@ -89,7 +89,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
@@ -128,7 +128,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   }
 
-  private long batchScan(Connector c, String tableName, List<Range> ranges, int threads)
+  private long batchScan(AccumuloClient c, String tableName, List<Range> ranges, int threads)
       throws Exception {
     try (BatchScanner bs = c.createBatchScanner(tableName, TestIngest.AUTHS, threads)) {
 

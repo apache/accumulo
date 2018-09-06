@@ -27,10 +27,10 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -60,13 +60,13 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
 
     int numRows = 1 << 18;
 
-    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
 
     for (int i = 0; i < numRows; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i)));
@@ -77,15 +77,15 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    getConnector().tableOperations().flush(tableName, null, null, true);
+    getAccumuloClient().tableOperations().flush(tableName, null, null, true);
 
-    getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-        "4K");
+    getAccumuloClient().tableOperations().setProperty(tableName,
+        Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
 
-    Collection<Text> splits = getConnector().tableOperations().listSplits(tableName);
+    Collection<Text> splits = getAccumuloClient().tableOperations().listSplits(tableName);
     while (splits.size() < 2) {
       sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
-      splits = getConnector().tableOperations().listSplits(tableName);
+      splits = getAccumuloClient().tableOperations().listSplits(tableName);
     }
 
     System.out.println("splits : " + splits);
@@ -105,8 +105,8 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
     HashMap<Text,Value> found = new HashMap<>();
 
     for (int i = 0; i < 20; i++) {
-      try (
-          BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 4)) {
+      try (BatchScanner bs = getAccumuloClient().createBatchScanner(tableName, Authorizations.EMPTY,
+          4)) {
 
         found.clear();
 
@@ -127,7 +127,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       }
     }
 
-    splits = getConnector().tableOperations().listSplits(tableName);
+    splits = getAccumuloClient().tableOperations().listSplits(tableName);
     log.info("splits : {}", splits);
   }
 

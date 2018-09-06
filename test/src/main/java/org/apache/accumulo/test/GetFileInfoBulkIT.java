@@ -31,7 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -83,7 +83,7 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);

@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -55,9 +55,9 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class FinishedWorkUpdater implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(FinishedWorkUpdater.class);
 
-  private final Connector conn;
+  private final AccumuloClient conn;
 
-  public FinishedWorkUpdater(Connector conn) {
+  public FinishedWorkUpdater(AccumuloClient conn) {
     this.conn = conn;
   }
 

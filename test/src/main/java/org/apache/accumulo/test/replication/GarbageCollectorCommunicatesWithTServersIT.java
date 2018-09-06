@@ -30,8 +30,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -106,7 +106,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    */
   private Set<String> getWalsForTable(String tableName) throws Exception {
     final ServerContext context = getServerContext();
-    final Connector conn = context.getConnector();
+    final AccumuloClient conn = context.getConnector();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
@@ -125,7 +125,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * Fetch all of the rfiles referenced by tablets in the metadata table for this table
    */
   private Set<String> getFilesForTable(String tableName) throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
@@ -153,7 +153,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * entries)
    */
   private Map<String,Status> getMetadataStatusForTable(String tableName) throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
@@ -178,7 +178,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
   @Test
   public void testActiveWalPrecludesClosing() throws Exception {
     final String table = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
 
     // Bring the replication table online first and foremost
     ReplicationTable.setOnline(conn);
@@ -270,7 +270,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     final String[] names = getUniqueNames(2);
     // `table` will be replicated, `otherTable` is only used to roll the WAL on the tserver
     final String table = names[0], otherTable = names[1];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
 
     // Bring the replication table online first and foremost
     ReplicationTable.setOnline(conn);

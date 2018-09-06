@@ -25,10 +25,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -70,7 +70,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     final String readAhead = c.instanceOperations().getSystemConfiguration()
         .get(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey());
     c.instanceOperations().setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "1");
@@ -175,8 +175,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     log.info(String.format("Improvement: %.2f%% (%d vs %d)", (improvement * 100), t1, t2));
   }
 
-  private long query(Connector c, String table, int depth, long start, long end, int num, int step)
-      throws Exception {
+  private long query(AccumuloClient c, String table, int depth, long start, long end, int num,
+      int step) throws Exception {
     Random r = new SecureRandom();
 
     HashSet<Long> expected = new HashSet<>();
@@ -232,7 +232,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     }
   }
 
-  private void write(Connector c, String table, int depth, long start, long end, int step)
+  private void write(AccumuloClient c, String table, int depth, long start, long end, int step)
       throws Exception {
 
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());

@@ -19,7 +19,7 @@ package org.apache.accumulo.test;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -37,7 +37,7 @@ public class BalanceIT extends AccumuloClusterHarness {
   @Test
   public void testBalance() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     log.info("Creating table");
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<>();

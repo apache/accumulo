@@ -23,7 +23,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -46,7 +46,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
 
   @Test(timeout = 45 * 1000)
   public void test() throws Exception {
-    final Connector conn = this.getConnector();
+    final AccumuloClient conn = this.getClient();
     // Yes, there's a tabletserver
     assertEquals(1, conn.instanceOperations().getTabletServers().size());
     final String tableName = getUniqueNames(1)[0];

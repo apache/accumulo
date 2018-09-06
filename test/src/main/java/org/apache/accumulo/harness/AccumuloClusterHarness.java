@@ -27,6 +27,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
@@ -185,12 +186,13 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           // permissions to)
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
               systemUser.getKeytab().getAbsolutePath());
-          Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken());
+          AccumuloClient conn = cluster.getAccumuloClient(systemUser.getPrincipal(),
+              new KerberosToken());
 
           // Then, log back in as the "root" user and do the grant
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
               rootUser.getKeytab().getAbsolutePath());
-          conn = getConnector();
+          conn = getAccumuloClient();
 
           // Create the trace table
           conn.tableOperations().create(traceTable);
@@ -213,7 +215,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   public void cleanupTables() throws Exception {
     final String tablePrefix = this.getClass().getSimpleName() + "_";
-    final TableOperations tops = getConnector().tableOperations();
+    final TableOperations tops = getAccumuloClient().tableOperations();
     for (String table : tops.list()) {
       if (table.startsWith(tablePrefix)) {
         log.debug("Removing table {}", table);
@@ -224,7 +226,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   public void cleanupUsers() throws Exception {
     final String userPrefix = this.getClass().getSimpleName();
-    final SecurityOperations secOps = getConnector().securityOperations();
+    final SecurityOperations secOps = getAccumuloClient().securityOperations();
     for (String user : secOps.listLocalUsers()) {
       if (user.startsWith(userPrefix)) {
         log.info("Dropping local user {}", user);
@@ -343,8 +345,23 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf;
   }
 
+  public AccumuloClient getAccumuloClient() {
+    try {
+      String princ = getAdminPrincipal();
+      AuthenticationToken token = getAdminToken();
+      log.debug("Creating client connection as {} with {}", princ, token);
+      return cluster.getAccumuloClient(princ, token);
+    } catch (Exception e) {
+      log.error("Could not connect to Accumulo", e);
+      fail("Could not connect to Accumulo: " + e.getMessage());
+
+      throw new RuntimeException("Could not connect to Accumulo", e);
+    }
+  }
+
   public Connector getConnector() {
     try {
+      log.warn("No longer used since version 2.0, please call getAccumuloClient() instead.");
       String princ = getAdminPrincipal();
       AuthenticationToken token = getAdminToken();
       log.debug("Creating connector as {} with {}", princ, token);

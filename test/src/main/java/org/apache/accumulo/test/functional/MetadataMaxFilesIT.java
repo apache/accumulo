@@ -24,7 +24,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
@@ -60,7 +60,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 1000; i++) {
       splits.add(new Text(String.format("%03d", i)));

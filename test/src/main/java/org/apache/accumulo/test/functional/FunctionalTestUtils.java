@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
@@ -65,7 +65,7 @@ import com.google.common.collect.Iterators;
 
 public class FunctionalTestUtils {
 
-  public static int countRFiles(Connector c, String tableName) throws Exception {
+  public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
@@ -74,7 +74,7 @@ public class FunctionalTestUtils {
     }
   }
 
-  static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets,
+  static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
       int minRFiles, int maxRFiles) throws Exception {
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableId = c.tableOperations().tableIdMap().get(tableName);
@@ -113,7 +113,8 @@ public class FunctionalTestUtils {
     }
   }
 
-  static public void checkSplits(Connector c, String table, int min, int max) throws Exception {
+  static public void checkSplits(AccumuloClient c, String table, int min, int max)
+      throws Exception {
     Collection<Text> splits = c.tableOperations().listSplits(table);
     if (splits.size() < min || splits.size() > max) {
       throw new Exception("# of table splits points out of range, #splits=" + splits.size()
@@ -121,8 +122,8 @@ public class FunctionalTestUtils {
     }
   }
 
-  static public void createRFiles(final Connector c, final FileSystem fs, String path, int rows,
-      int splits, int threads) throws Exception {
+  static public void createRFiles(final AccumuloClient c, final FileSystem fs, String path,
+      int rows, int splits, int threads) throws Exception {
     fs.delete(new Path(path), true);
     ExecutorService threadPool = Executors.newFixedThreadPool(threads);
     final AtomicBoolean fail = new AtomicBoolean(false);

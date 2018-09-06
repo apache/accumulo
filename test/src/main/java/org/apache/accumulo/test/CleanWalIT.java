@@ -22,9 +22,9 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -68,7 +68,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
   @Before
   public void offlineTraceTable() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String traceTable = conn.instanceOperations().getSystemConfiguration()
         .get(Property.TRACE_TABLE.getKey());
     if (conn.tableOperations().exists(traceTable)) {
@@ -79,7 +79,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   @After
   public void onlineTraceTable() throws Exception {
     if (null != cluster) {
-      Connector conn = getConnector();
+      AccumuloClient conn = getAccumuloClient();
       String traceTable = conn.instanceOperations().getSystemConfiguration()
           .get(Property.TRACE_TABLE.getKey());
       if (conn.tableOperations().exists(traceTable)) {
@@ -91,7 +91,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   // test for ACCUMULO-1830
   @Test
   public void test() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -131,7 +131,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
     assertEquals(0, count(tableName, conn));
   }
 
-  private int countLogs(String tableName, Connector conn) throws TableNotFoundException {
+  private int countLogs(String tableName, AccumuloClient conn) throws TableNotFoundException {
     int count = 0;
     try (Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
@@ -144,7 +144,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
     return count;
   }
 
-  int count(String tableName, Connector conn) throws Exception {
+  int count(String tableName, AccumuloClient conn) throws Exception {
     try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
       return Iterators.size(s.iterator());
     }

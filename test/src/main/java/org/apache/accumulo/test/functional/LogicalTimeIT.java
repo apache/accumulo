@@ -18,9 +18,9 @@ package org.apache.accumulo.test.functional;
 
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -45,7 +45,7 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     int tc = 0;
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a"}, null, null, "b", 2L);
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"z"}, null, null, "b", 2L);
     runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "z"}, null, null, "b",
@@ -87,7 +87,7 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
 
   }
 
-  private void runMergeTest(Connector conn, String table, String[] splits, String[] inserts,
+  private void runMergeTest(AccumuloClient conn, String table, String[] splits, String[] inserts,
       String start, String end, String last, long expected) throws Exception {
     log.info("table {}", table);
     conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));

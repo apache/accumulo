@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Table;
@@ -88,7 +88,7 @@ public class Merge {
     opts.parseArgs(Merge.class.getName(), args);
 
     try {
-      Connector conn = opts.getConnector();
+      AccumuloClient conn = opts.getConnector();
 
       if (!conn.tableOperations().exists(opts.getTableName())) {
         System.err.println("table " + opts.getTableName() + " does not exist");
@@ -122,7 +122,7 @@ public class Merge {
     long size;
   }
 
-  public void mergomatic(Connector conn, String table, Text start, Text end, long goalSize,
+  public void mergomatic(AccumuloClient conn, String table, Text start, Text end, long goalSize,
       boolean force) throws MergeException {
     try {
       if (table.equals(MetadataTable.NAME)) {
@@ -147,7 +147,7 @@ public class Merge {
     }
   }
 
-  protected long mergeMany(Connector conn, String table, List<Size> sizes, long goalSize,
+  protected long mergeMany(AccumuloClient conn, String table, List<Size> sizes, long goalSize,
       boolean force, boolean last) throws MergeException {
     // skip the big tablets, which will be the typical case
     while (!sizes.isEmpty()) {
@@ -194,7 +194,7 @@ public class Merge {
     return result;
   }
 
-  protected void mergeSome(Connector conn, String table, List<Size> sizes, int numToMerge)
+  protected void mergeSome(AccumuloClient conn, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
     merge(conn, table, sizes, numToMerge);
     for (int i = 0; i < numToMerge; i++) {
@@ -202,7 +202,7 @@ public class Merge {
     }
   }
 
-  protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge)
+  protected void merge(AccumuloClient conn, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
     try {
       Text start = sizes.get(0).extent.getPrevEndRow();
@@ -215,8 +215,8 @@ public class Merge {
     }
   }
 
-  protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end)
-      throws MergeException {
+  protected Iterator<Size> getSizeIterator(AccumuloClient conn, String tablename, Text start,
+      Text end) throws MergeException {
     // open up metadata, walk through the tablets.
     Table.ID tableId;
     Scanner scanner;

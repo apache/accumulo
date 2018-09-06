@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * setting them.
  *
  * @since 1.6.0
- * @deprecated since 2.0.0, replaced {@link Connector#builder()}
+ * @deprecated since 2.0.0, replaced {@link AccumuloClient#builder()}
  */
 @Deprecated
 public class ClientConfiguration {

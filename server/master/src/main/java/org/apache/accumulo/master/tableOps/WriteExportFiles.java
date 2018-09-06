@@ -30,9 +30,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
@@ -90,7 +90,7 @@ class WriteExportFiles extends MasterRepo {
     if (reserved > 0)
       return reserved;
 
-    Connector conn = master.getConnector();
+    AccumuloClient conn = master.getConnector();
 
     checkOffline(master.getContext());
 
@@ -254,7 +254,7 @@ class WriteExportFiles extends MasterRepo {
   private static void exportConfig(ServerContext context, Table.ID tableID, ZipOutputStream zipOut,
       DataOutputStream dataOut)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    Connector conn = context.getConnector();
+    AccumuloClient conn = context.getConnector();
 
     DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();

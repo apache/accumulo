@@ -40,7 +40,7 @@ public class FlushCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
+    shellState.getAccumuloClient().tableOperations().flush(tableName, startRow, endRow, wait);
     Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));
   }
 

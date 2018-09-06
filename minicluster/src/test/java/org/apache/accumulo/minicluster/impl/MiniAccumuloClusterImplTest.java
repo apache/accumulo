@@ -26,7 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -73,7 +73,7 @@ public class MiniAccumuloClusterImplTest {
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
-    Connector conn = accumulo.getConnector("root", new PasswordToken("superSecret"));
+    AccumuloClient conn = accumulo.getAccumuloClient("root", new PasswordToken("superSecret"));
     TableOperations tableops = conn.tableOperations();
     tableops.create(TEST_TABLE);
     testTableID = tableops.tableIdMap().get(TEST_TABLE);

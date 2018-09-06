@@ -20,10 +20,10 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -65,20 +65,20 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    runTest(getConnector(), getClientInfo(), getCluster().getFileSystem(),
+    runTest(getAccumuloClient(), getClientInfo(), getCluster().getFileSystem(),
         getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
         testName.getMethodName(), false);
   }
 
   @Test
   public void testOld() throws Exception {
-    runTest(getConnector(), getClientInfo(), getCluster().getFileSystem(),
+    runTest(getAccumuloClient(), getClientInfo(), getCluster().getFileSystem(),
         getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
         testName.getMethodName(), true);
   }
 
-  static void runTest(Connector c, ClientInfo info, FileSystem fs, Path basePath, String tableName,
-      String filePrefix, String dirSuffix, boolean useOld) throws Exception {
+  static void runTest(AccumuloClient c, ClientInfo info, FileSystem fs, Path basePath,
+      String tableName, String filePrefix, String dirSuffix, boolean useOld) throws Exception {
     c.tableOperations().create(tableName);
 
     Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
@@ -126,7 +126,7 @@ public class BulkIT extends AccumuloClusterHarness {
   }
 
   @SuppressWarnings("deprecation")
-  private static void bulkLoad(Connector c, String tableName, Path bulkFailures, Path files,
+  private static void bulkLoad(AccumuloClient c, String tableName, Path bulkFailures, Path files,
       boolean useOld)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
     // Make sure the server can modify the files

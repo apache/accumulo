@@ -34,7 +34,7 @@ public class GetGroupsCommand extends Command {
       throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    final Map<String,Set<Text>> groups = shellState.getConnector().tableOperations()
+    final Map<String,Set<Text>> groups = shellState.getAccumuloClient().tableOperations()
         .getLocalityGroups(tableName);
 
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {

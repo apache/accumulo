@@ -41,7 +41,7 @@ public class OnlineCommand extends TableOperation {
     if (tableName.equals(RootTable.NAME)) {
       Shell.log.info("  The " + RootTable.NAME + " is always online.");
     } else {
-      shellState.getConnector().tableOperations().online(tableName, wait);
+      shellState.getAccumuloClient().tableOperations().online(tableName, wait);
       Shell.log.info("Online of table " + tableName + (wait ? " completed." : " initiated..."));
     }
   }

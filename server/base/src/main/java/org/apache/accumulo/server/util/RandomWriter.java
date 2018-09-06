@@ -21,8 +21,8 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.cli.ClientOnDefaultTable;
@@ -100,8 +100,8 @@ public class RandomWriter {
     long start = System.currentTimeMillis();
     log.info("starting at {} for user {}", start, opts.getPrincipal());
     try {
-      Connector connector = opts.getConnector();
-      BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
+      AccumuloClient accumuloClient = opts.getConnector();
+      BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName(),
           bwOpts.getBatchWriterConfig());
       log.info("Writing {} mutations...", opts.count);
       bw.addMutations(new RandomMutationGenerator(opts.count));

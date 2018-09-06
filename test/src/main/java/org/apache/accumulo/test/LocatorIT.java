@@ -31,7 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
@@ -86,7 +86,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
   @Test
   public void testBasic() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);

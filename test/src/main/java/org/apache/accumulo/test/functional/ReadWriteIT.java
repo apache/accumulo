@@ -58,13 +58,13 @@ import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -124,7 +124,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() throws Exception {
-    Connector.builder().forInstance("fake_instance_name", cluster.getZooKeepers())
+    AccumuloClient.builder().forInstance("fake_instance_name", cluster.getZooKeepers())
         .usingToken(getAdminPrincipal(), getAdminToken()).build();
   }
 
@@ -134,10 +134,10 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     // Shutdown cleanly.
     log.debug("Starting Monitor");
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
-    ingest(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
-    verify(connector, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+    ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+    verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
     String monitorLocation = null;
     while (null == monitorLocation) {
       monitorLocation = MonitorUtil.getLocation(getClientContext());
@@ -179,13 +179,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     log.debug("Stopping accumulo cluster");
     ClusterControl control = cluster.getClusterControl();
     control.adminStopAll();
-    ZooReader zreader = new ZooReader(connector.info().getZooKeepers(),
-        connector.info().getZooKeepersSessionTimeOut());
+    ZooReader zreader = new ZooReader(accumuloClient.info().getZooKeepers(),
+        accumuloClient.info().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
     byte[] masterLockData;
     do {
       masterLockData = ZooLock.getLockData(zcache,
-          ZooUtil.getRoot(connector.getInstanceID()) + Constants.ZMASTER_LOCK, null);
+          ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZMASTER_LOCK, null);
       if (null != masterLockData) {
         log.info("Master lock is still held");
         Thread.sleep(1000);
@@ -200,13 +200,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.start();
   }
 
-  public static void ingest(Connector connector, ClientInfo info, int rows, int cols, int width,
-      int offset, String tableName) throws Exception {
-    ingest(connector, info, rows, cols, width, offset, COLF, tableName);
+  public static void ingest(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
+      int width, int offset, String tableName) throws Exception {
+    ingest(accumuloClient, info, rows, cols, width, offset, COLF, tableName);
   }
 
-  public static void ingest(Connector connector, ClientInfo info, int rows, int cols, int width,
-      int offset, String colf, String tableName) throws Exception {
+  public static void ingest(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
+      int width, int offset, String colf, String tableName) throws Exception {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = rows;
     opts.cols = cols;
@@ -217,16 +217,16 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
     opts.setClientInfo(info);
 
-    TestIngest.ingest(connector, opts, new BatchWriterOpts());
+    TestIngest.ingest(accumuloClient, opts, new BatchWriterOpts());
   }
 
-  public static void verify(Connector connector, ClientInfo info, int rows, int cols, int width,
-      int offset, String tableName) throws Exception {
-    verify(connector, info, rows, cols, width, offset, COLF, tableName);
+  public static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
+      int width, int offset, String tableName) throws Exception {
+    verify(accumuloClient, info, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(Connector connector, ClientInfo info, int rows, int cols, int width,
-      int offset, String colf, String tableName) throws Exception {
+  private static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
+      int width, int offset, String colf, String tableName) throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
@@ -237,7 +237,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
     opts.setClientInfo(info);
 
-    VerifyIngest.verifyIngest(connector, opts, scannerOpts);
+    VerifyIngest.verifyIngest(accumuloClient, opts, scannerOpts);
   }
 
   public static String[] args(String... args) {
@@ -318,24 +318,25 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void largeTest() throws Exception {
     // write a few large values
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getAccumuloClient();
     String table = getUniqueNames(1)[0];
-    ingest(connector, getClientInfo(), 2, 1, 500000, 0, table);
-    verify(connector, getClientInfo(), 2, 1, 500000, 0, table);
+    ingest(accumuloClient, getClientInfo(), 2, 1, 500000, 0, table);
+    verify(accumuloClient, getClientInfo(), 2, 1, 500000, 0, table);
   }
 
   @Test
   public void interleaved() throws Exception {
     // read and write concurrently
-    final Connector connector = getConnector();
+    final AccumuloClient accumuloClient = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    interleaveTest(connector, tableName);
+    interleaveTest(accumuloClient, tableName);
   }
 
-  static void interleaveTest(final Connector connector, final String tableName) throws Exception {
+  static void interleaveTest(final AccumuloClient accumuloClient, final String tableName)
+      throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
-    ingest(connector, getClientInfo(), CHUNKSIZE, 1, 50, 0, tableName);
+    ingest(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, 0, tableName);
     int i;
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
@@ -343,18 +344,18 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         @Override
         public void run() {
           try {
-            verify(connector, getClientInfo(), CHUNKSIZE, 1, 50, start, tableName);
+            verify(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, start, tableName);
           } catch (Exception ex) {
             fail.set(true);
           }
         }
       };
       verify.start();
-      ingest(connector, getClientInfo(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
+      ingest(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
       verify.join();
       assertFalse(fail.get());
     }
-    verify(connector, getClientInfo(), CHUNKSIZE, 1, 50, i, tableName);
+    verify(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, i, tableName);
   }
 
   public static Text t(String s) {
@@ -370,25 +371,25 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void localityGroupPerf() throws Exception {
     // verify that locality groups can make look-ups faster
-    final Connector connector = getConnector();
+    final AccumuloClient accumuloClient = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    connector.tableOperations().create(tableName);
-    connector.tableOperations().setProperty(tableName, "table.group.g1", "colf");
-    connector.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
-    ingest(connector, getClientInfo(), 2000, 1, 50, 0, tableName);
-    connector.tableOperations().compact(tableName, null, null, true, true);
-    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+    accumuloClient.tableOperations().create(tableName);
+    accumuloClient.tableOperations().setProperty(tableName, "table.group.g1", "colf");
+    accumuloClient.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
+    ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
+    accumuloClient.tableOperations().compact(tableName, null, null, true, true);
+    BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
     bw.close();
     long now = System.currentTimeMillis();
-    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(new Text("colf"));
       Iterators.size(scanner.iterator());
     }
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
 
-    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(new Text("colf2"));
       Iterators.size(scanner.iterator());
     }
@@ -402,13 +403,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
    */
   @Test
   public void sunnyLG() throws Exception {
-    final Connector connector = getConnector();
+    final AccumuloClient accumuloClient = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    connector.tableOperations().create(tableName);
+    accumuloClient.tableOperations().create(tableName);
     Map<String,Set<Text>> groups = new TreeMap<>();
     groups.put("g1", Collections.singleton(t("colf")));
-    connector.tableOperations().setLocalityGroups(tableName, groups);
-    verifyLocalityGroupsInRFile(connector, tableName);
+    accumuloClient.tableOperations().setLocalityGroups(tableName, groups);
+    verifyLocalityGroupsInRFile(accumuloClient, tableName);
   }
 
   /**
@@ -418,24 +419,25 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void sunnyLGUsingNewTableConfiguration() throws Exception {
     // create a locality group, write to it and ensure it exists in the RFiles that result
-    final Connector connector = getConnector();
+    final AccumuloClient accumuloClient = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
     Map<String,Set<Text>> groups = new HashMap<>();
     groups.put("g1", Collections.singleton(t("colf")));
     ntc.setLocalityGroups(groups);
-    connector.tableOperations().create(tableName, ntc);
-    verifyLocalityGroupsInRFile(connector, tableName);
+    accumuloClient.tableOperations().create(tableName, ntc);
+    verifyLocalityGroupsInRFile(accumuloClient, tableName);
   }
 
-  private void verifyLocalityGroupsInRFile(final Connector connector, final String tableName)
+  private void verifyLocalityGroupsInRFile(final AccumuloClient accumuloClient,
+      final String tableName)
       throws Exception, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ingest(connector, getClientInfo(), 2000, 1, 50, 0, tableName);
-    verify(connector, getClientInfo(), 2000, 1, 50, 0, tableName);
-    connector.tableOperations().flush(tableName, null, null, true);
-    try (BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME,
+    ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
+    verify(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
+    accumuloClient.tableOperations().flush(tableName, null, null, true);
+    try (BatchScanner bscanner = accumuloClient.createBatchScanner(MetadataTable.NAME,
         Authorizations.EMPTY, 1)) {
-      String tableId = connector.tableOperations().tableIdMap().get(tableName);
+      String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
       bscanner.setRanges(
           Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
       bscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -474,17 +476,17 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void localityGroupChange() throws Exception {
     // Make changes to locality groups and ensure nothing is lost
-    final Connector connector = getConnector();
+    final AccumuloClient accumuloClient = getAccumuloClient();
     String table = getUniqueNames(1)[0];
-    TableOperations to = connector.tableOperations();
+    TableOperations to = accumuloClient.tableOperations();
     to.create(table);
     String[] config = {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf,xyz;lg2:c1,c2"};
     int i = 0;
     for (String cfg : config) {
       to.setLocalityGroups(table, getGroups(cfg));
-      ingest(connector, getClientInfo(), ROWS * (i + 1), 1, 50, ROWS * i, table);
+      ingest(accumuloClient, getClientInfo(), ROWS * (i + 1), 1, 50, ROWS * i, table);
       to.flush(table, null, null, true);
-      verify(connector, getClientInfo(), 0, 1, 50, ROWS * (i + 1), table);
+      verify(accumuloClient, getClientInfo(), 0, 1, 50, ROWS * (i + 1), table);
       i++;
     }
     to.delete(table);
@@ -492,12 +494,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
     i = 1;
     for (String cfg : config) {
-      ingest(connector, getClientInfo(), ROWS * i, 1, 50, 0, table);
-      ingest(connector, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
+      ingest(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, table);
+      ingest(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
       to.setLocalityGroups(table, getGroups(cfg));
       to.flush(table, null, null, true);
-      verify(connector, getClientInfo(), ROWS * i, 1, 50, 0, table);
-      verify(connector, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
+      verify(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, table);
+      verify(accumuloClient, getClientInfo(), ROWS * i, 1, 50, 0, "xyz", table);
       i++;
     }
   }

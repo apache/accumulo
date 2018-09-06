@@ -40,9 +40,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -358,7 +358,7 @@ public class TracesResource {
   private Scanner getScanner(String table, String principal, AuthenticationToken at)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      Connector conn = Monitor.getContext().getConnector(principal, at);
+      AccumuloClient conn = Monitor.getContext().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {
         return null;
       }

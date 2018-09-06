@@ -25,10 +25,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -120,7 +120,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
         client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 
-  protected Table.ID getTableId(Connector conn, String tableName)
+  protected Table.ID getTableId(AccumuloClient conn, String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TableOperations tops = conn.tableOperations();
 
@@ -146,7 +146,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
     log.debug("Collecting referenced files for replication of table {}", tableName);
 
-    Connector conn = context.getConnector();
+    AccumuloClient conn = context.getConnector();
     Table.ID tableId = getTableId(conn, tableName);
 
     log.debug("Found id of {} for name {}", tableId, tableName);

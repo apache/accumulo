@@ -31,12 +31,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -182,7 +182,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Connector conn = Connector.builder().usingClientInfo(getClientInfo(job))
+        AccumuloClient conn = AccumuloClient.builder().usingClientInfo(getClientInfo(job))
             .usingToken(principal, token).build();
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
@@ -397,7 +397,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobContext context) throws IOException {
-    Connector conn = InputConfigurator.getConnector(CLASS, context.getConfiguration());
+    AccumuloClient conn = InputConfigurator.getConnector(CLASS, context.getConfiguration());
     InputConfigurator.validatePermissions(CLASS, context.getConfiguration(), conn);
   }
 
@@ -488,7 +488,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       ClientInfo info = getClientInfo(attempt);
       ClientContext context = new ClientContext(info);
-      Connector conn;
+      AccumuloClient conn;
       try {
         conn = context.getConnector();
       } catch (AccumuloException | AccumuloSecurityException e) {

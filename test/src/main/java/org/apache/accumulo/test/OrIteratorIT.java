@@ -31,10 +31,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -59,7 +59,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleRowsInTablet() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -100,7 +100,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleTablets() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -151,7 +151,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleLargeRow() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_SCAN_MAXMEM.getKey(), "1");
@@ -198,7 +198,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoMatchesForTable() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -238,7 +238,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoMatchesInSingleTablet() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -292,7 +292,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testResultOrder() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 

@@ -37,12 +37,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
@@ -739,7 +739,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.7.0
    */
   public static void validatePermissions(Class<?> implementingClass, Configuration conf,
-      Connector conn) throws IOException {
+      AccumuloClient conn) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
     try {
       if (getInputTableConfigs(implementingClass, conf).size() == 0)

@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -43,7 +43,7 @@ public class DeleteIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     AuthenticationToken token = getAdminToken();
@@ -57,8 +57,8 @@ public class DeleteIT extends AccumuloClusterHarness {
     }
   }
 
-  public static void deleteTest(Connector c, AccumuloCluster cluster, String user, String password,
-      String tableName, String keytab) throws Exception {
+  public static void deleteTest(AccumuloClient c, AccumuloCluster cluster, String user,
+      String password, String tableName, String keytab) throws Exception {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     TestIngest.Opts opts = new TestIngest.Opts();
     vopts.setTableName(tableName);

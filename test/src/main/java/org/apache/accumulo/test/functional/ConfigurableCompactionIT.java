@@ -28,9 +28,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -89,7 +89,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
@@ -102,7 +102,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void testPerTableClasspath() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     final String tableName = getUniqueNames(1)[0];
     File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
         "/TestCompactionStrat.jar");
@@ -133,7 +133,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     return destName;
   }
 
-  private void writeFlush(Connector conn, String tablename, String row) throws Exception {
+  private void writeFlush(AccumuloClient conn, String tablename, String row) throws Exception {
     BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
     Mutation m = new Mutation(row);
     m.put("", "", "");
@@ -144,7 +144,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   final static Random r = new SecureRandom();
 
-  private void makeFile(Connector conn, String tablename) throws Exception {
+  private void makeFile(AccumuloClient conn, String tablename) throws Exception {
     BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
     byte[] empty = {};
     byte[] row = new byte[10];
@@ -157,7 +157,8 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     conn.tableOperations().flush(tablename, null, null, true);
   }
 
-  private void runTest(final Connector c, final String tableName, final int n) throws Exception {
+  private void runTest(final AccumuloClient c, final String tableName, final int n)
+      throws Exception {
     for (int i = countFiles(c, tableName); i < n - 1; i++)
       makeFile(c, tableName);
     assertEquals(n - 1, countFiles(c, tableName));
@@ -171,7 +172,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     }
   }
 
-  private int countFiles(Connector c, String tableName) throws Exception {
+  private int countFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       return Iterators.size(s.iterator());

@@ -42,7 +42,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -168,7 +168,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     String tableName = getUniqueNames(1)[0];
 
-    Connector conn = ctx.getConnector();
+    AccumuloClient conn = ctx.getConnector();
 
     // Create a table with a bunch of splits
     log.info("Creating table " + tableName);

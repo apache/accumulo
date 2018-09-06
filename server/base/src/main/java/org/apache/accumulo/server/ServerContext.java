@@ -22,12 +22,12 @@ import java.io.IOException;
 import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -238,16 +238,17 @@ public class ServerContext extends ClientContext {
   }
 
   @Override
-  public synchronized Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+  public synchronized AccumuloClient getConnector()
+      throws AccumuloException, AccumuloSecurityException {
     if (conn == null) {
-      conn = new ConnectorImpl(this);
+      conn = new AccumuloClientImpl(this);
     }
     return conn;
   }
 
-  public Connector getConnector(String principal, AuthenticationToken token)
+  public AccumuloClient getConnector(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
-    return Connector.builder().usingClientInfo(info).usingToken(principal, token).build();
+    return AccumuloClient.builder().usingClientInfo(info).usingToken(principal, token).build();
   }
 
   public synchronized TableManager getTableManager() {

@@ -24,9 +24,9 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
@@ -78,7 +78,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Before
   public void setupMetadataPermission() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     rootHasWritePermission = conn.securityOperations().hasTablePermission("root",
         MetadataTable.NAME, TablePermission.WRITE);
     if (!rootHasWritePermission) {
@@ -91,7 +91,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @After
   public void resetMetadataPermission() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     // Final state doesn't match the original
     if (rootHasWritePermission != conn.securityOperations().hasTablePermission("root",
         MetadataTable.NAME, TablePermission.WRITE)) {
@@ -109,7 +109,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Test
   public void testEmptyWalRecoveryCompletes() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     MiniAccumuloClusterImpl cluster = getCluster();
     FileSystem fs = cluster.getFileSystem();
 
@@ -164,7 +164,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Test
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     MiniAccumuloClusterImpl cluster = getCluster();
     FileSystem fs = getCluster().getFileSystem();
 

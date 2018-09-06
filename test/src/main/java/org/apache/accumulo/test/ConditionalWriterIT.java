@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -55,7 +56,6 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
@@ -135,7 +135,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
   @Before
   public void deleteUsers() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     Set<String> users = conn.securityOperations().listLocalUsers();
     ClusterUser user = getUser(0);
     if (users.contains(user.getPrincipal())) {
@@ -146,7 +146,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
@@ -237,7 +237,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testFields() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     String user = null;
@@ -342,7 +342,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   public void testBadColVis() throws Exception {
     // test when a user sets a col vis in a condition that can never be seen
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
@@ -453,7 +453,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   public void testConstraints() throws Exception {
     // ensure constraint violations are properly reported
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
@@ -485,7 +485,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testIterators() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
@@ -633,7 +633,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   public void testTableAndConditionIterators() throws Exception {
 
     // test w/ table that has iterators configured
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     IteratorSetting aiConfig1 = new IteratorSetting(30, "AI1", AddingIterator.class);
@@ -731,7 +731,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testBatch() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
@@ -848,7 +848,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testBigBatch() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
@@ -922,7 +922,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testBatchErrors() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
@@ -1008,7 +1008,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   public void testSameRow() throws Exception {
     // test multiple mutations for same row in same batch
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
@@ -1137,10 +1137,10 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     String tableName;
     ArrayList<ByteSequence> rows;
     ConditionalWriter cw;
-    Connector conn;
+    AccumuloClient conn;
     AtomicBoolean failed;
 
-    public MutatorTask(String tableName, Connector conn, ArrayList<ByteSequence> rows,
+    public MutatorTask(String tableName, AccumuloClient conn, ArrayList<ByteSequence> rows,
         ConditionalWriter cw, AtomicBoolean failed) {
       this.tableName = tableName;
       this.rows = rows;
@@ -1195,7 +1195,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     // test multiple threads using a single conditional writer
 
     String tableName = getUniqueNames(1)[0];
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     conn.tableOperations().create(tableName);
 
@@ -1275,7 +1275,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String user = null;
 
     // Create a new user
@@ -1302,7 +1302,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     conn.securityOperations().grantTablePermission(user, table3, TablePermission.WRITE);
 
     // Login as the user
-    Connector conn2 = conn.changeUser(user, user1.getToken());
+    AccumuloClient conn2 = conn.changeUser(user, user1.getToken());
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
@@ -1341,7 +1341,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testTimeout() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     String table = getUniqueNames(1)[0];
 
@@ -1393,7 +1393,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testDeleteTable() throws Exception {
     String table = getUniqueNames(1)[0];
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     try {
       conn.createConditionalWriter(table, new ConditionalWriterConfig());
@@ -1426,7 +1426,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testOffline() throws Exception {
     String table = getUniqueNames(1)[0];
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     conn.tableOperations().create(table);
 
@@ -1459,7 +1459,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testError() throws Exception {
     String table = getUniqueNames(1)[0];
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     conn.tableOperations().create(table);
 
@@ -1489,7 +1489,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   public void testNoConditions() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     String table = getUniqueNames(1)[0];
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
 
     conn.tableOperations().create(table);
 
@@ -1509,7 +1509,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     // Need to add a getClientConfig() to AccumuloCluster
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     Process tracer = null;
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     AccumuloCluster cluster = getCluster();
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
     if (!conn.tableOperations().exists("trace")) {

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.shell.Shell;
@@ -41,13 +41,13 @@ public class DeleteAuthsCommandTest {
 
   @Test
   public void deleteExistingAuth() throws Exception {
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
 
     // We're the root user
     EasyMock.expect(conn.whoami()).andReturn("root");
@@ -70,13 +70,13 @@ public class DeleteAuthsCommandTest {
 
   @Test
   public void deleteNonExistingAuth() throws Exception {
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
 
     // We're the root user
     EasyMock.expect(conn.whoami()).andReturn("root");
@@ -99,13 +99,13 @@ public class DeleteAuthsCommandTest {
 
   @Test
   public void deleteAllAuth() throws Exception {
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
 
     // We're the root user
     EasyMock.expect(conn.whoami()).andReturn("root");

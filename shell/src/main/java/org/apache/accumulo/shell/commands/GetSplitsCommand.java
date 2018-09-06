@@ -67,18 +67,18 @@ public class GetSplitsCommand extends Command {
         : new PrintFile(outputFile)) {
       if (!verbose) {
         for (Text row : maxSplits > 0
-            ? shellState.getConnector().tableOperations().listSplits(tableName, maxSplits)
-            : shellState.getConnector().tableOperations().listSplits(tableName)) {
+            ? shellState.getAccumuloClient().tableOperations().listSplits(tableName, maxSplits)
+            : shellState.getAccumuloClient().tableOperations().listSplits(tableName)) {
           p.print(encode(encode, row));
         }
       } else {
         String systemTableToCheck = MetadataTable.NAME.equals(tableName) ? RootTable.NAME
             : MetadataTable.NAME;
-        final Scanner scanner = shellState.getConnector().createScanner(systemTableToCheck,
+        final Scanner scanner = shellState.getAccumuloClient().createScanner(systemTableToCheck,
             Authorizations.EMPTY);
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
         final Text start = new Text(
-            shellState.getConnector().tableOperations().tableIdMap().get(tableName));
+            shellState.getAccumuloClient().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));

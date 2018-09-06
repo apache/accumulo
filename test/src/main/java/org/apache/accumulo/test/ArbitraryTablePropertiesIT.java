@@ -23,8 +23,8 @@ import static org.junit.Assert.fail;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -61,7 +61,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
 
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     conn.tableOperations().create(tableName);
 
     // Set variables for the property name to use and the initial value
@@ -119,7 +119,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // Create a root user and create the table
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     c.securityOperations().createLocalUser(testUser,
         (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
     c.tableOperations().create(tableName);
@@ -133,7 +133,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
-    Connector testConn = c.changeUser(testUser, user.getToken());
+    AccumuloClient testConn = c.changeUser(testUser, user.getToken());
     // Set the property to the desired value
     testConn.tableOperations().setProperty(tableName, propertyName, description1);
 
@@ -184,7 +184,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // Create a root user and create the table
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     c.securityOperations().createLocalUser(testUser,
         (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
     c.tableOperations().create(tableName);
@@ -197,7 +197,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
-    Connector testConn = c.changeUser(testUser, user.getToken());
+    AccumuloClient testConn = c.changeUser(testUser, user.getToken());
 
     // Try to set the property to the desired value.
     // If able to set it, the test fails, since permission was never granted

@@ -65,9 +65,9 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     Text cq = new Text("cq1");
 
     String tableName = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(tableName);
-    getConnector().tableOperations().addSplits(tableName, splits);
-    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+    getAccumuloClient().tableOperations().create(tableName);
+    getAccumuloClient().tableOperations().addSplits(tableName, splits);
+    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
 
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
@@ -77,7 +77,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     }
 
     bw.close();
-    try (Scanner scanner1 = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner1 = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
 
       int ei = 1;
 
@@ -94,9 +94,9 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
   @Test
   public void createTableAndScan() throws Exception {
     String table2 = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(table2);
-    getConnector().tableOperations().addSplits(table2, splits);
-    try (Scanner scanner2 = getConnector().createScanner(table2, Authorizations.EMPTY)) {
+    getAccumuloClient().tableOperations().create(table2);
+    getAccumuloClient().tableOperations().addSplits(table2, splits);
+    try (Scanner scanner2 = getAccumuloClient().createScanner(table2, Authorizations.EMPTY)) {
       int count = 0;
       for (Entry<Key,Value> entry : scanner2) {
         if (entry != null)
@@ -117,9 +117,10 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     }
 
     String table3 = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(table3);
-    getConnector().tableOperations().addSplits(table3, splits);
-    try (BatchScanner bs = getConnector().createBatchScanner(table3, Authorizations.EMPTY, 3)) {
+    getAccumuloClient().tableOperations().create(table3);
+    getAccumuloClient().tableOperations().addSplits(table3, splits);
+    try (
+        BatchScanner bs = getAccumuloClient().createBatchScanner(table3, Authorizations.EMPTY, 3)) {
       bs.setRanges(ranges);
       Iterator<Entry<Key,Value>> iter = bs.iterator();
       int count = Iterators.size(iter);
