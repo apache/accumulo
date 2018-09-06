@@ -166,7 +166,7 @@ public abstract class Connector {
    * @return BatchWriter object for configuring and writing data to
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
-   * @deprecated since 1.5.0; Use {@link createBatchWriter(String, BatchWriterConfig)} instead.
+   * @deprecated since 1.5.0; Use {@link #createBatchWriter(String, BatchWriterConfig)} instead.
    */
   @Deprecated
   public abstract BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
@@ -283,7 +283,7 @@ public abstract class Connector {
    * Accessor method for internal instance object.
    *
    * @return the internal instance object
-   * @deprecated since 2.0.0, use {@link #info()} instead
+   * @deprecated since 2.0.0, use {@link AccumuloClient#info()} instead
    */
   @Deprecated
   public abstract Instance getInstance();

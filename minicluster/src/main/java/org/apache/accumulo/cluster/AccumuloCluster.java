@@ -56,7 +56,7 @@ public interface AccumuloCluster {
   /**
    * Utility method to get a connector to the cluster.
    *
-   * @deprecated since 2.0.0, replaced by {{@link #getAccumuloClient()}}
+   * @deprecated since 2.0.0, replaced by {@link #getAccumuloClient(String, AuthenticationToken)}
    */
   Connector getConnector(String user, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException;
