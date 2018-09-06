@@ -16,11 +16,10 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
-
-import java.nio.charset.StandardCharsets;
 
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -29,10 +28,10 @@ import org.junit.Test;
 public class KeyBuilderTest {
 
   private static final byte EMPTY_BYTES[] = new byte[0];
-  byte[] rowBytes = "row".getBytes(StandardCharsets.UTF_8);
-  byte[] familyBytes = "family".getBytes(StandardCharsets.UTF_8);
-  byte[] qualifierBytes = "qualifier".getBytes(StandardCharsets.UTF_8);
-  byte[] visibilityBytes = "visibility".getBytes(StandardCharsets.UTF_8);
+  byte[] rowBytes = "row".getBytes(UTF_8);
+  byte[] familyBytes = "family".getBytes(UTF_8);
+  byte[] qualifierBytes = "qualifier".getBytes(UTF_8);
+  byte[] visibilityBytes = "visibility".getBytes(UTF_8);
   Text rowText = new Text(rowBytes);
   Text familyText = new Text(familyBytes);
   Text qualifierText = new Text(qualifierBytes);

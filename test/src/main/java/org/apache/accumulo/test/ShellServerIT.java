@@ -2174,7 +2174,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table + " -l locg1", false);
     ts.exec("createtable " + table + " group=fam1", false);
     ts.exec("createtable " + table + "-l fam1,fam2", false);
-    ts.exec("createtable " + table + " -local locg1=fam1,fam2", false);
   }
 
   @Test

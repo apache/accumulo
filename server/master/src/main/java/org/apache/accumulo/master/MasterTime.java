@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.master;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -54,9 +54,8 @@ public class MasterTime extends TimerTask {
     this.master = master;
 
     try {
-      zk.putPersistentData(zPath, "0".getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.SKIP);
-      skewAmount = Long.parseLong(new String(zk.getData(zPath, null), StandardCharsets.UTF_8))
-          - System.nanoTime();
+      zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
+      skewAmount = Long.parseLong(new String(zk.getData(zPath, null), UTF_8)) - System.nanoTime();
     } catch (Exception ex) {
       throw new IOException("Error updating master time", ex);
     }
@@ -88,7 +87,7 @@ public class MasterTime extends TimerTask {
       case INITIAL:
       case STOP:
         try {
-          long zkTime = Long.parseLong(new String(zk.getData(zPath, null), StandardCharsets.UTF_8));
+          long zkTime = Long.parseLong(new String(zk.getData(zPath, null), UTF_8));
           synchronized (this) {
             skewAmount = zkTime - System.nanoTime();
           }
@@ -105,8 +104,7 @@ public class MasterTime extends TimerTask {
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         try {
-          zk.putPersistentData(zPath,
-              Long.toString(System.nanoTime() + skewAmount).getBytes(StandardCharsets.UTF_8),
+          zk.putPersistentData(zPath, Long.toString(System.nanoTime() + skewAmount).getBytes(UTF_8),
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {

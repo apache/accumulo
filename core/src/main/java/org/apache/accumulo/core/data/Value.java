@@ -25,7 +25,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.hadoop.io.BytesWritable;
@@ -59,7 +58,7 @@ public class Value implements WritableComparable<Object> {
    * @since 1.8.0
    */
   public Value(CharSequence cs) {
-    this(cs.toString().getBytes(StandardCharsets.UTF_8));
+    this(cs.toString().getBytes(UTF_8));
   }
 
   /**

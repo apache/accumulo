@@ -26,12 +26,8 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CryptoUtils {
-
-  private static final Logger log = LoggerFactory.getLogger(CryptoUtils.class);
 
   public static SecureRandom newSha1SecureRandom() {
     return newSecureRandom("SHA1PRNG", "SUN");

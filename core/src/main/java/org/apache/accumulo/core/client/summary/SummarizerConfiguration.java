@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.client.summary;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,10 +53,10 @@ public class SummarizerConfiguration {
       ArrayList<String> keys = new ArrayList<>(this.options.keySet());
       Collections.sort(keys);
       Hasher hasher = Hashing.murmur3_32().newHasher();
-      hasher.putString(className, StandardCharsets.UTF_8);
+      hasher.putString(className, UTF_8);
       for (String key : keys) {
-        hasher.putString(key, StandardCharsets.UTF_8);
-        hasher.putString(options.get(key), StandardCharsets.UTF_8);
+        hasher.putString(key, UTF_8);
+        hasher.putString(options.get(key), UTF_8);
       }
 
       this.configId = hasher.hash().toString();

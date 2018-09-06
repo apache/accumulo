@@ -17,9 +17,10 @@
 
 package org.apache.accumulo.core.sample.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import com.google.common.hash.Hasher;
 
@@ -96,13 +97,13 @@ public class DataoutputHasher implements DataOutput {
 
   @Override
   public void writeChars(String s) throws IOException {
-    hasher.putString(s, StandardCharsets.UTF_8);
+    hasher.putString(s, UTF_8);
 
   }
 
   @Override
   public void writeUTF(String s) throws IOException {
     hasher.putInt(s.length());
-    hasher.putBytes(s.getBytes(StandardCharsets.UTF_8));
+    hasher.putBytes(s.getBytes(UTF_8));
   }
 }

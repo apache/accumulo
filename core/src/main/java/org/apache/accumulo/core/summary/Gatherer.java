@@ -17,7 +17,8 @@
 
 package org.apache.accumulo.core.summary;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -208,8 +209,7 @@ public class Gatherer {
 
         // When no location, the approach below will consistently choose the same tserver for the
         // same file (as long as the set of tservers is stable).
-        int idx = Math
-            .abs(Hashing.murmur3_32().hashString(entry.getKey(), StandardCharsets.UTF_8).asInt())
+        int idx = Math.abs(Hashing.murmur3_32().hashString(entry.getKey(), UTF_8).asInt())
             % tservers.size();
         location = tservers.get(idx);
       }
@@ -359,8 +359,7 @@ public class Gatherer {
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
         Predicate<String> fileSelector = file -> Math
-            .abs(Hashing.murmur3_32().hashString(file, StandardCharsets.UTF_8).asInt())
-            % modulus == remainder;
+            .abs(Hashing.murmur3_32().hashString(file, UTF_8).asInt()) % modulus == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
