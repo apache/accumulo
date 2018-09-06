@@ -22,7 +22,9 @@ import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
 import static org.apache.accumulo.master.util.TableValidators.VALID_ID;
 import static org.apache.accumulo.master.util.TableValidators.VALID_NAME;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +37,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -55,6 +58,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Validator;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.master.tableOps.CancelCompactions;
 import org.apache.accumulo.master.tableOps.ChangeTableState;
@@ -74,6 +78,9 @@ import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.util.TablePropUtil;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 
@@ -145,7 +152,22 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CREATE;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
-
+        InitialTableState initialTableState = InitialTableState
+            .valueOf(ByteBufferUtil.toString(arguments.get(2)));
+        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
+        String splitFile = null;
+        String splitDirsFile = null;
+        if (splitCount > 0) {
+          int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
+          try {
+            splitFile = writeSplitsToFile(opid, arguments, splitCount, SPLIT_OFFSET);
+            splitDirsFile = createSplitDirsFile(opid);
+          } catch (IOException e) {
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER,
+                "Exception thrown while writing splits to file system");
+          }
+        }
         Namespace.ID namespaceId;
 
         try {
@@ -160,8 +182,8 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid,
-            new TraceRepo<>(
-                new CreateTable(c.getPrincipal(), tableName, timeType, options, namespaceId)),
+            new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
+                splitFile, splitCount, splitDirsFile, initialTableState, namespaceId)),
             autoCleanup);
 
         break;
@@ -673,5 +695,70 @@ class FateServiceHandler implements FateService.Iface {
       throw new ThriftTableOperationException(null, String.valueOf(arg), op,
           TableOperationExceptionType.INVALID_NAME, why);
     }
+  }
+
+  /**
+   * Create a file on the file system to hold the splits to be created at table creation.
+   */
+  private String writeSplitsToFile(final long opid, final List<ByteBuffer> arguments,
+      final int splitCount, final int splitOffset) throws IOException {
+    String opidStr = String.format("%016x", opid);
+    String splitsPath = getSplitPath("/tmp/splits-" + opidStr);
+    removeAndCreateTempFile(splitsPath);
+    try (FSDataOutputStream stream = master.getOutputStream(splitsPath)) {
+      writeSplitsToFileSystem(stream, arguments, splitCount, splitOffset);
+    } catch (IOException e) {
+      log.error("Error in FateServiceHandler while writing splits for opid: " + opidStr + ": "
+          + e.getMessage());
+      throw e;
+    }
+    return splitsPath;
+  }
+
+  /**
+   * Always check for and delete the splits file if it exists to prevent issues in case of server
+   * failure and/or FateServiceHandler retries.
+   */
+  private void removeAndCreateTempFile(String path) throws IOException {
+    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    if (fs.exists(new Path(path)))
+      fs.delete(new Path(path), true);
+    fs.create(new Path(path));
+  }
+
+  /**
+   * Check for and delete the temp file if it exists to prevent issues in case of server failure
+   * and/or FateServiceHandler retries. Then create/recreate the file.
+   */
+  private String createSplitDirsFile(final long opid) throws IOException {
+    String opidStr = String.format("%016x", opid);
+    String splitDirPath = getSplitPath("/tmp/splitDirs-" + opidStr);
+    removeAndCreateTempFile(splitDirPath);
+    return splitDirPath;
+  }
+
+  /**
+   * Write the split values to a tmp directory with unique name. Given that it is not known if the
+   * supplied splits will be textual or binary, all splits will be encoded to enable proper handling
+   * of binary data.
+   */
+  private void writeSplitsToFileSystem(final FSDataOutputStream stream,
+      final List<ByteBuffer> arguments, final int splitCount, final int splitOffset)
+      throws IOException {
+    for (int i = splitOffset; i < splitCount + splitOffset; i++) {
+      byte[] splitBytes = ByteBufferUtil.toBytes(arguments.get(i));
+      String encodedSplit = Base64.getEncoder().encodeToString(splitBytes);
+      stream.writeBytes(encodedSplit + '\n');
+    }
+  }
+
+  /**
+   * Get full path to location where initial splits are stored on file system.
+   */
+  private String getSplitPath(String relPath) {
+    Volume defaultVolume = master.getFileSystem().getDefaultVolume();
+    String uri = defaultVolume.getFileSystem().getUri().toString();
+    String basePath = defaultVolume.getBasePath();
+    return uri + basePath + relPath;
   }
 }

@@ -16,17 +16,26 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.IOException;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 
 class ChooseDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   ChooseDir(TableInfo ti) {
     this.tableInfo = ti;
@@ -41,16 +50,64 @@ class ChooseDir extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add
     // one here
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId,
-        master.getContext());
-    tableInfo.dir = master.getFileSystem().choose(chooserEnv,
-        ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR
-        + Path.SEPARATOR + tableInfo.tableId + Constants.DEFAULT_TABLET_LOCATION;
+
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId);
+
+    String baseDir = master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris())
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableInfo.tableId;
+    tableInfo.defaultTabletDir = baseDir + Constants.DEFAULT_TABLET_LOCATION;
+
+    if (tableInfo.initialSplitSize > 0) {
+      createTableDirectoriesInfo(master, baseDir);
+    }
     return new CreateDir(tableInfo);
   }
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-
+    VolumeManager fs = master.getFileSystem();
+    fs.deleteRecursively(new Path(tableInfo.splitDirsFile));
   }
+
+  /**
+   * Create unique table directory names that will be associated with split values. Then write these
+   * to the file system for later use during this FATE operation.
+   */
+  private void createTableDirectoriesInfo(Master master, String baseDir) throws IOException {
+    SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo.splitFile),
+        true);
+    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(splits.size(), baseDir);
+    writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
+  }
+
+  /**
+   * Create a set of unique table directories. These will be associated with splits in a follow-on
+   * FATE step.
+   */
+  private SortedSet<Text> createTabletDirectoriesSet(int num, String baseDir) {
+    String tabletDir;
+    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    SortedSet<Text> splitDirs = new TreeSet<>();
+    for (int i = 0; i < num; i++) {
+      tabletDir = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
+      splitDirs.add(new Text(baseDir + "/" + new Path(tabletDir).getName()));
+    }
+    return splitDirs;
+  }
+
+  /**
+   * Write the SortedSet of Tablet Directory names to the file system for use in the next phase of
+   * the FATE operation.
+   */
+  private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
+      throws IOException {
+    FileSystem fs = master.getFileSystem().getDefaultVolume().getFileSystem();
+    if (fs.exists(new Path(tableInfo.splitDirsFile)))
+      fs.delete(new Path(tableInfo.splitDirsFile), true);
+    try (FSDataOutputStream stream = master.getOutputStream(tableInfo.splitDirsFile)) {
+      for (Text dir : dirs)
+        stream.writeBytes(dir + "\n");
+    }
+  }
+
 }

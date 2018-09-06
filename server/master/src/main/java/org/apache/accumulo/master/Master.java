@@ -148,6 +148,9 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -167,7 +170,7 @@ import com.google.common.collect.Iterables;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
- *
+ * <p>
  * The master will also coordinate log recoveries and reports general status.
  */
 public class Master
@@ -1813,4 +1816,15 @@ public class Master
   public boolean isActiveService() {
     return masterInitialized.get();
   }
+
+  public FSDataOutputStream getOutputStream(final String path) throws IOException {
+    FileSystem fileSystem = fs.getDefaultVolume().getFileSystem();
+    return fileSystem.create(new Path(path));
+  }
+
+  public FSDataInputStream getInputStream(final String path) throws IOException {
+    FileSystem fileSystem = fs.getDefaultVolume().getFileSystem();
+    return fileSystem.open(new Path(path));
+  }
+
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.file.Files.newBufferedReader;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -31,9 +33,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.security.SecureRandom;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -42,9 +48,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -67,6 +78,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -107,7 +119,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     StringBuilder sb = new StringBuilder();
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(int b) {
       sb.append((char) (0xff & b));
     }
 
@@ -127,7 +139,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     private int offset = 0;
 
     @Override
-    public int read() throws IOException {
+    public int read() {
       if (offset == source.length())
         return '\n';
       else
@@ -281,9 +293,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.startMiniClusterWithConfig(new ShellServerITConfigCallback());
     rootPath = getMiniClusterDir().getAbsolutePath();
 
+    String userDir = System.getProperty("user.dir");
+
     // history file is updated in $HOME
     System.setProperty("HOME", rootPath);
-    System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
+    System.setProperty("hadoop.tmp.dir", userDir + "/target/hadoop-tmp");
 
     traceProcess = getCluster().exec(TraceServer.class);
 
@@ -2283,5 +2297,473 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table + "-i", false);
     ts.exec("createtable " + table + "-i ", false);
     ts.exec("deletetable -f " + tmpTable);
+  }
+
+  /**
+   * Verify that table can be created in offline status and then be brought online.
+   */
+  @Test
+  public void testCreateTableOffline() throws IOException {
+    final String tableName = name.getMethodName() + "_table";
+    ts.exec("createtable " + tableName + " -o", true);
+    String output = ts.exec("tables");
+    Assert.assertTrue(output.contains(tableName));
+    output = ts.exec("scan -t " + tableName, false, "is offline", true);
+    Assert.assertTrue(output.contains("TableOfflineException"));
+    ts.exec("table " + tableName, true);
+    ts.exec("online", true);
+    ts.exec("scan", true);
+    ts.exec("deletetable -f " + tableName, true);
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and un-encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile1()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 1000, 12, false, false, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and un-encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile2()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 300, 12, false, false, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile3()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 23, false, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and un-encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile4()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 31, false, false, true, true, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and un-encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile5()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 32, false, false, true, false, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and un-encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile6()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, false, false, false, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile7()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, false, false, true, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits file will be empty.
+   */
+  @Test(expected = org.apache.accumulo.core.client.TableNotFoundException.class)
+  public void testCreateTableWithEmptySplitFile()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 0, 0, false, false, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, false);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table that used splits from another table.
+   */
+  @Test
+  public void testCreateTableWithCopySplitsFromOtherTable()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    // create a table and add some splits
+    final String tableName1 = name.getMethodName() + "_table1";
+    ts.exec("createtable " + tableName1, true);
+    String output = ts.exec("tables", true);
+    Assert.assertTrue(output.contains(tableName1));
+    ts.exec("table " + tableName1, true);
+    // add splits to this table using the addsplits command.
+    List<Text> splits = new ArrayList<>();
+    splits.add(new Text("ccccc"));
+    splits.add(new Text("fffff"));
+    splits.add(new Text("mmmmm"));
+    splits.add(new Text("sssss"));
+    ts.exec("addsplits " + splits.get(0) + " " + splits.get(1) + " " + splits.get(2) + " "
+        + splits.get(3), true);
+    // Now create a table that will used the previous tables splits and create them at table
+    // creation
+    final String tableName2 = name.getMethodName() + "_table2";
+    ts.exec("createtable " + tableName2 + " --copy-splits " + tableName1, true);
+    ts.exec("table " + tableName1, true);
+    String tablesOutput = ts.exec("tables", true);
+    Assert.assertTrue(tablesOutput.contains(tableName2));
+    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName2);
+    assertEquals(new TreeSet<>(splits), new TreeSet<>(createdSplits));
+    ts.exec("deletetable -f " + tableName1, true);
+    ts.exec("deletetable -f " + tableName2, true);
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile1()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 200, 12, true, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile2()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 300, 12, true, true, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile3()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 23, true, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile4()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 31, true, true, true, true, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile5()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 32, true, true, true, false, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile6()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, true, true, false, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile7()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = null;
+    try {
+      splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+      generateSplitsFile(splitsFile, 100, 12, true, true, true, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      final String tableName = name.getMethodName() + "_table";
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  private SortedSet<Text> readSplitsFromFile(final String splitsFile, boolean decode)
+      throws IOException {
+    SortedSet<Text> splits = new TreeSet<>();
+    try (BufferedReader reader = newBufferedReader(Paths.get(splitsFile))) {
+      String split;
+      while ((split = reader.readLine()) != null) {
+        Text unencodedString = decode(split, decode);
+        if (unencodedString != null)
+          splits.add(unencodedString);
+      }
+    }
+    return splits;
+  }
+
+  private void generateSplitsFile(final String splitsFile, final int numItems, final int len,
+      final boolean binarySplits, final boolean encoded, final boolean sort,
+      final boolean addBlankLine, final boolean repeat) throws IOException {
+
+    java.nio.file.Path splitsPath = java.nio.file.Paths.get(splitsFile);
+    int insertAt = (len % 2 == 0) ? len / 2 : (len + 1) / 2;
+    Collection<Text> sortedSplits = null;
+    Collection<Text> randomSplits = null;
+
+    if (binarySplits)
+      randomSplits = generateBinarySplits(numItems, len);
+    else
+      randomSplits = generateNonBinarySplits(numItems, len);
+
+    if (sort)
+      sortedSplits = new TreeSet<>(randomSplits);
+
+    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, Charset.forName("UTF-8"))) {
+      int cnt = 0;
+      Collection<Text> splits;
+      if (sort)
+        splits = sortedSplits;
+      else
+        splits = randomSplits;
+
+      for (Text text : splits) {
+        if (addBlankLine && cnt++ == insertAt)
+          writer.write('\n');
+        writer.write(encode(text, encoded) + '\n');
+        if (repeat)
+          writer.write(encode(text, encoded) + '\n');
+      }
+    }
+  }
+
+  private Collection<Text> generateNonBinarySplits(final int numItems, final int len) {
+    Set<Text> splits = new HashSet<>();
+    for (int i = 0; i < numItems; i++) {
+      splits.add(getRandomText(len));
+    }
+    return splits;
+  }
+
+  private Collection<Text> generateBinarySplits(final int numItems, final int len) {
+    Set<Text> splits = new HashSet<>();
+    Random rand = new Random();
+    for (int i = 0; i < numItems; i++) {
+      byte[] split = new byte[len];
+      rand.nextBytes(split);
+      splits.add(new Text(split));
+    }
+    return splits;
+  }
+
+  private Text getRandomText(final int len) {
+    int desiredLen = len;
+    if (len > 32)
+      desiredLen = 32;
+    return new Text(
+        String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1));
+  }
+
+  private static String encode(final Text text, final boolean encode) {
+    if (StringUtils.isBlank(text.toString()))
+      return null;
+    return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : text.toString();
+  }
+
+  private Text decode(final String text, final boolean decode) {
+    if (StringUtils.isBlank(text))
+      return null;
+    return decode ? new Text(Base64.getDecoder().decode(text)) : new Text(text);
   }
 }

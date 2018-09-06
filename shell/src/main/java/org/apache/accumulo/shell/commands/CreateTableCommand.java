@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -63,11 +62,12 @@ public class CreateTableCommand extends Command {
   private Option createTableOptInitProp;
   private Option createTableOptLocalityProps;
   private Option createTableOptIteratorProps;
+  private Option createTableOptOffline;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, IOException, ClassNotFoundException {
+      TableNotFoundException, IOException {
 
     final String testTableName = cl.getArgs()[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -82,18 +82,22 @@ public class CreateTableCommand extends Command {
     if (shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableExistsException(null, tableName, null);
     }
-    final SortedSet<Text> partitions = new TreeSet<>();
+
     final boolean decode = cl.hasOption(base64Opt.getOpt());
 
+    // Prior to 2.0, if splits were provided at table creation the table was created separately
+    // and then the addSplits method was called. Starting with 2.0, the splits will be
+    // stored on the file system and created before the table is brought online.
     if (cl.hasOption(createTableOptSplit.getOpt())) {
-      partitions
-          .addAll(ShellUtil.scanFile(cl.getOptionValue(createTableOptSplit.getOpt()), decode));
+      ntc = ntc.withSplits(new TreeSet<>(
+          ShellUtil.scanFile(cl.getOptionValue(createTableOptSplit.getOpt()), decode)));
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
       if (!shellState.getConnector().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
-      partitions.addAll(shellState.getConnector().tableOperations().listSplits(oldTable));
+      ntc = ntc.withSplits(
+          new TreeSet<>(shellState.getConnector().tableOperations().listSplits(oldTable)));
     }
 
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
@@ -120,12 +124,14 @@ public class CreateTableCommand extends Command {
       ntc = setLocalityForNewTable(cl, ntc);
     }
 
-    // create table
+    // set offline table creation property
+    if (cl.hasOption(createTableOptOffline.getOpt())) {
+      ntc = ntc.createOffline();
+    }
+
+    // create table.
     shellState.getConnector().tableOperations().create(tableName,
         ntc.setTimeType(timeType).setProperties(props));
-    if (partitions.size() > 0) {
-      shellState.getConnector().tableOperations().addSplits(tableName, partitions);
-    }
 
     shellState.setTableName(tableName); // switch shell to new table context
 
@@ -317,6 +323,8 @@ public class CreateTableCommand extends Command {
     createTableOptIteratorProps.setArgName("profile[:[all]|[scan[,]][minc[,]][majc]]");
     createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);
 
+    createTableOptOffline = new Option("o", "offline", false, "create table in offline mode");
+
     // Splits and CopySplits are put in an optionsgroup to make them
     // mutually exclusive
     final OptionGroup splitOrCopySplit = new OptionGroup();
@@ -340,6 +348,7 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptInitProp);
     o.addOption(createTableOptLocalityProps);
     o.addOption(createTableOptIteratorProps);
+    o.addOption(createTableOptOffline);
 
     return o;
   }

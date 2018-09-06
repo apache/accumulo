@@ -810,18 +810,7 @@ public enum Property {
           + " summarizer configured should have a unique id, this id can be anything."
           + " To add a summarizer set "
           + "`table.summarizer.<unique id>=<summarizer class name>.` If the summarizer has options"
-          + ", then for each option set" + " `table.summarizer.<unique id>.opt.<key>=<value>`."),
-  @Experimental
-  TABLE_DELETE_BEHAVIOR("table.delete.behavior",
-      DeletingIterator.Behavior.PROCESS.name().toLowerCase(), PropertyType.STRING,
-      "This determines what action to take when a delete marker is seen."
-          + " Valid values are `process` and `fail` with `process` being the default.  When set to "
-          + "`process`, deletes will supress data.  When set to `fail`, any deletes seen will cause"
-          + " an exception. The purpose of `fail` is to support tables that never delete data and"
-          + " need fast seeks within the timestamp range of a column. When setting this to fail, "
-          + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
-          + "constraint."),
-
+          + ", then for each option set `table.summarizer.<unique id>.opt.<key>=<value>`."),
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,

@@ -16,16 +16,22 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.IOException;
+
+import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.server.tables.TableManager;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 class FinishCreateTable extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   public FinishCreateTable(TableInfo ti) {
     this.tableInfo = ti;
@@ -38,17 +44,29 @@ class FinishCreateTable extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
-    env.getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+
+    if (tableInfo.initialTableState == InitialTableState.OFFLINE) {
+      TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.OFFLINE);
+    } else {
+      TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    }
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(env, tableInfo.tableId, tid, true);
 
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
 
-    LoggerFactory.getLogger(FinishCreateTable.class)
-        .debug("Created table " + tableInfo.tableId + " " + tableInfo.tableName);
-
+    if (tableInfo.initialSplitSize > 0) {
+      cleanupSplitFiles(env);
+    }
     return null;
+  }
+
+  private void cleanupSplitFiles(Master env) throws IOException {
+    Volume defaultVolume = env.getFileSystem().getDefaultVolume();
+    FileSystem fs = defaultVolume.getFileSystem();
+    fs.delete(new Path(tableInfo.splitFile), true);
+    fs.delete(new Path(tableInfo.splitDirsFile), true);
   }
 
   @Override
